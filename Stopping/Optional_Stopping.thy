@@ -48,9 +48,9 @@ theorem expected_stopped_value_mono:
   shows "(\<integral>\<omega>. stopped_value X \<tau> \<omega> \<partial>M) \<le> (\<integral>\<omega>. stopped_value X \<pi> \<omega> \<partial>M)"
 proof -
   from sub interpret S: submartingale_linorder M F 0 X .
-  \<comment> \<open>Integrability of each X i\<close>
+  \<comment> \<open>Integrability of each @{term "X i"}\<close>
   have int_X: "\<And>i. integrable M (X i)" using S.integrable by simp
-  \<comment> \<open>Bound for \<tau>\<close>
+  \<comment> \<open>Bound for @{term \<tau>}\<close>
   have \<tau>_bnd: "\<And>\<omega>. \<omega> \<in> space M \<Longrightarrow> \<tau> \<omega> \<le> N"
     using le bnd by (meson order_trans)
   \<comment> \<open>Integrability of stopped values\<close>
@@ -61,7 +61,7 @@ proof -
   \<comment> \<open>Suffices to show the difference is non-negative\<close>
   have "0 \<le> (\<integral>\<omega>. stopped_value X \<pi> \<omega> \<partial>M) - (\<integral>\<omega>. stopped_value X \<tau> \<omega> \<partial>M)"
   proof -
-    \<comment> \<open>Rewrite using integral_diff\<close>
+    \<comment> \<open>Rewrite using @{thm Bochner_Integration.integral_diff}\<close>
     have "(\<integral>\<omega>. stopped_value X \<pi> \<omega> \<partial>M) - (\<integral>\<omega>. stopped_value X \<tau> \<omega> \<partial>M) =
       (\<integral>\<omega>. stopped_value X \<pi> \<omega> - stopped_value X \<tau> \<omega> \<partial>M)"
       by (rule Bochner_Integration.integral_diff[OF int_\<pi> int_\<tau>, symmetric])
@@ -95,7 +95,7 @@ proof -
         (X (Suc i) \<omega> - X i \<omega>))"
         by (simp add: A_meas int_X integrable_real_mult_indicator mult.commute)
     qed
-    \<comment> \<open>Each summand is non-negative via set_integral_le\<close>
+    \<comment> \<open>Each summand is non-negative via @{text set_integral_le}\<close>
     also have "\<dots> \<ge> 0"
     proof (rule sum_nonneg)
       fix i assume "i \<in> {..N}"
@@ -104,7 +104,7 @@ proof -
         by (rule indicator_set_in_F[OF \<tau>_st \<pi>_st])
       have A_meas: "?A \<in> sets M"
         using A_Fi sets_F_subset by blast
-      \<comment> \<open>The summand equals $\<integral>_A X(i+1) - \<integral>_A X i$\<close>
+      \<comment> \<open>The summand equals @{text "\<integral>\<^sub>A X(Suc i) - \<integral>\<^sub>A X i"}\<close>
       have int_Af: "integrable M (\<lambda>x. indicat_real ?A x * X (Suc i) x)"
         using integrable_mult_indicator[OF A_meas int_X[of "Suc i"]]
         by (simp add: scaleR_conv_of_real)
@@ -124,7 +124,7 @@ proof -
           unfolding set_lebesgue_integral_def by (simp add: scaleR_conv_of_real)
         finally show ?thesis .
       qed
-      \<comment> \<open>Apply submartingale set_integral_le\<close>
+      \<comment> \<open>Apply the submartingale @{text set_integral_le} property\<close>
       have "set_lebesgue_integral M ?A (X i) \<le> set_lebesgue_integral M ?A (X (Suc i))"
         by (rule S.set_integral_le[OF A_Fi]) simp_all
       then show "0 \<le> (\<integral>\<omega>. indicat_real ?A \<omega> * (X (Suc i) \<omega> - X i \<omega>) \<partial>M)"
@@ -235,9 +235,9 @@ text \<open>The stopped process of a submartingale with respect to a stopping ti
   This corresponds to \<^verbatim>\<open>Submartingale.stoppedProcess\<close> in Mathlib.\<close>
 
 text \<open>We first show the stopped process is adapted. The proof proceeds by induction:
-  @{text "X\<^sup>\<tau> 0 = X 0"} is trivially @{text "F 0"}-measurable, and
-  @{text "X\<^sup>\<tau> (Suc n) = if \<tau> \<le> n then X\<^sup>\<tau> n else X (Suc n)"} is @{text "F (Suc n)"}-measurable
-  by the induction hypothesis, adaptedness of @{text X}, and the stopping time property.\<close>
+  @{text "X\<^sup>\<tau> 0 = X 0"} is trivially @{term "F 0"}-measurable, and
+  @{text "X\<^sup>\<tau> (Suc n) = if \<tau> \<le> n then X\<^sup>\<tau> n else X (Suc n)"} is @{term "F (Suc n)"}-measurable
+  by the induction hypothesis, adaptedness of @{term X}, and the stopping time property.\<close>
 
 lemma adapted_stopped_process:
   fixes X :: "nat \<Rightarrow> 'a \<Rightarrow> real"
@@ -256,23 +256,23 @@ proof (rule adapted_process.intro[OF filtered_measure_axioms])
         using adapted_process.adapted[OF adapted, of 0] by simp
     next
       case (Suc n)
-      \<comment> \<open>The stopped process at Suc n equals a piecewise function on space M\<close>
+      \<comment> \<open>The stopped process at @{term "Suc n"} equals a piecewise function on @{term "space M"}\<close>
       have eq: "\<And>\<omega>. stopped_process X \<tau> (Suc n) \<omega> =
         (if \<tau> \<omega> \<le> n then stopped_process X \<tau> n \<omega> else X (Suc n) \<omega>)"
         unfolding stopped_process_def by (auto simp: min_def)
-      \<comment> \<open>F n is a sub-sigma-algebra of F (Suc n)\<close>
+      \<comment> \<open>@{term "F n"} is a sub-sigma-algebra of @{term "F (Suc n)"}\<close>
       have subalg: "subalgebra (F (Suc n)) (F n)"
         unfolding subalgebra_def using space_F sets_F_mono[of n "Suc n"] by auto
-      \<comment> \<open>The induction hypothesis gives F n-measurability, lift to F (Suc n)\<close>
+      \<comment> \<open>The induction hypothesis gives @{term "F n"}-measurability, lift to @{term "F (Suc n)"}\<close>
       have meas_n: "stopped_process X \<tau> n \<in> borel_measurable (F (Suc n))"
         by (rule measurable_from_subalg[OF subalg Suc.IH])
-      \<comment> \<open>X (Suc n) is F (Suc n)-measurable by adaptedness\<close>
+      \<comment> \<open>@{term "X (Suc n)"} is @{term "F (Suc n)"}-measurable by adaptedness\<close>
       have meas_Sn: "X (Suc n) \<in> borel_measurable (F (Suc n))"
         using adapted_process.adapted[OF adapted] by simp
-      \<comment> \<open>The set {\<tau> \<le> n} is in F (Suc n)\<close>
+      \<comment> \<open>The set @{term "{\<omega>. \<tau> \<omega> \<le> n}"} is in @{term "sets (F (Suc n))"}\<close>
       have set_Sn: "{\<omega> \<in> space (F (Suc n)). \<tau> \<omega> \<le> n} \<in> sets (F (Suc n))"
         using \<tau>_st order_less_imp_le predE stopping_time_measurable_le by blast
-      \<comment> \<open>The piecewise function is F (Suc n)-measurable\<close>
+      \<comment> \<open>The piecewise function is @{term "F (Suc n)"}-measurable\<close>
       let ?A = "{\<omega> \<in> space (F (Suc n)). \<tau> \<omega> \<le> n}"
       have A_sets: "?A \<in> sets (F (Suc n))" by (rule set_Sn)
       have A_sub: "?A \<subseteq> space (F (Suc n))" using sets.sets_into_space[OF A_sets] .
@@ -284,7 +284,7 @@ proof (rule adapted_process.intro[OF filtered_measure_axioms])
         show "?A \<inter> space (F (Suc n)) \<in> sets (F (Suc n))"
           using set_Sn by blast
       qed
-      \<comment> \<open>Transfer via measurable_cong: the stopped process agrees with the piecewise function on space\<close>
+      \<comment> \<open>Transfer via @{thm measurable_cong}: the stopped process agrees with the piecewise function on @{term "space (F (Suc n))"}\<close>
       have eq_on_space: "\<And>\<omega>. \<omega> \<in> space (F (Suc n)) \<Longrightarrow>
         stopped_process X \<tau> (Suc n) \<omega> =
         (if \<omega> \<in> ?A then stopped_process X \<tau> n \<omega> else X (Suc n) \<omega>)"
@@ -320,20 +320,20 @@ proof -
     assume \<sigma>_st: "stopping_time \<sigma>" and \<rho>_st: "stopping_time \<rho>"
       and le: "\<And>\<omega>. \<omega> \<in> space M \<Longrightarrow> \<sigma> \<omega> \<le> \<rho> \<omega>"
       and bnd: "\<And>\<omega>. \<omega> \<in> space M \<Longrightarrow> \<rho> \<omega> \<le> N"
-    \<comment> \<open>stopped_value of the stopped process equals stopped_value of X with min\<close>
+    \<comment> \<open>@{const stopped_value} of the stopped process equals @{const stopped_value} of @{term X} with @{const min}\<close>
     have sv_\<sigma>: "stopped_value (stopped_process X \<tau>) \<sigma> = stopped_value X (\<lambda>\<omega>. min (\<sigma> \<omega>) (\<tau> \<omega>))"
       unfolding stopped_value_def stopped_process_def by simp
     have sv_\<rho>: "stopped_value (stopped_process X \<tau>) \<rho> = stopped_value X (\<lambda>\<omega>. min (\<rho> \<omega>) (\<tau> \<omega>))"
       unfolding stopped_value_def stopped_process_def by simp
-    \<comment> \<open>min \<sigma> \<tau> and min \<rho> \<tau> are stopping times\<close>
+    \<comment> \<open>@{term "\<lambda>\<omega>. min (\<sigma> \<omega>) (\<tau> \<omega>)"} and @{term "\<lambda>\<omega>. min (\<rho> \<omega>) (\<tau> \<omega>)"} are stopping times\<close>
     have st_\<sigma>': "stopping_time (\<lambda>\<omega>. min (\<sigma> \<omega>) (\<tau> \<omega>))"
       by (intro stopping_time_min \<sigma>_st \<tau>_st)
     have st_\<rho>': "stopping_time (\<lambda>\<omega>. min (\<rho> \<omega>) (\<tau> \<omega>))"
       by (intro stopping_time_min \<rho>_st \<tau>_st)
-    \<comment> \<open>min \<sigma> \<tau> \<le> min \<rho> \<tau>\<close>
+    \<comment> \<open>@{term "min (\<sigma> \<omega>) (\<tau> \<omega>) \<le> min (\<rho> \<omega>) (\<tau> \<omega>)"}\<close>
     have le': "\<And>\<omega>. \<omega> \<in> space M \<Longrightarrow> min (\<sigma> \<omega>) (\<tau> \<omega>) \<le> min (\<rho> \<omega>) (\<tau> \<omega>)"
       using le by (simp add: min_le_iff_disj)
-    \<comment> \<open>min \<rho> \<tau> \<le> N\<close>
+    \<comment> \<open>@{term "min (\<rho> \<omega>) (\<tau> \<omega>)"} is bounded by @{term N}\<close>
     have bnd': "\<And>\<omega>. \<omega> \<in> space M \<Longrightarrow> min (\<rho> \<omega>) (\<tau> \<omega>) \<le> N"
       using bnd min_le_iff_disj by blast
     \<comment> \<open>Apply the forward direction\<close>

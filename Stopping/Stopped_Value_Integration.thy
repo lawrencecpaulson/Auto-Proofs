@@ -4,7 +4,7 @@ begin
 
 text \<open>Integrability of stopped values and stopped processes, and the telescoping identity
   for differences of stopped values. These results bridge the gap between the existing
-  AFP theories (Martingales, Doob\_Convergence) and the optional stopping theorem.\<close>
+  AFP theories (Martingales, \<^verbatim>\<open>Doob_Convergence\<close>) and the optional stopping theorem.\<close>
 
 context nat_sigma_finite_filtered_measure
 begin
@@ -35,13 +35,9 @@ proof -
   have "stopped_value X \<tau> \<omega> = X (\<tau> \<omega>) \<omega>"
     by (simp add: stopped_value_def)
   also have "\<dots> = 1 *\<^sub>R X (\<tau> \<omega>) \<omega>" by (metis (full_types) scale_one)
-  also have "\<dots> = indicator {\<omega> \<in> space M. \<tau> \<omega> = \<tau> \<omega>} \<omega> *\<^sub>R X (\<tau> \<omega>) \<omega>"
-    using ind_\<tau> by simp
-  also have "\<dots> = indicator {\<omega> \<in> space M. \<tau> \<omega> = \<tau> \<omega>} \<omega> *\<^sub>R X (\<tau> \<omega>) \<omega> + 0"
-    by simp
   also have "\<dots> = indicator {\<omega> \<in> space M. \<tau> \<omega> = \<tau> \<omega>} \<omega> *\<^sub>R X (\<tau> \<omega>) \<omega> +
     (\<Sum>i \<in> {..N} - {\<tau> \<omega>}. indicator {\<omega> \<in> space M. \<tau> \<omega> = i} \<omega> *\<^sub>R X i \<omega>)"
-    using sum_rest by simp
+    using ind_\<tau> sum_rest by simp
   also have "\<dots> = (\<Sum>i\<le>N. indicator {\<omega> \<in> space M. \<tau> \<omega> = i} \<omega> *\<^sub>R X i \<omega>)"
     using sum_split by simp
   finally show ?thesis .
@@ -50,7 +46,7 @@ qed
 subsection \<open>Telescoping identity for stopped values\<close>
 
 text \<open>The difference of stopped values can be expressed as a sum of indicator-weighted increments.
-  This corresponds to @{text stoppedValue_sub_eq_sum'} in Mathlib.\<close>
+  This corresponds to \<^verbatim>\<open>stoppedValue_sub_eq_sum'\<close> in Mathlib.\<close>
 
 lemma stopped_value_sub_eq_sum:
   fixes X :: "nat \<Rightarrow> 'a \<Rightarrow> real"
@@ -81,7 +77,7 @@ proof -
 qed
 
 text \<open>If each @{term "X i"} is integrable and the stopping time is bounded, then the stopped value
-  is integrable. This corresponds to @{text integrable_stoppedValue} in Mathlib.\<close>
+  is integrable. This corresponds to \<^verbatim>\<open>integrable_stoppedValue\<close> in Mathlib.\<close>
 
 lemma integrable_stopped_value:
   fixes X :: "nat \<Rightarrow> 'a \<Rightarrow> real"
@@ -95,14 +91,12 @@ proof -
     fix i :: nat
     have "Measurable.pred (F i) (\<lambda>\<omega>. \<tau> \<omega> = i)"
       by (rule stopping_time_measurable_eq[OF \<tau>_st]) simp_all
-    then have "{\<omega> \<in> space (F i). \<tau> \<omega> = i} \<in> sets (F i)"
-      by (rule Measurable.predE)
     then have "{\<omega> \<in> space M. \<tau> \<omega> = i} \<in> sets (F i)"
-      using space_F[of i] by simp
+      using space_F[of i] by (metis bot_nat_0.extremum predE)
     then show "{\<omega> \<in> space M. \<tau> \<omega> = i} \<in> sets M"
       using sets_F_subset[of i] by blast
   qed
-  \<comment> \<open>Each summand is integrable via integrable_bound\<close>
+  \<comment> \<open>Each summand is integrable via @{thm Bochner_Integration.integrable_bound}\<close>
   have int_summand: "\<And>i. integrable M (\<lambda>\<omega>. indicat_real {\<omega> \<in> space M. \<tau> \<omega> = i} \<omega> * X i \<omega>)"
   proof -
     fix i
@@ -123,7 +117,7 @@ proof -
   have eq_space: "\<And>\<omega>. \<omega> \<in> space M \<Longrightarrow>
     stopped_value X \<tau> \<omega> = (\<Sum>i\<le>N. indicat_real {\<omega> \<in> space M. \<tau> \<omega> = i} \<omega> * X i \<omega>)"
     by (simp add: stopped_value_eq_sum[OF \<tau>_st \<tau>_bnd])
-  \<comment> \<open>Measurability via cong with the sum\<close>
+  \<comment> \<open>Measurability via @{thm measurable_cong} with the sum\<close>
   have meas_sum: "(\<lambda>\<omega>. \<Sum>i\<le>N. indicat_real {\<omega> \<in> space M. \<tau> \<omega> = i} \<omega> * X i \<omega>) \<in> borel_measurable M"
     using int_sum by (rule borel_measurable_integrable)
   have meas_sv: "stopped_value X \<tau> \<in> borel_measurable M"

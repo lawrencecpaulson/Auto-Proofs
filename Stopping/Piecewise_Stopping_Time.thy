@@ -12,7 +12,7 @@ subsection \<open>Piecewise constant stopping times\<close>
 
 text \<open>Given @{term "i \<le> j"} and an @{term "F i"}-measurable set @{term S}, the function that
   returns @{term i} on @{term S} and @{term j} on its complement is a stopping time.
-  This corresponds to @{text isStoppingTime_piecewise_const} in Mathlib.\<close>
+  This corresponds to \<^verbatim>\<open>isStoppingTime_piecewise_const\<close> in Mathlib.\<close>
 
 lemma stopping_time_piecewise_const:
   assumes "i \<le> j" "S \<in> sets (F i)"
@@ -54,7 +54,7 @@ next
 qed
 
 text \<open>The stopped value at a piecewise constant stopping time decomposes into a piecewise function.
-  This corresponds to @{text stoppedValue_piecewise_const} in Mathlib.\<close>
+  This corresponds to \<^verbatim>\<open>stoppedValue_piecewise_const\<close> in Mathlib.\<close>
 
 lemma stopped_value_piecewise_const:
   assumes "S \<subseteq> space M"
@@ -64,7 +64,7 @@ lemma stopped_value_piecewise_const:
 subsection \<open>Integration over piecewise functions\<close>
 
 text \<open>The integral of a piecewise function splits into integrals over the two pieces.
-  This corresponds to @{text integral_piecewise} in Mathlib.\<close>
+  This corresponds to \<^verbatim>\<open>integral_piecewise\<close> in Mathlib.\<close>
 
 lemma piecewise_eq_indicator_sum:
   fixes f g :: "'a \<Rightarrow> real"
