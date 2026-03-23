@@ -587,9 +587,9 @@ next
           then have "Sup k = v" "max (Inf k) c = c" "max u c = c"
             using kuv uv by (simp_all add: interval_bounds_real)
           \<comment> \<open>But v < c, so Sup k = v and max(Inf k, c) = c. The term is f(v) - f(c), not zero!\<close>
+          then show ?thesis
           sorry
         qed
-        sorry
       qed
     qed
   qed
@@ -903,6 +903,8 @@ proof (intro exI allI impI)
     have ab: "a \<le> b"
     proof -
       from div_d obtain k where "k \<in> d" "k \<subseteq> {a..b}" "k \<noteq> {}"
+        using Union_empty division_ofD(2,3,6) ex_in_conv
+apply (auto simp: )
         by (metis Union_empty division_ofD(2,3,6) ex_in_conv)
       then show ?thesis by auto
     qed
@@ -919,10 +921,50 @@ proof (intro exI allI impI)
 qed
 
 lemma increasing_vector_variation:
-  assumes "\<And>x y. x \<in> {a..b} \<Longrightarrow> y \<in> {a..b} \<Longrightarrow> x \<le> y \<Longrightarrow> f x \<le> f y"
-    and "a \<le> b"
+  fixes f :: "real \<Rightarrow> real"
+  assumes mono: "\<And>x y. x \<in> {a..b} \<Longrightarrow> y \<in> {a..b} \<Longrightarrow> x \<le> y \<Longrightarrow> f x \<le> f y"
+    and ab: "a \<le> b"
   shows "vector_variation {a..b} f = norm (f b - f a)"
-  sorry
+proof (rule antisym)
+  have bv: "has_bounded_variation_on f {a..b}"
+    using increasing_bounded_variation[OF mono] .
+  show "norm (f b - f a) \<le> vector_variation {a..b} f"
+    using vector_variation_ge_norm_function[OF bv] ab by auto
+  have vv_eq: "vector_variation {a..b} f =
+    Sup {(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) | d. d division_of {a..b}}"
+    using vector_variation_on_interval[OF bv] .
+  have fa_le_fb: "f a \<le> f b" using mono ab by auto
+  show "vector_variation {a..b} f \<le> norm (f b - f a)"
+    unfolding vv_eq
+  proof (rule cSup_least)
+    obtain p where "p division_of cbox a b" using elementary_interval by blast
+    then show "{(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) | d. d division_of {a..b}} \<noteq> {}"
+      by (auto simp: cbox_interval)
+  next
+    fix s assume "s \<in> {(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) | d. d division_of {a..b}}"
+    then obtain d where div_d: "d division_of {a..b}"
+      and s_eq: "s = (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k)))" by auto
+    have "(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) = (\<Sum>k\<in>d. (f (Sup k) - f (Inf k)))"
+    proof (rule sum.cong[OF refl])
+      fix k assume kd: "k \<in> d"
+      from division_ofD(2,4)[OF div_d kd] obtain l u where
+        k_eq: "k = cbox l u" and "k \<noteq> {}"
+        by (metis div_d division_ofD(3) kd)
+      then have lu: "l \<le> u" by force
+      have "k \<subseteq> {a..b}" using division_ofD(2)[OF div_d kd] by auto
+      then have "l \<in> {a..b}" "u \<in> {a..b}" using lu k_eq by (auto simp: cbox_interval)
+      then have "f l \<le> f u" using mono lu by auto
+      have "Inf k = l" "Sup k = u" using lu k_eq by (auto simp: cbox_interval)
+      then show "norm (f (Sup k) - f (Inf k)) = f (Sup k) - f (Inf k)"
+        using \<open>f l \<le> f u\<close> by auto
+    qed
+    also have "\<dots> = f b - f a"
+      using division_telescope_eq[OF div_d ab] .
+    also have "\<dots> = norm (f b - f a)"
+      using fa_le_fb by auto
+    finally show "s \<le> norm (f b - f a)" using s_eq by simp
+  qed
+qed
 
 subsection \<open>Continuity of vector variation\<close>
 
