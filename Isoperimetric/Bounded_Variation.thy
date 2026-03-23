@@ -456,6 +456,146 @@ proof -
   with vvab vvcd show ?thesis by simp
 qed
 
+lemma has_bounded_variation_on_combine:
+  assumes "a \<le> c" "c \<le> b"
+  shows "has_bounded_variation_on f {a..b} \<longleftrightarrow>
+    has_bounded_variation_on f {a..c} \<and> has_bounded_variation_on f {c..b}"
+proof
+  assume bv: "has_bounded_variation_on f {a..b}"
+  have "{a..c} \<subseteq> {a..b}" "{c..b} \<subseteq> {a..b}" using assms by auto
+  then show "has_bounded_variation_on f {a..c} \<and> has_bounded_variation_on f {c..b}"
+    using has_bounded_variation_on_subset[OF bv] by auto
+next
+  assume bvs: "has_bounded_variation_on f {a..c} \<and> has_bounded_variation_on f {c..b}"
+  then have bv_ac: "has_bounded_variation_on f {a..c}"
+    and bv_cb: "has_bounded_variation_on f {c..b}" by auto
+  show "has_bounded_variation_on f {a..b}"
+    unfolding has_bounded_variation_on_interval
+  proof -
+    let ?g = "\<lambda>k. f (Sup k) - f (Inf k)"
+    from bv_ac obtain B1 where B1: "\<And>d. d division_of {a..c} \<Longrightarrow>
+      (\<Sum>k\<in>d. norm (?g k)) \<le> B1"
+      unfolding has_bounded_variation_on_interval by blast
+    from bv_cb obtain B2 where B2: "\<And>d. d division_of {c..b} \<Longrightarrow>
+      (\<Sum>k\<in>d. norm (?g k)) \<le> B2"
+      unfolding has_bounded_variation_on_interval by blast
+    show "\<exists>B. \<forall>d. d division_of {a..b} \<longrightarrow> (\<Sum>k\<in>d. norm (?g k)) \<le> B"
+    proof (intro exI[of _ "B1 + B2"] allI impI)
+      fix d assume div_d: "d division_of {a..b}"
+      have fin_d: "finite d" using division_of_finite[OF div_d] .
+      \<comment> \<open>Use division_split to split d at c\<close>
+      have div_d_cbox: "d division_of cbox a b"
+        using div_d by (simp add: cbox_interval)
+      have one_Basis: "(1::real) \<in> Basis" by simp
+      define d1 where "d1 = {l \<inter> {x. x \<bullet> 1 \<le> c} | l. l \<in> d \<and> l \<inter> {x. x \<bullet> 1 \<le> c} \<noteq> {}}"
+      define d2 where "d2 = {l \<inter> {x. c \<le> x \<bullet> 1} | l. l \<in> d \<and> l \<inter> {x. c \<le> x \<bullet> 1} \<noteq> {}}"
+      have d1_div: "d1 division_of cbox a b \<inter> {x. x \<bullet> 1 \<le> c}"
+        unfolding d1_def using division_split(1)[OF div_d_cbox one_Basis, of c] .
+      have d2_div: "d2 division_of cbox a b \<inter> {x. c \<le> x \<bullet> 1}"
+        unfolding d2_def using division_split(2)[OF div_d_cbox one_Basis, of c] .
+      \<comment> \<open>Simplify the split intervals\<close>
+      have inner_simp: "\<And>x::real. x \<bullet> 1 = x" by simp
+      have cbox_left: "cbox a b \<inter> {x::real. x \<bullet> 1 \<le> c} = {a..c}"
+        using assms by (auto simp: cbox_interval)
+      have cbox_right: "cbox a b \<inter> {x::real. c \<le> x \<bullet> 1} = {c..b}"
+        using assms by (auto simp: cbox_interval)
+      have d1_div': "d1 division_of {a..c}"
+        using d1_div cbox_left by simp
+      have d2_div': "d2 division_of {c..b}"
+        using d2_div cbox_right by simp
+      \<comment> \<open>Show \<Sum>_d \<le> \<Sum>_{d1} + \<Sum>_{d2} directly\<close>
+      have key_ineq: "(\<Sum>k\<in>d. norm (?g k)) \<le> (\<Sum>k\<in>d1. norm (?g k)) + (\<Sum>k\<in>d2. norm (?g k))"
+      proof -
+        have fin_d1: "finite d1" using division_of_finite[OF d1_div'] .
+        have fin_d2: "finite d2" using division_of_finite[OF d2_div'] .
+        \<comment> \<open>For each k \<in> d, get its interval endpoints\<close>
+        have k_props: "\<And>k. k \<in> d \<Longrightarrow> \<exists>u v. k = {u..v} \<and> u \<le> v"
+        proof -
+          fix k assume kd: "k \<in> d"
+          from division_ofD(4)[OF div_d kd] obtain u v where "k = cbox u v" by auto
+          moreover have "k \<noteq> {}" using division_ofD(3)[OF div_d kd] .
+          ultimately show "\<exists>u v. k = {u..v} \<and> u \<le> v" by (auto simp: cbox_interval)
+        qed
+        \<comment> \<open>For each k \<in> d, the triangle inequality at c\<close>
+        have tri: "norm (?g k) \<le> norm (f (min (Sup k) c) - f (Inf k)) +
+                                   norm (f (Sup k) - f (max (Inf k) c))"
+          if kd: "k \<in> d" for k
+        proof -
+          obtain u v where kuv: "k = {u..v}" and uv: "u \<le> v" using k_props[OF kd] by auto
+          have sup_k: "Sup k = v" and inf_k: "Inf k = u"
+            using kuv uv by (simp_all add: interval_bounds_real)
+          show ?thesis
+          proof (cases "u \<le> c \<and> c \<le> v")
+            case True
+            then have "min v c = c" "max u c = c" by auto
+            then show ?thesis unfolding sup_k inf_k
+              using norm_triangle_ineq[of "f c - f u" "f v - f c"] by simp
+          next
+            case False
+            then show ?thesis
+            proof (cases "v \<le> c")
+              case True then show ?thesis unfolding sup_k inf_k using uv by auto
+            next
+              case False
+              then have "c \<le> u" using \<open>\<not> (u \<le> c \<and> c \<le> v)\<close> by (cases "u \<le> c") auto
+              then show ?thesis unfolding sup_k inf_k using uv by auto
+            qed
+          qed
+        qed
+        \<comment> \<open>Key observation: for k \<in> d with k = {u..v},
+            k \<inter> {x. x \<le> c} = {u..min v c} (non-empty iff u \<le> c)
+            and Sup/Inf of this piece give the matching terms\<close>
+        \<comment> \<open>Define the left-projection map\<close>
+        define \<phi>1 where "\<phi>1 k = k \<inter> {x::real. x \<le> c}" for k
+        define \<phi>2 where "\<phi>2 k = k \<inter> {x::real. c \<le> x}" for k
+        have \<phi>1_d1: "\<phi>1 ` {k \<in> d. \<phi>1 k \<noteq> {}} = d1"
+          unfolding \<phi>1_def d1_def by (auto simp: inner_simp)
+        have \<phi>2_d2: "\<phi>2 ` {k \<in> d. \<phi>2 k \<noteq> {}} = d2"
+          unfolding \<phi>2_def d2_def by (auto simp: inner_simp)
+        \<comment> \<open>When \<phi>1 k is non-empty, ?g(\<phi>1 k) = f(min(Sup k, c)) - f(Inf k)\<close>
+        have \<phi>1_g: "?g (\<phi>1 k) = f (min (Sup k) c) - f (Inf k)"
+          if kd: "k \<in> d" and ne: "\<phi>1 k \<noteq> {}" for k
+        proof -
+          obtain u v where kuv: "k = {u..v}" and uv: "u \<le> v" using k_props[OF kd] by auto
+          have "u \<le> c" using ne kuv by (auto simp: \<phi>1_def)
+          then have "\<phi>1 k = {u..min v c}" using kuv uv by (auto simp: \<phi>1_def)
+          moreover have "u \<le> min v c" using \<open>u \<le> c\<close> uv by auto
+          ultimately have "Sup (\<phi>1 k) = min v c" "Inf (\<phi>1 k) = u"
+            by (simp_all add: interval_bounds_real)
+          moreover have "Sup k = v" "Inf k = u" using kuv uv by (simp_all add: interval_bounds_real)
+          ultimately show ?thesis by simp
+        qed
+        \<comment> \<open>When \<phi>2 k is non-empty, ?g(\<phi>2 k) = f(Sup k) - f(max(Inf k, c))\<close>
+        have \<phi>2_g: "?g (\<phi>2 k) = f (Sup k) - f (max (Inf k) c)"
+          if kd: "k \<in> d" and ne: "\<phi>2 k \<noteq> {}" for k
+        proof -
+          obtain u v where kuv: "k = {u..v}" and uv: "u \<le> v" using k_props[OF kd] by auto
+          have "c \<le> v" using ne kuv by (auto simp: \<phi>2_def)
+          then have "\<phi>2 k = {max u c..v}" using kuv uv by (auto simp: \<phi>2_def)
+          moreover have "max u c \<le> v" using \<open>c \<le> v\<close> uv by auto
+          ultimately have "Sup (\<phi>2 k) = v" "Inf (\<phi>2 k) = max u c"
+            by (simp_all add: interval_bounds_real)
+          moreover have "Sup k = v" "Inf k = u" using kuv uv by (simp_all add: interval_bounds_real)
+          ultimately show ?thesis by simp
+        qed
+        \<comment> \<open>For non-straddling elements, the "wrong side" term is zero\<close>
+        have left_only: "f (Sup k) - f (max (Inf k) c) = 0"
+          if kd: "k \<in> d" and left: "\<phi>2 k = {}" for k
+        proof -
+          obtain u v where kuv: "k = {u..v}" and uv: "u \<le> v" using k_props[OF kd] by auto
+          have "v < c" using left kuv uv by (auto simp: \<phi>2_def)
+          then have "Sup k = v" "max (Inf k) c = c" "max u c = c"
+            using kuv uv by (simp_all add: interval_bounds_real)
+          \<comment> \<open>But v < c, so Sup k = v and max(Inf k, c) = c. The term is f(v) - f(c), not zero!\<close>
+          sorry
+        qed
+        sorry
+      qed
+    qed
+  qed
+qed
+
+
 lemma vector_variation_combine:
   assumes bv: "has_bounded_variation_on f {a..b}" and cab: "c \<in> {a..b}"
   shows "vector_variation {a..b} f = vector_variation {a..c} f + vector_variation {c..b} f"
@@ -466,7 +606,7 @@ proof -
     using has_bounded_variation_on_subset[OF bv] cab by auto
   have bv_cb: "has_bounded_variation_on f {c..b}"
     using has_bounded_variation_on_subset[OF bv] cab by auto
-  \<comment> \<open>\<ge> direction: combine divisions of {a..c} and {c..b}\<close>
+      \<comment> \<open>\<ge> direction: combine divisions of {a..c} and {c..b}\<close>
   have ge: "vector_variation {a..c} f + vector_variation {c..b} f \<le> vector_variation {a..b} f"
   proof -
     define Sab where "Sab = {(\<Sum>k\<in>d. norm (?g k)) | d. d division_of {a..b}}"
@@ -484,7 +624,7 @@ proof -
         unfolding has_bounded_variation_on_interval by auto
       then show ?thesis unfolding Sab_def bdd_above_def by auto
     qed
-    \<comment> \<open>Every sum over d1 \<union> d2 is \<le> Sup Sab\<close>
+      \<comment> \<open>Every sum over d1 \<union> d2 is \<le> Sup Sab\<close>
     have key: "s1 + s2 \<le> Sup Sab" if s1_in: "s1 \<in> Sac" and s2_in: "s2 \<in> Scb" for s1 s2
     proof -
       from s1_in obtain d1 where d1_div: "d1 division_of {a..c}"
@@ -497,7 +637,7 @@ proof -
         using ivl_disj_un_two_touch(4)[OF ac cb] .
       have d_div: "d1 \<union> d2 division_of {a..b}"
         using division_disjoint_union[OF d1_div d2_div disj_int] union_eq by simp
-      \<comment> \<open>Elements of d1 and d2 are disjoint as sets of intervals\<close>
+          \<comment> \<open>Elements of d1 and d2 are disjoint as sets of intervals\<close>
       have d1d2_disj: "d1 \<inter> d2 = {}"
       proof (rule ccontr)
         assume "d1 \<inter> d2 \<noteq> {}"
@@ -523,9 +663,9 @@ proof -
           then have "x \<in> {a..c}" "x \<in> {c..b}" using \<open>k \<subseteq> {a..c}\<close> \<open>k \<subseteq> {c..b}\<close> by auto
           then have "x = c" by auto
           then have "k = {c}" using kx by auto
-          \<comment> \<open>Both d1 and d2 contain {c}; but their interiors in {a..c} and {c..b} are disjoint\<close>
-          \<comment> \<open>Actually this is possible, so d1 \<inter> d2 can be nonempty (containing {c}).\<close>
-          \<comment> \<open>We handle this below.\<close>
+              \<comment> \<open>Both d1 and d2 contain {c}; but their interiors in {a..c} and {c..b} are disjoint\<close>
+              \<comment> \<open>Actually this is possible, so d1 \<inter> d2 can be nonempty (containing {c}).\<close>
+              \<comment> \<open>We handle this below.\<close>
           show False sorry
         qed
       qed
