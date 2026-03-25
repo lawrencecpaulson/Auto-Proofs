@@ -1208,6 +1208,72 @@ proof -
         by metis
       have \<open>finite d\<close>
         using du by blast
+      have div_sum_bound: "(\<Sum>k\<in>d. norm (f (Sup (g k)) - f (Inf (g k)))) \<le> vector_variation S f"
+        if gne: "\<forall>i\<in>d. g i \<noteq> {}"
+          and gcbox: "\<forall>i\<in>d. \<exists>a b. g i = {a..b}"
+          and gsub: "\<forall>i\<in>d. g i \<subseteq> S"
+          and gcontain: "\<forall>i\<in>d. g i \<subseteq> i \<or> interior (g i) = {}"
+          and bvS: "has_bounded_variation_on f S"
+        for g :: "real set \<Rightarrow> real set" and S
+      proof -
+        define d' where "d' = {k \<in> d. interior (g k) \<noteq> {}}"
+        have fd': "finite d'" unfolding d'_def using \<open>finite d\<close> by auto
+        have d'_sub: "d' \<subseteq> d" unfolding d'_def by auto
+        have zero: "norm (f (Sup (g k)) - f (Inf (g k))) = 0" if "k \<in> d - d'" for k
+        proof -
+          from that have kd: "k \<in> d" and int: "interior (g k) = {}" by (auto simp: d'_def)
+          from gcbox kd obtain a b where ab: "g k = {a..b}" by blast
+          have ne: "g k \<noteq> {}" using gne kd by blast
+          have "a = b"
+            using ab int ne by auto
+          then show "norm (f (Sup (g k)) - f (Inf (g k))) = 0"
+            by (simp add: ab)
+        qed
+        have split_sum: "(\<Sum>k\<in>d. norm (f (Sup (g k)) - f (Inf (g k)))) 
+                       = (\<Sum>k\<in>d'. norm (f (Sup (g k)) - f (Inf (g k))))"
+        proof -
+          have "(\<Sum>k\<in>d. norm (f (Sup (g k)) - f (Inf (g k)))) 
+              = (\<Sum>k\<in>d'. norm (f (Sup (g k)) - f (Inf (g k)))) + (\<Sum>k\<in>d-d'. norm (f (Sup (g k)) - f (Inf (g k))))"
+            using sum.subset_diff[OF d'_sub \<open>finite d\<close>]
+            by (metis (mono_tags, lifting) add.commute)
+          with zero show ?thesis by simp
+        qed
+        have inj_g: "inj_on g d'"
+        proof (rule inj_onI)
+          fix x y assume "x \<in> d'" "y \<in> d'" "g x = g y"
+          then have \<section>: "x \<in> d" "y \<in> d" "interior (g x) \<noteq> {}" "interior (g y) \<noteq> {}"
+            unfolding d'_def by auto
+          then have "interior (g x) \<subseteq> interior x" "interior (g y) \<subseteq> interior y"
+            using interior_mono gcontain by metis+
+          then show "x = y"
+            using du \<open>x \<in> d\<close> \<open>y \<in> d\<close> \<section>
+            by (metis \<open>g x = g y\<close> division_ofD(5) inf.boundedI subset_empty)
+        qed
+        have gd'_div: "g ` d' division_of \<Union> (g ` d')"
+          unfolding division_of_def
+        proof (intro conjI ballI allI impI)
+          fix K1 K2 assume "K1 \<in> g ` d'" "K2 \<in> g ` d'" "K1 \<noteq> K2"
+          then obtain x1 x2 where k12: "x1 \<in> d'" "K1 = g x1" "x2 \<in> d'" "K2 = g x2" by auto
+          then have "x1 \<noteq> x2" using \<open>K1 \<noteq> K2\<close> by auto
+          have "x1 \<in> d" "x2 \<in> d" using k12 d'_sub by auto
+          have "interior (g x1) \<noteq> {}" "interior (g x2) \<noteq> {}" using k12 d'_def by auto
+          then have "g x1 \<subseteq> x1" "g x2 \<subseteq> x2" using gcontain \<open>x1 \<in> d\<close> \<open>x2 \<in> d\<close> by meson+
+          then have "interior (g x1) \<subseteq> interior x1" "interior (g x2) \<subseteq> interior x2"
+            using interior_mono by blast+
+          moreover have "interior x1 \<inter> interior x2 = {}"
+            using du \<open>x1 \<in> d\<close> \<open>x2 \<in> d\<close> \<open>x1 \<noteq> x2\<close> by (meson division_ofD(5))
+          ultimately show "interior K1 \<inter> interior K2 = {}"
+            using k12 by auto
+        qed (use fd' gcbox gne in \<open>auto simp: d'_def\<close>)
+        have gd'_sub_S: "\<Union> (g ` d') \<subseteq> S"
+          using gsub bot.extremum by (fastforce simp: d'_def)
+        have "(\<Sum>k\<in>d'. norm (f (Sup (g k)) - f (Inf (g k))))
+            = (\<Sum>k \<in> g ` d'. norm (f (Sup k) - f (Inf k)))"
+          by (metis (no_types, lifting) inj_g sum.reindex_cong)
+        also have "\<dots> \<le> vector_variation S f"
+          using has_bounded_variation_on_works(1)[OF bvS gd'_div gd'_sub_S] .
+        finally show ?thesis using split_sum by simp
+      qed
       have "(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) 
           \<le> (\<Sum>k\<in>d. norm (f (Sup (L k)) - f (Inf (L k))) + norm (f (Sup (R k)) - f (Inf (R k))))"
         by (meson LR sum_mono)
@@ -1215,66 +1281,12 @@ proof -
         unfolding sum.distrib
       proof (intro add_mono)
         show "(\<Sum>k\<in>d. norm (f (Sup (L k)) - f (Inf (L k)))) \<le> vector_variation s f"
-        proof -
-          define d' where "d' = {k \<in> d. interior (L k) \<noteq> {}}"
-          have fd': "finite d'" unfolding d'_def using \<open>finite d\<close> by auto
-          have d'_sub: "d' \<subseteq> d" unfolding d'_def by auto
-          have zero: "norm (f (Sup (L k)) - f (Inf (L k))) = 0" if "k \<in> d - d'" for k
-          proof -
-            obtain a b where ab: "L k = {a..b}" "L k \<noteq> {}" "a = b"
-              using LR \<open>k \<in> d - d'\<close> by (auto simp: d'_def)
-            then show "norm (f (Sup (L k)) - f (Inf (L k))) = 0"
-              by simp
-          qed
-          have split_sum: "(\<Sum>k\<in>d. norm (f (Sup (L k)) - f (Inf (L k)))) 
-                         = (\<Sum>k\<in>d'. norm (f (Sup (L k)) - f (Inf (L k))))"
-          proof -
-            have "(\<Sum>k\<in>d. norm (f (Sup (L k)) - f (Inf (L k)))) 
-                = (\<Sum>k\<in>d'. norm (f (Sup (L k)) - f (Inf (L k)))) + (\<Sum>k\<in>d-d'. norm (f (Sup (L k)) - f (Inf (L k))))"
-              using sum.subset_diff[OF d'_sub \<open>finite d\<close>]
-              by (metis (mono_tags, lifting) add.commute)
-            with zero show ?thesis by simp
-          qed
-          have inj_L: "inj_on L d'"
-          proof (rule inj_onI)
-            fix x y assume "x \<in> d'" "y \<in> d'" "L x = L y"
-            then have \<section>: "x \<in> d" "y \<in> d" "interior (L x) \<noteq> {}" "interior (L y) \<noteq> {}"
-              unfolding d'_def by auto
-            then have "interior (L x) \<subseteq> interior x" "interior (L y) \<subseteq> interior y"
-              using interior_mono LR by metis+
-            then show "x = y"
-              using du \<open>x \<in> d\<close> \<open>y \<in> d\<close> \<section>
-              by (metis \<open>L x = L y\<close> division_ofD(5) inf.boundedI subset_empty)
-          qed
-          have Ld'_div: "L ` d' division_of \<Union> (L ` d')"
-            unfolding division_of_def
-          proof (intro conjI ballI allI impI)
-            fix K1 K2 assume "K1 \<in> L ` d'" "K2 \<in> L ` d'" "K1 \<noteq> K2"
-            then obtain x1 x2 where k12: "x1 \<in> d'" "K1 = L x1" "x2 \<in> d'" "K2 = L x2" by auto
-            then have "x1 \<noteq> x2" using \<open>K1 \<noteq> K2\<close> by auto
-            have "x1 \<in> d" "x2 \<in> d" using k12 d'_sub by auto
-            have "interior (L x1) \<noteq> {}" "interior (L x2) \<noteq> {}" using k12 d'_def by auto
-            then have "L x1 \<subseteq> x1" "L x2 \<subseteq> x2" using LR \<open>x1 \<in> d\<close> \<open>x2 \<in> d\<close> by (meson)+
-            then have "interior (L x1) \<subseteq> interior x1" "interior (L x2) \<subseteq> interior x2"
-              using interior_mono by blast+
-            moreover have "interior x1 \<inter> interior x2 = {}"
-              using du \<open>x1 \<in> d\<close> \<open>x2 \<in> d\<close> \<open>x1 \<noteq> x2\<close> by (meson division_ofD(5))
-            ultimately show "interior K1 \<inter> interior K2 = {}"
-              using k12 by auto
-          qed (use fd' LR in \<open>auto simp: d'_def\<close>)
-          have Ld'_sub_s: "\<Union> (L ` d') \<subseteq> s"
-            using LR bot.extremum by (fastforce simp: d'_def)
-          have "(\<Sum>k\<in>d'. norm (f (Sup (L k)) - f (Inf (L k))))
-              = (\<Sum>k \<in> L ` d'. norm (f (Sup k) - f (Inf k)))"
-            by (metis (no_types, lifting) inj_L sum.reindex_cong)
-          also have "\<dots> \<le> vector_variation s f"
-            using has_bounded_variation_on_works(1)[OF bv_fs Ld'_div Ld'_sub_s] .
-          finally show ?thesis using split_sum by simp
-        qed
+          using div_sum_bound[of L s] LR bv_fs by blast
       next
         show "(\<Sum>k\<in>d. norm (f (Sup (R k)) - f (Inf (R k)))) \<le> vector_variation t f"
-          sorry
+          using div_sum_bound[of R t] LR bv_ft by blast
       qed
+
       finally show "(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> vector_variation s f + vector_variation t f" .
     qed
   qed
