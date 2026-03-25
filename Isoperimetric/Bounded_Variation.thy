@@ -924,86 +924,299 @@ lemma has_bounded_variation_on_closure_eq:
   shows "has_bounded_variation_on f (closure s) \<longleftrightarrow> has_bounded_variation_on f s"
   by (meson assms closure_subset has_bounded_variation_on_closure has_bounded_variation_on_subset)
 
-
-
-text \<open>
-  The combined bounded-variation-on-union and vector-variation-union-le statement.
-  HOL Light proves these together via a single @{text SUBGOAL_THEN}, then derives
-  @{text HAS_BOUNDED_VARIATION_ON_UNION} (weaker hypotheses, via closure trick) and
-  @{text VECTOR_VARIATION_UNION_LE} (same hypotheses) as corollaries.
-
-  The combined statement (the @{text SUBGOAL_THEN}) includes the separation condition
-  and yields both conclusions.  From it:
-  \<^item> @{text vector_variation_Un_le} follows directly (same hypotheses).
-  \<^item> @{text has_bounded_variation_on_Un} (no separation condition) is derived by
-    instantiating the combined statement with @{term "closure s"} and @{term "closure t"},
-    using @{text has_bounded_variation_on_closure_eq} and @{thm closure_subset}.
-\<close>
-
-lemma has_bounded_variation_on_Un_combined:
-  fixes f :: "real \<Rightarrow> 'a::euclidean_space" and s t :: "real set"
-  assumes "is_interval s" "is_interval t"
-    "has_bounded_variation_on f s" "has_bounded_variation_on f t"
-  shows "has_bounded_variation_on f (s \<union> t) \<and>
-         ((s \<inter> t = {} \<longrightarrow> s \<inter> closure t = {} \<and> t \<inter> closure s = {}) \<longrightarrow> vector_variation (s \<union> t) f \<le> vector_variation s f + vector_variation t f)"
-proof -
-  have combined: "\<And>f :: real \<Rightarrow> 'a::euclidean_space. \<And>s t :: real set.
-    \<lbrakk>is_interval s; is_interval t;
-     s \<inter> t = {} \<Longrightarrow> s \<inter> closure t = {} \<and> t \<inter> closure s = {};
-     has_bounded_variation_on f s; has_bounded_variation_on f t\<rbrakk>
-    \<Longrightarrow> has_bounded_variation_on f (s \<union> t) \<and>
-        vector_variation (s \<union> t) f \<le> vector_variation s f + vector_variation t f"
-    sorry
-  show ?thesis
-  proof (intro conjI impI)
-    \<comment> \<open>First conjunct: @{term \<open>has_bounded_variation_on f (s \<union> t)\<close>}, derived via the
-      closure trick.  Instantiate @{text combined} with @{term "closure s"} and
-      @{term "closure t"}: their closures are convex (hence intervals), the
-      separation condition is trivial by @{thm closure_closure}, and bounded
-      variation on a closure equals bounded variation on the set itself.
-      The result for @{term "closure s \<union> closure t"} then restricts to
-      @{term "s \<union> t"} via @{thm closure_subset}.\<close>
-    show "has_bounded_variation_on f (s \<union> t)"
-    proof -
-      have "is_interval (closure s)" "is_interval (closure t)"
-        using assms(1,2) is_interval_convex_1 convex_closure by blast+
-      moreover have "has_bounded_variation_on f (closure s)"
-                    "has_bounded_variation_on f (closure t)"
-        using has_bounded_variation_on_closure[OF assms(1) assms(3)]
-              has_bounded_variation_on_closure[OF assms(2) assms(4)] by blast+
-      moreover have "closure s \<inter> closure t = {} \<Longrightarrow>
-        closure s \<inter> closure (closure t) = {} \<and> closure t \<inter> closure (closure s) = {}"
-        by (simp add: closure_closure Int_commute)
-      ultimately have "has_bounded_variation_on f (closure s \<union> closure t)"
-        using combined by blast
-      moreover have "s \<union> t \<subseteq> closure s \<union> closure t"
-        by (intro Un_mono closure_subset)
-      ultimately show ?thesis
-        using has_bounded_variation_on_subset by blast
-    qed
-  next
-    \<comment> \<open>Second conjunct: assuming the separation condition, the vector-variation
-      inequality follows directly from @{text combined}.\<close>
-    assume sep: "s \<inter> t = {} \<longrightarrow> s \<inter> closure t = {} \<and> t \<inter> closure s = {}"
-    show "vector_variation (s \<union> t) f \<le> vector_variation s f + vector_variation t f"
-      using combined[OF assms(1,2) _ assms(3,4)] sep by blast
+lemma has_bounded_set_variation:
+  "has_bounded_setvariation_on f s \<and> set_variation s f \<le> c \<longleftrightarrow>
+    (\<forall>d t. d division_of t \<and> t \<subseteq> s \<longrightarrow> (\<Sum>k\<in>d. norm (f k)) \<le> c)"
+  (is "?L \<longleftrightarrow> ?R")
+proof
+  assume L: ?L
+  then have bdd: "has_bounded_setvariation_on f s" and le: "set_variation s f \<le> c"
+    by auto
+  show ?R
+  proof (intro allI impI)
+    fix d t assume "d division_of t \<and> t \<subseteq> s"
+    then have "(\<Sum>k\<in>d. norm (f k)) \<le> set_variation s f"
+      using has_bounded_setvariation_on_works(1)[OF bdd] by auto
+    also have "\<dots> \<le> c" using le .
+    finally show "(\<Sum>k\<in>d. norm (f k)) \<le> c" .
+  qed
+next
+  assume R: ?R
+  show ?L
+  proof (intro conjI)
+    show "has_bounded_setvariation_on f s"
+      unfolding has_bounded_setvariation_on_def using R by blast
+    show "set_variation s f \<le> c"
+      using R by (intro has_bounded_setvariation_on_works(2))
+        (auto simp: has_bounded_setvariation_on_def)
   qed
 qed
 
-lemma has_bounded_variation_on_Un:
-  fixes f :: "real \<Rightarrow> 'a::euclidean_space" and s t :: "real set"
-  assumes "is_interval s" "is_interval t"
-    "has_bounded_variation_on f s" "has_bounded_variation_on f t"
-  shows "has_bounded_variation_on f (s \<union> t)"
-using has_bounded_variation_on_Un_combined[OF assms] by simp
+lemma has_bounded_vector_variation_on_interval:
+  "has_bounded_variation_on f {a..b} \<and> vector_variation {a..b} f \<le> c \<longleftrightarrow>
+    (\<forall>d. d division_of {a..b} \<longrightarrow>
+      (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> c)"
+  (is "?L \<longleftrightarrow> ?R")
+proof
+  assume L: ?L
+  then have bdd: "has_bounded_variation_on f {a..b}"
+    and le: "vector_variation {a..b} f \<le> c" by auto
+  show ?R
+  proof (intro allI impI)
+    fix d assume "d division_of {a..b}"
+    then have "(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> vector_variation {a..b} f"
+      using has_bounded_variation_on_works(1)[OF bdd] by auto
+    also have "\<dots> \<le> c" using le .
+    finally show "(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> c" .
+  qed
+next
+  assume R: ?R
+  show ?L
+  proof (intro conjI)
+    show bv: "has_bounded_variation_on f {a..b}"
+      unfolding has_bounded_variation_on_interval using R by blast
+    show "vector_variation {a..b} f \<le> c"
+    proof (rule has_bounded_variation_on_works(2)[OF bv])
+      fix d t assume "d division_of t" "t \<subseteq> {a..b}"
+      then have div_d: "d division_of t" and sub: "t \<subseteq> {a..b}" by auto
+      have "d division_of \<Union>d"
+        using division_of_union_self[OF div_d] .
+      moreover have "\<Union>d = t"
+        using division_ofD(6)[OF div_d] .
+      ultimately have "\<Union>d \<subseteq> cbox a b"
+        using sub by (simp add: cbox_interval)
+      then obtain q where dq: "d \<subseteq> q" and q_div: "q division_of cbox a b"
+        using partial_division_extend_interval \<open>d division_of \<Union>d\<close> by blast
+      have q_div': "q division_of {a..b}"
+        using q_div by (simp add: cbox_interval)
+      have fin_q: "finite q"
+        using division_of_finite[OF q_div] .
+      have "(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> (\<Sum>k\<in>q. norm (f (Sup k) - f (Inf k)))"
+        by (rule sum_mono2[OF fin_q dq]) auto
+      also have "\<dots> \<le> c"
+        using R q_div' by auto
+      finally show "(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> c" .
+    qed
+  qed
+qed
 
-lemma vector_variation_Un_le:
+lemma has_bounded_vector_variation:
+  "has_bounded_variation_on f s \<and> vector_variation s f \<le> c \<longleftrightarrow>
+    (\<forall>d t. d division_of t \<and> t \<subseteq> s \<longrightarrow>
+      (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> c)"
+  unfolding has_bounded_variation_on_def vector_variation_def
+  using has_bounded_set_variation .
+
+
+lemma 
   fixes f :: "real \<Rightarrow> 'a::euclidean_space" and s t :: "real set"
   assumes "is_interval s" "is_interval t"
-    "s \<inter> t = {} \<Longrightarrow> s \<inter> closure t = {} \<and> t \<inter> closure s = {}"
     "has_bounded_variation_on f s" "has_bounded_variation_on f t"
-  shows "vector_variation (s \<union> t) f \<le> vector_variation s f + vector_variation t f"
-  using has_bounded_variation_on_Un_combined assms by blast
+  shows has_bounded_variation_on_Un: "has_bounded_variation_on f (s \<union> t)" (is ?th1)
+    and vector_variation_Un_le:
+    "(s \<inter> t = {} \<Longrightarrow> s \<inter> closure t = {} \<and> t \<inter> closure s = {}) 
+    \<Longrightarrow> vector_variation (s \<union> t) f \<le> vector_variation s f + vector_variation t f" (is "PROP ?th2")
+proof -
+  have combined: "has_bounded_variation_on f (s \<union> t) \<and> vector_variation (s \<union> t) f 
+         \<le> vector_variation s f + vector_variation t f"
+    if "is_interval s" and "is_interval t"
+      and clo: "s \<inter> t = {} \<Longrightarrow> s \<inter> closure t = {} \<and> t \<inter> closure s = {}"
+      and bv_fs: "has_bounded_variation_on f s"
+      and bv_ft: "has_bounded_variation_on f t"
+    for f :: "real \<Rightarrow> 'a" and s t
+  proof (cases "s={} \<or> t={}")
+    case True
+    then show ?thesis
+      using that vector_variation_pos_le [of f]
+      by (metis Un_empty_left add.commute atLeastatMost_empty_iff2 le_add_same_cancel2
+          sup_bot_right)
+  next
+    case False
+    then obtain p q where "p \<in> s" and "q \<in> t"
+       by blast
+    show ?thesis
+      unfolding has_bounded_vector_variation
+    proof (intro strip)
+      fix d u
+      assume du: "d division_of u \<and> u \<subseteq> s \<union> t"
+      have "\<exists>j k. j \<noteq> {} \<and> k \<noteq> {} \<and> (\<exists>a b. j = {a..b}) \<and> (\<exists>a b. k = {a..b}) \<and> j \<subseteq> s \<and> k \<subseteq> t \<and> (j \<subseteq> i \<or> interior j = {}) \<and> (k \<subseteq> i \<or> interior k = {}) \<and> norm (f (Sup i) - f (Inf i)) \<le> norm (f (Sup j) - f (Inf j)) + norm (f (Sup k) - f (Inf k))"
+        if "i \<in> d" for i 
+      proof -
+        obtain a b where iab: "i = {a..b}" and ne: "{a..b} \<noteq> {}"
+          by (metis \<open>i \<in> d\<close> box_real(2) division_ofD(3,4) du)
+        then have ab: "a \<le> b"
+          using atLeastatMost_empty_iff by blast
+        then have "a \<in> {a..b}" "b \<in> {a..b}" using ab by auto
+        have iSup: "Sup i = b" and iInf: "Inf i = a"
+          using ab iab by auto
+        have isub: "i \<subseteq> u" and usub: "u \<subseteq> s \<union> t"
+          using du that division_ofD(2) by (blast, meson)
+        then have "{a,b} \<subseteq> s \<union> t"
+          by (metis Un_insert_left Un_insert_right atLeastatMost_empty_iff2 ne
+              empty_subsetI iab insert_subset ivl_disj_un_singleton(5,6) subset_iff)
+        then consider "a \<in> s \<and> b \<in> s" | "a \<in> s \<and> b \<in> t" | "a \<in> t \<and> b \<in> s" | "a \<in> t \<and> b \<in> t"
+          by blast
+        then show ?thesis
+        proof cases
+          case 1 \<comment> \<open>Both endpoints in s\<close>
+          show ?thesis
+            apply (rule exI[where x="{a..b}"])
+            apply (rule exI[where x="{q..q}"])
+            using 1 ne \<open>q \<in> t\<close> iab ab \<open>is_interval s\<close> interval_subset_is_interval[of _ a b] 
+            by (force simp: iSup iInf interior_atLeastAtMost_real)
+        next
+          case 2
+          show ?thesis
+          proof (cases "s \<inter> t = {}")
+            case True
+            \<comment> \<open>Separated case: {a..b} connected, a \<in> s, b \<in> t, but s \<union> t not connected — contradiction\<close>
+            show ?thesis
+            proof -
+              have sep: "s \<inter> closure t = {} \<and> t \<inter> closure s = {}" using clo True by blast
+              have sub: "{a..b} \<subseteq> s \<union> t" using isub usub iab by blast
+              have "a \<in> s" "b \<in> t" using 2 by auto
+              \<comment> \<open>s \<inter> closure t = {} means every point in s is away from t, and vice versa\<close>
+              \<comment> \<open>Use that - (closure t) is open, contains s, similarly - (closure s) open, contains t\<close>
+              have "s \<inter> {a..b} \<noteq> {}" using \<open>a \<in> s\<close> \<open>a \<in> {a..b}\<close> by blast
+              have "t \<inter> {a..b} \<noteq> {}" using \<open>b \<in> t\<close> \<open>b \<in> {a..b}\<close> by blast
+              have "False"
+              proof -
+                have o1: "open (- closure t)" and o2: "open (- closure s)"
+                  using open_Compl closed_closure by blast+
+                have s_sub: "s \<subseteq> - closure t" and t_sub: "t \<subseteq> - closure s"
+                  using sep by blast+
+                have "{a..b} \<subseteq> (- closure t) \<union> (- closure s)"
+                  using sub s_sub t_sub by blast
+                moreover have "(- closure t) \<inter> (- closure s) \<inter> {a..b} = {}"
+                  using sub closure_subset by blast
+                moreover have "(- closure t) \<inter> {a..b} \<noteq> {}"
+                  using \<open>a \<in> s\<close> s_sub \<open>a \<in> {a..b}\<close> by blast
+                moreover have "(- closure s) \<inter> {a..b} \<noteq> {}"
+                  using \<open>b \<in> t\<close> t_sub \<open>b \<in> {a..b}\<close> by blast
+                ultimately show False
+                  by (meson connectedD connected_Icc o1 o2)
+              qed
+              then show ?thesis by blast
+            qed
+          next
+            case False
+            \<comment> \<open>Overlapping case: pick c \<in> s \<inter> t \<inter> {a..b} as splitting point\<close>
+            show ?thesis
+            proof -
+              obtain c where "c \<in> s" "c \<in> t" using False by blast
+              with "2" \<open>is_interval s\<close> \<open>is_interval t\<close> 
+              have c': "max a (min c b) \<in> s \<and> max a (min c b) \<in> t \<and> max a (min c b) \<in> {a..b}"
+                by (smt (verit) ab atLeastAtMost_iff max.absorb1 max.absorb2 mem_is_interval_1_I
+                    min_le_iff_disj)
+              define c' where "c' = max a (min c b)"
+              then have c'_s: "c' \<in> s" and c'_t: "c' \<in> t" and c'_ab: "a \<le> c'" "c' \<le> b"
+                using c' by auto
+              have j_sub_s: "{a..c'} \<subseteq> s"
+                using 2 c'_s \<open>is_interval s\<close> interval_subset_is_interval[of s a c']
+                by (auto simp: box_real)
+              have k_sub_t: "{c'..b} \<subseteq> t"
+                using 2 c'_t \<open>is_interval t\<close> interval_subset_is_interval[of t c' b]
+                by (auto simp: box_real)
+              have j_sub_i: "{a..c'} \<subseteq> {a..b}" and k_sub_i: "{c'..b} \<subseteq> {a..b}" 
+                using c'_ab ab by auto
+              have "norm (f b - f a) \<le> norm (f c' - f a) + norm (f b - f c')"
+                by (simp add: order_trans [OF _ norm_triangle_ineq])
+              then show ?thesis
+                apply (rule_tac x="{a..c'}" in exI)
+                apply (rule_tac x="{c'..b}" in exI)
+                using c'_ab ab j_sub_s k_sub_t j_sub_i k_sub_i iab ne
+                by (auto simp: iSup iInf)
+            qed
+          qed
+        next
+          case 3 \<comment> \<open>a \<in> t, b \<in> s — symmetric to case 2\<close>
+          show ?thesis
+          proof (cases "s \<inter> t = {}")
+            case True
+            \<comment> \<open>Separated case: same connectedness contradiction\<close>
+            show ?thesis
+            proof -
+              have sep: "s \<inter> closure t = {} \<and> t \<inter> closure s = {}" using clo True by blast
+              have sub: "{a..b} \<subseteq> s \<union> t" using isub usub iab by blast
+              have conn: "connected {a..b::real}" by (simp add: connected_iff_interval)
+              have "a \<in> t" "b \<in> s" using 3 by auto
+              have "a \<in> {a..b}" "b \<in> {a..b}" using ab by auto
+              have "False"
+              proof -
+                have o1: "open (- closure t)" and o2: "open (- closure s)"
+                  using open_Compl closed_closure by blast+
+                have s_sub: "s \<subseteq> - closure t" and t_sub: "t \<subseteq> - closure s"
+                  using sep by blast+
+                have "{a..b} \<subseteq> (- closure t) \<union> (- closure s)"
+                  using sub s_sub t_sub by blast
+                moreover have "(- closure t) \<inter> (- closure s) \<inter> {a..b} = {}"
+                  using sub closure_subset[of s] closure_subset[of t] by blast
+                moreover have "(- closure s) \<inter> {a..b} \<noteq> {}"
+                  using \<open>a \<in> t\<close> t_sub \<open>a \<in> {a..b}\<close> by blast
+                moreover have "(- closure t) \<inter> {a..b} \<noteq> {}"
+                  using \<open>b \<in> s\<close> s_sub \<open>b \<in> {a..b}\<close> by blast
+                ultimately show False
+                  using conn unfolding connected_def by (metis o1 o2)
+              qed
+              then show ?thesis by blast
+            qed
+          next
+            case False
+            \<comment> \<open>Overlapping case: pick c \<in> s \<inter> t, split at c' = max a (min c b)\<close>
+            show ?thesis
+            proof -
+              obtain c where "c \<in> s" "c \<in> t" using False by blast
+              with 3 \<open>is_interval s\<close> \<open>is_interval t\<close> 
+              have c': "max a (min c b) \<in> s \<and> max a (min c b) \<in> t \<and> max a (min c b) \<in> {a..b}"
+                 by (smt (verit) ab atLeastAtMost_iff max.absorb1 max.absorb2 mem_is_interval_1_I
+                    min_le_iff_disj)
+              define c' where "c' = max a (min c b)"
+              then have c'_s: "c' \<in> s" and c'_t: "c' \<in> t" and c'_ab: "a \<le> c'" "c' \<le> b"
+                using c' by auto
+              have j_sub_s: "{c'..b} \<subseteq> s"
+                using 3 c'_s \<open>is_interval s\<close> interval_subset_is_interval[of s c' b]
+                by (auto simp: box_real)
+              have k_sub_t: "{a..c'} \<subseteq> t"
+                using 3 c'_t \<open>is_interval t\<close> interval_subset_is_interval[of t a c']
+                by (auto simp: box_real)
+              have j_sub_i: "{c'..b} \<subseteq> {a..b}" and k_sub_i: "{a..c'} \<subseteq> {a..b}" 
+                using c'_ab ab by auto
+              have "norm (f b - f a) \<le> norm (f b - f c') + norm (f c' - f a)"
+                by (simp add: order_trans [OF _ norm_triangle_ineq])
+              then show ?thesis
+                apply (rule_tac x="{c'..b}" in exI)
+                apply (rule_tac x="{a..c'}" in exI)
+                using c'_ab ab j_sub_s k_sub_t j_sub_i k_sub_i iab ne
+                by (auto simp: iSup iInf)
+            qed
+          qed
+        next
+          case 4 \<comment> \<open>Both endpoints in t\<close>
+          show ?thesis
+            apply (rule exI[where x="{p..p}"])
+            apply (rule exI[where x="{a..b}"])
+            using 4 ne \<open>p \<in> s\<close> iab ab \<open>is_interval t\<close> interval_subset_is_interval[of _ a b] 
+            by (force simp: iSup iInf interior_atLeastAtMost_real)
+        qed
+      qed
+      show "(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> vector_variation s f + vector_variation t f"
+        sorry
+    qed
+  qed
+  show "has_bounded_variation_on f (s \<union> t)"
+  proof -
+    have "has_bounded_variation_on f (closure s \<union> closure t)"
+      by (metis (lifting) ext assms closure_closure combined convex_closure
+          has_bounded_variation_on_closure_eq inf_commute is_interval_convex_1)
+    then have "has_bounded_variation_on f (closure s \<union> closure t)"
+      using combined by blast
+    then show ?thesis
+      by (metis has_bounded_variation_on_subset closure_Un closure_subset)
+  qed
+  show "(s \<inter> t = {} \<Longrightarrow> s \<inter> closure t = {} \<and> t \<inter> closure s = {}) 
+    \<Longrightarrow> vector_variation (s \<union> t) f \<le> vector_variation s f + vector_variation t f" 
+      using combined assms  by blast
+qed
 
 
 text \<open>
