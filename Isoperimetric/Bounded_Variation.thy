@@ -1053,10 +1053,67 @@ proof -
           using ab iab by auto
         have isub: "i \<subseteq> u" and usub: "u \<subseteq> s \<union> t"
           using du that division_ofD(2) by (blast, meson)
-        then have "{a,b} \<subseteq> s \<union> t"
+        then have ab_st: "{a,b} \<subseteq> s \<union> t"
           by (metis Un_insert_left Un_insert_right atLeastatMost_empty_iff2 ne
               empty_subsetI iab insert_subset ivl_disj_un_singleton(5,6) subset_iff)
-        then consider "a \<in> s \<and> b \<in> s" | "a \<in> s \<and> b \<in> t" | "a \<in> t \<and> b \<in> s" | "a \<in> t \<and> b \<in> t"
+        have one_in_each: ?thesis
+          if aS: "a \<in> S" and bT: "b \<in> T" and ivS: "is_interval S" and ivT: "is_interval T"
+            and st: "(S = s \<and> T = t) \<or> (S = t \<and> T = s)"
+          for S T
+        proof (cases "s \<inter> t = {}")
+          case True
+          \<comment> \<open>Separated case: connectedness contradiction\<close>
+          have sep: "s \<inter> closure t = {} \<and> t \<inter> closure s = {}" using clo True by blast
+          have sub: "{a..b} \<subseteq> s \<union> t" using isub usub iab by blast
+          have o1: "open (- closure t)" and o2: "open (- closure s)"
+            using open_Compl closed_closure by blast+
+          have s_sub: "s \<subseteq> - closure t" and t_sub: "t \<subseteq> - closure s"
+            using sep by blast+
+          have "{a..b} \<subseteq> (- closure t) \<union> (- closure s)"
+            using sub s_sub t_sub by blast
+          moreover have "(- closure t) \<inter> (- closure s) \<inter> {a..b} = {}"
+            using sub closure_subset by blast
+          moreover have "(- closure t) \<inter> {a..b} \<noteq> {} \<and> (- closure s) \<inter> {a..b} \<noteq> {}"
+            using aS bT st s_sub t_sub ab by auto
+          ultimately show ?thesis
+            by (meson connectedD connected_Icc o1 o2)
+        next
+          case False
+          \<comment> \<open>Overlapping case: pick c \<in> s \<inter> t, split at c' = max a (min c b)\<close>
+          obtain c where "c \<in> s" "c \<in> t" using False by blast
+          with aS bT ivS ivT st
+          have c': "max a (min c b) \<in> s \<and> max a (min c b) \<in> t \<and> max a (min c b) \<in> {a..b}"
+            by (smt (verit) ab atLeastAtMost_iff max.absorb1 max.absorb2 mem_is_interval_1_I
+                min_le_iff_disj)
+          define c' where "c' = max a (min c b)"
+          then have c'_s: "c' \<in> s" and c'_t: "c' \<in> t" and c'_ab: "a \<le> c'" "c' \<le> b"
+            using c' by auto
+          have lo_sub_S: "{a..c'} \<subseteq> S"
+            using aS c'_s c'_t ivS st interval_subset_is_interval[of S a c']
+            by (auto simp: box_real)
+          have hi_sub_T: "{c'..b} \<subseteq> T"
+            using bT c'_s c'_t ivT st interval_subset_is_interval[of T c' b]
+            by (auto simp: box_real)
+          have lo_sub_i: "{a..c'} \<subseteq> {a..b}" and hi_sub_i: "{c'..b} \<subseteq> {a..b}"
+            using c'_ab ab by auto
+          have tri: "norm (f b - f a) \<le> norm (f c' - f a) + norm (f b - f c')"
+            by (simp add: order_trans [OF _ norm_triangle_ineq])
+          show ?thesis using st
+          proof
+            assume st': "S = s \<and> T = t"
+            show ?thesis
+              apply (rule_tac x="{a..c'}" in exI, rule_tac x="{c'..b}" in exI)
+              using c'_ab ab lo_sub_S hi_sub_T lo_sub_i hi_sub_i iab ne tri st'
+              by (auto simp: iSup iInf)
+          next
+            assume st': "S = t \<and> T = s"
+            show ?thesis
+              apply (rule_tac x="{c'..b}" in exI, rule_tac x="{a..c'}" in exI)
+              using c'_ab ab lo_sub_S hi_sub_T lo_sub_i hi_sub_i iab ne tri st'
+              by (auto simp: iSup iInf)
+          qed
+        qed
+        from ab_st consider "a \<in> s \<and> b \<in> s" | "a \<in> s \<and> b \<in> t" | "a \<in> t \<and> b \<in> s" | "a \<in> t \<and> b \<in> t"
           by blast
         then show ?thesis
         proof cases
@@ -1067,131 +1124,11 @@ proof -
             using 1 ne \<open>q \<in> t\<close> iab ab \<open>is_interval s\<close> interval_subset_is_interval[of _ a b] 
             by (force simp: iSup iInf interior_atLeastAtMost_real)
         next
-          case 2
-          show ?thesis
-          proof (cases "s \<inter> t = {}")
-            case True
-            \<comment> \<open>Separated case: {a..b} connected, a \<in> s, b \<in> t, but s \<union> t not connected — contradiction\<close>
-            show ?thesis
-            proof -
-              have sep: "s \<inter> closure t = {} \<and> t \<inter> closure s = {}" using clo True by blast
-              have sub: "{a..b} \<subseteq> s \<union> t" using isub usub iab by blast
-              have "a \<in> s" "b \<in> t" using 2 by auto
-              \<comment> \<open>s \<inter> closure t = {} means every point in s is away from t, and vice versa\<close>
-              \<comment> \<open>Use that - (closure t) is open, contains s, similarly - (closure s) open, contains t\<close>
-              have "s \<inter> {a..b} \<noteq> {}" using \<open>a \<in> s\<close> \<open>a \<in> {a..b}\<close> by blast
-              have "t \<inter> {a..b} \<noteq> {}" using \<open>b \<in> t\<close> \<open>b \<in> {a..b}\<close> by blast
-              have "False"
-              proof -
-                have o1: "open (- closure t)" and o2: "open (- closure s)"
-                  using open_Compl closed_closure by blast+
-                have s_sub: "s \<subseteq> - closure t" and t_sub: "t \<subseteq> - closure s"
-                  using sep by blast+
-                have "{a..b} \<subseteq> (- closure t) \<union> (- closure s)"
-                  using sub s_sub t_sub by blast
-                moreover have "(- closure t) \<inter> (- closure s) \<inter> {a..b} = {}"
-                  using sub closure_subset by blast
-                moreover have "(- closure t) \<inter> {a..b} \<noteq> {}"
-                  using \<open>a \<in> s\<close> s_sub \<open>a \<in> {a..b}\<close> by blast
-                moreover have "(- closure s) \<inter> {a..b} \<noteq> {}"
-                  using \<open>b \<in> t\<close> t_sub \<open>b \<in> {a..b}\<close> by blast
-                ultimately show False
-                  by (meson connectedD connected_Icc o1 o2)
-              qed
-              then show ?thesis by blast
-            qed
-          next
-            case False
-            \<comment> \<open>Overlapping case: pick c \<in> s \<inter> t \<inter> {a..b} as splitting point\<close>
-            show ?thesis
-            proof -
-              obtain c where "c \<in> s" "c \<in> t" using False by blast
-              with "2" \<open>is_interval s\<close> \<open>is_interval t\<close> 
-              have c': "max a (min c b) \<in> s \<and> max a (min c b) \<in> t \<and> max a (min c b) \<in> {a..b}"
-                by (smt (verit) ab atLeastAtMost_iff max.absorb1 max.absorb2 mem_is_interval_1_I
-                    min_le_iff_disj)
-              define c' where "c' = max a (min c b)"
-              then have c'_s: "c' \<in> s" and c'_t: "c' \<in> t" and c'_ab: "a \<le> c'" "c' \<le> b"
-                using c' by auto
-              have j_sub_s: "{a..c'} \<subseteq> s"
-                using 2 c'_s \<open>is_interval s\<close> interval_subset_is_interval[of s a c']
-                by (auto simp: box_real)
-              have k_sub_t: "{c'..b} \<subseteq> t"
-                using 2 c'_t \<open>is_interval t\<close> interval_subset_is_interval[of t c' b]
-                by (auto simp: box_real)
-              have j_sub_i: "{a..c'} \<subseteq> {a..b}" and k_sub_i: "{c'..b} \<subseteq> {a..b}" 
-                using c'_ab ab by auto
-              have "norm (f b - f a) \<le> norm (f c' - f a) + norm (f b - f c')"
-                by (simp add: order_trans [OF _ norm_triangle_ineq])
-              then show ?thesis
-                apply (rule_tac x="{a..c'}" in exI)
-                apply (rule_tac x="{c'..b}" in exI)
-                using c'_ab ab j_sub_s k_sub_t j_sub_i k_sub_i iab ne
-                by (auto simp: iSup iInf)
-            qed
-          qed
+          case 2 \<comment> \<open>a \<in> s, b \<in> t\<close>
+          then show ?thesis using one_in_each[where S=s and T=t] \<open>is_interval s\<close> \<open>is_interval t\<close> by blast
         next
-          case 3 \<comment> \<open>a \<in> t, b \<in> s — symmetric to case 2\<close>
-          show ?thesis
-          proof (cases "s \<inter> t = {}")
-            case True
-            \<comment> \<open>Separated case: same connectedness contradiction\<close>
-            show ?thesis
-            proof -
-              have sep: "s \<inter> closure t = {} \<and> t \<inter> closure s = {}" using clo True by blast
-              have sub: "{a..b} \<subseteq> s \<union> t" using isub usub iab by blast
-              have conn: "connected {a..b::real}" by (simp add: connected_iff_interval)
-              have "a \<in> t" "b \<in> s" using 3 by auto
-              have "a \<in> {a..b}" "b \<in> {a..b}" using ab by auto
-              have "False"
-              proof -
-                have o1: "open (- closure t)" and o2: "open (- closure s)"
-                  using open_Compl closed_closure by blast+
-                have s_sub: "s \<subseteq> - closure t" and t_sub: "t \<subseteq> - closure s"
-                  using sep by blast+
-                have "{a..b} \<subseteq> (- closure t) \<union> (- closure s)"
-                  using sub s_sub t_sub by blast
-                moreover have "(- closure t) \<inter> (- closure s) \<inter> {a..b} = {}"
-                  using sub closure_subset[of s] closure_subset[of t] by blast
-                moreover have "(- closure s) \<inter> {a..b} \<noteq> {}"
-                  using \<open>a \<in> t\<close> t_sub \<open>a \<in> {a..b}\<close> by blast
-                moreover have "(- closure t) \<inter> {a..b} \<noteq> {}"
-                  using \<open>b \<in> s\<close> s_sub \<open>b \<in> {a..b}\<close> by blast
-                ultimately show False
-                  using conn unfolding connected_def by (metis o1 o2)
-              qed
-              then show ?thesis by blast
-            qed
-          next
-            case False
-            \<comment> \<open>Overlapping case: pick c \<in> s \<inter> t, split at c' = max a (min c b)\<close>
-            show ?thesis
-            proof -
-              obtain c where "c \<in> s" "c \<in> t" using False by blast
-              with 3 \<open>is_interval s\<close> \<open>is_interval t\<close> 
-              have c': "max a (min c b) \<in> s \<and> max a (min c b) \<in> t \<and> max a (min c b) \<in> {a..b}"
-                 by (smt (verit) ab atLeastAtMost_iff max.absorb1 max.absorb2 mem_is_interval_1_I
-                    min_le_iff_disj)
-              define c' where "c' = max a (min c b)"
-              then have c'_s: "c' \<in> s" and c'_t: "c' \<in> t" and c'_ab: "a \<le> c'" "c' \<le> b"
-                using c' by auto
-              have j_sub_s: "{c'..b} \<subseteq> s"
-                using 3 c'_s \<open>is_interval s\<close> interval_subset_is_interval[of s c' b]
-                by (auto simp: box_real)
-              have k_sub_t: "{a..c'} \<subseteq> t"
-                using 3 c'_t \<open>is_interval t\<close> interval_subset_is_interval[of t a c']
-                by (auto simp: box_real)
-              have j_sub_i: "{c'..b} \<subseteq> {a..b}" and k_sub_i: "{a..c'} \<subseteq> {a..b}" 
-                using c'_ab ab by auto
-              have "norm (f b - f a) \<le> norm (f b - f c') + norm (f c' - f a)"
-                by (simp add: order_trans [OF _ norm_triangle_ineq])
-              then show ?thesis
-                apply (rule_tac x="{c'..b}" in exI)
-                apply (rule_tac x="{a..c'}" in exI)
-                using c'_ab ab j_sub_s k_sub_t j_sub_i k_sub_i iab ne
-                by (auto simp: iSup iInf)
-            qed
-          qed
+          case 3 \<comment> \<open>a \<in> t, b \<in> s\<close>
+          then show ?thesis using one_in_each[where S=t and T=s] \<open>is_interval s\<close> \<open>is_interval t\<close> by blast
         next
           case 4 \<comment> \<open>Both endpoints in t\<close>
           show ?thesis
@@ -1400,11 +1337,13 @@ qed
 
 subsection \<open>Composition and monotonicity\<close>
 
-lemma has_bounded_variation_compose_increasing:
-  assumes "has_bounded_variation_on f {a..b}"
-    and mono: "\<And>x y. x \<in> {c..d} \<Longrightarrow> y \<in> {c..d} \<Longrightarrow> x \<le> y \<Longrightarrow> g x \<le> g y"
-    and img: "g ` {c..d} \<subseteq> {a..b}"
-  shows "has_bounded_variation_on (f \<circ> g) {c..d}"
+(*THIS IS WRONG*)
+lemma has_bounded_variation_compose_monotone:
+  assumes bv: "has_bounded_variation_on g {f a..f b}"
+  shows "(\<And>x y. \<lbrakk>x \<in> {c..d}; y \<in> {c..d}; x \<le> y\<rbrakk> \<Longrightarrow> g x \<le> g y)
+       \<Longrightarrow> has_bounded_variation_on (f \<circ> g) {c..d}"
+    and "(\<And>x y. \<lbrakk>x \<in> {c..d}; y \<in> {c..d}; x \<le> y\<rbrakk> \<Longrightarrow> g y \<le> g x)
+       \<Longrightarrow> has_bounded_variation_on (f \<circ> g) {c..d}"
   sorry
 
 lemma lipschitz_imp_has_bounded_variation:
