@@ -2201,6 +2201,137 @@ next
   qed
 qed
 
+lemma decreasing_left_limit:
+  fixes f :: \<open>real \<Rightarrow> real\<close>
+  assumes mono: \<open>antimono_on {a..b} f\<close> and c_in: \<open>c \<in> {a..b}\<close>
+  shows \<open>\<exists>l. (f \<longlongrightarrow> l) (at c within {a..c})\<close>
+proof -
+  have \<open>mono_on {a..b} (\<lambda>x. - f x)\<close>
+    using mono unfolding mono_on_def monotone_on_def by auto
+  from increasing_left_limit[OF this c_in]
+  obtain l where \<open>((\<lambda>x. - f x) \<longlongrightarrow> l) (at c within {a..c})\<close> by blast
+  then have \<open>(f \<longlongrightarrow> - l) (at c within {a..c})\<close>
+    by (rule tendsto_minus_cancel[where a=\<open>- l\<close>, simplified])
+  then show ?thesis by blast
+qed
+
+lemma increasing_right_limit:
+  fixes f :: \<open>real \<Rightarrow> real\<close>
+  assumes mono: \<open>mono_on {a..b} f\<close> and c_in: \<open>c \<in> {a..b}\<close>
+  shows \<open>\<exists>l. (f \<longlongrightarrow> l) (at c within {c..b})\<close>
+proof (cases \<open>c islimpt {c..b}\<close>)
+  case False
+  then have \<open>at c within {c..b} = bot\<close>
+    by (simp add: trivial_limit_within)
+  then show ?thesis
+    using tendsto_bot by (intro exI) auto
+next
+  case True
+  have cb: \<open>c < b\<close>
+  proof (rule ccontr)
+    assume \<open>\<not> c < b\<close>
+    then have \<open>{c..b} \<subseteq> {c}\<close> using c_in by auto
+    then have \<open>finite {c..b}\<close> using finite_subset by blast
+    then show False using True islimpt_finite by blast
+  qed
+  define S where \<open>S = f ` ({a..b} \<inter> {c<..})\<close>
+  have S_ne: \<open>S \<noteq> {}\<close>
+  proof -
+    have \<open>b \<in> {a..b} \<inter> {c<..}\<close> using cb c_in by auto
+    then show ?thesis unfolding S_def by blast
+  qed
+  have S_bdd: \<open>bdd_below S\<close>
+  proof -
+    have \<open>f a \<le> f x\<close> if \<open>x \<in> {a..b}\<close> for x
+      using mono_onD[OF mono] that c_in by auto
+    then show ?thesis unfolding S_def bdd_below_def by (intro exI[of _ \<open>f a\<close>]) auto
+  qed
+  define l where \<open>l = Inf S\<close>
+  show ?thesis
+  proof (intro exI tendstoI)
+    fix e :: real assume \<open>e > 0\<close>
+    have \<open>l < l + e\<close> using \<open>e > 0\<close> by simp
+    then obtain y where \<open>y \<in> S\<close> \<open>y < l + e\<close>
+      using cInf_less_iff[OF S_ne S_bdd] l_def by blast
+    then obtain d where d_in: \<open>d \<in> {a..b}\<close> and dc: \<open>c < d\<close> and fd: \<open>f d < l + e\<close>
+      unfolding S_def by auto
+    show \<open>\<forall>\<^sub>F x in at c within {c..b}. dist (f x) l < e\<close>
+      unfolding eventually_at_filter eventually_nhds
+    proof (intro exI conjI ballI impI)
+      show \<open>open {..<d}\<close> by auto
+      show \<open>c \<in> {..<d}\<close> using dc by auto
+      fix x assume \<open>x \<in> {..<d}\<close> \<open>x \<noteq> c\<close> \<open>x \<in> {c..b}\<close>
+      then have xc: \<open>c < x\<close> and xab: \<open>x \<in> {a..b}\<close> and xd: \<open>x < d\<close>
+        using c_in by auto
+      have l_le_fx: \<open>l \<le> f x\<close>
+        unfolding l_def
+        by (intro cInf_lower[OF _ S_bdd]) (auto simp: S_def intro: xab xc)
+      have \<open>f x \<le> f d\<close>
+        using mono d_in xab xd unfolding mono_on_def by auto
+      then have \<open>f x < l + e\<close> using fd by linarith
+      then show \<open>dist (f x) l < e\<close>
+        using l_le_fx unfolding dist_real_def by linarith
+    qed
+  qed
+qed
+
+
+lemma decreasing_right_limit:
+  fixes f :: \<open>real \<Rightarrow> real\<close>
+  assumes mono: \<open>antimono_on {a..b} f\<close> and c_in: \<open>c \<in> {a..b}\<close>
+  shows \<open>\<exists>l. (f \<longlongrightarrow> l) (at c within {c..b})\<close>
+proof -
+  have \<open>mono_on {a..b} (\<lambda>x. - f x)\<close>
+    using mono unfolding mono_on_def monotone_on_def by auto
+  from increasing_right_limit[OF this c_in]
+  obtain l where \<open>((\<lambda>x. - f x) \<longlongrightarrow> l) (at c within {c..b})\<close> by blast
+  then have \<open>(f \<longlongrightarrow> - l) (at c within {c..b})\<close>
+    by (rule tendsto_minus_cancel[where a=\<open>- l\<close>, simplified])
+  then show ?thesis by blast
+qed
+
+
+lemma has_bounded_variation_left_limit:
+  fixes f :: \<open>real \<Rightarrow> real\<close>
+  assumes bv: \<open>has_bounded_variation_on f {a..b}\<close> and c_in: \<open>c \<in> {a..b}\<close>
+  shows \<open>\<exists>l. (f \<longlongrightarrow> l) (at c within {a..c})\<close>
+proof -
+  from bv obtain g h where mono_g: \<open>mono_on {a..b} g\<close> and mono_h: \<open>mono_on {a..b} h\<close>
+    and eq: \<open>\<forall>x. f x = g x - h x\<close>
+    using has_bounded_variation_Darboux by blast
+  from increasing_left_limit[OF mono_g c_in]
+  obtain l1 where l1: \<open>(g \<longlongrightarrow> l1) (at c within {a..c})\<close> by blast
+  from increasing_left_limit[OF mono_h c_in]
+  obtain l2 where l2: \<open>(h \<longlongrightarrow> l2) (at c within {a..c})\<close> by blast
+  have \<open>(f \<longlongrightarrow> l1 - l2) (at c within {a..c})\<close>
+  proof (rule Lim_transform_eventually[OF tendsto_diff[OF l1 l2]])
+    show \<open>\<forall>\<^sub>F x in at c within {a..c}. g x - h x = f x\<close>
+      using eq by (intro always_eventually) auto
+  qed
+  then show ?thesis by blast
+qed
+
+lemma has_bounded_variation_right_limit:
+  fixes f :: \<open>real \<Rightarrow> real\<close>
+  assumes bv: \<open>has_bounded_variation_on f {a..b}\<close> and c_in: \<open>c \<in> {a..b}\<close>
+  shows \<open>\<exists>l. (f \<longlongrightarrow> l) (at c within {c..b})\<close>
+proof -
+  from bv obtain g h where mono_g: \<open>mono_on {a..b} g\<close> and mono_h: \<open>mono_on {a..b} h\<close>
+    and eq: \<open>\<forall>x. f x = g x - h x\<close>
+    using has_bounded_variation_Darboux by blast
+  from increasing_right_limit[OF mono_g c_in]
+  obtain l1 where l1: \<open>(g \<longlongrightarrow> l1) (at c within {c..b})\<close> by blast
+  from increasing_right_limit[OF mono_h c_in]
+  obtain l2 where l2: \<open>(h \<longlongrightarrow> l2) (at c within {c..b})\<close> by blast
+  have \<open>(f \<longlongrightarrow> l1 - l2) (at c within {c..b})\<close>
+  proof (rule Lim_transform_eventually[OF tendsto_diff[OF l1 l2]])
+    show \<open>\<forall>\<^sub>F x in at c within {c..b}. g x - h x = f x\<close>
+      using eq by (intro always_eventually) auto
+  qed
+  then show ?thesis by blast
+qed
+
+
 
 subsection \<open>Continuity of vector variation\<close>
 
