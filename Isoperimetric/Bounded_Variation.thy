@@ -1345,7 +1345,7 @@ proof -
     if "d division_of {a..b}" for d
   proof -
     define D where \<open>D \<equiv> (\<lambda>k. {f (Inf k)..f(Sup k)}) ` d\<close>
-    have fin_d: "finite d" using division_of_finite[OF that] .
+    have "finite d" using division_of_finite[OF that] .
     have kprops: "\<And>k. k \<in> d \<Longrightarrow> k \<subseteq> {a..b} \<and> k \<noteq> {} \<and> (\<exists>l u. k = cbox l u)"
       using division_ofD(2,3,4)[OF that] by auto
     have int_disj: "\<And>k1 k2. k1 \<in> d \<Longrightarrow> k2 \<in> d \<Longrightarrow> k1 \<noteq> k2 \<Longrightarrow> interior k1 \<inter> interior k2 = {}"
@@ -1373,7 +1373,7 @@ proof -
     have \<open>D division_of \<Union>D\<close>
       unfolding division_of_def
     proof (intro conjI ballI allI impI)
-      show "finite D" unfolding D_def using fin_d by auto
+      show "finite D" unfolding D_def using \<open>finite d\<close> by auto
     next
       fix K assume "K \<in> D"
       then obtain k where kd: "k \<in> d" and K_eq: "K = {f (Inf k)..f (Sup k)}"
@@ -1459,17 +1459,88 @@ proof -
       moreover have "x \<in> {f l..f u}" using xK K_eq lu by auto
       ultimately show "x \<in> {f a..f b}" by auto
     qed
-    ultimately have \<open>(\<Sum>k\<in>D. norm (g (Sup k) - g (Inf k))) \<le> vector_variation {f a..f b} g\<close>
+    ultimately have *: \<open>(\<Sum>k\<in>D. norm (g (Sup k) - g (Inf k))) \<le> vector_variation {f a..f b} g\<close>
       using has_bounded_variation_works [OF bv] by auto
+    have **: "norm (g (f (Sup x)) - g (f (Inf x))) = 0"
+      if "x \<in> d" "y \<in> d" "x \<noteq> y" 
+        and eq: "{f (Inf x)..f (Sup x)} = {f (Inf y)..f (Sup y)}"
+      for x y
+    proof -
+      obtain l1 u1 where lu1: "l1 \<le> u1" "x = {l1..u1}" "Inf x = l1" "Sup x = u1"
+        using k_interval[OF \<open>x \<in> d\<close>] by blast
+      obtain l2 u2 where lu2: "l2 \<le> u2" "y = {l2..u2}" "Inf y = l2" "Sup y = u2"
+        using k_interval[OF \<open>y \<in> d\<close>] by blast
+      have x_sub: "x \<subseteq> {a..b}" using kprops \<open>x \<in> d\<close> by auto
+      have y_sub: "y \<subseteq> {a..b}" using kprops \<open>y \<in> d\<close> by auto
+      have la1: "l1 \<in> {a..b}" "u1 \<in> {a..b}" using x_sub lu1 by auto
+      have la2: "l2 \<in> {a..b}" "u2 \<in> {a..b}" using y_sub lu2 by auto
+      have fl1u1: "f l1 \<le> f u1" using fInf_le_fSup[OF \<open>x \<in> d\<close>] lu1 by simp
+      have fl2u2: "f l2 \<le> f u2" using fInf_le_fSup[OF \<open>y \<in> d\<close>] lu2 by simp
+      have eq': "{f l1..f u1} = {f l2..f u2}" using eq lu1 lu2 by simp
+      have fl_eq: "f l1 = f l2" and fu_eq: "f u1 = f u2"
+        using eq' fl1u1 fl2u2 by (auto simp: Icc_eq_Icc)
+      have int_xy: "interior x \<inter> interior y = {}"
+        using int_disj[OF \<open>x \<in> d\<close> \<open>y \<in> d\<close> \<open>x \<noteq> y\<close>] .
+      have disj: "{l1<..<u1} \<inter> {l2<..<u2} = {}"
+        using int_xy lu1(2) lu2(2) by (simp add: interior_atLeastAtMost_real)
+      have "f l1 = f u1"
+      proof (cases "u1 \<le> l2")
+        case True
+        then have "f u1 \<le> f l2" using mono_le la1(2) la2(1) by auto
+        then show ?thesis using fl_eq fl1u1 by linarith
+      next
+        case False
+        then have "l2 < u1" by linarith
+        show ?thesis
+        proof (cases "u2 \<le> l1")
+          case True
+          then have "f u2 \<le> f l1" using mono_le la2(2) la1(1) by auto
+          then show ?thesis using fu_eq fl2u2 fl_eq by linarith
+        next
+          case False
+          then have "l1 < u2" by linarith
+          \<comment> \<open>Both l2 < u1 and l1 < u2, so the open intervals overlap — unless one is degenerate\<close>
+          have "l1 = u1 \<or> l2 = u2"
+          proof (rule ccontr)
+            assume "\<not> (l1 = u1 \<or> l2 = u2)"
+            then have "l1 < u1" "l2 < u2" using lu1(1) lu2(1) by linarith+
+            then have "max l1 l2 < min u1 u2"
+              using \<open>l2 < u1\<close> \<open>l1 < u2\<close> by auto
+            then have "(max l1 l2 + min u1 u2) / 2 \<in> {l1<..<u1} \<inter> {l2<..<u2}"
+              using \<open>l1 < u1\<close> \<open>l2 < u2\<close> by auto
+            with disj show False by auto
+          qed
+          then show ?thesis
+            using fl_eq fu_eq by fastforce
+        qed
+      qed
+      then show ?thesis using lu1 lu2 by simp
+    qed
     show ?thesis
-      sorry
+    proof -
+      let ?h = \<open>\<lambda>k. {f (Inf k)..f (Sup k)}\<close>
+      let ?G = \<open>\<lambda>K. norm (g (Sup K) - g (Inf K))\<close>
+      have D_eq: \<open>D = ?h ` d\<close> unfolding D_def ..
+      have sup_h: \<open>Sup {f (Inf k)..f (Sup k)} = f (Sup k)\<close> if \<open>k \<in> d\<close> for k
+        using fInf_le_fSup[OF that] by (simp add: cSup_atLeastAtMost)
+      have inf_h: \<open>Inf {f (Inf k)..f (Sup k)} = f (Inf k)\<close> if \<open>k \<in> d\<close> for k
+        using fInf_le_fSup[OF that] by (simp add: cInf_atLeastAtMost)
+      have \<open>?G (?h x) = 0\<close> if \<open>x \<in> d\<close> \<open>y \<in> d\<close> \<open>x \<noteq> y\<close> \<open>?h x = ?h y\<close> for x y
+        using ** fInf_le_fSup that by auto
+      then have eq1: \<open>sum ?G D = sum (?G \<circ> ?h) d\<close>
+        unfolding D_eq using \<open>finite d\<close> by (intro sum.reindex_nontrivial)
+      have \<open>(?G \<circ> ?h) k = norm (g (f (Sup k)) - g (f (Inf k)))\<close> if \<open>k \<in> d\<close> for k
+        by (simp add: o_def sup_h[OF that] inf_h[OF that])
+      then have \<open>(\<Sum>k\<in>d. norm ((g \<circ> f) (Sup k) - (g \<circ> f) (Inf k))) = sum (?G \<circ> ?h) d\<close>
+        by auto
+      then show ?thesis using eq1 * by linarith
+    qed
   qed
   then show ?th1 ?th2
-    using has_bounded_vector_variation_on_interval
-    by blast+
+    using has_bounded_vector_variation_on_interval by blast+
 qed
 
-lemma lipschitz_imp_has_bounded_variation:
+lemma Lipschitz_imp_has_bounded_variation:
   assumes "bounded s"
     and "\<And>x y. x \<in> s \<Longrightarrow> y \<in> s \<Longrightarrow> norm (f x - f y) \<le> B * norm (x - y)"
   shows "has_bounded_variation_on f s"
@@ -1522,10 +1593,47 @@ proof -
   qed
 qed
 
-lemma lipschitz_vector_variation:
-  assumes "\<And>x y. x \<in> {a..b} \<Longrightarrow> y \<in> {a..b} \<Longrightarrow> norm (f x - f y) \<le> B * \<bar>x - y\<bar>"
-  shows "vector_variation {a..b} f \<le> B * (b - a)"
-  sorry
+lemma Lipschitz_vector_variation:
+  assumes \<open>has_bounded_variation_on f {a..b}\<close>
+  shows \<open>(\<forall>x y. x \<in> {a..b} \<longrightarrow> y \<in> {a..b} \<longrightarrow>
+              \<bar>vector_variation {a..x} f - vector_variation {a..y} f\<bar> \<le> B * \<bar>x - y\<bar>)
+     \<longleftrightarrow> (\<forall>x y. x \<in> {a..b} \<longrightarrow> y \<in> {a..b} \<longrightarrow>
+              norm (f x - f y) \<le> B * \<bar>x - y\<bar>)\<close>
+     (is "?L = ?R")
+proof
+  assume L: ?L
+  have \<open>(\<forall>x y. x \<le> y \<longrightarrow> x \<in> {a..b} \<longrightarrow> y \<in> {a..b} \<longrightarrow>
+              norm (f x - f y) \<le> B * \<bar>x - y\<bar>)\<close>
+  proof (intro allI impI)
+    fix x y :: real assume xy: \<open>x \<le> y\<close> \<open>x \<in> {a..b}\<close> \<open>y \<in> {a..b}\<close>
+    have bv_ay: \<open>has_bounded_variation_on f {a..y}\<close>
+      using has_bounded_variation_on_subset[OF assms] xy(3) by auto
+    have x_in: \<open>x \<in> {a..y}\<close>
+      using xy by auto
+    have combine: \<open>vector_variation {a..y} f =
+        vector_variation {a..x} f + vector_variation {x..y} f\<close>
+      using vector_variation_combine[OF bv_ay x_in] .
+    have bv_xy: \<open>has_bounded_variation_on f {x..y}\<close>
+      using has_bounded_variation_on_subset[OF assms] xy by auto
+    have norm_le_vv: \<open>norm (f x - f y) \<le> vector_variation {x..y} f\<close>
+      using vector_variation_ge_norm_function[OF bv_xy] xy(1) by auto
+    have vv_eq: \<open>vector_variation {x..y} f =
+        vector_variation {a..y} f - vector_variation {a..x} f\<close>
+      using combine by linarith
+    have vv_le: \<open>vector_variation {x..y} f \<le> \<bar>vector_variation {a..x} f - vector_variation {a..y} f\<bar>\<close>
+      unfolding vv_eq by linarith
+    have \<open>\<bar>vector_variation {a..x} f - vector_variation {a..y} f\<bar> \<le> B * \<bar>x - y\<bar>\<close>
+      using L xy(2,3) by auto
+    then show \<open>norm (f x - f y) \<le> B * \<bar>x - y\<bar>\<close>
+      using norm_le_vv vv_le by linarith
+  qed
+  then show ?R
+    by (metis abs_minus_commute linorder_linear norm_minus_commute)
+next
+  assume R: ?R
+  show ?L
+    sorry
+qed
 
 subsection \<open>Bounded variation implies bounded\<close>
 
@@ -1770,9 +1878,24 @@ lemma vector_variation_minus_function_monotone:
     and "vector_variation {a..x} f - norm (f x - f a) \<le>
       vector_variation {a..y} f - norm (f y - f a)"
 proof -
-  show "norm (f y - f x) \<le> vector_variation {x..y} f" sorry
-  show "vector_variation {a..x} f - norm (f x - f a) \<le>
-    vector_variation {a..y} f - norm (f y - f a)" sorry
+  have bv_xy: "has_bounded_variation_on f {x..y}"
+    using has_bounded_variation_on_subset[OF assms(1)] assms(2,3) by auto
+  show goal1: "norm (f y - f x) \<le> vector_variation {x..y} f"
+    using vector_variation_ge_norm_function[OF bv_xy] assms(4) by auto
+  have bv_ay: "has_bounded_variation_on f {a..y}"
+    using has_bounded_variation_on_subset[OF assms(1)] assms(3) by auto
+  have x_in_ay: "x \<in> {a..y}"
+    using assms(2,4) by auto
+  have combine: "vector_variation {a..y} f =
+      vector_variation {a..x} f + vector_variation {x..y} f"
+    using vector_variation_combine[OF bv_ay x_in_ay] .
+  have "norm (f y - f a) \<le> norm (f y - f x) + norm (f x - f a)"
+    using norm_triangle_ineq[of "f y - f x" "f x - f a"] by simp
+  then have "norm (f y - f a) \<le> vector_variation {x..y} f + norm (f x - f a)"
+    using goal1 by linarith
+  then show "vector_variation {a..x} f - norm (f x - f a) \<le>
+      vector_variation {a..y} f - norm (f y - f a)"
+    using combine by linarith
 qed
 
 subsection \<open>Factoring through variation\<close>
