@@ -457,12 +457,10 @@ proof -
   with vvab vvcd show ?thesis by simp
 qed
 
-lemma has_bounded_setvariation_on_works:
+lemma has_bounded_setvariation_works:
   assumes "has_bounded_setvariation_on f s"
-  shows "(\<And>d t. d division_of t \<Longrightarrow> t \<subseteq> s \<Longrightarrow>
-            (\<Sum>k\<in>d. norm (f k)) \<le> set_variation s f)"
-    and "(\<And>B. (\<And>d t. d division_of t \<Longrightarrow> t \<subseteq> s \<Longrightarrow>
-                  (\<Sum>k\<in>d. norm (f k)) \<le> B) \<Longrightarrow>
+  shows "(\<And>d t. d division_of t \<Longrightarrow> t \<subseteq> s \<Longrightarrow> (\<Sum>k\<in>d. norm (f k)) \<le> set_variation s f)"
+    and "(\<And>B. (\<And>d t. d division_of t \<Longrightarrow> t \<subseteq> s \<Longrightarrow> (\<Sum>k\<in>d. norm (f k)) \<le> B) \<Longrightarrow>
             set_variation s f \<le> B)"
 proof -
   define S where "S = {\<Sum>k\<in>d. norm (f k) | d. \<exists>t. d division_of t \<and> t \<subseteq> s}"
@@ -501,14 +499,14 @@ proof -
   }
 qed
 
-lemma has_bounded_variation_on_works:
+lemma has_bounded_variation_works:
   assumes "has_bounded_variation_on f s"
   shows "(\<And>d t. d division_of t \<Longrightarrow> t \<subseteq> s \<Longrightarrow>
             (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> vector_variation s f)"
     and "(\<And>B. (\<And>d t. d division_of t \<Longrightarrow> t \<subseteq> s \<Longrightarrow>
                   (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> B) \<Longrightarrow>
             vector_variation s f \<le> B)"
-  using has_bounded_setvariation_on_works[of "\<lambda>k. f (Sup k) - f (Inf k)" s]
+  using has_bounded_setvariation_works[of "\<lambda>k. f (Sup k) - f (Inf k)" s]
     assms[unfolded has_bounded_variation_on_def]
   unfolding vector_variation_def by auto
 
@@ -522,14 +520,14 @@ proof -
   have bvt: "has_bounded_variation_on f t"
     by (rule has_bounded_variation_on_subset[OF assms(1)]) auto
   have "vector_variation s f \<le> vector_variation (s \<union> t) f - vector_variation t f"
-  proof (rule has_bounded_variation_on_works(2)[OF bvs])
+  proof (rule has_bounded_variation_works(2)[OF bvs])
     fix ds s' assume ds: "ds division_of s'" "s' \<subseteq> s"
     show "(\<Sum>k\<in>ds. norm (f (Sup k) - f (Inf k)))
           \<le> vector_variation (s \<union> t) f - vector_variation t f"
     proof -
       have "vector_variation t f
             \<le> vector_variation (s \<union> t) f - (\<Sum>k\<in>ds. norm (f (Sup k) - f (Inf k)))"
-      proof (rule has_bounded_variation_on_works(2)[OF bvt])
+      proof (rule has_bounded_variation_works(2)[OF bvt])
         fix dt t' assume dt: "dt division_of t'" "t' \<subseteq> t"
         show "(\<Sum>k\<in>dt. norm (f (Sup k) - f (Inf k)))
               \<le> vector_variation (s \<union> t) f - (\<Sum>k\<in>ds. norm (f (Sup k) - f (Inf k)))"
@@ -571,7 +569,7 @@ proof -
           ultimately have "(\<Sum>k\<in>ds. norm (f (Sup k) - f (Inf k)))
                         + (\<Sum>k\<in>dt. norm (f (Sup k) - f (Inf k)))
                         \<le> vector_variation (s \<union> t) f"
-            using has_bounded_variation_on_works(1)[OF fst]
+            using has_bounded_variation_works(1)[OF fst]
             by auto
           then show ?thesis by linarith
         qed
@@ -936,7 +934,7 @@ proof
   proof (intro allI impI)
     fix d t assume "d division_of t \<and> t \<subseteq> s"
     then have "(\<Sum>k\<in>d. norm (f k)) \<le> set_variation s f"
-      using has_bounded_setvariation_on_works(1)[OF bdd] by auto
+      using has_bounded_setvariation_works(1)[OF bdd] by auto
     also have "\<dots> \<le> c" using le .
     finally show "(\<Sum>k\<in>d. norm (f k)) \<le> c" .
   qed
@@ -947,7 +945,7 @@ next
     show "has_bounded_setvariation_on f s"
       unfolding has_bounded_setvariation_on_def using R by blast
     show "set_variation s f \<le> c"
-      using R by (intro has_bounded_setvariation_on_works(2))
+      using R by (intro has_bounded_setvariation_works(2))
         (auto simp: has_bounded_setvariation_on_def)
   qed
 qed
@@ -965,7 +963,7 @@ proof
   proof (intro allI impI)
     fix d assume "d division_of {a..b}"
     then have "(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> vector_variation {a..b} f"
-      using has_bounded_variation_on_works(1)[OF bdd] by auto
+      using has_bounded_variation_works(1)[OF bdd] by auto
     also have "\<dots> \<le> c" using le .
     finally show "(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> c" .
   qed
@@ -976,7 +974,7 @@ next
     show bv: "has_bounded_variation_on f {a..b}"
       unfolding has_bounded_variation_on_interval using R by blast
     show "vector_variation {a..b} f \<le> c"
-    proof (rule has_bounded_variation_on_works(2)[OF bv])
+    proof (rule has_bounded_variation_works(2)[OF bv])
       fix d t assume "d division_of t" "t \<subseteq> {a..b}"
       then have div_d: "d division_of t" and sub: "t \<subseteq> {a..b}" by auto
       have "d division_of \<Union>d"
@@ -1208,7 +1206,7 @@ proof -
             = (\<Sum>k \<in> g ` d'. norm (f (Sup k) - f (Inf k)))"
           by (metis (no_types, lifting) inj_g sum.reindex_cong)
         also have "\<dots> \<le> vector_variation S f"
-          using has_bounded_variation_on_works(1)[OF bvS gd'_div gd'_sub_S] .
+          using has_bounded_variation_works(1)[OF bvS gd'_div gd'_sub_S] .
         finally show ?thesis using split_sum by simp
       qed
       have "(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) 
@@ -1337,14 +1335,139 @@ qed
 
 subsection \<open>Composition and monotonicity\<close>
 
-(*THIS IS WRONG*)
 lemma has_bounded_variation_compose_monotone:
   assumes bv: "has_bounded_variation_on g {f a..f b}"
-  shows "(\<And>x y. \<lbrakk>x \<in> {c..d}; y \<in> {c..d}; x \<le> y\<rbrakk> \<Longrightarrow> g x \<le> g y)
-       \<Longrightarrow> has_bounded_variation_on (f \<circ> g) {c..d}"
-    and "(\<And>x y. \<lbrakk>x \<in> {c..d}; y \<in> {c..d}; x \<le> y\<rbrakk> \<Longrightarrow> g y \<le> g x)
-       \<Longrightarrow> has_bounded_variation_on (f \<circ> g) {c..d}"
-  sorry
+    and mono: "mono_on {a..b} f"
+  shows "has_bounded_variation_on (g \<circ> f) {a..b}" (is ?th1)
+    and "vector_variation {a..b} (g \<circ> f) \<le> vector_variation {f a..f b} g" (is ?th2)
+proof -
+  have \<open>(\<Sum>k\<in>d. norm ((g \<circ> f) (Sup k) - (g \<circ> f) (Inf k))) \<le> vector_variation {f a..f b} g\<close>
+    if "d division_of {a..b}" for d
+  proof -
+    define D where \<open>D \<equiv> (\<lambda>k. {f (Inf k)..f(Sup k)}) ` d\<close>
+    have fin_d: "finite d" using division_of_finite[OF that] .
+    have kprops: "\<And>k. k \<in> d \<Longrightarrow> k \<subseteq> {a..b} \<and> k \<noteq> {} \<and> (\<exists>l u. k = cbox l u)"
+      using division_ofD(2,3,4)[OF that] by auto
+    have int_disj: "\<And>k1 k2. k1 \<in> d \<Longrightarrow> k2 \<in> d \<Longrightarrow> k1 \<noteq> k2 \<Longrightarrow> interior k1 \<inter> interior k2 = {}"
+      using division_ofD(5)[OF that] by auto
+    have k_interval: "\<And>k. k \<in> d \<Longrightarrow> \<exists>l u. l \<le> u \<and> k = {l..u} \<and> Inf k = l \<and> Sup k = u"
+    proof -
+      fix k assume "k \<in> d"
+      then obtain l u where "k = cbox l u" "k \<noteq> {}" using kprops by blast
+      then have "l \<le> u" by force
+      then have "k = {l..u}" "Inf k = l" "Sup k = u"
+        using \<open>k = cbox l u\<close> by (auto simp: cbox_interval)
+      with \<open>l \<le> u\<close> show "\<exists>l u. l \<le> u \<and> k = {l..u} \<and> Inf k = l \<and> Sup k = u" by auto
+    qed
+    have mono_le: "\<And>x y. x \<in> {a..b} \<Longrightarrow> y \<in> {a..b} \<Longrightarrow> x \<le> y \<Longrightarrow> f x \<le> f y"
+      using mono by (simp add: monotone_on_def)
+    have fInf_le_fSup: "\<And>k. k \<in> d \<Longrightarrow> f (Inf k) \<le> f (Sup k)"
+    proof -
+      fix k assume "k \<in> d"
+      then obtain l u where lu: "l \<le> u" "k = {l..u}" "Inf k = l" "Sup k = u"
+        using k_interval by blast
+      have "k \<subseteq> {a..b}" using kprops \<open>k \<in> d\<close> by auto
+      then have "l \<in> {a..b}" "u \<in> {a..b}" using lu by auto
+      then show "f (Inf k) \<le> f (Sup k)" using lu mono_le by auto
+    qed
+    have \<open>D division_of \<Union>D\<close>
+      unfolding division_of_def
+    proof (intro conjI ballI allI impI)
+      show "finite D" unfolding D_def using fin_d by auto
+    next
+      fix K assume "K \<in> D"
+      then obtain k where kd: "k \<in> d" and K_eq: "K = {f (Inf k)..f (Sup k)}"
+        unfolding D_def by auto
+      show "K \<subseteq> \<Union>D" using \<open>K \<in> D\<close> by auto
+      show "K \<noteq> {}" using K_eq fInf_le_fSup[OF kd] by auto
+      show "\<exists>a b. K = cbox a b" using K_eq by (auto simp: cbox_interval)
+    next
+      fix K1 K2 assume K1D: "K1 \<in> D" and K2D: "K2 \<in> D" and ne: "K1 \<noteq> K2"
+      from K1D obtain k1 where k1d: "k1 \<in> d" and K1_eq: "K1 = {f (Inf k1)..f (Sup k1)}"
+        unfolding D_def by auto
+      from K2D obtain k2 where k2d: "k2 \<in> d" and K2_eq: "K2 = {f (Inf k2)..f (Sup k2)}"
+        unfolding D_def by auto
+      obtain l1 u1 where lu1: "l1 \<le> u1" "k1 = {l1..u1}" "Inf k1 = l1" "Sup k1 = u1"
+        using k_interval[OF k1d] by blast
+      obtain l2 u2 where lu2: "l2 \<le> u2" "k2 = {l2..u2}" "Inf k2 = l2" "Sup k2 = u2"
+        using k_interval[OF k2d] by blast
+      have k1_sub: "k1 \<subseteq> {a..b}" using kprops k1d by auto
+      have k2_sub: "k2 \<subseteq> {a..b}" using kprops k2d by auto
+      have l1a: "l1 \<in> {a..b}" "u1 \<in> {a..b}" using k1_sub lu1 by auto
+      have l2a: "l2 \<in> {a..b}" "u2 \<in> {a..b}" using k2_sub lu2 by auto
+      have fl1u1: "f l1 \<le> f u1" using mono_le l1a lu1(1) by auto
+      have fl2u2: "f l2 \<le> f u2" using mono_le l2a lu2(1) by auto
+      have k1_ne_k2: "k1 \<noteq> k2"
+        using K1_eq K2_eq ne by blast
+      have int_k1k2: "interior k1 \<inter> interior k2 = {}"
+        using int_disj[OF k1d k2d k1_ne_k2] .
+      show "interior K1 \<inter> interior K2 = {}"
+      proof (rule ccontr)
+        assume "interior K1 \<inter> interior K2 \<noteq> {}"
+        then obtain y where y1: "y \<in> interior K1" and y2: "y \<in> interior K2" by auto
+        have int_K1: "interior K1 = {f l1<..<f u1}"
+          using K1_eq lu1 fl1u1 by (auto simp: interior_atLeastAtMost_real)
+        then have y_in1: "f l1 < y" "y < f u1" using y1 by auto
+        have int_K2: "interior K2 = {f l2<..<f u2}"
+          using K2_eq lu2 fl2u2 by (auto simp: interior_atLeastAtMost_real)
+        then have y_in2: "f l2 < y" "y < f u2" using y2 by auto
+        have fl1_lt_fu1: "f l1 < f u1"
+          using int_K1 y1 by auto
+        have fl2_lt_fu2: "f l2 < f u2"
+          using int_K2 y2 by auto
+        have l1_lt_u1: "l1 < u1"
+          using fl1_lt_fu1 lu1(1) by (cases "l1 = u1") auto
+        have l2_lt_u2: "l2 < u2"
+          using fl2_lt_fu2 lu2(1) by (cases "l2 = u2") auto
+        have "l1 < u2"
+        proof (rule ccontr)
+          assume "\<not> l1 < u2"
+          then have "u2 \<le> l1" by linarith
+          then have "f u2 \<le> f l1" using mono_le l1a(1) l2a(2) by auto
+          with y_in1(1) y_in2(2) show False by linarith
+        qed
+        moreover have "l2 < u1"
+        proof (rule ccontr)
+          assume "\<not> l2 < u1"
+          then have "u1 \<le> l2" by linarith
+          then have "f u1 \<le> f l2" using mono_le l2a(1) l1a(2) by auto
+          with y_in2(1) y_in1(2) show False by linarith
+        qed
+        ultimately have "max l1 l2 < min u1 u2"
+          using l1_lt_u1 l2_lt_u2 by auto
+        then have "(max l1 l2 + min u1 u2) / 2 \<in> {l1<..<u1} \<inter> {l2<..<u2}"
+          using l1_lt_u1 l2_lt_u2 by auto
+        then have "(max l1 l2 + min u1 u2) / 2 \<in> interior k1 \<inter> interior k2"
+          using lu1(2) lu2(2) by (simp add: interior_atLeastAtMost_real)
+        with int_k1k2 show False by auto
+      qed
+    next
+      show "\<Union>D = \<Union>D" ..
+    qed
+    moreover have \<open>\<Union>D \<subseteq> {f a..f b}\<close>
+    proof
+      fix x assume "x \<in> \<Union>D"
+      then obtain K where KD: "K \<in> D" and xK: "x \<in> K" by auto
+      from KD obtain k where kd: "k \<in> d" and K_eq: "K = {f (Inf k)..f (Sup k)}"
+        unfolding D_def by auto
+      obtain l u where lu: "l \<le> u" "k = {l..u}" "Inf k = l" "Sup k = u"
+        using k_interval[OF kd] by blast
+      have k_sub: "k \<subseteq> {a..b}" using kprops kd by auto
+      then have la: "l \<in> {a..b}" "u \<in> {a..b}" using lu by auto
+      have "f a \<le> f l" using mono_le la(1) by auto
+      moreover have "f u \<le> f b" using mono_le la(2) by auto
+      moreover have "x \<in> {f l..f u}" using xK K_eq lu by auto
+      ultimately show "x \<in> {f a..f b}" by auto
+    qed
+    ultimately have \<open>(\<Sum>k\<in>D. norm (g (Sup k) - g (Inf k))) \<le> vector_variation {f a..f b} g\<close>
+      using has_bounded_variation_works [OF bv] by auto
+    show ?thesis
+      sorry
+  qed
+  then show ?th1 ?th2
+    using has_bounded_vector_variation_on_interval
+    by blast+
+qed
 
 lemma lipschitz_imp_has_bounded_variation:
   assumes "bounded s"
@@ -1537,7 +1660,7 @@ qed
 
 lemma increasing_bounded_variation:
   fixes f :: "real \<Rightarrow> 'a::ordered_euclidean_space"
-  assumes "\<And>x y. x \<in> {a..b} \<Longrightarrow> y \<in> {a..b} \<Longrightarrow> x \<le> y \<Longrightarrow> f x \<le> f y"
+  assumes "mono_on {a..b} f"
   shows "has_bounded_variation_on f {a..b}"
   unfolding has_bounded_variation_on_interval
 proof (intro exI allI impI)
@@ -1557,7 +1680,8 @@ proof (intro exI allI impI)
       by force
     have "k \<subseteq> {a..b}" using division_ofD(2)[OF div_d kd] by auto
     then have "l \<in> {a..b}" "u \<in> {a..b}" using lu k_eq by (auto simp: cbox_interval)
-    have "f l \<le> f u" using assms \<open>l \<in> {a..b}\<close> \<open>u \<in> {a..b}\<close> lu by auto
+    have "f l \<le> f u" 
+      using assms \<open>l \<in> {a..b}\<close> \<open>u \<in> {a..b}\<close> lu by (simp add: monotone_on_def)
     then have "f l \<bullet> i \<le> f u \<bullet> i" using iBasis eucl_le by metis
     have "Inf k = l" "Sup k = u" using lu k_eq by (auto simp: cbox_interval)
     then show "\<bar>(f (Sup k) - f (Inf k)) \<bullet> i\<bar> = f (Sup k) \<bullet> i - f (Inf k) \<bullet> i"
@@ -1587,7 +1711,7 @@ qed
 
 lemma increasing_vector_variation:
   fixes f :: "real \<Rightarrow> real"
-  assumes mono: "\<And>x y. x \<in> {a..b} \<Longrightarrow> y \<in> {a..b} \<Longrightarrow> x \<le> y \<Longrightarrow> f x \<le> f y"
+  assumes mono: "mono_on {a..b} f"
     and ab: "a \<le> b"
   shows "vector_variation {a..b} f = norm (f b - f a)"
 proof (rule antisym)
@@ -1598,7 +1722,8 @@ proof (rule antisym)
   have vv_eq: "vector_variation {a..b} f =
     Sup {(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) | d. d division_of {a..b}}"
     using vector_variation_on_interval[OF bv] .
-  have fa_le_fb: "f a \<le> f b" using mono ab by auto
+  have fa_le_fb: "f a \<le> f b" using mono ab
+    by (simp add: monotone_on_def)
   show "vector_variation {a..b} f \<le> norm (f b - f a)"
     unfolding vv_eq
   proof (rule cSup_least)
@@ -1618,7 +1743,8 @@ proof (rule antisym)
       then have lu: "l \<le> u" by force
       have "k \<subseteq> {a..b}" using division_ofD(2)[OF div_d kd] by auto
       then have "l \<in> {a..b}" "u \<in> {a..b}" using lu k_eq by (auto simp: cbox_interval)
-      then have "f l \<le> f u" using mono lu by auto
+      then have "f l \<le> f u" 
+        using mono lu by (simp add: monotone_on_def)
       have "Inf k = l" "Sup k = u" using lu k_eq by (auto simp: cbox_interval)
       then show "norm (f (Sup k) - f (Inf k)) = f (Sup k) - f (Inf k)"
         using \<open>f l \<le> f u\<close> by auto
