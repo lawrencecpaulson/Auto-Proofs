@@ -2138,6 +2138,70 @@ next
     using has_bounded_variation_Darboux mono_g mono_h eq by blast
 qed
 
+subsection \<open>One-sided limits of monotone and BV functions\<close>
+
+text \<open>A monotone increasing function on a closed interval has a left limit at every
+point of that interval. The limit is the supremum of the function values to the left.\<close>
+
+lemma increasing_left_limit:
+  fixes f :: \<open>real \<Rightarrow> real\<close>
+  assumes mono: \<open>mono_on {a..b} f\<close> and c_in: \<open>c \<in> {a..b}\<close>
+  shows \<open>\<exists>l. (f \<longlongrightarrow> l) (at c within {a..c})\<close>
+proof (cases \<open>c islimpt {a..c}\<close>)
+  case False
+  then have \<open>at c within {a..c} = bot\<close>
+    by (simp add: trivial_limit_within)
+  then show ?thesis
+    using tendsto_bot by (intro exI) auto
+next
+  case True
+  \<comment> \<open>In this case a < c, so there are points to the left\<close>
+  have ac: \<open>a < c\<close>
+  proof (rule ccontr)
+    assume \<open>\<not> a < c\<close>
+    then have \<open>{a..c} \<subseteq> {c}\<close> using c_in by auto
+    then have \<open>finite {a..c}\<close> using finite_subset by blast
+    then show False using True islimpt_finite by blast
+  qed
+  define S where \<open>S = f ` ({a..b} \<inter> {..<c})\<close>
+  have S_ne: \<open>S \<noteq> {}\<close>
+    unfolding S_def using ac c_in by force
+  have S_bdd: \<open>bdd_above S\<close>
+    unfolding S_def bdd_above_def using mono mono_onD
+    by(intro exI[of _ \<open>f b\<close>] ballI, fastforce)
+
+  define l where \<open>l = Sup S\<close>
+  show ?thesis
+  proof (intro exI tendstoI)
+    fix e :: real assume \<open>e > 0\<close>
+    \<comment> \<open>Find d with l - e < f d\<close>
+    have \<open>l - e < l\<close> using \<open>e > 0\<close> by simp
+    then obtain y where \<open>y \<in> S\<close> \<open>l - e < y\<close>
+      using less_cSup_iff[OF S_ne S_bdd] l_def by blast
+    then obtain d where d_in: \<open>d \<in> {a..b}\<close> and dc: \<open>d < c\<close> and fd: \<open>l - e < f d\<close>
+      unfolding S_def by auto
+    \<comment> \<open>For x \<in> (d, c) \<inter> {a..c}, we have |f x - l| < e\<close>
+    show \<open>\<forall>\<^sub>F x in at c within {a..c}. dist (f x) l < e\<close>
+      unfolding eventually_at_filter eventually_nhds
+    proof (intro exI conjI ballI impI)
+      show \<open>open {d<..}\<close> by auto
+      show \<open>c \<in> {d<..}\<close> using dc by auto
+      fix x assume \<open>x \<in> {d<..}\<close> \<open>x \<noteq> c\<close> \<open>x \<in> {a..c}\<close>
+      then have xc: \<open>x < c\<close> and xab: \<open>x \<in> {a..b}\<close> and dx: \<open>d < x\<close>
+        using c_in by auto
+      have fx_le_l: \<open>f x \<le> l\<close>
+        unfolding l_def
+        by (intro cSup_upper[OF _ S_bdd]) (auto simp: S_def intro: xab xc)
+      have \<open>f d \<le> f x\<close>
+        using mono d_in xab dx unfolding mono_on_def by auto
+      then have \<open>l - e < f x\<close> using fd by linarith
+      then show \<open>dist (f x) l < e\<close>
+        using fx_le_l unfolding dist_real_def by linarith
+    qed
+  qed
+qed
+
+
 subsection \<open>Continuity of vector variation\<close>
 
 lemma continuous_vector_variation_at_left:
