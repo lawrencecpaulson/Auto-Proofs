@@ -1716,6 +1716,33 @@ next
   qed
 qed
 
+lemma vector_variation_minus_function_monotone:
+  assumes "has_bounded_variation_on f {a..b}" "x \<in> {a..b}" "y \<in> {a..b}" "x \<le> y"
+  shows "norm (f y - f x) \<le> vector_variation {x..y} f"
+    and "vector_variation {a..x} f - norm (f x - f a) \<le>
+      vector_variation {a..y} f - norm (f y - f a)"
+proof -
+  have bv_xy: "has_bounded_variation_on f {x..y}"
+    using has_bounded_variation_on_subset[OF assms(1)] assms(2,3) by auto
+  show goal1: "norm (f y - f x) \<le> vector_variation {x..y} f"
+    using vector_variation_ge_norm_function[OF bv_xy] assms(4) by auto
+  have bv_ay: "has_bounded_variation_on f {a..y}"
+    using has_bounded_variation_on_subset[OF assms(1)] assms(3) by auto
+  have x_in_ay: "x \<in> {a..y}"
+    using assms(2,4) by auto
+  have combine: "vector_variation {a..y} f =
+      vector_variation {a..x} f + vector_variation {x..y} f"
+    using vector_variation_combine[OF bv_ay x_in_ay] .
+  have "norm (f y - f a) \<le> norm (f y - f x) + norm (f x - f a)"
+    using norm_triangle_ineq[of "f y - f x" "f x - f a"] by simp
+  then have "norm (f y - f a) \<le> vector_variation {x..y} f + norm (f x - f a)"
+    using goal1 by linarith
+  then show "vector_variation {a..x} f - norm (f x - f a) \<le>
+      vector_variation {a..y} f - norm (f y - f a)"
+    using combine by linarith
+qed
+
+
 subsection \<open>Bounded variation implies bounded\<close>
 
 lemma has_bounded_variation_on_imp_bounded:
@@ -1949,38 +1976,232 @@ proof (rule antisym)
   qed
 qed
 
+subsection \<open>Darboux decomposition\<close>
+
+text \<open>A function of bounded variation on an interval can be written as the difference
+  of two monotone functions. This is the Darboux (or Jordan) decomposition theorem.\<close>
+
+lemma has_bounded_variation_Darboux_gen:
+  fixes f :: "real \<Rightarrow> real"
+  assumes ivs: "is_interval s" and bv: "has_bounded_variation_on f s"
+  shows "\<exists>g h. mono_on s g \<and> mono_on s h \<and> (\<forall>x. f x = g x - h x)"
+proof -
+  define g where "g x = vector_variation (s \<inter> {..x}) f" for x
+  define h where "h x = vector_variation (s \<inter> {..x}) f - f x" for x
+  have sub_xy: "{x..y} \<subseteq> s" if "x \<in> s" "y \<in> s" "x \<le> y" for x y
+    using ivs that unfolding is_interval_def
+    by (metis cbox_interval interval_subset_is_interval ivs)
+  have g_mono: "mono_on s g"
+    unfolding mono_on_def g_def
+  proof (intro allI impI)
+    fix x y assume "x \<in> s \<and> y \<in> s \<and> x \<le> y"
+    then have xy: "x \<in> s" "y \<in> s" "x \<le> y" by auto
+    have bv_sy: "has_bounded_variation_on f (s \<inter> {..y})"
+      using has_bounded_variation_on_subset[OF bv] by auto
+    have sub: "s \<inter> {..x} \<subseteq> s \<inter> {..y}" using xy(3) by auto
+    show "vector_variation (s \<inter> {..x}) f \<le> vector_variation (s \<inter> {..y}) f"
+      using vector_variation_monotone bv_sy sub
+      sorry
+  qed
+  have h_mono: "mono_on s h"
+    unfolding mono_on_def h_def
+  proof (intro allI impI)
+    fix x y assume "x \<in> s \<and> y \<in> s \<and> x \<le> y"
+    then have xy: "x \<in> s" "y \<in> s" "x \<le> y" by auto
+    have xy_sub: "{x..y} \<subseteq> s" by (rule sub_xy[OF xy])
+    have bv_sy: "has_bounded_variation_on f (s \<inter> {..y})"
+      using has_bounded_variation_on_subset[OF bv] by auto
+    have iv_sy: "is_interval (s \<inter> {..y})"
+      by (rule is_interval_Int[OF ivs is_interval_ic])
+    have x_in: "x \<in> s \<inter> {..y}" using xy by auto
+    have split: "vector_variation (s \<inter> {..y}) f =
+      vector_variation (s \<inter> {..y} \<inter> {..x}) f + vector_variation (s \<inter> {..y} \<inter> {x..}) f"
+      using vector_variation_split[OF iv_sy bv_sy, of x] by linarith
+    have eq1: "s \<inter> {..y} \<inter> {..x} = s \<inter> {..x}" using xy(3) by auto
+    have eq2: "s \<inter> {..y} \<inter> {x..} = s \<inter> {x..y}" using xy(3) by auto
+    have "s \<inter> {x..y} = {x..y}" using xy_sub by auto
+    then have eq3: "s \<inter> {..y} \<inter> {x..} = {x..y}" using eq2 by auto
+    have bv_xy: "has_bounded_variation_on f {x..y}"
+      using has_bounded_variation_on_subset[OF bv xy_sub] .
+    have "f y - f x \<le> \<bar>f y - f x\<bar>" by (rule abs_ge_self)
+    also have "\<dots> = norm (f y - f x)" by (simp add: real_norm_def)
+    also have "\<dots> \<le> vector_variation {x..y} f"
+      using vector_variation_ge_norm_function[OF bv_xy] xy(3) by auto
+    also have "\<dots> = vector_variation (s \<inter> {..y}) f - vector_variation (s \<inter> {..x}) f"
+      using split eq1 eq3 by simp
+    finally show "vector_variation (s \<inter> {..x}) f - f x \<le> vector_variation (s \<inter> {..y}) f - f y"
+      by linarith
+  qed
+  have eq: "\<forall>x. f x = g x - h x"
+    unfolding g_def h_def by simp
+  show ?thesis
+    using g_mono h_mono eq by blast
+qed
+
+lemma has_bounded_variation_Darboux:
+  fixes f :: "real \<Rightarrow> real"
+  shows "has_bounded_variation_on f {a..b} \<longleftrightarrow>
+    (\<exists>g h. mono_on {a..b} g \<and> mono_on {a..b} h \<and> (\<forall>x. f x = g x - h x))"
+  (is "?L \<longleftrightarrow> ?R")
+proof
+  assume bv: ?L
+  define g where "g x = vector_variation {a..x} f" for x
+  define h where "h x = vector_variation {a..x} f - f x" for x
+  have g_mono: "mono_on {a..b} g"
+    unfolding mono_on_def g_def
+  proof (intro allI impI)
+    fix x y assume "x \<in> {a..b} \<and> y \<in> {a..b} \<and> x \<le> y"
+    then have xy: "x \<in> {a..b}" "y \<in> {a..b}" "x \<le> y" by auto
+    have bv_ay: "has_bounded_variation_on f {a..y}"
+      using has_bounded_variation_on_subset[OF bv] xy(2) by auto
+    have sub: "{a..x} \<subseteq> {a..y}" using xy(3) by auto
+    show "vector_variation {a..x} f \<le> vector_variation {a..y} f"
+      by (rule vector_variation_monotone[OF bv_ay sub])
+  qed
+  have h_mono: "mono_on {a..b} h"
+    unfolding mono_on_def h_def
+  proof (intro allI impI)
+    fix x y assume "x \<in> {a..b} \<and> y \<in> {a..b} \<and> x \<le> y"
+    then have xy: "x \<in> {a..b}" "y \<in> {a..b}" "x \<le> y" by auto
+    have "f y - f x \<le> \<bar>f y - f x\<bar>"
+      by (rule abs_ge_self)
+    also have "\<dots> = norm (f y - f x)"
+      by (simp add: real_norm_def)
+    also have "\<dots> \<le> vector_variation {x..y} f"
+      using vector_variation_minus_function_monotone(1)[OF bv xy] .
+    also have "\<dots> = vector_variation {a..y} f - vector_variation {a..x} f"
+    proof -
+      have bv_ay: "has_bounded_variation_on f {a..y}"
+        using has_bounded_variation_on_subset[OF bv] xy(2) by auto
+      have "x \<in> {a..y}" using xy by auto
+      from vector_variation_combine[OF bv_ay this]
+      show ?thesis by linarith
+    qed
+    finally show "vector_variation {a..x} f - f x \<le> vector_variation {a..y} f - f y"
+      by linarith
+  qed
+  have eq: "\<forall>x. f x = g x - h x"
+    unfolding g_def h_def by simp
+  show ?R
+    using g_mono h_mono eq by blast
+next
+  assume ?R
+  then obtain g h where mono_g: "mono_on {a..b} g" and mono_h: "mono_on {a..b} h"
+    and eq: "\<forall>x. f x = g x - h x" by blast
+  have bv_g: "has_bounded_variation_on g {a..b}"
+    by (rule increasing_bounded_variation[OF mono_g])
+  have bv_h: "has_bounded_variation_on h {a..b}"
+    by (rule increasing_bounded_variation[OF mono_h])
+  have "f = (\<lambda>x. g x - h x)" using eq by auto
+  then show ?L
+    using has_bounded_variation_on_sub[OF bv_g bv_h] by simp
+qed
+
+lemma has_bounded_variation_Darboux_strict:
+  fixes f :: "real \<Rightarrow> real"
+  shows "has_bounded_variation_on f {a..b} \<longleftrightarrow>
+    (\<exists>g h. strict_mono_on {a..b} g \<and> strict_mono_on {a..b} h \<and> (\<forall>x. f x = g x - h x))"
+  (is "?L \<longleftrightarrow> ?R")
+proof
+  assume ?L
+  then obtain g h where mono_g: "mono_on {a..b} g" and mono_h: "mono_on {a..b} h"
+    and eq: "\<forall>x. f x = g x - h x"
+    using has_bounded_variation_Darboux by blast
+  define g' where "g' x = g x + x" for x
+  define h' where "h' x = h x + x" for x
+  have sg: "strict_mono_on {a..b} g'"
+    unfolding strict_mono_on_def g'_def
+    by (metis add_le_less_mono linorder_not_less mono_g nle_le ord.mono_on_def)
+  have sh: "strict_mono_on {a..b} h'"
+    unfolding strict_mono_on_def h'_def
+  proof clarify
+    fix x y assume "x \<in> {a..b}" "y \<in> {a..b}" "x < y"
+    then have "h x \<le> h y"
+      using mono_h unfolding mono_on_def by (simp add: less_imp_le)
+    then show "h x + x < h y + y"
+      using \<open>x < y\<close> by linarith
+  qed
+  have "\<forall>x. f x = g' x - h' x"
+    unfolding g'_def h'_def using eq by simp
+  then show ?R using sg sh by blast
+next
+  assume ?R
+  then obtain g h where sg: "strict_mono_on {a..b} g" and sh: "strict_mono_on {a..b} h"
+    and eq: "\<forall>x. f x = g x - h x" by blast
+  have mono_g: "mono_on {a..b} g"
+    using sg unfolding strict_mono_on_def mono_on_def
+    by (metis order_le_less)
+  have mono_h: "mono_on {a..b} h"
+    using sh unfolding strict_mono_on_def mono_on_def
+    by (metis le_less)
+  show ?L
+    using has_bounded_variation_Darboux mono_g mono_h eq by blast
+qed
+
 subsection \<open>Continuity of vector variation\<close>
+
+lemma continuous_vector_variation_at_left:
+  assumes \<open>has_bounded_variation_on f {a..b}\<close> \<open>c \<in> {a..b}\<close>
+  shows \<open>continuous (at c within {a..c}) (\<lambda>x. vector_variation {a..x} f) \<longleftrightarrow>
+         continuous (at c within {a..c}) f\<close>   (is \<open>?L = ?R  \<close>)
+proof
+  assume L: ?L
+  show ?R
+  proof -
+    from assms have ac: \<open>a \<le> c\<close> and cb: \<open>c \<le> b\<close> by auto
+    have bv_ac: \<open>has_bounded_variation_on f {a..c}\<close>
+      using has_bounded_variation_on_subset[OF assms(1)] assms(2) by auto
+    \<comment> \<open>L gives tendsto of vv\<close>
+    from L have vv_tend: \<open>((\<lambda>x. vector_variation {a..x} f) \<longlongrightarrow> vector_variation {a..c} f) (at c within {a..c})\<close>
+      by (simp add: continuous_within)
+    \<comment> \<open>Hence the difference tends to 0\<close>
+    have diff_tend: \<open>((\<lambda>x. vector_variation {a..c} f - vector_variation {a..x} f) \<longlongrightarrow> 0) (at c within {a..c})\<close>
+    proof -
+      have \<open>((\<lambda>x. vector_variation {a..c} f) \<longlongrightarrow> vector_variation {a..c} f) (at c within {a..c})\<close>
+        by (rule tendsto_const)
+      from tendsto_diff[OF this vv_tend]
+      show ?thesis by simp
+    qed
+    \<comment> \<open>The norm bound holds eventually\<close>
+    have bound: \<open>\<forall>\<^sub>F x in at c within {a..c}. norm (f x - f c) \<le> vector_variation {a..c} f - vector_variation {a..x} f\<close>
+    proof (unfold at_within_def eventually_inf_principal, rule always_eventually, rule allI, rule impI)
+      fix x assume xS: \<open>x \<in> {a..c} - {c}\<close>
+      then have xac: \<open>x \<in> {a..c}\<close> and xc: \<open>x \<noteq> c\<close> by auto
+      then have xle: \<open>x \<le> c\<close> by auto
+      have bv_xc: \<open>has_bounded_variation_on f {x..c}\<close>
+        using has_bounded_variation_on_subset[OF bv_ac] xac by auto
+      have \<open>norm (f x - f c) \<le> vector_variation {x..c} f\<close>
+        using vector_variation_ge_norm_function[OF bv_xc] xac by auto
+      also have \<open>\<dots> = vector_variation {a..c} f - vector_variation {a..x} f\<close>
+        using vector_variation_combine[OF bv_ac xac] by linarith
+      finally show \<open>norm (f x - f c) \<le> vector_variation {a..c} f - vector_variation {a..x} f\<close> .
+    qed
+    \<comment> \<open>By null comparison\<close>
+    have \<open>((\<lambda>x. f x - f c) \<longlongrightarrow> 0) (at c within {a..c})\<close>
+      by (rule Lim_null_comparison[OF bound diff_tend])
+    then show ?R
+      by (simp add: continuous_within LIM_zero_iff)
+  qed
+next
+  assume R: ?R
+  show ?L
+  proof (cases \<open>c islimpt {a..c}\<close>)
+    case False
+    then have \<open>at c within {a..c} = bot\<close>
+      by (simp add: trivial_limit_within)
+    then show ?thesis
+      by (simp add: continuous_bot)
+  next
+    case True
+    show ?thesis
+      sorry
+  qed
+qed
 
 lemma vector_variation_continuous:
   assumes "continuous_on {a..b} f" "has_bounded_variation_on f {a..b}"
   shows "continuous_on {a..b} (\<lambda>x. vector_variation {a..x} f)"
   sorry
-
-lemma vector_variation_minus_function_monotone:
-  assumes "has_bounded_variation_on f {a..b}" "x \<in> {a..b}" "y \<in> {a..b}" "x \<le> y"
-  shows "norm (f y - f x) \<le> vector_variation {x..y} f"
-    and "vector_variation {a..x} f - norm (f x - f a) \<le>
-      vector_variation {a..y} f - norm (f y - f a)"
-proof -
-  have bv_xy: "has_bounded_variation_on f {x..y}"
-    using has_bounded_variation_on_subset[OF assms(1)] assms(2,3) by auto
-  show goal1: "norm (f y - f x) \<le> vector_variation {x..y} f"
-    using vector_variation_ge_norm_function[OF bv_xy] assms(4) by auto
-  have bv_ay: "has_bounded_variation_on f {a..y}"
-    using has_bounded_variation_on_subset[OF assms(1)] assms(3) by auto
-  have x_in_ay: "x \<in> {a..y}"
-    using assms(2,4) by auto
-  have combine: "vector_variation {a..y} f =
-      vector_variation {a..x} f + vector_variation {x..y} f"
-    using vector_variation_combine[OF bv_ay x_in_ay] .
-  have "norm (f y - f a) \<le> norm (f y - f x) + norm (f x - f a)"
-    using norm_triangle_ineq[of "f y - f x" "f x - f a"] by simp
-  then have "norm (f y - f a) \<le> vector_variation {x..y} f + norm (f x - f a)"
-    using goal1 by linarith
-  then show "vector_variation {a..x} f - norm (f x - f a) \<le>
-      vector_variation {a..y} f - norm (f y - f a)"
-    using combine by linarith
-qed
 
 subsection \<open>Factoring through variation\<close>
 
