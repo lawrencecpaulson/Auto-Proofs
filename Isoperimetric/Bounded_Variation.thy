@@ -1593,6 +1593,89 @@ proof -
   qed
 qed
 
+lemma Lipschitz_vector_variation_le:
+  assumes bv: \<open>has_bounded_variation_on f {a..b}\<close>
+    and R: \<open>\<forall>x y. x \<in> {a..b} \<longrightarrow> y \<in> {a..b} \<longrightarrow> norm (f x - f y) \<le> B * \<bar>x - y\<bar>\<close>
+    and xab: \<open>x \<in> {a..b}\<close> and yab: \<open>y \<in> {a..b}\<close> and le: \<open>x \<le> y\<close>
+  shows \<open>\<bar>vector_variation {a..x} f - vector_variation {a..y} f\<bar> \<le> B * \<bar>x - y\<bar>\<close>
+proof -
+  have bv_ay: \<open>has_bounded_variation_on f {a..y}\<close>
+    using has_bounded_variation_on_subset[OF bv] yab by auto
+  have x_in: \<open>x \<in> {a..y}\<close>
+    using xab le by auto
+  have combine: \<open>vector_variation {a..y} f =
+      vector_variation {a..x} f + vector_variation {x..y} f\<close>
+    using vector_variation_combine[OF bv_ay x_in] .
+  have bv_xy: \<open>has_bounded_variation_on f {x..y}\<close>
+    using has_bounded_variation_on_subset[OF bv] xab yab le by auto
+  have vv_xy_le: \<open>vector_variation {x..y} f \<le> B * (y - x)\<close>
+  proof (rule has_bounded_variation_works(2)[OF bv_xy])
+    fix d t assume dt: \<open>d division_of t\<close> \<open>t \<subseteq> {x..y}\<close>
+    show \<open>(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> B * (y - x)\<close>
+    proof -
+      have fin_d: \<open>finite d\<close>
+        using division_of_finite[OF dt(1)] .
+      have \<open>(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> (\<Sum>k\<in>d. B * content k)\<close>
+      proof (rule sum_mono)
+        fix k assume kd: \<open>k \<in> d\<close>
+        from division_ofD(2,4)[OF dt(1) kd] obtain l u where
+          k_eq: \<open>k = cbox l u\<close> and kne: \<open>k \<noteq> {}\<close>
+          by (metis cbox_division_memE dt(1) kd)
+        then have lu: \<open>l \<le> u\<close> by fastforce
+        have \<open>k \<subseteq> {x..y}\<close>
+          using kd dt by blast
+        then have ls: \<open>l \<in> {a..b}\<close> and us: \<open>u \<in> {a..b}\<close>
+          using lu k_eq xab yab le by (auto simp: cbox_interval)
+        have \<open>norm (f (Sup k) - f (Inf k)) = norm (f u - f l)\<close>
+          using lu k_eq by (simp add: cbox_interval)
+        also have \<open>\<dots> \<le> B * norm (u - l)\<close>
+          using R us ls by auto
+        also have \<open>\<dots> = B * (u - l)\<close>
+          using lu by (simp add: real_norm_def)
+        also have \<open>\<dots> = B * content k\<close>
+          using lu k_eq by (simp add: cbox_interval)
+        finally show \<open>norm (f (Sup k) - f (Inf k)) \<le> B * content k\<close> .
+      qed
+      also have \<section>: \<open>\<dots> = B * (\<Sum>k\<in>d. content k)\<close>
+        by (simp add: sum_distrib_left)
+      also have \<open>\<dots> \<le> B * (y - x)\<close>
+      proof -
+        have sum_le: \<open>(\<Sum>k\<in>d. content k) \<le> y - x\<close>
+          by (metis le cbox_interval dt measure_lborel_Icc subadditive_content_division)
+        show ?thesis
+        proof (cases \<open>B \<ge> 0\<close>)
+          case True
+          then show ?thesis using sum_le by (intro mult_left_mono) auto
+        next
+          case False
+          then have Bneg: \<open>B < 0\<close> by linarith
+          have \<open>\<forall>k\<in>d. content k \<ge> 0\<close> by (simp add: content_nonneg)
+          then have \<open>\<forall>k\<in>d. B * content k \<le> 0\<close>
+            using Bneg by (simp add: mult_nonpos_nonneg)
+          then have \<open>(\<Sum>k\<in>d. B * content k) \<le> 0\<close>
+            using sum_nonpos by metis
+          moreover have \<open>(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> (\<Sum>k\<in>d. B * content k)\<close>
+            using \<open>(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> (\<Sum>k\<in>d. B * content k)\<close> .
+          ultimately show ?thesis
+            using Bneg le
+            by (smt (verit) R \<section> diff_ge_0_iff_ge norm_ge_zero order.trans xab yab)
+        qed
+      qed
+      finally show ?thesis .
+    qed
+  qed
+  have vv_nonneg: \<open>vector_variation {x..y} f \<ge> 0\<close>
+    using vector_variation_pos_le using bv_xy by blast
+  have \<open>\<bar>vector_variation {a..x} f - vector_variation {a..y} f\<bar> =
+        vector_variation {x..y} f\<close>
+    using combine vv_nonneg by linarith
+  also have \<open>\<dots> \<le> B * (y - x)\<close>
+    using vv_xy_le .
+  also have \<open>\<dots> = B * \<bar>x - y\<bar>\<close>
+    using le by (simp add: abs_if)
+  finally show ?thesis .
+qed
+
 lemma Lipschitz_vector_variation:
   assumes \<open>has_bounded_variation_on f {a..b}\<close>
   shows \<open>(\<forall>x y. x \<in> {a..b} \<longrightarrow> y \<in> {a..b} \<longrightarrow>
@@ -1615,24 +1698,22 @@ proof
       using vector_variation_combine[OF bv_ay x_in] .
     have bv_xy: \<open>has_bounded_variation_on f {x..y}\<close>
       using has_bounded_variation_on_subset[OF assms] xy by auto
-    have norm_le_vv: \<open>norm (f x - f y) \<le> vector_variation {x..y} f\<close>
+    have \<open>norm (f x - f y) \<le> vector_variation {x..y} f\<close>
       using vector_variation_ge_norm_function[OF bv_xy] xy(1) by auto
-    have vv_eq: \<open>vector_variation {x..y} f =
-        vector_variation {a..y} f - vector_variation {a..x} f\<close>
-      using combine by linarith
-    have vv_le: \<open>vector_variation {x..y} f \<le> \<bar>vector_variation {a..x} f - vector_variation {a..y} f\<bar>\<close>
-      unfolding vv_eq by linarith
-    have \<open>\<bar>vector_variation {a..x} f - vector_variation {a..y} f\<bar> \<le> B * \<bar>x - y\<bar>\<close>
-      using L xy(2,3) by auto
     then show \<open>norm (f x - f y) \<le> B * \<bar>x - y\<bar>\<close>
-      using norm_le_vv vv_le by linarith
+      using combine L xy(2,3) by fastforce
   qed
   then show ?R
     by (metis abs_minus_commute linorder_linear norm_minus_commute)
 next
   assume R: ?R
   show ?L
-    sorry
+  proof (intro allI impI)
+    fix x y :: real assume \<open>x \<in> {a..b}\<close> \<open>y \<in> {a..b}\<close>
+    then show \<open>\<bar>vector_variation {a..x} f - vector_variation {a..y} f\<bar> \<le> B * \<bar>x - y\<bar>\<close>
+      by (smt (verit, ccfv_SIG) Lipschitz_vector_variation_le R assms norm_minus_commute
+          real_norm_def)
+  qed
 qed
 
 subsection \<open>Bounded variation implies bounded\<close>
@@ -1798,17 +1879,20 @@ proof (intro exI allI impI)
   also have "\<dots> \<le> (\<Sum>i\<in>Basis. \<bar>(f b - f a) \<bullet> i\<bar>)"
   proof (intro sum_mono)
     fix i::'a assume iBasis: "i \<in> Basis"
-    have ab: "a \<le> b"
-    proof -
-      from div_d obtain k where "k \<in> d" "k \<subseteq> {a..b}" "k \<noteq> {}"
-        using Union_empty division_ofD(2,3,6) ex_in_conv
-        sorry
-      then show ?thesis by auto
+    show "(\<Sum>k\<in>d. (f (Sup k) \<bullet> i - f (Inf k) \<bullet> i)) \<le> \<bar>(f b - f a) \<bullet> i\<bar>"
+    proof (cases "d = {}")
+      case True
+      then show ?thesis by simp
+    next
+      case False
+      then obtain k where "k \<in> d" by blast
+      then have "k \<subseteq> {a..b}" "k \<noteq> {}" using division_ofD(2,3)[OF div_d] by auto
+      then have ab: "a \<le> b" by auto
+      have tele: "(\<Sum>k\<in>d. (f (Sup k) \<bullet> i - f (Inf k) \<bullet> i)) = f b \<bullet> i - f a \<bullet> i"
+        using division_telescope_eq[OF div_d ab, of "\<lambda>x. f x \<bullet> i"] by simp
+      also have "\<dots> \<le> \<bar>(f b - f a) \<bullet> i\<bar>" by (simp add: inner_diff_left)
+      finally show ?thesis .
     qed
-    have tele: "(\<Sum>k\<in>d. (f (Sup k) \<bullet> i - f (Inf k) \<bullet> i)) = f b \<bullet> i - f a \<bullet> i"
-      using division_telescope_eq[OF div_d ab, of "\<lambda>x. f x \<bullet> i"] by simp
-    also have "\<dots> \<le> \<bar>(f b - f a) \<bullet> i\<bar>" by (simp add: inner_diff_left)
-    finally show "(\<Sum>k\<in>d. (f (Sup k) \<bullet> i - f (Inf k) \<bullet> i)) \<le> \<bar>(f b - f a) \<bullet> i\<bar>" .
   qed
   also have "\<dots> \<le> (\<Sum>i::'a\<in>Basis. norm (f b - f a))"
     by (intro sum_mono) (auto simp: Basis_le_norm)
