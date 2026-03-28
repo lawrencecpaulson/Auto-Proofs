@@ -3,6 +3,30 @@ theory Bounded_Variation
 "HOL-ex.Sketch_and_Explore" 
 begin
 
+lemma continuous_within_comparison:
+  fixes f :: \<open>'a::metric_space \<Rightarrow> 'b::metric_space\<close>
+    and g :: \<open>'a::metric_space \<Rightarrow> 'c::metric_space\<close>
+  assumes \<open>continuous (at a within s) g\<close>
+    and \<open>\<And>x. x \<in> s \<Longrightarrow> dist (f a) (f x) \<le> dist (g a) (g x)\<close>
+  shows \<open>continuous (at a within s) f\<close>
+  unfolding continuous_within_eps_delta
+proof (intro allI impI)
+  fix \<epsilon> :: real assume \<open>\<epsilon> > 0\<close>
+  with assms(1)[unfolded continuous_within_eps_delta]
+  obtain \<delta> where \<open>\<delta> > 0\<close> and \<delta>: \<open>\<And>x'. x' \<in> s \<Longrightarrow> dist x' a < \<delta> \<Longrightarrow> dist (g x') (g a) < \<epsilon>\<close>
+    by auto
+  show \<open>\<exists>\<delta>>0. \<forall>x'\<in>s. dist x' a < \<delta> \<longrightarrow> dist (f x') (f a) < \<epsilon>\<close>
+  proof (intro exI conjI ballI impI)
+    show \<open>\<delta> > 0\<close> by fact
+  next
+    fix x' assume \<open>x' \<in> s\<close> \<open>dist x' a < \<delta>\<close>
+    have \<open>dist (f a) (f x') \<le> dist (g a) (g x')\<close> using assms(2) \<open>x' \<in> s\<close> by simp
+    also have \<open>dist (g a) (g x') = dist (g x') (g a)\<close> by (simp add: dist_commute)
+    also have \<open>\<dots> < \<epsilon>\<close> using \<delta> \<open>x' \<in> s\<close> \<open>dist x' a < \<delta>\<close> by simp
+    finally show \<open>dist (f x') (f a) < \<epsilon>\<close> by (simp add: dist_commute)
+  qed
+qed
+
 hide_const (open) Polynomial.content
 
 text \<open>
@@ -141,6 +165,32 @@ proof -
     finally show "(\<Sum>k\<in>d. norm (norm (f (Sup k)) *\<^sub>R e - norm (f (Inf k)) *\<^sub>R e)) \<le> B * norm e" .
   qed
 qed
+
+lemma has_bounded_variation_on_inner_left:
+  assumes \<open>has_bounded_variation_on f s\<close>
+  shows \<open>has_bounded_variation_on (\<lambda>x. f x \<bullet> b) s\<close>
+  unfolding has_bounded_variation_on_def has_bounded_setvariation_on_def
+proof -
+  from assms obtain B where B: \<open>\<And>d t. d division_of t \<Longrightarrow> t \<subseteq> s \<Longrightarrow>
+    (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> B\<close>
+    unfolding has_bounded_variation_on_def has_bounded_setvariation_on_def by meson
+  show \<open>\<exists>B. \<forall>d t. d division_of t \<and> t \<subseteq> s \<longrightarrow>
+    (\<Sum>k\<in>d. norm (f (Sup k) \<bullet> b - f (Inf k) \<bullet> b)) \<le> B\<close>
+  proof (intro exI[of _ \<open>B * norm b\<close>] allI impI)
+    fix d t assume dt: \<open>d division_of t \<and> t \<subseteq> s\<close>
+    have \<open>(\<Sum>k\<in>d. norm (f (Sup k) \<bullet> b - f (Inf k) \<bullet> b)) =
+      (\<Sum>k\<in>d. \<bar>(f (Sup k) - f (Inf k)) \<bullet> b\<bar>)\<close>
+      by (simp add: inner_diff_left)
+    also have \<open>\<dots> \<le> (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k)) * norm b)\<close>
+      by (intro sum_mono) (auto simp: Cauchy_Schwarz_ineq2)
+    also have \<open>\<dots> = (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) * norm b\<close>
+      by (simp add: sum_distrib_right)
+    also have \<open>\<dots> \<le> B * norm b\<close>
+      using B dt by (intro mult_right_mono) auto
+    finally show \<open>(\<Sum>k\<in>d. norm (f (Sup k) \<bullet> b - f (Inf k) \<bullet> b)) \<le> B * norm b\<close> .
+  qed
+qed
+
 
 subsection \<open>Other fundamental properties\<close>
 
@@ -510,6 +560,25 @@ lemma has_bounded_variation_works:
   using has_bounded_setvariation_works[of "\<lambda>k. f (Sup k) - f (Inf k)" s]
     assms[unfolded has_bounded_variation_on_def]
   unfolding vector_variation_def by auto
+
+lemma vector_variation_le_component_sum:
+  assumes \<open>has_bounded_variation_on f s\<close>
+  shows \<open>vector_variation s f \<le> (\<Sum>b\<in>Basis. vector_variation s (\<lambda>u. f u \<bullet> b))\<close>
+proof (rule has_bounded_variation_works(2)[OF assms])
+  fix d t assume dt: \<open>d division_of t\<close> \<open>t \<subseteq> s\<close>
+  have \<open>(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le>
+    (\<Sum>k\<in>d. \<Sum>b\<in>Basis. \<bar>(f (Sup k) - f (Inf k)) \<bullet> b\<bar>)\<close>
+    by (intro sum_mono norm_le_l1)
+  also have \<open>\<dots> = (\<Sum>b\<in>Basis. \<Sum>k\<in>d. \<bar>(f (Sup k) - f (Inf k)) \<bullet> b\<bar>)\<close>
+    by (rule sum.swap)
+  also have \<open>\<dots> = (\<Sum>b\<in>Basis. \<Sum>k\<in>d. norm (f (Sup k) \<bullet> b - f (Inf k) \<bullet> b))\<close>
+    by (simp add: inner_diff_left)
+  also have \<open>\<dots> \<le> (\<Sum>b\<in>Basis. vector_variation s (\<lambda>u. f u \<bullet> b))\<close>
+    by (intro sum_mono has_bounded_variation_works(1)[OF has_bounded_variation_on_inner_left[OF assms] dt(1,2)])
+  finally show \<open>(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le>
+    (\<Sum>b\<in>Basis. vector_variation s (\<lambda>u. f u \<bullet> b))\<close> .
+qed
+
 
 lemma vector_variation_triangle:
   assumes "has_bounded_variation_on f s" "has_bounded_variation_on g s"
@@ -2586,28 +2655,155 @@ lemma continuous_vector_variation_left:
   fixes f :: \<open>real \<Rightarrow> 'a::euclidean_space\<close>
   assumes \<open>has_bounded_variation_on f {a..b}\<close> \<open>c \<in> {a..b}\<close>
   shows \<open>continuous (at c within {a..c}) (\<lambda>x. vector_variation {a..x} f) \<longleftrightarrow>
-         continuous (at c within {a..c}) f\<close>   (is \<open>?L = ?R  \<close>)
-  sorry
+         continuous (at c within {a..c}) f\<close>   (is \<open>?L = ?R\<close>)
+proof
+  assume L: ?L
+  show ?R
+  proof -
+    have bv_ac: \<open>has_bounded_variation_on f {a..c}\<close>
+      using has_bounded_variation_on_subset[OF assms(1)] assms(2) by auto
+    show ?thesis unfolding continuous_within Lim_within
+    proof (intro allI impI)
+      fix \<epsilon> :: real assume \<open>\<epsilon> > 0\<close>
+      from L[unfolded continuous_within Lim_within, rule_format, OF \<open>\<epsilon> > 0\<close>]
+      obtain \<delta> where \<open>\<delta> > 0\<close> and \<delta>: \<open>\<And>x. x \<in> {a..c} \<Longrightarrow> 0 < dist x c \<Longrightarrow> dist x c < \<delta> \<Longrightarrow>
+        dist (vector_variation {a..x} f) (vector_variation {a..c} f) < \<epsilon>\<close>
+        by auto
+      show \<open>\<exists>\<delta>>0. \<forall>x\<in>{a..c}. 0 < dist x c \<and> dist x c < \<delta> \<longrightarrow> dist (f x) (f c) < \<epsilon>\<close>
+      proof (intro exI[of _ \<delta>] conjI ballI impI)
+        show \<open>\<delta> > 0\<close> by fact
+      next
+        fix x assume \<open>x \<in> {a..c}\<close> \<open>0 < dist x c \<and> dist x c < \<delta>\<close>
+        then have xac: \<open>x \<in> {a..c}\<close> and xnc: \<open>x \<noteq> c\<close> and xd: \<open>dist x c < \<delta>\<close> by auto
+        have bv_xc: \<open>has_bounded_variation_on f {x..c}\<close>
+          using has_bounded_variation_on_subset[OF bv_ac] xac by auto
+        have vv_split: \<open>vector_variation {a..c} f = vector_variation {a..x} f + vector_variation {x..c} f\<close>
+          using vector_variation_combine[OF bv_ac xac] .
+        have vv_pos: \<open>vector_variation {x..c} f \<ge> 0\<close>
+          using vector_variation_pos_le[OF bv_xc] .
+        have dist_vv: \<open>dist (vector_variation {a..x} f) (vector_variation {a..c} f) < \<epsilon>\<close>
+          using \<delta>[OF xac] xnc xd by auto
+        have \<open>vector_variation {x..c} f = dist (vector_variation {a..x} f) (vector_variation {a..c} f)\<close>
+          by (simp add: dist_norm vv_pos vv_split)
+        also have \<open>\<dots> < \<epsilon>\<close> by fact
+        finally have vv_bound: \<open>vector_variation {x..c} f < \<epsilon>\<close> .
+        have \<open>dist (f x) (f c) = norm (f x - f c)\<close> by (simp add: dist_norm)
+        also have \<open>\<dots> \<le> vector_variation {x..c} f\<close>
+          using vector_variation_ge_norm_function[OF bv_xc] xac by auto
+        also have \<open>\<dots> < \<epsilon>\<close> by fact
+        finally show \<open>dist (f x) (f c) < \<epsilon>\<close> .
+      qed
+    qed
+  qed
+next
+  assume R: ?R
+  show ?L
+  proof (cases \<open>c islimpt {a..c}\<close>)
+    case False
+    then show ?thesis using continuous_bot
+      by (metis trivial_limit_within)
+  next
+    case True
+    show ?thesis
+    proof (rule continuous_within_comparison
+        [where g = \<open>\<lambda>x. \<Sum>b\<in>Basis. vector_variation {a..x} (\<lambda>u. f u \<bullet> b)\<close>])
+      have bv_ac: \<open>has_bounded_variation_on f {a..c}\<close>
+        using has_bounded_variation_on_subset[OF assms(1)] assms(2) by auto
+      \<comment> \<open>Subgoal 1: Continuity of the sum of component vector variations\<close>
+      show \<open>continuous (at c within {a..c})
+        (\<lambda>x. \<Sum>i\<in>Basis. vector_variation {a..x} (\<lambda>u. f u \<bullet> i))\<close>
+      proof (rule continuous_sum)
+        fix i :: 'a assume iB: \<open>i \<in> Basis\<close>
+        have bv_comp: \<open>has_bounded_variation_on (\<lambda>u. f u \<bullet> i) {a..b}\<close>
+          using has_bounded_variation_on_inner_left[OF assms(1)] .
+        have cont_comp: \<open>continuous (at c within {a..c}) (\<lambda>u. f u \<bullet> i)\<close>
+        proof (unfold continuous_within)
+          from R have \<open>(f \<longlongrightarrow> f c) (at c within {a..c})\<close> by (simp add: continuous_within)
+          then show \<open>((\<lambda>u. f u \<bullet> i) \<longlongrightarrow> f c \<bullet> i) (at c within {a..c})\<close>
+            by (intro tendsto_inner tendsto_const)
+        qed
+        show \<open>continuous (at c within {a..c}) (\<lambda>x. vector_variation {a..x} (\<lambda>u. f u \<bullet> i))\<close>
+          using continuous_vector_variation_left_1[OF bv_comp assms(2)] cont_comp by simp
+      qed
+    next
+      \<comment> \<open>Subgoal 2: Distance bound\<close>
+      have bv_ac: \<open>has_bounded_variation_on f {a..c}\<close>
+        using has_bounded_variation_on_subset[OF assms(1)] assms(2) by auto
+      fix x assume xac: \<open>x \<in> {a..c}\<close>
+      have bv_xc: \<open>has_bounded_variation_on f {x..c}\<close>
+        using has_bounded_variation_on_subset[OF bv_ac] xac by auto
+      have bv_comp_ac: \<open>\<And>b. has_bounded_variation_on (\<lambda>u. f u \<bullet> b) {a..c}\<close>
+        using has_bounded_variation_on_inner_left[OF bv_ac] .
+      have bv_comp_xc: \<open>\<And>b. has_bounded_variation_on (\<lambda>u. f u \<bullet> b) {x..c}\<close>
+        using has_bounded_variation_on_inner_left[OF bv_xc] .
+      \<comment> \<open>Intermediate claim: vector_variation_combine for f and each component\<close>
+      have vv_split: \<open>vector_variation {a..c} f =
+        vector_variation {a..x} f + vector_variation {x..c} f\<close>
+        using vector_variation_combine[OF bv_ac xac] .
+      have vv_comp_split: \<open>vector_variation {a..c} (\<lambda>u. f u \<bullet> b) =
+        vector_variation {a..x} (\<lambda>u. f u \<bullet> b) + vector_variation {x..c} (\<lambda>u. f u \<bullet> b)\<close>
+        if \<open>b \<in> Basis\<close> for b
+        using vector_variation_combine[OF bv_comp_ac xac] .
+      \<comment> \<open>LHS: dist of vector variations of f\<close>
+      have lhs: \<open>dist (vector_variation {a..c} f) (vector_variation {a..x} f) =
+        vector_variation {x..c} f\<close>
+      proof -
+        have \<open>vector_variation {x..c} f \<ge> 0\<close>
+          using vector_variation_pos_le[OF bv_xc] .
+        then show ?thesis
+          by (simp add: dist_real_def vv_split)
+      qed
+      \<comment> \<open>RHS: dist of sums of component vector variations\<close>
+      have rhs: \<open>dist (\<Sum>b\<in>Basis. vector_variation {a..c} (\<lambda>u. f u \<bullet> b))
+                       (\<Sum>b\<in>Basis. vector_variation {a..x} (\<lambda>u. f u \<bullet> b)) =
+        (\<Sum>b\<in>Basis. vector_variation {x..c} (\<lambda>u. f u \<bullet> b))\<close>
+      proof -
+        have eq: \<open>(\<Sum>b\<in>Basis. vector_variation {a..c} (\<lambda>u. f u \<bullet> b)) -
+          (\<Sum>b\<in>Basis. vector_variation {a..x} (\<lambda>u. f u \<bullet> b)) =
+          (\<Sum>b\<in>Basis. vector_variation {x..c} (\<lambda>u. f u \<bullet> b))\<close>
+        proof -
+          have \<open>(\<Sum>b\<in>Basis. vector_variation {a..c} (\<lambda>u. f u \<bullet> b)) -
+            (\<Sum>b\<in>Basis. vector_variation {a..x} (\<lambda>u. f u \<bullet> b)) =
+            (\<Sum>b\<in>Basis. (vector_variation {a..c} (\<lambda>u. f u \<bullet> b) -
+              vector_variation {a..x} (\<lambda>u. f u \<bullet> b)))\<close>
+            by (simp add: sum_subtractf)
+          also have \<open>\<dots> = (\<Sum>b\<in>Basis. vector_variation {x..c} (\<lambda>u. f u \<bullet> b))\<close>
+            by (intro sum.cong refl) (use vv_comp_split in auto)
+          finally show ?thesis .
+        qed
+        moreover have \<open>(\<Sum>b\<in>Basis. vector_variation {x..c} (\<lambda>u. f u \<bullet> b)) \<ge> 0\<close>
+          by (intro sum_nonneg vector_variation_pos_le bv_comp_xc)
+        ultimately show ?thesis
+          by (simp add: dist_real_def)
+      qed
+      show \<open>dist (vector_variation {a..c} f) (vector_variation {a..x} f) \<le>
+        dist (\<Sum>b\<in>Basis. vector_variation {a..c} (\<lambda>u. f u \<bullet> b))
+             (\<Sum>b\<in>Basis. vector_variation {a..x} (\<lambda>u. f u \<bullet> b))\<close>
+        unfolding lhs rhs
+        using vector_variation_le_component_sum[OF bv_xc] .
+    qed
+  qed
+qed
 
 
 lemma division_of_reflect:
   fixes s :: real
-  assumes \<open>d division_of {\<alpha>..\<beta>}\<close>
-  shows \<open>(`) ((-) s) ` d division_of {s - \<beta>..s - \<alpha>}\<close>
+  assumes \<open>d division_of t\<close>
+  shows \<open>(`) ((-) s) ` d division_of ((-) s) ` t\<close>
 proof -
   define d' where \<open>d' = (`) ((-) s) ` d\<close>
   have fin: \<open>finite d'\<close>
     unfolding d'_def using division_of_finite[OF assms] by auto
-  have props: \<open>K \<subseteq> {s - \<beta>..s - \<alpha>} \<and> K \<noteq> {} \<and> (\<exists>a b. K = cbox a b)\<close>
+  have props: \<open>K \<subseteq> (-) s ` t \<and> K \<noteq> {} \<and> (\<exists>a b. K = cbox a b)\<close>
     if \<open>K \<in> d'\<close> for K
   proof -
     from that obtain k where kd: \<open>k \<in> d\<close> and K_eq: \<open>K = (-) s ` k\<close>
       unfolding d'_def by auto
-    from division_ofD(2,3,4)[OF assms kd]
-    obtain u v where ksub: \<open>k \<subseteq> {\<alpha>..\<beta>}\<close> and kne: \<open>k \<noteq> {}\<close> and kuv: \<open>k = cbox u v\<close> by auto
+    have ksub: \<open>k \<subseteq> t\<close> and kne: \<open>k \<noteq> {}\<close> using division_ofD(2,3)[OF assms kd] by auto
+    from division_ofD(4)[OF assms kd] obtain u v where kuv: \<open>k = cbox u v\<close> by auto
     with kne have uv: \<open>u \<le> v\<close> by (simp add: cbox_interval)
-    have \<open>K \<subseteq> {s - \<beta>..s - \<alpha>}\<close>
-      using ksub K_eq kuv by (auto simp: cbox_interval image_diff_atLeastAtMost)
+    have \<open>K \<subseteq> (-) s ` t\<close>
+      using ksub K_eq by (auto intro: image_mono)
     moreover have \<open>K \<noteq> {}\<close> using kne K_eq by auto
     moreover have \<open>\<exists>a b. K = cbox a b\<close>
       using K_eq kuv uv by (auto simp: cbox_interval image_diff_atLeastAtMost intro!: exI)
@@ -2638,38 +2834,256 @@ proof -
       using \<open>interior k1 \<inter> interior k2 = {}\<close>
       by (metis image_Int inj_on_diff_left image_empty image_is_empty)
   qed
-  have union: \<open>\<Union> d' = {s - \<beta>..s - \<alpha>}\<close>
+  have \<open>\<Union> d' = (-) s ` t\<close>
   proof -
-    have \<open>\<Union> d = {\<alpha>..\<beta>}\<close> using division_ofD(6)[OF assms] .
+    have \<open>\<Union> d = t\<close> using division_ofD(6)[OF assms] .
     then show ?thesis
-      unfolding d'_def by (simp add: image_Union[symmetric] image_diff_atLeastAtMost)
+      unfolding d'_def by (simp add: image_Union[symmetric])
   qed
-  show ?thesis
+  then show ?thesis
     unfolding d'_def[symmetric] division_of_def
-    using fin props disj union by auto
+    using fin props disj by auto
 qed
 
 lemma has_bounded_variation_on_reflect:
   assumes \<open>has_bounded_variation_on f {s - \<beta>..s - \<alpha>}\<close>
   shows \<open>has_bounded_variation_on (f \<circ> (\<lambda>t. s - t)) {\<alpha>..\<beta>}\<close>
-  sorry
+proof -
+  from assms obtain B where B: \<open>\<And>d. d division_of {s - \<beta>..s - \<alpha>} \<Longrightarrow>
+    (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> B\<close>
+    unfolding has_bounded_variation_on_interval by blast
+  show ?thesis
+    unfolding has_bounded_variation_on_interval
+  proof (intro exI[of _ B] allI impI)
+    fix d assume d: \<open>d division_of {\<alpha>..\<beta>}\<close>
+    define d' where \<open>d' = (`) ((-) s) ` d\<close>
+    have d': \<open>d' division_of {s - \<beta>..s - \<alpha>}\<close>
+      unfolding d'_def using division_of_reflect[OF d] by (simp add: image_diff_atLeastAtMost)
+    have k_interval: \<open>\<exists>u v. u \<le> v \<and> k = {u..v}\<close> if \<open>k \<in> d\<close> for k
+    proof -
+      from division_ofD(3,4)[OF d that] obtain u v where \<open>k \<noteq> {}\<close> \<open>k = cbox u v\<close> by auto
+      then have \<open>u \<le> v\<close> by force
+      then show ?thesis using \<open>k = cbox u v\<close> by (auto simp: cbox_interval)
+    qed
+    have sum_eq: \<open>(\<Sum>k\<in>d. norm ((f \<circ> (\<lambda>t. s - t)) (Sup k) - (f \<circ> (\<lambda>t. s - t)) (Inf k))) =
+                 (\<Sum>k\<in>d'. norm (f (Sup k) - f (Inf k)))\<close>
+    proof -
+      have inj: \<open>inj_on ((`) ((-) s)) d\<close>
+        by (intro inj_onI) (auto simp: inj_image_eq_iff dest: inj_onD[OF inj_on_diff_left])
+      have \<open>(\<Sum>k\<in>d'. norm (f (Sup k) - f (Inf k))) =
+            (\<Sum>k\<in>d. norm (f (Sup ((-) s ` k)) - f (Inf ((-) s ` k))))\<close>
+        unfolding d'_def using sum.reindex[OF inj] by simp
+      also have \<open>\<dots> = (\<Sum>k\<in>d. norm (f (s - Inf k) - f (s - Sup k)))\<close>
+      proof (rule sum.cong[OF refl])
+        fix k assume \<open>k \<in> d\<close>
+        then obtain u v where uv: \<open>u \<le> v\<close> \<open>k = {u..v}\<close> using k_interval by blast
+        then have \<open>(-) s ` k = {s - v..s - u}\<close> by (simp add: image_diff_atLeastAtMost)
+        moreover have \<open>s - v \<le> s - u\<close> using uv by simp
+        ultimately show \<open>norm (f (Sup ((-) s ` k)) - f (Inf ((-) s ` k))) =
+                         norm (f (s - Inf k) - f (s - Sup k))\<close>
+          using uv by simp
+      qed
+      also have \<open>\<dots> = (\<Sum>k\<in>d. norm ((f \<circ> (\<lambda>t. s - t)) (Sup k) - (f \<circ> (\<lambda>t. s - t)) (Inf k)))\<close>
+      proof (rule sum.cong[OF refl])
+        fix k assume \<open>k \<in> d\<close>
+        show \<open>norm (f (s - Inf k) - f (s - Sup k)) =
+              norm ((f \<circ> (\<lambda>t. s - t)) (Sup k) - (f \<circ> (\<lambda>t. s - t)) (Inf k))\<close>
+          by (simp add: norm_minus_commute)
+      qed
+      finally show ?thesis by simp
+    qed
+    show \<open>(\<Sum>k\<in>d. norm ((f \<circ> (\<lambda>t. s - t)) (Sup k) - (f \<circ> (\<lambda>t. s - t)) (Inf k))) \<le> B\<close>
+      unfolding sum_eq using B[OF d'] .
+  qed
+qed
 
 lemma vector_variation_reflect:
   assumes \<open>\<alpha> \<le> \<beta>\<close>
   shows \<open>vector_variation {\<alpha>..\<beta>} (f \<circ> (\<lambda>t. s - t)) = vector_variation {s - \<beta>..s - \<alpha>} f\<close>
-  sorry
+proof -
+  \<comment> \<open>Key helper: sums over a division and its reflection are equal\<close>
+  have sum_eq: \<open>(\<Sum>k\<in>d. norm ((f \<circ> (\<lambda>t. s - t)) (Sup k) - (f \<circ> (\<lambda>t. s - t)) (Inf k))) =
+               (\<Sum>k\<in>(`) ((-) s) ` d. norm (f (Sup k) - f (Inf k)))\<close>
+    if d_div: \<open>d division_of t\<close> and t_sub: \<open>t \<subseteq> {\<alpha>..\<beta>}\<close> for d t
+  proof -
+    define d' where \<open>d' = (`) ((-) s) ` d\<close>
+    have inj: \<open>inj_on ((`) ((-) s)) d\<close>
+      by (intro inj_onI) (auto simp: inj_image_eq_iff dest: inj_onD[OF inj_on_diff_left])
+    have k_interval: \<open>\<exists>u v. u \<le> v \<and> k = {u..v}\<close> if \<open>k \<in> d\<close> for k
+    proof -
+      from division_ofD(3,4)[OF d_div that] obtain u v where \<open>k \<noteq> {}\<close> \<open>k = cbox u v\<close> by auto
+      then have \<open>u \<le> v\<close> by force
+      then show ?thesis using \<open>k = cbox u v\<close> by (auto simp: cbox_interval)
+    qed
+    have \<open>(\<Sum>k\<in>d'. norm (f (Sup k) - f (Inf k))) =
+          (\<Sum>k\<in>d. norm (f (Sup ((-) s ` k)) - f (Inf ((-) s ` k))))\<close>
+      unfolding d'_def using sum.reindex[OF inj] by simp
+    also have \<open>\<dots> = (\<Sum>k\<in>d. norm (f (s - Inf k) - f (s - Sup k)))\<close>
+    proof (rule sum.cong[OF refl])
+      fix k assume \<open>k \<in> d\<close>
+      then obtain u v where uv: \<open>u \<le> v\<close> \<open>k = {u..v}\<close> using k_interval by blast
+      then have \<open>(-) s ` k = {s - v..s - u}\<close> by (simp add: image_diff_atLeastAtMost)
+      moreover have \<open>s - v \<le> s - u\<close> using uv by simp
+      ultimately show \<open>norm (f (Sup ((-) s ` k)) - f (Inf ((-) s ` k))) =
+                       norm (f (s - Inf k) - f (s - Sup k))\<close>
+        using uv by simp
+    qed
+    also have \<open>\<dots> = (\<Sum>k\<in>d. norm ((f \<circ> (\<lambda>t. s - t)) (Sup k) - (f \<circ> (\<lambda>t. s - t)) (Inf k)))\<close>
+    proof (rule sum.cong[OF refl])
+      fix k assume \<open>k \<in> d\<close>
+      show \<open>norm (f (s - Inf k) - f (s - Sup k)) =
+            norm ((f \<circ> (\<lambda>t. s - t)) (Sup k) - (f \<circ> (\<lambda>t. s - t)) (Inf k))\<close>
+        by (simp add: norm_minus_commute)
+    qed
+    finally show ?thesis unfolding d'_def by simp
+  qed
+  \<comment> \<open>Show the sets of sums are equal\<close>
+  have set_eq: \<open>{\<Sum>k\<in>d. norm ((f \<circ> (\<lambda>t. s - t)) (Sup k) - (f \<circ> (\<lambda>t. s - t)) (Inf k)) |
+                 d. \<exists>t. d division_of t \<and> t \<subseteq> {\<alpha>..\<beta>}} =
+               {\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k)) |
+                 d. \<exists>t. d division_of t \<and> t \<subseteq> {s - \<beta>..s - \<alpha>}}\<close>
+    (is \<open>?A = ?B\<close>)
+  proof (intro equalityI subsetI)
+    fix x assume \<open>x \<in> ?A\<close>
+    then obtain d t where dt: \<open>d division_of t\<close> \<open>t \<subseteq> {\<alpha>..\<beta>}\<close>
+      and x_eq: \<open>x = (\<Sum>k\<in>d. norm ((f \<circ> (\<lambda>t. s - t)) (Sup k) - (f \<circ> (\<lambda>t. s - t)) (Inf k)))\<close>
+      by auto
+    have \<open>x = (\<Sum>k\<in>(`) ((-) s) ` d. norm (f (Sup k) - f (Inf k)))\<close>
+      unfolding x_eq using sum_eq[OF dt] .
+    moreover have \<open>(`) ((-) s) ` d division_of (-) s ` t\<close>
+      using division_of_reflect[OF dt(1)] by auto
+    moreover have \<open>(-) s ` t \<subseteq> {s - \<beta>..s - \<alpha>}\<close>
+      using dt(2) by (auto simp: image_diff_atLeastAtMost)
+    ultimately show \<open>x \<in> ?B\<close> by blast
+  next
+    fix x assume \<open>x \<in> ?B\<close>
+    then obtain d t where dt: \<open>d division_of t\<close> \<open>t \<subseteq> {s - \<beta>..s - \<alpha>}\<close>
+      and x_eq: \<open>x = (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k)))\<close> by auto
+    \<comment> \<open>Reflect back: d' = ((-) s) ` d is a division of ((-) s) ` t \<subseteq> {\<alpha>..\<beta>}\<close>
+    define d' where \<open>d' = (`) ((-) s) ` d\<close>
+    have d'_div: \<open>d' division_of (-) s ` t\<close>
+      unfolding d'_def using division_of_reflect[OF dt(1)] by auto
+    have t'_sub: \<open>(-) s ` t \<subseteq> {\<alpha>..\<beta>}\<close>
+      using dt(2) by (auto simp: image_diff_atLeastAtMost)
+    have \<open>(\<Sum>k\<in>d'. norm ((f \<circ> (\<lambda>t. s - t)) (Sup k) - (f \<circ> (\<lambda>t. s - t)) (Inf k))) =
+          (\<Sum>k\<in>(`) ((-) s) ` d'. norm (f (Sup k) - f (Inf k)))\<close>
+      using sum_eq[OF d'_div t'_sub] .
+    also have \<open>(`) ((-) s) ` d' = d\<close>
+      unfolding d'_def by (auto simp: image_image)
+    also have \<open>(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) = x\<close> using x_eq by simp
+    finally show \<open>x \<in> ?A\<close> using d'_div t'_sub by blast
+  qed
+  show ?thesis
+    unfolding vector_variation_def set_variation_def set_eq ..
+qed
 
 lemma continuous_reflect:
   fixes f :: \<open>real \<Rightarrow> 'a::topological_space\<close>
   shows \<open>continuous (at c within S) (f \<circ> (\<lambda>t. s - t)) \<longleftrightarrow>
          continuous (at (s - c) within ((-) s) ` S) f\<close>
-  oops
+proof -
+  have filt: \<open>filtermap ((-) s) (at c within S) = at (s - c) within (-) s ` S\<close>
+  proof (rule filtermap_linear_at_within)
+    show \<open>bij ((-) s)\<close> by (rule bij_diff)
+    show \<open>isCont ((-) s) c\<close>
+      using continuous_on_op_minus[of UNIV s]
+      by (simp add: continuous_on_eq_continuous_at)
+    show \<open>\<And>S. open S \<Longrightarrow> open ((-) s ` S)\<close>
+      by (rule open_neg_translation)
+  qed
+  show ?thesis
+    unfolding continuous_within
+    by (simp add: tendsto_compose_filtermap filt)
+qed
 
 lemma continuous_vector_variation_at_right:
   fixes f :: \<open>real \<Rightarrow> 'a::euclidean_space\<close>
   assumes \<open>has_bounded_variation_on f {a..b}\<close> \<open>c \<in> {a..b}\<close>
   shows \<open>continuous (at c within {c..b}) (\<lambda>x. vector_variation {a..x} f) \<longleftrightarrow>
          continuous (at c within {c..b}) f\<close>
+proof -
+  define s where \<open>s = a + b\<close>
+  define c' where \<open>c' = s - c\<close>
+  have sc: \<open>s - c' = c\<close> unfolding c'_def by simp
+  have sa: \<open>s - a = b\<close> and sb: \<open>s - b = a\<close> unfolding s_def by auto
+  have ac: \<open>a \<le> c\<close> and cb: \<open>c \<le> b\<close> using assms(2) by auto
+  have c'_mem: \<open>c' \<in> {a..b}\<close> unfolding c'_def s_def using ac cb by auto
+  have img: \<open>(-) s ` {c..b} = {a..c'}\<close> and img': \<open>(-) s ` {a..c'} = {c..b}\<close>
+    unfolding c'_def s_def by (auto simp: image_diff_atLeastAtMost)
+  \<comment> \<open>The reflected function\<close>
+  define g where \<open>g = f \<circ> (-) s\<close>
+  have bv_g: \<open>has_bounded_variation_on g {a..b}\<close>
+    unfolding g_def using has_bounded_variation_on_reflect[of f s b a] assms(1)
+    by (simp add: s_def)
+  \<comment> \<open>Step 1: continuous_vector_variation_left for g at c'\<close>
+  have left: \<open>continuous (at c' within {a..c'}) (\<lambda>y. vector_variation {a..y} g) \<longleftrightarrow>
+              continuous (at c' within {a..c'}) g\<close>
+    using continuous_vector_variation_left[OF bv_g c'_mem] .
+  \<comment> \<open>Step 2: Relate continuity of g at c' within {a..c'} to f at c within {c..b}\<close>
+  have cont_f_g: \<open>continuous (at c within {c..b}) f \<longleftrightarrow> continuous (at c' within {a..c'}) g\<close>
+    unfolding g_def using continuous_reflect[of c' \<open>{a..c'}\<close> f s]
+    by (simp add: sc sa image_diff_atLeastAtMost)
+  \<comment> \<open>Step 3: Show (\<lambda>y. vv{a..y} g) \<circ> r = (\<lambda>x. vv{x..b} f) pointwise\<close>
+  have comp_eq: \<open>vector_variation {a..s - x} g = vector_variation {x..b} f\<close> for x
+  proof (cases \<open>a \<le> s - x\<close>)
+    case True
+    then show ?thesis
+      unfolding g_def using vector_variation_reflect[of a \<open>s - x\<close> f s] by (simp add: sa)
+  next
+    case False
+    then have \<open>{a..s - x} = {}\<close> and \<open>{x..b} = {}\<close>
+      unfolding s_def by auto
+    then show ?thesis by (simp add: vector_variation_def set_variation_def)
+  qed
+  \<comment> \<open>Step 4: Relate continuity of (\<lambda>y. vv{a..y} g) at c' to (\<lambda>x. vv{x..b} f) at c\<close>
+  have cont_vv_reflect: \<open>continuous (at c' within {a..c'}) (\<lambda>y. vector_variation {a..y} g) \<longleftrightarrow>
+                          continuous (at c within {c..b}) (\<lambda>x. vector_variation {x..b} f)\<close>
+  proof -
+    have eq: \<open>(\<lambda>y. vector_variation {a..y} g) \<circ> (-) s = (\<lambda>x. vector_variation {x..b} f)\<close>
+      by (rule ext) (simp add: comp_eq)
+    show ?thesis
+      using continuous_reflect[of c \<open>{c..b}\<close> \<open>\<lambda>y. vector_variation {a..y} g\<close> s]
+      using eq img by force
+  qed
+  \<comment> \<open>Step 5: Relate continuity of (\<lambda>x. vv{x..b} f) to (\<lambda>x. vv{a..x} f)\<close>
+  have vv_split: \<open>vector_variation {a..b} f - vector_variation {a..x} f = vector_variation {x..b} f\<close>
+    if \<open>x \<in> {a..b}\<close> for x
+    using vector_variation_combine[OF assms(1) that] by linarith
+  have cont_vv_shift: \<open>continuous (at c within {c..b}) (\<lambda>x. vector_variation {x..b} f) \<longleftrightarrow>
+                       continuous (at c within {c..b}) (\<lambda>x. vector_variation {a..x} f)\<close>
+    (is \<open>?P \<longleftrightarrow> ?Q\<close>)
+  proof
+    assume ?Q
+    have \<open>continuous (at c within {c..b}) (\<lambda>x. vector_variation {a..b} f - vector_variation {a..x} f)\<close>
+      using continuous_diff[OF continuous_const \<open>?Q\<close>] .
+    moreover have \<open>\<forall>\<^sub>F x in at c within {c..b}. vector_variation {a..b} f - vector_variation {a..x} f =
+                   vector_variation {x..b} f\<close>
+      unfolding eventually_at_topological
+      by (meson vv_split ac atLeastAtMost_iff first_countable_basis order_trans)
+    ultimately show ?P
+      unfolding continuous_within
+      using assms(2) tendsto_cong vv_split by fastforce
+  next
+    assume ?P
+    have \<open>continuous (at c within {c..b}) (\<lambda>x. vector_variation {a..b} f - vector_variation {x..b} f)\<close>
+      using continuous_diff[OF continuous_const \<open>?P\<close>] .
+    moreover have \<open>\<forall>\<^sub>F x in at c within {c..b}. vector_variation {a..b} f - vector_variation {x..b} f =
+                   vector_variation {a..x} f\<close>
+      unfolding eventually_at_topological
+    proof (intro exI[of _ UNIV] conjI ballI impI open_UNIV UNIV_I)
+      fix x assume \<open>x \<noteq> c\<close> \<open>x \<in> {c..b}\<close>
+      then have \<open>x \<in> {a..b}\<close> using ac by auto
+      from vv_split[OF this] show \<open>vector_variation {a..b} f - vector_variation {x..b} f = vector_variation {a..x} f\<close>
+        by linarith
+    qed
+    ultimately show ?Q
+      by (metis (no_types, lifting) ext add.commute add.left_cancel assms(2)
+          continuous_at_within_cong diff_add_cancel vv_split)
+  qed
+  \<comment> \<open>Chain the equivalences\<close>
+  show ?thesis
+    using left cont_f_g cont_vv_reflect cont_vv_shift by simp
+qed
 
 lemma vector_variation_continuous:
   fixes f :: \<open>real \<Rightarrow> 'a::euclidean_space\<close>
