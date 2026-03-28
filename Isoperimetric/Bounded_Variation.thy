@@ -2393,12 +2393,7 @@ proof
       by (simp add: continuous_within)
     \<comment> \<open>Hence the difference tends to 0\<close>
     have diff_tend: \<open>((\<lambda>x. vector_variation {a..c} f - vector_variation {a..x} f) \<longlongrightarrow> 0) (at c within {a..c})\<close>
-    proof -
-      have \<open>((\<lambda>x. vector_variation {a..c} f) \<longlongrightarrow> vector_variation {a..c} f) (at c within {a..c})\<close>
-        by (rule tendsto_const)
-      from tendsto_diff[OF this vv_tend]
-      show ?thesis by simp
-    qed
+      using tendsto_diff[OF tendsto_const vv_tend] by (metis diff_self)
     \<comment> \<open>The norm bound holds eventually\<close>
     have bound: \<open>\<forall>\<^sub>F x in at c within {a..c}. norm (f x - f c) \<le> vector_variation {a..c} f - vector_variation {a..x} f\<close>
     proof (unfold at_within_def eventually_inf_principal, rule always_eventually, rule allI, rule impI)
@@ -2424,13 +2419,11 @@ next
   show ?L
   proof (cases \<open>c islimpt {a..c}\<close>)
     case False
-    then have \<open>at c within {a..c} = bot\<close>
-      by (simp add: trivial_limit_within)
     then show ?thesis
-      by (simp add: continuous_bot)
+      using trivial_limit_within continuous_bot by metis
   next
     case True
-    \<comment> \<open>Darboux decomposition: f = g - h with g, h monotone\<close>
+    \<comment> \<open>Darboux decomposition: $f = g - h$ with $g$, $h$ monotone\<close>
     from assms(1) obtain g h where
       mono_g: \<open>mono_on {a..b} g\<close> and mono_h: \<open>mono_on {a..b} h\<close>
       and eq: \<open>\<And>x. f x = g x - h x\<close>
@@ -2444,13 +2437,7 @@ next
     have \<open>k = hc - h c\<close>
     proof -
       have \<open>(f \<longlongrightarrow> gc - hc) (at c within {a..c})\<close>
-      proof -
-        have \<open>((\<lambda>x. g x - h x) \<longlongrightarrow> gc - hc) (at c within {a..c})\<close>
-          using tendsto_diff[OF gc hc] .
-        moreover have \<open>f = (\<lambda>x. g x - h x)\<close>
-          by (rule ext) (simp add: eq)
-        ultimately show ?thesis by simp
-      qed
+        by (metis (lifting) ext eq gc hc tendsto_diff)
       moreover have \<open>(f \<longlongrightarrow> f c) (at c within {a..c})\<close>
         using R by (simp add: continuous_within)
       moreover have \<open>at c within {a..c} \<noteq> bot\<close>
@@ -2487,22 +2474,12 @@ next
       show \<open>(if c \<le> r then \<phi> r + k else \<phi> r) \<le> (if c \<le> s then \<phi> s + k else \<phi> s)\<close>
       proof (cases \<open>s < c\<close>)
         case True
-        then have \<open>\<not> c \<le> r\<close> and \<open>\<not> c \<le> s\<close> using rs by auto
         then show ?thesis
           using mono_onD[OF mono_\<phi>] rs assms(2) by auto
       next
         case False
-        then have sc: \<open>s = c\<close> using rs by auto
-        show ?thesis
-        proof (cases \<open>r < c\<close>)
-          case True
-          then have \<open>\<not> c \<le> r\<close> by simp
-          then show ?thesis using sc \<phi>_le_\<phi>c[OF rs(1) True] k_eq by simp
-        next
-          case False
-          then have \<open>r = c\<close> using rs by auto
-          then show ?thesis using sc by simp
-        qed
+        then show ?thesis
+          using \<phi>_le_\<phi>c rs k_eq by auto
       qed
     qed
     have mono_g': \<open>mono_on {a..c} g'\<close>
