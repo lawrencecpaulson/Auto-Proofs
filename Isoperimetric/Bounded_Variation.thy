@@ -2463,86 +2463,52 @@ next
     define h' where \<open>h' \<equiv> \<lambda>x. if c \<le> x then h(x) + k else h(x)\<close>
     have not_bot: \<open>at c within {a..c} \<noteq> bot\<close>
       using True trivial_limit_within by blast
-    have g_le_gc: \<open>g x \<le> gc\<close> if \<open>x \<in> {a..c}\<close> \<open>x < c\<close> for x
-    proof (rule tendsto_lowerbound[OF gc _ not_bot])
-      show \<open>\<forall>\<^sub>F y in at c within {a..c}. g x \<le> g y\<close>
-        unfolding eventually_at_filter
-      proof (rule eventually_nhds_metric[THEN iffD2], rule exI[of _ \<open>c - x\<close>], intro conjI allI impI)
-        show \<open>0 < c - x\<close> using that by simp
+    \<comment> \<open>A monotone function shifted by k at c stays monotone on {a..c}\<close>
+    have mono_shift: \<open>mono_on {a..c} (\<lambda>x. if c \<le> x then \<phi> x + k else \<phi> x)\<close>
+      if mono_\<phi>: \<open>mono_on {a..b} \<phi>\<close> and lim_\<phi>: \<open>(\<phi> \<longlongrightarrow> \<phi>c) (at c within {a..c})\<close>
+        and k_eq: \<open>k = \<phi>c - \<phi> c\<close> for \<phi> \<phi>c
+    proof (unfold mono_on_def, intro allI impI, elim conjE)
+      fix r s assume rs: \<open>r \<in> {a..c}\<close> \<open>s \<in> {a..c}\<close> \<open>r \<le> s\<close>
+      have \<phi>_le_\<phi>c: \<open>\<phi> x \<le> \<phi>c\<close> if \<open>x \<in> {a..c}\<close> \<open>x < c\<close> for x
+      proof (rule tendsto_lowerbound[OF lim_\<phi> _ not_bot])
+        show \<open>\<forall>\<^sub>F y in at c within {a..c}. \<phi> x \<le> \<phi> y\<close>
+          unfolding eventually_at_filter
+        proof (rule eventually_nhds_metric[THEN iffD2], rule exI[of _ \<open>c - x\<close>], intro conjI allI impI)
+          show \<open>0 < c - x\<close> using that by simp
+        next
+          fix y assume dy: \<open>dist y c < c - x\<close> and yc: \<open>y \<noteq> c\<close> and yac: \<open>y \<in> {a..c}\<close>
+          then have \<open>y \<in> {a..b}\<close> using assms(2) by auto
+          have \<open>x \<in> {a..b}\<close> using that assms(2) by auto
+          have \<open>x \<le> y\<close> using dy by (auto simp: dist_real_def)
+          show \<open>\<phi> x \<le> \<phi> y\<close>
+            using mono_onD[OF mono_\<phi> \<open>x \<in> {a..b}\<close> \<open>y \<in> {a..b}\<close> \<open>x \<le> y\<close>] .
+        qed
+      qed
+      show \<open>(if c \<le> r then \<phi> r + k else \<phi> r) \<le> (if c \<le> s then \<phi> s + k else \<phi> s)\<close>
+      proof (cases \<open>s < c\<close>)
+        case True
+        then have \<open>\<not> c \<le> r\<close> and \<open>\<not> c \<le> s\<close> using rs by auto
+        then show ?thesis
+          using mono_onD[OF mono_\<phi>] rs assms(2) by auto
       next
-        fix y assume dy: \<open>dist y c < c - x\<close> and yc: \<open>y \<noteq> c\<close> and yac: \<open>y \<in> {a..c}\<close>
-        then have \<open>y \<in> {a..b}\<close> using assms(2) by auto
-        have \<open>x \<in> {a..b}\<close> using that assms(2) by auto
-        have \<open>x \<le> y\<close> using dy by (auto simp: dist_real_def)
-        show \<open>g x \<le> g y\<close>
-          using mono_onD[OF mono_g \<open>x \<in> {a..b}\<close> \<open>y \<in> {a..b}\<close> \<open>x \<le> y\<close>] .
+        case False
+        then have sc: \<open>s = c\<close> using rs by auto
+        show ?thesis
+        proof (cases \<open>r < c\<close>)
+          case True
+          then have \<open>\<not> c \<le> r\<close> by simp
+          then show ?thesis using sc \<phi>_le_\<phi>c[OF rs(1) True] k_eq by simp
+        next
+          case False
+          then have \<open>r = c\<close> using rs by auto
+          then show ?thesis using sc by simp
+        qed
       qed
     qed
     have mono_g': \<open>mono_on {a..c} g'\<close>
-    proof (unfold mono_on_def, intro allI impI, elim conjE)
-      fix r s assume rs: \<open>r \<in> {a..c}\<close> \<open>s \<in> {a..c}\<close> \<open>r \<le> s\<close>
-      show \<open>g' r \<le> g' s\<close>
-      proof (cases \<open>s < c\<close>)
-        case True
-        then have \<open>\<not> c \<le> r\<close> and \<open>\<not> c \<le> s\<close> using rs by auto
-        then show ?thesis unfolding g'_def
-          using mono_onD[OF mono_g] rs assms(2) by auto
-      next
-        case False
-        then have sc: \<open>s = c\<close> using rs by auto
-        show ?thesis
-        proof (cases \<open>r < c\<close>)
-          case True
-          then have \<open>\<not> c \<le> r\<close> by simp
-          then show ?thesis unfolding g'_def sc
-            using g_le_gc[OF rs(1) True] k_def by simp
-        next
-          case False
-          then have \<open>r = c\<close> using rs by auto
-          then show ?thesis using sc by simp
-        qed
-      qed
-    qed  (*similar case? the duplication could be eliminated?*)
-    have h_le_hc: \<open>h x \<le> hc\<close> if \<open>x \<in> {a..c}\<close> \<open>x < c\<close> for x
-    proof (rule tendsto_lowerbound[OF hc _ not_bot])
-      show \<open>\<forall>\<^sub>F y in at c within {a..c}. h x \<le> h y\<close>
-        unfolding eventually_at_filter
-      proof (rule eventually_nhds_metric[THEN iffD2], rule exI[of _ \<open>c - x\<close>], intro conjI allI impI)
-        show \<open>0 < c - x\<close> using that by simp
-      next
-        fix y assume dy: \<open>dist y c < c - x\<close> and yc: \<open>y \<noteq> c\<close> and yac: \<open>y \<in> {a..c}\<close>
-        then have \<open>y \<in> {a..b}\<close> using assms(2) by auto
-        have \<open>x \<in> {a..b}\<close> using that assms(2) by auto
-        have \<open>x \<le> y\<close> using dy by (auto simp: dist_real_def)
-        show \<open>h x \<le> h y\<close>
-          using mono_onD[OF mono_h \<open>x \<in> {a..b}\<close> \<open>y \<in> {a..b}\<close> \<open>x \<le> y\<close>] .
-      qed
-    qed
+      unfolding g'_def using mono_shift[OF mono_g gc] k_def by simp
     have mono_h': \<open>mono_on {a..c} h'\<close>
-    proof (unfold mono_on_def, intro allI impI, elim conjE)
-      fix r s assume rs: \<open>r \<in> {a..c}\<close> \<open>s \<in> {a..c}\<close> \<open>r \<le> s\<close>
-      show \<open>h' r \<le> h' s\<close>
-      proof (cases \<open>s < c\<close>)
-        case True
-        then have \<open>\<not> c \<le> r\<close> and \<open>\<not> c \<le> s\<close> using rs by auto
-        then show ?thesis unfolding h'_def
-          using mono_onD[OF mono_h] rs assms(2) by auto
-      next
-        case False
-        then have sc: \<open>s = c\<close> using rs by auto
-        show ?thesis
-        proof (cases \<open>r < c\<close>)
-          case True
-          then have \<open>\<not> c \<le> r\<close> by simp
-          then show ?thesis unfolding h'_def sc
-            using h_le_hc[OF rs(1) True] \<open>k = hc - h c\<close> by simp
-        next
-          case False
-          then have \<open>r = c\<close> using rs by auto
-          then show ?thesis using sc by simp
-        qed
-      qed
-    qed
+      unfolding h'_def using mono_shift[OF mono_h hc \<open>k = hc - h c\<close>] .
     have \<open>f = (\<lambda>x. g' x - h' x)\<close>
       by (force simp: eq g'_def h'_def)
     show ?thesis
@@ -2550,48 +2516,47 @@ next
       have ac: \<open>a \<le> c\<close> using assms(2) by auto
       have bv_ac: \<open>has_bounded_variation_on f {a..c}\<close>
         using has_bounded_variation_on_subset[OF assms(1)] assms(2) by auto
-      \<comment> \<open>g' is continuous at c within {a..c}\<close>
-      have g'c: \<open>g' c = gc\<close>
-        unfolding g'_def k_def by simp
+      \<comment> \<open>A shifted function is continuous at c when the original has the matching left limit\<close>
+      have cont_shift: \<open>((\<lambda>x. if c \<le> x then \<phi> x + k else \<phi> x) \<longlongrightarrow>
+                        (if c \<le> c then \<phi> c + k else \<phi> c)) (at c within {a..c})\<close>
+        if \<open>(\<phi> \<longlongrightarrow> \<phi>c) (at c within {a..c})\<close> \<open>k = \<phi>c - \<phi> c\<close> for \<phi> \<phi>c
+      proof -
+        have \<open>\<forall>\<^sub>F x in at c within {a..c}. (if c \<le> x then \<phi> x + k else \<phi> x) = \<phi> x\<close>
+          unfolding eventually_at_filter by auto
+        then have \<open>((\<lambda>x. if c \<le> x then \<phi> x + k else \<phi> x) \<longlongrightarrow> \<phi>c) (at c within {a..c})\<close>
+          using that(1) tendsto_cong by force
+        then show ?thesis using that(2) by simp
+      qed
       have cont_g': \<open>(g' \<longlongrightarrow> g' c) (at c within {a..c})\<close>
-      proof -
-        have \<open>\<forall>\<^sub>F x in at c within {a..c}. g' x = g x\<close>
-          unfolding eventually_at_filter g'_def by auto
-        then have \<open>(g' \<longlongrightarrow> gc) (at c within {a..c})\<close>
-          using gc tendsto_cong by force
-        then show ?thesis by (simp add: g'c)
-      qed
-      \<comment> \<open>h' is continuous at c within {a..c}\<close>
-      have h'c: \<open>h' c = hc\<close>
-        unfolding h'_def using \<open>k = hc - h c\<close> by simp
+        unfolding g'_def using cont_shift[OF gc] k_def by simp
       have cont_h': \<open>(h' \<longlongrightarrow> h' c) (at c within {a..c})\<close>
-      proof -
-        have \<open>\<forall>\<^sub>F x in at c within {a..c}. h' x = h x\<close>
-          unfolding eventually_at_filter h'_def by auto
-        then have \<open>(h' \<longlongrightarrow> hc) (at c within {a..c})\<close>
-          using hc tendsto_cong by force
-        then show ?thesis by (simp add: h'c)
-      qed
+        unfolding h'_def using cont_shift[OF hc \<open>k = hc - h c\<close>] .
+      \<comment> \<open>Variation of a monotone function on a subinterval = endpoint difference\<close>
+      have vv_mono: \<open>vector_variation {x..c} \<phi>' = norm (\<phi>' c - \<phi>' x)\<close>
+        if \<open>mono_on {a..c} \<phi>'\<close> \<open>x \<in> {a..c}\<close> for \<phi>' :: \<open>real \<Rightarrow> real\<close> and x
+        using increasing_vector_variation[OF mono_on_subset[OF that(1)]] that(2) by auto
       \<comment> \<open>The \<epsilon>/2 argument\<close>
       show \<open>continuous (at c within {a..c}) (\<lambda>x. vector_variation {a..x} f)\<close>
         unfolding continuous_within tendsto_iff
       proof (intro allI impI)
         fix \<epsilon> :: real assume \<open>\<epsilon> > 0\<close>
         then have e2: \<open>\<epsilon> / 2 > 0\<close> by simp
-        \<comment> \<open>Get eventually-close from continuity of g' for \<epsilon>/2\<close>
-        have ev_g': \<open>\<forall>\<^sub>F x in at c within {a..c}. dist (g' x) (g' c) < \<epsilon> / 2\<close>
-          using tendstoD[OF cont_g' e2] .
-        \<comment> \<open>Get eventually-close from continuity of h' for \<epsilon>/2\<close>
-        have ev_h': \<open>\<forall>\<^sub>F x in at c within {a..c}. dist (h' x) (h' c) < \<epsilon> / 2\<close>
-          using tendstoD[OF cont_h' e2] .
-        \<comment> \<open>Membership in {a..c} eventually holds\<close>
-        have ev_mem: \<open>\<forall>\<^sub>F x in at c within {a..c}. x \<in> {a..c}\<close>
-          unfolding eventually_at_filter by (auto intro: always_eventually)
+        \<comment> \<open>Get eventually-close from continuity of g' and h' for \<epsilon>/2\<close>
+        have ev_gh': \<open>\<forall>\<^sub>F x in at c within {a..c}.
+          dist (g' x) (g' c) < \<epsilon> / 2 \<and> dist (h' x) (h' c) < \<epsilon> / 2 \<and> x \<in> {a..c}\<close>
+        proof (intro eventually_conj)
+          show \<open>\<forall>\<^sub>F x in at c within {a..c}. dist (g' x) (g' c) < \<epsilon> / 2\<close>
+            using tendstoD[OF cont_g' e2] .
+          show \<open>\<forall>\<^sub>F x in at c within {a..c}. dist (h' x) (h' c) < \<epsilon> / 2\<close>
+            using tendstoD[OF cont_h' e2] .
+          show \<open>\<forall>\<^sub>F x in at c within {a..c}. x \<in> {a..c}\<close>
+            unfolding eventually_at_filter by (auto intro: always_eventually)
+        qed
         \<comment> \<open>Combine using triangle inequality\<close>
         show \<open>\<forall>\<^sub>F x in at c within {a..c}. dist (vector_variation {a..x} f) (vector_variation {a..c} f) < \<epsilon>\<close>
-        proof (rule eventually_mono[OF eventually_conj[OF eventually_conj[OF ev_g' ev_h'] ev_mem]])
+        proof (rule eventually_mono[OF ev_gh'])
           fix x
-          assume H: \<open>(dist (g' x) (g' c) < \<epsilon> / 2 \<and> dist (h' x) (h' c) < \<epsilon> / 2) \<and> x \<in> {a..c}\<close>
+          assume H: \<open>dist (g' x) (g' c) < \<epsilon> / 2 \<and> dist (h' x) (h' c) < \<epsilon> / 2 \<and> x \<in> {a..c}\<close>
           then have dg: \<open>dist (g' x) (g' c) < \<epsilon> / 2\<close>
             and dh: \<open>dist (h' x) (h' c) < \<epsilon> / 2\<close>
             and xac: \<open>x \<in> {a..c}\<close> by auto
@@ -2602,47 +2567,31 @@ next
           next
             case False
             then have xc: \<open>x < c\<close> and xle: \<open>x \<le> c\<close> using xac by auto
-            \<comment> \<open>Bounded variation on subintervals\<close>
             have bv_xc: \<open>has_bounded_variation_on f {x..c}\<close>
               using has_bounded_variation_on_subset[OF bv_ac] xac by auto
-            \<comment> \<open>g' and h' are monotone on {x..c}\<close>
-            have mono_g'_xc: \<open>mono_on {x..c} g'\<close>
-              using mono_on_subset[OF mono_g'] xac by auto
-            have mono_h'_xc: \<open>mono_on {x..c} h'\<close>
-              using mono_on_subset[OF mono_h'] xac by auto
-            \<comment> \<open>Bounded variation for g' and h' on {x..c}\<close>
-            have bv_g': \<open>has_bounded_variation_on g' {x..c}\<close>
-              using increasing_bounded_variation[OF mono_g'_xc] .
-            have bv_h': \<open>has_bounded_variation_on h' {x..c}\<close>
-              using increasing_bounded_variation[OF mono_h'_xc] .
-            \<comment> \<open>Vector variation of f on {x..c} via triangle inequality\<close>
+            \<comment> \<open>Variation of f on {x..c} bounded by sum of variations of g' and h'\<close>
             have vv_f_xc: \<open>vector_variation {x..c} f \<le> vector_variation {x..c} g' + vector_variation {x..c} h'\<close>
             proof -
+              have \<open>{x..c} \<subseteq> {a..c}\<close> using xac by auto
               have \<open>vector_variation {x..c} f = vector_variation {x..c} (\<lambda>t. g' t - h' t)\<close>
                 using \<open>f = (\<lambda>x. g' x - h' x)\<close> by simp
               also have \<open>\<dots> \<le> vector_variation {x..c} g' + vector_variation {x..c} h'\<close>
-                using vector_variation_triangle_sub[OF bv_g' bv_h'] .
+                using vector_variation_triangle_sub
+                  [OF increasing_bounded_variation[OF mono_on_subset[OF mono_g' \<open>{x..c} \<subseteq> {a..c}\<close>]]
+                      increasing_bounded_variation[OF mono_on_subset[OF mono_h' \<open>{x..c} \<subseteq> {a..c}\<close>]]] .
               finally show ?thesis .
             qed
-            \<comment> \<open>Variation of monotone functions = endpoint difference\<close>
-            have vv_g': \<open>vector_variation {x..c} g' = norm (g' c - g' x)\<close>
-              using increasing_vector_variation[OF mono_g'_xc] xle by auto
-            have vv_h': \<open>vector_variation {x..c} h' = norm (h' c - h' x)\<close>
-              using increasing_vector_variation[OF mono_h'_xc] xle by auto
-            \<comment> \<open>Additivity of variation: vv{a..c} = vv{a..x} + vv{x..c}\<close>
-            have split: \<open>vector_variation {a..c} f = vector_variation {a..x} f + vector_variation {x..c} f\<close>
-              using vector_variation_combine[OF bv_ac] xac by auto
-            \<comment> \<open>Therefore dist = vv{x..c}f\<close>
-            have vv_pos: \<open>vector_variation {x..c} f \<ge> 0\<close>
-              using vector_variation_pos_le[OF bv_xc] .
-            have \<open>dist (vector_variation {a..x} f) (vector_variation {a..c} f) = \<bar>vector_variation {a..x} f - vector_variation {a..c} f\<bar>\<close>
+            \<comment> \<open>Chain the bounds\<close>
+            have \<open>dist (vector_variation {a..x} f) (vector_variation {a..c} f)
+                  = \<bar>vector_variation {a..x} f - vector_variation {a..c} f\<bar>\<close>
               by (simp add: dist_real_def)
             also have \<open>\<dots> = vector_variation {x..c} f\<close>
-              using split vv_pos by linarith
+              using vector_variation_combine[OF bv_ac xac] vector_variation_pos_le[OF bv_xc]
+              by linarith
             also have \<open>\<dots> \<le> vector_variation {x..c} g' + vector_variation {x..c} h'\<close>
               using vv_f_xc .
             also have \<open>\<dots> = norm (g' c - g' x) + norm (h' c - h' x)\<close>
-              using vv_g' vv_h' by simp
+              using vv_mono[OF mono_g' xac] vv_mono[OF mono_h' xac] by simp
             also have \<open>\<dots> = dist (g' x) (g' c) + dist (h' x) (h' c)\<close>
               by (simp add: dist_real_def dist_commute)
             also have \<open>\<dots> < \<epsilon> / 2 + \<epsilon> / 2\<close>
