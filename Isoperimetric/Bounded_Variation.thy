@@ -2376,7 +2376,7 @@ qed
 
 subsection \<open>Continuity of vector variation\<close>
 
-lemma continuous_vector_variation_at_left:
+lemma continuous_vector_variation_left_1:
   fixes f :: \<open>real \<Rightarrow> real\<close>
   assumes \<open>has_bounded_variation_on f {a..b}\<close> \<open>c \<in> {a..b}\<close>
   shows \<open>continuous (at c within {a..c}) (\<lambda>x. vector_variation {a..x} f) \<longleftrightarrow>
@@ -2582,10 +2582,103 @@ next
   qed
 qed
 
-lemma vector_variation_continuous:
-  assumes "continuous_on {a..b} f" "has_bounded_variation_on f {a..b}"
-  shows "continuous_on {a..b} (\<lambda>x. vector_variation {a..x} f)"
+lemma continuous_vector_variation_left:
+  fixes f :: \<open>real \<Rightarrow> 'a::euclidean_space\<close>
+  assumes \<open>has_bounded_variation_on f {a..b}\<close> \<open>c \<in> {a..b}\<close>
+  shows \<open>continuous (at c within {a..c}) (\<lambda>x. vector_variation {a..x} f) \<longleftrightarrow>
+         continuous (at c within {a..c}) f\<close>   (is \<open>?L = ?R  \<close>)
   sorry
+
+
+lemma division_of_reflect:
+  fixes s :: real
+  assumes \<open>d division_of {\<alpha>..\<beta>}\<close>
+  shows \<open>(`) ((-) s) ` d division_of {s - \<beta>..s - \<alpha>}\<close>
+proof -
+  define d' where \<open>d' = (`) ((-) s) ` d\<close>
+  have fin: \<open>finite d'\<close>
+    unfolding d'_def using division_of_finite[OF assms] by auto
+  have props: \<open>K \<subseteq> {s - \<beta>..s - \<alpha>} \<and> K \<noteq> {} \<and> (\<exists>a b. K = cbox a b)\<close>
+    if \<open>K \<in> d'\<close> for K
+  proof -
+    from that obtain k where kd: \<open>k \<in> d\<close> and K_eq: \<open>K = (-) s ` k\<close>
+      unfolding d'_def by auto
+    from division_ofD(2,3,4)[OF assms kd]
+    obtain u v where ksub: \<open>k \<subseteq> {\<alpha>..\<beta>}\<close> and kne: \<open>k \<noteq> {}\<close> and kuv: \<open>k = cbox u v\<close> by auto
+    with kne have uv: \<open>u \<le> v\<close> by (simp add: cbox_interval)
+    have \<open>K \<subseteq> {s - \<beta>..s - \<alpha>}\<close>
+      using ksub K_eq kuv by (auto simp: cbox_interval image_diff_atLeastAtMost)
+    moreover have \<open>K \<noteq> {}\<close> using kne K_eq by auto
+    moreover have \<open>\<exists>a b. K = cbox a b\<close>
+      using K_eq kuv uv by (auto simp: cbox_interval image_diff_atLeastAtMost intro!: exI)
+    ultimately show ?thesis by blast
+  qed
+  have disj: \<open>interior K1 \<inter> interior K2 = {}\<close>
+    if \<open>K1 \<in> d'\<close> \<open>K2 \<in> d'\<close> \<open>K1 \<noteq> K2\<close> for K1 K2
+  proof -
+    from that obtain k1 k2 where k1d: \<open>k1 \<in> d\<close> and K1_eq: \<open>K1 = (-) s ` k1\<close>
+      and k2d: \<open>k2 \<in> d\<close> and K2_eq: \<open>K2 = (-) s ` k2\<close>
+      unfolding d'_def by auto
+    have \<open>k1 \<noteq> k2\<close> using that K1_eq K2_eq by auto
+    from division_ofD(5)[OF assms k1d k2d this]
+    have \<open>interior k1 \<inter> interior k2 = {}\<close> .
+    have interior_diff: \<open>interior ((-) s ` S) = (-) s ` interior S\<close> for S :: \<open>real set\<close>
+    proof -
+      have \<open>(-) s = (+) s \<circ> uminus\<close> by (auto simp: fun_eq_iff)
+      then have \<open>(-) s ` S = (+) s ` (uminus ` S)\<close>
+        by (metis image_comp)
+      then have \<open>interior ((-) s ` S) = interior ((+) s ` (uminus ` S))\<close> by simp
+      also have \<open>\<dots> = (+) s ` interior (uminus ` S)\<close> by (simp add: interior_translation)
+      also have \<open>\<dots> = (+) s ` (uminus ` interior S)\<close> by (simp add: interior_negations)
+      also have \<open>\<dots> = (-) s ` interior S\<close> by (auto simp: image_comp fun_eq_iff)
+      finally show ?thesis .
+    qed
+    show ?thesis
+      unfolding K1_eq K2_eq interior_diff
+      using \<open>interior k1 \<inter> interior k2 = {}\<close>
+      by (metis image_Int inj_on_diff_left image_empty image_is_empty)
+  qed
+  have union: \<open>\<Union> d' = {s - \<beta>..s - \<alpha>}\<close>
+  proof -
+    have \<open>\<Union> d = {\<alpha>..\<beta>}\<close> using division_ofD(6)[OF assms] .
+    then show ?thesis
+      unfolding d'_def by (simp add: image_Union[symmetric] image_diff_atLeastAtMost)
+  qed
+  show ?thesis
+    unfolding d'_def[symmetric] division_of_def
+    using fin props disj union by auto
+qed
+
+lemma has_bounded_variation_on_reflect:
+  assumes \<open>has_bounded_variation_on f {s - \<beta>..s - \<alpha>}\<close>
+  shows \<open>has_bounded_variation_on (f \<circ> (\<lambda>t. s - t)) {\<alpha>..\<beta>}\<close>
+  sorry
+
+lemma vector_variation_reflect:
+  assumes \<open>\<alpha> \<le> \<beta>\<close>
+  shows \<open>vector_variation {\<alpha>..\<beta>} (f \<circ> (\<lambda>t. s - t)) = vector_variation {s - \<beta>..s - \<alpha>} f\<close>
+  sorry
+
+lemma continuous_reflect:
+  fixes f :: \<open>real \<Rightarrow> 'a::topological_space\<close>
+  shows \<open>continuous (at c within S) (f \<circ> (\<lambda>t. s - t)) \<longleftrightarrow>
+         continuous (at (s - c) within ((-) s) ` S) f\<close>
+  oops
+
+lemma continuous_vector_variation_at_right:
+  fixes f :: \<open>real \<Rightarrow> 'a::euclidean_space\<close>
+  assumes \<open>has_bounded_variation_on f {a..b}\<close> \<open>c \<in> {a..b}\<close>
+  shows \<open>continuous (at c within {c..b}) (\<lambda>x. vector_variation {a..x} f) \<longleftrightarrow>
+         continuous (at c within {c..b}) f\<close>
+
+lemma vector_variation_continuous:
+  fixes f :: \<open>real \<Rightarrow> 'a::euclidean_space\<close>
+  assumes \<open>has_bounded_variation_on f {a..b}\<close> \<open>c \<in> {a..b}\<close>
+  shows \<open>continuous (at c within {a..b}) (\<lambda>x. vector_variation {a..x} f) \<longleftrightarrow>
+         continuous (at c within {a..b}) f\<close>
+  sorry
+
+
 
 subsection \<open>Factoring through variation\<close>
 
