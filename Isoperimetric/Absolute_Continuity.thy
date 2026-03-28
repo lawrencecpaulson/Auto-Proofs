@@ -396,9 +396,54 @@ proof (intro allI impI)
     have dR_sub: "t \<inter> {c..b} \<subseteq> {c..b}" by auto
     \<comment> \<open>Content sums: each part has content \<le> total\<close>
     have content_L: "(\<Sum>k\<in>dL. content k) \<le> (\<Sum>k\<in>d. content k)"
-      sorry
+    proof (rule sum_le_included[where i="\<lambda>k. k \<inter> {a..c}"])
+      show "finite dL" using dL_div by auto
+    next
+      show "finite d" using fin .
+    next
+      show "\<forall>y\<in>d. 0 \<le> content y" by (simp add: content_pos_le)
+    next
+      show "\<forall>x\<in>dL. \<exists>y\<in>d. y \<inter> {a..c} = x \<and> content x \<le> content y"
+      proof
+        fix x assume "x \<in> dL"
+        then obtain k where kd: "k \<in> d" and kne: "k \<inter> {a..c} \<noteq> {}" and xeq: "x = k \<inter> {a..c}"
+          unfolding dL_def by auto
+        have "k \<subseteq> t" using div division_ofD(2) kd by blast
+        then have "k \<subseteq> {a..b}" using sub by auto
+        obtain u v where kuv: "k = cbox u v" using div division_ofD(4) kd by meson
+        have kcbox: "k \<inter> {a..c} = cbox (max u a) (min v c)"
+          using kuv by (simp add: box_real Int_interval)
+        have "cbox (max u a) (min v c) \<subseteq> cbox u v" by auto
+        then have "content (k \<inter> {a..c}) \<le> content k"
+          by (metis content_subset kcbox kuv)
+        then show "\<exists>y\<in>d. y \<inter> {a..c} = x \<and> content x \<le> content y"
+          using kd xeq by auto
+      qed
+    qed
+
     have content_R: "(\<Sum>k\<in>dR. content k) \<le> (\<Sum>k\<in>d. content k)"
-      sorry
+    proof (rule sum_le_included[where i="\<lambda>k. k \<inter> {c..b}"])
+      show "finite dR" using dR_div by auto
+    next
+      show "finite d" using fin .
+    next
+      show "\<forall>y\<in>d. 0 \<le> content y" by (simp add: content_pos_le)
+    next
+      show "\<forall>x\<in>dR. \<exists>y\<in>d. y \<inter> {c..b} = x \<and> content x \<le> content y"
+      proof
+        fix x assume "x \<in> dR"
+        then obtain k where kd: "k \<in> d" and xeq: "x = k \<inter> {c..b}"
+          unfolding dR_def by auto
+        obtain u v where kuv: "k = cbox u v" using div division_ofD(4) kd by meson
+        have kcbox: "k \<inter> {c..b} = cbox (max u c) (min v b)"
+          using kuv by (simp add: box_real Int_interval)
+        have "cbox (max u c) (min v b) \<subseteq> cbox u v" by auto
+        then have "content (k \<inter> {c..b}) \<le> content k"
+          by (metis content_subset kcbox kuv)
+        then show "\<exists>y\<in>d. y \<inter> {c..b} = x \<and> content x \<le> content y"
+          using kd xeq by auto
+      qed
+    qed
     \<comment> \<open>Norm sums: triangle inequality at the split point\<close>
     have norm_split: "(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) 
       \<le> (\<Sum>k\<in>dL. norm (f (Sup k) - f (Inf k))) + (\<Sum>k\<in>dR. norm (f (Sup k) - f (Inf k)))"
