@@ -114,6 +114,7 @@ lemma has_bounded_variation_on_sub:
     has_bounded_variation_on_neg[of g s]
   by simp
 
+
 lemma has_bounded_variation_on_norm:
   "has_bounded_variation_on f s \<Longrightarrow>
     has_bounded_variation_on (\<lambda>x. norm (f x) *\<^sub>R e) s"
@@ -509,6 +510,45 @@ lemma has_bounded_variation_works:
   using has_bounded_setvariation_works[of "\<lambda>k. f (Sup k) - f (Inf k)" s]
     assms[unfolded has_bounded_variation_on_def]
   unfolding vector_variation_def by auto
+
+lemma vector_variation_triangle:
+  assumes "has_bounded_variation_on f s" "has_bounded_variation_on g s"
+  shows "vector_variation s (\<lambda>x. f x + g x) \<le> vector_variation s f + vector_variation s g"
+proof (rule has_bounded_variation_works(2)[OF has_bounded_variation_on_add[OF assms]])
+  fix d t assume dt: "d division_of t" "t \<subseteq> s"
+  have "(\<Sum>k\<in>d. norm (f (Sup k) + g (Sup k) - (f (Inf k) + g (Inf k)))) =
+    (\<Sum>k\<in>d. norm ((f (Sup k) - f (Inf k)) + (g (Sup k) - g (Inf k))))"
+    by (simp add: algebra_simps)
+  also have "\<dots> \<le> (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k)) + norm (g (Sup k) - g (Inf k)))"
+    by (intro sum_mono norm_triangle_ineq)
+  also have "\<dots> = (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) + (\<Sum>k\<in>d. norm (g (Sup k) - g (Inf k)))"
+    by (simp add: sum.distrib)
+  also have "\<dots> \<le> vector_variation s f + vector_variation s g"
+    by (intro add_mono has_bounded_variation_works(1)[OF assms(1) dt(1,2)]
+                        has_bounded_variation_works(1)[OF assms(2) dt(1,2)])
+  finally show "(\<Sum>k\<in>d. norm (f (Sup k) + g (Sup k) - (f (Inf k) + g (Inf k))))
+    \<le> vector_variation s f + vector_variation s g" .
+qed
+
+lemma vector_variation_neg:
+  shows "vector_variation s (\<lambda>x. - f x) = vector_variation s f"
+  unfolding vector_variation_def set_variation_def
+  by (simp add: norm_minus_commute)
+
+lemma vector_variation_triangle_sub:
+  assumes "has_bounded_variation_on f s" "has_bounded_variation_on g s"
+  shows "vector_variation s (\<lambda>x. f x - g x) \<le> vector_variation s f + vector_variation s g"
+proof -
+  have "vector_variation s (\<lambda>x. f x - g x) = vector_variation s (\<lambda>x. f x + (- g x))"
+    by simp
+  also have "\<dots> \<le> vector_variation s f + vector_variation s (\<lambda>x. - g x)"
+    by (rule vector_variation_triangle[OF assms(1) has_bounded_variation_on_neg[OF assms(2)]])
+  also have "vector_variation s (\<lambda>x. - g x) = vector_variation s g"
+    by (rule vector_variation_neg)
+  finally show ?thesis .
+qed
+
+
 
 lemma vector_variation_le_Un:
   assumes fst: "has_bounded_variation_on f (s \<union> t)" and "interior s \<inter> interior t = {}"
@@ -2000,8 +2040,9 @@ proof -
       using has_bounded_variation_on_subset[OF bv] by auto
     have sub: "s \<inter> {..x} \<subseteq> s \<inter> {..y}" using xy(3) by auto
     show "vector_variation (s \<inter> {..x}) f \<le> vector_variation (s \<inter> {..y}) f"
-      using vector_variation_monotone bv_sy sub
-      sorry
+      using bv_sy sub
+      by (metis (mono_tags, lifting) dual_order.trans has_bounded_variation_on_subset
+          has_bounded_variation_works)
   qed
   have h_mono: "mono_on s h"
     unfolding mono_on_def h_def
@@ -2336,6 +2377,7 @@ qed
 subsection \<open>Continuity of vector variation\<close>
 
 lemma continuous_vector_variation_at_left:
+  fixes f :: \<open>real \<Rightarrow> real\<close>
   assumes \<open>has_bounded_variation_on f {a..b}\<close> \<open>c \<in> {a..b}\<close>
   shows \<open>continuous (at c within {a..c}) (\<lambda>x. vector_variation {a..x} f) \<longleftrightarrow>
          continuous (at c within {a..c}) f\<close>   (is \<open>?L = ?R  \<close>)
@@ -2388,6 +2430,119 @@ next
       by (simp add: continuous_bot)
   next
     case True
+    \<comment> \<open>Darboux decomposition: f = g - h with g, h monotone\<close>
+    from assms(1) obtain g h where
+      mono_g: \<open>mono_on {a..b} g\<close> and mono_h: \<open>mono_on {a..b} h\<close>
+      and eq: \<open>\<And>x. f x = g x - h x\<close>
+      using has_bounded_variation_Darboux[of f a b] by auto
+    \<comment> \<open>Left limits of g and h at c exist by increasing_left_limit\<close>
+    obtain gc where gc: \<open>(g \<longlongrightarrow> gc) (at c within {a..c})\<close>
+      using increasing_left_limit[OF mono_g assms(2)] by auto
+    obtain hc where hc: \<open>(h \<longlongrightarrow> hc) (at c within {a..c})\<close>
+      using increasing_left_limit[OF mono_h assms(2)] by auto
+    define k where "k \<equiv> gc - g c"
+    have \<open>k = hc - h c\<close>
+    proof -
+      have \<open>(f \<longlongrightarrow> gc - hc) (at c within {a..c})\<close>
+      proof -
+        have \<open>((\<lambda>x. g x - h x) \<longlongrightarrow> gc - hc) (at c within {a..c})\<close>
+          using tendsto_diff[OF gc hc] .
+        moreover have \<open>f = (\<lambda>x. g x - h x)\<close>
+          by (rule ext) (simp add: eq)
+        ultimately show ?thesis by simp
+      qed
+      moreover have \<open>(f \<longlongrightarrow> f c) (at c within {a..c})\<close>
+        using R by (simp add: continuous_within)
+      moreover have \<open>at c within {a..c} \<noteq> bot\<close>
+        using True trivial_limit_within by blast
+      ultimately have \<open>f c = gc - hc\<close>
+        using tendsto_unique by blast
+      then show ?thesis unfolding k_def eq by algebra
+    qed
+    define g' where \<open>g' \<equiv> \<lambda>x. if c \<le> x then g(x) + k else g(x)\<close>
+    define h' where \<open>h' \<equiv> \<lambda>x. if c \<le> x then h(x) + k else h(x)\<close>
+    have not_bot: \<open>at c within {a..c} \<noteq> bot\<close>
+      using True trivial_limit_within by blast
+    have g_le_gc: \<open>g x \<le> gc\<close> if \<open>x \<in> {a..c}\<close> \<open>x < c\<close> for x
+    proof (rule tendsto_lowerbound[OF gc _ not_bot])
+      show \<open>\<forall>\<^sub>F y in at c within {a..c}. g x \<le> g y\<close>
+        unfolding eventually_at_filter
+      proof (rule eventually_nhds_metric[THEN iffD2], rule exI[of _ \<open>c - x\<close>], intro conjI allI impI)
+        show \<open>0 < c - x\<close> using that by simp
+      next
+        fix y assume dy: \<open>dist y c < c - x\<close> and yc: \<open>y \<noteq> c\<close> and yac: \<open>y \<in> {a..c}\<close>
+        then have \<open>y \<in> {a..b}\<close> using assms(2) by auto
+        have \<open>x \<in> {a..b}\<close> using that assms(2) by auto
+        have \<open>x \<le> y\<close> using dy by (auto simp: dist_real_def)
+        show \<open>g x \<le> g y\<close>
+          using mono_onD[OF mono_g \<open>x \<in> {a..b}\<close> \<open>y \<in> {a..b}\<close> \<open>x \<le> y\<close>] .
+      qed
+    qed
+    have mono_g': \<open>mono_on {a..c} g'\<close>
+    proof (unfold mono_on_def, intro allI impI, elim conjE)
+      fix r s assume rs: \<open>r \<in> {a..c}\<close> \<open>s \<in> {a..c}\<close> \<open>r \<le> s\<close>
+      show \<open>g' r \<le> g' s\<close>
+      proof (cases \<open>s < c\<close>)
+        case True
+        then have \<open>\<not> c \<le> r\<close> and \<open>\<not> c \<le> s\<close> using rs by auto
+        then show ?thesis unfolding g'_def
+          using mono_onD[OF mono_g] rs assms(2) by auto
+      next
+        case False
+        then have sc: \<open>s = c\<close> using rs by auto
+        show ?thesis
+        proof (cases \<open>r < c\<close>)
+          case True
+          then have \<open>\<not> c \<le> r\<close> by simp
+          then show ?thesis unfolding g'_def sc
+            using g_le_gc[OF rs(1) True] k_def by simp
+        next
+          case False
+          then have \<open>r = c\<close> using rs by auto
+          then show ?thesis using sc by simp
+        qed
+      qed
+    qed
+    have h_le_hc: \<open>h x \<le> hc\<close> if \<open>x \<in> {a..c}\<close> \<open>x < c\<close> for x
+    proof (rule tendsto_lowerbound[OF hc _ not_bot])
+      show \<open>\<forall>\<^sub>F y in at c within {a..c}. h x \<le> h y\<close>
+        unfolding eventually_at_filter
+      proof (rule eventually_nhds_metric[THEN iffD2], rule exI[of _ \<open>c - x\<close>], intro conjI allI impI)
+        show \<open>0 < c - x\<close> using that by simp
+      next
+        fix y assume dy: \<open>dist y c < c - x\<close> and yc: \<open>y \<noteq> c\<close> and yac: \<open>y \<in> {a..c}\<close>
+        then have \<open>y \<in> {a..b}\<close> using assms(2) by auto
+        have \<open>x \<in> {a..b}\<close> using that assms(2) by auto
+        have \<open>x \<le> y\<close> using dy by (auto simp: dist_real_def)
+        show \<open>h x \<le> h y\<close>
+          using mono_onD[OF mono_h \<open>x \<in> {a..b}\<close> \<open>y \<in> {a..b}\<close> \<open>x \<le> y\<close>] .
+      qed
+    qed
+    have mono_h': \<open>mono_on {a..c} h'\<close>
+    proof (unfold mono_on_def, intro allI impI, elim conjE)
+      fix r s assume rs: \<open>r \<in> {a..c}\<close> \<open>s \<in> {a..c}\<close> \<open>r \<le> s\<close>
+      show \<open>h' r \<le> h' s\<close>
+      proof (cases \<open>s < c\<close>)
+        case True
+        then have \<open>\<not> c \<le> r\<close> and \<open>\<not> c \<le> s\<close> using rs by auto
+        then show ?thesis unfolding h'_def
+          using mono_onD[OF mono_h] rs assms(2) by auto
+      next
+        case False
+        then have sc: \<open>s = c\<close> using rs by auto
+        show ?thesis
+        proof (cases \<open>r < c\<close>)
+          case True
+          then have \<open>\<not> c \<le> r\<close> by simp
+          then show ?thesis unfolding h'_def sc
+            using h_le_hc[OF rs(1) True] \<open>k = hc - h c\<close> by simp
+        next
+          case False
+          then have \<open>r = c\<close> using rs by auto
+          then show ?thesis using sc by simp
+        qed
+      qed
+    qed
     show ?thesis
       sorry
   qed
