@@ -1,6 +1,5 @@
 theory Bounded_Variation
-  imports "HOL-Analysis.Analysis" Isar_Explore
-"HOL-ex.Sketch_and_Explore" 
+  imports "HOL-Analysis.Analysis"
 begin
 
 lemma continuous_within_comparison:
@@ -25,6 +24,18 @@ proof (intro allI impI)
     also have \<open>\<dots> < \<epsilon>\<close> using \<delta> \<open>x' \<in> s\<close> \<open>dist x' a < \<delta>\<close> by simp
     finally show \<open>dist (f x') (f a) < \<epsilon>\<close> by (simp add: dist_commute)
   qed
+qed
+
+lemma continuous_within_ivl_split:
+  fixes c :: \<open>'a::linorder_topology\<close>
+  assumes \<open>c \<in> {a..b}\<close>
+  shows \<open>continuous (at c within {a..b}) f \<longleftrightarrow>
+         continuous (at c within {a..c}) f \<and> continuous (at c within {c..b}) f\<close>
+proof -
+  from assms have \<open>a \<le> c\<close> \<open>c \<le> b\<close> by auto
+  then have \<open>{a..b} = {a..c} \<union> {c..b}\<close> by (rule ivl_disj_un_two_touch(4) [symmetric])
+  then show ?thesis
+    by (simp add: continuous_within Lim_within_Un)
 qed
 
 hide_const (open) Polynomial.content
@@ -3090,24 +3101,9 @@ lemma vector_variation_continuous:
   assumes \<open>has_bounded_variation_on f {a..b}\<close> \<open>c \<in> {a..b}\<close>
   shows \<open>continuous (at c within {a..b}) (\<lambda>x. vector_variation {a..x} f) \<longleftrightarrow>
          continuous (at c within {a..b}) f\<close>
-  sorry
-
-
-
-subsection \<open>Factoring through variation\<close>
-
-lemma factor_continuous_through_variation:
-  assumes "a \<le> b" "continuous_on {a..b} f"
-    "has_bounded_variation_on f {a..b}"
-    "vector_variation {a..b} f = l"
-  shows "\<exists>g. (\<forall>x \<in> {a..b}. f x = g (vector_variation {a..x} f)) \<and>
-    continuous_on {0..l} g \<and>
-    (\<forall>u \<in> {0..l}. \<forall>v \<in> {0..l}. dist (g u) (g v) \<le> dist u v) \<and>
-    has_bounded_variation_on g {0..l} \<and>
-    (\<lambda>x. vector_variation {a..x} f) ` {a..b} = {0..l} \<and>
-    g ` {0..l} = f ` {a..b} \<and>
-    (\<forall>x \<in> {0..l}. vector_variation {0..x} g = x)"
-  sorry
+  unfolding continuous_within_ivl_split[OF assms(2)]
+  using continuous_vector_variation_left[OF assms] continuous_vector_variation_at_right[OF assms]
+  by simp
 
 end
 
