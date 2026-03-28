@@ -2502,7 +2502,7 @@ next
           then show ?thesis using sc by simp
         qed
       qed
-    qed
+    qed  (*similar case? the duplication could be eliminated?*)
     have h_le_hc: \<open>h x \<le> hc\<close> if \<open>x \<in> {a..c}\<close> \<open>x < c\<close> for x
     proof (rule tendsto_lowerbound[OF hc _ not_bot])
       show \<open>\<forall>\<^sub>F y in at c within {a..c}. h x \<le> h y\<close>
@@ -2543,8 +2543,116 @@ next
         qed
       qed
     qed
+    have \<open>f = (\<lambda>x. g' x - h' x)\<close>
+      by (force simp: eq g'_def h'_def)
     show ?thesis
-      sorry
+    proof -
+      have ac: \<open>a \<le> c\<close> using assms(2) by auto
+      have bv_ac: \<open>has_bounded_variation_on f {a..c}\<close>
+        using has_bounded_variation_on_subset[OF assms(1)] assms(2) by auto
+      \<comment> \<open>g' is continuous at c within {a..c}\<close>
+      have g'c: \<open>g' c = gc\<close>
+        unfolding g'_def k_def by simp
+      have cont_g': \<open>(g' \<longlongrightarrow> g' c) (at c within {a..c})\<close>
+      proof -
+        have \<open>\<forall>\<^sub>F x in at c within {a..c}. g' x = g x\<close>
+          unfolding eventually_at_filter g'_def by auto
+        then have \<open>(g' \<longlongrightarrow> gc) (at c within {a..c})\<close>
+          using gc tendsto_cong by force
+        then show ?thesis by (simp add: g'c)
+      qed
+      \<comment> \<open>h' is continuous at c within {a..c}\<close>
+      have h'c: \<open>h' c = hc\<close>
+        unfolding h'_def using \<open>k = hc - h c\<close> by simp
+      have cont_h': \<open>(h' \<longlongrightarrow> h' c) (at c within {a..c})\<close>
+      proof -
+        have \<open>\<forall>\<^sub>F x in at c within {a..c}. h' x = h x\<close>
+          unfolding eventually_at_filter h'_def by auto
+        then have \<open>(h' \<longlongrightarrow> hc) (at c within {a..c})\<close>
+          using hc tendsto_cong by force
+        then show ?thesis by (simp add: h'c)
+      qed
+      \<comment> \<open>The \<epsilon>/2 argument\<close>
+      show \<open>continuous (at c within {a..c}) (\<lambda>x. vector_variation {a..x} f)\<close>
+        unfolding continuous_within tendsto_iff
+      proof (intro allI impI)
+        fix \<epsilon> :: real assume \<open>\<epsilon> > 0\<close>
+        then have e2: \<open>\<epsilon> / 2 > 0\<close> by simp
+        \<comment> \<open>Get eventually-close from continuity of g' for \<epsilon>/2\<close>
+        have ev_g': \<open>\<forall>\<^sub>F x in at c within {a..c}. dist (g' x) (g' c) < \<epsilon> / 2\<close>
+          using tendstoD[OF cont_g' e2] .
+        \<comment> \<open>Get eventually-close from continuity of h' for \<epsilon>/2\<close>
+        have ev_h': \<open>\<forall>\<^sub>F x in at c within {a..c}. dist (h' x) (h' c) < \<epsilon> / 2\<close>
+          using tendstoD[OF cont_h' e2] .
+        \<comment> \<open>Membership in {a..c} eventually holds\<close>
+        have ev_mem: \<open>\<forall>\<^sub>F x in at c within {a..c}. x \<in> {a..c}\<close>
+          unfolding eventually_at_filter by (auto intro: always_eventually)
+        \<comment> \<open>Combine using triangle inequality\<close>
+        show \<open>\<forall>\<^sub>F x in at c within {a..c}. dist (vector_variation {a..x} f) (vector_variation {a..c} f) < \<epsilon>\<close>
+        proof (rule eventually_mono[OF eventually_conj[OF eventually_conj[OF ev_g' ev_h'] ev_mem]])
+          fix x
+          assume H: \<open>(dist (g' x) (g' c) < \<epsilon> / 2 \<and> dist (h' x) (h' c) < \<epsilon> / 2) \<and> x \<in> {a..c}\<close>
+          then have dg: \<open>dist (g' x) (g' c) < \<epsilon> / 2\<close>
+            and dh: \<open>dist (h' x) (h' c) < \<epsilon> / 2\<close>
+            and xac: \<open>x \<in> {a..c}\<close> by auto
+          show \<open>dist (vector_variation {a..x} f) (vector_variation {a..c} f) < \<epsilon>\<close>
+          proof (cases \<open>x = c\<close>)
+            case True
+            then show ?thesis using \<open>\<epsilon> > 0\<close> by simp
+          next
+            case False
+            then have xc: \<open>x < c\<close> and xle: \<open>x \<le> c\<close> using xac by auto
+            \<comment> \<open>Bounded variation on subintervals\<close>
+            have bv_xc: \<open>has_bounded_variation_on f {x..c}\<close>
+              using has_bounded_variation_on_subset[OF bv_ac] xac by auto
+            \<comment> \<open>g' and h' are monotone on {x..c}\<close>
+            have mono_g'_xc: \<open>mono_on {x..c} g'\<close>
+              using mono_on_subset[OF mono_g'] xac by auto
+            have mono_h'_xc: \<open>mono_on {x..c} h'\<close>
+              using mono_on_subset[OF mono_h'] xac by auto
+            \<comment> \<open>Bounded variation for g' and h' on {x..c}\<close>
+            have bv_g': \<open>has_bounded_variation_on g' {x..c}\<close>
+              using increasing_bounded_variation[OF mono_g'_xc] .
+            have bv_h': \<open>has_bounded_variation_on h' {x..c}\<close>
+              using increasing_bounded_variation[OF mono_h'_xc] .
+            \<comment> \<open>Vector variation of f on {x..c} via triangle inequality\<close>
+            have vv_f_xc: \<open>vector_variation {x..c} f \<le> vector_variation {x..c} g' + vector_variation {x..c} h'\<close>
+            proof -
+              have \<open>vector_variation {x..c} f = vector_variation {x..c} (\<lambda>t. g' t - h' t)\<close>
+                using \<open>f = (\<lambda>x. g' x - h' x)\<close> by simp
+              also have \<open>\<dots> \<le> vector_variation {x..c} g' + vector_variation {x..c} h'\<close>
+                using vector_variation_triangle_sub[OF bv_g' bv_h'] .
+              finally show ?thesis .
+            qed
+            \<comment> \<open>Variation of monotone functions = endpoint difference\<close>
+            have vv_g': \<open>vector_variation {x..c} g' = norm (g' c - g' x)\<close>
+              using increasing_vector_variation[OF mono_g'_xc] xle by auto
+            have vv_h': \<open>vector_variation {x..c} h' = norm (h' c - h' x)\<close>
+              using increasing_vector_variation[OF mono_h'_xc] xle by auto
+            \<comment> \<open>Additivity of variation: vv{a..c} = vv{a..x} + vv{x..c}\<close>
+            have split: \<open>vector_variation {a..c} f = vector_variation {a..x} f + vector_variation {x..c} f\<close>
+              using vector_variation_combine[OF bv_ac] xac by auto
+            \<comment> \<open>Therefore dist = vv{x..c}f\<close>
+            have vv_pos: \<open>vector_variation {x..c} f \<ge> 0\<close>
+              using vector_variation_pos_le[OF bv_xc] .
+            have \<open>dist (vector_variation {a..x} f) (vector_variation {a..c} f) = \<bar>vector_variation {a..x} f - vector_variation {a..c} f\<bar>\<close>
+              by (simp add: dist_real_def)
+            also have \<open>\<dots> = vector_variation {x..c} f\<close>
+              using split vv_pos by linarith
+            also have \<open>\<dots> \<le> vector_variation {x..c} g' + vector_variation {x..c} h'\<close>
+              using vv_f_xc .
+            also have \<open>\<dots> = norm (g' c - g' x) + norm (h' c - h' x)\<close>
+              using vv_g' vv_h' by simp
+            also have \<open>\<dots> = dist (g' x) (g' c) + dist (h' x) (h' c)\<close>
+              by (simp add: dist_real_def dist_commute)
+            also have \<open>\<dots> < \<epsilon> / 2 + \<epsilon> / 2\<close>
+              using dg dh by linarith
+            also have \<open>\<dots> = \<epsilon>\<close> by simp
+            finally show ?thesis .
+          qed
+        qed
+      qed
+    qed
   qed
 qed
 
