@@ -3235,7 +3235,55 @@ lemma factor_continuous_through_variation:
              (\<lambda>x. vector_variation {a..x} f) ` {a..b} = {0..l} \<and>
              g ` {0..l} = f ` {a..b} \<and>
              (\<forall>x \<in> {0..l}. vector_variation {0..x} g = x)\<close>
-  sorry
+proof -
+  define S where \<open>S \<equiv> (\<lambda>x. vector_variation {a..x} f) ` {a..b}\<close>
+  obtain g where
+    g_factor: \<open>\<forall>x \<in> {a..b}. f x = g (vector_variation {a..x} f)\<close>
+    and g_cont: \<open>continuous_on S g\<close>
+    and g_lip: \<open>\<forall>u \<in> S. \<forall>v \<in> S. dist (g u) (g v) \<le> dist u v\<close>
+    using factor_through_variation[OF assms(3)] unfolding S_def by blast
+  define V where \<open>V \<equiv> \<lambda>x. vector_variation {a..x} f\<close>
+  have V_a: \<open>V a = 0\<close>
+    unfolding V_def using vector_variation_on_null[of a a f] by simp
+  have V_b: \<open>V b = l\<close>
+    unfolding V_def l_def by simp
+  have V_mono: \<open>V x \<le> V y\<close> if \<open>x \<in> {a..b}\<close> \<open>y \<in> {a..b}\<close> \<open>x \<le> y\<close> for x y
+  proof -
+    have bv_ay: \<open>has_bounded_variation_on f {a..y}\<close>
+      using has_bounded_variation_on_subset[OF assms(3)] that by auto
+    have \<open>V y = V x + vector_variation {x..y} f\<close>
+      unfolding V_def using vector_variation_combine[OF bv_ay] that by auto
+    moreover have \<open>vector_variation {x..y} f \<ge> 0\<close>
+      by (rule vector_variation_pos_le[OF has_bounded_variation_on_subset[OF assms(3)]])
+         (use that in auto)
+    ultimately show ?thesis by linarith
+  qed
+  have V_cont: \<open>continuous_on {a..b} V\<close>
+    unfolding V_def continuous_on_eq_continuous_within
+    using vector_variation_continuous[OF assms(3)] assms(2)[unfolded continuous_on_eq_continuous_within]
+    by simp
+  have S_eq: \<open>S = {0..l}\<close>
+  proof (rule antisym)
+    show \<open>S \<subseteq> {0..l}\<close>
+    proof
+      fix v assume \<open>v \<in> S\<close>
+      then obtain x where \<open>x \<in> {a..b}\<close> \<open>v = V x\<close> unfolding S_def V_def by auto
+      then have \<open>V a \<le> v\<close> \<open>v \<le> V b\<close>
+        using V_mono assms(1) by auto
+      then show \<open>v \<in> {0..l}\<close> using V_a V_b by auto
+    qed
+    show \<open>{0..l} \<subseteq> S\<close>
+    proof -
+      have \<open>connected S\<close>
+        unfolding S_def V_def[symmetric]
+        using connected_continuous_image[OF V_cont] by auto
+      moreover have \<open>0 \<in> S\<close> using V_a assms(1) unfolding S_def V_def by force
+      moreover have \<open>l \<in> S\<close> using V_b assms(1) unfolding S_def V_def by force
+      ultimately show ?thesis using connected_contains_Icc by blast
+    qed
+  qed
+  show ?thesis sorry
+qed
 
 text \<open>Arc-length reparametrization and existence of shortest paths.\<close>
 
