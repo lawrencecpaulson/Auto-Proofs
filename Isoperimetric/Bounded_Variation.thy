@@ -3105,5 +3105,164 @@ lemma vector_variation_continuous:
   using continuous_vector_variation_left[OF assms] continuous_vector_variation_at_right[OF assms]
   by simp
 
+
+section \<open>Rectifiable paths and arc-length reparametrization\<close>
+
+definition rectifiable_path :: \<open>(real \<Rightarrow> 'a::euclidean_space) \<Rightarrow> bool\<close> where
+  \<open>rectifiable_path g \<longleftrightarrow> path g \<and> has_bounded_variation_on g {0..1}\<close>
+
+definition path_length :: \<open>(real \<Rightarrow> 'a::euclidean_space) \<Rightarrow> real\<close> where
+  \<open>path_length g = vector_variation {0..1} g\<close>
+
+text \<open>
+  We can factor a BV function through its variation.  Moreover the factor is
+  Lipschitz (hence continuous) on its domain, though without continuity of the
+  original function that domain may not be an interval.
+\<close>
+
+lemma factor_through_variation:
+  fixes f :: \<open>real \<Rightarrow> 'a::euclidean_space\<close>
+  assumes \<open>has_bounded_variation_on f {a..b}\<close>
+  shows \<open>\<exists>g. (\<forall>x \<in> {a..b}. f x = g (vector_variation {a..x} f)) \<and>
+             continuous_on ((\<lambda>x. vector_variation {a..x} f) ` {a..b}) g \<and>
+             (\<forall>u \<in> (\<lambda>x. vector_variation {a..x} f) ` {a..b}.
+              \<forall>v \<in> (\<lambda>x. vector_variation {a..x} f) ` {a..b}.
+                dist (g u) (g v) \<le> dist u v)\<close>
+proof -
+  define S where \<open>S \<equiv> (\<lambda>x. vector_variation {a..x} f) ` {a..b}\<close>
+  have claim1: \<open>\<exists>g. (\<forall>x \<in> {a..b}. f x = g (vector_variation {a..x} f)) \<and>
+                    (\<forall>u \<in> S. \<forall>v \<in> S. dist (g u) (g v) \<le> dist u v)\<close>
+  proof (cases \<open>{a..b} = {}\<close>)
+    case True
+    then show ?thesis unfolding S_def by auto
+  next
+    case False
+    then have ab: \<open>a \<le> b\<close> by auto
+    define V where \<open>V x \<equiv> vector_variation {a..x} f\<close> for x
+    \<comment> \<open>Key injectivity-up-to-f property: V x = V y implies f x = f y\<close>
+    have f_eq: \<open>f x = f y\<close>
+      if \<open>x \<in> {a..b}\<close> \<open>y \<in> {a..b}\<close> \<open>V x = V y\<close> for x y
+    proof (cases \<open>x \<le> y\<close>)  (*symmetric cases*)
+      case True
+      have bv_ay: \<open>has_bounded_variation_on f {a..y}\<close>
+        using has_bounded_variation_on_subset[OF assms] that ab by auto
+      have x_in: \<open>x \<in> {a..y}\<close> using True that by auto
+      have vv0: \<open>vector_variation {x..y} f = 0\<close>
+        by (metis V_def add.right_neutral add_left_cancel bv_ay
+            \<open>V x = V y\<close> vector_variation_combine x_in)
+      have bv_xy: \<open>has_bounded_variation_on f {x..y}\<close>
+        using has_bounded_variation_on_subset[OF assms] True that by auto
+      from vector_variation_const_eq[OF bv_xy is_interval_cc] vv0
+       show \<open>f x = f y\<close> using True by force
+    next
+      case False
+      then have yx: \<open>y \<le> x\<close> by auto
+      have bv_ax: \<open>has_bounded_variation_on f {a..x}\<close>
+        using has_bounded_variation_on_subset[OF assms] that ab by auto
+      have y_in: \<open>y \<in> {a..x}\<close> using yx that by auto
+      from vector_variation_combine[OF bv_ax y_in]
+      have \<open>V x = V y + vector_variation {y..x} f\<close>
+        unfolding V_def .
+      with that(3) have vv0: \<open>vector_variation {y..x} f = 0\<close> by simp
+      have bv_yx: \<open>has_bounded_variation_on f {y..x}\<close>
+        using has_bounded_variation_on_subset[OF assms] yx that by auto
+      from vector_variation_const_eq[OF bv_yx is_interval_cc] vv0
+      obtain c where \<open>\<forall>t \<in> {y..x}. f t = c\<close> by auto
+      then show \<open>f x = f y\<close> using yx by force
+    qed
+    \<comment> \<open>Construct the factor g via Hilbert choice\<close>
+    define g where \<open>g v \<equiv> f (SOME x. x \<in> {a..b} \<and> V x = v)\<close> for v
+    have g_factor: \<open>f x = g (V x)\<close> if \<open>x \<in> {a..b}\<close> for x
+    proof -
+      have \<open>\<exists>y. y \<in> {a..b} \<and> V y = V x\<close> using that by auto
+      then have \<open>(SOME y. y \<in> {a..b} \<and> V y = V x) \<in> {a..b} \<and>
+                 V (SOME y. y \<in> {a..b} \<and> V y = V x) = V x\<close>
+        by (rule someI_ex)
+      then show ?thesis unfolding g_def using f_eq that by metis
+    qed
+    \<comment> \<open>Lipschitz property\<close>
+    have g_lip: \<open>dist (g u) (g v) \<le> dist u v\<close>
+      if \<open>u \<in> S\<close> \<open>v \<in> S\<close> for u v
+    proof -
+      from that obtain x y where
+        x: \<open>x \<in> {a..b}\<close> \<open>u = V x\<close> and y: \<open>y \<in> {a..b}\<close> \<open>v = V y\<close>
+        unfolding S_def V_def by auto
+      \<comment> \<open>WLOG x \<le> y\<close>
+      have lip: \<open>dist (g (V x)) (g (V y)) \<le> dist (V x) (V y)\<close>
+        if xy: \<open>x \<le> y\<close> \<open>x \<in> {a..b}\<close> \<open>y \<in> {a..b}\<close> for x y
+      proof -
+        have bv_ay: \<open>has_bounded_variation_on f {a..y}\<close>
+          using has_bounded_variation_on_subset[OF assms] xy(2,3) ab by auto
+        have x_in: \<open>x \<in> {a..y}\<close> using xy by auto
+        from vector_variation_combine[OF bv_ay x_in]
+        have V_split: \<open>V y = V x + vector_variation {x..y} f\<close>
+          unfolding V_def .
+        have bv_xy: \<open>has_bounded_variation_on f {x..y}\<close>
+          using has_bounded_variation_on_subset[OF assms] xy(1,2,3) by auto
+        have Vx_le_Vy: \<open>V x \<le> V y\<close>
+          using V_split vector_variation_pos_le[OF bv_xy] by linarith
+        have \<open>dist (g (V x)) (g (V y)) = dist (f x) (f y)\<close>
+          using g_factor xy(2,3) by simp
+        also have \<open>\<dots> = norm (f x - f y)\<close> by (simp add: dist_norm)
+        also have \<open>\<dots> \<le> vector_variation {x..y} f\<close>
+          using vector_variation_ge_norm_function[OF bv_xy] xy(1) by auto
+        also have \<open>\<dots> = V y - V x\<close> using V_split by simp
+        also have \<open>\<dots> = dist (V x) (V y)\<close> using Vx_le_Vy by (simp add: dist_real_def)
+        finally show ?thesis .
+      qed
+      show ?thesis
+      proof (cases \<open>x \<le> y\<close>)
+        case True then show ?thesis using lip x y by auto
+      next
+        case nle: False
+        then have \<open>y \<le> x\<close> by auto
+        then have \<open>dist (g (V y)) (g (V x)) \<le> dist (V y) (V x)\<close>
+          using lip y(1) x(1) by auto
+        then show ?thesis using x y by (simp add: dist_commute)
+      qed
+    qed
+    show ?thesis
+      using g_factor g_lip unfolding V_def by auto
+  qed
+  moreover
+  have \<open>continuous_on S g\<close> if \<open>\<forall>u \<in> S. \<forall>v \<in> S. dist (g u) (g v) \<le> dist u v\<close> for g
+    sorry
+  ultimately show ?thesis
+    using S_def by blast
+qed
+
+lemma factor_continuous_through_variation:
+  fixes f :: \<open>real \<Rightarrow> 'a::euclidean_space\<close>
+  assumes \<open>a \<le> b\<close>
+    and \<open>continuous_on {a..b} f\<close>
+    and \<open>has_bounded_variation_on f {a..b}\<close>
+  defines \<open>l \<equiv> vector_variation {a..b} f\<close>
+  shows \<open>\<exists>g. (\<forall>x \<in> {a..b}. f x = g (vector_variation {a..x} f)) \<and>
+             continuous_on {0..l} g \<and>
+             (\<forall>u \<in> {0..l}. \<forall>v \<in> {0..l}. dist (g u) (g v) \<le> dist u v) \<and>
+             has_bounded_variation_on g {0..l} \<and>
+             (\<lambda>x. vector_variation {a..x} f) ` {a..b} = {0..l} \<and>
+             g ` {0..l} = f ` {a..b} \<and>
+             (\<forall>x \<in> {0..l}. vector_variation {0..x} g = x)\<close>
+  sorry
+
+text \<open>Arc-length reparametrization and existence of shortest paths.\<close>
+
+lemma arc_length_reparametrization:
+  fixes g :: \<open>real \<Rightarrow> 'a::euclidean_space\<close>
+  assumes \<open>rectifiable_path g\<close>
+  shows \<open>\<exists>h. rectifiable_path h \<and>
+             path_image h = path_image g \<and>
+             pathstart h = pathstart g \<and>
+             pathfinish h = pathfinish g \<and>
+             path_length h = path_length g \<and>
+             (arc g \<longrightarrow> arc h) \<and>
+             (simple_path g \<longrightarrow> simple_path h) \<and>
+             (\<forall>t \<in> {0..1}. path_length (subpath 0 t h) = path_length g * t) \<and>
+             (\<forall>x \<in> {0..1}. \<forall>y \<in> {0..1}.
+                dist (h x) (h y) \<le> path_length g * dist x y)\<close>
+  sorry
+
 end
+
 
