@@ -3142,33 +3142,24 @@ proof -
     \<comment> \<open>Key injectivity-up-to-f property: V x = V y implies f x = f y\<close>
     have f_eq: \<open>f x = f y\<close>
       if \<open>x \<in> {a..b}\<close> \<open>y \<in> {a..b}\<close> \<open>V x = V y\<close> for x y
-    proof (cases \<open>x \<le> y\<close>)  (*symmetric cases*)
-      case True
-      have bv_ay: \<open>has_bounded_variation_on f {a..y}\<close>
-        using has_bounded_variation_on_subset[OF assms] that ab by auto
-      have x_in: \<open>x \<in> {a..y}\<close> using True that by auto
-      have vv0: \<open>vector_variation {x..y} f = 0\<close>
-        by (metis V_def add.right_neutral add_left_cancel bv_ay
-            \<open>V x = V y\<close> vector_variation_combine x_in)
-      have bv_xy: \<open>has_bounded_variation_on f {x..y}\<close>
-        using has_bounded_variation_on_subset[OF assms] True that by auto
-      from vector_variation_const_eq[OF bv_xy is_interval_cc] vv0
-       show \<open>f x = f y\<close> using True by force
-    next
-      case False
-      then have yx: \<open>y \<le> x\<close> by auto
-      have bv_ax: \<open>has_bounded_variation_on f {a..x}\<close>
-        using has_bounded_variation_on_subset[OF assms] that ab by auto
-      have y_in: \<open>y \<in> {a..x}\<close> using yx that by auto
-      from vector_variation_combine[OF bv_ax y_in]
-      have \<open>V x = V y + vector_variation {y..x} f\<close>
-        unfolding V_def .
-      with that(3) have vv0: \<open>vector_variation {y..x} f = 0\<close> by simp
-      have bv_yx: \<open>has_bounded_variation_on f {y..x}\<close>
-        using has_bounded_variation_on_subset[OF assms] yx that by auto
-      from vector_variation_const_eq[OF bv_yx is_interval_cc] vv0
-      obtain c where \<open>\<forall>t \<in> {y..x}. f t = c\<close> by auto
-      then show \<open>f x = f y\<close> using yx by force
+    proof -
+      \<comment> \<open>Core argument: if p \<le> q with matching variation, then f p = f q\<close>
+      have core: \<open>f p = f q\<close>
+        if \<open>p \<le> q\<close> \<open>p \<in> {a..b}\<close> \<open>q \<in> {a..b}\<close> \<open>V p = V q\<close> for p q
+      proof -
+        have bv_aq: \<open>has_bounded_variation_on f {a..q}\<close>
+          using has_bounded_variation_on_subset[OF assms] that ab by auto
+        have p_in: \<open>p \<in> {a..q}\<close> using that by auto
+        have vv0: \<open>vector_variation {p..q} f = 0\<close>
+          by (metis V_def add.right_neutral add_left_cancel bv_aq
+              \<open>V p = V q\<close> vector_variation_combine p_in)
+        have bv_pq: \<open>has_bounded_variation_on f {p..q}\<close>
+          using has_bounded_variation_on_subset[OF assms] that by auto
+        from vector_variation_const_eq[OF bv_pq is_interval_cc] vv0
+        show \<open>f p = f q\<close> using that by force
+      qed
+      show \<open>f x = f y\<close>
+        using core[of x y] core[of y x] that by argo
     qed
     \<comment> \<open>Construct the factor g via Hilbert choice\<close>
     define g where \<open>g v \<equiv> f (SOME x. x \<in> {a..b} \<and> V x = v)\<close> for v
@@ -3226,7 +3217,7 @@ proof -
   qed
   moreover
   have \<open>continuous_on S g\<close> if \<open>\<forall>u \<in> S. \<forall>v \<in> S. dist (g u) (g v) \<le> dist u v\<close> for g
-    sorry
+    using continuous_on_iff order_le_less_trans that by blast
   ultimately show ?thesis
     using S_def by blast
 qed
