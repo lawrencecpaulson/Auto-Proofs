@@ -3397,17 +3397,232 @@ text \<open>Arc-length reparametrization and existence of shortest paths.\<close
 lemma arc_length_reparametrization:
   fixes g :: \<open>real \<Rightarrow> 'a::euclidean_space\<close>
   assumes \<open>rectifiable_path g\<close>
-  shows \<open>\<exists>h. rectifiable_path h \<and>
-             path_image h = path_image g \<and>
-             pathstart h = pathstart g \<and>
-             pathfinish h = pathfinish g \<and>
-             path_length h = path_length g \<and>
-             (arc g \<longrightarrow> arc h) \<and>
-             (simple_path g \<longrightarrow> simple_path h) \<and>
-             (\<forall>t \<in> {0..1}. path_length (subpath 0 t h) = path_length g * t) \<and>
-             (\<forall>x \<in> {0..1}. \<forall>y \<in> {0..1}.
-                dist (h x) (h y) \<le> path_length g * dist x y)\<close>
-  sorry
+  obtains h where
+    \<open>rectifiable_path h\<close>
+    \<open>path_image h = path_image g\<close>
+    \<open>pathstart h = pathstart g\<close>
+    \<open>pathfinish h = pathfinish g\<close>
+    \<open>path_length h = path_length g\<close>
+    \<open>arc g \<Longrightarrow> arc h\<close>
+    \<open>simple_path g \<Longrightarrow> simple_path h\<close>
+    \<open>\<forall>t \<in> {0..1}. path_length (subpath 0 t h) = path_length g * t\<close>
+    \<open>\<forall>x \<in> {0..1}. \<forall>y \<in> {0..1}.
+        dist (h x) (h y) \<le> path_length g * dist x y\<close>
+proof -
+  define l where \<open>l \<equiv> path_length g\<close>
+  from assms have g_path: \<open>path g\<close> and g_bv: \<open>has_bounded_variation_on g {0..1}\<close>
+    unfolding rectifiable_path_def by auto
+  then have g_cont: \<open>continuous_on {0..1} g\<close>
+    by (simp add: path_def pathin_def continuous_map_iff_continuous)
+  have l_eq: \<open>l = vector_variation {0..1} g\<close>
+    unfolding l_def path_length_def by simp
+  obtain h where
+    h_factor: \<open>\<forall>x \<in> {0..1}. g x = h (vector_variation {0..x} g)\<close>
+    and h_cont: \<open>continuous_on {0..l} h\<close>
+    and h_lip: \<open>\<forall>u \<in> {0..l}. \<forall>v \<in> {0..l}. dist (h u) (h v) \<le> dist u v\<close>
+    and h_bv: \<open>has_bounded_variation_on h {0..l}\<close>
+    and h_image_var: \<open>(\<lambda>x. vector_variation {0..x} g) ` {0..1} = {0..l}\<close>
+    and h_image: \<open>h ` {0..l} = g ` {0..1}\<close>
+    and h_var: \<open>\<forall>x \<in> {0..l}. vector_variation {0..x} h = x\<close>
+    using factor_continuous_through_variation[of 0 1 g, folded l_eq]
+    using g_cont g_bv by auto
+  have l_nonneg: \<open>0 \<le> l\<close>
+    using vector_variation_pos_le[OF g_bv] l_eq by simp
+  have scale_image: \<open>(\<lambda>x. x *\<^sub>R l) ` {0..1} = {0..l}\<close>
+    using l_nonneg image_mult_atLeastAtMost_if'[of l 0 1] by auto
+  have scale_mono: \<open>mono_on {0..1} (\<lambda>x. x *\<^sub>R l)\<close>
+    using l_nonneg by (intro mono_onI) (simp add: mult_right_mono)
+  have h_0: \<open>h 0 = g 0\<close>
+    using h_factor[rule_format, of 0] vector_variation_on_null[of 0 0 g]
+    by simp
+  have h_l: \<open>h l = g 1\<close>
+    using h_factor[rule_format, of 1] l_eq by simp
+  show ?thesis
+  proof
+    show \<open>rectifiable_path (h \<circ> (\<lambda>x. x *\<^sub>R l))\<close>
+    proof -
+      have \<open>continuous_on {0..1} (\<lambda>x. x * l)\<close>
+        by (intro continuous_intros)
+      then have path: \<open>path (h \<circ> (\<lambda>x. x *\<^sub>R l))\<close>
+        unfolding path_def pathin_def continuous_map_iff_continuous
+        using continuous_on_compose[of \<open>{0..1}\<close> \<open>\<lambda>x. x * l\<close> h] h_cont scale_image
+        by (simp add: image_comp comp_def)
+      have bv: \<open>has_bounded_variation_on (h \<circ> (\<lambda>x. x *\<^sub>R l)) {0..1}\<close>
+        using has_bounded_variation_compose_monotone(1)[OF _ scale_mono] h_bv
+        by simp
+      show ?thesis
+        unfolding rectifiable_path_def using path bv by simp
+    qed
+    show \<open>path_image (h \<circ> (\<lambda>x. x *\<^sub>R l)) = path_image g\<close>
+      unfolding path_image_def image_comp[symmetric] scale_image
+      using h_image by simp
+    show \<open>pathstart (h \<circ> (\<lambda>x. x *\<^sub>R l)) = pathstart g\<close>
+      unfolding pathstart_def using h_0 by simp
+    show \<open>pathfinish (h \<circ> (\<lambda>x. x *\<^sub>R l)) = pathfinish g\<close>
+      unfolding pathfinish_def using h_l by simp
+    show \<open>path_length (h \<circ> (\<lambda>x. x *\<^sub>R l)) = path_length g\<close>
+    proof -
+      have h_var_l: \<open>vector_variation {0..l} h = l\<close>
+        using h_var l_nonneg by simp
+      have upper: \<open>vector_variation {0..1} (h \<circ> (\<lambda>x. x *\<^sub>R l)) \<le> l\<close>
+        by (metis (no_types, lifting) h_bv h_var_l has_bounded_variation_compose_monotone(2) pth_1
+            pth_4(1) scale_mono)
+      have lower: \<open>l \<le> vector_variation {0..1} (h \<circ> (\<lambda>x. x *\<^sub>R l))\<close>
+      proof (cases \<open>l = 0\<close>)
+        case True
+        then show ?thesis
+          using vector_variation_pos_le[OF has_bounded_variation_compose_monotone(1)[OF _ scale_mono] ] h_bv
+          by simp
+      next
+        case False
+        then have l_pos: \<open>0 < l\<close> using l_nonneg by simp
+        have inv_mono: \<open>mono_on {0..l} (\<lambda>x. x / l)\<close>
+          using l_pos by (intro mono_onI) (simp add: divide_right_mono)
+        have inv_bv: \<open>has_bounded_variation_on (h \<circ> (\<lambda>x. x *\<^sub>R l)) {(0::real) / l..l / l}\<close>
+          using has_bounded_variation_compose_monotone(1)[OF _ scale_mono] h_bv l_pos
+          by simp
+        have eq: \<open>(h \<circ> (\<lambda>x. x *\<^sub>R l)) \<circ> (\<lambda>x. x / l) = h\<close> (is \<open>?lhs = ?rhs\<close>)
+          using False by auto
+        have \<open>vector_variation {0..l} ((h \<circ> (\<lambda>x. x *\<^sub>R l)) \<circ> (\<lambda>x. x / l))
+              \<le> vector_variation {0 / l..l / l} (h \<circ> (\<lambda>x. x *\<^sub>R l))\<close>
+          using has_bounded_variation_compose_monotone(2)[OF inv_bv inv_mono] .
+        then show ?thesis
+          using eq h_var_l l_pos by simp
+      qed
+      show ?thesis
+        unfolding path_length_def using upper lower l_eq by linarith
+    qed
+    show \<open>arc g \<Longrightarrow> arc (h \<circ> (\<lambda>x. x *\<^sub>R l))\<close>
+    proof -
+      assume ag: \<open>arc g\<close>
+      then have g_inj: \<open>inj_on g {0..1}\<close> by (rule arc_imp_inj_on)
+      have l_pos: \<open>0 < l\<close>
+      proof (rule ccontr)
+        assume \<open>\<not> 0 < l\<close>
+        then have \<open>l = 0\<close> using l_nonneg by simp
+        then have \<open>\<exists>c. \<forall>t \<in> {0..1}. g t = c\<close>
+          using vector_variation_const_eq[OF g_bv] l_eq by auto
+        then have \<open>g 0 = g 1\<close> by auto
+        then show False using arc_distinct_ends[OF ag]
+          unfolding pathstart_def pathfinish_def by simp
+      qed
+      have h_inj: \<open>inj_on h {0..l}\<close>
+        by (smt (verit, ccfv_SIG) ag arcD h_factor h_image_var image_iff linorder_inj_onI')
+      have scale_inj: \<open>inj_on (\<lambda>x. x *\<^sub>R l) {0..1}\<close>
+        using l_pos by (intro inj_onI) simp
+      have comp_inj: \<open>inj_on (h \<circ> (\<lambda>x. x *\<^sub>R l)) {0..1}\<close>
+        using comp_inj_on[OF scale_inj] h_inj scale_image by auto
+      show \<open>arc (h \<circ> (\<lambda>x. x *\<^sub>R l))\<close>
+        unfolding arc_def using comp_inj
+        using \<open>rectifiable_path (h \<circ> (\<lambda>x. x *\<^sub>R l))\<close> rectifiable_path_def by blast
+    qed
+    show \<open>simple_path g \<Longrightarrow> simple_path (h \<circ> (\<lambda>x. x *\<^sub>R l))\<close>
+    proof -
+      assume sp: \<open>simple_path g\<close>
+      then have g_lf: \<open>loop_free g\<close> unfolding simple_path_def by simp
+      have l_pos: \<open>0 < l\<close>
+      proof (rule ccontr)
+        assume \<open>\<not> 0 < l\<close>
+        then have \<open>l = 0\<close> using l_nonneg by simp
+        then obtain c where \<open>\<forall>t \<in> {0..1}. g t = c\<close>
+          using vector_variation_const_eq[OF g_bv] l_eq by auto
+        then have eq: \<open>g 0 = g (1/2)\<close> by auto
+        then show False
+          using g_lf[unfolded loop_free_def, rule_format, of 0 \<open>1/2\<close>] by auto
+      qed
+      show \<open>simple_path (h \<circ> (\<lambda>x. x *\<^sub>R l))\<close>
+        unfolding simple_path_def
+      proof (intro conjI)
+        show \<open>path (h \<circ> (\<lambda>x. x *\<^sub>R l))\<close>
+          using \<open>rectifiable_path (h \<circ> (\<lambda>x. x *\<^sub>R l))\<close> rectifiable_path_def by blast
+        show \<open>loop_free (h \<circ> (\<lambda>x. x *\<^sub>R l))\<close>
+          unfolding loop_free_def comp_def
+        proof (intro ballI impI)
+          fix x y assume x01: \<open>x \<in> {0..1}\<close> and y01: \<open>y \<in> {0..1}\<close>
+            and eq: \<open>h (x *\<^sub>R l) = h (y *\<^sub>R l)\<close>
+          have xl_in: \<open>x * l \<in> {0..l}\<close> and yl_in: \<open>y * l \<in> {0..l}\<close>
+            using x01 y01 l_nonneg mult_right_mono[of _ 1 l] by auto
+          from xl_in obtain s where s01: \<open>s \<in> {0..1}\<close> and xs: \<open>x * l = vector_variation {0..s} g\<close>
+            using h_image_var[symmetric] by auto
+          from yl_in obtain t where t01: \<open>t \<in> {0..1}\<close> and yt: \<open>y * l = vector_variation {0..t} g\<close>
+            using h_image_var[symmetric] by auto
+          have \<open>g s = h (vector_variation {0..s} g)\<close> using h_factor s01 by auto
+          also have \<open>\<dots> = h (y * l)\<close> using xs eq by simp
+          also have \<open>\<dots> = h (vector_variation {0..t} g)\<close> using yt by simp
+          also have \<open>\<dots> = g t\<close> using h_factor t01 by auto
+          finally have \<open>s = t \<or> s = 0 \<and> t = 1 \<or> s = 1 \<and> t = 0\<close>
+            using g_lf s01 t01 unfolding loop_free_def by blast
+          then have \<open>x * l = y * l \<or> x * l = 0 \<and> y * l = l \<or> x * l = l \<and> y * l = 0\<close>
+            using xs yt l_eq vector_variation_on_null[of 0 0 g] by auto
+          then show \<open>x = y \<or> x = 0 \<and> y = 1 \<or> x = 1 \<and> y = 0\<close>
+            using l_pos by auto
+        qed
+      qed
+    qed
+    show \<open>\<forall>t \<in> {0..1}. path_length (subpath 0 t (h \<circ> (\<lambda>x. x *\<^sub>R l))) = path_length g * t\<close>
+    proof (intro ballI)
+      fix t :: real assume t01: \<open>t \<in> {0..1}\<close>
+      then have t_nonneg: \<open>0 \<le> t\<close> and t_le1: \<open>t \<le> 1\<close> by auto
+      define m where \<open>m = t * l\<close>
+      have m_nonneg: \<open>0 \<le> m\<close> unfolding m_def using t_nonneg l_nonneg by simp
+      have m_le_l: \<open>m \<le> l\<close> unfolding m_def
+        using mult_right_mono[of t 1 l] t_le1 l_nonneg by simp
+      have m_in: \<open>m \<in> {0..l}\<close> using m_nonneg m_le_l by simp
+      have sub_eq: \<open>subpath 0 t (h \<circ> (\<lambda>x. x *\<^sub>R l)) = h \<circ> (\<lambda>x. x *\<^sub>R m)\<close>
+        unfolding subpath_def comp_def m_def by (auto simp: algebra_simps)
+      have scale_m_image: \<open>(\<lambda>x. x *\<^sub>R m) ` {0..1} = {0..m}\<close>
+        using m_nonneg image_mult_atLeastAtMost_if'[of m 0 1] by auto
+      have scale_m_mono: \<open>mono_on {0..1} (\<lambda>x. x *\<^sub>R m)\<close>
+        using m_nonneg by (intro mono_onI) (simp add: mult_right_mono)
+      have h_bv_m: \<open>has_bounded_variation_on h {0..m}\<close>
+        using has_bounded_variation_on_subset[OF h_bv] m_le_l m_nonneg by auto
+      have h_var_m: \<open>vector_variation {0..m} h = m\<close>
+        using h_var m_in by auto
+      have upper: \<open>vector_variation {0..1} (h \<circ> (\<lambda>x. x *\<^sub>R m)) \<le> m\<close>
+        by (metis (no_types, lifting) h_bv_m h_var_m has_bounded_variation_compose_monotone(2)
+            pth_1 pth_4(1) scale_m_mono)
+      have lower: \<open>m \<le> vector_variation {0..1} (h \<circ> (\<lambda>x. x *\<^sub>R m))\<close>
+      proof (cases \<open>m = 0\<close>)
+        case True
+        then show ?thesis
+          using vector_variation_pos_le[OF has_bounded_variation_compose_monotone(1)[OF _ scale_m_mono]]
+            h_bv_m by simp
+      next
+        case False
+        then have m_pos: \<open>0 < m\<close> using m_nonneg by simp
+        have inv_mono: \<open>mono_on {0..m} (\<lambda>x. x / m)\<close>
+          using m_pos by (intro mono_onI) (simp add: divide_right_mono)
+        have inv_bv: \<open>has_bounded_variation_on (h \<circ> (\<lambda>x. x *\<^sub>R m)) {(0::real) / m..m / m}\<close>
+          using has_bounded_variation_compose_monotone(1)[OF _ scale_m_mono] h_bv_m m_pos
+          by simp
+        have eq: \<open>(h \<circ> (\<lambda>x. x *\<^sub>R m)) \<circ> (\<lambda>x. x / m) = h\<close>
+          using False by auto
+        have \<open>vector_variation {0..m} ((h \<circ> (\<lambda>x. x *\<^sub>R m)) \<circ> (\<lambda>x. x / m))
+              \<le> vector_variation {0 / m..m / m} (h \<circ> (\<lambda>x. x *\<^sub>R m))\<close>
+          using has_bounded_variation_compose_monotone(2)[OF inv_bv inv_mono] .
+        then show ?thesis
+          using eq h_var_m m_pos by simp
+      qed
+      show \<open>path_length (subpath 0 t (h \<circ> (\<lambda>x. x *\<^sub>R l))) = path_length g * t\<close>
+        unfolding path_length_def sub_eq l_eq[symmetric]
+        using upper lower m_def by (simp add: mult.commute)
+    qed
+    show \<open>\<forall>x \<in> {0..1}. \<forall>y \<in> {0..1}.
+        dist ((h \<circ> (\<lambda>x. x *\<^sub>R l)) x) ((h \<circ> (\<lambda>x. x *\<^sub>R l)) y) \<le> path_length g * dist x y\<close>
+    proof (intro ballI)
+      fix x y :: real assume \<open>x \<in> {0..1}\<close> \<open>y \<in> {0..1}\<close>
+      then have \<open>x * l \<in> {0..l}\<close> \<open>y * l \<in> {0..l}\<close>
+        using l_nonneg mult_right_mono[of _ 1 l] by auto
+      then have \<open>dist (h (x * l)) (h (y * l)) \<le> dist (x * l) (y * l)\<close>
+        using h_lip by auto
+      also have \<open>\<dots> = l * dist x y\<close>
+        unfolding dist_real_def using l_nonneg
+        by (simp add: abs_mult left_diff_distrib[symmetric])
+      finally show \<open>dist ((h \<circ> (\<lambda>x. x *\<^sub>R l)) x) ((h \<circ> (\<lambda>x. x *\<^sub>R l)) y) \<le> path_length g * dist x y\<close>
+        unfolding l_def comp_def by simp
+    qed
+  qed
+qed
 
 end
 
