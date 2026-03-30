@@ -360,7 +360,7 @@ proof -
       then show "x \<le> M" using M by auto
     qed
   qed
-  \<comment> \<open>WLOG x \<le> y\<close>
+  \<comment> \<open>WLOG @{term \<open>x \<le> y\<close>}\<close>
   have "norm (f x - f y) = norm (f (min x y) - f (max x y))"
     by (simp add: min_def max_def norm_minus_commute)
   also have "\<dots> = norm (f (max x y) - f (min x y))"
@@ -786,7 +786,7 @@ next
     have "y \<in> interior s"
     proof (cases "c \<le> y")
       case True
-      \<comment> \<open>@{term c} \<le> @{term y} < @{term z}, so @{term y} \<in> open_segment c z \<subseteq> interior s.\<close>
+      \<comment> \<open>@{term \<open>c \<le> y\<close>} and @{term \<open>y < z\<close>}, so @{term \<open>y \<in> open_segment c z\<close>} @{text "\<subseteq> interior s"}.\<close>
       have "c \<noteq> y" using c_int y_nint by auto
       then have "c < y" using True by auto
       have "open_segment c z \<subseteq> interior s"
@@ -796,8 +796,8 @@ next
       ultimately show "y \<in> interior s" by auto
     next
       case False
-      \<comment> \<open>@{term x} < @{term y} < @{term c}, so @{term y} \<in> open_segment x c.
-        But open_segment c x = open_segment x c \<subseteq> interior s.\<close>
+      \<comment> \<open>@{term \<open>x < y\<close>} and @{term \<open>y < c\<close>}, so @{term \<open>y \<in> open_segment x c\<close>}.
+        But @{term \<open>open_segment c x\<close>} = @{term \<open>open_segment x c\<close>} @{text "\<subseteq> interior s"}.\<close>
       then have "y < c" by auto
       have "open_segment c x \<subseteq> interior s"
         by (rule in_interior_closure_convex_segment[OF convS c_int x_cls])
@@ -1197,7 +1197,7 @@ proof -
             by (meson connectedD connected_Icc o1 o2)
         next
           case False
-          \<comment> \<open>Overlapping case: pick c \<in> s \<inter> t, split at c' = max a (min c b)\<close>
+          \<comment> \<open>Overlapping case: pick @{term \<open>c \<in> s \<inter> t\<close>}, split at @{term \<open>c' = max a (min c b)\<close>}\<close>
           obtain c where "c \<in> s" "c \<in> t" using False by blast
           with aS bT ivS ivT st
           have c': "max a (min c b) \<in> s \<and> max a (min c b) \<in> t \<and> max a (min c b) \<in> {a..b}"
@@ -1235,20 +1235,20 @@ proof -
           by blast
         then show ?thesis
         proof cases
-          case 1 \<comment> \<open>Both endpoints in s\<close>
+          case 1 \<comment> \<open>Both endpoints in @{term s}\<close>
           show ?thesis
             apply (rule exI[where x="{a..b}"])
             apply (rule exI[where x="{q..q}"])
             using 1 ne \<open>q \<in> t\<close> iab ab \<open>is_interval s\<close> interval_subset_is_interval[of _ a b] 
             by (force simp: iSup iInf interior_atLeastAtMost_real)
         next
-          case 2 \<comment> \<open>a \<in> s, b \<in> t\<close>
+          case 2 \<comment> \<open>@{term \<open>a \<in> s\<close>}, @{term \<open>b \<in> t\<close>}\<close>
           then show ?thesis using one_in_each[where S=s and T=t] \<open>is_interval s\<close> \<open>is_interval t\<close> by blast
         next
-          case 3 \<comment> \<open>a \<in> t, b \<in> s\<close>
+          case 3 \<comment> \<open>@{term \<open>a \<in> t\<close>}, @{term \<open>b \<in> s\<close>}\<close>
           then show ?thesis using one_in_each[where S=t and T=s] \<open>is_interval s\<close> \<open>is_interval t\<close> by blast
         next
-          case 4 \<comment> \<open>Both endpoints in t\<close>
+          case 4 \<comment> \<open>Both endpoints in @{term t}\<close>
           show ?thesis
             apply (rule exI[where x="{p..p}"])
             apply (rule exI[where x="{a..b}"])
@@ -1619,7 +1619,7 @@ proof -
         next
           case False
           then have "l1 < u2" by linarith
-          \<comment> \<open>Both l2 < u1 and l1 < u2, so the open intervals overlap — unless one is degenerate\<close>
+          \<comment> \<open>Both @{term \<open>l2 < u1\<close>} and @{term \<open>l1 < u2\<close>}, so the open intervals overlap — unless one is degenerate\<close>
           have "l1 = u1 \<or> l2 = u2"
           proof (rule ccontr)
             assume "\<not> (l1 = u1 \<or> l2 = u2)"
@@ -1882,7 +1882,7 @@ proof -
       fix y assume "y \<in> f ` {a..b}"
       then obtain x where xab: "x \<in> {a..b}" and y_eq: "y = f x" by auto
       then have ax: "a \<le> x" and xb: "x \<le> b" by auto
-      \<comment> \<open>Use the division {{a..x}, {x..b}} to bound norm(f x - f a)\<close>
+      \<comment> \<open>Use the division @{term \<open>{{a..x}, {x..b}}\<close>} to bound @{term \<open>norm (f x - f a)\<close>}\<close>
       have d: "{{a..x}, {x..b}} division_of {a..b}"
         using ax xb True by (intro division_ofI) auto
       have "(\<Sum>k\<in>{{a..x}, {x..b}}. norm (f (Sup k) - f (Inf k))) \<le> M"
@@ -2276,7 +2276,7 @@ proof (cases \<open>c islimpt {a..c}\<close>)
     using tendsto_bot by (intro exI) auto
 next
   case True
-  \<comment> \<open>In this case a < c, so there are points to the left\<close>
+  \<comment> \<open>In this case @{term \<open>a < c\<close>}, so there are points to the left\<close>
   have ac: \<open>a < c\<close>
   proof (rule ccontr)
     assume \<open>\<not> a < c\<close>
@@ -2295,13 +2295,13 @@ next
   show ?thesis
   proof (intro exI tendstoI)
     fix e :: real assume \<open>e > 0\<close>
-    \<comment> \<open>Find d with l - e < f d\<close>
+    \<comment> \<open>Find @{term d} with @{term \<open>l - e < f d\<close>}\<close>
     have \<open>l - e < l\<close> using \<open>e > 0\<close> by simp
     then obtain y where \<open>y \<in> S\<close> \<open>l - e < y\<close>
       using less_cSup_iff[OF S_ne S_bdd] l_def by blast
     then obtain d where d_in: \<open>d \<in> {a..b}\<close> and dc: \<open>d < c\<close> and fd: \<open>l - e < f d\<close>
       unfolding S_def by auto
-    \<comment> \<open>For x \<in> (d, c) \<inter> {a..c}, we have |f x - l| < e\<close>
+    \<comment> \<open>For @{term \<open>x \<in> {d<..<c} \<inter> {a..c}\<close>}, we have @{term \<open>\<bar>f x - l\<bar> < e\<close>}\<close>
     show \<open>\<forall>\<^sub>F x in at c within {a..c}. dist (f x) l < e\<close>
       unfolding eventually_at_filter eventually_nhds
     proof (intro exI conjI ballI impI)
@@ -2503,12 +2503,12 @@ next
       using trivial_limit_within continuous_bot by metis
   next
     case True
-    \<comment> \<open>Darboux decomposition: $f = g - h$ with $g$, $h$ monotone\<close>
+    \<comment> \<open>Darboux decomposition: @{term \<open>f = g - h\<close>} with @{term g}, @{term h} monotone\<close>
     from assms(1) obtain g h where
       mono_g: \<open>mono_on {a..b} g\<close> and mono_h: \<open>mono_on {a..b} h\<close>
       and eq: \<open>\<And>x. f x = g x - h x\<close>
       using has_bounded_variation_Darboux[of f a b] by auto
-    \<comment> \<open>Left limits of g and h at c exist by increasing_left_limit\<close>
+    \<comment> \<open>Left limits of @{term g} and @{term h} at @{term c} exist by @{thm increasing_left_limit}\<close>
     obtain gc where gc: \<open>(g \<longlongrightarrow> gc) (at c within {a..c})\<close>
       using increasing_left_limit[OF mono_g assms(2)] by auto
     obtain hc where hc: \<open>(h \<longlongrightarrow> hc) (at c within {a..c})\<close>
@@ -2530,7 +2530,7 @@ next
     define h' where \<open>h' \<equiv> \<lambda>x. if c \<le> x then h(x) + k else h(x)\<close>
     have not_bot: \<open>at c within {a..c} \<noteq> bot\<close>
       using True trivial_limit_within by blast
-    \<comment> \<open>A monotone function shifted by k at c stays monotone on {a..c}\<close>
+    \<comment> \<open>A monotone function shifted by @{term k} at @{term c} stays monotone on @{term \<open>{a..c}\<close>}\<close>
     have mono_shift: \<open>mono_on {a..c} (\<lambda>x. if c \<le> x then \<phi> x + k else \<phi> x)\<close>
       if mono_\<phi>: \<open>mono_on {a..b} \<phi>\<close> and lim_\<phi>: \<open>(\<phi> \<longlongrightarrow> \<phi>c) (at c within {a..c})\<close>
         and k_eq: \<open>k = \<phi>c - \<phi> c\<close> for \<phi> \<phi>c
@@ -2573,7 +2573,7 @@ next
       have ac: \<open>a \<le> c\<close> using assms(2) by auto
       have bv_ac: \<open>has_bounded_variation_on f {a..c}\<close>
         using has_bounded_variation_on_subset[OF assms(1)] assms(2) by auto
-      \<comment> \<open>A shifted function is continuous at c when the original has the matching left limit\<close>
+      \<comment> \<open>A shifted function is continuous at @{term c} when the original has the matching left limit\<close>
       have cont_shift: \<open>((\<lambda>x. if c \<le> x then \<phi> x + k else \<phi> x) \<longlongrightarrow>
                         (if c \<le> c then \<phi> c + k else \<phi> c)) (at c within {a..c})\<close>
         if \<open>(\<phi> \<longlongrightarrow> \<phi>c) (at c within {a..c})\<close> \<open>k = \<phi>c - \<phi> c\<close> for \<phi> \<phi>c
@@ -2592,13 +2592,13 @@ next
       have vv_mono: \<open>vector_variation {x..c} \<phi>' = norm (\<phi>' c - \<phi>' x)\<close>
         if \<open>mono_on {a..c} \<phi>'\<close> \<open>x \<in> {a..c}\<close> for \<phi>' :: \<open>real \<Rightarrow> real\<close> and x
         using increasing_vector_variation[OF mono_on_subset[OF that(1)]] that(2) by auto
-      \<comment> \<open>The \<epsilon>/2 argument\<close>
+      \<comment> \<open>The @{term \<open>\<epsilon> / 2\<close>} argument\<close>
       show \<open>continuous (at c within {a..c}) (\<lambda>x. vector_variation {a..x} f)\<close>
         unfolding continuous_within tendsto_iff
       proof (intro allI impI)
         fix \<epsilon> :: real assume \<open>\<epsilon> > 0\<close>
         then have e2: \<open>\<epsilon> / 2 > 0\<close> by simp
-        \<comment> \<open>Get eventually-close from continuity of g' and h' for \<epsilon>/2\<close>
+        \<comment> \<open>Get eventually-close from continuity of @{term g'} and @{term h'} for @{term \<open>\<epsilon> / 2\<close>}\<close>
         have ev_gh': \<open>\<forall>\<^sub>F x in at c within {a..c}.
           dist (g' x) (g' c) < \<epsilon> / 2 \<and> dist (h' x) (h' c) < \<epsilon> / 2 \<and> x \<in> {a..c}\<close>
         proof (intro eventually_conj)
@@ -2626,7 +2626,7 @@ next
             then have xc: \<open>x < c\<close> and xle: \<open>x \<le> c\<close> using xac by auto
             have bv_xc: \<open>has_bounded_variation_on f {x..c}\<close>
               using has_bounded_variation_on_subset[OF bv_ac] xac by auto
-            \<comment> \<open>Variation of f on {x..c} bounded by sum of variations of g' and h'\<close>
+            \<comment> \<open>Variation of @{term f} on @{term \<open>{x..c}\<close>} bounded by sum of variations of @{term g'} and @{term h'}\<close>
             have vv_f_xc: \<open>vector_variation {x..c} f \<le> vector_variation {x..c} g' + vector_variation {x..c} h'\<close>
             proof -
               have \<open>{x..c} \<subseteq> {a..c}\<close> using xac by auto
@@ -2747,7 +2747,7 @@ next
         using has_bounded_variation_on_inner_left[OF bv_ac] .
       have bv_comp_xc: \<open>\<And>b. has_bounded_variation_on (\<lambda>u. f u \<bullet> b) {x..c}\<close>
         using has_bounded_variation_on_inner_left[OF bv_xc] .
-      \<comment> \<open>Intermediate claim: vector_variation_combine for f and each component\<close>
+      \<comment> \<open>Intermediate claim: @{text vector_variation_combine} for @{term f} and each component\<close>
       have vv_split: \<open>vector_variation {a..c} f =
         vector_variation {a..x} f + vector_variation {x..c} f\<close>
         using vector_variation_combine[OF bv_ac xac] .
@@ -2755,7 +2755,7 @@ next
         vector_variation {a..x} (\<lambda>u. f u \<bullet> b) + vector_variation {x..c} (\<lambda>u. f u \<bullet> b)\<close>
         if \<open>b \<in> Basis\<close> for b
         using vector_variation_combine[OF bv_comp_ac xac] .
-      \<comment> \<open>LHS: dist of vector variations of f\<close>
+      \<comment> \<open>LHS: dist of vector variations of @{term f}\<close>
       have lhs: \<open>dist (vector_variation {a..c} f) (vector_variation {a..x} f) =
         vector_variation {x..c} f\<close>
       proof -
@@ -2970,7 +2970,7 @@ proof -
     fix x assume \<open>x \<in> ?B\<close>
     then obtain d t where dt: \<open>d division_of t\<close> \<open>t \<subseteq> {s - \<beta>..s - \<alpha>}\<close>
       and x_eq: \<open>x = (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k)))\<close> by auto
-    \<comment> \<open>Reflect back: d' = ((-) s) ` d is a division of ((-) s) ` t \<subseteq> {\<alpha>..\<beta>}\<close>
+    \<comment> \<open>Reflect back: @{text "d' = (`) ((-) s) ` d"} is a division of @{text "(-) s ` t \<subseteq> {\<alpha>..\<beta>}"}\<close>
     define d' where \<open>d' = (`) ((-) s) ` d\<close>
     have d'_div: \<open>d' division_of (-) s ` t\<close>
       unfolding d'_def using division_of_reflect[OF dt(1)] by auto
@@ -3026,15 +3026,15 @@ proof -
   have bv_g: \<open>has_bounded_variation_on g {a..b}\<close>
     unfolding g_def using has_bounded_variation_on_reflect[of f s b a] assms(1)
     by (simp add: s_def)
-  \<comment> \<open>Step 1: continuous_vector_variation_left for g at c'\<close>
+  \<comment> \<open>Step 1: @{text continuous_vector_variation_left} for @{term g} at @{term c'}\<close>
   have left: \<open>continuous (at c' within {a..c'}) (\<lambda>y. vector_variation {a..y} g) \<longleftrightarrow>
               continuous (at c' within {a..c'}) g\<close>
     using continuous_vector_variation_left[OF bv_g c'_mem] .
-  \<comment> \<open>Step 2: Relate continuity of g at c' within {a..c'} to f at c within {c..b}\<close>
+  \<comment> \<open>Step 2: Relate continuity of @{term g} at @{term c'} within @{term \<open>{a..c'}\<close>} to @{term f} at @{term c} within @{term \<open>{c..b}\<close>}\<close>
   have cont_f_g: \<open>continuous (at c within {c..b}) f \<longleftrightarrow> continuous (at c' within {a..c'}) g\<close>
     unfolding g_def using continuous_reflect[of c' \<open>{a..c'}\<close> f s]
     by (simp add: sc sa image_diff_atLeastAtMost)
-  \<comment> \<open>Step 3: Show (\<lambda>y. vv{a..y} g) \<circ> r = (\<lambda>x. vv{x..b} f) pointwise\<close>
+  \<comment> \<open>Step 3: Show @{term \<open>(\<lambda>y. vector_variation {a..y} g) \<circ> (-) s = (\<lambda>x. vector_variation {x..b} f)\<close>} pointwise\<close>
   have comp_eq: \<open>vector_variation {a..s - x} g = vector_variation {x..b} f\<close> for x
   proof (cases \<open>a \<le> s - x\<close>)
     case True
@@ -3046,7 +3046,7 @@ proof -
       unfolding s_def by auto
     then show ?thesis by (simp add: vector_variation_def set_variation_def)
   qed
-  \<comment> \<open>Step 4: Relate continuity of (\<lambda>y. vv{a..y} g) at c' to (\<lambda>x. vv{x..b} f) at c\<close>
+  \<comment> \<open>Step 4: Relate continuity of @{term \<open>\<lambda>y. vector_variation {a..y} g\<close>} at @{term c'} to @{term \<open>\<lambda>x. vector_variation {x..b} f\<close>} at @{term c}\<close>
   have cont_vv_reflect: \<open>continuous (at c' within {a..c'}) (\<lambda>y. vector_variation {a..y} g) \<longleftrightarrow>
                           continuous (at c within {c..b}) (\<lambda>x. vector_variation {x..b} f)\<close>
   proof -
@@ -3056,7 +3056,7 @@ proof -
       using continuous_reflect[of c \<open>{c..b}\<close> \<open>\<lambda>y. vector_variation {a..y} g\<close> s]
       using eq img by force
   qed
-  \<comment> \<open>Step 5: Relate continuity of (\<lambda>x. vv{x..b} f) to (\<lambda>x. vv{a..x} f)\<close>
+  \<comment> \<open>Step 5: Relate continuity of @{term \<open>\<lambda>x. vector_variation {x..b} f\<close>} to @{term \<open>\<lambda>x. vector_variation {a..x} f\<close>}\<close>
   have vv_split: \<open>vector_variation {a..b} f - vector_variation {a..x} f = vector_variation {x..b} f\<close>
     if \<open>x \<in> {a..b}\<close> for x
     using vector_variation_combine[OF assms(1) that] by linarith
@@ -3139,11 +3139,11 @@ proof -
     case False
     then have ab: \<open>a \<le> b\<close> by auto
     define V where \<open>V x \<equiv> vector_variation {a..x} f\<close> for x
-    \<comment> \<open>Key injectivity-up-to-f property: V x = V y implies f x = f y\<close>
+    \<comment> \<open>Key injectivity-up-to-@{term f} property: @{term \<open>V x = V y\<close>} implies @{term \<open>f x = f y\<close>}\<close>
     have f_eq: \<open>f x = f y\<close>
       if \<open>x \<in> {a..b}\<close> \<open>y \<in> {a..b}\<close> \<open>V x = V y\<close> for x y
     proof -
-      \<comment> \<open>Core argument: if p \<le> q with matching variation, then f p = f q\<close>
+      \<comment> \<open>Core argument: if @{term \<open>p \<le> q\<close>} with matching variation, then @{term \<open>f p = f q\<close>}\<close>
       have core: \<open>f p = f q\<close>
         if \<open>p \<le> q\<close> \<open>p \<in> {a..b}\<close> \<open>q \<in> {a..b}\<close> \<open>V p = V q\<close> for p q
       proof -
@@ -3161,7 +3161,7 @@ proof -
       show \<open>f x = f y\<close>
         using core[of x y] core[of y x] that by argo
     qed
-    \<comment> \<open>Construct the factor g via Hilbert choice\<close>
+    \<comment> \<open>Construct the factor @{term g} via Hilbert choice\<close>
     define g where \<open>g v \<equiv> f (SOME x. x \<in> {a..b} \<and> V x = v)\<close> for v
     have g_factor: \<open>f x = g (V x)\<close> if \<open>x \<in> {a..b}\<close> for x
     proof -
@@ -3178,7 +3178,7 @@ proof -
       from that obtain x y where
         x: \<open>x \<in> {a..b}\<close> \<open>u = V x\<close> and y: \<open>y \<in> {a..b}\<close> \<open>v = V y\<close>
         unfolding S_def V_def by auto
-      \<comment> \<open>WLOG x \<le> y\<close>
+      \<comment> \<open>WLOG @{term \<open>x \<le> y\<close>}\<close>
       have lip: \<open>dist (g (V x)) (g (V y)) \<le> dist (V x) (V y)\<close>
         if xy: \<open>x \<le> y\<close> \<open>x \<in> {a..b}\<close> \<open>y \<in> {a..b}\<close> for x y
       proof -
@@ -3321,7 +3321,7 @@ proof -
         finally show \<open>(\<Sum>k\<in>d. norm (g (Sup k) - g (Inf k))) \<le> x\<close> .
       qed
     next
-      \<comment> \<open>Lower bound: variation of g on {0..x} \<ge> x via factoring through f\<close>
+      \<comment> \<open>Lower bound: variation of @{term g} on @{term \<open>{0..x}\<close>} \<ge> @{term x} via factoring through @{term f}\<close>
       show \<open>x \<le> vector_variation {0..x} g\<close>
       proof -
         have x_in_S: \<open>x \<in> S\<close> using that S_eq by auto
@@ -3333,10 +3333,10 @@ proof -
           unfolding mono_on_def using V_mono t_in by auto
         have g_bv_0x: \<open>has_bounded_variation_on g {V a..V t}\<close>
           using has_bounded_variation_on_subset[OF g_bv] V_a Vt that by auto
-            \<comment> \<open>g \<circ> V agrees with f on {a..t}\<close>
+            \<comment> \<open>@{term \<open>g \<circ> V\<close>} agrees with @{term f} on @{term \<open>{a..t}\<close>}\<close>
         have gV_eq_f: \<open>g (V u) = f u\<close> if \<open>u \<in> {a..t}\<close> for u
           using g_factor t_in that V_def by auto
-            \<comment> \<open>Therefore their variations on {a..t} are equal\<close>
+            \<comment> \<open>Therefore their variations on @{term \<open>{a..t}\<close>} are equal\<close>
         have var_eq: \<open>vector_variation {a..t} (g \<circ> V) = vector_variation {a..t} f\<close>
         proof -
           have eq: \<open>norm ((g \<circ> V) (Sup k) - (g \<circ> V) (Inf k)) = norm (f (Sup k) - f (Inf k))\<close>
@@ -3377,7 +3377,7 @@ proof -
           then show ?thesis
             unfolding vector_variation_def set_variation_def comp_def by auto
         qed
-          \<comment> \<open>Composition lemma: variation of g \<circ> V on {a..t} \<le> variation of g on {V a..V t}\<close>
+          \<comment> \<open>Composition lemma: variation of @{term \<open>g \<circ> V\<close>} on @{term \<open>{a..t}\<close>} \<le> variation of @{term g} on @{term \<open>{V a..V t}\<close>}\<close>
         have \<open>vector_variation {a..t} (g \<circ> V) \<le> vector_variation {V a..V t} g\<close>
           using has_bounded_variation_compose_monotone(2)[OF g_bv_0x mono_V_at] .
         then have \<open>vector_variation {a..t} f \<le> vector_variation {0..x} g\<close>
@@ -3492,10 +3492,10 @@ proof -
       show ?thesis
         unfolding path_length_def using upper lower l_eq by linarith
     qed
-    show \<open>arc g \<Longrightarrow> arc (h \<circ> (\<lambda>x. x *\<^sub>R l))\<close>
+    show \<open>arc (h \<circ> (\<lambda>x. x *\<^sub>R l))\<close> if \<open>arc g\<close>
     proof -
-      assume ag: \<open>arc g\<close>
-      then have g_inj: \<open>inj_on g {0..1}\<close> by (rule arc_imp_inj_on)
+      have g_inj: \<open>inj_on g {0..1}\<close>
+        using arc_def that by blast
       have l_pos: \<open>0 < l\<close>
       proof (rule ccontr)
         assume \<open>\<not> 0 < l\<close>
@@ -3503,11 +3503,12 @@ proof -
         then have \<open>\<exists>c. \<forall>t \<in> {0..1}. g t = c\<close>
           using vector_variation_const_eq[OF g_bv] l_eq by auto
         then have \<open>g 0 = g 1\<close> by auto
-        then show False using arc_distinct_ends[OF ag]
+        then show False using arc_distinct_ends[OF that]
           unfolding pathstart_def pathfinish_def by simp
       qed
       have h_inj: \<open>inj_on h {0..l}\<close>
-        by (smt (verit, ccfv_SIG) ag arcD h_factor h_image_var image_iff linorder_inj_onI')
+        using that
+        by (smt (verit, ccfv_SIG) arcD h_factor h_image_var image_iff linorder_inj_onI')
       have scale_inj: \<open>inj_on (\<lambda>x. x *\<^sub>R l) {0..1}\<close>
         using l_pos by (intro inj_onI) simp
       have comp_inj: \<open>inj_on (h \<circ> (\<lambda>x. x *\<^sub>R l)) {0..1}\<close>
@@ -3516,10 +3517,10 @@ proof -
         unfolding arc_def using comp_inj
         using \<open>rectifiable_path (h \<circ> (\<lambda>x. x *\<^sub>R l))\<close> rectifiable_path_def by blast
     qed
-    show \<open>simple_path g \<Longrightarrow> simple_path (h \<circ> (\<lambda>x. x *\<^sub>R l))\<close>
+    show \<open>simple_path (h \<circ> (\<lambda>x. x *\<^sub>R l))\<close> if sp: \<open>simple_path g\<close>
     proof -
-      assume sp: \<open>simple_path g\<close>
-      then have g_lf: \<open>loop_free g\<close> unfolding simple_path_def by simp
+      have g_lf: \<open>loop_free g\<close>
+        using simple_path_def that by blast
       have l_pos: \<open>0 < l\<close>
       proof (rule ccontr)
         assume \<open>\<not> 0 < l\<close>
