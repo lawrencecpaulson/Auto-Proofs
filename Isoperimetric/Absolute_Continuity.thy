@@ -694,8 +694,117 @@ proof -
           using reindexR by simp
         have split_ineq: \<open>(\<Sum>k\<in>d. norm (g k)) \<le> (\<Sum>k\<in>dL. norm (g k)) + (\<Sum>k\<in>dR. norm (g k))\<close>
           using step1 step2L step2R step3L step3R by linarith
+        \<comment> \<open>Step 4: each half is < e/2\<close>
+        have divL: \<open>dL division_of (t \<inter> {x. x \<bullet> k \<le> c})\<close>
+          unfolding dL_def division_of_def
+        proof (intro conjI ballI allI impI)
+          show \<open>finite ((\<lambda>l. l \<inter> {x. x \<bullet> k \<le> c}) ` {l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}})\<close>
+            using fin_d by auto
+        next
+          fix K assume \<open>K \<in> (\<lambda>l. l \<inter> {x. x \<bullet> k \<le> c}) ` {l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}}\<close>
+          then obtain l where ld: \<open>l \<in> d\<close> and lne: \<open>l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}\<close> and Keq: \<open>K = l \<inter> {x. x \<bullet> k \<le> c}\<close>
+            by auto
+          obtain al bl where leq: \<open>l = cbox al bl\<close> using division_ofD(4)[OF div ld] by blast
+          show \<open>K \<subseteq> t \<inter> {x. x \<bullet> k \<le> c}\<close> using Keq division_ofD(2)[OF div ld] by auto
+          show \<open>K \<noteq> {}\<close> using Keq lne by auto
+          show \<open>\<exists>a b. K = cbox a b\<close> using Keq leq interval_split(1)[OF \<open>k \<in> Basis\<close>] by blast
+        next
+          fix K1 K2
+          assume K1m: \<open>K1 \<in> (\<lambda>l. l \<inter> {x. x \<bullet> k \<le> c}) ` {l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}}\<close>
+            and K2m: \<open>K2 \<in> (\<lambda>l. l \<inter> {x. x \<bullet> k \<le> c}) ` {l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}}\<close>
+            and neq: \<open>K1 \<noteq> K2\<close>
+          obtain l1 where l1d: \<open>l1 \<in> d\<close> and K1eq: \<open>K1 = l1 \<inter> {x. x \<bullet> k \<le> c}\<close> using K1m by auto
+          obtain l2 where l2d: \<open>l2 \<in> d\<close> and K2eq: \<open>K2 = l2 \<inter> {x. x \<bullet> k \<le> c}\<close> using K2m by auto
+          have \<open>l1 \<noteq> l2\<close> using neq K1eq K2eq by auto
+          then have \<open>interior l1 \<inter> interior l2 = {}\<close> using division_ofD(5)[OF div l1d l2d] by auto
+          then show \<open>interior K1 \<inter> interior K2 = {}\<close>
+            using K1eq K2eq by auto
+        next
+          show \<open>\<Union> ((\<lambda>l. l \<inter> {x. x \<bullet> k \<le> c}) ` {l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}}) = t \<inter> {x. x \<bullet> k \<le> c}\<close>
+            using division_ofD(6)[OF div] by auto
+        qed
+        have divR: \<open>dR division_of (t \<inter> {x. c \<le> x \<bullet> k})\<close>
+          unfolding dR_def division_of_def
+        proof (intro conjI ballI allI impI)
+          show \<open>finite ((\<lambda>l. l \<inter> {x. c \<le> x \<bullet> k}) ` {l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}})\<close>
+            using fin_d by auto
+        next
+          fix K assume \<open>K \<in> (\<lambda>l. l \<inter> {x. c \<le> x \<bullet> k}) ` {l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}\<close>
+          then obtain l where ld: \<open>l \<in> d\<close> and lne: \<open>l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}\<close> and Keq: \<open>K = l \<inter> {x. c \<le> x \<bullet> k}\<close>
+            by auto
+          obtain al bl where leq: \<open>l = cbox al bl\<close> using division_ofD(4)[OF div ld] by blast
+          show \<open>K \<subseteq> t \<inter> {x. c \<le> x \<bullet> k}\<close> using Keq division_ofD(2)[OF div ld] by auto
+          show \<open>K \<noteq> {}\<close> using Keq lne by auto
+          show \<open>\<exists>a b. K = cbox a b\<close> using Keq leq interval_split(2)[OF \<open>k \<in> Basis\<close>] by blast
+        next
+          fix K1 K2
+          assume K1m: \<open>K1 \<in> (\<lambda>l. l \<inter> {x. c \<le> x \<bullet> k}) ` {l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}\<close>
+            and K2m: \<open>K2 \<in> (\<lambda>l. l \<inter> {x. c \<le> x \<bullet> k}) ` {l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}\<close>
+            and neq: \<open>K1 \<noteq> K2\<close>
+          obtain l1 where l1d: \<open>l1 \<in> d\<close> and K1eq: \<open>K1 = l1 \<inter> {x. c \<le> x \<bullet> k}\<close> using K1m by auto
+          obtain l2 where l2d: \<open>l2 \<in> d\<close> and K2eq: \<open>K2 = l2 \<inter> {x. c \<le> x \<bullet> k}\<close> using K2m by auto
+          have \<open>l1 \<noteq> l2\<close> using neq K1eq K2eq by auto
+          then have \<open>interior l1 \<inter> interior l2 = {}\<close> using division_ofD(5)[OF div l1d l2d] by auto
+          then show \<open>interior K1 \<inter> interior K2 = {}\<close>
+            using K1eq K2eq by auto
+        next
+          show \<open>\<Union> ((\<lambda>l. l \<inter> {x. c \<le> x \<bullet> k}) ` {l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}) = t \<inter> {x. c \<le> x \<bullet> k}\<close>
+            using division_ofD(6)[OF div] by auto
+        qed
+        have subL: \<open>t \<inter> {x. x \<bullet> k \<le> c} \<subseteq> cbox a b \<inter> {x. x \<bullet> k \<le> c}\<close> using sub by auto
+        have subR: \<open>t \<inter> {x. c \<le> x \<bullet> k} \<subseteq> cbox a b \<inter> {x. c \<le> x \<bullet> k}\<close> using sub by auto
+        have contentL: \<open>sum content dL < r1\<close>
+        proof -
+          have \<open>sum content dL
+              \<le> sum (content \<circ> (\<lambda>l. l \<inter> {x. x \<bullet> k \<le> c})) {l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}}\<close>
+            unfolding dL_def by (rule sum_image_le) (auto simp: fin_d content_pos_le)
+          also have \<open>\<dots> \<le> sum content {l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}}\<close>
+          proof (rule sum_mono)
+            fix l assume \<open>l \<in> {l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}}\<close>
+            then have ld: \<open>l \<in> d\<close> by auto
+            obtain al bl where leq: \<open>l = cbox al bl\<close> using division_ofD(4)[OF div ld] by blast
+            have \<open>l \<inter> {x. x \<bullet> k \<le> c} = cbox al (\<Sum>i\<in>Basis. (if i = k then min (bl \<bullet> k) c else bl \<bullet> i) *\<^sub>R i)\<close>
+              using interval_split(1)[OF \<open>k \<in> Basis\<close>] leq by simp
+            moreover have \<open>cbox al (\<Sum>i\<in>Basis. (if i = k then min (bl \<bullet> k) c else bl \<bullet> i) *\<^sub>R i) \<subseteq> cbox al bl\<close>
+              apply (rule subset_box_imp)
+              apply (auto simp: inner_Basis if_distrib [of \<open>(*) _\<close>] cong: if_cong)
+              done
+            ultimately show \<open>(content \<circ> (\<lambda>l. l \<inter> {x. x \<bullet> k \<le> c})) l \<le> content l\<close>
+              using content_subset leq by (simp add: o_def)
+          qed
+          also have \<open>\<dots> \<le> sum content d\<close>
+            by (rule sum_mono2) (auto simp: fin_d content_pos_le)
+          also have \<open>\<dots> < r1\<close> using content_bound by simp
+          finally show ?thesis .
+        qed
+        have contentR: \<open>sum content dR < r2\<close>
+        proof -
+          have \<open>sum content dR
+              \<le> sum (content \<circ> (\<lambda>l. l \<inter> {x. c \<le> x \<bullet> k})) {l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}\<close>
+            unfolding dR_def by (rule sum_image_le) (auto simp: fin_d content_pos_le)
+          also have \<open>\<dots> \<le> sum content {l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}\<close>
+          proof (rule sum_mono)
+            fix l assume \<open>l \<in> {l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}\<close>
+            then have ld: \<open>l \<in> d\<close> by auto
+            obtain al bl where leq: \<open>l = cbox al bl\<close> using division_ofD(4)[OF div ld] by blast
+            have \<open>l \<inter> {x. c \<le> x \<bullet> k} = cbox (\<Sum>i\<in>Basis. (if i = k then max (al \<bullet> k) c else al \<bullet> i) *\<^sub>R i) bl\<close>
+              using interval_split(2)[OF \<open>k \<in> Basis\<close>] leq by simp
+            moreover have \<open>cbox (\<Sum>i\<in>Basis. (if i = k then max (al \<bullet> k) c else al \<bullet> i) *\<^sub>R i) bl \<subseteq> cbox al bl\<close>
+              apply (rule subset_box_imp)
+              apply (auto simp: inner_Basis if_distrib [of \<open>(*) _\<close>] cong: if_cong)
+              done
+            ultimately show \<open>(content \<circ> (\<lambda>l. l \<inter> {x. c \<le> x \<bullet> k})) l \<le> content l\<close>
+              using content_subset leq by (simp add: o_def)
+          qed
+          also have \<open>\<dots> \<le> sum content d\<close>
+            by (rule sum_mono2) (auto simp: fin_d content_pos_le)
+          also have \<open>\<dots> < r2\<close> using content_bound by simp
+          finally show ?thesis .
+        qed
+        have halfL: \<open>(\<Sum>k\<in>dL. norm (g k)) < e / 2\<close> using L[OF divL subL contentL] .
+        have halfR: \<open>(\<Sum>k\<in>dR. norm (g k)) < e / 2\<close> using R[OF divR subR contentR] .
         have halves: \<open>(\<Sum>k\<in>dL. norm (g k)) + (\<Sum>k\<in>dR. norm (g k)) < e\<close>
-          sorry
+          using halfL halfR by linarith
         show \<open>(\<Sum>k\<in>d. norm (g k)) < e\<close>
           using split_ineq halves by linarith
       qed

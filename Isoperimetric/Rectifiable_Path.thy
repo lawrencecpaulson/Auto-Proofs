@@ -574,6 +574,41 @@ next
     by (simp add: cs vector_variation_reflect)
 qed
 
+lemma vector_variation_cong:
+  assumes "\<And>x. x \<in> s \<Longrightarrow> f x = g x"
+  shows "vector_variation s f = vector_variation s g"
+proof -
+  have sum_eq: "(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) = (\<Sum>k\<in>d. norm (g (Sup k) - g (Inf k)))"
+    if "d division_of t" "t \<subseteq> s" for d t
+  proof (rule sum.cong[OF refl])
+    fix k assume "k \<in> d"
+    then have "k \<subseteq> t" "k \<noteq> {}" "\<exists>a b. k = cbox a b"
+      using division_ofD(2,3,4)[OF that(1)] by auto
+    then obtain a b where "k = cbox a b" "a \<le> b" by fastforce
+    then have "Inf k \<in> k" "Sup k \<in> k" by auto
+    then have "Inf k \<in> s" "Sup k \<in> s" using \<open>k \<subseteq> t\<close> that(2) by auto
+    then show "norm (f (Sup k) - f (Inf k)) = norm (g (Sup k) - g (Inf k))"
+      using assms by auto
+  qed
+  have "{\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k)) |d. \<exists>t. d division_of t \<and> t \<subseteq> s}
+      = {\<Sum>k\<in>d. norm (g (Sup k) - g (Inf k)) |d. \<exists>t. d division_of t \<and> t \<subseteq> s}"
+    (is "?L = ?R")
+  proof (rule set_eqI, rule iffI)
+    fix x assume "x \<in> ?L"
+    then obtain d t where "x = (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k)))" "d division_of t" "t \<subseteq> s"
+      by auto
+    then show "x \<in> ?R" using sum_eq by auto
+  next
+    fix x assume "x \<in> ?R"
+    then obtain d t where "x = (\<Sum>k\<in>d. norm (g (Sup k) - g (Inf k)))" "d division_of t" "t \<subseteq> s"
+      by auto
+    then show "x \<in> ?L" using sum_eq
+      by (metis (mono_tags, lifting) mem_Collect_eq)
+  qed
+  then show ?thesis
+    unfolding vector_variation_def set_variation_def by simp
+qed
+
 lemma has_bounded_variation_on_cong:
   assumes "\<And>x. x \<in> s \<Longrightarrow> f x = g x"
   shows "has_bounded_variation_on f s \<longleftrightarrow> has_bounded_variation_on g s"
@@ -680,21 +715,191 @@ proof -
 qed
 
 lemma path_length_join:
-  "\<lbrakk>rectifiable_path g1; rectifiable_path g2; pathfinish g1 = pathstart g2\<rbrakk> \<Longrightarrow>
-    path_length (g1 +++ g2) = path_length g1 + path_length g2"
-  sorry
+  assumes "rectifiable_path g1"
+    and "rectifiable_path g2"
+    and "pathfinish g1 = pathstart g2"
+  shows "Rectifiable_Path.path_length (g1 +++ g2) = Rectifiable_Path.path_length g1 + Rectifiable_Path.path_length g2"
+proof -
+  have half: "(0::real) \<le> 1/2" "1/2 \<le> (1::real)" by auto
+  have bvj: "has_bounded_variation_on (g1 +++ g2) {0..1}"
+    using rectifiable_path_def assms rectifiable_path_join by blast
+  \<comment> \<open>On {0..1/2}, the joinpath agrees with g1 \<circ> (\<lambda>x. 2*x)\<close>
+  have eq1: "(g1 +++ g2) x = (g1 \<circ> (\<lambda>x. 2 * x)) x" if "x \<in> {0..1/2}" for x
+    using that by (auto simp: joinpaths_def)
+  \<comment> \<open>On {1/2..1}, the joinpath agrees with g2 \<circ> (\<lambda>x. 2*x - 1)\<close>
+  have eq2: "(g1 +++ g2) x = (g2 \<circ> (\<lambda>x. 2 * x + (-1))) x" if "x \<in> {1/2..1}" for x
+  proof -
+    from that have "x = 1/2 \<or> x > 1/2" by auto
+    then show ?thesis
+    proof
+      assume "x = 1/2"
+      then show ?thesis
+        using assms by (simp add: joinpaths_def mult.commute pathfinish_def pathstart_def)
+    next
+      assume "x > 1/2"
+      then show ?thesis by (auto simp: joinpaths_def comp_def)
+    qed
+  qed
+  \<comment> \<open>Variation on left half\<close>
+  have vv1: "vector_variation {0..1/2} (g1 +++ g2) = path_length g1"
+  proof -
+    have "vector_variation {0..1/2} (g1 +++ g2) =
+      vector_variation {0..1/2} (g1 \<circ> (\<lambda>x. 2 * x))"
+      by (rule vector_variation_cong[OF eq1])
+    also have "\<dots> = vector_variation {2*0+0..2*(1/2)+0} g1"
+      using vector_variation_affine_eq
+      by (metis (no_types, lifting) ext add.right_neutral half(1) zero_less_numeral)
+    also have "{2*0+(0::real)..2*(1/2)+0} = {0..1}" by auto
+    finally show ?thesis unfolding path_length_def .
+  qed
+  \<comment> \<open>Variation on right half\<close>
+  have vv2: "vector_variation {1/2..1} (g1 +++ g2) = path_length g2"
+  proof -
+    have "vector_variation {1/2..1} (g1 +++ g2) =
+      vector_variation {1/2..1} (g2 \<circ> (\<lambda>x. 2 * x + (-1)))"
+      by (rule vector_variation_cong[OF eq2])
+    also have "\<dots> = vector_variation {2*(1/2)+(-1)..2*1+(-1)} g2"
+      by (rule vector_variation_affine_eq) auto
+    also have "{2*(1/2)+(-1::real)..2*1+(-1)} = {0..1}" by auto
+    finally show ?thesis unfolding path_length_def .
+  qed
+  \<comment> \<open>Combine\<close>
+  show ?thesis
+    unfolding path_length_def
+    using vector_variation_combine[OF bvj, of "1/2"] half vv1 vv2
+    unfolding path_length_def
+    by auto
+qed
 
 section \<open>Shiftpath\<close>
 
 lemma rectifiable_path_shiftpath:
-  "\<lbrakk>rectifiable_path g; pathfinish g = pathstart g; t \<in> {0..1}\<rbrakk> \<Longrightarrow>
-    rectifiable_path (shiftpath t g)"
-  sorry
+  assumes "rectifiable_path g"
+    and "pathfinish g = pathstart g"
+    and "t \<in> {0..1}"
+  shows "rectifiable_path (shiftpath t g)"
+proof -
+  note rg = assms(1) and loop = assms(2) and t01 = assms(3)
+  from rg have pg: "path g" and bvg: "has_bounded_variation_on g {0..1}"
+    unfolding rectifiable_path_def by auto
+  from t01 have t0: "0 \<le> t" and t1: "t \<le> 1" and mt: "0 \<le> 1 - t" and mt1: "1 - t \<le> 1" by auto
+  \<comment> \<open>On {0..1-t}, shiftpath t g agrees with g \<circ> (\<lambda>x. x + t)\<close>
+  have eq1: "shiftpath t g x = (g \<circ> (\<lambda>x. 1 * x + t)) x" if "x \<in> {0..1-t}" for x
+    by (metis add.commute atLeastAtMost_iff comp_def mult_1 shiftpath_alt_def that)
+  \<comment> \<open>On {1-t..1}, shiftpath t g agrees with g \<circ> (\<lambda>x. x + (t-1))\<close>
+  have eq2: "shiftpath t g x = (g \<circ> (\<lambda>x. 1 * x + (t - 1))) x" if "x \<in> {1-t..1}" for x
+  proof -
+    from that have "x = 1-t \<or> x > 1-t" by auto
+    then show ?thesis
+    proof
+      assume "x = 1-t"
+      then show ?thesis
+        using loop t1 by (simp add: shiftpath_def pathfinish_def pathstart_def)
+    next
+      assume "x > 1-t"
+      then have "t + x > 1" by auto
+      then show ?thesis
+        by (simp add: add.commute add_diff_eq shiftpath_def)
+    qed
+  qed
+  \<comment> \<open>Bounded variation on each half\<close>
+  have bv1: "has_bounded_variation_on (shiftpath t g) {0..1-t}"
+  proof -
+    have "has_bounded_variation_on (shiftpath t g) {0..1-t} \<longleftrightarrow>
+      has_bounded_variation_on (g \<circ> (\<lambda>x. 1 * x + t)) {0..1-t}"
+      by (rule has_bounded_variation_on_cong[OF eq1])
+    also have "\<dots> \<longleftrightarrow> has_bounded_variation_on g {1*0+t..1*(1-t)+t}"
+      using has_bounded_variation_on_affine_iff mt zero_less_one by blast
+    also have "{1*0+t..1*(1-t)+t} = {t..1::real}" by auto
+    finally show ?thesis
+      using has_bounded_variation_on_subset[OF bvg, of "{t..1}"] t0 t1 by auto
+  qed
+  have bv2: "has_bounded_variation_on (shiftpath t g) {1-t..1}"
+  proof -
+    have "has_bounded_variation_on (shiftpath t g) {1-t..1} \<longleftrightarrow>
+      has_bounded_variation_on (g \<circ> (\<lambda>x. 1 * x + (t - 1))) {1-t..1}"
+      by (rule has_bounded_variation_on_cong[OF eq2])
+    also have "\<dots> \<longleftrightarrow> has_bounded_variation_on g {1*(1-t)+(t-1)..1*1+(t-1)}"
+      using has_bounded_variation_on_affine_iff mt1 zero_less_one by blast
+    also have "{1*(1-t)+(t-1)..1*1+(t-1)} = {0..t::real}" by auto
+    finally show ?thesis
+      using has_bounded_variation_on_subset[OF bvg, of "{0..t}"] t0 t1 by auto
+  qed
+  \<comment> \<open>Combine\<close>
+  have "has_bounded_variation_on (shiftpath t g) {0..1}"
+    using has_bounded_variation_on_combine[of 0 "1-t" 1 "shiftpath t g"] mt mt1 bv1 bv2 by auto
+  then show "rectifiable_path (shiftpath t g)"
+    unfolding rectifiable_path_def
+    using path_shiftpath[OF pg loop t01] by auto
+qed
 
 lemma path_length_shiftpath:
   "\<lbrakk>rectifiable_path g; pathfinish g = pathstart g; t \<in> {0..1}\<rbrakk> \<Longrightarrow>
     path_length (shiftpath t g) = path_length g"
-  sorry
+proof -
+  assume rg: "rectifiable_path g" and loop: "pathfinish g = pathstart g"
+    and t01: "t \<in> {0..1}"
+  from rg have bvg: "has_bounded_variation_on g {0..1}"
+    unfolding rectifiable_path_def by auto
+  have bvs: "has_bounded_variation_on (shiftpath t g) {0..1}"
+    using rectifiable_path_shiftpath[OF rg loop t01]
+    unfolding rectifiable_path_def by auto
+  from t01 have t0: "0 \<le> t" and t1: "t \<le> 1" and mt: "0 \<le> 1 - t" and mt1: "1 - t \<le> 1" by auto
+  \<comment> \<open>Pointwise agreements (reuse from rectifiable_path_shiftpath proof)\<close>
+  have eq1: "shiftpath t g x = (g \<circ> (\<lambda>x. 1 * x + t)) x" if "x \<in> {0..1-t}" for x
+    using that t1 by (auto simp: shiftpath_def)
+  have eq2: "shiftpath t g x = (g \<circ> (\<lambda>x. 1 * x + (t - 1))) x" if "x \<in> {1-t..1}" for x
+  proof -
+    from that have "x = 1-t \<or> x > 1-t" by auto
+    then show ?thesis
+    proof
+      assume "x = 1-t"
+      then show ?thesis
+        using loop t1 by (simp add: shiftpath_def pathfinish_def pathstart_def)
+    next
+      assume "x > 1-t"
+      then have "t + x > 1" by auto
+      then show ?thesis by (auto simp: shiftpath_def comp_def)
+    qed
+  qed
+  \<comment> \<open>Variation on {0..1-t}\<close>
+  have vv1: "vector_variation {0..1-t} (shiftpath t g) = vector_variation {t..1} g"
+  proof -
+    have "vector_variation {0..1-t} (shiftpath t g) =
+      vector_variation {0..1-t} (g \<circ> (\<lambda>x. 1 * x + t))"
+      by (rule vector_variation_cong[OF eq1])
+    also have "\<dots> = vector_variation {1*0+t..1*(1-t)+t} g"
+      by (rule vector_variation_affine_eq) auto
+    also have "{1*0+t..1*(1-t)+t} = {t..1::real}" by auto
+    finally show ?thesis .
+  qed
+  \<comment> \<open>Variation on {1-t..1}\<close>
+  have vv2: "vector_variation {1-t..1} (shiftpath t g) = vector_variation {0..t} g"
+  proof -
+    have "vector_variation {1-t..1} (shiftpath t g) =
+      vector_variation {1-t..1} (g \<circ> (\<lambda>x. 1 * x + (t - 1)))"
+      by (rule vector_variation_cong[OF eq2])
+    also have "\<dots> = vector_variation {1*(1-t)+(t-1)..1*1+(t-1)} g"
+      by (rule vector_variation_affine_eq) auto
+    also have "{1*(1-t)+(t-1)..1*1+(t-1)} = {0..t::real}" by auto
+    finally show ?thesis .
+  qed
+  \<comment> \<open>Combine\<close>
+  have "path_length (shiftpath t g) = vector_variation {0..1} (shiftpath t g)"
+    unfolding path_length_def ..
+  also have "\<dots> = vector_variation {0..1-t} (shiftpath t g) +
+    vector_variation {1-t..1} (shiftpath t g)"
+    using vector_variation_combine[OF bvs, of "1-t"] mt mt1 by auto
+  also have "\<dots> = vector_variation {t..1} g + vector_variation {0..t} g"
+    using vv1 vv2 by simp
+  also have "\<dots> = vector_variation {0..t} g + vector_variation {t..1} g"
+    by (rule add.commute)
+  also have "\<dots> = vector_variation {0..1} g"
+    using vector_variation_combine[OF bvg, of t] t01 by auto
+  also have "\<dots> = path_length g"
+    unfolding path_length_def ..
+  finally show "path_length (shiftpath t g) = path_length g" .
+qed
 
 section \<open>Lipschitz and distance bounds\<close>
 
