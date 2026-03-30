@@ -402,10 +402,132 @@ lemma vector_variation_affine_eq:
   fixes g :: "real \<Rightarrow> 'a::euclidean_space" and c d :: real
   assumes "c > 0" "a \<le> b"
   shows "vector_variation {a..b} (g \<circ> (\<lambda>x. c * x + d)) = vector_variation {c*a+d..c*b+d} g"
-  sorry
+proof -
+  let ?\<phi> = "\<lambda>x::real. c * x + d"
+  let ?\<psi> = "\<lambda>x::real. (x - d) / c"
+  have cne: "c \<noteq> 0" using assms(1) by auto
+  have cpos: "0 < c" using assms(1) .
+  have inj_\<phi>: "inj ?\<phi>" using cne by (intro injI) simp
+  have \<phi>\<psi>: "\<And>x. ?\<phi> (?\<psi> x) = x" using cne by (simp add: field_simps)
+  have \<psi>\<phi>: "\<And>x. ?\<psi> (?\<phi> x) = x" using cne by (simp add: field_simps)
+  have ab': "c*a+d \<le> c*b+d" using assms by (auto intro: mult_left_mono)
+  have img_ivl: "\<And>\<alpha> \<beta>. \<alpha> \<le> \<beta> \<Longrightarrow> ?\<phi> ` {\<alpha>..\<beta>} = {c*\<alpha>+d..c*\<beta>+d}"
+  proof safe
+    fix \<alpha> \<beta> x :: real assume "\<alpha> \<le> \<beta>" "x \<in> {\<alpha>..\<beta>}"
+    then show "?\<phi> x \<in> {c*\<alpha>+d..c*\<beta>+d}" using cpos by (auto intro: mult_left_mono)
+  next
+    fix \<alpha> \<beta> y :: real assume "\<alpha> \<le> \<beta>" "y \<in> {c*\<alpha>+d..c*\<beta>+d}"
+    then have "(y-d)/c \<in> {\<alpha>..\<beta>}" using cpos by (auto simp: field_simps)
+    moreover have "?\<phi> ((y-d)/c) = y" using cne by (simp add: field_simps)
+    ultimately show "y \<in> ?\<phi> ` {\<alpha>..\<beta>}" by force
+  qed
+  \<comment> \<open>Key: the variation sums over divisions of any T equal those over \<phi>(T)\<close>
+  have sum_transform: "(\<Sum>k\<in>D. norm ((g \<circ> ?\<phi>) (Sup k) - (g \<circ> ?\<phi>) (Inf k)))
+    = (\<Sum>k\<in>((`) ?\<phi>) ` D. norm (g (Sup k) - g (Inf k)))"
+    if "D division_of T" for D :: "real set set" and T :: "real set"
+  proof -
+    have div: "D division_of T" using that .
+    have inj_on_img: "inj_on ((`) ?\<phi>) D"
+      using inj_image_eq_iff[OF inj_\<phi>] by (auto intro!: inj_onI)
+    have "(\<Sum>k\<in>D. norm ((g \<circ> ?\<phi>) (Sup k) - (g \<circ> ?\<phi>) (Inf k)))
+      = (\<Sum>k\<in>D. norm (g (?\<phi> (Sup k)) - g (?\<phi> (Inf k))))" by (simp add: o_def)
+    also have "\<dots> = (\<Sum>k\<in>D. norm (g (Sup (?\<phi> ` k)) - g (Inf (?\<phi> ` k))))"
+    proof (intro sum.cong refl arg_cong[where f=norm] arg_cong2[where f="(-)"])
+      fix k assume "k \<in> D"
+      from division_ofD(4)[OF div this] obtain \<alpha> \<beta> where kab: "k = cbox \<alpha> \<beta>" by auto
+      from division_ofD(3)[OF div \<open>k \<in> D\<close>] have kne: "k \<noteq> {}" .
+      with kab have le: "\<alpha> \<le> \<beta>" by auto
+      have k_ivl: "k = {\<alpha>..\<beta>}" using kab by auto
+      have img: "?\<phi> ` k = {c*\<alpha>+d..c*\<beta>+d}" using img_ivl[OF le] k_ivl by simp
+      have le': "c*\<alpha>+d \<le> c*\<beta>+d" using le cpos by (auto intro: mult_left_mono)
+      show "g (?\<phi> (Sup k)) = g (Sup (?\<phi> ` k))"
+        using k_ivl le img le' by (simp add: cSup_atLeastAtMost)
+      show "g (?\<phi> (Inf k)) = g (Inf (?\<phi> ` k))"
+        using k_ivl le img le' by (simp add: cInf_atLeastAtMost)
+    qed
+    also have "\<dots> = (\<Sum>k\<in>((`) ?\<phi>) ` D. norm (g (Sup k) - g (Inf k)))"
+      by (metis (no_types, lifting) inj_on_img sum.reindex_cong)
+    finally show "(\<Sum>k\<in>D. norm ((g \<circ> ?\<phi>) (Sup k) - (g \<circ> ?\<phi>) (Inf k)))
+      = (\<Sum>k\<in>((`) ?\<phi>) ` D. norm (g (Sup k) - g (Inf k)))" .
+  qed
+  \<comment> \<open>Now show the Sup sets in the vector_variation definition are equal\<close>
+  have sets_eq: "{\<Sum>k\<in>D. norm ((g \<circ> ?\<phi>) (Sup k) - (g \<circ> ?\<phi>) (Inf k)) |D.
+      \<exists>T. D division_of T \<and> T \<subseteq> {a..b}}
+    = {\<Sum>k\<in>D. norm (g (Sup k) - g (Inf k)) |D.
+      \<exists>T. D division_of T \<and> T \<subseteq> {c*a+d..c*b+d}}"
+  proof safe
+    fix D T assume div: "D division_of T" and sub: "T \<subseteq> {a..b}"
+    let ?D' = "((`) ?\<phi>) ` D"
+    have div': "?D' division_of (?\<phi> ` T)"
+      using division_of_affine_image(1)[OF cpos div sub] .
+    have sub': "?\<phi> ` T \<subseteq> {c*a+d..c*b+d}"
+      using division_of_affine_image(2)[OF cpos div sub] .
+    have sum_eq: "(\<Sum>k\<in>D. norm ((g \<circ> ?\<phi>) (Sup k) - (g \<circ> ?\<phi>) (Inf k)))
+      = (\<Sum>k\<in>?D'. norm (g (Sup k) - g (Inf k)))"
+      using sum_transform[OF div] .
+    show "\<exists>Da. (\<Sum>k\<in>D. norm ((g \<circ> ?\<phi>) (Sup k) - (g \<circ> ?\<phi>) (Inf k)))
+      = (\<Sum>k\<in>Da. norm (g (Sup k) - g (Inf k)))
+      \<and> (\<exists>T. Da division_of T \<and> T \<subseteq> {c*a+d..c*b+d})"
+      using sum_eq div' sub' by blast
+  next
+    fix D T assume div: "D division_of T" and sub: "T \<subseteq> {c*a+d..c*b+d}"
+    \<comment> \<open>Map back via the inverse affine map (1/c)*x + (-d/c)\<close>
+    let ?c' = "1/c" and ?d' = "-d/c"
+    have cpos': "?c' > 0" using cpos by auto
+    have div': "((`) (\<lambda>x. ?c' * x + ?d')) ` D division_of ((\<lambda>x. ?c' * x + ?d') ` T)"
+      using division_of_affine_image(1)[OF cpos' div sub] .
+    have sub': "(\<lambda>x. ?c' * x + ?d') ` T \<subseteq> {?c'*(c*a+d)+?d'..?c'*(c*b+d)+?d'}"
+      using division_of_affine_image(2)[OF cpos' div sub] .
+    have endpoints: "?c'*(c*a+d)+?d' = a" "?c'*(c*b+d)+?d' = b"
+      using cne by (auto simp: field_simps)
+    \<comment> \<open>The inverse map equals \<psi>\<close>
+    have inv_eq: "(\<lambda>x::real. ?c' * x + ?d') = ?\<psi>"
+      by (rule ext) (simp add: diff_divide_distrib)
+    have div'': "((`) ?\<psi>) ` D division_of (?\<psi> ` T)"
+      using div' unfolding inv_eq .
+    have sub'': "?\<psi> ` T \<subseteq> {a..b}"
+    proof -
+      have "(\<lambda>x::real. ?c' * x + ?d') ` T \<subseteq> {a..b}"
+        using sub' endpoints by auto
+      then show ?thesis unfolding inv_eq .
+    qed
+    \<comment> \<open>Show the sum over D equals the sum over \<psi>-image composed with \<phi>\<close>
+    have sum_eq: "(\<Sum>k\<in>((`) ?\<psi>) ` D. norm ((g \<circ> ?\<phi>) (Sup k) - (g \<circ> ?\<phi>) (Inf k)))
+      = (\<Sum>k\<in>((`) ?\<phi>) ` ((`) ?\<psi>) ` D. norm (g (Sup k) - g (Inf k)))"
+      using sum_transform[OF div''] .
+    have \<phi>\<psi>_img: "?\<phi> ` ?\<psi> ` S = S" for S :: "real set"
+    proof -
+      have "?\<phi> ` ?\<psi> ` S = (?\<phi> \<circ> ?\<psi>) ` S" by (simp add: image_image)
+      also have "(?\<phi> \<circ> ?\<psi>) = id"
+        using cne by (auto simp: o_def field_simps)
+      also have "id ` S = S" by simp
+      finally show ?thesis .
+    qed
+    have img_back: "((`) ?\<phi>) ` ((`) ?\<psi>) ` D = D"
+    proof -
+      have "((`) ?\<phi>) ` ((`) ?\<psi>) ` D = ((`) ?\<phi> \<circ> (`) ?\<psi>) ` D"
+        by (simp add: image_comp)
+      also have "((`) ?\<phi> \<circ> (`) ?\<psi>) = id"
+        by (rule ext) (simp add: \<phi>\<psi>_img)
+      also have "id ` D = D" by simp
+      finally show ?thesis .
+    qed
+    have sum_eq': "(\<Sum>k\<in>((`) ?\<psi>) ` D. norm ((g \<circ> ?\<phi>) (Sup k) - (g \<circ> ?\<phi>) (Inf k)))
+      = (\<Sum>k\<in>D. norm (g (Sup k) - g (Inf k)))"
+      using sum_eq img_back by simp
+    show "\<exists>E. (\<Sum>k\<in>D. norm (g (Sup k) - g (Inf k))) = (\<Sum>k\<in>E. norm ((g \<circ> ?\<phi>) (Sup k) - (g \<circ> ?\<phi>) (Inf k)))
+      \<and> (\<exists>T. E division_of T \<and> T \<subseteq> {a..b})"
+      using sum_eq' div'' sub'' by (metis (no_types, lifting))
+  qed
+  show ?thesis
+    unfolding vector_variation_def set_variation_def using sets_eq by auto
+qed
 
-lemma path_length_subpath:
-  "path_length (subpath s t g) = vector_variation (closed_segment s t) g"
+lemma path_length_subpath_eq:
+  assumes "s \<in> {0..1}" "t \<in> {0..1}"
+    and rect: "rectifiable_path g"
+  shows "path_length (subpath s t g) = vector_variation (closed_segment s t) g"
+  using assms
 proof (cases "s \<le> t")
   case True
   then have cs: "closed_segment s t = {s..t}"
@@ -414,7 +536,15 @@ proof (cases "s \<le> t")
   proof (cases "s = t")
     case True
     then show ?thesis
-      by (simp add: subpath_def path_length_def cs vector_variation_on_null comp_def)
+    proof -
+      from \<open>s = t\<close> have cs': "closed_segment s t = {t..t}" using cs by simp
+      have "path_length (subpath t t g) = 0"
+        by (metis \<open>t \<in> {0..1}\<close> eq_iff_diff_eq_0 mult_zero_left path_length_eq_0 rect
+            rectifiable_path_subpath subpath_def)
+      moreover have "vector_variation {t..t} g = 0"
+        by (rule vector_variation_on_null) (simp add: content_real_eq_0)
+      ultimately show ?thesis using \<open>s = t\<close> cs' by simp
+    qed
   next
     case False
     with \<open>s \<le> t\<close> have "s < t" by auto
@@ -422,7 +552,7 @@ proof (cases "s \<le> t")
     have "path_length (subpath s t g) = vector_variation {0..1} (g \<circ> (\<lambda>x. (t-s)*x + s))"
       unfolding path_length_def subpath_def by (simp add: comp_def)
     also have "\<dots> = vector_variation {(t-s)*0+s..(t-s)*1+s} g"
-      using vector_variation_affine_eq[OF \<open>t - s > 0\<close> le_refl[of "0::real"]] by simp
+      using vector_variation_affine_eq[OF \<open>t - s > 0\<close> zero_le_one, where d=s and g=g] by simp
     also have "\<dots> = vector_variation {s..t} g"
       by simp
     finally show ?thesis by (simp add: cs)
@@ -437,19 +567,13 @@ next
     unfolding path_length_def subpath_def by simp
   also have "\<dots> = vector_variation {0..1} (g \<circ> (\<lambda>x. (s - t) * x + t) \<circ> (-) 1)"
     by (simp add: comp_def algebra_simps)
-  also have "\<dots> = vector_variation {0..1} ((g \<circ> (\<lambda>x. (s - t) * x + t)) \<circ> (-) 1)"
-    by (simp add: comp_assoc)
-  also have "\<dots> = vector_variation {1-1..1-0} (g \<circ> (\<lambda>x. (s - t) * x + t))"
-    using vector_variation_reflect[of 0 1 "g \<circ> (\<lambda>x. (s - t) * x + t)" 1] by simp
-  also have "\<dots> = vector_variation {0..1} (g \<circ> (\<lambda>x. (s - t) * x + t))"
-    by simp
-  also have "\<dots> = vector_variation {(s-t)*0+t..(s-t)*1+t} g"
-    using vector_variation_affine_eq[OF \<open>s - t > 0\<close> le_refl[of "0::real"]] by simp
-  also have "\<dots> = vector_variation {t..s} g"
-    by simp
-  finally show ?thesis by (simp add: cs)
+  finally
+   show ?thesis
+    using vector_variation_affine_eq[OF \<open>s - t > 0\<close> zero_le_one, where d=t and g=g]
+    by (simp add: cs vector_variation_reflect)
 qed
-  sorry
+
+lemma rectifiable_path_join:
   assumes "pathfinish g1 = pathstart g2"
   shows "rectifiable_path (g1 +++ g2) \<longleftrightarrow>
     rectifiable_path g1 \<and> rectifiable_path g2"
@@ -503,11 +627,11 @@ lemma path_length_eq_line_segment:
 section \<open>Linepath\<close>
 
 lemma rectifiable_path_linepath:
-  "rectifiable_path (linepath (a, b))"
+  "rectifiable_path (linepath a b)"
   sorry
 
 lemma path_length_linepath:
-  "path_length (linepath (a, b)) = dist a b"
+  "path_length (linepath a b) = dist a b"
   sorry
 
 section \<open>Rectifiable path image bound\<close>
