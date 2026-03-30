@@ -644,44 +644,54 @@ proof -
         have step2R: \<open>(\<Sum>K\<in>d. norm (g (K \<inter> {x. c \<le> x \<bullet> k})))
             = (\<Sum>K\<in>{l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}. norm (g (K \<inter> {x. c \<le> x \<bullet> k})))\<close>
           by (rule sum.mono_neutral_right) (auto simp: fin_d g_empty)
-        have collision: \<open>norm (g (K1 \<inter> S)) = 0\<close>
+        have collision_L: \<open>norm (g (K1 \<inter> {x. x \<bullet> k \<le> c})) = 0\<close>
           if K1d: \<open>K1 \<in> d\<close> and K2d: \<open>K2 \<in> d\<close> and neq: \<open>K1 \<noteq> K2\<close>
-            and coll: \<open>K1 \<inter> S = K2 \<inter> S\<close>
-          for K1 K2 and S :: \<open>'a set\<close>
+            and coll: \<open>K1 \<inter> {x. x \<bullet> k \<le> c} = K2 \<inter> {x. x \<bullet> k \<le> c}\<close>
+          for K1 K2
         proof -
           obtain a1 b1 where K1_eq: \<open>K1 = cbox a1 b1\<close> using division_ofD(4)[OF div K1d] by blast
-          have \<open>interior (K1 \<inter> S) \<subseteq> interior K1 \<inter> interior K2\<close>
-            using coll
-            by (metis inf.cobounded1 interior_mono le_inf_iff)
+          have eq: \<open>K1 \<inter> {x. x \<bullet> k \<le> c} = cbox a1 (\<Sum>i\<in>Basis. (if i = k then min (b1 \<bullet> k) c else b1 \<bullet> i) *\<^sub>R i)\<close>
+            using interval_split(1)[OF \<open>k \<in> Basis\<close>] K1_eq by simp
+          have \<open>interior (K1 \<inter> {x. x \<bullet> k \<le> c}) \<subseteq> interior K1 \<inter> interior K2\<close>
+            using coll by (metis inf.cobounded1 interior_mono le_inf_iff)
           also have \<open>\<dots> = {}\<close> using division_ofD(5)[OF div K1d K2d neq] .
-          finally have \<open>interior (K1 \<inter> S) = {}\<close> by blast
-          moreover have \<open>K1 \<inter> S \<subseteq> K1\<close> by blast
-          ultimately have \<open>g (K1 \<inter> S) = 0\<close>
-            using null K1_eq Int_absorb1 box_subset_cbox interior_cbox subset_empty sorry
-          then show ?thesis by simp
+          finally have \<open>box a1 (\<Sum>i\<in>Basis. (if i = k then min (b1 \<bullet> k) c else b1 \<bullet> i) *\<^sub>R i) = {}\<close>
+            using eq interior_cbox by auto
+          then show ?thesis using null eq by auto
+        qed
+        have collision_R: \<open>norm (g (K1 \<inter> {x. c \<le> x \<bullet> k})) = 0\<close>
+          if K1d: \<open>K1 \<in> d\<close> and K2d: \<open>K2 \<in> d\<close> and neq: \<open>K1 \<noteq> K2\<close>
+            and coll: \<open>K1 \<inter> {x. c \<le> x \<bullet> k} = K2 \<inter> {x. c \<le> x \<bullet> k}\<close>
+          for K1 K2
+        proof -
+          obtain a1 b1 where K1_eq: \<open>K1 = cbox a1 b1\<close> using division_ofD(4)[OF div K1d] by blast
+          have eq: \<open>K1 \<inter> {x. c \<le> x \<bullet> k} = cbox (\<Sum>i\<in>Basis. (if i = k then max (a1 \<bullet> k) c else a1 \<bullet> i) *\<^sub>R i) b1\<close>
+            using interval_split(2)[OF \<open>k \<in> Basis\<close>] K1_eq by simp
+          have \<open>interior (K1 \<inter> {x. c \<le> x \<bullet> k}) \<subseteq> interior K1 \<inter> interior K2\<close>
+            using coll by (metis inf.cobounded1 interior_mono le_inf_iff)
+          also have \<open>\<dots> = {}\<close> using division_ofD(5)[OF div K1d K2d neq] .
+          finally have \<open>box (\<Sum>i\<in>Basis. (if i = k then max (a1 \<bullet> k) c else a1 \<bullet> i) *\<^sub>R i) b1 = {}\<close>
+            using eq interior_cbox by auto
+          then show ?thesis using null eq by auto
         qed
         have fin_filt: \<open>finite {l \<in> d. l \<inter> S \<noteq> {}}\<close> for S :: \<open>'a set\<close>
           using fin_d by auto
+        have reindexL: \<open>(\<Sum>K\<in>dL. norm (g K))
+            = (\<Sum>K\<in>{l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}}. norm (g (K \<inter> {x. x \<bullet> k \<le> c})))\<close>
+          unfolding dL_def
+          using collision_L 
+          by (subst sum.reindex_nontrivial[OF fin_filt]) (auto simp: o_def) 
+        have reindexR: \<open>(\<Sum>K\<in>dR. norm (g K))
+            = (\<Sum>K\<in>{l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}. norm (g (K \<inter> {x. c \<le> x \<bullet> k})))\<close>
+          unfolding dR_def
+          using collision_R
+          by (subst sum.reindex_nontrivial[OF fin_filt]) (auto simp: o_def) 
         have step3L: \<open>(\<Sum>K\<in>{l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}}. norm (g (K \<inter> {x. x \<bullet> k \<le> c})))
             = (\<Sum>K\<in>dL. norm (g K))\<close>
-          unfolding dL_def
-        proof (subst sum.reindex_nontrivial[OF fin_filt, symmetric], unfold comp_def)
-          fix K1 K2
-          assume \<open>K1 \<in> {l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}}\<close> \<open>K2 \<in> {l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}}\<close>
-            \<open>K1 \<noteq> K2\<close> \<open>K1 \<inter> {x. x \<bullet> k \<le> c} = K2 \<inter> {x. x \<bullet> k \<le> c}\<close>
-          then show \<open>norm (g (K1 \<inter> {x. x \<bullet> k \<le> c})) = 0\<close>
-            using collision by auto
-        qed simp
+          using reindexL by simp
         have step3R: \<open>(\<Sum>K\<in>{l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}. norm (g (K \<inter> {x. c \<le> x \<bullet> k})))
             = (\<Sum>K\<in>dR. norm (g K))\<close>
-          unfolding dR_def
-        proof (subst sum.reindex_nontrivial[OF fin_filt, symmetric], unfold comp_def)
-          fix K1 K2
-          assume \<open>K1 \<in> {l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}\<close> \<open>K2 \<in> {l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}\<close>
-            \<open>K1 \<noteq> K2\<close> \<open>K1 \<inter> {x. c \<le> x \<bullet> k} = K2 \<inter> {x. c \<le> x \<bullet> k}\<close>
-          then show \<open>norm (g (K1 \<inter> {x. c \<le> x \<bullet> k})) = 0\<close>
-            using collision by auto
-        qed simp
+          using reindexR by simp
         have split_ineq: \<open>(\<Sum>k\<in>d. norm (g k)) \<le> (\<Sum>k\<in>dL. norm (g k)) + (\<Sum>k\<in>dR. norm (g k))\<close>
           using step1 step2L step2R step3L step3R by linarith
         have halves: \<open>(\<Sum>k\<in>dL. norm (g k)) + (\<Sum>k\<in>dR. norm (g k)) < e\<close>
