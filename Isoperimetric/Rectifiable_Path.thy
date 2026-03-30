@@ -236,18 +236,220 @@ qed
 
 lemma path_length_reversepath:
   "rectifiable_path g \<Longrightarrow> path_length (reversepath g) = path_length g"
-  sorry
+  unfolding path_length_def reversepath_def comp_def[symmetric]
+  using vector_variation_reflect[of 0 1 g 1] by simp
 
 lemma rectifiable_path_subpath:
   "\<lbrakk>rectifiable_path g; u \<in> {0..1}; v \<in> {0..1}\<rbrakk> \<Longrightarrow>
     rectifiable_path (subpath u v g)"
+  unfolding rectifiable_path_def subpath_def
+proof (intro conjI)
+  assume rect: "path g \<and> has_bounded_variation_on g {0..1}" and u: "u \<in> {0..1}" and v: "v \<in> {0..1}"
+  show "path (\<lambda>x. g ((v - u) * x + u))"
+    using rect u v path_subpath unfolding subpath_def by auto
+  have bv: "has_bounded_variation_on g {0..1}" using rect by auto
+  have seg: "closed_segment u v \<subseteq> {0..1}" using u v
+    by (auto simp: closed_segment_eq_real_ivl split: if_splits)
+  show "has_bounded_variation_on (\<lambda>x. g ((v - u) * x + u)) {0..1}"
+  proof (cases "u \<le> v")
+    case True
+    have mono: "mono_on {0..1} (\<lambda>x. (v - u) * x + u)"
+      using True by (auto intro!: mono_onI mult_left_mono)
+    have "has_bounded_variation_on g {u..v}"
+      using bv seg True by (auto simp: closed_segment_eq_real_ivl
+        intro: has_bounded_variation_on_subset)
+    then show ?thesis
+      using has_bounded_variation_compose_monotone(1)[of g "\<lambda>x. (v-u)*x+u" 0 1]
+        mono True by (simp add: comp_def)
+  next
+    case False
+    then have vu: "v \<le> u" by auto
+    have mono: "mono_on {0..1} (\<lambda>x. (u - v) * x + v)"
+      using vu by (auto intro!: mono_onI mult_left_mono)
+    have bvvu: "has_bounded_variation_on g {v..u}"
+      using bv seg vu
+      by (auto simp: closed_segment_eq_real_ivl split: if_splits
+        intro: has_bounded_variation_on_subset)
+    have "(\<lambda>x. g ((v - u) * x + u)) = (\<lambda>x. g ((u - v) * (1 - x) + v))"
+      by (auto simp: algebra_simps)
+    also have "\<dots> = (g \<circ> (\<lambda>x. (u-v)*x + v)) \<circ> (\<lambda>x. 1 - x)"
+      by (auto simp: comp_def)
+    finally have eq: "(\<lambda>x. g ((v - u) * x + u)) = (g \<circ> (\<lambda>x. (u-v)*x + v)) \<circ> (-) 1"
+      by (auto simp: comp_def)
+    have "has_bounded_variation_on (g \<circ> (\<lambda>x. (u-v)*x + v)) {0..1}"
+      using has_bounded_variation_compose_monotone(1)[of g "\<lambda>x. (u-v)*x+v" 0 1]
+        mono bvvu by (simp add: comp_def)
+    then have "has_bounded_variation_on (g \<circ> (\<lambda>x. (u-v)*x + v)) {1 - 1..1 - 0}"
+      by simp
+    then have "has_bounded_variation_on ((g \<circ> (\<lambda>x. (u-v)*x + v)) \<circ> (-) 1) {0..1}"
+      by (rule has_bounded_variation_on_reflect)
+    then show ?thesis
+      using eq by simp
+  qed
+qed
+
+lemma division_of_affine_image:
+  fixes c d :: real
+  assumes cpos: "c > 0" and div: "D division_of T" and sub: "T \<subseteq> {a..b}"
+  shows "((`) (\<lambda>x. c * x + d)) ` D division_of ((\<lambda>x. c * x + d) ` T)"
+    and "(\<lambda>x. c * x + d) ` T \<subseteq> {c*a+d..c*b+d}"
+proof -
+  let ?\<phi> = "\<lambda>x::real. c * x + d"
+  have inj: "inj ?\<phi>" using cpos by (intro injI) simp
+  have mono: "mono ?\<phi>" using cpos by (intro monoI) auto
+  show sub': "?\<phi> ` T \<subseteq> {c*a+d..c*b+d}"
+    using sub cpos by (auto simp: mult_left_mono)
+  show "((`) ?\<phi>) ` D division_of (?\<phi> ` T)"
+    unfolding division_of_def
+  proof (intro conjI ballI impI)
+    show "finite (((`) ?\<phi>) ` D)"
+      using division_ofD(1)[OF div] by auto
+  next
+    fix K assume "K \<in> ((`) ?\<phi>) ` D"
+    then obtain K0 where K0: "K0 \<in> D" "K = ?\<phi> ` K0" by auto
+    from division_ofD(2)[OF div K0(1)] have K0sub: "K0 \<subseteq> T" .
+    from division_ofD(3)[OF div K0(1)] have K0ne: "K0 \<noteq> {}" .
+    then show "K \<subseteq> ?\<phi> ` T" "K \<noteq> {}" using K0(2) K0sub by auto
+    from division_ofD(4)[OF div K0(1)] obtain \<alpha> \<beta> where ab: "K0 = cbox \<alpha> \<beta>" by auto
+    then have "K0 = {\<alpha>..\<beta>}" by auto
+    with K0ne have \<alpha>\<beta>: "\<alpha> \<le> \<beta>" by auto
+    have "K = ?\<phi> ` {\<alpha>..\<beta>}" using K0(2) \<open>K0 = {\<alpha>..\<beta>}\<close> by auto
+    also have "\<dots> = {c*\<alpha>+d..c*\<beta>+d}"
+    proof -
+      have "?\<phi> ` {\<alpha>..\<beta>} = {y. \<exists>x. \<alpha> \<le> x \<and> x \<le> \<beta> \<and> y = c*x+d}"
+        by (auto simp: image_def)
+      also have "\<dots> = {c*\<alpha>+d..c*\<beta>+d}"
+      proof (auto simp: mult_left_mono[OF _ less_imp_le[OF cpos]])
+        fix y assume "c * \<alpha> + d \<le> y" "y \<le> c * \<beta> + d"
+        then have "\<alpha> \<le> (y - d) / c" "((y - d) / c) \<le> \<beta>"
+          using cpos by (auto simp: field_simps)
+        moreover have "y = c * ((y - d) / c) + d" using cpos by auto
+        ultimately show "\<exists>x\<ge>\<alpha>. x \<le> \<beta> \<and> y = c * x + d" by auto
+      qed
+      finally show ?thesis .
+    qed
+    finally show "\<exists>\<alpha> \<beta>. K = cbox \<alpha> \<beta>" by (auto simp: cbox_interval)
+  next
+    fix K1 K2
+    assume "K1 \<in> ((`) ?\<phi>) ` D" "K2 \<in> ((`) ?\<phi>) ` D" "K1 \<noteq> K2"
+    then obtain K1' K2' where K1': "K1' \<in> D" "K1 = ?\<phi> ` K1'"
+      and K2': "K2' \<in> D" "K2 = ?\<phi> ` K2'" by auto
+    have "K1' \<noteq> K2'" using \<open>K1 \<noteq> K2\<close> K1'(2) K2'(2) inj_image_eq_iff[OF inj] by auto
+    then have disj: "interior K1' \<inter> interior K2' = {}"
+      using division_ofD(5)[OF div K1'(1) K2'(1)] by auto
+    show "interior K1 \<inter> interior K2 = {}"
+    proof (rule ccontr)
+      assume "interior K1 \<inter> interior K2 \<noteq> {}"
+      then obtain y where "y \<in> interior K1" "y \<in> interior K2" by auto
+      from division_ofD(4)[OF div K1'(1)] obtain a1 b1 where "K1' = cbox a1 b1" by auto
+      from division_ofD(4)[OF div K2'(1)] obtain a2 b2 where "K2' = cbox a2 b2" by auto
+      then have K1eq: "K1' = {a1..b1}" and K2eq: "K2' = {a2..b2}"
+        using \<open>K1' = cbox a1 b1\<close> by auto
+      from division_ofD(3)[OF div K1'(1)] K1eq have "a1 \<le> b1" by (auto split: if_splits)
+      from division_ofD(3)[OF div K2'(1)] K2eq have "a2 \<le> b2" by (auto split: if_splits)
+      have K1img: "K1 = {c*a1+d..c*b1+d}" 
+      proof -
+        have "K1 = ?\<phi> ` {a1..b1}" using K1'(2) K1eq by auto
+        also have "\<dots> = {c*a1+d..c*b1+d}"
+        proof safe
+          fix x assume "x \<in> {a1..b1}"
+          then show "?\<phi> x \<in> {c*a1+d..c*b1+d}" using cpos
+            by (auto intro: mult_left_mono)
+        next
+          fix y assume "y \<in> {c*a1+d..c*b1+d}"
+          then have mem: "(y-d)/c \<in> {a1..b1}" using cpos by (auto simp: field_simps)
+          moreover have "?\<phi> ((y-d)/c) = y" using cpos by (simp add: field_simps)
+          ultimately show "y \<in> ?\<phi> ` {a1..b1}" by force
+        qed
+        finally show ?thesis .
+      qed
+      have K2img: "K2 = {c*a2+d..c*b2+d}"
+      proof -
+        have "K2 = ?\<phi> ` {a2..b2}" using K2'(2) K2eq by auto
+        also have "\<dots> = {c*a2+d..c*b2+d}"
+        proof safe
+          fix x assume "x \<in> {a2..b2}"
+          then show "?\<phi> x \<in> {c*a2+d..c*b2+d}" using cpos
+            by (auto intro: mult_left_mono)
+        next
+          fix y assume "y \<in> {c*a2+d..c*b2+d}"
+          then have "(y-d)/c \<in> {a2..b2}" using cpos by (auto simp: field_simps)
+          moreover have "?\<phi> ((y-d)/c) = y" using cpos by (simp add: field_simps)
+          ultimately show "y \<in> ?\<phi> ` {a2..b2}" by force
+        qed
+        finally show ?thesis .
+      qed
+      from \<open>y \<in> interior K1\<close> K1img have "c*a1+d < y" "y < c*b1+d"
+        using \<open>a1 \<le> b1\<close> interior_atLeastAtMost_real by auto
+      then have "a1 < (y-d)/c" "(y-d)/c < b1" using cpos by (auto simp: field_simps)
+      then have "(y-d)/c \<in> interior K1'"
+        using K1eq interior_atLeastAtMost_real by auto
+      from \<open>y \<in> interior K2\<close> K2img have "c*a2+d < y" "y < c*b2+d"
+        using \<open>a2 \<le> b2\<close> interior_atLeastAtMost_real by auto
+      then have "a2 < (y-d)/c" "(y-d)/c < b2" using cpos by (auto simp: field_simps)
+      then have "(y-d)/c \<in> interior K2'"
+        using K2eq interior_atLeastAtMost_real by auto
+      with \<open>(y-d)/c \<in> interior K1'\<close> disj show False by auto
+    qed
+  next
+    have "\<Union> (((`) ?\<phi>) ` D) = ?\<phi> ` (\<Union> D)" by auto
+    also have "\<Union> D = T" using division_ofD(6)[OF div] by auto
+    finally show "\<Union> (((`) ?\<phi>) ` D) = ?\<phi> ` T" .
+  qed
+qed
+
+lemma vector_variation_affine_eq:
+  fixes g :: "real \<Rightarrow> 'a::euclidean_space" and c d :: real
+  assumes "c > 0" "a \<le> b"
+  shows "vector_variation {a..b} (g \<circ> (\<lambda>x. c * x + d)) = vector_variation {c*a+d..c*b+d} g"
   sorry
 
 lemma path_length_subpath:
   "path_length (subpath s t g) = vector_variation (closed_segment s t) g"
+proof (cases "s \<le> t")
+  case True
+  then have cs: "closed_segment s t = {s..t}"
+    by (simp add: closed_segment_eq_real_ivl)
+  show ?thesis
+  proof (cases "s = t")
+    case True
+    then show ?thesis
+      by (simp add: subpath_def path_length_def cs vector_variation_on_null comp_def)
+  next
+    case False
+    with \<open>s \<le> t\<close> have "s < t" by auto
+    then have "t - s > 0" by auto
+    have "path_length (subpath s t g) = vector_variation {0..1} (g \<circ> (\<lambda>x. (t-s)*x + s))"
+      unfolding path_length_def subpath_def by (simp add: comp_def)
+    also have "\<dots> = vector_variation {(t-s)*0+s..(t-s)*1+s} g"
+      using vector_variation_affine_eq[OF \<open>t - s > 0\<close> le_refl[of "0::real"]] by simp
+    also have "\<dots> = vector_variation {s..t} g"
+      by simp
+    finally show ?thesis by (simp add: cs)
+  qed
+next
+  case False
+  then have ts: "t < s" by auto
+  then have cs: "closed_segment s t = {t..s}"
+    by (simp add: closed_segment_eq_real_ivl)
+  have "s - t > 0" using ts by auto
+  have "path_length (subpath s t g) = vector_variation {0..1} (\<lambda>x. g ((t - s) * x + s))"
+    unfolding path_length_def subpath_def by simp
+  also have "\<dots> = vector_variation {0..1} (g \<circ> (\<lambda>x. (s - t) * x + t) \<circ> (-) 1)"
+    by (simp add: comp_def algebra_simps)
+  also have "\<dots> = vector_variation {0..1} ((g \<circ> (\<lambda>x. (s - t) * x + t)) \<circ> (-) 1)"
+    by (simp add: comp_assoc)
+  also have "\<dots> = vector_variation {1-1..1-0} (g \<circ> (\<lambda>x. (s - t) * x + t))"
+    using vector_variation_reflect[of 0 1 "g \<circ> (\<lambda>x. (s - t) * x + t)" 1] by simp
+  also have "\<dots> = vector_variation {0..1} (g \<circ> (\<lambda>x. (s - t) * x + t))"
+    by simp
+  also have "\<dots> = vector_variation {(s-t)*0+t..(s-t)*1+t} g"
+    using vector_variation_affine_eq[OF \<open>s - t > 0\<close> le_refl[of "0::real"]] by simp
+  also have "\<dots> = vector_variation {t..s} g"
+    by simp
+  finally show ?thesis by (simp add: cs)
+qed
   sorry
-
-lemma rectifiable_path_join:
   assumes "pathfinish g1 = pathstart g2"
   shows "rectifiable_path (g1 +++ g2) \<longleftrightarrow>
     rectifiable_path g1 \<and> rectifiable_path g2"

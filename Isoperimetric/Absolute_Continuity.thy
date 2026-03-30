@@ -463,6 +463,7 @@ proof -
     qed
   qed
 qed
+
 lemma absolutely_continuous_on_id:
   "absolutely_continuous_on id {a..b}"
   unfolding absolutely_continuous_on_def absolutely_setcontinuous_on_def
@@ -537,13 +538,8 @@ proof (rule continuous_on_iff[THEN iffD2], intro ballI allI impI)
         using \<delta>[OF div] sub sm by auto
       then have "norm (f hi - f lo) < \<epsilon>" using lohi by simp
       then show "dist (f y) (f x) < \<epsilon>"
-      proof (cases "x \<le> y")
-        case True then show ?thesis
-          using \<open>norm (f hi - f lo) < \<epsilon>\<close> lo_def hi_def by (simp add: dist_norm norm_minus_commute)
-      next
-        case False then show ?thesis
-          using \<open>norm (f hi - f lo) < \<epsilon>\<close> lo_def hi_def by (simp add: dist_norm norm_minus_commute)
-      qed
+        using \<open>norm (f hi - f lo) < \<epsilon>\<close> lo_def hi_def 
+        by (cases "x \<le> y") (auto simp: dist_norm norm_minus_commute)
     qed
   qed
 qed
@@ -554,13 +550,199 @@ lemma absolutely_continuous_on_imp_has_bounded_variation_on:
 proof -
   assume ac: \<open>absolutely_setcontinuous_on (\<lambda>k. f (Sup k) - f (Inf k)) {a..b}\<close>
   show \<open>has_bounded_setvariation_on (\<lambda>k. f (Sup k) - f (Inf k)) {a..b}\<close>
-    sorry
+  proof -
+    define h where \<open>h S = (if S = {} then 0 else f (Sup S) - f (Inf S))\<close> for S :: \<open>real set\<close>
+    have h_op: \<open>operative (+) 0 h\<close>
+    proof (rule operative.intro)
+      show \<open>comm_monoid_set (+) (0::'a)\<close>
+        using sum.comm_monoid_set_axioms .
+    next
+      show \<open>operative_axioms (+) 0 h\<close>
+      proof (rule operative_axioms.intro)
+        fix a' b' :: real
+        assume \<open>box a' b' = {}\<close>
+        then have \<open>a' \<ge> b'\<close> by (simp add: box_eq_empty)
+        then show \<open>h (cbox a' b') = 0\<close>
+        proof (cases \<open>a' = b'\<close>)
+          case True then show ?thesis unfolding h_def by (simp add: cbox_interval)
+        next
+          case False
+          with \<open>a' \<ge> b'\<close> have \<open>b' < a'\<close> by linarith
+          then have \<open>cbox a' b' = {}\<close> by (simp add: cbox_interval)
+          then show ?thesis unfolding h_def by simp
+        qed
+      next
+        fix a' b' c :: real and k :: real
+        assume kB: \<open>k \<in> Basis\<close>
+        then have k1: \<open>k = 1\<close> by (simp add: Basis_real_def)
+        show \<open>h (cbox a' b') = h (cbox a' b' \<inter> {x. x \<bullet> k \<le> c}) + h (cbox a' b' \<inter> {x. c \<le> x \<bullet> k})\<close>
+        proof (cases \<open>a' \<le> b'\<close>)
+          case ab: True
+          have eq1: \<open>cbox a' b' \<inter> {x. x \<bullet> k \<le> c} = {a'..min b' c}\<close>
+            using k1 ab by (auto simp: cbox_interval min_def)
+          have eq2: \<open>cbox a' b' \<inter> {x. c \<le> x \<bullet> k} = {max a' c..b'}\<close>
+            using k1 ab by (auto simp: cbox_interval max_def)
+          have whole: \<open>h (cbox a' b') = f b' - f a'\<close>
+            using ab unfolding h_def by (auto simp: cbox_interval)
+          show ?thesis
+          proof (cases \<open>c < a'\<close>)
+            case True
+            then have \<open>{a'..min b' c} = {}\<close> by auto
+            moreover have \<open>max a' c = a'\<close> using True by auto
+            ultimately show ?thesis using eq1 eq2 whole h_def by auto
+          next
+            case False
+            then have ca': \<open>a' \<le> c\<close> by linarith
+            show ?thesis
+            proof (cases \<open>b' < c\<close>)
+              case True
+              then have \<open>{max a' c..b'} = {}\<close> by auto
+              moreover have \<open>min b' c = b'\<close> using True by auto
+              ultimately show ?thesis using eq1 eq2 whole h_def by auto
+            next
+              case False
+              then have cb': \<open>c \<le> b'\<close> by linarith
+              have minv: \<open>min b' c = c\<close> using cb' by auto
+              have maxv: \<open>max a' c = c\<close> using ca' by auto
+              have left: \<open>h {a'..min b' c} = f c - f a'\<close>
+                using ca' minv unfolding h_def by auto
+              have right: \<open>h {max a' c..b'} = f b' - f c\<close>
+                using cb' maxv unfolding h_def by auto
+              show ?thesis using eq1 eq2 whole left right by auto
+            qed
+          qed
+        next
+          case False
+          then have \<open>cbox a' b' = {}\<close> by (auto simp: cbox_interval)
+          moreover have \<open>cbox a' b' \<inter> {x. x \<bullet> k \<le> c} = {}\<close> using calculation by auto
+          moreover have \<open>cbox a' b' \<inter> {x. c \<le> x \<bullet> k} = {}\<close> using calculation by auto
+          ultimately show ?thesis unfolding h_def by simp
+        qed
+      qed
+    qed
+    have h_eq: \<open>absolutely_setcontinuous_on h {a..b}\<close>
+      unfolding absolutely_setcontinuous_on_def
+    proof (intro allI impI)
+      fix \<epsilon> :: real assume \<open>\<epsilon> > 0\<close>
+      then obtain \<delta> where \<open>\<delta> > 0\<close> and \<delta>: \<open>\<And>d t. d division_of t \<Longrightarrow> t \<subseteq> {a..b} \<Longrightarrow>
+        (\<Sum>k\<in>d. content k) < \<delta> \<Longrightarrow> (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) < \<epsilon>\<close>
+        using ac[unfolded absolutely_setcontinuous_on_def] by meson
+      show \<open>\<exists>\<delta>>0. \<forall>d t. d division_of t \<and> t \<subseteq> {a..b} \<and> (\<Sum>k\<in>d. content k) < \<delta> \<longrightarrow>
+        (\<Sum>k\<in>d. norm (h k)) < \<epsilon>\<close>
+      proof (intro exI conjI allI impI)
+        show \<open>\<delta> > 0\<close> by fact
+      next
+        fix d t assume \<open>d division_of t \<and> t \<subseteq> {a..b} \<and> (\<Sum>k\<in>d. content k) < \<delta>\<close>
+        then have div: \<open>d division_of t\<close> and sub: \<open>t \<subseteq> {a..b}\<close> and sm: \<open>(\<Sum>k\<in>d. content k) < \<delta>\<close>
+          by auto
+        have \<open>(\<Sum>k\<in>d. norm (h k)) = (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k)))\<close>
+        proof (rule sum.cong)
+          show \<open>d = d\<close> ..
+        next
+          fix k assume \<open>k \<in> d\<close>
+          then have \<open>k \<noteq> {}\<close> using division_ofD(3)[OF div] by auto
+          then show \<open>norm (h k) = norm (f (Sup k) - f (Inf k))\<close>
+            unfolding h_def by auto
+        qed
+        also have \<open>\<dots> < \<epsilon>\<close> using \<delta>[OF div sub sm] .
+        finally show \<open>(\<Sum>k\<in>d. norm (h k)) < \<epsilon>\<close> .
+      qed
+    qed
+    have h_bsv: \<open>has_bounded_setvariation_on h {a..b}\<close>
+      by (rule absolutely_setcontinuous_on_imp_has_bounded_setvariation_on[OF h_op h_eq bounded_closed_interval])
+    then obtain B where B: \<open>\<And>d t. d division_of t \<Longrightarrow> t \<subseteq> {a..b} \<Longrightarrow> (\<Sum>k\<in>d. norm (h k)) \<le> B\<close>
+      unfolding has_bounded_setvariation_on_def by meson
+    show \<open>has_bounded_setvariation_on (\<lambda>k. f (Sup k) - f (Inf k)) {a..b}\<close>
+      unfolding has_bounded_setvariation_on_def
+    proof (intro exI allI impI)
+      fix d t assume \<open>d division_of t \<and> t \<subseteq> {a..b}\<close>
+      then have div: \<open>d division_of t\<close> and sub: \<open>t \<subseteq> {a..b}\<close> by auto
+      have \<open>(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) = (\<Sum>k\<in>d. norm (h k))\<close>
+      proof (rule sum.cong)
+        show \<open>d = d\<close> ..
+      next
+        fix k assume \<open>k \<in> d\<close>
+        then have \<open>k \<noteq> {}\<close> using division_ofD(3)[OF div] by auto
+        then show \<open>norm (f (Sup k) - f (Inf k)) = norm (h k)\<close>
+          unfolding h_def by auto
+      qed
+      also have \<open>\<dots> \<le> B\<close> using B[OF div sub] .
+      finally show \<open>(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> B\<close> .
+    qed
+  qed
 qed
 
 lemma Lipschitz_imp_absolutely_continuous:
   assumes "\<And>x y. x \<in> s \<Longrightarrow> y \<in> s \<Longrightarrow> norm (f x - f y) \<le> B * \<bar>x - y\<bar>"
   shows "absolutely_continuous_on f s"
-  sorry
+  unfolding absolutely_continuous_on_def absolutely_setcontinuous_on_def
+proof (intro allI impI)
+  fix \<epsilon> :: real assume "\<epsilon> > 0"
+  show "\<exists>\<delta>>0. \<forall>d t. d division_of t \<and> t \<subseteq> s \<and> (\<Sum>k\<in>d. content k) < \<delta> \<longrightarrow>
+    (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) < \<epsilon>"
+  proof (cases "B \<le> 0")
+    case True
+    show ?thesis
+    proof (intro exI conjI allI impI)
+      show "(1::real) > 0" by simp
+    next
+      fix d t assume H: "d division_of t \<and> t \<subseteq> s \<and> (\<Sum>k\<in>d. content k) < 1"
+      then have div: "d division_of t" and sub: "t \<subseteq> s" by auto
+      have "(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> (\<Sum>k\<in>d. B * \<bar>Sup k - Inf k\<bar>)"
+      proof (rule sum_mono)
+        fix k assume kd: "k \<in> d"
+        then obtain u v where uv: "k = cbox u v" using div division_ofD(4) by meson
+        have kne: "k \<noteq> {}" using kd div division_ofD(3) by blast
+        then have le: "u \<le> v" using uv by auto
+        have "k \<subseteq> t" using div division_ofD(2) kd by blast
+        then have "u \<in> s" "v \<in> s" using sub uv le by auto
+        then have "norm (f v - f u) \<le> B * \<bar>v - u\<bar>" using assms by auto
+        then show "norm (f (Sup k) - f (Inf k)) \<le> B * \<bar>Sup k - Inf k\<bar>"
+          using uv le by simp
+      qed
+      also have "\<dots> \<le> (\<Sum>k\<in>d. 0)"
+      proof (rule sum_mono)
+        fix k assume kd: "k \<in> d"
+        then obtain u v where uv: "k = cbox u v" using div division_ofD(4) by meson
+        have kne: "k \<noteq> {}" using kd div division_ofD(3) by blast
+        then have "u \<le> v" using uv by auto
+        then have "\<bar>Sup k - Inf k\<bar> \<ge> 0" using uv by simp
+        then show "B * \<bar>Sup k - Inf k\<bar> \<le> 0" using True
+          by (simp add: mult_nonpos_nonneg)
+      qed
+      also have "\<dots> = 0" by simp
+      finally show "(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) < \<epsilon>" using \<open>\<epsilon> > 0\<close> by linarith
+    qed
+  next
+    case False
+    then have Bpos: "B > 0" by linarith
+    show ?thesis
+    proof (intro exI conjI allI impI)
+      show "\<epsilon> / B > 0" using \<open>\<epsilon> > 0\<close> Bpos by simp
+    next
+      fix d t assume H: "d division_of t \<and> t \<subseteq> s \<and> (\<Sum>k\<in>d. content k) < \<epsilon> / B"
+      then have div: "d division_of t" and sub: "t \<subseteq> s"
+        and sm: "(\<Sum>k\<in>d. content k) < \<epsilon> / B" by auto
+      have "(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> (\<Sum>k\<in>d. B * content k)"
+      proof (rule sum_mono)
+        fix k assume kd: "k \<in> d"
+        then obtain u v where uv: "k = cbox u v" using div division_ofD(4) by meson
+        have kne: "k \<noteq> {}" using kd div division_ofD(3) by blast
+        then have le: "u \<le> v" using uv by auto
+        have "k \<subseteq> t" using div division_ofD(2) kd by blast
+        then have "u \<in> s" "v \<in> s" using sub uv le by auto
+        then have "norm (f v - f u) \<le> B * \<bar>v - u\<bar>" using assms by auto
+        also have "\<dots> = B * content k" using uv le by (simp add: content_real)
+        finally show "norm (f (Sup k) - f (Inf k)) \<le> B * content k"
+          using uv le by simp
+      qed
+      also have "\<dots> = B * (\<Sum>k\<in>d. content k)" by (simp add: sum_distrib_left)
+      also have "\<dots> < B * (\<epsilon> / B)" using sm Bpos by (intro mult_strict_left_mono) auto
+      also have "\<dots> = \<epsilon>" using Bpos by simp
+      finally show "(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) < \<epsilon>" .
+    qed
+  qed
+qed
 
 subsection \<open>Combining intervals\<close>
 
@@ -574,7 +756,7 @@ proof (intro allI impI)
   then obtain \<delta>1 where "\<delta>1 > 0" and \<delta>1: "\<And>d t. d division_of t \<Longrightarrow> t \<subseteq> {a..c} \<Longrightarrow>
     (\<Sum>k\<in>d. content k) < \<delta>1 \<Longrightarrow> (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) < \<epsilon>/2"
     using acL unfolding absolutely_continuous_on_def absolutely_setcontinuous_on_def
-    by (meson half_gt_zero order.strict_trans2)
+    by (metis (lifting) half_gt_zero)
   obtain \<delta>2 where "\<delta>2 > 0" and \<delta>2: "\<And>d t. d division_of t \<Longrightarrow> t \<subseteq> {c..b} \<Longrightarrow>
     (\<Sum>k\<in>d. content k) < \<delta>2 \<Longrightarrow> (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) < \<epsilon>/2"
     using acR \<open>\<epsilon> > 0\<close> unfolding absolutely_continuous_on_def absolutely_setcontinuous_on_def
@@ -659,8 +841,79 @@ proof (intro allI impI)
     \<comment> \<open>Norm sums: triangle inequality at the split point\<close>
     have norm_split: "(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) 
       \<le> (\<Sum>k\<in>dL. norm (f (Sup k) - f (Inf k))) + (\<Sum>k\<in>dR. norm (f (Sup k) - f (Inf k)))"
-      sorry
-    have "(\<Sum>k\<in>dL. content k) < \<delta>1"
+    proof -
+      define gL where "gL k = norm (f (Sup (k \<inter> {a..c})) - f (Inf (k \<inter> {a..c})))" for k
+      define gR where "gR k = norm (f (Sup (k \<inter> {c..b})) - f (Inf (k \<inter> {c..b})))" for k
+      have fin_dL: "finite dL" using dL_div by auto
+      have fin_dR: "finite dR" using dR_div by auto
+          \<comment> \<open>Per-element bound via triangle inequality at c\<close>
+      have per_k: "norm (f (Sup k) - f (Inf k)) \<le> gL k + gR k"
+        if kd: "k \<in> d" for k
+      proof -
+        obtain u v where kuv: "k = cbox u v" using div division_ofD(4) kd by meson
+        have kne: "k \<noteq> {}" using div division_ofD(3) kd by blast
+        then have uv: "u \<le> v" using kuv by auto
+        have ksub: "k \<subseteq> {a..b}" using div division_ofD(2) kd sub by blast
+        then have ua: "a \<le> u" and vb: "v \<le> b" using kuv uv by auto
+        have kL: "k \<inter> {a..c} = cbox u (min v c)" using kuv ua by (auto simp: box_real Int_interval)
+        have kR: "k \<inter> {c..b} = cbox (max u c) v" using kuv vb by (auto simp: box_real Int_interval)
+        show ?thesis
+        proof (cases "u \<le> c")
+          case uc: True
+          show ?thesis
+          proof (cases "c \<le> v")
+            case cv: True
+              \<comment> \<open>k straddles c: use triangle inequality f(v)-f(u) = (f(min v c)-f(u)) + (f(v)-f(max u c))\<close>
+            have kL_ne: "k \<inter> {a..c} \<noteq> {}" using kL uc uv by auto
+            have kR_ne: "k \<inter> {c..b} \<noteq> {}" using kR cv uv by auto
+            have sup_kL: "Sup (k \<inter> {a..c}) = min v c" using kL kL_ne by auto
+            have inf_kL: "Inf (k \<inter> {a..c}) = u" using kL kL_ne by auto
+            have sup_kR: "Sup (k \<inter> {c..b}) = v" using kR kR_ne by auto
+            have inf_kR: "Inf (k \<inter> {c..b}) = max u c" using kR kR_ne by auto
+            have "min v c = c" using cv by auto
+            moreover have "max u c = c" using uc by auto
+            ultimately have "f (Sup k) - f (Inf k) = 
+              (f (Sup (k \<inter> {a..c})) - f (Inf (k \<inter> {a..c}))) + (f (Sup (k \<inter> {c..b})) - f (Inf (k \<inter> {c..b})))"
+              using sup_kL inf_kL sup_kR inf_kR kuv uv by auto
+            then have "norm (f (Sup k) - f (Inf k)) \<le> 
+              norm (f (Sup (k \<inter> {a..c})) - f (Inf (k \<inter> {a..c}))) + norm (f (Sup (k \<inter> {c..b})) - f (Inf (k \<inter> {c..b})))"
+              using norm_triangle_ineq by metis
+            then show ?thesis unfolding gL_def gR_def .
+          next
+            case vc: False
+              \<comment> \<open>k entirely left of c\<close>
+            then have "v < c" by auto
+            then have "k \<inter> {a..c} = k" using kuv ua by (auto simp: box_real)
+            moreover have "k \<inter> {c..b} = {}" using kuv \<open>v < c\<close> by (auto simp: box_real)
+            ultimately show ?thesis unfolding gL_def gR_def by simp
+          qed
+        next
+          case uc: False
+            \<comment> \<open>k entirely right of c (u > c)\<close>
+          then have "u > c" by auto
+          then have "k \<inter> {a..c} = {}" using kuv by (auto simp: box_real)
+          moreover have "k \<inter> {c..b} = k" using kuv \<open>u > c\<close> vb by (auto simp: box_real)
+          ultimately show ?thesis unfolding gL_def gR_def by simp
+        qed
+      qed
+        \<comment> \<open>Sum the per-element bounds\<close>
+      have "(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> (\<Sum>k\<in>d. gL k + gR k)"
+        using per_k by (intro sum_mono) auto
+      also have "\<dots> = (\<Sum>k\<in>d. gL k) + (\<Sum>k\<in>d. gR k)"
+        by (rule sum.distrib)
+      also have "(\<Sum>k\<in>d. gL k) \<le> (\<Sum>k\<in>dL. norm (f (Sup k) - f (Inf k)))"
+      proof (rule sum_le_included[where i="\<lambda>k. k \<inter> {a..c}"])
+        show "finite d" using fin .
+        show "finite dL" using fin_dL .
+        show "\<forall>y\<in>dL. 0 \<le> norm (f (Sup y) - f (Inf y))" by simp
+        show "\<forall>x\<in>d. \<exists>y\<in>dL. y \<inter> {a..c} = x \<and> gL x \<le> norm (f (Sup y) - f (Inf y))"
+        proof
+          fix k assume kd: "k \<in> d"
+          show "\<exists>y\<in>dL. y \<inter> {a..c} = k \<and> gL k \<le> norm (f (Sup y) - f (Inf y))"
+            sorry
+        qed
+      qed
+      have "(\<Sum>k\<in>dL. content k) < \<delta>1"
       using content_L sm \<delta>_def by linarith
     then have L_bd: "(\<Sum>k\<in>dL. norm (f (Sup k) - f (Inf k))) < \<epsilon>/2"
       using \<delta>1[OF dL_div dL_sub] by auto
