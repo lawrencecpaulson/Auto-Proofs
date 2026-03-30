@@ -23,6 +23,144 @@ definition absolutely_setcontinuous_on ::
     (\<forall>\<epsilon>>0. \<exists>\<delta>>0. \<forall>d t. d division_of t \<and> t \<subseteq> s \<and>
       (\<Sum>k\<in>d. content k) < \<delta> \<longrightarrow> (\<Sum>k\<in>d. norm (f k)) < \<epsilon>)"
 
+lemma absolutely_setcontinuous_on_imp_has_bounded_setvariation_on:
+  fixes f :: "real set \<Rightarrow> 'a::euclidean_space"
+  assumes "operative (+) 0 f"
+    "absolutely_setcontinuous_on f s"
+    "bounded s"
+  shows "has_bounded_setvariation_on f s"
+proof -
+  from assms(2)[unfolded absolutely_setcontinuous_on_def, rule_format, OF zero_less_one]
+  obtain r where r_pos: \<open>r > 0\<close>
+    and r_bound: \<open>\<And>d t. d division_of t \<Longrightarrow> t \<subseteq> s \<Longrightarrow> (\<Sum>k\<in>d. content k) < r \<Longrightarrow> (\<Sum>k\<in>d. norm (f k)) < 1\<close>
+    by meson
+  from \<open>bounded s\<close> obtain a :: real where s_sub: \<open>s \<subseteq> cbox (-a) a\<close>
+    using bounded_subset_cbox_symmetric by blast
+  define \<delta> where \<open>\<delta> = min r 1 / 3\<close>
+  have \<delta>_pos: \<open>\<delta> > 0\<close> unfolding \<delta>_def using r_pos by auto
+  obtain p where p_div: \<open>p tagged_division_of {-a..a}\<close> and p_fine: \<open>(\<lambda>x. ball x \<delta>) fine p\<close>
+    using fine_division_exists_real[OF gauge_ball[OF \<delta>_pos]] by blast
+  define D where \<open>D \<equiv> snd ` p\<close>
+  have D_div: \<open>D division_of {-a..a}\<close>
+    unfolding D_def using division_of_tagged_division[OF p_div] by simp
+  have "(\<Sum>k\<in>d. norm (f k)) \<le> card D * 1"
+    if div: "d division_of t" and sub: "t \<subseteq> s" for d t
+  proof -
+    have t_sub: "t \<subseteq> cbox (-a) a"
+      using sub s_sub by auto
+    \<comment> \<open>First inequality: pointwise bound via operative splitting\<close>
+    have step1: "(\<Sum>k\<in>d. norm (f k)) \<le> (\<Sum>k\<in>d. \<Sum>l\<in>D. norm (f (k \<inter> l)))"
+    proof (rule sum_mono)
+      fix k assume kd: "k \<in> d"
+      then obtain c' d' where k_eq: "k = cbox c' d'"
+        using division_ofD(4)[OF div] by blast
+      have k_ne: "k \<noteq> {}"
+        using division_ofD(3)[OF div kd] by auto
+      have k_sub: "k \<subseteq> cbox (-a) a"
+        using division_ofD(2)[OF div kd] t_sub by auto
+      \<comment> \<open>The intersections @{term \<open>{k \<inter> l | l. l \<in> D \<and> k \<inter> l \<noteq> {}}\<close>} form a division of @{term k}\<close>
+      have k_div_self: "{cbox c' d'} division_of cbox c' d'"
+        by (metis k_ne k_eq division_of_self)
+      have inter_div: "{k1 \<inter> k2 |k1 k2. k1 \<in> {cbox c' d'} \<and> k2 \<in> D \<and> k1 \<inter> k2 \<noteq> {}}
+                       division_of (cbox c' d' \<inter> cbox (-a) a)"
+        using division_inter[OF k_div_self D_div] by auto
+      have k_inter: "cbox c' d' \<inter> cbox (-a) a = cbox c' d'"
+        using k_sub k_eq by blast
+      then have E_div: "{cbox c' d' \<inter> l |l. l \<in> D \<and> cbox c' d' \<inter> l \<noteq> {}}
+                        division_of cbox c' d'"
+        using inter_div by auto
+      \<comment> \<open>By operativity, @{term \<open>f k\<close>} equals the sum of @{term f} over the division\<close>
+      have f_split: "sum f {cbox c' d' \<inter> l |l. l \<in> D \<and> cbox c' d' \<inter> l \<noteq> {}} = f (cbox c' d')"
+        using operative.division[OF assms(1) E_div] by (simp add: sum_def)
+      \<comment> \<open>Triangle inequality\<close>
+      have step_eq: "norm (f k) = norm (sum f {cbox c' d' \<inter> l |l. l \<in> D \<and> cbox c' d' \<inter> l \<noteq> {}})"
+        by (metis f_split k_eq)
+      have step_tri: "norm (sum f {cbox c' d' \<inter> l |l. l \<in> D \<and> cbox c' d' \<inter> l \<noteq> {}})
+                     \<le> (\<Sum>j\<in>{cbox c' d' \<inter> l |l. l \<in> D \<and> cbox c' d' \<inter> l \<noteq> {}}. norm (f j))"
+        by (rule norm_sum)
+      \<comment> \<open>Extend the sum from the image to all of @{term D} via @{thm sum_image_le}\<close>
+      have step_img: "(\<Sum>j\<in>{cbox c' d' \<inter> l |l. l \<in> D \<and> cbox c' d' \<inter> l \<noteq> {}}. norm (f j))
+                     \<le> (\<Sum>l\<in>{l \<in> D. cbox c' d' \<inter> l \<noteq> {}}. norm (f (cbox c' d' \<inter> l)))"
+      proof -
+        have finD: "finite D" using division_ofD(1)[OF D_div] by auto
+        then have fin: "finite {l \<in> D. cbox c' d' \<inter> l \<noteq> {}}" by auto
+        have eq: "(\<lambda>l. cbox c' d' \<inter> l) ` {l \<in> D. cbox c' d' \<inter> l \<noteq> {}}
+                 = {cbox c' d' \<inter> l |l. l \<in> D \<and> cbox c' d' \<inter> l \<noteq> {}}"
+          by auto
+        show ?thesis unfolding eq[symmetric]
+          by (intro order_trans[OF sum_image_le[OF fin]]) (auto simp: o_def)
+      qed
+      have step_ext: "(\<Sum>l\<in>{l \<in> D. cbox c' d' \<inter> l \<noteq> {}}. norm (f (cbox c' d' \<inter> l)))
+                     \<le> (\<Sum>l\<in>D. norm (f (cbox c' d' \<inter> l)))"
+        by (rule sum_mono2[OF division_ofD(1)[OF D_div]]) auto
+      have step_rw: "(\<Sum>l\<in>D. norm (f (cbox c' d' \<inter> l))) = (\<Sum>l\<in>D. norm (f (k \<inter> l)))"
+        by (simp add: k_eq)
+      show "norm (f k) \<le> (\<Sum>l\<in>D. norm (f (k \<inter> l)))"
+        using step_eq step_tri step_img step_ext step_rw by linarith
+    qed
+    \<comment> \<open>Second inequality: swap sums and bound each inner sum by 1\<close>
+    also have "(\<Sum>k\<in>d. \<Sum>l\<in>D. norm (f (k \<inter> l))) = (\<Sum>l\<in>D. \<Sum>k\<in>d. norm (f (k \<inter> l)))"
+      by (rule sum.swap)
+    also have "\<dots> \<le> card D * 1"
+    proof -
+      have "(\<Sum>l\<in>D. \<Sum>k\<in>d. norm (f (k \<inter> l))) \<le> of_nat (card D) * 1"
+      proof (rule sum_bounded_above)
+        fix l assume lD: "l \<in> D"
+        then obtain u v where luv: \<open>l = {u..v}\<close> and \<open>{u..v} \<in> D\<close> \<open>{u..v} \<noteq> {}\<close>
+          by (metis D_div cbox_division_memE cbox_interval)
+        define d' where \<open>d' \<equiv> {k1 \<inter> {u..v} |k1. k1 \<in> d \<and> k1 \<inter> {u..v} \<noteq> {}}\<close>
+        have \<open>d' division_of t \<inter> {u..v}\<close>
+        proof -
+          have \<open>{u..v} = cbox u v\<close> by (simp add: cbox_interval)
+          then have \<open>{{u..v}} division_of {u..v}\<close>
+            using \<open>{u..v} \<noteq> {}\<close> division_of_self by metis
+          from division_inter[OF div this]
+          have \<open>{k1 \<inter> k2 |k1 k2. k1 \<in> d \<and> k2 \<in> {{u..v}} \<and> k1 \<inter> k2 \<noteq> {}} division_of t \<inter> {u..v}\<close> .
+          moreover have \<open>{k1 \<inter> k2 |k1 k2. k1 \<in> d \<and> k2 \<in> {{u..v}} \<and> k1 \<inter> k2 \<noteq> {}} = d'\<close>
+            unfolding d'_def by auto
+          ultimately show ?thesis by simp
+        qed
+
+        moreover have \<open>t \<inter> {u..v} \<subseteq> s\<close>
+          using sub by auto
+        moreover have \<open>sum content d' < r\<close>
+        proof -
+          have content_bound: \<open>sum content d' \<le> content (cbox u v)\<close>
+            using subadditive_content_division[OF \<open>d' division_of t \<inter> {u..v}\<close>] by auto
+          obtain x where \<open>(x, {u..v}) \<in> p\<close>
+            using \<open>{u..v} \<in> D\<close> unfolding D_def by auto
+          then have \<open>{u..v} \<subseteq> ball x \<delta>\<close>
+            using fineD[OF p_fine] by auto
+          then have uv_in: \<open>u \<in> ball x \<delta>\<close> \<open>v \<in> ball x \<delta>\<close>
+            using \<open>{u..v} \<noteq> {}\<close> by auto
+          have \<open>u \<le> v\<close> using \<open>{u..v} \<noteq> {}\<close> by auto
+          have \<open>content (cbox u v) < r\<close>
+          proof -
+            from uv_in have \<open>dist x u < \<delta>\<close> \<open>dist x v < \<delta>\<close> by auto
+            then have \<open>v - u < 2 * \<delta>\<close>
+              by (auto simp: dist_real_def)
+            also have \<open>\<dots> \<le> 2 * (r / 3)\<close>
+              unfolding \<delta>_def by (auto simp: min_def)
+            also have \<open>\<dots> < r\<close> using r_pos by auto
+            finally show ?thesis
+              using \<open>u \<le> v\<close> by (simp add: cbox_interval content_real)
+          qed
+          then show ?thesis using content_bound by linarith
+        qed
+        ultimately
+        have \<open>(\<Sum>k\<in>d'. norm (f k)) < 1\<close>
+          using r_bound by presburger
+        show "(\<Sum>k\<in>d. norm (f (k \<inter> l))) \<le> 1"
+          sorry
+      qed
+      then show ?thesis by simp
+    qed
+    finally show ?thesis .
+  qed
+  then show ?thesis
+    using has_bounded_setvariation_on_def by blast
+qed
+
 section \<open>Absolute continuity for functions\<close>
 
 definition absolutely_continuous_on ::
