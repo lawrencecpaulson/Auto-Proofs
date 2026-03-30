@@ -602,22 +602,97 @@ lemma lipschitz_imp_rectifiable_path:
   assumes "\<And>x y. x \<in> {0..1} \<Longrightarrow> y \<in> {0..1} \<Longrightarrow>
     norm (g x - g y) \<le> B * norm (x - y)"
   shows "rectifiable_path g"
-  sorry
+  unfolding rectifiable_path_def
+proof
+  show "path g"
+    unfolding path_def
+  proof (rule continuous_onI)
+    fix x e :: real assume "x \<in> {0..1}" "e > 0"
+    define d where "d = (if B \<le> 0 then 1 else e / B)"
+    have "d > 0" using \<open>e > 0\<close> unfolding d_def by (auto simp: field_simps)
+    moreover have "\<And>x'. x' \<in> {0..1} \<Longrightarrow> dist x' x < d \<Longrightarrow> dist (g x') (g x) < e"
+    proof -
+      fix x' assume "x' \<in> {0..1}" "dist x' x < d"
+      have "dist (g x') (g x) = norm (g x' - g x)" by (simp add: dist_norm)
+      also have "\<dots> \<le> B * norm (x' - x)" using assms[OF \<open>x' \<in> {0..1}\<close> \<open>x \<in> {0..1}\<close>] .
+      also have "\<dots> \<le> B * dist x' x" by (simp add: dist_norm)
+      also have "\<dots> < e"
+      proof (cases "B \<le> 0")
+        case True
+        then have "B * dist x' x \<le> 0" by (simp add: mult_nonpos_nonneg)
+        also have "0 < e" using \<open>e > 0\<close> .
+        finally show ?thesis .
+      next
+        case False
+        then have "B > 0" by auto
+        then have "B * dist x' x < B * d"
+          using \<open>dist x' x < d\<close> by auto
+        also have "\<dots> = e" using \<open>B > 0\<close> unfolding d_def by auto
+        finally show ?thesis .
+      qed
+      finally show "dist (g x') (g x) < e" .
+    qed
+    ultimately show "\<exists>d>0. \<forall>x'\<in>{0..1}. dist x' x < d \<longrightarrow> dist (g x') (g x) \<le> e"
+      using less_le_not_le by blast 
+  qed
+next
+  show "has_bounded_variation_on g {0..1}"
+    using Lipschitz_imp_has_bounded_variation[of "{0..1}" g B] assms
+    by auto
+qed
 
 lemma path_length_lipschitz:
   assumes "\<And>x y. x \<in> {0..1} \<Longrightarrow> y \<in> {0..1} \<Longrightarrow>
     norm (g x - g y) \<le> B * norm (x - y)"
   shows "path_length g \<le> B"
-  sorry
+  unfolding path_length_def
+proof (rule has_bounded_variation_works(2)[OF Lipschitz_imp_has_bounded_variation[of "{0..1}" g B]])
+  fix d t assume dt: "d division_of t" "t \<subseteq> {(0::real)..1}"
+  have "(\<Sum>k\<in>d. norm (g (Sup k) - g (Inf k))) \<le> (\<Sum>k\<in>d. B * content k)"
+  proof (rule sum_mono)
+    fix k assume kd: "k \<in> d"
+    from division_ofD(2,3,4)[OF dt(1) kd] obtain l u where
+      k_eq: "k = cbox l u" and ksub: "k \<subseteq> t" and kne: "k \<noteq> {}" by auto
+    then have lu: "l \<le> u" by fastforce
+    have ls: "l \<in> {0..1}" and us: "u \<in> {0..1}"
+      using ksub dt(2) lu k_eq by (auto simp: cbox_interval)
+    have "norm (g (Sup k) - g (Inf k)) = norm (g u - g l)"
+      using lu k_eq by (simp add: cbox_interval)
+    also have "\<dots> \<le> B * norm (u - l)"
+      using assms[OF us ls] by (simp add: norm_minus_commute)
+    also have "\<dots> = B * (u - l)" using lu by (simp add: real_norm_def)
+    also have "\<dots> = B * content k"
+      using lu k_eq by (simp add: cbox_interval)
+    finally show "norm (g (Sup k) - g (Inf k)) \<le> B * content k" .
+  qed
+  also have "\<dots> = B * (\<Sum>k\<in>d. content k)" by (simp add: sum_distrib_left)
+  also have "\<dots> \<le> B * 1"
+  proof (intro mult_left_mono)
+    have "(\<Sum>k\<in>d. content k) \<le> content (cbox 0 1)"
+      using subadditive_content_division[OF dt(1)] dt(2) by (simp add: cbox_interval)
+    then show "(\<Sum>k\<in>d. content k) \<le> 1" by simp
+  next
+    have "0 \<le> norm (g 0 - g 0)" by simp
+    also have "\<dots> \<le> B * norm ((0::real) - 0)" using assms by auto
+    finally show "0 \<le> B" by simp
+  qed
+  finally show "(\<Sum>k\<in>d. norm (g (Sup k) - g (Inf k))) \<le> B" by simp
+next
+  show "bounded {0..1::real}" by simp
+  show "\<And>x y. x \<in> {0..1} \<Longrightarrow> y \<in> {0..1} \<Longrightarrow> norm (g x - g y) \<le> B * norm (x - y)"
+    using assms by auto
+qed
 
 lemma dist_points_le_path_length:
   "\<lbrakk>rectifiable_path g; a \<in> {0..1}; b \<in> {0..1}\<rbrakk> \<Longrightarrow>
     dist (g a) (g b) \<le> path_length g"
-  sorry
+  unfolding rectifiable_path_def path_length_def dist_norm
+  using vector_variation_ge_norm_function by auto
 
 lemma dist_endpoints_le_path_length:
   "rectifiable_path g \<Longrightarrow> dist (pathstart g) (pathfinish g) \<le> path_length g"
-  sorry
+  using dist_points_le_path_length[of g 0 1]
+  by (simp add: pathstart_def pathfinish_def)
 
 lemma path_length_eq_line_segment:
   "\<lbrakk>rectifiable_path g; path_length g = dist (pathstart g) (pathfinish g)\<rbrakk> \<Longrightarrow>
@@ -628,18 +703,59 @@ section \<open>Linepath\<close>
 
 lemma rectifiable_path_linepath:
   "rectifiable_path (linepath a b)"
-  sorry
+proof (rule lipschitz_imp_rectifiable_path[where B="dist a b"])
+  fix x y :: real assume "x \<in> {0..1}" "y \<in> {0..1}"
+  have "linepath a b x - linepath a b y = (x - y) *\<^sub>R (b - a)"
+    by (simp add: linepath_def algebra_simps)
+  then have "norm (linepath a b x - linepath a b y) = \<bar>x - y\<bar> * norm (b - a)"
+    by simp
+  also have "\<dots> = norm (b - a) * norm (x - y)"
+    by (simp add: abs_real_def real_norm_def mult.commute)
+  also have "\<dots> = dist a b * norm (x - y)"
+    by (simp add: dist_norm norm_minus_commute)
+  finally show "norm (linepath a b x - linepath a b y) \<le> dist a b * norm (x - y)"
+    by simp
+qed
 
 lemma path_length_linepath:
   "path_length (linepath a b) = dist a b"
-  sorry
+proof (rule antisym)
+  show "path_length (linepath a b) \<le> dist a b"
+  proof (rule path_length_lipschitz)
+    fix x y :: real assume "x \<in> {0..1}" "y \<in> {0..1}"
+    have "linepath a b x - linepath a b y = (x - y) *\<^sub>R (b - a)"
+      by (simp add: linepath_def algebra_simps)
+    then have "norm (linepath a b x - linepath a b y) = \<bar>x - y\<bar> * norm (b - a)"
+      by simp
+    also have "\<dots> = dist a b * norm (x - y)"
+      by (simp add: dist_norm norm_minus_commute abs_real_def real_norm_def mult.commute)
+    finally show "norm (linepath a b x - linepath a b y) \<le> dist a b * norm (x - y)"
+      by simp
+  qed
+next
+  have "dist a b = dist (pathstart (linepath a b)) (pathfinish (linepath a b))"
+    by (simp add: pathstart_def pathfinish_def linepath_def dist_norm)
+  also have "\<dots> \<le> path_length (linepath a b)"
+    by (rule dist_endpoints_le_path_length[OF rectifiable_path_linepath])
+  finally show "dist a b \<le> path_length (linepath a b)" .
+qed
 
 section \<open>Rectifiable path image bound\<close>
 
 lemma rectifiable_path_image_subset_cball:
-  "rectifiable_path g \<Longrightarrow>
-    path_image g \<subseteq> cball (pathstart g) (path_length g)"
-  sorry
+  assumes "rectifiable_path g"
+  shows "path_image g \<subseteq> cball (pathstart g) (path_length g)"
+proof
+  fix x assume "x \<in> path_image g"
+  then obtain t where t: "t \<in> {0..1}" "x = g t"
+    unfolding path_image_def by auto
+  have "dist (pathstart g) x = dist (g 0) (g t)"
+    by (simp add: t(2) pathstart_def)
+  also have "\<dots> \<le> path_length g"
+    using dist_points_le_path_length[OF assms _ t(1)] by simp
+  finally show "x \<in> cball (pathstart g) (path_length g)"
+    by (simp add: mem_cball)
+qed
 
 section \<open>Absolutely continuous paths\<close>
 

@@ -18,10 +18,15 @@ text \<open>
 section \<open>Absolute set-continuity\<close>
 
 definition absolutely_setcontinuous_on ::
-  "(real set \<Rightarrow> 'a::euclidean_space) \<Rightarrow> real set \<Rightarrow> bool" where
+  "('a::euclidean_space set \<Rightarrow> 'b::euclidean_space) \<Rightarrow> 'a set \<Rightarrow> bool" where
   "absolutely_setcontinuous_on f s \<longleftrightarrow>
     (\<forall>\<epsilon>>0. \<exists>\<delta>>0. \<forall>d t. d division_of t \<and> t \<subseteq> s \<and>
       (\<Sum>k\<in>d. content k) < \<delta> \<longrightarrow> (\<Sum>k\<in>d. norm (f k)) < \<epsilon>)"
+
+lemma absolutely_setcontinuous_on_subset:
+  assumes \<open>absolutely_setcontinuous_on f s\<close> \<open>t \<subseteq> s\<close>
+  shows \<open>absolutely_setcontinuous_on f t\<close>
+  using assms unfolding absolutely_setcontinuous_on_def by (meson order_trans)
 
 lemma absolutely_setcontinuous_on_imp_has_bounded_setvariation_on:
   fixes f :: "real set \<Rightarrow> 'a::euclidean_space"
@@ -554,10 +559,37 @@ next
 qed
 
 lemma operative_absolutely_setcontinuous_on:
-  fixes g :: \<open>real set \<Rightarrow> 'a::euclidean_space\<close>
+  fixes g :: \<open>'a::euclidean_space set \<Rightarrow> 'b::euclidean_space\<close>
   assumes \<open>operative (+) 0 g\<close>
   shows \<open>operative (\<and>) True (absolutely_setcontinuous_on g)\<close>
-  sorry
+proof -
+  note null = operative.box_empty_imp[OF assms]
+  note split = operative.Basis_imp[OF assms, symmetric]
+  show ?thesis
+  proof (intro operative.intro comm_monoid_set_and operative_axioms.intro iffI)
+    show \<open>absolutely_setcontinuous_on g (cbox a b)\<close> if \<open>box a b = {}\<close> for a b
+    proof -
+      have \<open>g k = 0\<close> if kd: \<open>k \<in> d\<close> and div: \<open>d division_of t\<close> and sub: \<open>t \<subseteq> cbox a b\<close> for k d t
+      proof -
+        obtain a' b' where kab: \<open>k = cbox a' b'\<close> using division_ofD(4)[OF div kd] by auto
+        have \<open>box a' b' = {}\<close>
+          using division_ofD(2)[OF div kd] sub \<open>box a b = {}\<close>
+          by (metis bot.extremum_uniqueI interior_cbox interior_mono kab)
+        then show ?thesis using null kab by auto
+      qed
+      then show ?thesis using that
+        unfolding absolutely_setcontinuous_on_def
+        by (intro iffI TrueI allI impI exI[of _ 1]) (auto simp: division_ofD(1))
+    qed
+  next
+    fix a b c and k::'a
+    assume \<open>k \<in> Basis\<close>
+    assume \<open>absolutely_setcontinuous_on g (cbox a b \<inter> {x. x \<bullet> k \<le> c}) \<and>
+            absolutely_setcontinuous_on g (cbox a b \<inter> {x. c \<le> x \<bullet> k})\<close>
+    show \<open>absolutely_setcontinuous_on g (cbox a b)\<close>
+      sorry
+  qed (use absolutely_setcontinuous_on_subset in fastforce)+
+qed
 
 lemma operative_absolutely_continuous_on:
   fixes f :: \<open>real \<Rightarrow> 'a::euclidean_space\<close>
@@ -573,7 +605,8 @@ proof -
     if div: \<open>d division_of t\<close> for d t
     by (intro sum.cong refl arg_cong[where f=norm] h_eq) (use division_ofD(3)[OF div] in auto)
   have ac_eq: \<open>absolutely_setcontinuous_on h s = absolutely_setcontinuous_on (\<lambda>k. f (Sup k) - f (Inf k)) s\<close> for s
-    unfolding absolutely_setcontinuous_on_def by (metis sum_eq)
+    unfolding absolutely_setcontinuous_on_def
+    by (metis (lifting) local.sum_eq)
   show ?thesis
     using op_ac_h unfolding absolutely_continuous_on_def ac_eq .
 qed
