@@ -587,7 +587,7 @@ proof -
       fix k assume "k \<in> d"
       then have "k \<subseteq> t" "k \<noteq> {}" "\<exists>a b. k = cbox a b"
         using division_ofD(2,3,4)[OF dt(1)] by auto
-      then obtain a b where "k = cbox a b" "a \<le> b" by (auto simp: cbox_interval) force
+      then obtain a b where "k = cbox a b" "a \<le> b" by fastforce
       then have "Inf k \<in> k" "Sup k \<in> k" by auto
       then have "Inf k \<in> s" "Sup k \<in> s" using \<open>k \<subseteq> t\<close> dt(2) by auto
       then show "norm (f (Sup k) - f (Inf k)) = norm (g (Sup k) - g (Inf k))"
@@ -595,7 +595,7 @@ proof -
     qed
   qed
   then show ?thesis
-    unfolding has_bounded_variation_on_def has_bounded_setvariation_on_def by auto
+    unfolding has_bounded_variation_on_def has_bounded_setvariation_on_def by (metis (lifting))
 qed
 
 lemma has_bounded_variation_on_affine_iff:
@@ -613,13 +613,14 @@ next
   assume bv: "has_bounded_variation_on (g \<circ> (\<lambda>x. c * x + d)) {a..b}"
   let ?inv = "\<lambda>x. (x - d) / c"
   have inv_mono: "mono_on {c*a+d..c*b+d} ?inv"
-    using assms(1) by (auto intro!: mono_onI divide_left_mono mult_pos_pos)
+    using assms(1) by (smt (verit, ccfv_SIG) divide_less_cancel monotone_on_def)
   have inv_a: "?inv (c*a+d) = a" and inv_b: "?inv (c*b+d) = b"
     using assms(1) by (auto simp: field_simps)
   have comp_eq: "(g \<circ> (\<lambda>x. c * x + d)) \<circ> ?inv = g"
     using assms(1) by (auto simp: comp_def field_simps)
   have "has_bounded_variation_on ((g \<circ> (\<lambda>x. c * x + d)) \<circ> ?inv) {c*a+d..c*b+d}"
-    using has_bounded_variation_compose_monotone(1)[OF bv[folded inv_a inv_b] inv_mono] .
+    by (metis (lifting) bv has_bounded_variation_compose_monotone(1) inv_a inv_b
+        inv_mono)
   then show "has_bounded_variation_on g {c*a+d..c*b+d}"
     by (simp add: comp_eq)
 qed
@@ -641,7 +642,7 @@ proof -
     proof
       assume "x = 1/2"
       then show ?thesis
-        using assms by (simp add: joinpaths_def pathfinish_def pathstart_def comp_def)
+        using assms by (simp add: joinpaths_def mult.commute pathfinish_def pathstart_def)
     next
       assume "x > 1/2"
       then show ?thesis by (auto simp: joinpaths_def comp_def)
@@ -655,7 +656,7 @@ proof -
       has_bounded_variation_on (g1 \<circ> (\<lambda>x. 2 * x)) {0..1/2}"
       by (rule has_bounded_variation_on_cong[OF eq1])
     also have "\<dots> \<longleftrightarrow> has_bounded_variation_on g1 {2*0+0..2*(1/2)+0}"
-      by (rule has_bounded_variation_on_affine_iff) auto
+      using has_bounded_variation_on_affine_iff [of 2 0 \<open>1/2\<close> _ 0] by force
     also have "{2*0+(0::real)..2*(1/2)+0} = {0..1}" by auto
     finally show ?thesis .
   qed
