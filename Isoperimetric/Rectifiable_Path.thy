@@ -2,6 +2,7 @@ theory Rectifiable_Path
   imports Absolute_Continuity
 begin
 
+
 text \<open>
   Rectifiable paths and arc length, following HOL Light's
   @{text "Multivariate/integration.ml"} (lines 23827--25750).
@@ -573,11 +574,109 @@ next
     by (simp add: cs vector_variation_reflect)
 qed
 
+lemma has_bounded_variation_on_cong:
+  assumes "\<And>x. x \<in> s \<Longrightarrow> f x = g x"
+  shows "has_bounded_variation_on f s \<longleftrightarrow> has_bounded_variation_on g s"
+proof -
+  have "\<And>d t. d division_of t \<Longrightarrow> t \<subseteq> s \<Longrightarrow>
+    (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) = (\<Sum>k\<in>d. norm (g (Sup k) - g (Inf k)))"
+  proof -
+    fix d t assume dt: "d division_of t" "t \<subseteq> s"
+    show "(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) = (\<Sum>k\<in>d. norm (g (Sup k) - g (Inf k)))"
+    proof (rule sum.cong[OF refl])
+      fix k assume "k \<in> d"
+      then have "k \<subseteq> t" "k \<noteq> {}" "\<exists>a b. k = cbox a b"
+        using division_ofD(2,3,4)[OF dt(1)] by auto
+      then obtain a b where "k = cbox a b" "a \<le> b" by (auto simp: cbox_interval) force
+      then have "Inf k \<in> k" "Sup k \<in> k" by auto
+      then have "Inf k \<in> s" "Sup k \<in> s" using \<open>k \<subseteq> t\<close> dt(2) by auto
+      then show "norm (f (Sup k) - f (Inf k)) = norm (g (Sup k) - g (Inf k))"
+        using assms by auto
+    qed
+  qed
+  then show ?thesis
+    unfolding has_bounded_variation_on_def has_bounded_setvariation_on_def by auto
+qed
+
+lemma has_bounded_variation_on_affine_iff:
+  fixes g :: "real \<Rightarrow> 'a::euclidean_space" and c d :: real
+  assumes "c > 0" "a \<le> b"
+  shows "has_bounded_variation_on (g \<circ> (\<lambda>x. c * x + d)) {a..b} \<longleftrightarrow>
+    has_bounded_variation_on g {c*a+d..c*b+d}"
+proof
+  assume "has_bounded_variation_on g {c*a+d..c*b+d}"
+  moreover have "mono_on {a..b} (\<lambda>x. c * x + d)"
+    using assms(1) by (auto intro!: mono_onI mult_left_mono)
+  ultimately show "has_bounded_variation_on (g \<circ> (\<lambda>x. c * x + d)) {a..b}"
+    by (rule has_bounded_variation_compose_monotone(1))
+next
+  assume bv: "has_bounded_variation_on (g \<circ> (\<lambda>x. c * x + d)) {a..b}"
+  let ?inv = "\<lambda>x. (x - d) / c"
+  have inv_mono: "mono_on {c*a+d..c*b+d} ?inv"
+    using assms(1) by (auto intro!: mono_onI divide_left_mono mult_pos_pos)
+  have inv_a: "?inv (c*a+d) = a" and inv_b: "?inv (c*b+d) = b"
+    using assms(1) by (auto simp: field_simps)
+  have comp_eq: "(g \<circ> (\<lambda>x. c * x + d)) \<circ> ?inv = g"
+    using assms(1) by (auto simp: comp_def field_simps)
+  have "has_bounded_variation_on ((g \<circ> (\<lambda>x. c * x + d)) \<circ> ?inv) {c*a+d..c*b+d}"
+    using has_bounded_variation_compose_monotone(1)[OF bv[folded inv_a inv_b] inv_mono] .
+  then show "has_bounded_variation_on g {c*a+d..c*b+d}"
+    by (simp add: comp_eq)
+qed
+
 lemma rectifiable_path_join:
   assumes "pathfinish g1 = pathstart g2"
   shows "rectifiable_path (g1 +++ g2) \<longleftrightarrow>
     rectifiable_path g1 \<and> rectifiable_path g2"
-  sorry
+proof -
+  have half: "(0::real) \<le> 1/2" "1/2 \<le> (1::real)" by auto
+  \<comment> \<open>On {0..1/2}, the joinpath agrees with g1 \<circ> (\<lambda>x. 2*x)\<close>
+  have eq1: "(g1 +++ g2) x = (g1 \<circ> (\<lambda>x. 2 * x)) x" if "x \<in> {0..1/2}" for x
+    using that by (auto simp: joinpaths_def)
+  \<comment> \<open>On {1/2..1}, the joinpath agrees with g2 \<circ> (\<lambda>x. 2*x - 1)\<close>
+  have eq2: "(g1 +++ g2) x = (g2 \<circ> (\<lambda>x. 2 * x + (-1))) x" if "x \<in> {1/2..1}" for x
+  proof -
+    from that have "x = 1/2 \<or> x > 1/2" by auto
+    then show ?thesis
+    proof
+      assume "x = 1/2"
+      then show ?thesis
+        using assms by (simp add: joinpaths_def pathfinish_def pathstart_def comp_def)
+    next
+      assume "x > 1/2"
+      then show ?thesis by (auto simp: joinpaths_def comp_def)
+    qed
+  qed
+  \<comment> \<open>Bounded variation equivalences\<close>
+  have bv1: "has_bounded_variation_on (g1 +++ g2) {0..1/2} \<longleftrightarrow>
+    has_bounded_variation_on g1 {0..1}"
+  proof -
+    have "has_bounded_variation_on (g1 +++ g2) {0..1/2} \<longleftrightarrow>
+      has_bounded_variation_on (g1 \<circ> (\<lambda>x. 2 * x)) {0..1/2}"
+      by (rule has_bounded_variation_on_cong[OF eq1])
+    also have "\<dots> \<longleftrightarrow> has_bounded_variation_on g1 {2*0+0..2*(1/2)+0}"
+      by (rule has_bounded_variation_on_affine_iff) auto
+    also have "{2*0+(0::real)..2*(1/2)+0} = {0..1}" by auto
+    finally show ?thesis .
+  qed
+  have bv2: "has_bounded_variation_on (g1 +++ g2) {1/2..1} \<longleftrightarrow>
+    has_bounded_variation_on g2 {0..1}"
+  proof -
+    have "has_bounded_variation_on (g1 +++ g2) {1/2..1} \<longleftrightarrow>
+      has_bounded_variation_on (g2 \<circ> (\<lambda>x. 2 * x + (-1))) {1/2..1}"
+      by (rule has_bounded_variation_on_cong[OF eq2])
+    also have "\<dots> \<longleftrightarrow> has_bounded_variation_on g2 {2*(1/2)+(-1)..2*1+(-1)}"
+      by (rule has_bounded_variation_on_affine_iff) auto
+    also have "{2*(1/2)+(-1::real)..2*1+(-1)} = {0..1}" by auto
+    finally show ?thesis .
+  qed
+  show ?thesis
+    unfolding rectifiable_path_def
+    using path_join[OF assms]
+      has_bounded_variation_on_combine[OF half(1) half(2), of "g1 +++ g2"]
+      bv1 bv2
+    by auto
+qed
 
 lemma path_length_join:
   "\<lbrakk>rectifiable_path g1; rectifiable_path g2; pathfinish g1 = pathstart g2\<rbrakk> \<Longrightarrow>
@@ -642,20 +741,25 @@ next
 qed
 
 lemma path_length_lipschitz:
-  assumes "\<And>x y. x \<in> {0..1} \<Longrightarrow> y \<in> {0..1} \<Longrightarrow>
-    norm (g x - g y) \<le> B * norm (x - y)"
+  assumes "\<And>x y. x \<in> {0..1} \<Longrightarrow> y \<in> {0..1} \<Longrightarrow> norm (g x - g y) \<le> B * norm (x - y)"
   shows "path_length g \<le> B"
   unfolding path_length_def
 proof (rule has_bounded_variation_works(2)[OF Lipschitz_imp_has_bounded_variation[of "{0..1}" g B]])
+  show "bounded {0..1::real}" by simp
+  show "\<And>x y. x \<in> {0..1} \<Longrightarrow> y \<in> {0..1} \<Longrightarrow> norm (g x - g y) \<le> B * norm (x - y)"
+    using assms by auto
+next
   fix d t assume dt: "d division_of t" "t \<subseteq> {(0::real)..1}"
+  have \<open>B \<ge> 0\<close>
+    using assms [of 0 1] norm_ge_zero by (fastforce elim: order_trans)
   have "(\<Sum>k\<in>d. norm (g (Sup k) - g (Inf k))) \<le> (\<Sum>k\<in>d. B * content k)"
   proof (rule sum_mono)
     fix k assume kd: "k \<in> d"
     from division_ofD(2,3,4)[OF dt(1) kd] obtain l u where
       k_eq: "k = cbox l u" and ksub: "k \<subseteq> t" and kne: "k \<noteq> {}" by auto
     then have lu: "l \<le> u" by fastforce
-    have ls: "l \<in> {0..1}" and us: "u \<in> {0..1}"
-      using ksub dt(2) lu k_eq by (auto simp: cbox_interval)
+    obtain ls: "l \<in> {0..1}" and us: "u \<in> {0..1}"
+      using ksub dt(2) lu k_eq cbox_interval atLeastAtMost_iff by blast
     have "norm (g (Sup k) - g (Inf k)) = norm (g u - g l)"
       using lu k_eq by (simp add: cbox_interval)
     also have "\<dots> \<le> B * norm (u - l)"
@@ -667,27 +771,20 @@ proof (rule has_bounded_variation_works(2)[OF Lipschitz_imp_has_bounded_variatio
   qed
   also have "\<dots> = B * (\<Sum>k\<in>d. content k)" by (simp add: sum_distrib_left)
   also have "\<dots> \<le> B * 1"
-  proof (intro mult_left_mono)
-    have "(\<Sum>k\<in>d. content k) \<le> content (cbox 0 1)"
-      using subadditive_content_division[OF dt(1)] dt(2) by (simp add: cbox_interval)
+  proof (intro mult_left_mono \<open>B\<ge>0\<close>)
+    have "(\<Sum>k\<in>d. content k) \<le> content {0..1::real}"
+      using subadditive_content_division[OF dt(1)] dt(2) by force
     then show "(\<Sum>k\<in>d. content k) \<le> 1" by simp
-  next
-    have "0 \<le> norm (g 0 - g 0)" by simp
-    also have "\<dots> \<le> B * norm ((0::real) - 0)" using assms by auto
-    finally show "0 \<le> B" by simp
   qed
   finally show "(\<Sum>k\<in>d. norm (g (Sup k) - g (Inf k))) \<le> B" by simp
-next
-  show "bounded {0..1::real}" by simp
-  show "\<And>x y. x \<in> {0..1} \<Longrightarrow> y \<in> {0..1} \<Longrightarrow> norm (g x - g y) \<le> B * norm (x - y)"
-    using assms by auto
 qed
+
 
 lemma dist_points_le_path_length:
   "\<lbrakk>rectifiable_path g; a \<in> {0..1}; b \<in> {0..1}\<rbrakk> \<Longrightarrow>
     dist (g a) (g b) \<le> path_length g"
   unfolding rectifiable_path_def path_length_def dist_norm
-  using vector_variation_ge_norm_function by auto
+  using vector_variation_ge_norm_function by blast
 
 lemma dist_endpoints_le_path_length:
   "rectifiable_path g \<Longrightarrow> dist (pathstart g) (pathfinish g) \<le> path_length g"
@@ -695,9 +792,72 @@ lemma dist_endpoints_le_path_length:
   by (simp add: pathstart_def pathfinish_def)
 
 lemma path_length_eq_line_segment:
-  "\<lbrakk>rectifiable_path g; path_length g = dist (pathstart g) (pathfinish g)\<rbrakk> \<Longrightarrow>
-    path_image g = closed_segment (pathstart g) (pathfinish g)"
-  sorry
+  assumes rect: "rectifiable_path g"
+    and len: "path_length g = dist (pathstart g) (pathfinish g)"
+  shows "path_image g = closed_segment (pathstart g) (pathfinish g)"
+proof (rule equalityI)
+  have pg: "path g" and bv: "has_bounded_variation_on g {0..1}"
+    using rect unfolding rectifiable_path_def by auto
+  have vv_eq: "vector_variation {0..1} g = norm (g 1 - g 0)"
+    using len unfolding path_length_def pathstart_def pathfinish_def dist_norm
+    by (simp add: norm_minus_commute)
+  show sub: "path_image g \<subseteq> closed_segment (pathstart g) (pathfinish g)"
+  proof
+    fix x assume "x \<in> path_image g"
+    then obtain t where t: "t \<in> {0..1}" "x = g t"
+      unfolding path_image_def by auto
+    have t01: "0 \<le> t" "t \<le> 1" using t(1) by auto
+    have bv_0t: "has_bounded_variation_on g {0..t}"
+      using has_bounded_variation_on_subset[OF bv] t(1) by auto
+    have bv_t1: "has_bounded_variation_on g {t..1}"
+      using has_bounded_variation_on_subset[OF bv] t(1) by auto
+    have n1: "norm (g t - g 0) \<le> vector_variation {0..t} g"
+      using vector_variation_ge_norm_function[OF bv_0t] t01 by auto
+    have n2: "norm (g 1 - g t) \<le> vector_variation {t..1} g"
+      using vector_variation_ge_norm_function[OF bv_t1] t01 by auto
+    have split: "vector_variation {0..t} g + vector_variation {t..1} g =
+      vector_variation {0..1} g"
+      using vector_variation_combine[OF bv] t(1) by auto
+    have tri: "norm (g 1 - g 0) \<le> norm (g t - g 0) + norm (g 1 - g t)"
+      using norm_triangle_ineq[of "g t - g 0" "g 1 - g t"] by simp
+    have "norm (g t - g 0) + norm (g 1 - g t) = norm (g 1 - g 0)"
+      using n1 n2 split vv_eq tri by linarith
+    then have "dist (g 0) (g 1) = dist (g 0) (g t) + dist (g t) (g 1)"
+      by (simp add: dist_norm norm_minus_commute)
+    then have "between (g 0, g 1) (g t)"
+      unfolding between by simp
+    then show "x \<in> closed_segment (pathstart g) (pathfinish g)"
+      unfolding t(2) pathstart_def pathfinish_def between_mem_segment by simp
+  qed
+  show "closed_segment (pathstart g) (pathfinish g) \<subseteq> path_image g"
+  proof -
+    have ne: "path_image g \<noteq> {}"
+      unfolding path_image_def by auto
+    have compact: "compact (path_image g)"
+      using compact_path_image[OF pg] .
+    have conn: "connected (path_image g)"
+      using connected_path_image[OF pg] .
+    have col: "collinear (path_image g)"
+    proof -
+      from sub have "path_image g \<subseteq> closed_segment (pathstart g) (pathfinish g)" .
+      moreover have "collinear (closed_segment (pathstart g) (pathfinish g))"
+        by (rule collinear_closed_segment)
+      ultimately show ?thesis
+        unfolding collinear_def by (meson subsetD)
+    qed
+    obtain p q where pq: "path_image g = closed_segment p q"
+      using compact_convex_collinear_segment_alt[OF ne compact conn col] by auto
+    have "pathstart g \<in> path_image g"
+      unfolding path_image_def pathstart_def by auto
+    moreover have "pathfinish g \<in> path_image g"
+      unfolding path_image_def pathfinish_def by auto
+    ultimately have "pathstart g \<in> closed_segment p q" "pathfinish g \<in> closed_segment p q"
+      using pq by auto
+    then have "closed_segment (pathstart g) (pathfinish g) \<subseteq> closed_segment p q"
+      using subset_closed_segment by blast
+    then show ?thesis using pq by simp
+  qed
+qed
 
 section \<open>Linepath\<close>
 
@@ -762,15 +922,22 @@ section \<open>Absolutely continuous paths\<close>
 lemma rectifiable_path_differentiable:
   fixes g :: "real \<Rightarrow> 'a::euclidean_space"
   assumes "negligible S"
-    "g absolutely_continuous_on {0..1}"
+    "absolutely_continuous_on g {0..1}"
     "\<And>t. t \<in> {0..1} - S \<Longrightarrow> (g has_vector_derivative g' t) (at t)"
   shows "rectifiable_path g"
-  sorry
+  unfolding rectifiable_path_def
+proof
+  show "path g"
+    unfolding path_def
+    using absolutely_continuous_on_imp_continuous[OF assms(2) is_interval_cc] .
+  show "has_bounded_variation_on g {0..1}"
+    using absolutely_continuous_on_imp_has_bounded_variation_on[OF assms(2)] .
+qed
 
 lemma path_length_differentiable:
   fixes g :: "real \<Rightarrow> 'a::euclidean_space"
   assumes "negligible S"
-    "g absolutely_continuous_on {0..1}"
+    "absolutely_continuous_on g {0..1}"
     "\<And>t. t \<in> {0..1} - S \<Longrightarrow> (g has_vector_derivative g' t) (at t)"
   shows "path_length g = integral {0..1} (\<lambda>t. norm (g' t))"
   sorry

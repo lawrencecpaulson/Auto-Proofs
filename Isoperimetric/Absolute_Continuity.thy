@@ -586,8 +586,110 @@ proof -
     assume \<open>k \<in> Basis\<close>
     assume \<open>absolutely_setcontinuous_on g (cbox a b \<inter> {x. x \<bullet> k \<le> c}) \<and>
             absolutely_setcontinuous_on g (cbox a b \<inter> {x. c \<le> x \<bullet> k})\<close>
+    then obtain acL acR
+      where acL: \<open>absolutely_setcontinuous_on g (cbox a b \<inter> {x. x \<bullet> k \<le> c})\<close>
+        and acR: \<open>absolutely_setcontinuous_on g (cbox a b \<inter> {x. c \<le> x \<bullet> k})\<close>
+      by auto
     show \<open>absolutely_setcontinuous_on g (cbox a b)\<close>
-      sorry
+      unfolding absolutely_setcontinuous_on_def
+    proof (intro allI impI)
+      fix e :: real assume \<open>e > 0\<close>
+      then have e2: \<open>e / 2 > 0\<close> by simp
+      from acL[unfolded absolutely_setcontinuous_on_def, rule_format, OF e2]
+      obtain r1 where r1: \<open>r1 > 0\<close>
+        and L: \<open>\<And>d t. d division_of t \<Longrightarrow> t \<subseteq> cbox a b \<inter> {x. x \<bullet> k \<le> c} \<Longrightarrow>
+          (\<Sum>k\<in>d. content k) < r1 \<Longrightarrow> (\<Sum>k\<in>d. norm (g k)) < e / 2\<close>
+        by (auto simp: imp_conjL)
+      from acR[unfolded absolutely_setcontinuous_on_def, rule_format, OF e2]
+      obtain r2 where r2: \<open>r2 > 0\<close>
+        and R: \<open>\<And>d t. d division_of t \<Longrightarrow> t \<subseteq> cbox a b \<inter> {x. c \<le> x \<bullet> k} \<Longrightarrow>
+          (\<Sum>k\<in>d. content k) < r2 \<Longrightarrow> (\<Sum>k\<in>d. norm (g k)) < e / 2\<close>
+        by (auto simp: imp_conjL)
+      show \<open>\<exists>\<delta>>0. \<forall>d t. d division_of t \<and> t \<subseteq> cbox a b \<and>
+        (\<Sum>k\<in>d. content k) < \<delta> \<longrightarrow> (\<Sum>k\<in>d. norm (g k)) < e\<close>
+      proof (intro exI[of _ \<open>min r1 r2\<close>] conjI allI impI)
+        show \<open>min r1 r2 > 0\<close> using r1 r2 by simp
+      next
+        fix d t
+        assume H: \<open>d division_of t \<and> t \<subseteq> cbox a b \<and> (\<Sum>k\<in>d. content k) < min r1 r2\<close>
+        then have div: \<open>d division_of t\<close> and sub: \<open>t \<subseteq> cbox a b\<close>
+          and content_bound: \<open>(\<Sum>k\<in>d. content k) < r1\<close> \<open>(\<Sum>k\<in>d. content k) < r2\<close>
+          by auto
+        define dL where \<open>dL = (\<lambda>l. l \<inter> {x. x \<bullet> k \<le> c}) ` {l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}}\<close>
+        define dR where \<open>dR = (\<lambda>l. l \<inter> {x. c \<le> x \<bullet> k}) ` {l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}\<close>
+        have fin_d: \<open>finite d\<close> using division_of_finite[OF div] .
+        have g_empty: \<open>g {} = 0\<close> using operative.empty[OF assms] .
+        \<comment> \<open>Step 1: split axiom + triangle inequality\<close>
+        have step1: \<open>(\<Sum>K\<in>d. norm (g K))
+            \<le> (\<Sum>K\<in>d. norm (g (K \<inter> {x. x \<bullet> k \<le> c}))) + (\<Sum>K\<in>d. norm (g (K \<inter> {x. c \<le> x \<bullet> k})))\<close>
+        proof -
+          have \<open>(\<Sum>K\<in>d. norm (g K))
+              \<le> (\<Sum>K\<in>d. norm (g (K \<inter> {x. x \<bullet> k \<le> c})) + norm (g (K \<inter> {x. c \<le> x \<bullet> k})))\<close>
+          proof (rule sum_mono)
+            fix K assume Kd: \<open>K \<in> d\<close>
+            then obtain aK bK where K_eq: \<open>K = cbox aK bK\<close> using division_ofD(4)[OF div] by blast
+            have \<open>g K = g (K \<inter> {x. x \<bullet> k \<le> c}) + g (K \<inter> {x. c \<le> x \<bullet> k})\<close>
+              using local.split[OF \<open>k \<in> Basis\<close>, of aK bK c] K_eq by simp
+            then show \<open>norm (g K) \<le> norm (g (K \<inter> {x. x \<bullet> k \<le> c})) + norm (g (K \<inter> {x. c \<le> x \<bullet> k}))\<close>
+              by (metis norm_triangle_ineq)
+          qed
+          also have \<open>\<dots> = (\<Sum>K\<in>d. norm (g (K \<inter> {x. x \<bullet> k \<le> c}))) + (\<Sum>K\<in>d. norm (g (K \<inter> {x. c \<le> x \<bullet> k})))\<close>
+            by (rule sum.distrib)
+          finally show ?thesis .
+        qed
+        \<comment> \<open>Step 2: drop zero terms (where intersection is empty, g {} = 0)\<close>
+        have step2L: \<open>(\<Sum>K\<in>d. norm (g (K \<inter> {x. x \<bullet> k \<le> c})))
+            = (\<Sum>K\<in>{l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}}. norm (g (K \<inter> {x. x \<bullet> k \<le> c})))\<close>
+          by (rule sum.mono_neutral_right) (auto simp: fin_d g_empty)
+        have step2R: \<open>(\<Sum>K\<in>d. norm (g (K \<inter> {x. c \<le> x \<bullet> k})))
+            = (\<Sum>K\<in>{l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}. norm (g (K \<inter> {x. c \<le> x \<bullet> k})))\<close>
+          by (rule sum.mono_neutral_right) (auto simp: fin_d g_empty)
+        have collision: \<open>norm (g (K1 \<inter> S)) = 0\<close>
+          if K1d: \<open>K1 \<in> d\<close> and K2d: \<open>K2 \<in> d\<close> and neq: \<open>K1 \<noteq> K2\<close>
+            and coll: \<open>K1 \<inter> S = K2 \<inter> S\<close>
+          for K1 K2 and S :: \<open>'a set\<close>
+        proof -
+          obtain a1 b1 where K1_eq: \<open>K1 = cbox a1 b1\<close> using division_ofD(4)[OF div K1d] by blast
+          have \<open>interior (K1 \<inter> S) \<subseteq> interior K1 \<inter> interior K2\<close>
+            using coll
+            by (metis inf.cobounded1 interior_mono le_inf_iff)
+          also have \<open>\<dots> = {}\<close> using division_ofD(5)[OF div K1d K2d neq] .
+          finally have \<open>interior (K1 \<inter> S) = {}\<close> by blast
+          moreover have \<open>K1 \<inter> S \<subseteq> K1\<close> by blast
+          ultimately have \<open>g (K1 \<inter> S) = 0\<close>
+            using null K1_eq Int_absorb1 box_subset_cbox interior_cbox subset_empty sorry
+          then show ?thesis by simp
+        qed
+        have fin_filt: \<open>finite {l \<in> d. l \<inter> S \<noteq> {}}\<close> for S :: \<open>'a set\<close>
+          using fin_d by auto
+        have step3L: \<open>(\<Sum>K\<in>{l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}}. norm (g (K \<inter> {x. x \<bullet> k \<le> c})))
+            = (\<Sum>K\<in>dL. norm (g K))\<close>
+          unfolding dL_def
+        proof (subst sum.reindex_nontrivial[OF fin_filt, symmetric], unfold comp_def)
+          fix K1 K2
+          assume \<open>K1 \<in> {l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}}\<close> \<open>K2 \<in> {l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}}\<close>
+            \<open>K1 \<noteq> K2\<close> \<open>K1 \<inter> {x. x \<bullet> k \<le> c} = K2 \<inter> {x. x \<bullet> k \<le> c}\<close>
+          then show \<open>norm (g (K1 \<inter> {x. x \<bullet> k \<le> c})) = 0\<close>
+            using collision by auto
+        qed simp
+        have step3R: \<open>(\<Sum>K\<in>{l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}. norm (g (K \<inter> {x. c \<le> x \<bullet> k})))
+            = (\<Sum>K\<in>dR. norm (g K))\<close>
+          unfolding dR_def
+        proof (subst sum.reindex_nontrivial[OF fin_filt, symmetric], unfold comp_def)
+          fix K1 K2
+          assume \<open>K1 \<in> {l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}\<close> \<open>K2 \<in> {l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}\<close>
+            \<open>K1 \<noteq> K2\<close> \<open>K1 \<inter> {x. c \<le> x \<bullet> k} = K2 \<inter> {x. c \<le> x \<bullet> k}\<close>
+          then show \<open>norm (g (K1 \<inter> {x. c \<le> x \<bullet> k})) = 0\<close>
+            using collision by auto
+        qed simp
+        have split_ineq: \<open>(\<Sum>k\<in>d. norm (g k)) \<le> (\<Sum>k\<in>dL. norm (g k)) + (\<Sum>k\<in>dR. norm (g k))\<close>
+          using step1 step2L step2R step3L step3R by linarith
+        have halves: \<open>(\<Sum>k\<in>dL. norm (g k)) + (\<Sum>k\<in>dR. norm (g k)) < e\<close>
+          sorry
+        show \<open>(\<Sum>k\<in>d. norm (g k)) < e\<close>
+          using split_ineq halves by linarith
+      qed
+    qed
   qed (use absolutely_setcontinuous_on_subset in fastforce)+
 qed
 
