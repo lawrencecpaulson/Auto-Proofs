@@ -954,7 +954,16 @@ lemma absolutely_continuous_on_division:
   assumes "\<And>k. k \<in> d \<Longrightarrow> absolutely_continuous_on f k"
     "d division_of {a..b}"
   shows "absolutely_continuous_on f {a..b}"
-  sorry
+proof -
+  have \<open>comm_monoid_set.F (\<and>) True (absolutely_continuous_on f) d
+        = absolutely_continuous_on f (cbox a b)\<close>
+    using operative.division[OF operative_absolutely_continuous_on assms(2)[unfolded cbox_interval[symmetric]]] .
+  then have \<open>(finite d \<longrightarrow> (\<forall>k\<in>d. absolutely_continuous_on f k))
+             = absolutely_continuous_on f {a..b}\<close>
+    by (simp add: comm_monoid_set_F_and cbox_interval)
+  moreover have \<open>finite d\<close> using division_ofD(1)[OF assms(2)] .
+  ultimately show ?thesis using assms(1) by simp
+qed
 
 subsection \<open>Bilinear and product\<close>
 
