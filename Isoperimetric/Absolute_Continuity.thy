@@ -108,7 +108,7 @@ proof -
         fix l assume lD: "l \<in> D"
         then obtain u v where luv: \<open>l = {u..v}\<close> and \<open>{u..v} \<in> D\<close> \<open>{u..v} \<noteq> {}\<close>
           by (metis D_div cbox_division_memE cbox_interval)
-        define d' where \<open>d' \<equiv> {k1 \<inter> {u..v} |k1. k1 \<in> d \<and> k1 \<inter> {u..v} \<noteq> {}}\<close>
+        define d' where \<open>d' \<equiv> (\<lambda>k. k \<inter> {u..v}) ` {k \<in> d. k \<inter> {u..v} \<noteq> {}}\<close>
         have \<open>d' division_of t \<inter> {u..v}\<close>
         proof -
           have \<open>{u..v} = cbox u v\<close> by (simp add: cbox_interval)
@@ -151,7 +151,76 @@ proof -
         have \<open>(\<Sum>k\<in>d'. norm (f k)) < 1\<close>
           using r_bound by presburger
         show "(\<Sum>k\<in>d. norm (f (k \<inter> l))) \<le> 1"
-          sorry
+        proof -
+          have f_empty: \<open>f {} = 0\<close> using operative.empty[OF assms(1)] .
+          have fin_d: \<open>finite d\<close> using division_ofD(1)[OF div] .
+          have zero_terms: \<open>\<forall>k\<in>d. k \<inter> {u..v} = {} \<longrightarrow> norm (f (k \<inter> {u..v})) = 0\<close>
+            by (simp add: f_empty)
+          have \<open>(\<Sum>k\<in>d. norm (f (k \<inter> l))) = (\<Sum>k\<in>d. norm (f (k \<inter> {u..v})))\<close>
+            by (simp add: luv)
+          also have \<open>\<dots> = (\<Sum>k\<in>{k\<in>d. k \<inter> {u..v} \<noteq> {}}. norm (f (k \<inter> {u..v})))\<close>
+          proof -
+            have \<open>(\<Sum>k\<in>d. norm (f (k \<inter> {u..v})))
+                 = (\<Sum>k\<in>{k\<in>d. k \<inter> {u..v} \<noteq> {}}. norm (f (k \<inter> {u..v})))
+                 + (\<Sum>k\<in>{k\<in>d. k \<inter> {u..v} = {}}. norm (f (k \<inter> {u..v})))\<close>
+              by (subst sum.union_disjoint[symmetric]) (auto intro: sum.cong simp: fin_d)
+            also have \<open>(\<Sum>k\<in>{k\<in>d. k \<inter> {u..v} = {}}. norm (f (k \<inter> {u..v}))) = 0\<close>
+              by (auto simp: f_empty)
+            finally show ?thesis by simp
+          qed
+          also have \<open>\<dots> \<le> (\<Sum>k\<in>d'. norm (f k))\<close>
+          proof -
+            have fin_A: \<open>finite {k \<in> d. k \<inter> {u..v} \<noteq> {}}\<close> using fin_d by auto
+            have collision: \<open>norm (f (k1 \<inter> {u..v})) = 0\<close>
+              if k1_in: \<open>k1 \<in> {k \<in> d. k \<inter> {u..v} \<noteq> {}}\<close>
+                and k2_in: \<open>k2 \<in> {k \<in> d. k \<inter> {u..v} \<noteq> {}}\<close>
+                and neq: \<open>k1 \<noteq> k2\<close>
+                and coll: \<open>k1 \<inter> {u..v} = k2 \<inter> {u..v}\<close>
+              for k1 k2
+            proof -
+              have k1d: \<open>k1 \<in> d\<close> and k2d: \<open>k2 \<in> d\<close> using k1_in k2_in by auto
+              have eq1: \<open>interior (k1 \<inter> {u..v}) = interior k1 \<inter> interior {u..v}\<close>
+                by (rule interior_Int)
+              have eq2: \<open>interior (k2 \<inter> {u..v}) = interior k2 \<inter> interior {u..v}\<close>
+                by (rule interior_Int)
+              have \<open>interior (k1 \<inter> {u..v}) = interior (k2 \<inter> {u..v})\<close>
+                using coll by simp
+              then have \<open>interior k1 \<inter> interior {u..v} = interior k2 \<inter> interior {u..v}\<close>
+                using eq1 eq2 by simp
+              then have sub: \<open>interior (k1 \<inter> {u..v}) \<subseteq> interior k1 \<inter> interior k2\<close>
+                using eq1 by auto
+              then have \<open>interior (k1 \<inter> {u..v}) = {}\<close>
+                using division_ofD(5)[OF div k1d k2d neq] by auto
+              obtain a1 b1 where k1_eq: \<open>k1 = cbox a1 b1\<close>
+                using division_ofD(4)[OF div k1d] by auto
+              have k1_uv: \<open>k1 \<inter> {u..v} = cbox (max a1 u) (min b1 v)\<close>
+                by (simp add: k1_eq cbox_interval Int_atLeastAtMost)
+              then have \<open>box (max a1 u) (min b1 v) = {}\<close>
+                using \<open>interior (k1 \<inter> {u..v}) = {}\<close> by (simp add: interior_cbox)
+              then have \<open>f (k1 \<inter> {u..v}) = 0\<close>
+                using operative.box_empty_imp[OF assms(1)] k1_uv by auto
+              then show ?thesis by simp
+            qed
+
+            have eq: \<open>(\<Sum>k\<in>d'. norm (f k))
+                = (\<Sum>k\<in>{k \<in> d. k \<inter> {u..v} \<noteq> {}}. norm (f (k \<inter> {u..v})))\<close>
+            proof -
+              have \<open>sum (\<lambda>k. norm (f k)) ((\<lambda>k. k \<inter> {u..v}) ` {k \<in> d. k \<inter> {u..v} \<noteq> {}})
+                  = sum ((\<lambda>k. norm (f k)) \<circ> (\<lambda>k. k \<inter> {u..v})) {k \<in> d. k \<inter> {u..v} \<noteq> {}}\<close>
+              proof (intro sum.reindex_nontrivial[OF fin_A])
+                fix x y
+                assume \<open>x \<in> {k \<in> d. k \<inter> {u..v} \<noteq> {}}\<close> \<open>y \<in> {k \<in> d. k \<inter> {u..v} \<noteq> {}}\<close>
+                  \<open>x \<noteq> y\<close> \<open>x \<inter> {u..v} = y \<inter> {u..v}\<close>
+                then show \<open>norm (f (x \<inter> {u..v})) = 0\<close>
+                  using collision by auto
+              qed
+              then show ?thesis unfolding d'_def comp_def by auto
+            qed
+            then show ?thesis by simp
+          qed
+          also have \<open>\<dots> < 1\<close> using \<open>(\<Sum>k\<in>d'. norm (f k)) < 1\<close> .
+          finally show ?thesis by simp
+        qed
       qed
       then show ?thesis by simp
     qed
@@ -481,7 +550,12 @@ qed
 
 lemma absolutely_continuous_on_imp_has_bounded_variation_on:
   "absolutely_continuous_on f {a..b} \<Longrightarrow> has_bounded_variation_on f {a..b}"
-  sorry
+  unfolding absolutely_continuous_on_def has_bounded_variation_on_def
+proof -
+  assume ac: \<open>absolutely_setcontinuous_on (\<lambda>k. f (Sup k) - f (Inf k)) {a..b}\<close>
+  show \<open>has_bounded_setvariation_on (\<lambda>k. f (Sup k) - f (Inf k)) {a..b}\<close>
+    sorry
+qed
 
 lemma Lipschitz_imp_absolutely_continuous:
   assumes "\<And>x y. x \<in> s \<Longrightarrow> y \<in> s \<Longrightarrow> norm (f x - f y) \<le> B * \<bar>x - y\<bar>"
