@@ -516,132 +516,69 @@ proof (rule continuous_on_iff[THEN iffD2], intro ballI allI impI)
   qed
 qed
 
+lemma operative_function_endpoint_diff:
+  fixes f :: \<open>real \<Rightarrow> 'a::real_normed_vector\<close>
+  defines \<open>h \<equiv> \<lambda>S. if S = {} then 0 else f (Sup S) - f (Inf S)\<close>
+  shows \<open>operative (+) 0 h\<close>
+proof (rule operative.intro)
+  show \<open>comm_monoid_set (+) (0::'a)\<close>
+    using sum.comm_monoid_set_axioms .
+next
+  show \<open>operative_axioms (+) 0 h\<close>
+  proof (rule operative_axioms.intro)
+    fix a b :: real
+    assume \<open>box a b = {}\<close>
+    then have \<open>a \<ge> b\<close> by (simp add: box_eq_empty)
+    then show \<open>h (cbox a b) = 0\<close>
+      by (cases \<open>a = b\<close>) (auto simp: h_def cbox_interval)
+  next
+    fix a b c :: real and k :: real
+    assume \<open>k \<in> Basis\<close>
+    then have k1: \<open>k = 1\<close> by (simp add: Basis_real_def)
+    have eq1: \<open>cbox a b \<inter> {x. x \<bullet> k \<le> c} = {a..min b c}\<close> if \<open>a \<le> b\<close> for c
+      using k1 that by (auto simp: cbox_interval min_def)
+    have eq2: \<open>cbox a b \<inter> {x. c \<le> x \<bullet> k} = {max a c..b}\<close> if \<open>a \<le> b\<close> for c
+      using k1 that by (auto simp: cbox_interval max_def)
+    show \<open>h (cbox a b) = h (cbox a b \<inter> {x. x \<bullet> k \<le> c}) + h (cbox a b \<inter> {x. c \<le> x \<bullet> k})\<close>
+    proof (cases \<open>a \<le> b\<close>)
+      case True
+      then show ?thesis
+        using eq1[OF True] eq2[OF True]
+        by (cases \<open>c < a\<close>; cases \<open>b < c\<close>) (auto simp: h_def cbox_interval min_def max_def)
+    next
+      case False
+      then have \<open>cbox a b = {}\<close> by (auto simp: cbox_interval)
+      then show ?thesis by (simp add: h_def)
+    qed
+  qed
+qed
+
 lemma absolutely_continuous_on_imp_has_bounded_variation_on:
   "absolutely_continuous_on f {a..b} \<Longrightarrow> has_bounded_variation_on f {a..b}"
   unfolding absolutely_continuous_on_def has_bounded_variation_on_def
 proof -
+  define h where \<open>h \<equiv> \<lambda>S. if S = {} then 0 else f (Sup S) - f (Inf S)\<close>
   assume ac: \<open>absolutely_setcontinuous_on (\<lambda>k. f (Sup k) - f (Inf k)) {a..b}\<close>
-  show \<open>has_bounded_setvariation_on (\<lambda>k. f (Sup k) - f (Inf k)) {a..b}\<close>
-  proof -
-    define h where \<open>h S = (if S = {} then 0 else f (Sup S) - f (Inf S))\<close> for S :: \<open>real set\<close>
-    have h_op: \<open>operative (+) 0 h\<close>
-    proof (rule operative.intro)
-      show \<open>comm_monoid_set (+) (0::'a)\<close>
-        using sum.comm_monoid_set_axioms .
-    next
-      show \<open>operative_axioms (+) 0 h\<close>
-      proof (rule operative_axioms.intro)
-        fix a' b' :: real
-        assume \<open>box a' b' = {}\<close>
-        then have \<open>a' \<ge> b'\<close> by (simp add: box_eq_empty)
-        then show \<open>h (cbox a' b') = 0\<close>
-        proof (cases \<open>a' = b'\<close>)
-          case True then show ?thesis unfolding h_def by (simp add: cbox_interval)
-        next
-          case False
-          with \<open>a' \<ge> b'\<close> have \<open>b' < a'\<close> by linarith
-          then have \<open>cbox a' b' = {}\<close> by (simp add: cbox_interval)
-          then show ?thesis unfolding h_def by simp
-        qed
-      next
-        fix a' b' c :: real and k :: real
-        assume kB: \<open>k \<in> Basis\<close>
-        then have k1: \<open>k = 1\<close> by (simp add: Basis_real_def)
-        show \<open>h (cbox a' b') = h (cbox a' b' \<inter> {x. x \<bullet> k \<le> c}) + h (cbox a' b' \<inter> {x. c \<le> x \<bullet> k})\<close>
-        proof (cases \<open>a' \<le> b'\<close>)
-          case ab: True
-          have eq1: \<open>cbox a' b' \<inter> {x. x \<bullet> k \<le> c} = {a'..min b' c}\<close>
-            using k1 ab by (auto simp: cbox_interval min_def)
-          have eq2: \<open>cbox a' b' \<inter> {x. c \<le> x \<bullet> k} = {max a' c..b'}\<close>
-            using k1 ab by (auto simp: cbox_interval max_def)
-          have whole: \<open>h (cbox a' b') = f b' - f a'\<close>
-            using ab unfolding h_def by (auto simp: cbox_interval)
-          show ?thesis
-          proof (cases \<open>c < a'\<close>)
-            case True
-            then have \<open>{a'..min b' c} = {}\<close> by auto
-            moreover have \<open>max a' c = a'\<close> using True by auto
-            ultimately show ?thesis using eq1 eq2 whole h_def by auto
-          next
-            case False
-            then have ca': \<open>a' \<le> c\<close> by linarith
-            show ?thesis
-            proof (cases \<open>b' < c\<close>)
-              case True
-              then have \<open>{max a' c..b'} = {}\<close> by auto
-              moreover have \<open>min b' c = b'\<close> using True by auto
-              ultimately show ?thesis using eq1 eq2 whole h_def by auto
-            next
-              case False
-              then have cb': \<open>c \<le> b'\<close> by linarith
-              have minv: \<open>min b' c = c\<close> using cb' by auto
-              have maxv: \<open>max a' c = c\<close> using ca' by auto
-              have left: \<open>h {a'..min b' c} = f c - f a'\<close>
-                using ca' minv unfolding h_def by auto
-              have right: \<open>h {max a' c..b'} = f b' - f c\<close>
-                using cb' maxv unfolding h_def by auto
-              show ?thesis using eq1 eq2 whole left right by auto
-            qed
-          qed
-        next
-          case False
-          then have \<open>cbox a' b' = {}\<close> by (auto simp: cbox_interval)
-          moreover have \<open>cbox a' b' \<inter> {x. x \<bullet> k \<le> c} = {}\<close> using calculation by auto
-          moreover have \<open>cbox a' b' \<inter> {x. c \<le> x \<bullet> k} = {}\<close> using calculation by auto
-          ultimately show ?thesis unfolding h_def by simp
-        qed
-      qed
-    qed
-    have h_eq: \<open>absolutely_setcontinuous_on h {a..b}\<close>
-      unfolding absolutely_setcontinuous_on_def
-    proof (intro allI impI)
-      fix \<epsilon> :: real assume \<open>\<epsilon> > 0\<close>
-      then obtain \<delta> where \<open>\<delta> > 0\<close> and \<delta>: \<open>\<And>d t. d division_of t \<Longrightarrow> t \<subseteq> {a..b} \<Longrightarrow>
-        (\<Sum>k\<in>d. content k) < \<delta> \<Longrightarrow> (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) < \<epsilon>\<close>
-        using ac[unfolded absolutely_setcontinuous_on_def] by meson
-      show \<open>\<exists>\<delta>>0. \<forall>d t. d division_of t \<and> t \<subseteq> {a..b} \<and> (\<Sum>k\<in>d. content k) < \<delta> \<longrightarrow>
-        (\<Sum>k\<in>d. norm (h k)) < \<epsilon>\<close>
-      proof (intro exI conjI allI impI)
-        show \<open>\<delta> > 0\<close> by fact
-      next
-        fix d t assume \<open>d division_of t \<and> t \<subseteq> {a..b} \<and> (\<Sum>k\<in>d. content k) < \<delta>\<close>
-        then have div: \<open>d division_of t\<close> and sub: \<open>t \<subseteq> {a..b}\<close> and sm: \<open>(\<Sum>k\<in>d. content k) < \<delta>\<close>
-          by auto
-        have \<open>(\<Sum>k\<in>d. norm (h k)) = (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k)))\<close>
-        proof (rule sum.cong)
-          show \<open>d = d\<close> ..
-        next
-          fix k assume \<open>k \<in> d\<close>
-          then have \<open>k \<noteq> {}\<close> using division_ofD(3)[OF div] by auto
-          then show \<open>norm (h k) = norm (f (Sup k) - f (Inf k))\<close>
-            unfolding h_def by auto
-        qed
-        also have \<open>\<dots> < \<epsilon>\<close> using \<delta>[OF div sub sm] .
-        finally show \<open>(\<Sum>k\<in>d. norm (h k)) < \<epsilon>\<close> .
-      qed
-    qed
-    have h_bsv: \<open>has_bounded_setvariation_on h {a..b}\<close>
-      by (rule absolutely_setcontinuous_on_imp_has_bounded_setvariation_on[OF h_op h_eq bounded_closed_interval])
-    then obtain B where B: \<open>\<And>d t. d division_of t \<Longrightarrow> t \<subseteq> {a..b} \<Longrightarrow> (\<Sum>k\<in>d. norm (h k)) \<le> B\<close>
-      unfolding has_bounded_setvariation_on_def by meson
-    show \<open>has_bounded_setvariation_on (\<lambda>k. f (Sup k) - f (Inf k)) {a..b}\<close>
-      unfolding has_bounded_setvariation_on_def
-    proof (intro exI allI impI)
-      fix d t assume \<open>d division_of t \<and> t \<subseteq> {a..b}\<close>
-      then have div: \<open>d division_of t\<close> and sub: \<open>t \<subseteq> {a..b}\<close> by auto
-      have \<open>(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) = (\<Sum>k\<in>d. norm (h k))\<close>
-      proof (rule sum.cong)
-        show \<open>d = d\<close> ..
-      next
-        fix k assume \<open>k \<in> d\<close>
-        then have \<open>k \<noteq> {}\<close> using division_ofD(3)[OF div] by auto
-        then show \<open>norm (f (Sup k) - f (Inf k)) = norm (h k)\<close>
-          unfolding h_def by auto
-      qed
-      also have \<open>\<dots> \<le> B\<close> using B[OF div sub] .
-      finally show \<open>(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> B\<close> .
-    qed
+  have h_eq: \<open>h k = f (Sup k) - f (Inf k)\<close> if \<open>k \<in> d\<close> \<open>d division_of t\<close> for k d t
+    using division_ofD(3)[OF that(2) that(1)] by (simp add: h_def)
+  have sum_eq: \<open>(\<Sum>k\<in>d. norm (h k)) = (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k)))\<close>
+    if \<open>d division_of t\<close> for d t
+    by (rule sum.cong) (auto simp: h_eq[OF _ that])
+  have ac_h: \<open>absolutely_setcontinuous_on h {a..b}\<close>
+    unfolding absolutely_setcontinuous_on_def
+  proof (intro allI impI)
+    fix \<epsilon> :: real assume \<open>\<epsilon> > 0\<close>
+    then obtain \<delta> where \<open>\<delta> > 0\<close> and \<delta>: \<open>\<And>d t. d division_of t \<Longrightarrow> t \<subseteq> {a..b} \<Longrightarrow>
+      (\<Sum>k\<in>d. content k) < \<delta> \<Longrightarrow> (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) < \<epsilon>\<close>
+      using ac[unfolded absolutely_setcontinuous_on_def] by meson
+    show \<open>\<exists>\<delta>>0. \<forall>d t. d division_of t \<and> t \<subseteq> {a..b} \<and> (\<Sum>k\<in>d. content k) < \<delta> \<longrightarrow>
+      (\<Sum>k\<in>d. norm (h k)) < \<epsilon>\<close>
+      using \<open>\<delta> > 0\<close> \<delta> sum_eq by auto
   qed
+  from absolutely_setcontinuous_on_imp_has_bounded_setvariation_on
+    [OF operative_function_endpoint_diff[of f, folded h_def] this bounded_closed_interval]
+  show \<open>has_bounded_setvariation_on (\<lambda>k. f (Sup k) - f (Inf k)) {a..b}\<close>
+    unfolding has_bounded_setvariation_on_def by (metis sum_eq)
 qed
 
 lemma Lipschitz_imp_absolutely_continuous:
