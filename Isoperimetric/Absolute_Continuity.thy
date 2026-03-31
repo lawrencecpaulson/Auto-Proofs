@@ -997,7 +997,95 @@ proof -
   have decomp: \<open>h (f (Sup k)) (g (Sup k)) - h (f (Inf k)) (g (Inf k)) =
     h (f (Sup k) - f (Inf k)) (g (Sup k)) + h (f (Inf k)) (g (Sup k) - g (Inf k))\<close> for k
     by (simp add: bl algebra_simps)
-  show ?thesis sorry
+  show ?thesis
+    unfolding absolutely_continuous_on_def absolutely_setcontinuous_on_def
+  proof (intro allI impI)
+    fix \<epsilon> :: real assume \<open>\<epsilon> > 0\<close>
+    have eB2K: \<open>\<epsilon> / 2 / B2 / K > 0\<close> using \<open>\<epsilon> > 0\<close> \<open>B2 > 0\<close> \<open>K > 0\<close> by simp
+    have eB1K: \<open>\<epsilon> / 2 / B1 / K > 0\<close> using \<open>\<epsilon> > 0\<close> \<open>B1 > 0\<close> \<open>K > 0\<close> by simp
+    obtain \<delta>1 where \<open>\<delta>1 > 0\<close> and \<delta>1: \<open>\<And>d t. d division_of t \<Longrightarrow> t \<subseteq> s \<Longrightarrow>
+      (\<Sum>k\<in>d. content k) < \<delta>1 \<Longrightarrow> (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) < \<epsilon> / 2 / B2 / K\<close>
+      using f unfolding absolutely_continuous_on_def absolutely_setcontinuous_on_def
+      using eB2K by (meson order.strict_trans2)
+    obtain \<delta>2 where \<open>\<delta>2 > 0\<close> and \<delta>2: \<open>\<And>d t. d division_of t \<Longrightarrow> t \<subseteq> s \<Longrightarrow>
+      (\<Sum>k\<in>d. content k) < \<delta>2 \<Longrightarrow> (\<Sum>k\<in>d. norm (g (Sup k) - g (Inf k))) < \<epsilon> / 2 / B1 / K\<close>
+      using g unfolding absolutely_continuous_on_def absolutely_setcontinuous_on_def
+      using eB1K by (meson order.strict_trans2)
+    show \<open>\<exists>\<delta>>0. \<forall>d t. d division_of t \<and> t \<subseteq> s \<and> (\<Sum>k\<in>d. content k) < \<delta> \<longrightarrow>
+      (\<Sum>k\<in>d. norm (h (f (Sup k)) (g (Sup k)) - h (f (Inf k)) (g (Inf k)))) < \<epsilon>\<close>
+    proof (intro exI conjI allI impI)
+      show \<open>min \<delta>1 \<delta>2 > 0\<close> using \<open>\<delta>1 > 0\<close> \<open>\<delta>2 > 0\<close> by simp
+    next
+      fix d t assume H: \<open>d division_of t \<and> t \<subseteq> s \<and> (\<Sum>k\<in>d. content k) < min \<delta>1 \<delta>2\<close>
+      then have div: \<open>d division_of t\<close> and sub: \<open>t \<subseteq> s\<close>
+        and meas: \<open>(\<Sum>k\<in>d. content k) < \<delta>1\<close> \<open>(\<Sum>k\<in>d. content k) < \<delta>2\<close> by auto
+      have fin: \<open>finite d\<close> using division_of_finite[OF div] .
+      have mem_s: \<open>Sup k \<in> s\<close> \<open>Inf k \<in> s\<close> if kd: \<open>k \<in> d\<close> for k
+      proof -
+        obtain u v where uv: \<open>k = cbox u v\<close>
+          using division_ofD(4)[OF div kd] by blast
+        have kne: \<open>k \<noteq> {}\<close> using division_ofD(3)[OF div kd] .
+        then have le: \<open>u \<le> v\<close> using uv by (simp add: box_ne_empty)
+        have ksub: \<open>k \<subseteq> s\<close> using division_ofD(2)[OF div kd] sub by auto
+        have \<open>k = {u..v}\<close> using uv box_real by auto
+        then show \<open>Sup k \<in> s\<close> \<open>Inf k \<in> s\<close>
+          using le ksub by (auto simp: interval_bounds_real)
+      qed
+      \<comment> \<open>Main inequality chain\<close>
+      have \<open>(\<Sum>k\<in>d. norm (h (f (Sup k)) (g (Sup k)) - h (f (Inf k)) (g (Inf k))))
+        = (\<Sum>k\<in>d. norm (h (f (Sup k) - f (Inf k)) (g (Sup k)) +
+                       h (f (Inf k)) (g (Sup k) - g (Inf k))))\<close>
+        by (simp add: decomp)
+      also have \<open>\<dots> \<le> (\<Sum>k\<in>d. norm (h (f (Sup k) - f (Inf k)) (g (Sup k))) +
+                             norm (h (f (Inf k)) (g (Sup k) - g (Inf k))))\<close>
+        by (intro sum_mono norm_triangle_ineq)
+      also have \<open>\<dots> \<le> (\<Sum>k\<in>d. K * norm (f (Sup k) - f (Inf k)) * norm (g (Sup k)) +
+                             K * norm (f (Inf k)) * norm (g (Sup k) - g (Inf k)))\<close>
+        by (intro sum_mono add_mono K)
+      also have \<open>\<dots> \<le> (\<Sum>k\<in>d. K * norm (f (Sup k) - f (Inf k)) * B2 +
+                             K * B1 * norm (g (Sup k) - g (Inf k)))\<close>
+      proof (intro sum_mono add_mono mult_left_mono mult_right_mono)
+        fix k assume kd: \<open>k \<in> d\<close>
+        show \<open>norm (g (Sup k)) \<le> B2\<close>
+          using \<open>\<And>x. x \<in> s \<Longrightarrow> norm (g x) < B2\<close> mem_s(1)[OF kd] by (simp add: less_imp_le)
+        show \<open>norm (f (Inf k)) \<le> B1\<close>
+          using \<open>\<And>x. x \<in> s \<Longrightarrow> norm (f x) < B1\<close> mem_s(2)[OF kd] by (simp add: less_imp_le)
+        show \<open>0 \<le> K * norm (f (Sup k) - f (Inf k))\<close>
+          using \<open>K > 0\<close> by (simp add: mult_nonneg_nonneg)
+        show \<open>0 \<le> norm (g (Sup k) - g (Inf k))\<close> by simp
+        show \<open>0 \<le> K\<close> using \<open>K > 0\<close> by simp
+      qed
+      also have \<open>\<dots> = K * B2 * (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) +
+                      K * B1 * (\<Sum>k\<in>d. norm (g (Sup k) - g (Inf k)))\<close>
+        by (simp add: sum.distrib sum_distrib_left algebra_simps)
+      also have \<open>\<dots> < \<epsilon> / 2 + \<epsilon> / 2\<close>
+      proof -
+        have KB2: \<open>K * B2 > 0\<close> using \<open>K > 0\<close> \<open>B2 > 0\<close> by simp
+        have KB1: \<open>K * B1 > 0\<close> using \<open>K > 0\<close> \<open>B1 > 0\<close> by simp
+        have f_bound: \<open>(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) < \<epsilon> / 2 / B2 / K\<close>
+          using \<delta>1[OF div sub meas(1)] .
+        have g_bound: \<open>(\<Sum>k\<in>d. norm (g (Sup k) - g (Inf k))) < \<epsilon> / 2 / B1 / K\<close>
+          using \<delta>2[OF div sub meas(2)] .
+        have A: \<open>K * B2 * (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) < \<epsilon> / 2\<close>
+        proof -
+          have \<open>K * B2 * (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) < K * B2 * (\<epsilon> / 2 / B2 / K)\<close>
+            using mult_strict_left_mono[OF f_bound KB2] .
+          also have \<open>\<dots> = \<epsilon> / 2\<close> using \<open>K > 0\<close> \<open>B2 > 0\<close> by (simp add: field_simps)
+          finally show ?thesis .
+        qed
+        have B: \<open>K * B1 * (\<Sum>k\<in>d. norm (g (Sup k) - g (Inf k))) < \<epsilon> / 2\<close>
+        proof -
+          have \<open>K * B1 * (\<Sum>k\<in>d. norm (g (Sup k) - g (Inf k))) < K * B1 * (\<epsilon> / 2 / B1 / K)\<close>
+            using mult_strict_left_mono[OF g_bound KB1] .
+          also have \<open>\<dots> = \<epsilon> / 2\<close> using \<open>K > 0\<close> \<open>B1 > 0\<close> by (simp add: field_simps)
+          finally show ?thesis .
+        qed
+        from A B show ?thesis by linarith
+      qed
+      also have \<open>\<dots> = \<epsilon>\<close> by simp
+      finally show \<open>(\<Sum>k\<in>d. norm (h (f (Sup k)) (g (Sup k)) - h (f (Inf k)) (g (Inf k)))) < \<epsilon>\<close> .
+    qed
+  qed
 qed
 
 lemma absolutely_continuous_on_mul:
@@ -1019,9 +1107,9 @@ theorem fundamental_theorem_of_calculus_absolutely_continuous:
 subsection \<open>Closure and interior\<close>
 
 lemma absolutely_continuous_on_closure:
-  assumes "absolutely_continuous_on f (interior {a..b})"
-    "continuous_on {a..b} f"
-  shows "absolutely_continuous_on f {a..b}"
+  assumes "absolutely_continuous_on f (interior s)"
+    "continuous_on (closure s) f" "is_interval s"
+  shows "absolutely_continuous_on f s"
   sorry
 
 end
