@@ -1088,10 +1088,34 @@ proof -
 qed
 
 lemma absolutely_continuous_on_mul:
-  assumes "absolutely_continuous_on {a..b} f"
-    "absolutely_continuous_on {a..b} g"
-  shows "absolutely_continuous_on {a..(b::real)} (\<lambda>x. f x * g x)"
-  sorry
+  fixes f :: \<open>real \<Rightarrow> real\<close> and g :: \<open>real \<Rightarrow> 'a::euclidean_space\<close>
+  assumes \<open>absolutely_continuous_on s f\<close>
+    \<open>absolutely_continuous_on s g\<close>
+    \<open>is_interval s\<close> \<open>bounded s\<close>
+  shows \<open>absolutely_continuous_on s (\<lambda>x. f x *\<^sub>R g x)\<close>
+  using absolutely_continuous_on_bilinear
+    [OF bilinear_conv_bounded_bilinear[THEN iffD2, OF bounded_bilinear_scaleR] assms] .
+
+lemma absolutely_continuous_on_vsum:
+  assumes \<open>finite k\<close>
+    \<open>\<And>i. i \<in> k \<Longrightarrow> absolutely_continuous_on s (f i)\<close>
+  shows \<open>absolutely_continuous_on s (\<lambda>x. \<Sum>i\<in>k. f i x)\<close>
+  using assms
+proof (induction k rule: finite_induct)
+  case empty
+  then show ?case by (simp add: absolutely_continuous_on_const)
+next
+  case (insert a F)
+  then have \<open>absolutely_continuous_on s (f a)\<close>
+    and \<open>absolutely_continuous_on s (\<lambda>x. \<Sum>i\<in>F. f i x)\<close> by auto
+  then show ?case using insert.hyps
+    by (simp add: absolutely_continuous_on_add)
+qed
+
+lemma absolutely_continuous_on_sing:
+  \<open>absolutely_continuous_on {a} f\<close>
+  using absolutely_continuous_on_null[of a a f] by (simp add: content_real_eq_0)
+
 
 subsection \<open>Fundamental theorem of calculus\<close>
 
