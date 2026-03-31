@@ -834,30 +834,32 @@ qed
 
 
 lemma absolutely_continuous_on_imp_has_bounded_variation_on:
-  "absolutely_continuous_on f {a..b} \<Longrightarrow> has_bounded_variation_on f {a..b}"
-  unfolding absolutely_continuous_on_def has_bounded_variation_on_def
+  assumes \<open>absolutely_continuous_on f s\<close> \<open>bounded s\<close>
+  shows \<open>has_bounded_variation_on f s\<close>
+  using assms unfolding absolutely_continuous_on_def has_bounded_variation_on_def
 proof -
   define h where \<open>h \<equiv> \<lambda>S. if S = {} then 0 else f (Sup S) - f (Inf S)\<close>
-  assume ac: \<open>absolutely_setcontinuous_on (\<lambda>k. f (Sup k) - f (Inf k)) {a..b}\<close>
+  assume ac: \<open>absolutely_setcontinuous_on (\<lambda>k. f (Sup k) - f (Inf k)) s\<close>
+  assume \<open>bounded s\<close>
   have h_eq: \<open>h k = f (Sup k) - f (Inf k)\<close> if \<open>k \<in> d\<close> \<open>d division_of t\<close> for k d t
     using division_ofD(3)[OF that(2) that(1)] by (simp add: h_def)
   have sum_eq: \<open>(\<Sum>k\<in>d. norm (h k)) = (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k)))\<close>
     if \<open>d division_of t\<close> for d t
     by (rule sum.cong) (auto simp: h_eq[OF _ that])
-  have ac_h: \<open>absolutely_setcontinuous_on h {a..b}\<close>
+  have ac_h: \<open>absolutely_setcontinuous_on h s\<close>
     unfolding absolutely_setcontinuous_on_def
   proof (intro allI impI)
     fix \<epsilon> :: real assume \<open>\<epsilon> > 0\<close>
-    then obtain \<delta> where \<open>\<delta> > 0\<close> and \<delta>: \<open>\<And>d t. d division_of t \<Longrightarrow> t \<subseteq> {a..b} \<Longrightarrow>
+    then obtain \<delta> where \<open>\<delta> > 0\<close> and \<delta>: \<open>\<And>d t. d division_of t \<Longrightarrow> t \<subseteq> s \<Longrightarrow>
       (\<Sum>k\<in>d. content k) < \<delta> \<Longrightarrow> (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) < \<epsilon>\<close>
       using ac[unfolded absolutely_setcontinuous_on_def] by meson
-    show \<open>\<exists>\<delta>>0. \<forall>d t. d division_of t \<and> t \<subseteq> {a..b} \<and> (\<Sum>k\<in>d. content k) < \<delta> \<longrightarrow>
+    show \<open>\<exists>\<delta>>0. \<forall>d t. d division_of t \<and> t \<subseteq> s \<and> (\<Sum>k\<in>d. content k) < \<delta> \<longrightarrow>
       (\<Sum>k\<in>d. norm (h k)) < \<epsilon>\<close>
       using \<open>\<delta> > 0\<close> \<delta> sum_eq by auto
   qed
   from absolutely_setcontinuous_on_imp_has_bounded_setvariation_on
-    [OF operative_function_endpoint_diff[of f, folded h_def] this bounded_closed_interval]
-  show \<open>has_bounded_setvariation_on (\<lambda>k. f (Sup k) - f (Inf k)) {a..b}\<close>
+    [OF operative_function_endpoint_diff[of f, folded h_def] this \<open>bounded s\<close>]
+  show \<open>has_bounded_setvariation_on (\<lambda>k. f (Sup k) - f (Inf k)) s\<close>
     unfolding has_bounded_setvariation_on_def by (metis sum_eq)
 qed
 
@@ -968,10 +970,35 @@ qed
 subsection \<open>Bilinear and product\<close>
 
 lemma absolutely_continuous_on_bilinear:
-  assumes "absolutely_continuous_on f {a..b}"
-    "absolutely_continuous_on g {a..b}" "bounded_bilinear h"
-  shows "absolutely_continuous_on (\<lambda>x. h (f x) (g x)) {a..b}"
-  sorry
+  fixes h :: \<open>'a::euclidean_space \<Rightarrow> 'b::euclidean_space \<Rightarrow> 'c::euclidean_space\<close>
+    and f :: \<open>real \<Rightarrow> 'a\<close> and g :: \<open>real \<Rightarrow> 'b\<close>
+  assumes \<open>bilinear h\<close> 
+    and f: \<open>absolutely_continuous_on f s\<close> 
+    and g: \<open>absolutely_continuous_on g s\<close> 
+    and s: \<open>is_interval s\<close> \<open>bounded s\<close>
+  shows \<open>absolutely_continuous_on (\<lambda>x. h (f x) (g x)) s\<close>
+proof -
+  have bv_f: \<open>has_bounded_variation_on f s\<close>
+    using absolutely_continuous_on_imp_has_bounded_variation_on[OF f s(2)] .
+  have bv_g: \<open>has_bounded_variation_on g s\<close>
+    using absolutely_continuous_on_imp_has_bounded_variation_on[OF g s(2)] .
+  have bd_f: \<open>bounded (f ` s)\<close>
+    using has_bounded_variation_on_imp_bounded[OF bv_f s(1)] .
+  have bd_g: \<open>bounded (g ` s)\<close>
+    using has_bounded_variation_on_imp_bounded[OF bv_g s(1)] .
+  obtain B1 where \<open>B1 > 0\<close> \<open>\<And>x. x \<in> s \<Longrightarrow> norm (f x) < B1\<close>
+    using bd_f[unfolded bounded_pos_less] by (fastforce simp: image_iff)
+  obtain B2 where \<open>B2 > 0\<close> \<open>\<And>x. x \<in> s \<Longrightarrow> norm (g x) < B2\<close>
+    using bd_g[unfolded bounded_pos_less] by (fastforce simp: image_iff)
+  obtain K where \<open>K > 0\<close> and K: \<open>\<And>x y. norm (h x y) \<le> K * norm x * norm y\<close>
+    using bilinear_bounded_pos[OF assms(1)] by auto
+  note bl = bilinear_ladd[OF assms(1)] bilinear_radd[OF assms(1)]
+    bilinear_lsub[OF assms(1)] bilinear_rsub[OF assms(1)]
+  have decomp: \<open>h (f (Sup k)) (g (Sup k)) - h (f (Inf k)) (g (Inf k)) =
+    h (f (Sup k) - f (Inf k)) (g (Sup k)) + h (f (Inf k)) (g (Sup k) - g (Inf k))\<close> for k
+    by (simp add: bl algebra_simps)
+  show ?thesis sorry
+qed
 
 lemma absolutely_continuous_on_mul:
   assumes "absolutely_continuous_on f {a..b}"

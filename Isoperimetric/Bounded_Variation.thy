@@ -1903,6 +1903,11 @@ next
   qed
 qed
 
+corollary has_bounded_variation_on_imp_bounded_on_interval:
+  assumes "has_bounded_variation_on f {a..b}"
+  shows "bounded (f ` {a..b})"
+  using has_bounded_variation_on_imp_bounded[OF assms is_interval_cc] .
+
 subsection \<open>Increasing/decreasing functions\<close>
 
 lemma division_telescope_eq:
