@@ -1866,36 +1866,40 @@ qed
 subsection \<open>Bounded variation implies bounded\<close>
 
 lemma has_bounded_variation_on_imp_bounded:
-  "has_bounded_variation_on f {a..b} \<Longrightarrow> bounded (f ` {a..b})"
-proof -
-  assume bv: "has_bounded_variation_on f {a..b}"
-  then obtain M where M: "\<And>d. d division_of {a..b} \<Longrightarrow>
-    (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> M"
-    unfolding has_bounded_variation_on_interval by auto
-  show "bounded (f ` {a..b})"
-  proof (cases "a \<le> b")
-    case False then show ?thesis by auto
-  next
-    case True
-    show ?thesis unfolding bounded_iff
-    proof (intro exI ballI)
-      fix y assume "y \<in> f ` {a..b}"
-      then obtain x where xab: "x \<in> {a..b}" and y_eq: "y = f x" by auto
-      then have ax: "a \<le> x" and xb: "x \<le> b" by auto
-      \<comment> \<open>Use the division @{term \<open>{{a..x}, {x..b}}\<close>} to bound @{term \<open>norm (f x - f a)\<close>}\<close>
-      have d: "{{a..x}, {x..b}} division_of {a..b}"
-        using ax xb True by (intro division_ofI) auto
-      have "(\<Sum>k\<in>{{a..x}, {x..b}}. norm (f (Sup k) - f (Inf k))) \<le> M"
-        using M[OF d] .
-      moreover have "norm (f x - f a) \<le> (\<Sum>k\<in>{{a..x}, {x..b}}. norm (f (Sup k) - f (Inf k)))"
-        using ax xb member_le_sum division_of_finite[OF d]
-        by (metis (no_types, lifting) cInf_atLeastAtMost cSup_atLeastAtMost insert_iff
-            norm_ge_zero)
-      ultimately have "norm (f x - f a) \<le> M" by linarith
-      then have "norm y \<le> norm (f a) + M"
-        by (metis add.commute diff_le_eq norm_triangle_ineq2 order_trans y_eq)
-      then show "norm y \<le> norm (f a) + M" .
-    qed
+  assumes bv: "has_bounded_variation_on f s" "is_interval s"
+    shows "bounded (f ` s)"
+proof (cases "s = {}")
+  case True then show ?thesis by (simp add: bounded_empty)
+next
+  case False
+  then obtain a where a_s: "a \<in> s" by blast
+  have norm_le: "norm (f b - f a) \<le> vector_variation s f" if b_s: "b \<in> s" for b
+  proof -
+    let ?lo = "min a b" and ?hi = "max a b"
+    have lo_le_hi: "?lo \<le> ?hi" by simp
+    have sub: "{?lo..?hi} \<subseteq> s"
+      by (metis a_s box_real(2) bv(2) interval_subset_is_interval max_def min_def that)
+    have ne: "cbox ?lo ?hi \<noteq> {}" using lo_le_hi by (simp add: cbox_interval)
+    have div: "{{?lo..?hi}} division_of {?lo..?hi}"
+      using division_of_self[OF ne] by (simp add: cbox_interval)
+    have "norm (f b - f a) = norm (f ?hi - f ?lo)"
+      by (simp add: min_def max_def norm_minus_commute)
+    also have "\<dots> = (\<Sum>k\<in>{{?lo..?hi}}. norm (f (Sup k) - f (Inf k)))"
+      using lo_le_hi by (simp add: interval_bounds_real)
+    also have "\<dots> \<le> vector_variation s f"
+      using has_bounded_variation_works(1)[OF bv(1) div sub] .
+    finally show ?thesis .
+  qed
+  show ?thesis
+  proof (rule boundedI)
+    fix y assume "y \<in> f ` s"
+    then obtain b where b_s: "b \<in> s" and y_eq: "y = f b" by auto
+    have "norm (f b) \<le> norm (f a) + norm (f b - f a)"
+      by (rule norm_triangle_sub)
+    also have "\<dots> \<le> norm (f a) + vector_variation s f"
+      using norm_le[OF b_s] by simp
+    finally show "norm y \<le> norm (f a) + vector_variation s f"
+      by (simp add: y_eq)
   qed
 qed
 
