@@ -210,18 +210,18 @@ qed
 section \<open>Absolute continuity for functions\<close>
 
 definition absolutely_continuous_on ::
-  "(real \<Rightarrow> 'a::euclidean_space) \<Rightarrow> real set \<Rightarrow> bool" where
-  "absolutely_continuous_on f s \<longleftrightarrow>
+  "real set \<Rightarrow> (real \<Rightarrow> 'a::euclidean_space) \<Rightarrow> bool" where
+  "absolutely_continuous_on s f \<longleftrightarrow>
     absolutely_setcontinuous_on (\<lambda>k. f (Sup k) - f (Inf k)) s"
 
 subsection \<open>Basic properties\<close>
 
 lemma absolutely_continuous_on_eq:
-  "\<lbrakk>\<And>x. x \<in> s \<Longrightarrow> f x = g x; absolutely_continuous_on f s\<rbrakk> \<Longrightarrow>
-    absolutely_continuous_on g s"
+  "\<lbrakk>\<And>x. x \<in> s \<Longrightarrow> f x = g x; absolutely_continuous_on s f\<rbrakk> \<Longrightarrow>
+    absolutely_continuous_on s g"
 proof -
   assume eq: "\<And>x. x \<in> s \<Longrightarrow> f x = g x"
-    and ac: "absolutely_continuous_on f s"
+    and ac: "absolutely_continuous_on s f"
   have "\<And>k. k \<in> d \<Longrightarrow> d division_of t \<Longrightarrow> t \<subseteq> s \<Longrightarrow> g (Sup k) - g (Inf k) = f (Sup k) - f (Inf k)"
     for d t
   proof -
@@ -241,23 +241,23 @@ proof -
 qed
 
 lemma absolutely_continuous_on_subset:
-  "absolutely_continuous_on f s \<Longrightarrow> t \<subseteq> s \<Longrightarrow> absolutely_continuous_on f t"
+  "absolutely_continuous_on s f \<Longrightarrow> t \<subseteq> s \<Longrightarrow> absolutely_continuous_on t f"
   unfolding absolutely_continuous_on_def absolutely_setcontinuous_on_def
   by (meson order_trans)
 
 lemma absolutely_continuous_on_const:
-  "absolutely_continuous_on (\<lambda>x. c) s"
+  "absolutely_continuous_on s (\<lambda>x. c)"
   unfolding absolutely_continuous_on_def absolutely_setcontinuous_on_def
   by simp
 
 lemma absolutely_continuous_on_cmul:
-  "absolutely_continuous_on f s \<Longrightarrow> absolutely_continuous_on (\<lambda>x. a *\<^sub>R f x) s"
+  "absolutely_continuous_on s f \<Longrightarrow> absolutely_continuous_on s (\<lambda>x. a *\<^sub>R f x)"
 proof (cases "a = 0")
   case True then show ?thesis
     by (simp add: absolutely_continuous_on_const)
 next
   case False
-  assume ac: "absolutely_continuous_on f s"
+  assume ac: "absolutely_continuous_on s f"
   show ?thesis
     unfolding absolutely_continuous_on_def absolutely_setcontinuous_on_def
   proof (intro allI impI)
@@ -287,12 +287,12 @@ next
 qed
 
 lemma absolutely_continuous_on_neg:
-  "absolutely_continuous_on f s \<Longrightarrow> absolutely_continuous_on (\<lambda>x. - f x) s"
-  using absolutely_continuous_on_cmul[of f s "-1"] by simp
+  "absolutely_continuous_on s f \<Longrightarrow> absolutely_continuous_on s (\<lambda>x. - f x)"
+  using absolutely_continuous_on_cmul[of s f "-1"] by simp
 
 lemma absolutely_continuous_on_add:
-  "absolutely_continuous_on f s \<Longrightarrow> absolutely_continuous_on g s \<Longrightarrow>
-    absolutely_continuous_on (\<lambda>x. f x + g x) s"
+  "absolutely_continuous_on s f \<Longrightarrow> absolutely_continuous_on s g \<Longrightarrow>
+    absolutely_continuous_on s (\<lambda>x. f x + g x)"
   unfolding absolutely_continuous_on_def absolutely_setcontinuous_on_def
 proof (intro allI impI)
   fix \<epsilon> :: real assume "\<epsilon> > 0"
@@ -325,18 +325,18 @@ proof (intro allI impI)
 qed
 
 lemma absolutely_continuous_on_sub:
-  "absolutely_continuous_on f s \<Longrightarrow> absolutely_continuous_on g s \<Longrightarrow>
-    absolutely_continuous_on (\<lambda>x. f x - g x) s"
-  using absolutely_continuous_on_add[of f s "\<lambda>x. - g x"] absolutely_continuous_on_neg by auto
+  "absolutely_continuous_on s f \<Longrightarrow> absolutely_continuous_on s g \<Longrightarrow>
+    absolutely_continuous_on s (\<lambda>x. f x - g x)"
+  using absolutely_continuous_on_add[of s f "\<lambda>x. - g x"] absolutely_continuous_on_neg by auto
 
 lemma absolutely_continuous_on_norm:
-  "absolutely_continuous_on f s \<Longrightarrow>
-    absolutely_continuous_on (\<lambda>x. norm (f x) *\<^sub>R e) s"
+  "absolutely_continuous_on s f \<Longrightarrow>
+    absolutely_continuous_on s (\<lambda>x. norm (f x) *\<^sub>R e)"
 proof (cases "e = 0")
   case True then show ?thesis by (simp add: absolutely_continuous_on_const)
 next
   case False
-  assume ac: "absolutely_continuous_on f s"
+  assume ac: "absolutely_continuous_on s f"
   show ?thesis
     unfolding absolutely_continuous_on_def absolutely_setcontinuous_on_def
   proof (intro allI impI)
@@ -370,10 +370,10 @@ next
 qed
 
 lemma absolutely_continuous_on_compose_linear:
-  "absolutely_continuous_on f s \<Longrightarrow> linear h \<Longrightarrow>
-    absolutely_continuous_on (h \<circ> f) s"
+  "absolutely_continuous_on s f \<Longrightarrow> linear h \<Longrightarrow>
+    absolutely_continuous_on s (h \<circ> f)"
 proof -
-  assume ac: "absolutely_continuous_on f s" and lin: "linear h"
+  assume ac: "absolutely_continuous_on s f" and lin: "linear h"
   then obtain K where "K > 0" and K: "\<And>x. norm (h x) \<le> norm x * K"
     using linear_conv_bounded_linear bounded_linear.pos_bounded by blast
   show ?thesis
@@ -407,7 +407,7 @@ proof -
 qed
 
 lemma absolutely_continuous_on_null:
-  "content {a..b} = 0 \<Longrightarrow> absolutely_continuous_on f {a..b}"
+  "content {a..b} = 0 \<Longrightarrow> absolutely_continuous_on {a..b} f"
 proof -
   assume cnt: "content {a..b} = 0"
   then have ba: "b \<le> a" using content_real_eq_0 by auto
@@ -442,7 +442,7 @@ proof -
 qed
 
 lemma absolutely_continuous_on_id:
-  "absolutely_continuous_on id {a..b}"
+  "absolutely_continuous_on {a..b} id"
   unfolding absolutely_continuous_on_def absolutely_setcontinuous_on_def
 proof (intro allI impI)
   fix \<epsilon> :: real assume "\<epsilon> > 0"
@@ -471,7 +471,7 @@ qed
 subsection \<open>Relationship to bounded variation and continuity\<close>
 
 lemma absolutely_continuous_on_imp_continuous:
-  assumes "absolutely_continuous_on f s" "is_interval s"
+  assumes "absolutely_continuous_on s f" "is_interval s"
   shows "continuous_on s f"
 proof (rule continuous_on_iff[THEN iffD2], intro ballI allI impI)
   fix x \<epsilon> :: real assume xs: "x \<in> s" and "\<epsilon> > 0"
@@ -814,7 +814,7 @@ qed
 
 lemma operative_absolutely_continuous_on:
   fixes f :: \<open>real \<Rightarrow> 'a::euclidean_space\<close>
-  shows \<open>operative (\<and>) True (absolutely_continuous_on f)\<close>
+  shows \<open>operative (\<and>) True (\<lambda>s. absolutely_continuous_on s f)\<close>
 proof -
   define h where \<open>h \<equiv> \<lambda>S. if S = {} then 0 else f (Sup S) - f (Inf S)\<close>
   have op_h: \<open>operative (+) 0 h\<close> using operative_function_endpoint_diff[of f, folded h_def] .
@@ -832,9 +832,8 @@ proof -
     using op_ac_h unfolding absolutely_continuous_on_def ac_eq .
 qed
 
-
 lemma absolutely_continuous_on_imp_has_bounded_variation_on:
-  assumes \<open>absolutely_continuous_on f s\<close> \<open>bounded s\<close>
+  assumes \<open>absolutely_continuous_on s f\<close> \<open>bounded s\<close>
   shows \<open>has_bounded_variation_on f s\<close>
   using assms unfolding absolutely_continuous_on_def has_bounded_variation_on_def
 proof -
@@ -865,7 +864,7 @@ qed
 
 lemma Lipschitz_imp_absolutely_continuous:
   assumes "\<And>x y. x \<in> s \<Longrightarrow> y \<in> s \<Longrightarrow> norm (f x - f y) \<le> B * \<bar>x - y\<bar>"
-  shows "absolutely_continuous_on f s"
+  shows "absolutely_continuous_on s f"
   unfolding absolutely_continuous_on_def absolutely_setcontinuous_on_def
 proof (intro allI impI)
   fix \<epsilon> :: real assume "\<epsilon> > 0"
@@ -938,13 +937,13 @@ qed
 subsection \<open>Combining intervals\<close>
 
 lemma absolutely_continuous_on_combine:
-  assumes "absolutely_continuous_on f {a..c}"
-    and "absolutely_continuous_on f {c..b}" and "a \<le> c" "c \<le> b"
-  shows "absolutely_continuous_on f {a..b}"
+  assumes "absolutely_continuous_on {a..c} f"
+    and "absolutely_continuous_on {c..b} f" and "a \<le> c" "c \<le> b"
+  shows "absolutely_continuous_on {a..b} f"
 proof -
-  have split: \<open>absolutely_continuous_on f {a..b} =
-    (absolutely_continuous_on f ({a..b} \<inter> {x. x \<le> c}) \<and>
-     absolutely_continuous_on f ({a..b} \<inter> {x. c \<le> x}))\<close>
+  have split: \<open>absolutely_continuous_on {a..b} f =
+    (absolutely_continuous_on ({a..b} \<inter> {x. x \<le> c}) f \<and>
+     absolutely_continuous_on ({a..b} \<inter> {x. c \<le> x}) f)\<close>
     using operative.Basis_imp[OF operative_absolutely_continuous_on[of f],
       of 1 a b c] by (simp add: Basis_real_def inner_real_def)
   have \<open>{a..b} \<inter> {x::real. x \<le> c} = {a..c}\<close> using assms by auto
@@ -953,15 +952,15 @@ proof -
 qed
 
 lemma absolutely_continuous_on_division:
-  assumes "\<And>k. k \<in> d \<Longrightarrow> absolutely_continuous_on f k"
+  assumes "\<And>k. k \<in> d \<Longrightarrow> absolutely_continuous_on k f"
     "d division_of {a..b}"
-  shows "absolutely_continuous_on f {a..b}"
+  shows "absolutely_continuous_on {a..b} f"
 proof -
-  have \<open>comm_monoid_set.F (\<and>) True (absolutely_continuous_on f) d
-        = absolutely_continuous_on f (cbox a b)\<close>
+  have \<open>comm_monoid_set.F (\<and>) True (\<lambda>s. absolutely_continuous_on s f) d
+        = absolutely_continuous_on (cbox a b) f\<close>
     using operative.division[OF operative_absolutely_continuous_on assms(2)[unfolded cbox_interval[symmetric]]] .
-  then have \<open>(finite d \<longrightarrow> (\<forall>k\<in>d. absolutely_continuous_on f k))
-             = absolutely_continuous_on f {a..b}\<close>
+  then have \<open>(finite d \<longrightarrow> (\<forall>k\<in>d. absolutely_continuous_on k f))
+             = absolutely_continuous_on {a..b} f\<close>
     by (simp add: comm_monoid_set_F_and cbox_interval)
   moreover have \<open>finite d\<close> using division_ofD(1)[OF assms(2)] .
   ultimately show ?thesis using assms(1) by simp
@@ -973,10 +972,10 @@ lemma absolutely_continuous_on_bilinear:
   fixes h :: \<open>'a::euclidean_space \<Rightarrow> 'b::euclidean_space \<Rightarrow> 'c::euclidean_space\<close>
     and f :: \<open>real \<Rightarrow> 'a\<close> and g :: \<open>real \<Rightarrow> 'b\<close>
   assumes \<open>bilinear h\<close> 
-    and f: \<open>absolutely_continuous_on f s\<close> 
-    and g: \<open>absolutely_continuous_on g s\<close> 
+    and f: \<open>absolutely_continuous_on s f\<close> 
+    and g: \<open>absolutely_continuous_on s g\<close> 
     and s: \<open>is_interval s\<close> \<open>bounded s\<close>
-  shows \<open>absolutely_continuous_on (\<lambda>x. h (f x) (g x)) s\<close>
+  shows \<open>absolutely_continuous_on s (\<lambda>x. h (f x) (g x))\<close>
 proof -
   have bv_f: \<open>has_bounded_variation_on f s\<close>
     using absolutely_continuous_on_imp_has_bounded_variation_on[OF f s(2)] .
@@ -1089,9 +1088,9 @@ proof -
 qed
 
 lemma absolutely_continuous_on_mul:
-  assumes "absolutely_continuous_on f {a..b}"
-    "absolutely_continuous_on g {a..b}"
-  shows "absolutely_continuous_on (\<lambda>x. f x * g x) {a..(b::real)}"
+  assumes "absolutely_continuous_on {a..b} f"
+    "absolutely_continuous_on {a..b} g"
+  shows "absolutely_continuous_on {a..(b::real)} (\<lambda>x. f x * g x)"
   sorry
 
 subsection \<open>Fundamental theorem of calculus\<close>
@@ -1099,7 +1098,7 @@ subsection \<open>Fundamental theorem of calculus\<close>
 theorem fundamental_theorem_of_calculus_absolutely_continuous:
   fixes f :: "real \<Rightarrow> 'a::euclidean_space"
   assumes "negligible S" "a \<le> b"
-    "absolutely_continuous_on f {a..b}"
+    "absolutely_continuous_on {a..b} f"
     "\<And>x. x \<in> {a..b} - S \<Longrightarrow> (f has_vector_derivative f' x) (at x within {a..b})"
   shows "(f' has_integral (f b - f a)) {a..b}"
   sorry
@@ -1107,9 +1106,9 @@ theorem fundamental_theorem_of_calculus_absolutely_continuous:
 subsection \<open>Closure and interior\<close>
 
 lemma absolutely_continuous_on_closure:
-  assumes "absolutely_continuous_on f (interior s)"
+  assumes "absolutely_continuous_on (interior s) f"
     "continuous_on (closure s) f" "is_interval s"
-  shows "absolutely_continuous_on f s"
+  shows "absolutely_continuous_on s f"
   sorry
 
 end

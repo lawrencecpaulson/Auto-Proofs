@@ -834,11 +834,11 @@ proof -
 qed
 
 lemma path_length_shiftpath:
-  "\<lbrakk>rectifiable_path g; pathfinish g = pathstart g; t \<in> {0..1}\<rbrakk> \<Longrightarrow>
-    path_length (shiftpath t g) = path_length g"
-proof -
-  assume rg: "rectifiable_path g" and loop: "pathfinish g = pathstart g"
+  assumes rg: "rectifiable_path g"
+    and loop: "pathfinish g = pathstart g"
     and t01: "t \<in> {0..1}"
+  shows "path_length (shiftpath t g) = path_length g"
+proof -
   from rg have bvg: "has_bounded_variation_on g {0..1}"
     unfolding rectifiable_path_def by auto
   have bvs: "has_bounded_variation_on (shiftpath t g) {0..1}"
@@ -847,7 +847,7 @@ proof -
   from t01 have t0: "0 \<le> t" and t1: "t \<le> 1" and mt: "0 \<le> 1 - t" and mt1: "1 - t \<le> 1" by auto
   \<comment> \<open>Pointwise agreements (reuse from rectifiable_path_shiftpath proof)\<close>
   have eq1: "shiftpath t g x = (g \<circ> (\<lambda>x. 1 * x + t)) x" if "x \<in> {0..1-t}" for x
-    using that t1 by (auto simp: shiftpath_def)
+    using that t1 by (auto simp: shiftpath_def algebra_simps)
   have eq2: "shiftpath t g x = (g \<circ> (\<lambda>x. 1 * x + (t - 1))) x" if "x \<in> {1-t..1}" for x
   proof -
     from that have "x = 1-t \<or> x > 1-t" by auto
@@ -855,11 +855,11 @@ proof -
     proof
       assume "x = 1-t"
       then show ?thesis
-        using loop t1 by (simp add: shiftpath_def pathfinish_def pathstart_def)
+        using loop t1 by (simp add: shiftpath_def pathfinish_def pathstart_def algebra_simps)
     next
       assume "x > 1-t"
       then have "t + x > 1" by auto
-      then show ?thesis by (auto simp: shiftpath_def comp_def)
+      then show ?thesis by (auto simp: shiftpath_def comp_def algebra_simps)
     qed
   qed
   \<comment> \<open>Variation on {0..1-t}\<close>
@@ -869,7 +869,7 @@ proof -
       vector_variation {0..1-t} (g \<circ> (\<lambda>x. 1 * x + t))"
       by (rule vector_variation_cong[OF eq1])
     also have "\<dots> = vector_variation {1*0+t..1*(1-t)+t} g"
-      by (rule vector_variation_affine_eq) auto
+      by (rule vector_variation_affine_eq) (use t1 in auto)
     also have "{1*0+t..1*(1-t)+t} = {t..1::real}" by auto
     finally show ?thesis .
   qed
@@ -880,7 +880,7 @@ proof -
       vector_variation {1-t..1} (g \<circ> (\<lambda>x. 1 * x + (t - 1)))"
       by (rule vector_variation_cong[OF eq2])
     also have "\<dots> = vector_variation {1*(1-t)+(t-1)..1*1+(t-1)} g"
-      by (rule vector_variation_affine_eq) auto
+      by (rule vector_variation_affine_eq) (use t0 in auto)
     also have "{1*(1-t)+(t-1)..1*1+(t-1)} = {0..t::real}" by auto
     finally show ?thesis .
   qed
@@ -1128,7 +1128,7 @@ section \<open>Absolutely continuous paths\<close>
 lemma rectifiable_path_differentiable:
   fixes g :: "real \<Rightarrow> 'a::euclidean_space"
   assumes "negligible S"
-    "absolutely_continuous_on g {0..1}"
+    "absolutely_continuous_on {0..1} g"
     "\<And>t. t \<in> {0..1} - S \<Longrightarrow> (g has_vector_derivative g' t) (at t)"
   shows "rectifiable_path g"
   unfolding rectifiable_path_def
@@ -1137,13 +1137,13 @@ proof
     unfolding path_def
     using absolutely_continuous_on_imp_continuous[OF assms(2) is_interval_cc] .
   show "has_bounded_variation_on g {0..1}"
-    using absolutely_continuous_on_imp_has_bounded_variation_on[OF assms(2)] .
+    using absolutely_continuous_on_imp_has_bounded_variation_on[OF assms(2) bounded_closed_interval] .
 qed
 
 lemma path_length_differentiable:
   fixes g :: "real \<Rightarrow> 'a::euclidean_space"
   assumes "negligible S"
-    "absolutely_continuous_on g {0..1}"
+    "absolutely_continuous_on {0..1} g"
     "\<And>t. t \<in> {0..1} - S \<Longrightarrow> (g has_vector_derivative g' t) (at t)"
   shows "path_length g = integral {0..1} (\<lambda>t. norm (g' t))"
   sorry
