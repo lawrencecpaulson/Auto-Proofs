@@ -1515,10 +1515,140 @@ qed
 
 subsection \<open>Closure and interior\<close>
 
+lemma absolutely_continuous_on_interior:
+  assumes abc: "absolutely_continuous_on (interior s) f" 
+    and contf: "continuous_on s f" 
+  shows "absolutely_continuous_on s f"
+  unfolding absolutely_continuous_on_def absolutely_setcontinuous_on_def
+proof (intro allI impI)
+  fix \<epsilon> :: real assume \<open>\<epsilon> > 0\<close>
+  then have \<open>\<epsilon>/2 > 0\<close> by simp
+
+  from abc[unfolded absolutely_continuous_on_def absolutely_setcontinuous_on_def]
+  have \<open>\<forall>\<epsilon>>0. \<exists>\<delta>>0. \<forall>d t. d division_of t \<and> t \<subseteq> interior s \<and> (\<Sum>k\<in>d. content k) < \<delta> \<longrightarrow>
+    (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) < \<epsilon>\<close> .
+  from this[rule_format, OF \<open>\<epsilon>/2 > 0\<close>]
+  obtain r where \<open>r > 0\<close> and
+    r_int: \<open>\<forall>d t. d division_of t \<and> t \<subseteq> interior s \<and> (\<Sum>k\<in>d. content k) < r \<longrightarrow>
+      (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) < \<epsilon>/2\<close>
+    by auto
+  show \<open>\<exists>\<delta>>0. \<forall>d t. d division_of t \<and> t \<subseteq> s \<and> (\<Sum>k\<in>d. content k) < \<delta> \<longrightarrow>
+    (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) < \<epsilon>\<close>
+  proof (rule exI[of _ r], intro conjI allI impI)
+    show \<open>r > 0\<close> by fact
+  next
+    fix d t
+    assume H: \<open>d division_of t \<and> t \<subseteq> s \<and> (\<Sum>k\<in>d. content k) < r\<close>
+    have dt: \<open>d division_of t\<close> and ts: \<open>t \<subseteq> s\<close> and content_small: \<open>(\<Sum>k\<in>d. content k) < r\<close>
+      using H by auto
+    show \<open>(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) < \<epsilon>\<close>
+    proof -
+      have fin_d: \<open>finite d\<close> using dt division_of_finite by blast
+      \<comment> \<open>Define the sequence of shrunken sums: shrink each interval K by 1/2^n on each side\<close>
+      define \<sigma> where \<open>\<sigma> n = (\<Sum>K\<in>d. norm (f (Sup K - (Sup K - Inf K) / 2^n) -
+        f (Inf K + (Sup K - Inf K) / 2^n)))\<close> for n :: nat
+      \<comment> \<open>The target sum\<close>
+      define L where \<open>L = (\<Sum>K\<in>d. norm (f (Sup K) - f (Inf K)))\<close>
+      \<comment> \<open>Convergence: \<sigma> n \<rightarrow> L as n \<rightarrow> \<infinity>\<close>
+      have conv: \<open>\<sigma> \<longlonglongrightarrow> L\<close>
+      proof -
+        \<comment> \<open>Pointwise convergence of each summand\<close>
+        have summand_conv: \<open>(\<lambda>n. norm (f (Sup K - (Sup K - Inf K) / 2^n) -
+          f (Inf K + (Sup K - Inf K) / 2^n))) \<longlonglongrightarrow> norm (f (Sup K) - f (Inf K))\<close>
+          if \<open>K \<in> d\<close> for K
+        proof (intro tendsto_norm tendsto_diff)
+          note Kd = that
+          have Ks: \<open>K \<subseteq> s\<close> using division_ofD(2)[OF dt Kd] ts by auto
+          obtain a b where Kab: \<open>K = cbox a b\<close> using division_ofD(4)[OF dt Kd] by auto
+          have ab: \<open>a \<le> b\<close> using division_ofD(3)[OF dt Kd] Kab by auto
+          have InfK: \<open>Inf K = a\<close> and SupK: \<open>Sup K = b\<close>
+            using Kab ab by auto
+          have endpts: \<open>Inf K \<in> s\<close> \<open>Sup K \<in> s\<close>
+            using Ks InfK SupK ab Kab by auto
+          have mid_in_K: \<open>x \<in> K\<close> if \<open>Inf K \<le> x\<close> \<open>x \<le> Sup K\<close> for x
+            using that InfK SupK Kab by auto
+          have *: \<open>(\<lambda>n. f (x + y / 2^n)) \<longlonglongrightarrow> f x\<close> if \<open>x \<in> s\<close> \<open>\<forall>n. x + y / 2^n \<in> s\<close> for x y
+          proof (rule continuous_on_tendsto_compose[OF contf _ that(1)])
+            show \<open>(\<lambda>n. x + y / 2^n) \<longlonglongrightarrow> x\<close>
+            proof -
+              have \<open>(\<lambda>n. y / 2^n) \<longlonglongrightarrow> 0\<close>
+                by (simp add: LIMSEQ_divide_realpow_zero)
+              then show ?thesis
+                using tendsto_add[OF tendsto_const, of \<open>\<lambda>n. y / 2^n\<close> 0 sequentially x]
+                by simp
+            qed
+            show \<open>\<forall>\<^sub>F n in sequentially. x + y / 2^n \<in> s\<close>
+              using that(2) by simp
+          qed
+          \<comment> \<open>Reduce to: f at shrunken upper endpoint \<rightarrow> f(Sup K)\<close>
+          show \<open>(\<lambda>n. f (Sup K - (Sup K - Inf K) / 2^n)) \<longlonglongrightarrow> f (Sup K)\<close>
+          proof -
+            have eq: \<open>Sup K - (Sup K - Inf K) / 2^n = Sup K + (Inf K - Sup K) / 2^n\<close> for n :: nat
+              by (simp add: field_simps)
+            have \<open>\<forall>n. Sup K + (Inf K - Sup K) / 2^n \<in> s\<close>
+            proof
+              fix n :: nat
+              have \<open>Inf K \<le> Sup K + (Inf K - Sup K) / 2^n\<close>
+              proof -
+                have \<open>(Sup K - Inf K) * 1 \<le> (Sup K - Inf K) * 2^n\<close>
+                  using ab InfK SupK by (intro mult_left_mono) auto
+                then show ?thesis by (simp add: field_simps)
+              qed
+              moreover have \<open>Sup K + (Inf K - Sup K) / 2^n \<le> Sup K\<close>
+              proof -
+                have \<open>(Inf K - Sup K) / 2^n \<le> 0\<close>
+                  using ab InfK SupK by (intro divide_nonpos_nonneg) auto
+                then show ?thesis by linarith
+              qed
+              ultimately show \<open>Sup K + (Inf K - Sup K) / 2^n \<in> s\<close>
+                using mid_in_K Ks by auto
+            qed
+            then show ?thesis using *[OF endpts(2)] by (simp add: eq)
+          qed
+          \<comment> \<open>Reduce to: f at shrunken lower endpoint \<rightarrow> f(Inf K)\<close>
+          show \<open>(\<lambda>n. f (Inf K + (Sup K - Inf K) / 2^n)) \<longlonglongrightarrow> f (Inf K)\<close>
+          proof -
+            have \<open>\<forall>n. Inf K + (Sup K - Inf K) / 2^n \<in> s\<close>
+            proof
+              fix n :: nat
+              have \<open>Inf K \<le> Inf K + (Sup K - Inf K) / 2^n\<close>
+              proof -
+                have \<open>(0::real) \<le> (Sup K - Inf K) / 2^n\<close>
+                  using ab InfK SupK by (intro divide_nonneg_nonneg) auto
+                then show ?thesis by linarith
+              qed
+              moreover have \<open>Inf K + (Sup K - Inf K) / 2^n \<le> Sup K\<close>
+              proof -
+                have \<open>(Sup K - Inf K) * 1 \<le> (Sup K - Inf K) * 2^n\<close>
+                  using ab InfK SupK by (intro mult_left_mono) auto
+                then show ?thesis by (simp add: field_simps)
+              qed
+              ultimately show \<open>Inf K + (Sup K - Inf K) / 2^n \<in> s\<close>
+                using mid_in_K Ks by auto
+            qed
+            then show ?thesis using *[OF endpts(1)] by simp
+          qed
+        qed
+        \<comment> \<open>Lift pointwise convergence to sum convergence over finite d\<close>
+        show \<open>\<sigma> \<longlonglongrightarrow> L\<close>
+          unfolding \<sigma>_def L_def using summand_conv by (rule tendsto_sum)
+      qed
+      \<comment> \<open>Eventually bounded: \<sigma> n \<le> \<epsilon>/2 for all sufficiently large n\<close>
+      have bound: \<open>\<forall>\<^sub>F n in sequentially. \<sigma> n \<le> \<epsilon>/2\<close>
+        sorry
+      \<comment> \<open>Conclude: L \<le> \<epsilon>/2 < \<epsilon>\<close>
+      have \<open>L \<le> \<epsilon>/2\<close>
+        by (rule tendsto_le[OF sequentially_bot tendsto_const conv bound])
+      then show ?thesis unfolding L_def using \<open>\<epsilon> > 0\<close> by linarith
+    qed
+  qed
+qed
+
+
 lemma absolutely_continuous_on_closure:
   assumes "absolutely_continuous_on (interior s) f"
     "continuous_on (closure s) f" "is_interval s"
   shows "absolutely_continuous_on s f"
-  sorry
+  by (meson absolutely_continuous_on_interior assms closure_subset continuous_on_subset)
 
 end
