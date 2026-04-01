@@ -1573,13 +1573,8 @@ proof (intro allI impI)
           have *: \<open>(\<lambda>n. f (x + y / 2^n)) \<longlonglongrightarrow> f x\<close> if \<open>x \<in> s\<close> \<open>\<forall>n. x + y / 2^n \<in> s\<close> for x y
           proof (rule continuous_on_tendsto_compose[OF contf _ that(1)])
             show \<open>(\<lambda>n. x + y / 2^n) \<longlonglongrightarrow> x\<close>
-            proof -
-              have \<open>(\<lambda>n. y / 2^n) \<longlonglongrightarrow> 0\<close>
-                by (simp add: LIMSEQ_divide_realpow_zero)
-              then show ?thesis
-                using tendsto_add[OF tendsto_const, of \<open>\<lambda>n. y / 2^n\<close> 0 sequentially x]
-                by simp
-            qed
+              using tendsto_add[OF tendsto_const, of \<open>\<lambda>n. y / 2^n\<close> 0 sequentially x]
+              by (simp add: LIMSEQ_divide_realpow_zero)
             show \<open>\<forall>\<^sub>F n in sequentially. x + y / 2^n \<in> s\<close>
               using that(2) by simp
           qed
@@ -1615,11 +1610,7 @@ proof (intro allI impI)
             proof
               fix n :: nat
               have \<open>Inf K \<le> Inf K + (Sup K - Inf K) / 2^n\<close>
-              proof -
-                have \<open>(0::real) \<le> (Sup K - Inf K) / 2^n\<close>
-                  using ab InfK SupK by (intro divide_nonneg_nonneg) auto
-                then show ?thesis by linarith
-              qed
+                by (simp add: InfK SupK ab)
               moreover have \<open>Inf K + (Sup K - Inf K) / 2^n \<le> Sup K\<close>
               proof -
                 have \<open>(Sup K - Inf K) * 1 \<le> (Sup K - Inf K) * 2^n\<close>
@@ -1757,8 +1748,103 @@ proof (intro allI impI)
           \<comment> \<open>Conclude with r_int'\<close>
         ultimately have r_int'_d': \<open>(\<Sum>k\<in>d'. norm (f (Sup k) - f (Inf k))) < \<epsilon>/2\<close>
           using r_int by blast
-        show "\<sigma> n \<le> \<epsilon> / 2"
-          sorry
+        \<comment> \<open>Injectivity of shrink on ?S\<close>
+        have inj_shrink: \<open>inj_on ?shrink ?S\<close>
+        proof (rule inj_onI)
+          fix k1 k2
+          assume k1S: \<open>k1 \<in> ?S\<close> and k2S: \<open>k2 \<in> ?S\<close> and eq: \<open>?shrink k1 = ?shrink k2\<close>
+          show \<open>k1 = k2\<close>
+          proof (rule ccontr)
+            assume \<open>k1 \<noteq> k2\<close>
+            have \<open>k1 \<in> d\<close> \<open>k2 \<in> d\<close> using k1S k2S by auto
+            have \<open>interior k1 \<inter> interior k2 = {}\<close>
+              using division_ofD(5)[OF dt \<open>k1 \<in> d\<close> \<open>k2 \<in> d\<close> \<open>k1 \<noteq> k2\<close>] .
+            moreover have \<open>?shrink k1 \<subseteq> interior k1\<close>
+            proof
+              fix x assume \<open>x \<in> ?shrink k1\<close>
+              then have \<open>x \<in> {Inf k1 + (Sup k1 - Inf k1) / 2^n .. Sup k1 - (Sup k1 - Inf k1) / 2^n}\<close>
+                using box_real by auto
+              moreover have \<open>Inf k1 < Inf k1 + (Sup k1 - Inf k1) / 2^n\<close>
+                using k_props(1)[OF k1S] by auto
+              moreover have \<open>Sup k1 - (Sup k1 - Inf k1) / 2^n < Sup k1\<close>
+                using k_props(1)[OF k1S] by auto
+              ultimately have \<open>x \<in> {Inf k1 <..< Sup k1}\<close> by auto
+              also have \<open>\<dots> = interior {Inf k1 .. Sup k1}\<close>
+                using interior_atLeastAtMost_real by auto
+              also have \<open>\<dots> = interior k1\<close> using k_props(2)[OF k1S] by auto
+              finally show \<open>x \<in> interior k1\<close> .
+            qed
+            moreover have \<open>?shrink k1 \<noteq> {}\<close> using k_props(5)[OF k1S] .
+            ultimately have \<open>?shrink k1 \<inter> interior k2 = {}\<close> by auto
+            moreover have \<open>?shrink k2 \<subseteq> interior k2\<close>
+            proof
+              fix x assume \<open>x \<in> ?shrink k2\<close>
+              then have \<open>x \<in> {Inf k2 + (Sup k2 - Inf k2) / 2^n .. Sup k2 - (Sup k2 - Inf k2) / 2^n}\<close>
+                using box_real by auto
+              moreover have \<open>Inf k2 < Inf k2 + (Sup k2 - Inf k2) / 2^n\<close>
+                using k_props(1)[OF k2S] by auto
+              moreover have \<open>Sup k2 - (Sup k2 - Inf k2) / 2^n < Sup k2\<close>
+                using k_props(1)[OF k2S] by auto
+              ultimately have \<open>x \<in> {Inf k2 <..< Sup k2}\<close> by auto
+              also have \<open>\<dots> = interior {Inf k2 .. Sup k2}\<close>
+                using interior_atLeastAtMost_real by auto
+              also have \<open>\<dots> = interior k2\<close> using k_props(2)[OF k2S] by auto
+              finally show \<open>x \<in> interior k2\<close> .
+            qed
+            ultimately have \<open>?shrink k1 \<inter> ?shrink k2 = {}\<close> by blast
+            then show False using eq k_props(5)[OF k1S]
+              by blast
+          qed
+        qed
+        \<comment> \<open>Inf and Sup of shrunken intervals\<close>
+        have shrink_bounds: \<open>Inf (?shrink k) = Inf k + (Sup k - Inf k) / 2^n\<close>
+                            \<open>Sup (?shrink k) = Sup k - (Sup k - Inf k) / 2^n\<close>
+          if \<open>k \<in> ?S\<close> for k
+        proof -
+          have ne: \<open>Inf k + (Sup k - Inf k) / 2^n \<le> Sup k - (Sup k - Inf k) / 2^n\<close>
+            using k_props(5)[OF that] by (auto simp: box_real)
+          show \<open>Inf (?shrink k) = Inf k + (Sup k - Inf k) / 2^n\<close>
+            unfolding box_real using cInf_atLeastAtMost[OF ne] .
+          show \<open>Sup (?shrink k) = Sup k - (Sup k - Inf k) / 2^n\<close>
+            unfolding box_real using cSup_atLeastAtMost[OF ne] .
+        qed
+        \<comment> \<open>Rewrite the d'-sum as a sum over ?S\<close>
+        have d'_sum: \<open>(\<Sum>K\<in>d'. norm (f (Sup K) - f (Inf K))) =
+          (\<Sum>k\<in>?S. norm (f (Sup k - (Sup k - Inf k) / 2^n) - f (Inf k + (Sup k - Inf k) / 2^n)))\<close>
+        proof -
+          have \<open>(\<Sum>K\<in>d'. norm (f (Sup K) - f (Inf K))) =
+            (\<Sum>k\<in>?S. norm (f (Sup (?shrink k)) - f (Inf (?shrink k))))\<close>
+            unfolding d'_eq using sum.reindex[OF inj_shrink] by (simp add: o_def)
+          also have \<open>\<dots> = (\<Sum>k\<in>?S. norm (f (Sup k - (Sup k - Inf k) / 2^n) - 
+                                         f (Inf k + (Sup k - Inf k) / 2^n)))\<close>
+            using shrink_bounds by simp
+          finally show ?thesis .
+        qed
+        have zero_summands: \<open>(\<Sum>k\<in>d. norm (f (Sup k - (Sup k - Inf k) / 2^n) - 
+          f (Inf k + (Sup k - Inf k) / 2^n))) =
+          (\<Sum>k\<in>?S. norm (f (Sup k - (Sup k - Inf k) / 2^n) - 
+            f (Inf k + (Sup k - Inf k) / 2^n)))\<close>
+        proof (rule sum.mono_neutral_right[OF fin_d])
+          show \<open>?S \<subseteq> d\<close> by auto
+          show \<open>\<forall>k\<in>d - ?S. norm (f (Sup k - (Sup k - Inf k) / 2^n) - 
+            f (Inf k + (Sup k - Inf k) / 2^n)) = 0\<close>
+          proof
+            fix k assume \<open>k \<in> d - ?S\<close>
+            then have kd: \<open>k \<in> d\<close> and kcont: \<open>content k = 0\<close> by auto
+            obtain a b where kab: \<open>k = cbox a b\<close> using division_ofD(4)[OF dt kd] by auto
+            have kne: \<open>k \<noteq> {}\<close> using division_ofD(3)[OF dt kd] .
+            then have \<open>a \<le> b\<close> using kab by (auto simp: box_real)
+            have \<open>b \<le> a\<close> using kcont unfolding kab box_real(2) content_real_eq_0 .
+            then have \<open>a = b\<close> using \<open>a \<le> b\<close> by auto
+            then have \<open>Inf k = Sup k\<close> using kab \<open>a \<le> b\<close> by (auto simp: box_real)
+            then show \<open>norm (f (Sup k - (Sup k - Inf k) / 2^n) - 
+              f (Inf k + (Sup k - Inf k) / 2^n)) = 0\<close> by simp
+          qed
+        qed
+        \<comment> \<open>Conclude: \<sigma> n < \<epsilon>/2, hence \<sigma> n \<le> \<epsilon>/2\<close>
+        have \<open>\<sigma> n = (\<Sum>k\<in>d'. norm (f (Sup k) - f (Inf k)))\<close>
+          unfolding \<sigma>_def using zero_summands d'_sum by auto
+        then show \<open>\<sigma> n \<le> \<epsilon>/2\<close> using r_int'_d' by linarith
       qed
       \<comment> \<open>Conclude: L \<le> \<epsilon>/2 < \<epsilon>\<close>
       have \<open>L \<le> \<epsilon>/2\<close>
