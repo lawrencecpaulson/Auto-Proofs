@@ -1221,8 +1221,10 @@ proof (cases \<open>a<b\<close>)
             by auto
           define \<D>S where \<open>\<D>S \<equiv> {(x,k) \<in> \<D>. x \<in> S}\<close>
           define \<D>N where \<open>\<D>N \<equiv> {(x,k) \<in> \<D>. x \<notin> S}\<close>
+          have sum_len: \<open>(\<Sum>(x, K)\<in>\<D>. Sup K - Inf K) = b - a\<close>
+            using additive_tagged_division_1[OF \<open>a \<le> b\<close> td] .
           \<comment> \<open>S-component: < \<epsilon>/2\<close>
-          have \<open>norm (\<Sum>(x,k)\<in>\<D>S. f (Sup k) - f (Inf k)) < \<epsilon>/2\<close>
+          have S_bound: \<open>norm (\<Sum>(x,k)\<in>\<D>S. f (Sup k) - f (Inf k)) < \<epsilon>/2\<close>
           proof (rule g1)
             show \<open>\<D>S tagged_partial_division_of cbox a b\<close>
               unfolding \<D>S_def using tpd tagged_partial_division_subset
@@ -1232,11 +1234,136 @@ proof (cases \<open>a<b\<close>)
             show \<open>fst ` \<D>S \<subseteq> S\<close>
               unfolding \<D>S_def by force
           qed
-          moreover
-          have \<open>norm (\<Sum>(x,k)\<in>\<D>N. f (Sup k) - f (Inf k)) \<le> \<epsilon>/2\<close>
-            sorry
-          ultimately show ?thesis
-            sorry
+          \<comment> \<open>Non-S-component: \<le> \<epsilon>/2\<close>
+          have N_bound: \<open>norm (\<Sum>(x,k)\<in>\<D>N. content k *\<^sub>R g x - (f (Sup k) - f (Inf k))) \<le> \<epsilon>/2\<close> (is "?L \<le> _")
+          proof -
+            \<comment> \<open>Fact 1: norm bound by per-element derivative bound\<close>
+            have step1: \<open>?L \<le> (\<Sum>(x,k)\<in>\<D>N. \<epsilon> / 2 / (b - a) * (Sup k - Inf k))\<close>
+            proof (rule sum_norm_le)
+              fix xk assume xk_in: \<open>xk \<in> \<D>N\<close>
+              obtain x k where xk: \<open>xk = (x, k)\<close> by (cases xk)
+              with xk_in have mem: \<open>(x, k) \<in> \<D>\<close> \<open>x \<notin> S\<close>
+                unfolding \<D>N_def by auto
+              from td mem have xk_props: \<open>x \<in> k\<close> \<open>k \<subseteq> {a..b}\<close>
+                by (auto dest: tagged_division_ofD)
+              from td mem obtain c e where k_int: \<open>k = cbox c e\<close>
+                using tagged_division_ofD(4) by blast
+              with xk_props have ce: \<open>c \<le> e\<close> \<open>c \<le> x\<close> \<open>x \<le> e\<close>
+                by auto
+              have k_eq: \<open>k = {c..e}\<close> using k_int by auto
+              have sup_k: \<open>Sup k = e\<close> and inf_k: \<open>Inf k = c\<close>
+                using ce by (auto simp: k_eq)
+              have cont: \<open>content k = Sup k - Inf k\<close>
+                using ce content_real k_eq sup_k inf_k by auto
+              have x_ab: \<open>x \<in> {a..b} - S\<close> using xk_props mem by auto
+              \<comment> \<open>From ball-fineness: Sup k and Inf k are within d x of x\<close>
+              have k_ball: \<open>k \<subseteq> ball x (d x)\<close>
+                using ball_fine mem unfolding fine_def by auto
+              have sup_in: \<open>Sup k \<in> k\<close> using ce by (auto simp: k_eq)
+              have inf_in: \<open>Inf k \<in> k\<close> using ce by (auto simp: k_eq)
+              have sup_ab: \<open>Sup k \<in> {a..b}\<close> using sup_in xk_props by auto
+              have inf_ab: \<open>Inf k \<in> {a..b}\<close> using inf_in xk_props by auto
+              have sup_near: \<open>\<bar>Sup k - x\<bar> < d x\<close>
+                using k_ball sup_in by (auto simp: dist_real_def)
+              have inf_near: \<open>\<bar>Inf k - x\<bar> < d x\<close>
+                using k_ball inf_in by (auto simp: dist_real_def)
+              \<comment> \<open>Apply derivative bound D at Sup k and Inf k\<close>
+              have bnd_sup: \<open>norm (f (Sup k) - f x - (Sup k - x) *\<^sub>R g x)
+                            \<le> \<epsilon> / 2 / (b - a) * \<bar>Sup k - x\<bar>\<close>
+                using D x_ab sup_near sup_ab by auto
+              have bnd_inf: \<open>norm (f (Inf k) - f x - (Inf k - x) *\<^sub>R g x)
+                            \<le> \<epsilon> / 2 / (b - a) * \<bar>Inf k - x\<bar>\<close>
+                using D x_ab inf_near inf_ab by auto
+              \<comment> \<open>Algebraic decomposition\<close>
+              have decomp: \<open>content k *\<^sub>R g x - (f (Sup k) - f (Inf k))
+                          = (f (Inf k) - f x - (Inf k - x) *\<^sub>R g x)
+                          - (f (Sup k) - f x - (Sup k - x) *\<^sub>R g x)\<close>
+                by (simp add: cont sup_k inf_k algebra_simps)
+              \<comment> \<open>Triangle inequality + derivative bounds\<close>
+              have \<open>norm (content k *\<^sub>R g x - (f (Sup k) - f (Inf k)))
+                  \<le> norm (f (Inf k) - f x - (Inf k - x) *\<^sub>R g x)
+                   + norm (f (Sup k) - f x - (Sup k - x) *\<^sub>R g x)\<close>
+                unfolding decomp by (rule norm_triangle_ineq4)
+              also have \<open>\<dots> \<le> \<epsilon> / 2 / (b - a) * \<bar>Inf k - x\<bar>
+                           + \<epsilon> / 2 / (b - a) * \<bar>Sup k - x\<bar>\<close>
+                using bnd_inf bnd_sup by linarith
+              also have \<open>\<dots> = \<epsilon> / 2 / (b - a) * (Sup k - Inf k)\<close>
+              proof -
+                have abs1: \<open>\<bar>Inf k - x\<bar> = x - Inf k\<close> using ce sup_k inf_k by auto
+                have abs2: \<open>\<bar>Sup k - x\<bar> = Sup k - x\<close> using ce sup_k inf_k by auto
+                show ?thesis unfolding abs1 abs2
+                  by (simp add: add_divide_distrib[symmetric] algebra_simps)
+              qed
+              finally show \<open>norm (case xk of (x,k) \<Rightarrow> content k *\<^sub>R g x - (f (Sup k) - f (Inf k)))
+                          \<le> (case xk of (x,k) \<Rightarrow> \<epsilon> / 2 / (b - a) * (Sup k - Inf k))\<close>
+                by (simp add: xk)
+            qed
+            \<comment> \<open>Fact 2: subset monotonicity of nonneg sum\<close>
+            have step2: \<open>(\<Sum>(x,k)\<in>\<D>N. \<epsilon> / 2 / (b - a) * (Sup k - Inf k))
+                        \<le> (\<Sum>(x,k)\<in>\<D>.  \<epsilon> / 2 / (b - a) * (Sup k - Inf k))\<close>
+            proof (rule sum_mono2)
+              show \<open>finite \<D>\<close> using tagged_division_of_finite[OF td] .
+              show \<open>\<D>N \<subseteq> \<D>\<close> unfolding \<D>N_def by auto
+              fix xk assume \<open>xk \<in> \<D> - \<D>N\<close>
+              then obtain x k where \<open>xk = (x,k)\<close> \<open>(x,k) \<in> \<D>\<close> by (cases xk) auto
+              then obtain c e where \<open>k = cbox c e\<close> \<open>c \<le> e\<close>
+                using tagged_division_ofD(4,2) td
+                by (smt (verit) atLeastAtMost_iff box_real(2) subset_iff)
+              then have \<open>Sup k \<ge> Inf k\<close> by simp
+              then show \<open>0 \<le> (case xk of (x,k) \<Rightarrow> \<epsilon> / 2 / (b - a) * (Sup k - Inf k))\<close>
+                using \<open>0 < \<epsilon>\<close> True \<open>xk = (x,k)\<close> by (auto intro!: mult_nonneg_nonneg)
+            qed
+            have sum_eq: \<open>(\<Sum>(x,k)\<in>\<D>. \<epsilon> / 2 / (b - a) * (Sup k - Inf k))
+                        = \<epsilon> / 2 / (b - a) * (b - a)\<close>
+            proof -
+              have \<open>(\<Sum>(x,k)\<in>\<D>. \<epsilon> / 2 / (b - a) * (Sup k - Inf k))
+                  = \<epsilon> / 2 / (b - a) * (\<Sum>(x,k)\<in>\<D>. Sup k - Inf k)\<close>
+                by (auto simp: sum_distrib_left case_prod_unfold)
+              also have \<open>\<dots> = \<epsilon> / 2 / (b - a) * (b - a)\<close>
+                by (simp add: sum_len)
+              finally show ?thesis .
+            qed
+            have \<open>?L \<le> \<epsilon> / 2 / (b - a) * (b - a)\<close>
+              using step1 step2 sum_eq by linarith
+            also have \<open>\<dots> = \<epsilon> / 2\<close>
+              using True divide_eq_eq by fastforce
+            finally show ?thesis .
+          qed
+          \<comment> \<open>Combine the two halves\<close>
+          have fin\<D>: \<open>finite \<D>\<close> using tagged_division_of_finite[OF td] .
+          have disj: \<open>\<D>S \<inter> \<D>N = {}\<close> unfolding \<D>S_def \<D>N_def by auto
+          have union: \<open>\<D> = \<D>S \<union> \<D>N\<close> unfolding \<D>S_def \<D>N_def using \<D>_split by auto
+          have fin_S: \<open>finite \<D>S\<close> and fin_N: \<open>finite \<D>N\<close>
+            using fin\<D> union by (auto intro: finite_subset)
+          \<comment> \<open>Rewrite goal using * and combine sums\<close>
+          have \<open>norm ((\<Sum>(x,k)\<in>\<D>. content k *\<^sub>R g x) - (f b - f a))
+              = norm (\<Sum>(x,k)\<in>\<D>. content k *\<^sub>R g x - (f (Sup k) - f (Inf k)))\<close>
+            by (smt (verit) "*" split_def sum.cong sum_subtractf)
+          \<comment> \<open>Split into S and non-S parts\<close>
+          also have \<open>\<dots> = norm ((\<Sum>(x,k)\<in>\<D>S. content k *\<^sub>R g x - (f (Sup k) - f (Inf k)))
+                            + (\<Sum>(x,k)\<in>\<D>N. content k *\<^sub>R g x - (f (Sup k) - f (Inf k))))\<close>
+            by (simp add: sum.union_disjoint[OF fin_S fin_N disj, symmetric] union)
+          \<comment> \<open>On \<D>S, g x = 0 so @{term\<open>content k *\<^sub>R g x = 0\<close>}\<close>
+          also have \<open>(\<Sum>(x,k)\<in>\<D>S. content k *\<^sub>R g x - (f (Sup k) - f (Inf k)))
+                   = (\<Sum>(x,k)\<in>\<D>S. f (Inf k) - f (Sup k))\<close>
+          proof (rule sum.cong[OF refl])
+            fix xk assume \<open>xk \<in> \<D>S\<close>
+            then obtain x k where \<open>xk = (x,k)\<close> \<open>x \<in> S\<close> unfolding \<D>S_def by auto
+            then show \<open>(case xk of (x,k) \<Rightarrow> content k *\<^sub>R g x - (f (Sup k) - f (Inf k)))
+                     = (case xk of (x,k) \<Rightarrow> (f (Inf k) - f (Sup k)))\<close>
+              by (simp add: g_def split: prod.splits)
+          qed
+          also have \<open>\<dots> = - (\<Sum>(x,k)\<in>\<D>S. f (Sup k) - f (Inf k))\<close>
+            by (simp add: split_def sum_subtractf)
+          also have \<open>norm (- (\<Sum>(x,k)\<in>\<D>S. f (Sup k) - f (Inf k))
+                         + (\<Sum>(x,k)\<in>\<D>N. content k *\<^sub>R g x - (f (Sup k) - f (Inf k))))
+                   \<le> norm (\<Sum>(x,k)\<in>\<D>S. f (Sup k) - f (Inf k))
+                    + norm (\<Sum>(x,k)\<in>\<D>N. content k *\<^sub>R g x - (f (Sup k) - f (Inf k)))\<close>
+            using norm_add_rule_thm norm_imp_pos_and_ge norm_minus_cancel by blast
+          also have \<open>\<dots> < \<epsilon>/2 + \<epsilon>/2\<close>
+            using S_bound N_bound by linarith
+          also have \<open>\<dots> = \<epsilon>\<close> by simp
+          finally show ?thesis .
         qed
       qed
     qed
