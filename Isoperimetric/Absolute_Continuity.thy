@@ -1374,13 +1374,144 @@ next
     using \<open>a \<le> b\<close> by force
 qed
 
+lemma negligible_content_gauge:
+  fixes a b :: real
+  assumes \<open>negligible S\<close> \<open>\<delta> > 0\<close>
+  shows \<open>\<exists>g. gauge g \<and>
+    (\<forall>p. p tagged_partial_division_of cbox a b \<and> g fine p \<and> fst ` p \<subseteq> S \<longrightarrow>
+      (\<Sum>(x,k)\<in>p. content k) < \<delta>)\<close>
+proof -
+  have int: \<open>(indicat_real S has_integral 0) (cbox a b)\<close>
+    using assms(1) negligible_def by blast
+  then have intble: \<open>indicat_real S integrable_on cbox a b\<close>
+    by (rule has_integral_integrable)
+  obtain \<gamma> where \<open>gauge \<gamma>\<close> and \<gamma>:
+    \<open>\<And>p. \<lbrakk>p tagged_partial_division_of cbox a b; \<gamma> fine p\<rbrakk>
+     \<Longrightarrow> (\<Sum>(x,k)\<in>p. norm (content k *\<^sub>R indicat_real S x - integral k (indicat_real S))) < \<delta>\<close>
+    using Henstock_lemma[OF intble \<open>\<delta> > 0\<close>] by blast
+  show ?thesis
+  proof (intro exI conjI allI impI)
+    show \<open>gauge \<gamma>\<close> by fact
+    fix p assume asm: \<open>p tagged_partial_division_of cbox a b \<and> \<gamma> fine p \<and> fst ` p \<subseteq> S\<close>
+    then have pd: \<open>p tagged_partial_division_of cbox a b\<close> and fine: \<open>\<gamma> fine p\<close> 
+      and tags: \<open>fst ` p \<subseteq> S\<close> by auto
+    have eq: \<open>content k *\<^sub>R indicat_real S x - integral k (indicat_real S) = content k\<close>
+      if \<open>(x, k) \<in> p\<close> for x k
+    proof -
+      from that tags have \<open>x \<in> S\<close> by force
+      then have \<open>indicat_real S x = 1\<close> by (simp add: indicator_def)
+      moreover have \<open>integral k (indicat_real S) = 0\<close>
+        by (metis assms(1) integral_unique negligible_def pd tagged_partial_division_ofD(4)
+            that)
+      ultimately show ?thesis by simp
+    qed
+    have \<open>(\<Sum>(x,k)\<in>p. content k) = (\<Sum>(x,k)\<in>p. norm (content k *\<^sub>R indicat_real S x - integral k (indicat_real S)))\<close>
+    proof (rule sum.cong)
+      fix xk assume \<open>xk \<in> p\<close>
+      then obtain x k where \<open>xk = (x, k)\<close> and \<open>(x, k) \<in> p\<close> by (cases xk) auto
+      then show \<open>(case xk of (x, k) \<Rightarrow> content k) = (case xk of (x, k) \<Rightarrow> norm (content k *\<^sub>R indicat_real S x - integral k (indicat_real S)))\<close>
+        using eq content_pos_le by (simp add: \<open>xk = (x, k)\<close>)
+    qed auto
+    also have \<open>\<dots> < \<delta>\<close>
+      using \<gamma>[OF pd fine] .
+    finally show \<open>(\<Sum>(x,k)\<in>p. content k) < \<delta>\<close> .
+  qed
+qed
+
+lemma absolutely_continuous_on_imp_Henstock_Sacks:
+  assumes \<open>negligible S\<close> \<open>absolutely_continuous_on {a..b} f\<close> \<open>\<epsilon> > 0\<close>
+  shows \<open>\<exists>g. gauge g \<and>
+    (\<forall>p. p tagged_partial_division_of cbox a b \<and> g fine p \<and> fst ` p \<subseteq> S \<longrightarrow>
+      norm (\<Sum>(x,k)\<in>p. f (Sup k) - f (Inf k)) < \<epsilon>)\<close>
+proof -
+  define F where \<open>F \<equiv> \<lambda>k. f (Sup k) - f (Inf k)\<close>
+  from assms(2) have ac: \<open>absolutely_setcontinuous_on F {a..b}\<close>
+    unfolding absolutely_continuous_on_def F_def .
+  then obtain \<delta> where \<open>\<delta> > 0\<close> and \<delta>:
+    \<open>\<And>d t. \<lbrakk>d division_of t; t \<subseteq> {a..b}; sum content d < \<delta>\<rbrakk> \<Longrightarrow> (\<Sum>k\<in>d. norm (F k)) < \<epsilon>\<close>
+    using assms(3) unfolding absolutely_setcontinuous_on_def by meson
+  obtain g where \<open>gauge g\<close> and g:
+    \<open>\<And>p. \<lbrakk>p tagged_partial_division_of cbox a b; g fine p; fst ` p \<subseteq> S\<rbrakk>
+      \<Longrightarrow> (\<Sum>(x,k)\<in>p. content k) < \<delta>\<close>
+    using negligible_content_gauge[OF assms(1) \<open>\<delta> > 0\<close>, of a b] by auto
+  show ?thesis
+  proof (intro exI conjI allI impI)
+    show \<open>gauge g\<close> by fact
+    fix p assume asm: \<open>p tagged_partial_division_of cbox a b \<and> g fine p \<and> fst ` p \<subseteq> S\<close>
+    then have pd: \<open>p tagged_partial_division_of cbox a b\<close> and fine: \<open>g fine p\<close>
+      and tags: \<open>fst ` p \<subseteq> S\<close> by auto
+    have inj: \<open>inj_on snd p\<close>
+    proof (rule inj_onI)
+      fix xk1 xk2 assume \<open>xk1 \<in> p\<close> \<open>xk2 \<in> p\<close> \<open>snd xk1 = snd xk2\<close>
+      then obtain x1 K1 x2 K2 where eq: \<open>xk1 = (x1, K1)\<close> \<open>xk2 = (x2, K2)\<close> \<open>K1 = K2\<close>
+        by (cases xk1; cases xk2) auto
+      show \<open>xk1 = xk2\<close>
+      proof (rule ccontr)
+        assume \<open>xk1 \<noteq> xk2\<close>
+        with eq \<open>xk1 \<in> p\<close> \<open>xk2 \<in> p\<close> pd
+        have \<open>interior K1 \<inter> interior K2 = {}\<close>
+          using tagged_partial_division_ofD(5) by blast
+        with eq have \<open>interior K1 = {}\<close> by auto
+        moreover from \<open>xk1 \<in> p\<close> pd eq obtain c d where \<open>K1 = cbox c d\<close>
+          using tagged_partial_division_ofD(4) by blast
+        ultimately have \<open>box c d = {}\<close> using interior_cbox by metis
+        moreover from \<open>xk1 \<in> p\<close> pd eq have \<open>x1 \<in> K1\<close> using tagged_partial_division_ofD(2) by blast
+        moreover from \<open>xk2 \<in> p\<close> pd eq have \<open>x2 \<in> K1\<close> using tagged_partial_division_ofD(2) by blast
+        ultimately have \<open>x1 = x2\<close> using \<open>K1 = cbox c d\<close> by (simp add: mem_box)
+        with eq show False using \<open>xk1 \<noteq> xk2\<close> by auto
+      qed
+    qed
+    have div: \<open>snd ` p division_of \<Union>(snd ` p)\<close>
+      using partial_division_of_tagged_division[OF pd] .
+    have sub: \<open>\<Union>(snd ` p) \<subseteq> {a..b}\<close>
+    proof
+      fix x assume \<open>x \<in> \<Union>(snd ` p)\<close>
+      then obtain K where \<open>K \<in> snd ` p\<close> \<open>x \<in> K\<close> by auto
+      then obtain xk where \<open>xk \<in> p\<close> \<open>snd xk = K\<close> by auto
+      then obtain t where \<open>(t, K) \<in> p\<close> by (cases xk) auto
+      then have \<open>K \<subseteq> cbox a b\<close> using tagged_partial_division_ofD(3)[OF pd] by blast
+      with \<open>x \<in> K\<close> show \<open>x \<in> {a..b}\<close> by auto
+    qed
+    have content_bound: \<open>sum content (snd ` p) < \<delta>\<close>
+    proof -
+      have \<open>sum content (snd ` p) = (\<Sum>(x,k)\<in>p. content k)\<close>
+        using sum.reindex[OF inj, of content] by (simp add: o_def case_prod_unfold)
+      also have \<open>\<dots> < \<delta>\<close> using g[OF pd fine tags] .
+      finally show ?thesis .
+    qed
+    have \<open>(\<Sum>k\<in>snd ` p. norm (F k)) < \<epsilon>\<close>
+      using \<delta>[OF div sub content_bound] .
+    then have \<open>(\<Sum>(x,k)\<in>p. norm (F k)) < \<epsilon>\<close>
+      using sum.reindex[OF inj, of \<open>\<lambda>k. norm (F k)\<close>] by (simp add: o_def case_prod_unfold)
+    moreover have \<open>norm (\<Sum>(x,k)\<in>p. F k) \<le> (\<Sum>(x,k)\<in>p. norm (F k))\<close>
+    proof -
+      have \<open>norm (sum (\<lambda>xk. F (snd xk)) p) \<le> (\<Sum>xk\<in>p. norm (F (snd xk)))\<close>
+        by (rule norm_sum)
+      then show ?thesis
+        by (simp add: case_prod_unfold)
+    qed
+    ultimately show \<open>norm (\<Sum>(x,k)\<in>p. f (Sup k) - f (Inf k)) < \<epsilon>\<close>
+      unfolding F_def by linarith
+  qed
+qed
+
 theorem fundamental_theorem_of_calculus_absolutely_continuous:
   fixes f :: "real \<Rightarrow> 'a::euclidean_space"
   assumes "negligible S" "a \<le> b"
     "absolutely_continuous_on {a..b} f"
     "\<And>x. x \<in> {a..b} - S \<Longrightarrow> (f has_vector_derivative f' x) (at x within {a..b})"
   shows "(f' has_integral (f b - f a)) {a..b}"
-  sorry
+proof (rule fundamental_theorem_of_calculus_Bartle)
+  show \<open>negligible S\<close> \<open>a \<le> b\<close> by fact+
+  show \<open>\<And>x. x \<in> {a..b} - S \<Longrightarrow> (f has_vector_derivative f' x) (at x within {a..b})\<close>
+    using assms(4) .
+  fix \<epsilon> :: real assume \<open>\<epsilon> > 0\<close>
+  \<comment> \<open>Need: absolutely_continuous_on \<Longrightarrow> Henstock–Sacks condition\<close>
+  show \<open>\<exists>g. gauge g \<and>
+        (\<forall>p. p tagged_partial_division_of cbox a b \<and> g fine p \<and> fst ` p \<subseteq> S \<longrightarrow>
+          norm (\<Sum>(x,k)\<in>p. f (Sup k) - f (Inf k)) < \<epsilon>)\<close>
+    using \<open>0 < \<epsilon>\<close> absolutely_continuous_on_imp_Henstock_Sacks assms(1,3) by fastforce
+qed
 
 subsection \<open>Closure and interior\<close>
 
