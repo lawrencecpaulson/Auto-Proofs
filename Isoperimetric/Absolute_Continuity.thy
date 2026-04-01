@@ -1153,8 +1153,8 @@ proof (cases \<open>a<b\<close>)
       assume "0 < \<epsilon>"
       then obtain g1 where \<open>gauge g1\<close> 
            and g1: \<open>\<And>p. \<lbrakk>p tagged_partial_division_of cbox a b; g1 fine p; fst ` p \<subseteq> S\<rbrakk>
-                   \<Longrightarrow> norm (\<Sum>(x,k)\<in>p. f (Sup k) - f (Inf k)) < \<epsilon>\<close>
-        using HS by force
+                   \<Longrightarrow> norm (\<Sum>(x,k)\<in>p. f (Sup k) - f (Inf k)) < \<epsilon>/2\<close>
+        using HS[of \<open>\<epsilon>/2\<close>] by force
 
       have \<open>\<exists>d>0. (x \<in> {a..b} - S \<longrightarrow>
               (\<forall>y. \<bar>y - x\<bar> < d \<and> y \<in> {a..b} \<longrightarrow>
@@ -1209,9 +1209,33 @@ proof (cases \<open>a<b\<close>)
           by (simp add: additive_tagged_division_1 assms)
         show "norm ((\<Sum>(x, k)\<in>\<D>. content k *\<^sub>R g x) - (f b - f a)) < \<epsilon>"
         proof -
+          have td: \<open>\<D> tagged_division_of {a..b}\<close> and fine: \<open>\<gamma> fine \<D>\<close>
+            using \<open>\<D> tagged_division_of {a..b} \<and> \<gamma> fine \<D>\<close> by auto
+          have tpd: \<open>\<D> tagged_partial_division_of cbox a b\<close>
+            using td tagged_division_of_def by auto
+          have g1_fine: \<open>g1 fine \<D>\<close>
+            using fine unfolding \<gamma>_def by (auto simp: fine_Int)
+          have ball_fine: \<open>(\<lambda>x. ball x (d x)) fine \<D>\<close>
+            using fine unfolding \<gamma>_def by (auto simp: fine_Int)
           have \<D>_split: \<open>\<D> = {(x,k) \<in> \<D>. x \<in> S} \<union> {(x,k) \<in> \<D>. x \<notin> S}\<close>
             by auto
-          show ?thesis
+          define \<D>S where \<open>\<D>S \<equiv> {(x,k) \<in> \<D>. x \<in> S}\<close>
+          define \<D>N where \<open>\<D>N \<equiv> {(x,k) \<in> \<D>. x \<notin> S}\<close>
+          \<comment> \<open>S-component: < \<epsilon>/2\<close>
+          have \<open>norm (\<Sum>(x,k)\<in>\<D>S. f (Sup k) - f (Inf k)) < \<epsilon>/2\<close>
+          proof (rule g1)
+            show \<open>\<D>S tagged_partial_division_of cbox a b\<close>
+              unfolding \<D>S_def using tpd tagged_partial_division_subset
+              using \<D>_split by auto
+            show \<open>g1 fine \<D>S\<close>
+              using g1_fine fine_subset by (force simp: \<D>S_def fine_def)
+            show \<open>fst ` \<D>S \<subseteq> S\<close>
+              unfolding \<D>S_def by force
+          qed
+          moreover
+          have \<open>norm (\<Sum>(x,k)\<in>\<D>N. f (Sup k) - f (Inf k)) \<le> \<epsilon>/2\<close>
+            sorry
+          ultimately show ?thesis
             sorry
         qed
       qed
