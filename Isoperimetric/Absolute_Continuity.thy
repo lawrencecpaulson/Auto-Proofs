@@ -1532,6 +1532,9 @@ proof (intro allI impI)
     r_int: \<open>\<forall>d t. d division_of t \<and> t \<subseteq> interior s \<and> (\<Sum>k\<in>d. content k) < r \<longrightarrow>
       (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) < \<epsilon>/2\<close>
     by auto
+  have r_int': \<open>(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) < \<epsilon>/2\<close>
+    if \<open>d division_of \<Union>d\<close> \<open>\<Union>d \<subseteq> interior s\<close> \<open>(\<Sum>k\<in>d. content k) < r\<close> for d
+    using r_int that by blast
   show \<open>\<exists>\<delta>>0. \<forall>d t. d division_of t \<and> t \<subseteq> s \<and> (\<Sum>k\<in>d. content k) < \<delta> \<longrightarrow>
     (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) < \<epsilon>\<close>
   proof (rule exI[of _ r], intro conjI allI impI)
@@ -1635,7 +1638,128 @@ proof (intro allI impI)
       qed
       \<comment> \<open>Eventually bounded: \<sigma> n \<le> \<epsilon>/2 for all sufficiently large n\<close>
       have bound: \<open>\<forall>\<^sub>F n in sequentially. \<sigma> n \<le> \<epsilon>/2\<close>
-        sorry
+      proof
+        fix n :: nat
+        assume "2 \<le> n"
+        define d' where \<open>d' \<equiv> (\<lambda>k. cbox (Inf k + (Sup k - Inf k) / 2^n) 
+                                         (Sup k - (Sup k - Inf k) / 2^n))
+                                      ` {k \<in> d. content k \<noteq> 0}\<close>
+        let ?S = \<open>{k \<in> d. content k \<noteq> 0}\<close>
+        let ?shrink = \<open>\<lambda>k. cbox (Inf k + (Sup k - Inf k) / 2^n) (Sup k - (Sup k - Inf k) / 2^n)\<close>
+        have d'_eq: \<open>d' = ?shrink ` ?S\<close> 
+          unfolding d'_def ..
+        have fin_S: \<open>finite ?S\<close> using fin_d by auto
+            \<comment> \<open>Key properties of each k \<in> ?S\<close>
+        have k_props: \<open>Inf k < Sup k\<close> \<open>k = {Inf k .. Sup k}\<close> \<open>k \<subseteq> s\<close>
+          \<open>?shrink k \<subseteq> k\<close> \<open>?shrink k \<noteq> {}\<close>
+          if \<open>k \<in> ?S\<close> for k
+        proof -
+          from that have kd: \<open>k \<in> d\<close> and kcont: \<open>content k \<noteq> 0\<close> by auto
+          obtain a b where kab: \<open>k = cbox a b\<close> using division_ofD(4)[OF dt kd] by auto
+          then have kab': \<open>k = {a..b}\<close> using box_real by auto
+          have \<open>k \<noteq> {}\<close> using division_ofD(3)[OF dt kd] .
+          then have \<open>a \<le> b\<close> using kab' by auto
+          have \<open>a < b\<close> using kcont kab' content_real_eq_0 by auto
+          moreover have \<open>Inf k = a\<close> \<open>Sup k = b\<close> using kab' \<open>a \<le> b\<close> by auto
+          ultimately show \<open>Inf k < Sup k\<close> by auto
+          show \<open>k = {Inf k .. Sup k}\<close> using kab' \<open>Inf k = a\<close> \<open>Sup k = b\<close> by auto
+          show \<open>k \<subseteq> s\<close> using division_ofD(2)[OF dt kd] ts by auto
+          have pos: \<open>(Sup k - Inf k) / 2^n > 0\<close> using \<open>Inf k < Sup k\<close> by auto
+          have two_le: \<open>(2::real) \<le> 2^n\<close> using \<open>2 \<le> n\<close>
+            by (metis One_nat_def le_eq_less_or_eq le_simps(3) numerals(2) one_le_numeral
+                power_increasing power_one_right)
+          show \<open>?shrink k \<subseteq> k\<close>
+            unfolding box_real using pos \<open>k = {Inf k .. Sup k}\<close>
+            by fastforce
+          show \<open>?shrink k \<noteq> {}\<close>
+          proof -
+            have \<open>Inf k + (Sup k - Inf k) / 2^n \<le> Sup k - (Sup k - Inf k) / 2^n\<close>
+            proof -
+              have \<open>(Sup k - Inf k) * 2 \<le> (Sup k - Inf k) * 2^n\<close>
+                using \<open>Inf k < Sup k\<close> two_le by (intro mult_left_mono) auto
+              then have \<open>2 * (Sup k - Inf k) / 2^n \<le> Sup k - Inf k\<close>
+                by (simp add: pos_divide_le_eq)
+              then show ?thesis by linarith
+            qed
+            then show ?thesis unfolding box_real by auto
+          qed
+        qed
+          \<comment> \<open>Key properties of each k \<in> ?S\<close>
+          \<comment> \<open>Claim 1: d' is a division of \<Union>d'\<close>
+        have \<open>d' division_of \<Union>d'\<close>
+          unfolding division_of_def
+        proof (intro conjI ballI impI)
+          fix K :: "real set"
+          assume "K \<in> d'"
+          then obtain k where kS: \<open>k \<in> ?S\<close> and Keq: \<open>K = ?shrink k\<close> 
+            unfolding d'_eq by auto
+          show \<open>K \<noteq> {}\<close> using Keq k_props(5)[OF kS] by auto 
+          show "\<exists>a b. K = cbox a b"
+            using \<open>K \<in> d'\<close> d'_def by blast
+        next
+          fix K1 K2
+          assume \<open>K1 \<in> d'\<close> \<open>K2 \<in> d'\<close> \<open>K1 \<noteq> K2\<close>
+          then obtain k1 k2 where k1S: \<open>k1 \<in> ?S\<close> and K1eq: \<open>K1 = ?shrink k1\<close>
+            and k2S: \<open>k2 \<in> ?S\<close> and K2eq: \<open>K2 = ?shrink k2\<close>
+            unfolding d'_eq by auto
+          have \<open>k1 \<noteq> k2\<close> using \<open>K1 \<noteq> K2\<close> K1eq K2eq by auto
+          have \<open>k1 \<in> d\<close> \<open>k2 \<in> d\<close> using k1S k2S by auto
+          have \<open>interior k1 \<inter> interior k2 = {}\<close>
+            using division_ofD(5)[OF dt \<open>k1 \<in> d\<close> \<open>k2 \<in> d\<close> \<open>k1 \<noteq> k2\<close>] .
+          moreover have \<open>interior K1 \<subseteq> interior k1\<close>
+            using interior_mono[OF k_props(4)[OF k1S]] K1eq by auto
+          moreover have \<open>interior K2 \<subseteq> interior k2\<close>
+            using interior_mono[OF k_props(4)[OF k2S]] K2eq by auto
+          ultimately show \<open>interior K1 \<inter> interior K2 = {}\<close> by auto
+        qed (auto simp: d'_def fin_d Sup_upper)
+          \<comment> \<open>Claim 2: \<Union>d' \<subseteq> interior s\<close>
+        moreover have \<open>\<Union>d' \<subseteq> interior s\<close>
+        proof
+          fix x assume \<open>x \<in> \<Union>d'\<close>
+          then obtain K where \<open>K \<in> d'\<close> \<open>x \<in> K\<close> by auto
+          then obtain k where kS: \<open>k \<in> ?S\<close> and Keq: \<open>K = ?shrink k\<close> 
+            unfolding d'_eq by auto
+          have \<open>x \<in> interior k\<close>
+          proof -
+            have \<open>Inf k < Inf k + (Sup k - Inf k) / 2^n\<close>
+              using k_props(1)[OF kS] by auto
+            moreover have \<open>Sup k - (Sup k - Inf k) / 2^n < Sup k\<close>
+              using k_props(1)[OF kS] by auto
+            moreover have \<open>x \<in> {Inf k + (Sup k - Inf k) / 2^n .. Sup k - (Sup k - Inf k) / 2^n}\<close>
+              using \<open>x \<in> K\<close> Keq box_real by auto
+            ultimately have \<open>x \<in> {Inf k <..< Sup k}\<close> by auto
+            also have \<open>... = interior {Inf k .. Sup k}\<close>
+              using interior_atLeastAtMost_real by auto
+            also have \<open>... = interior k\<close> using k_props(2)[OF kS] by auto
+            finally show ?thesis .
+          qed
+          also have \<open>interior k \<subseteq> interior s\<close>
+            by (rule interior_mono[OF k_props(3)[OF kS]])
+          finally show \<open>x \<in> interior s\<close> .
+        qed
+          \<comment> \<open>Claim 3: total content of d' < r\<close>
+        moreover have \<open>(\<Sum>k\<in>d'. content k) < r\<close>
+        proof -
+          have \<open>(\<Sum>k\<in>d'. content k) \<le> (\<Sum>k\<in>?S. content (?shrink k))\<close>
+            unfolding d'_eq using sum_image_le[OF fin_S, of content ?shrink] content_pos_le
+            by fastforce
+          also have \<open>... \<le> (\<Sum>k\<in>?S. content k)\<close>
+          proof (rule sum_mono)
+            fix k assume \<open>k \<in> ?S\<close>
+            then show \<open>content (?shrink k) \<le> content k\<close>
+              by (metis (no_types, lifting) box_real(2) content_subset k_props(2,4))
+          qed
+          also have \<open>... \<le> (\<Sum>k\<in>d. content k)\<close>
+            by (rule sum_mono2[OF fin_d]) (auto simp: content_pos_le)
+          also have \<open>... < r\<close> using content_small .
+          finally show ?thesis .
+        qed
+          \<comment> \<open>Conclude with r_int'\<close>
+        ultimately have r_int'_d': \<open>(\<Sum>k\<in>d'. norm (f (Sup k) - f (Inf k))) < \<epsilon>/2\<close>
+          using r_int by blast
+        show "\<sigma> n \<le> \<epsilon> / 2"
+          sorry
+      qed
       \<comment> \<open>Conclude: L \<le> \<epsilon>/2 < \<epsilon>\<close>
       have \<open>L \<le> \<epsilon>/2\<close>
         by (rule tendsto_le[OF sequentially_bot tendsto_const conv bound])
