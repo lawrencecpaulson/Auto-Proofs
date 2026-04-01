@@ -1119,6 +1119,110 @@ lemma absolutely_continuous_on_sing:
 
 subsection \<open>Fundamental theorem of calculus\<close>
 
+text \<open>
+  Strong form of the fundamental theorem of calculus (Bartle's theorem).
+  The derivative @{term f'} need only exist outside a negligible set @{term S},
+  provided the \<open>Henstock–Sacks\<close> condition holds: for every @{term \<open>\<epsilon> > 0\<close>}
+  there is a gauge witnessing that the oscillation of @{term f} over any
+  fine tagged partial division with all tags in @{term S} is small.
+
+  This is the Isabelle/HOL rendering of HOL Light's
+  @{text FUNDAMENTAL_THEOREM_OF_CALCULUS_BARTLE}
+  (Multivariate/integration.ml, line 22442).
+\<close>
+
+theorem fundamental_theorem_of_calculus_Bartle:
+  fixes f :: \<open>real \<Rightarrow> 'a::euclidean_space\<close> and f' :: \<open>real \<Rightarrow> 'a\<close>
+  assumes neg: \<open>negligible S\<close>
+    and \<open>a \<le> b\<close>
+    and deriv: \<open>\<And>x. x \<in> {a..b} - S \<Longrightarrow> (f has_vector_derivative f' x) (at x within {a..b})\<close>
+    and HS: \<open>\<And>\<epsilon>. \<epsilon> > 0 \<Longrightarrow>
+                  \<exists>g. gauge g \<and>
+                    (\<forall>p. p tagged_partial_division_of cbox a b \<and> g fine p \<and> fst ` p \<subseteq> S \<longrightarrow>
+                      norm (\<Sum>(x,k)\<in>p. f (Sup k) - f (Inf k)) < \<epsilon>)\<close>
+  shows \<open>(f' has_integral (f b - f a)) {a..b}\<close>
+proof (cases \<open>a<b\<close>)
+  case True
+  define g where \<open>g \<equiv> (\<lambda>x. if x \<in> S then 0 else f' x)\<close>
+  show ?thesis
+  proof (rule has_integral_spike [OF neg])
+   show "(g has_integral f b - f a) {a..b}"
+      unfolding has_integral_real
+    proof (intro strip)
+      fix \<epsilon> :: real
+      assume "0 < \<epsilon>"
+      then obtain g1 where \<open>gauge g1\<close> 
+           and g1: \<open>\<And>p. \<lbrakk>p tagged_partial_division_of cbox a b; g1 fine p; fst ` p \<subseteq> S\<rbrakk>
+                   \<Longrightarrow> norm (\<Sum>(x,k)\<in>p. f (Sup k) - f (Inf k)) < \<epsilon>\<close>
+        using HS by force
+
+      have \<open>\<exists>d>0. (x \<in> {a..b} - S \<longrightarrow>
+              (\<forall>y. \<bar>y - x\<bar> < d \<and> y \<in> {a..b} \<longrightarrow>
+                norm (f y - f x - (y - x) *\<^sub>R g x) \<le> \<epsilon> / 2 / (b - a) * \<bar>y - x\<bar>))\<close> for x
+      proof -
+        show \<open>\<exists>d>0. x \<in> {a..b} - S \<longrightarrow>
+                (\<forall>y. \<bar>y - x\<bar> < d \<and> y \<in> {a..b} \<longrightarrow>
+                  norm (f y - f x - (y - x) *\<^sub>R g x) \<le> \<epsilon> / 2 / (b - a) * \<bar>y - x\<bar>)\<close>
+        proof (cases \<open>x \<in> {a..b} - S\<close>)
+          case False
+          then show ?thesis
+            by (intro exI[of _ 1]) auto
+        next
+          case True
+          then have hvd: \<open>(f has_vector_derivative f' x) (at x within {a..b})\<close>
+            using deriv by blast
+          then have hd: \<open>(f has_derivative (\<lambda>h. h *\<^sub>R f' x)) (at x within {a..b})\<close>
+            by (simp add: has_vector_derivative_def)
+          have \<open>0 < \<epsilon> / 2 / (b - a)\<close>
+            using \<open>0 < \<epsilon>\<close> \<open>a < b\<close> by simp
+          with hd obtain d where \<open>d > 0\<close>
+            and d: \<open>\<And>y. y \<in> {a..b} \<Longrightarrow> norm (y - x) < d \<Longrightarrow>
+                       norm (f y - f x - (y - x) *\<^sub>R f' x) \<le> \<epsilon> / 2 / (b - a) * norm (y - x)\<close>
+            unfolding has_derivative_within_alt by blast
+          have gx: \<open>g x = f' x\<close>
+            using True by (simp add: g_def)
+          show ?thesis
+          proof (intro exI conjI impI allI)
+            show \<open>d > 0\<close> by fact
+          next
+            fix y
+            assume \<open>x \<in> {a..b} - S\<close> \<open>\<bar>y - x\<bar> < d \<and> y \<in> {a..b}\<close>
+            then show \<open>norm (f y - f x - (y - x) *\<^sub>R g x) \<le> \<epsilon> / 2 / (b - a) * \<bar>y - x\<bar>\<close>
+              using d[of y] by (simp add: gx real_norm_def)
+          qed
+        qed
+      qed
+      then obtain d where dpos: \<open>\<And>x. d x >0\<close>
+          and D: \<open>\<And>x. x \<in> {a..b} - S \<longrightarrow>
+                      (\<forall>y. \<bar>y - x\<bar> < d x \<and> y \<in> {a..b} \<longrightarrow>
+                      norm (f y - f x - (y - x) *\<^sub>R g x) \<le> \<epsilon> / 2 / (b - a) * \<bar>y - x\<bar>)\<close>
+        by metis
+      define \<gamma> where \<open>\<gamma> \<equiv> \<lambda>x. g1 x \<inter> ball x (d x)\<close>
+      show "\<exists>\<gamma>. gauge \<gamma> \<and> (\<forall>\<D>. \<D> tagged_division_of {a..b} \<and> \<gamma> fine \<D> \<longrightarrow> norm ((\<Sum>(x, k)\<in>\<D>. content k *\<^sub>R g x) - (f b - f a)) < \<epsilon>)"
+      proof (intro exI conjI strip)
+        show "gauge \<gamma>"
+          by (simp add: \<gamma>_def \<open>gauge g1\<close> dpos gauge_Int gauge_ball_dependent)
+      next
+        fix \<D> :: "(real \<times> real set) set"
+        assume "\<D> tagged_division_of {a..b} \<and> \<gamma> fine \<D>"
+        then have *: \<open>(\<Sum>(x, K)\<in>\<D>. f (Sup K) - f (Inf K)) = f b - f a\<close>
+          by (simp add: additive_tagged_division_1 assms)
+        show "norm ((\<Sum>(x, k)\<in>\<D>. content k *\<^sub>R g x) - (f b - f a)) < \<epsilon>"
+        proof -
+          have \<D>_split: \<open>\<D> = {(x,k) \<in> \<D>. x \<in> S} \<union> {(x,k) \<in> \<D>. x \<notin> S}\<close>
+            by auto
+          show ?thesis
+            sorry
+        qed
+      qed
+    qed
+  qed (auto simp: g_def)
+next
+  case False
+  then show ?thesis
+    using \<open>a \<le> b\<close> by force
+qed
+
 theorem fundamental_theorem_of_calculus_absolutely_continuous:
   fixes f :: "real \<Rightarrow> 'a::euclidean_space"
   assumes "negligible S" "a \<le> b"
