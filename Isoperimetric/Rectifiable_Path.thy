@@ -3,6 +3,13 @@ theory Rectifiable_Path
 begin
 
 
+corollary bounded_variation_absolutely_integrable_real_interval:
+  fixes f :: "real \<Rightarrow> 'm::euclidean_space"
+  assumes "f integrable_on {a..b}"
+    and "\<And>d. d division_of {a..b} \<Longrightarrow> sum (\<lambda>K. norm(integral K f)) d \<le> B"
+  shows "f absolutely_integrable_on {a..b}"
+  by (metis assms bounded_variation_absolutely_integrable_interval interval_cbox)
+
 text \<open>
   Rectifiable paths and arc length, following HOL Light's
   @{text "Multivariate/integration.ml"} (lines 23827--25750).
@@ -1140,12 +1147,300 @@ proof
     using absolutely_continuous_on_imp_has_bounded_variation_on[OF assms(2) bounded_closed_interval] .
 qed
 
+lemma vector_variation_integral_norm_derivative:
+  fixes f :: "real \<Rightarrow> 'a::euclidean_space"
+  assumes neg: "negligible S" and ab: "a \<le> b"
+    and ac: "absolutely_continuous_on {a..b} f"
+    and deriv: "\<And>x. x \<in> {a..b} - S \<Longrightarrow> (f has_vector_derivative f' x) (at x)"
+  shows "vector_variation {a..b} f = integral {a..b} (\<lambda>t. norm (f' t))"
+proof -
+  \<comment> \<open>Bounded variation from absolute continuity\<close>
+  have bv: "has_bounded_variation_on f {a..b}"
+    using absolutely_continuous_on_imp_has_bounded_variation_on[OF ac bounded_closed_interval] .
+      \<comment> \<open>FTC on subintervals\<close>
+  have ftc_sub: "(f' has_integral (f v - f u)) {u..v}"
+    if "u \<le> v" "{u..v} \<subseteq> {a..b}" for u v
+  proof (rule fundamental_theorem_of_calculus_absolutely_continuous[OF neg that(1)])
+    show "absolutely_continuous_on {u..v} f"
+      using absolutely_continuous_on_subset[OF ac that(2)] .
+  next
+    fix x assume "x \<in> {u..v} - S"
+    then show "(f has_vector_derivative f' x) (at x within {u..v})"
+      using deriv[of x] that(2) has_vector_derivative_at_within by blast
+  qed
+  have integral_sub: "integral {u..v} f' = f v - f u"
+    if "u \<le> v" "{u..v} \<subseteq> {a..b}" for u v
+    using integral_unique[OF ftc_sub[OF that]] .
+  have f'_int: "f' integrable_on {a..b}"
+    using ftc_sub[OF ab subset_refl] by (auto simp: integrable_on_def)
+      \<comment> \<open>f' is absolutely integrable: use bounded variation characterization\<close>
+  have f'_abs_int: "f' absolutely_integrable_on {a..b}"
+  proof (rule bounded_variation_absolutely_integrable_real_interval[OF f'_int])
+    fix d assume d: "d division_of {a..b}"
+    show "(\<Sum>K\<in>d. norm (integral K f')) \<le> vector_variation {a..b} f"
+    proof -
+      have "(\<Sum>K\<in>d. norm (integral K f')) = (\<Sum>K\<in>d. norm (f (Sup K) - f (Inf K)))"
+      proof (rule sum.cong[OF refl])
+        fix K assume "K \<in> d"
+        then obtain u v where uv: "K = {u..v}" "u \<le> v"
+          by (metis atLeastatMost_empty_iff cbox_division_memE cbox_interval d)
+        have sub: "{u..v} \<subseteq> {a..b}"
+          using division_ofD(2)[OF d \<open>K \<in> d\<close>] uv(1) by auto
+        have "integral K f' = f v - f u"
+          unfolding uv(1) using integral_sub[OF uv(2) sub] .
+        moreover have "Sup K = v" "Inf K = u"
+          using uv by auto
+        ultimately show "norm (integral K f') = norm (f (Sup K) - f (Inf K))"
+          by simp
+      qed
+      also have "\<dots> \<le> vector_variation {a..b} f"
+        using has_bounded_variation_works(1)[OF bv d] by auto
+      finally show ?thesis .
+    qed
+  qed
+    \<comment> \<open>Norm of f' is integrable\<close>
+  have norm_f'_int: "(\<lambda>t. norm (f' t)) integrable_on {a..b}"
+    using f'_abs_int unfolding absolutely_integrable_on_def by simp
+      \<comment> \<open>Direction \<le>: vector_variation \<le> integral of norm\<close>
+  have le_dir: "vector_variation {a..b} f \<le> integral {a..b} (\<lambda>t. norm (f' t))"
+    unfolding vector_variation_def
+  proof (rule has_bounded_setvariation_works(2)[OF bv[unfolded has_bounded_variation_on_def]])
+    fix d t assume dt: "d division_of t" "t \<subseteq> {a..b}"
+    have "(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) = (\<Sum>k\<in>d. norm (integral k f'))"
+    proof (rule sum.cong[OF refl])
+      fix k assume "k \<in> d"
+      then obtain u v where k: "k = {u..v}" "u \<le> v"
+        by (metis atLeastatMost_empty' box_real(2) cbox_division_memE dt(1))
+      have sub: "{u..v} \<subseteq> {a..b}"
+        using division_ofD(2)[OF dt(1) \<open>k \<in> d\<close>] dt(2) k(1) by blast
+      have "integral k f' = f v - f u"
+        unfolding k(1) using integral_sub[OF k(2) sub] .
+      moreover have "Sup k = v" "Inf k = u"
+        using k by auto
+      ultimately show "norm (f (Sup k) - f (Inf k)) = norm (integral k f')"
+        by simp
+    qed
+    also have "\<dots> \<le> (\<Sum>k\<in>d. integral k (\<lambda>t. norm (f' t)))"
+    proof (rule sum_mono)
+      fix k assume kd: "k \<in> d"
+      then obtain u v where k: "k = {u..v}" "u \<le> v"
+        by (metis atLeastatMost_empty_iff cbox_division_memE dt(1) interval_cbox)
+      have sub: "{u..v} \<subseteq> {a..b}"
+        using dt k(1) kd by blast
+      show "norm (integral k f') \<le> integral k (\<lambda>t. norm (f' t))"
+        unfolding k(1)
+        by (rule integral_norm_bound_integral
+            [OF integrable_on_subinterval[OF f'_int sub]
+              integrable_on_subinterval[OF norm_f'_int sub]])
+          auto
+    qed
+    also have "\<dots> \<le> integral {a..b} (\<lambda>t. norm (f' t))"
+    proof -
+      have sum_int: "((\<lambda>t. norm (f' t)) has_integral (\<Sum>k\<in>d. integral k (\<lambda>t. norm (f' t)))) (\<Union>d)"
+      proof (rule has_integral_Union)
+        show "finite d" using division_of_finite[OF dt(1)] .
+      next
+        fix S assume Sd: "S \<in> d"
+        then obtain u v where uv: "S = {u..v}" "u \<le> v"
+          by (metis atLeastatMost_empty_iff cbox_division_memE dt(1) interval_cbox)
+        have "{u..v} \<subseteq> {a..b}"
+          using division_ofD(2)[OF dt(1) Sd] dt(2) uv(1) by blast
+        then show "((\<lambda>t. norm (f' t)) has_integral integral S (\<lambda>t. norm (f' t))) S"
+          unfolding uv(1)
+          using integrable_on_subinterval[OF norm_f'_int] has_integral_integral by blast
+      next
+        show "pairwise (\<lambda>S S'. negligible (S \<inter> S')) d"
+          unfolding pairwise_def
+        proof (intro ballI impI)
+          fix K1 K2 assume "K1 \<in> d" "K2 \<in> d" "K1 \<noteq> K2"
+          then have disj: "interior K1 \<inter> interior K2 = {}"
+            using division_ofD(5)[OF dt(1)] by blast
+          obtain a1 b1 where K1: "K1 = cbox a1 b1"
+            using division_ofD(4)[OF dt(1) \<open>K1 \<in> d\<close>] by auto
+          obtain a2 b2 where K2: "K2 = cbox a2 b2"
+            using division_ofD(4)[OF dt(1) \<open>K2 \<in> d\<close>] by auto
+          have "K1 \<inter> K2 = cbox (\<Sum>i\<in>Basis. max (a1 \<bullet> i) (a2 \<bullet> i) *\<^sub>R i)
+                               (\<Sum>i\<in>Basis. min (b1 \<bullet> i) (b2 \<bullet> i) *\<^sub>R i)"
+            unfolding K1 K2 by (rule Int_interval)
+          moreover have "box (\<Sum>i\<in>Basis. max (a1 \<bullet> i) (a2 \<bullet> i) *\<^sub>R i)
+                              (\<Sum>i\<in>Basis. min (b1 \<bullet> i) (b2 \<bullet> i) *\<^sub>R i) = {}"
+            using disj unfolding K1 K2 Int_interval interior_cbox by simp
+          ultimately show "negligible (K1 \<inter> K2)"
+            using negligible_interval(1) by metis
+        qed
+      qed
+      have eq: "(\<Sum>k\<in>d. integral k (\<lambda>t. norm (f' t))) = integral (\<Union>d) (\<lambda>t. norm (f' t))"
+        using integral_unique[OF sum_int] by simp
+      have "integral (\<Union>d) (\<lambda>t. norm (f' t)) \<le> integral {a..b} (\<lambda>t. norm (f' t))"
+      proof (rule integral_subset_le)
+        show "\<Union>d \<subseteq> {a..b}" using dt(2) division_ofD(6)[OF dt(1)] by auto
+        show "(\<lambda>t. norm (f' t)) integrable_on \<Union>d"
+          using sum_int by (auto simp: integrable_on_def)
+        show "(\<lambda>t. norm (f' t)) integrable_on {a..b}" by fact
+        show "\<forall>x\<in>{a..b}. 0 \<le> norm (f' x)" by simp
+      qed
+      then show ?thesis using eq by linarith
+    qed
+    finally show "(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> integral {a..b} (\<lambda>t. norm (f' t))" .
+  qed
+    \<comment> \<open>Direction \<ge>: integral of norm \<le> vector_variation\<close>
+    \<comment> \<open>Key idea: use gauge characterization of the integral combined with the derivative condition\<close>
+  have ge_dir: "integral {a..b} (\<lambda>t. norm (f' t)) \<le> vector_variation {a..b} f"
+  proof (rule field_le_epsilon)
+    fix \<epsilon> :: real assume "\<epsilon> > 0"
+      \<comment> \<open>Get gauge from Henstock's lemma for f'\<close>
+    define e where "e = \<epsilon> / (2 * real DIM('a) + 1)"
+    have "e > 0" using \<open>\<epsilon> > 0\<close> unfolding e_def by (simp add: field_simps)
+    then obtain \<gamma> where "gauge \<gamma>" and \<gamma>:
+      "\<And>\<D>. \<D> tagged_division_of cbox a b \<Longrightarrow> \<gamma> fine \<D> \<Longrightarrow>
+        norm ((\<Sum>(x,k)\<in>\<D>. content k *\<^sub>R f' x) - integral {a..b} f') < e"
+      using has_integral_real[THEN iffD1, OF integrable_integral[OF f'_int], rule_format, of e]
+      by auto
+        \<comment> \<open>Get gauge for the norm integral\<close>
+    obtain \<gamma>' where "gauge \<gamma>'" and \<gamma>':
+      "\<And>\<D>. \<D> tagged_division_of cbox a b \<Longrightarrow> \<gamma>' fine \<D> \<Longrightarrow>
+        norm ((\<Sum>(x,k)\<in>\<D>. content k *\<^sub>R (\<lambda>t. norm (f' t)) x) -
+              integral {a..b} (\<lambda>t. norm (f' t))) < e"
+      using has_integral_real[THEN iffD1, OF integrable_integral[OF norm_f'_int], rule_format, of e]
+        \<open>e > 0\<close>
+      by auto
+        \<comment> \<open>Combine gauges and get a fine tagged division\<close>
+    define \<Gamma> where "\<Gamma> = (\<lambda>x. \<gamma> x \<inter> \<gamma>' x)"
+    have "gauge \<Gamma>" unfolding \<Gamma>_def using \<open>gauge \<gamma>\<close> \<open>gauge \<gamma>'\<close> by (rule gauge_Int)
+    then obtain p where td: "p tagged_division_of {a..b}" and fine: "\<Gamma> fine p"
+      using fine_division_exists_real by blast
+    have \<gamma>_fine: "\<gamma> fine p" and \<gamma>'_fine: "\<gamma>' fine p"
+      using fine unfolding \<Gamma>_def fine_Int by auto
+        \<comment> \<open>Riemann sum for norm(f') is close to the integral\<close>
+    have rs_norm: "norm ((\<Sum>(x,k)\<in>p. content k * norm (f' x)) -
+                          integral {a..b} (\<lambda>t. norm (f' t))) < e"
+      using \<gamma>'[OF td[unfolded interval_cbox] \<gamma>'_fine] by simp
+        \<comment> \<open>Henstock bound: sum of pointwise errors is small\<close>
+    have td_partial: "p tagged_partial_division_of cbox a b"
+      using td unfolding interval_cbox tagged_division_of_def by simp
+    have henstock: "(\<Sum>(x,k)\<in>p. norm (content k *\<^sub>R f' x - integral k f')) \<le> 2 * real DIM('a) * e"
+    proof (rule Henstock_lemma_part2)
+      show "f' integrable_on cbox a b" using f'_int by force
+      show "0 < e" by fact
+      show "gauge \<gamma>" by fact
+      show "\<And>\<D>. \<D> tagged_division_of cbox a b \<Longrightarrow> \<gamma> fine \<D> \<Longrightarrow>
+              norm ((\<Sum>(x, k)\<in>\<D>. content k *\<^sub>R f' x) - integral (cbox a b) f') < e"
+        using \<gamma> by force
+      show "p tagged_partial_division_of cbox a b" by fact
+      show "\<gamma> fine p" by fact
+    qed
+      \<comment> \<open>The underlying division from the tagged division\<close>
+    have div_p: "snd ` p division_of {a..b}"
+      using division_of_tagged_division[OF td] .
+        \<comment> \<open>In 1D, snd is injective on tagged partial divisions\<close>
+    have inj_snd: "inj_on snd p"
+    proof (rule inj_onI)
+      fix xk yk assume xk_in: "xk \<in> p" and yk_in: "yk \<in> p" and eq: "snd xk = snd yk"
+      obtain x k where xk: "xk = (x, k)" by (cases xk)
+      obtain y l where yk: "yk = (y, l)" by (cases yk)
+      from eq have kl: "k = l" using xk yk by simp
+      show "xk = yk"
+      proof (rule ccontr)
+        assume neq: "xk \<noteq> yk"
+        then have xy: "x \<noteq> y" using xk yk kl by auto
+        have x_in: "x \<in> k" using tagged_division_ofD(2)[OF td xk_in[unfolded xk]] by simp
+        have y_in: "y \<in> k" using tagged_division_ofD(2)[OF td yk_in[unfolded yk]] kl by simp
+        have "interior k \<inter> interior l = {}"
+          using tagged_partial_division_ofD(5)[OF td_partial xk_in[unfolded xk] yk_in[unfolded yk]
+                neq[unfolded xk yk]] by auto
+        then have int_empty: "interior k = {}" using kl by simp
+        obtain a' b' where ab': "k = cbox a' b'"
+          using tagged_partial_division_ofD(4)[OF td_partial xk_in[unfolded xk]] by auto
+        then have k_eq: "k = {a'..b'}" by simp
+        from x_in y_in have "a' \<le> x" "x \<le> b'" "a' \<le> y" "y \<le> b'" by (simp_all add: k_eq)
+        with xy have "a' < b'" by linarith
+        then have "{a'<..<b'} \<noteq> {}" by auto
+        moreover have "interior k = {a'<..<b'}"
+          unfolding k_eq by (rule interior_atLeastAtMost_real)
+        ultimately show False using int_empty by auto
+      qed
+    qed
+      \<comment> \<open>Sum over tagged division = sum over underlying division\<close>
+    have sum_eq: "(\<Sum>(x,k)\<in>p. g k) = (\<Sum>K\<in>snd ` p. g K)" for g :: "real set \<Rightarrow> real"
+    proof -
+      have "sum g (snd ` p) = sum (g \<circ> snd) p"
+        using Groups_Big.comm_monoid_add_class.sum.reindex[OF inj_snd] by simp
+      also have "\<dots> = (\<Sum>(x,k)\<in>p. g k)"
+        by (simp add: case_prod_unfold comp_def)
+      finally show ?thesis by simp
+    qed
+        \<comment> \<open>Sum of norm of integrals over subintervals \<le> vector variation\<close>
+    have int_sum_le_vv: "(\<Sum>(x,k)\<in>p. norm (integral k f')) \<le> vector_variation {a..b} f"
+    proof -
+      have "(\<Sum>(x,k)\<in>p. norm (integral k f')) = (\<Sum>K\<in>snd ` p. norm (integral K f'))"
+        using sum_eq .
+      also have "\<dots> = (\<Sum>K\<in>snd ` p. norm (f (Sup K) - f (Inf K)))"
+      proof (rule sum.cong[OF refl])
+        fix K assume "K \<in> snd ` p"
+        then obtain u v where uv: "K = {u..v}" "u \<le> v"
+          by (metis atLeastatMost_empty_iff cbox_division_memE div_p interval_cbox)
+        have sub: "{u..v} \<subseteq> {a..b}"
+          using division_ofD(2)[OF div_p \<open>K \<in> snd ` p\<close>] uv(1) by auto
+        have "integral K f' = f v - f u"
+          unfolding uv(1) using integral_sub[OF uv(2) sub] .
+        moreover have "Sup K = v" "Inf K = u" using uv by auto
+        ultimately show "norm (integral K f') = norm (f (Sup K) - f (Inf K))" by simp
+      qed
+      also have "\<dots> \<le> vector_variation {a..b} f"
+        using has_bounded_variation_works(1)[OF bv div_p] by auto
+      finally show ?thesis .
+    qed
+    \<comment> \<open>Triangle inequality: Riemann sum \<le> sum of integral norms + Henstock error\<close>
+    have tri: "(\<Sum>(x,k)\<in>p. content k * norm (f' x)) \<le>
+              (\<Sum>(x,k)\<in>p. norm (integral k f')) + (\<Sum>(x,k)\<in>p. norm (content k *\<^sub>R f' x - integral k f'))"
+    proof -
+      have "(\<Sum>(x,k)\<in>p. content k * norm (f' x)) = (\<Sum>(x,k)\<in>p. norm (content k *\<^sub>R f' x))"
+      proof (rule sum.cong[OF refl])
+        fix xk assume "xk \<in> p"
+        then obtain x k where xk: "xk = (x, k)" by (cases xk)
+        have "content k \<ge> 0"
+          using tagged_partial_division_ofD(4)[OF td_partial \<open>xk \<in> p\<close>[unfolded xk]]
+          by (auto simp: xk intro: content_pos_le)
+        then show "(case xk of (x, k) \<Rightarrow> content k * norm (f' x)) =
+                   (case xk of (x, k) \<Rightarrow> norm (content k *\<^sub>R f' x))"
+          by (simp add: xk)
+      qed
+      also have "\<dots> \<le> (\<Sum>(x,k)\<in>p. norm (integral k f') + norm (content k *\<^sub>R f' x - integral k f'))"
+      proof (rule sum_mono)
+        fix xk assume "xk \<in> p"
+        obtain x k where xk: "xk = (x, k)" by (cases xk)
+        show "(case xk of (x, k) \<Rightarrow> norm (content k *\<^sub>R f' x)) \<le>
+              (case xk of (x, k) \<Rightarrow> norm (integral k f') + norm (content k *\<^sub>R f' x - integral k f'))"
+          unfolding xk split by (rule norm_triangle_sub)
+      qed
+      also have "\<dots> = (\<Sum>(x,k)\<in>p. norm (integral k f')) + (\<Sum>(x,k)\<in>p. norm (content k *\<^sub>R f' x - integral k f'))"
+        by (simp add: sum.distrib case_prod_unfold)
+      finally show ?thesis .
+    qed
+    \<comment> \<open>Combine all bounds\<close>
+    have "(\<Sum>(x,k)\<in>p. content k * norm (f' x)) \<le> vector_variation {a..b} f + 2 * real DIM('a) * e"
+      using tri int_sum_le_vv henstock by linarith
+    moreover have "integral {a..b} (\<lambda>t. norm (f' t)) - (\<Sum>(x,k)\<in>p. content k * norm (f' x)) < e"
+      using rs_norm by (simp add: abs_less_iff norm_minus_commute)
+    ultimately have "integral {a..b} (\<lambda>t. norm (f' t)) < vector_variation {a..b} f + 2 * real DIM('a) * e + e"
+      by linarith
+    then have "integral {a..b} (\<lambda>t. norm (f' t)) < vector_variation {a..b} f + (2 * real DIM('a) + 1) * e"
+      by (simp add: algebra_simps)
+    also have "(2 * real DIM('a) + 1) * e = \<epsilon>"
+      unfolding e_def by simp
+    finally show "integral {a..b} (\<lambda>t. norm (f' t)) \<le> vector_variation {a..b} f + \<epsilon>"
+      by linarith
+  qed
+  show ?thesis using le_dir ge_dir by linarith
+qed
+
 lemma path_length_differentiable:
   fixes g :: "real \<Rightarrow> 'a::euclidean_space"
   assumes "negligible S"
     "absolutely_continuous_on {0..1} g"
     "\<And>t. t \<in> {0..1} - S \<Longrightarrow> (g has_vector_derivative g' t) (at t)"
   shows "path_length g = integral {0..1} (\<lambda>t. norm (g' t))"
-  sorry
+  unfolding path_length_def
+  using vector_variation_integral_norm_derivative[OF assms(1) _ assms(2,3)] by simp
 
 end
