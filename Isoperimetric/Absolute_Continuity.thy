@@ -1,7 +1,5 @@
 theory Absolute_Continuity
   imports Bounded_Variation 
-Isar_Explore
- "HOL-ex.Sketch_and_Explore" 
 begin
 
 text \<open>
@@ -1861,4 +1859,19 @@ lemma absolutely_continuous_on_closure:
   shows "absolutely_continuous_on s f"
   by (meson absolutely_continuous_on_interior assms closure_subset continuous_on_subset)
 
+section \<open>Bounded variation and absolutely integrable derivatives\<close>
+
+lemma countable_imp_negligible:
+  fixes S :: \<open>real set\<close>
+  assumes \<open>countable S\<close>
+  shows \<open>negligible S\<close>
+proof -
+  have \<open>S = (\<Union>x\<in>S. {x})\<close> by auto
+  also have \<open>negligible \<dots>\<close>
+    by (rule negligible_countable_Union[OF countable_image[OF assms]])
+       (auto simp: negligible_sing)
+  finally show ?thesis .
+qed
+
 end
+
