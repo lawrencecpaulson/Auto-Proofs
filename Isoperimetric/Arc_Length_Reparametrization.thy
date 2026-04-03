@@ -142,8 +142,7 @@ proof (cases "\<phi> a \<le> \<phi> b")
       case True
       \<comment> \<open>\<phi>(t) < \<phi>(a) \<le> \<phi>(b), by IVT' on [t,b] get c with \<phi>(c) = \<phi>(a)\<close>
       have "\<exists>c\<ge>t. c \<le> b \<and> \<phi> c = \<phi> a"
-        using IVT'[of \<phi> t "\<phi> a" b] True \<open>\<phi> a \<le> \<phi> b\<close>
-          continuous_on_subset[OF cont] st
+        using IVT'[of \<phi> t "\<phi> a" b] True \<open>\<phi> a \<le> \<phi> b\<close> continuous_on_subset[OF cont] st
         by auto
       then obtain c where c: "c \<ge> t" "c \<le> b" "\<phi> c = \<phi> a" by auto
       have "c \<in> {a..b}" using c st by auto
@@ -154,8 +153,7 @@ proof (cases "\<phi> a \<le> \<phi> b")
       \<comment> \<open>\<phi>(a) \<le> \<phi>(t) < \<phi>(s), by IVT' on [a,s] get c with \<phi>(c) = \<phi>(t)\<close>
       then have "\<phi> a \<le> \<phi> t" by linarith
       have "\<exists>c\<ge>a. c \<le> s \<and> \<phi> c = \<phi> t"
-        using IVT'[of \<phi> a "\<phi> t" s] \<open>\<phi> a \<le> \<phi> t\<close> fs_gt_ft
-          continuous_on_subset[OF cont] st
+        using IVT'[of \<phi> a "\<phi> t" s] \<open>\<phi> a \<le> \<phi> t\<close> fs_gt_ft continuous_on_subset[OF cont] st
         by auto
       then obtain c where c: "c \<ge> a" "c \<le> s" "\<phi> c = \<phi> t" by auto
       have "c \<in> {a..b}" using c st by auto
