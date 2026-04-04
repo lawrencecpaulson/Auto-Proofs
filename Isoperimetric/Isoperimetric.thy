@@ -637,7 +637,100 @@ proof -
         norm (integral (S \<inter> cbox a b) (\<lambda>x. norm (f x - h x))) +
         norm (integral (S - cbox a b) (\<lambda>x. norm (f x - h x)))\<close>
       by (simp add: split_eq norm_triangle_ineq)
+    have nf_int_inter: \<open>(\<lambda>x. norm (f x)) integrable_on (S \<inter> cbox a b)\<close>
+      using absolutely_integrable_norm [OF f_int_inter]
+      by (auto intro: set_lebesgue_integral_eq_integral(1) simp: o_def)
+    have nf_split: \<open>integral (S \<inter> cbox a b) (\<lambda>x. norm (f x)) + integral (S - cbox a b) (\<lambda>x. norm (f x))
+        = integral S (\<lambda>x. norm (f x))\<close>
+      by (metis Diff_disjoint Int_Diff_Un Int_assoc integral_Un negligible_Int
+          negligible_empty nf_int_diff nf_int_inter)
+    have nf_diff_nonneg: \<open>0 \<le> integral (S - cbox a b) (\<lambda>x. norm (f x))\<close>
+      by (rule integral_nonneg [OF nf_int_diff]) simp
+    have nf_diff_eq: \<open>integral (S - cbox a b) (\<lambda>x. norm (f x)) =
+        norm (integral (S \<inter> cbox a b) (\<lambda>x. norm (f x)) - integral S (\<lambda>x. norm (f x)))\<close>
+      using nf_split nf_diff_nonneg by (simp add: real_norm_def)
 
+    have sum_int_bound: \<open>integral (S - cbox a b) (\<lambda>x. norm (f x) + norm (h x)) < 2 / 3 * e\<close>
+    proof -
+      have split_sum: \<open>integral (S - cbox a b) (\<lambda>x. norm (f x) + norm (h x)) =
+          integral (S - cbox a b) (\<lambda>x. norm (f x)) + integral (S - cbox a b) (\<lambda>x. norm (h x))\<close>
+        by (rule integral_add [OF nf_int_diff nh_int_diff])
+      have nf_int_inter: \<open>(\<lambda>x. norm (f x)) integrable_on (S \<inter> cbox a b)\<close>
+        using absolutely_integrable_norm [OF f_int_inter]
+        by (auto intro: set_lebesgue_integral_eq_integral(1) simp: o_def)
+      have nf_split: \<open>integral S (\<lambda>x. norm (f x)) =
+          integral (S \<inter> cbox a b) (\<lambda>x. norm (f x)) + integral (S - cbox a b) (\<lambda>x. norm (f x))\<close>
+        by (metis (lifting) Diff_disjoint Int_Diff_Un Int_assoc integral_Un negligible_Int
+            negligible_empty nf_int_diff nf_int_inter)
+      have nf_diff_bound: \<open>integral (S - cbox a b) (\<lambda>x. norm (f x)) < e / 3\<close>
+      proof -
+        have \<open>integral (S - cbox a b) (\<lambda>x. norm (f x)) =
+            integral S (\<lambda>x. norm (f x)) - integral (S \<inter> cbox a b) (\<lambda>x. norm (f x))\<close>
+          using nf_split by linarith
+        then have \<open>integral (S - cbox a b) (\<lambda>x. norm (f x)) =
+            - (integral (S \<inter> cbox a b) (\<lambda>x. norm (f x)) - integral S (\<lambda>x. norm (f x)))\<close>
+          by linarith
+        moreover have \<open>0 \<le> integral (S - cbox a b) (\<lambda>x. norm (f x))\<close>
+          by (rule integral_nonneg [OF nf_int_diff]) simp
+        ultimately show ?thesis using approx by (simp add: abs_le_iff)
+      qed
+      have nh_diff_bound: \<open>integral (S - cbox a b) (\<lambda>x. norm (h x)) < e / 3\<close>
+      proof -
+        have cd_ab_meas: \<open>box c d - cbox a b \<in> lmeasurable\<close>
+          using lmeasurable_box lmeasurable_cbox by (rule fmeasurable.Diff)
+        have const_int: \<open>(\<lambda>x. B) integrable_on (box c d - cbox a b)\<close>
+          by (rule integrable_on_const [OF cd_ab_meas])
+        have nh_le_const: \<open>integral (S - cbox a b) (\<lambda>x. norm (h x)) \<le>
+            integral (box c d - cbox a b) (\<lambda>x. B)\<close>
+        proof -
+          have int1: \<open>(\<lambda>x. if x \<in> S - cbox a b then norm (h x) else 0) integrable_on UNIV\<close>
+            using nh_int_diff integrable_restrict_UNIV
+            by fastforce
+          have int2: \<open>(\<lambda>x. if x \<in> box c d - cbox a b then B else 0) integrable_on UNIV\<close>
+            using const_int integrable_restrict_UNIV by fastforce
+          have pw: \<open>norm (if x \<in> S - cbox a b then norm (h x) else 0) \<le>
+              (if x \<in> box c d - cbox a b then B else 0)\<close> for x
+          proof (cases \<open>x \<in> S - cbox a b\<close>)
+            case True
+            then have xS: \<open>x \<in> S\<close> and xab: \<open>x \<notin> cbox a b\<close> by auto
+            show ?thesis
+            proof (cases \<open>x \<in> box c d\<close>)
+              case True
+              then show ?thesis using xab h_bound B_pos by simp
+            next
+              case False
+              then have \<open>h x = 0\<close> using xab h_eq [of x] by auto
+              then show ?thesis using B_pos by simp
+            qed
+          next
+            case False
+            then show ?thesis using B_pos by simp
+          qed
+          have nonneg: \<open>0 \<le> integral (S - cbox a b) (\<lambda>x. norm (h x))\<close>
+            by (rule integral_nonneg [OF nh_int_diff]) simp
+          have \<open>norm (integral UNIV (\<lambda>x. if x \<in> S - cbox a b then norm (h x) else 0)) \<le>
+              integral UNIV (\<lambda>x. if x \<in> box c d - cbox a b then B else 0)\<close>
+            by (rule integral_norm_bound_integral [OF int1 int2 pw])
+          then show ?thesis
+          proof -
+            assume h: \<open>norm (integral UNIV (\<lambda>x. if x \<in> S - cbox a b then norm (h x) else 0)) \<le>
+                integral UNIV (\<lambda>x. if x \<in> box c d - cbox a b then B else 0)\<close>
+            have \<open>integral (S - cbox a b) (\<lambda>x. norm (h x)) =
+                integral UNIV (\<lambda>x. if x \<in> S - cbox a b then norm (h x) else 0)\<close>
+              by (rule integral_restrict_UNIV [symmetric])
+            moreover have \<open>integral (box c d - cbox a b) (\<lambda>x. B) =
+                integral UNIV (\<lambda>x. if x \<in> box c d - cbox a b then B else 0)\<close>
+              by (rule integral_restrict_UNIV [symmetric])
+            ultimately have \<open>\<bar>integral (S - cbox a b) (\<lambda>x. norm (h x))\<bar> \<le>
+                integral (box c d - cbox a b) (\<lambda>x. B)\<close>
+              using h by simp
+            then show ?thesis using nonneg by simp
+          qed
+        qed
+      qed
+      show ?thesis
+        using nf_diff_bound nh_diff_bound by (simp add: split_sum)
+    qed
 
     also have \<open>... < e \<close>
       sorry
