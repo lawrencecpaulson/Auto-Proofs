@@ -417,6 +417,57 @@ proof -
   qed
 qed
 
+theorem absolutely_integrable_approximate_continuous:
+  fixes f :: \<open>'a::euclidean_space \<Rightarrow> 'b::euclidean_space\<close>
+    and S :: \<open>'a set\<close>
+  assumes S_meas: \<open>S \<in> sets lebesgue\<close>
+    and f_int: \<open>f absolutely_integrable_on S\<close>
+    and e_pos: \<open>e > 0\<close>
+  obtains g where \<open>g absolutely_integrable_on S\<close> \<open>continuous_on UNIV g\<close>
+    \<open>bounded (g ` UNIV)\<close>
+    \<open>norm (integral S (\<lambda>x. norm (f x - g x))) < e\<close>
+proof -
+  text \<open>Claim 1: absolute integrability on intersections and differences with boxes.\<close>
+  have f_int_inter: \<open>f absolutely_integrable_on (S \<inter> cbox u v)\<close> for u v
+    by (meson assms(1,2) fmeasurableD fmeasurable_cbox inf.cobounded1 set_integrable_subset
+        sets.Int sets_completionI_sets)
+  have f_int_diff: \<open>f absolutely_integrable_on (S - cbox u v)\<close> for u v
+    by (meson Diff_subset assms(1,2) fmeasurableD lmeasurable_cbox set_integrable_subset
+        sets.Diff)
+  text \<open>Claim 2: approximation of the norm integral by boxes.\<close>
+  have norm_int: \<open>(\<lambda>x. norm (f x)) integrable_on S\<close>
+    using f_int absolutely_integrable_on_def by blast
+  obtain a b where approx:
+    \<open>norm (integral (S \<inter> cbox a b) (\<lambda>x. norm (f x)) - integral S (\<lambda>x. norm (f x))) < e / 3\<close>
+  proof -
+    have \<open>((\<lambda>x. norm (f x)) has_integral integral S (\<lambda>x. norm (f x))) S\<close>
+      using integrable_integral [OF norm_int] .
+    then have alt: \<open>\<forall>\<epsilon>>0. \<exists>B>0. \<forall>a b. ball 0 B \<subseteq> cbox a b \<longrightarrow>
+                     norm (integral (cbox a b) (\<lambda>x. if x \<in> S then norm (f x) else 0) -
+                           integral S (\<lambda>x. norm (f x))) < \<epsilon>\<close>
+      using has_integral_alt' [of \<open>\<lambda>x. norm (f x)\<close> \<open>integral S (\<lambda>x. norm (f x))\<close> S]
+      by blast
+    have \<open>e / 3 > 0\<close> using e_pos by auto
+    then obtain B where \<open>B > 0\<close> and B:
+      \<open>\<forall>a b. ball 0 B \<subseteq> cbox a b \<longrightarrow>
+         norm (integral (cbox a b) (\<lambda>x. if x \<in> S then norm (f x) else 0) -
+               integral S (\<lambda>x. norm (f x))) < e / 3\<close>
+      using alt by blast
+    obtain c where \<open>ball (0::'a) B \<subseteq> cbox (- c) c\<close>
+      using bounded_subset_cbox_symmetric [OF bounded_ball] by blast
+    then have \<open>norm (integral (cbox (- c) c) (\<lambda>x. if x \<in> S then norm (f x) else 0) -
+                     integral S (\<lambda>x. norm (f x))) < e / 3\<close>
+      using B by blast
+    moreover have \<open>integral (cbox (- c) c) (\<lambda>x. if x \<in> S then norm (f x) else 0) =
+                   integral (S \<inter> cbox (- c) c) (\<lambda>x. norm (f x))\<close>
+      by (rule integral_restrict_Int)
+    ultimately show ?thesis
+      using that by auto
+  qed
+  show ?thesis sorry
+qed
+
+
 
 text \<open>Integration by parts for absolutely integrable functions.
   The first lemma is a direct specialisation of @{thm integration_by_parts}
