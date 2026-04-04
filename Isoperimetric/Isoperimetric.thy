@@ -567,13 +567,7 @@ proof -
   qed
   text \<open>Show that h is absolutely integrable on S.\<close>
   have h_zero: \<open>h x = 0\<close> if \<open>x \<notin> cbox c d\<close> for x
-  proof -
-    from that have \<open>x \<notin> box c d\<close> using box_subset_cbox by blast
-    then have \<open>x \<in> UNIV - box c d\<close> by simp
-    moreover have \<open>x \<notin> cbox a b\<close>
-      using that cd_sub box_subset_cbox by blast
-    ultimately show ?thesis using h_eq by simp
-  qed
+    by (metis DiffI Diff_partition UNIV_I UnCI box_subset_cbox cd_sub h_eq that)
   have h_abs_cbox: \<open>h absolutely_integrable_on cbox c d\<close>
     by (rule absolutely_integrable_continuous [OF continuous_on_subset [OF h_cont subset_UNIV]])
   have h_abs_inter: \<open>h absolutely_integrable_on (S \<inter> cbox c d)\<close>
@@ -585,10 +579,7 @@ proof -
     show \<open>negligible {x \<in> S \<inter> cbox c d - S. h x \<noteq> 0}\<close>
       by (simp add: Int_Diff)
     show \<open>negligible {x \<in> S - S \<inter> cbox c d. h x \<noteq> 0}\<close>
-    proof (rule negligible_subset [OF negligible_empty])
-      show \<open>{x \<in> S - S \<inter> cbox c d. h x \<noteq> 0} \<subseteq> {}\<close>
-        using h_zero by blast
-    qed
+      by (simp add: h_zero cong: conj_cong)
   qed
   have h_int_inter: \<open>h absolutely_integrable_on (S \<inter> cbox u v)\<close> for u v
     by (meson h_abs_S S_meas fmeasurableD fmeasurable_cbox inf.cobounded1 set_integrable_subset
@@ -599,7 +590,7 @@ proof -
   show ?thesis
   proof
     show \<open>h absolutely_integrable_on S\<close> by (rule h_abs_S)
-
+  next
     have fh_abs_inter: \<open>(\<lambda>x. f x - h x) absolutely_integrable_on (S \<inter> cbox a b)\<close>
       using f_int_inter h_int_inter by (rule set_integral_diff(1))
     have fh_abs_diff: \<open>(\<lambda>x. f x - h x) absolutely_integrable_on (S - cbox a b)\<close>
@@ -632,8 +623,6 @@ proof -
         integral (S - cbox a b) (\<lambda>x. norm (f x) + norm (h x))\<close>
       by (rule integral_norm_bound_integral [OF nfh_int_diff nfh_sum_int_diff])
         (simp add: norm_triangle_ineq4)
-
-
     have nf_int_inter: \<open>(\<lambda>x. norm (f x)) integrable_on (S \<inter> cbox a b)\<close>
       using absolutely_integrable_norm [OF f_int_inter]
       by (auto intro: set_lebesgue_integral_eq_integral(1) simp: o_def)
@@ -641,11 +630,7 @@ proof -
         = integral S (\<lambda>x. norm (f x))\<close>
       by (metis Diff_disjoint Int_Diff_Un Int_assoc integral_Un negligible_Int
           negligible_empty nf_int_diff nf_int_inter)
-    have nf_diff_nonneg: \<open>0 \<le> integral (S - cbox a b) (\<lambda>x. norm (f x))\<close>
-      by (rule integral_nonneg [OF nf_int_diff]) simp
-    have nf_diff_eq: \<open>integral (S - cbox a b) (\<lambda>x. norm (f x)) =
-        norm (integral (S \<inter> cbox a b) (\<lambda>x. norm (f x)) - integral S (\<lambda>x. norm (f x)))\<close>
-      using nf_split nf_diff_nonneg by (simp add: real_norm_def)
+
     have nf_diff_bound: \<open>integral (S - cbox a b) (\<lambda>x. norm (f x)) < e / 3\<close>
     proof -
       have \<open>integral (S - cbox a b) (\<lambda>x. norm (f x)) =
@@ -664,49 +649,31 @@ proof -
       by (rule integrable_on_const [OF cd_ab_meas])
     have nh_diff_bound: \<open>integral (S - cbox a b) (\<lambda>x. norm (h x)) < e / 3\<close>
     proof -
-      have nh_le_const: \<open>integral (S - cbox a b) (\<lambda>x. norm (h x)) \<le>
-            integral (box c d - cbox a b) (\<lambda>x. B)\<close>
-      proof -
-        have int1: \<open>(\<lambda>x. if x \<in> S - cbox a b then norm (h x) else 0) integrable_on UNIV\<close>
-          using nh_int_diff integrable_restrict_UNIV
-          by fastforce
-        have int2: \<open>(\<lambda>x. if x \<in> box c d - cbox a b then B else 0) integrable_on UNIV\<close>
-          using const_int integrable_restrict_UNIV by fastforce
-        have pw: \<open>norm (if x \<in> S - cbox a b then norm (h x) else 0) \<le>
+      have int1: \<open>(\<lambda>x. if x \<in> S - cbox a b then norm (h x) else 0) integrable_on UNIV\<close>
+        using nh_int_diff integrable_restrict_UNIV
+        by fastforce
+      have int2: \<open>(\<lambda>x. if x \<in> box c d - cbox a b then B else 0) integrable_on UNIV\<close>
+        using const_int integrable_restrict_UNIV by fastforce
+      have pw: \<open>norm (if x \<in> S - cbox a b then norm (h x) else 0) \<le>
               (if x \<in> box c d - cbox a b then B else 0)\<close> for x
-          by (smt (verit, del_insts) Diff_iff UNIV_I Un_iff basic_trans_rules(23) h_bound h_eq
-              norm_ge_zero norm_zero real_norm_def)
-        have nonneg: \<open>0 \<le> integral (S - cbox a b) (\<lambda>x. norm (h x))\<close>
-          by (rule integral_nonneg [OF nh_int_diff]) simp
-        have \<open>norm (integral UNIV (\<lambda>x. if x \<in> S - cbox a b then norm (h x) else 0)) \<le>
-              integral UNIV (\<lambda>x. if x \<in> box c d - cbox a b then B else 0)\<close>
-          by (rule integral_norm_bound_integral [OF int1 int2 pw])
-        then show ?thesis
-        proof -
-          assume h: \<open>norm (integral UNIV (\<lambda>x. if x \<in> S - cbox a b then norm (h x) else 0)) \<le>
-                integral UNIV (\<lambda>x. if x \<in> box c d - cbox a b then B else 0)\<close>
-          have \<open>integral (S - cbox a b) (\<lambda>x. norm (h x)) =
+        using B_pos h_bound h_eq by force
+      have nonneg: \<open>0 \<le> integral (S - cbox a b) (\<lambda>x. norm (h x))\<close>
+        by (rule integral_nonneg [OF nh_int_diff]) simp
+      have \<open>integral (S - cbox a b) (\<lambda>x. norm (h x)) =
                 integral UNIV (\<lambda>x. if x \<in> S - cbox a b then norm (h x) else 0)\<close>
-            by (rule integral_restrict_UNIV [symmetric])
-          moreover have \<open>integral (box c d - cbox a b) (\<lambda>x. B) =
+        by (rule integral_restrict_UNIV [symmetric])
+      moreover have \<open>integral (box c d - cbox a b) (\<lambda>x. B) =
                 integral UNIV (\<lambda>x. if x \<in> box c d - cbox a b then B else 0)\<close>
-            by (rule integral_restrict_UNIV [symmetric])
-          ultimately have \<open>\<bar>integral (S - cbox a b) (\<lambda>x. norm (h x))\<bar> \<le>
-                integral (box c d - cbox a b) (\<lambda>x. B)\<close>
-            using h by simp
-          then show ?thesis using nonneg by simp
-        qed
-      qed
+        by (rule integral_restrict_UNIV [symmetric])
+      moreover have \<open>norm (integral UNIV (\<lambda>x. if x \<in> S - cbox a b then norm (h x) else 0)) \<le>
+              integral UNIV (\<lambda>x. if x \<in> box c d - cbox a b then B else 0)\<close>
+        by (rule integral_norm_bound_integral [OF int1 int2 pw])
+      ultimately have nh_le_const: 
+        \<open>integral (S - cbox a b) (\<lambda>x. norm (h x)) \<le> integral (box c d - cbox a b) (\<lambda>x. B)\<close> 
+        by simp
       have const_integral: \<open>integral (box c d - cbox a b) (\<lambda>x. B) = B * measure lebesgue (box c d - cbox a b)\<close>
-      proof -
-        have eq: \<open>(\<lambda>x::'a. B) = (\<lambda>x. B *\<^sub>R (1::real))\<close> by simp
-        have \<open>integral (box c d - cbox a b) (\<lambda>x::'a. B *\<^sub>R (1::real)) = B *\<^sub>R integral (box c d - cbox a b) (\<lambda>x. (1::real))\<close>
-          by (rule integral_cmul)
-        then have \<open>integral (box c d - cbox a b) (\<lambda>x. B) = B * integral (box c d - cbox a b) (\<lambda>x. (1::real))\<close>
-          by auto
-        then show ?thesis
-          by (simp add: lmeasure_integral [OF cd_ab_meas])
-      qed
+        by (metis (no_types, lifting) ext Henstock_Kurzweil_Integration.integral_mult_right
+            cd_ab_meas lmeasure_integral mult_1_right)
       have meas_diff_eq: \<open>measure lebesgue (box c d - cbox a b) =
             measure lebesgue (box c d) - measure lebesgue (cbox a b)\<close>
         by (rule measurable_measure_Diff [OF lmeasurable_box])
