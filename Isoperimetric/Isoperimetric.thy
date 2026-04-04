@@ -140,7 +140,7 @@ lemma absolutely_integrable_approximate_continuous_vector:
     and \<open>f absolutely_integrable_on S\<close>
     and \<open>e > 0\<close>
   obtains g where \<open>g absolutely_integrable_on S\<close> \<open>continuous_on UNIV g\<close>
-    \<open>bounded (g ` UNIV)\<close> 
+    \<open>bounded (range g)\<close> 
     \<open>norm (integral S (\<lambda>x. norm (f x - g x))) < e\<close>
 proof -
   obtain h where hint: "h absolutely_integrable_on S" 
@@ -464,7 +464,145 @@ proof -
     ultimately show ?thesis
       using that by auto
   qed
-  show ?thesis sorry
+  text \<open>Apply the existing lemma to get a continuous bounded approximation on the box.\<close>
+  have meas_inter: \<open>S \<inter> cbox a b \<in> lmeasurable\<close>
+    by (intro bounded_set_imp_lmeasurable bounded_Int)
+       (use S_meas lmeasurable_cbox fmeasurableD sets.Int in auto)
+  obtain g where g_int: \<open>g absolutely_integrable_on (S \<inter> cbox a b)\<close>
+    and g_cont: \<open>continuous_on UNIV g\<close>
+    and g_bdd: \<open>bounded (g ` UNIV)\<close>
+    and g_approx: \<open>norm (integral (S \<inter> cbox a b) (\<lambda>x. norm (f x - g x))) < e / 3\<close>
+  proof -
+    have \<open>e / 3 > 0\<close> using e_pos by auto
+    then show ?thesis
+      using absolutely_integrable_approximate_continuous_vector [OF meas_inter f_int_inter]
+            that
+      by metis
+  qed
+  text \<open>Extract an explicit positive bound on @{term g}.\<close>
+  obtain B where B_pos: \<open>B > 0\<close> and B_bound: \<open>\<And>x. norm (g x) \<le> B\<close>
+    using g_bdd [unfolded bounded_pos] by (auto simp: image_iff)
+  text \<open>Obtain @{term c}, @{term d} with @{term \<open>cbox a b \<subseteq> box c d\<close>} and small measure gap.\<close>
+  have eB: \<open>e / 3 / B > 0\<close> using e_pos B_pos by auto
+  obtain c d where cd_sub: \<open>cbox a b \<subseteq> box c d\<close>
+    and cd_meas: \<open>measure lborel (box c d) - measure lborel (cbox a b) < e / 3 / B\<close>
+  proof (cases \<open>cbox a b = {}\<close>)
+    case True
+    then show ?thesis using eB by (intro that [of 0 0]) auto
+  next
+    case False
+    then have ab: \<open>\<And>i. i \<in> Basis \<Longrightarrow> a \<bullet> i \<le> b \<bullet> i\<close> by (simp add: box_ne_empty)
+    define F where \<open>F \<equiv> \<lambda>\<delta>::real. \<Prod>i\<in>Basis. (b \<bullet> i - a \<bullet> i) + 2 * \<delta>\<close>
+    have F_cont: \<open>isCont F 0\<close>
+      unfolding F_def by (intro continuous_intros)
+    have F_0: \<open>F 0 = measure lborel (cbox a b)\<close>
+      unfolding F_def using content_cbox' [OF False] by simp
+    then obtain \<delta> where \<open>\<delta> > 0\<close> and
+      \<delta>_bound: \<open>\<And>\<delta>'. \<bar>\<delta>'\<bar> < \<delta> \<Longrightarrow> \<bar>F \<delta>' - F 0\<bar> < e / 3 / B\<close>
+      using F_cont [unfolded continuous_at_real_range] eB by (auto simp: real_norm_def)
+    define \<delta>' where \<open>\<delta>' \<equiv> min \<delta> 1 / 2\<close>
+    have \<delta>'_pos: \<open>\<delta>' > 0\<close> using \<open>\<delta> > 0\<close> unfolding \<delta>'_def by auto
+    have \<delta>'_lt: \<open>\<bar>\<delta>'\<bar> < \<delta>\<close> using \<open>\<delta> > 0\<close> unfolding \<delta>'_def by auto
+    define c' d' where \<open>c' \<equiv> a - \<delta>' *\<^sub>R One\<close> and \<open>d' \<equiv> b + \<delta>' *\<^sub>R One\<close>
+    have inner_c': \<open>i \<in> Basis \<Longrightarrow> c' \<bullet> i = a \<bullet> i - \<delta>'\<close> for i
+      unfolding c'_def by (simp add: inner_diff_left inner_scaleR_left inner_sum_Basis)
+    have inner_d': \<open>i \<in> Basis \<Longrightarrow> d' \<bullet> i = b \<bullet> i + \<delta>'\<close> for i
+      unfolding d'_def by (simp add: inner_add_left inner_scaleR_left inner_sum_Basis)
+    have sub: \<open>cbox a b \<subseteq> box c' d'\<close>
+      by (intro subset_box_imp ballI conjI)
+         (simp_all add: inner_c' inner_d' \<delta>'_pos)
+    have cd_le: \<open>i \<in> Basis \<Longrightarrow> c' \<bullet> i \<le> d' \<bullet> i\<close> for i
+      using ab [of i] \<delta>'_pos by (simp add: inner_c' inner_d')
+    have cd_ne: \<open>cbox c' d' \<noteq> {}\<close>
+      using False sub box_subset_cbox [of c' d'] by auto
+    have content_cd: \<open>measure lborel (cbox c' d') = F \<delta>'\<close>
+      unfolding F_def using content_cbox' [OF cd_ne]
+      by (simp add: inner_c' inner_d' algebra_simps)
+    have content_mono: \<open>measure lborel (cbox a b) \<le> measure lborel (cbox c' d')\<close>
+      using Henstock_Kurzweil_Integration.content_subset
+            [OF subset_trans [OF sub box_subset_cbox]] .
+    have \<open>\<bar>F \<delta>' - F 0\<bar> < e / 3 / B\<close>
+      using \<delta>_bound \<delta>'_lt by blast
+    then have \<open>measure lborel (cbox c' d') - measure lborel (cbox a b) < e / 3 / B\<close>
+      using content_cd F_0 content_mono by linarith
+    then show ?thesis
+      using sub that content_box_cbox [of c' d'] by simp
+  qed
+
+  text \<open>Apply Tietze to obtain @{term h} extending @{term \<open>\<lambda>x. if x \<in> cbox a b then g x else 0\<close>}
+    from the closed set @{term \<open>cbox a b \<union> (UNIV - box c d)\<close>} to all of @{term UNIV},
+    with bound @{term B}.\<close>
+  obtain h where h_cont: \<open>continuous_on UNIV h\<close>
+    and h_eq: \<open>\<And>x. x \<in> cbox a b \<union> (UNIV - box c d) \<Longrightarrow> h x = (if x \<in> cbox a b then g x else 0)\<close>
+    and h_bound: \<open>\<And>x. norm (h x) \<le> B\<close>
+  proof (rule Tietze [of \<open>cbox a b \<union> (UNIV - box c d)\<close>
+      \<open>\<lambda>x. if x \<in> cbox a b then g x else 0\<close> UNIV B])
+    show \<open>continuous_on (cbox a b \<union> (UNIV - box c d))
+          (\<lambda>x. if x \<in> cbox a b then g x else 0)\<close>
+    proof (rule continuous_on_cases)
+      show \<open>closed (cbox a b)\<close> by (rule closed_cbox)
+      show \<open>closed (UNIV - box c d)\<close>
+        using closed_Compl [OF open_box] by (simp add: Compl_eq_Diff_UNIV)
+      show \<open>continuous_on (cbox a b) g\<close>
+        using g_cont continuous_on_subset by blast
+      show \<open>continuous_on (UNIV - box c d) (\<lambda>x. 0)\<close>
+        by (rule continuous_on_const)
+      show \<open>\<forall>x. x \<in> cbox a b \<and> x \<notin> cbox a b \<or>
+              x \<in> UNIV - box c d \<and> x \<in> cbox a b \<longrightarrow> g x = 0\<close>
+        using cd_sub by auto
+    qed
+    show \<open>closedin (top_of_set UNIV) (cbox a b \<union> (UNIV - box c d))\<close>
+      unfolding subtopology_UNIV closed_closedin [symmetric]
+      by (intro closed_Un closed_cbox closed_Compl [OF open_box, simplified Compl_eq_Diff_UNIV])
+    show \<open>0 \<le> B\<close> using B_pos by linarith
+    fix x assume \<open>x \<in> cbox a b \<union> (UNIV - box c d)\<close>
+    then show \<open>norm (if x \<in> cbox a b then g x else 0) \<le> B\<close>
+      using B_bound B_pos by (auto simp: less_imp_le)
+  next
+    fix h assume \<open>continuous_on UNIV h\<close>
+      and \<open>\<And>x. x \<in> cbox a b \<union> (UNIV - box c d) \<Longrightarrow> h x = (if x \<in> cbox a b then g x else 0)\<close>
+      and \<open>\<And>x. x \<in> UNIV \<Longrightarrow> norm (h x) \<le> B\<close>
+    then show thesis
+      by (intro that [of h]) auto
+  qed
+  text \<open>Show that h is absolutely integrable on S.\<close>
+  have h_zero: \<open>h x = 0\<close> if \<open>x \<notin> cbox c d\<close> for x
+  proof -
+    from that have \<open>x \<notin> box c d\<close> using box_subset_cbox by blast
+    then have \<open>x \<in> UNIV - box c d\<close> by simp
+    moreover have \<open>x \<notin> cbox a b\<close>
+      using that cd_sub box_subset_cbox by blast
+    ultimately show ?thesis using h_eq by simp
+  qed
+  have h_abs_cbox: \<open>h absolutely_integrable_on cbox c d\<close>
+    by (rule absolutely_integrable_continuous [OF continuous_on_subset [OF h_cont subset_UNIV]])
+  have h_abs_inter: \<open>h absolutely_integrable_on (S \<inter> cbox c d)\<close>
+    using h_abs_cbox S_meas
+    by (meson fmeasurableD fmeasurable_cbox inf.cobounded2 set_integrable_subset
+        sets.Int sets_completionI_sets)
+  have h_abs_S: \<open>h absolutely_integrable_on S\<close>
+  proof (rule absolutely_integrable_spike_set [OF h_abs_inter])
+    show \<open>negligible {x \<in> S \<inter> cbox c d - S. h x \<noteq> 0}\<close>
+      by (simp add: Int_Diff)
+    show \<open>negligible {x \<in> S - S \<inter> cbox c d. h x \<noteq> 0}\<close>
+    proof (rule negligible_subset [OF negligible_empty])
+      show \<open>{x \<in> S - S \<inter> cbox c d. h x \<noteq> 0} \<subseteq> {}\<close>
+        using h_zero by blast
+    qed
+  qed
+  have h_int_inter: \<open>h absolutely_integrable_on (S \<inter> cbox u v)\<close> for u v
+    by (meson h_abs_S S_meas fmeasurableD fmeasurable_cbox inf.cobounded1 set_integrable_subset
+        sets.Int sets_completionI_sets)
+  have h_int_diff: \<open>h absolutely_integrable_on (S - cbox u v)\<close> for u v
+    by (meson h_abs_S S_meas Diff_subset fmeasurableD lmeasurable_cbox set_integrable_subset
+        sets.Diff)
+  show ?thesis
+  proof
+    show \<open>h absolutely_integrable_on S\<close> by (rule h_abs_S)
+
+    show "norm (integral S (\<lambda>x. norm (f x - h x))) < e"
+      sorry
+  qed (use h_bound h_cont bounded_iff in auto)
 qed
 
 
