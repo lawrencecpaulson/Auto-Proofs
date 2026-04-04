@@ -600,11 +600,29 @@ proof -
   proof
     show \<open>h absolutely_integrable_on S\<close> by (rule h_abs_S)
 
-    show "norm (integral S (\<lambda>x. norm (f x - h x))) < e"
+    have fh_abs_inter: \<open>(\<lambda>x. f x - h x) absolutely_integrable_on (S \<inter> cbox a b)\<close>
+      using f_int_inter h_int_inter by (rule set_integral_diff(1))
+    have fh_abs_diff: \<open>(\<lambda>x. f x - h x) absolutely_integrable_on (S - cbox a b)\<close>
+      using f_int_diff h_int_diff by (rule set_integral_diff(1))
+    have nfh_int_inter: \<open>(\<lambda>x. norm (f x - h x)) integrable_on (S \<inter> cbox a b)\<close>
+      using absolutely_integrable_norm [OF fh_abs_inter]
+      by (auto intro: set_lebesgue_integral_eq_integral(1) simp: o_def)
+    have nfh_int_diff: \<open>(\<lambda>x. norm (f x - h x)) integrable_on (S - cbox a b)\<close>
+      using absolutely_integrable_norm [OF fh_abs_diff]
+      by (auto intro: set_lebesgue_integral_eq_integral(1) simp: o_def)
+    have split_eq: \<open>integral S (\<lambda>x. norm (f x - h x)) =
+        integral (S \<inter> cbox a b) (\<lambda>x. norm (f x - h x)) + integral (S - cbox a b) (\<lambda>x. norm (f x - h x))\<close>
+      by (metis (lifting) Diff_disjoint Int_Diff_Un Int_assoc integral_Un negligible_Int
+          negligible_empty nfh_int_diff nfh_int_inter)
+    have \<open>norm (integral S (\<lambda>x. norm (f x - h x))) \<le>
+        norm (integral (S \<inter> cbox a b) (\<lambda>x. norm (f x - h x))) +
+        norm (integral (S - cbox a b) (\<lambda>x. norm (f x - h x)))\<close>
+      by (simp add: split_eq norm_triangle_ineq)
+    also have \<open>... < e \<close>
       sorry
+    finally show "norm (integral S (\<lambda>x. norm (f x - h x))) < e" .
   qed (use h_bound h_cont bounded_iff in auto)
 qed
-
 
 
 text \<open>Integration by parts for absolutely integrable functions.
