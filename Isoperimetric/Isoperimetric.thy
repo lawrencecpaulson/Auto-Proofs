@@ -614,10 +614,31 @@ proof -
         integral (S \<inter> cbox a b) (\<lambda>x. norm (f x - h x)) + integral (S - cbox a b) (\<lambda>x. norm (f x - h x))\<close>
       by (metis (lifting) Diff_disjoint Int_Diff_Un Int_assoc integral_Un negligible_Int
           negligible_empty nfh_int_diff nfh_int_inter)
+    have h_eq_g_on_ab: \<open>h x = g x\<close> if \<open>x \<in> cbox a b\<close> for x
+      using h_eq [of x] that by auto
+    have integral_fg_eq: \<open>integral (S \<inter> cbox a b) (\<lambda>x. norm (f x - g x)) =
+        integral (S \<inter> cbox a b) (\<lambda>x. norm (f x - h x))\<close>
+      by (intro integral_unique has_integral_eq [OF _ integrable_integral [OF nfh_int_inter]])
+         (auto simp: h_eq_g_on_ab)
+    have nf_int_diff: \<open>(\<lambda>x. norm (f x)) integrable_on (S - cbox a b)\<close>
+      using absolutely_integrable_norm [OF f_int_diff]
+      by (auto intro: set_lebesgue_integral_eq_integral(1) simp: o_def)
+    have nh_int_diff: \<open>(\<lambda>x. norm (h x)) integrable_on (S - cbox a b)\<close>
+      using absolutely_integrable_norm [OF h_int_diff]
+      by (auto intro: set_lebesgue_integral_eq_integral(1) simp: o_def)
+    have nfh_sum_int_diff: \<open>(\<lambda>x. norm (f x) + norm (h x)) integrable_on (S - cbox a b)\<close>
+      by (rule integrable_add [OF nf_int_diff nh_int_diff])
+    have norm_diff_bound: \<open>norm (integral (S - cbox a b) (\<lambda>x. norm (f x - h x))) \<le>
+        integral (S - cbox a b) (\<lambda>x. norm (f x) + norm (h x))\<close>
+      by (rule integral_norm_bound_integral [OF nfh_int_diff nfh_sum_int_diff])
+         (simp add: norm_triangle_ineq4)
+
     have \<open>norm (integral S (\<lambda>x. norm (f x - h x))) \<le>
         norm (integral (S \<inter> cbox a b) (\<lambda>x. norm (f x - h x))) +
         norm (integral (S - cbox a b) (\<lambda>x. norm (f x - h x)))\<close>
       by (simp add: split_eq norm_triangle_ineq)
+
+
     also have \<open>... < e \<close>
       sorry
     finally show "norm (integral S (\<lambda>x. norm (f x - h x))) < e" .
