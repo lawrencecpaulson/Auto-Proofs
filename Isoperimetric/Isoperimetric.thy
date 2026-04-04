@@ -633,10 +633,7 @@ proof -
       by (rule integral_norm_bound_integral [OF nfh_int_diff nfh_sum_int_diff])
         (simp add: norm_triangle_ineq4)
 
-    have \<open>norm (integral S (\<lambda>x. norm (f x - h x))) \<le>
-        norm (integral (S \<inter> cbox a b) (\<lambda>x. norm (f x - h x))) +
-        norm (integral (S - cbox a b) (\<lambda>x. norm (f x - h x)))\<close>
-      by (simp add: split_eq norm_triangle_ineq)
+
     have nf_int_inter: \<open>(\<lambda>x. norm (f x)) integrable_on (S \<inter> cbox a b)\<close>
       using absolutely_integrable_norm [OF f_int_inter]
       by (auto intro: set_lebesgue_integral_eq_integral(1) simp: o_def)
@@ -700,21 +697,6 @@ proof -
           then show ?thesis using nonneg by simp
         qed
       qed
-      then show ?thesis
-        sorry
-    qed
-    have sum_int_bound: \<open>integral (S - cbox a b) (\<lambda>x. norm (f x) + norm (h x)) < 2 / 3 * e\<close>
-    proof -
-      have split_sum: \<open>integral (S - cbox a b) (\<lambda>x. norm (f x) + norm (h x)) =
-          integral (S - cbox a b) (\<lambda>x. norm (f x)) + integral (S - cbox a b) (\<lambda>x. norm (h x))\<close>
-        by (rule integral_add [OF nf_int_diff nh_int_diff])
-      have nf_int_inter: \<open>(\<lambda>x. norm (f x)) integrable_on (S \<inter> cbox a b)\<close>
-        using absolutely_integrable_norm [OF f_int_inter]
-        by (auto intro: set_lebesgue_integral_eq_integral(1) simp: o_def)
-      have nf_split: \<open>integral S (\<lambda>x. norm (f x)) =
-          integral (S \<inter> cbox a b) (\<lambda>x. norm (f x)) + integral (S - cbox a b) (\<lambda>x. norm (f x))\<close>
-        by (metis (lifting) Diff_disjoint Int_Diff_Un Int_assoc integral_Un negligible_Int
-            negligible_empty nf_int_diff nf_int_inter)
       have const_integral: \<open>integral (box c d - cbox a b) (\<lambda>x. B) = B * measure lebesgue (box c d - cbox a b)\<close>
       proof -
         have eq: \<open>(\<lambda>x::'a. B) = (\<lambda>x. B *\<^sub>R (1::real))\<close> by simp
@@ -724,13 +706,43 @@ proof -
           by auto
         then show ?thesis
           by (simp add: lmeasure_integral [OF cd_ab_meas])
-        qed
-        show ?thesis sorry
       qed
-
-      also have \<open>... < e \<close>
-        using \<open>e>0\<close> by simp
-    finally show "norm (integral S (\<lambda>x. norm (f x - h x))) < e" sorry
+      have meas_diff_eq: \<open>measure lebesgue (box c d - cbox a b) =
+            measure lebesgue (box c d) - measure lebesgue (cbox a b)\<close>
+        by (rule measurable_measure_Diff [OF lmeasurable_box])
+           (use cd_sub lmeasurable_cbox fmeasurableD in auto)
+      have \<open>integral (box c d - cbox a b) (\<lambda>x. B) =
+            B * (measure lebesgue (box c d) - measure lebesgue (cbox a b))\<close>
+        by (simp add: const_integral meas_diff_eq)
+      also have \<open>\<dots> < B * (e / 3 / B)\<close>
+        using cd_meas B_pos by (intro mult_strict_left_mono) auto
+      also have \<open>\<dots> = e / 3\<close>
+        using B_pos by auto
+      finally have const_bound: \<open>integral (box c d - cbox a b) (\<lambda>x. B) < e / 3\<close> .
+      with nh_le_const show ?thesis by linarith
+    qed
+    have sum_int_bound: \<open>integral (S - cbox a b) (\<lambda>x. norm (f x) + norm (h x)) < 2 / 3 * e\<close>
+    proof -
+      have \<open>integral (S - cbox a b) (\<lambda>x. norm (f x) + norm (h x)) =
+          integral (S - cbox a b) (\<lambda>x. norm (f x)) + integral (S - cbox a b) (\<lambda>x. norm (h x))\<close>
+        by (rule integral_add [OF nf_int_diff nh_int_diff])
+      also have \<open>\<dots> < e / 3 + e / 3\<close>
+        using nf_diff_bound nh_diff_bound by linarith
+      also have \<open>\<dots> = 2 / 3 * e\<close> by simp
+      finally show ?thesis .
+    qed
+    have step1: \<open>norm (integral (S \<inter> cbox a b) (\<lambda>x. norm (f x - h x))) < e / 3\<close>
+      using g_approx by (simp add: integral_fg_eq)
+    have step2: \<open>norm (integral (S - cbox a b) (\<lambda>x. norm (f x - h x))) < 2 / 3 * e\<close>
+      using norm_diff_bound sum_int_bound by linarith
+    have \<open>norm (integral S (\<lambda>x. norm (f x - h x))) \<le>
+        norm (integral (S \<inter> cbox a b) (\<lambda>x. norm (f x - h x))) +
+        norm (integral (S - cbox a b) (\<lambda>x. norm (f x - h x)))\<close>
+      by (simp add: split_eq norm_triangle_ineq)
+    also have \<open>\<dots> < e / 3 + 2 / 3 * e\<close>
+      using step1 step2 by linarith
+    also have \<open>\<dots> = e\<close> by simp
+    finally show "norm (integral S (\<lambda>x. norm (f x - h x))) < e" .
   qed (use h_bound h_cont bounded_iff in auto)
 qed
 
