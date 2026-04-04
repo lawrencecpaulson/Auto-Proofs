@@ -632,33 +632,20 @@ proof -
           negligible_empty nf_int_diff nf_int_inter)
 
     have nf_diff_bound: \<open>integral (S - cbox a b) (\<lambda>x. norm (f x)) < e / 3\<close>
-    proof -
-      have \<open>integral (S - cbox a b) (\<lambda>x. norm (f x)) =
-            integral S (\<lambda>x. norm (f x)) - integral (S \<inter> cbox a b) (\<lambda>x. norm (f x))\<close>
-        using nf_split by linarith
-      then have \<open>integral (S - cbox a b) (\<lambda>x. norm (f x)) =
-            - (integral (S \<inter> cbox a b) (\<lambda>x. norm (f x)) - integral S (\<lambda>x. norm (f x)))\<close>
-        by linarith
-      moreover have \<open>0 \<le> integral (S - cbox a b) (\<lambda>x. norm (f x))\<close>
-        by (rule integral_nonneg [OF nf_int_diff]) simp
-      ultimately show ?thesis using approx by (simp add: abs_le_iff)
-    qed
-    have cd_ab_meas: \<open>box c d - cbox a b \<in> lmeasurable\<close>
-      using lmeasurable_box lmeasurable_cbox by (rule fmeasurable.Diff)
-    have const_int: \<open>(\<lambda>x. B) integrable_on (box c d - cbox a b)\<close>
-      by (rule integrable_on_const [OF cd_ab_meas])
+      using nf_split approx integral_nonneg [OF nf_int_diff]
+      by (simp add: abs_le_iff)
     have nh_diff_bound: \<open>integral (S - cbox a b) (\<lambda>x. norm (h x)) < e / 3\<close>
     proof -
+      have cd_ab_meas: \<open>box c d - cbox a b \<in> lmeasurable\<close>
+        using lmeasurable_box lmeasurable_cbox by (rule fmeasurable.Diff)
       have int1: \<open>(\<lambda>x. if x \<in> S - cbox a b then norm (h x) else 0) integrable_on UNIV\<close>
-        using nh_int_diff integrable_restrict_UNIV
-        by fastforce
+        using nh_int_diff integrable_restrict_UNIV by fastforce
       have int2: \<open>(\<lambda>x. if x \<in> box c d - cbox a b then B else 0) integrable_on UNIV\<close>
-        using const_int integrable_restrict_UNIV by fastforce
+        using integrable_on_const [OF cd_ab_meas] integrable_restrict_UNIV by fastforce
       have pw: \<open>norm (if x \<in> S - cbox a b then norm (h x) else 0) \<le>
               (if x \<in> box c d - cbox a b then B else 0)\<close> for x
         using B_pos h_bound h_eq by force
-      have nonneg: \<open>0 \<le> integral (S - cbox a b) (\<lambda>x. norm (h x))\<close>
-        by (rule integral_nonneg [OF nh_int_diff]) simp
+
       have \<open>integral (S - cbox a b) (\<lambda>x. norm (h x)) =
                 integral UNIV (\<lambda>x. if x \<in> S - cbox a b then norm (h x) else 0)\<close>
         by (rule integral_restrict_UNIV [symmetric])
@@ -668,40 +655,26 @@ proof -
       moreover have \<open>norm (integral UNIV (\<lambda>x. if x \<in> S - cbox a b then norm (h x) else 0)) \<le>
               integral UNIV (\<lambda>x. if x \<in> box c d - cbox a b then B else 0)\<close>
         by (rule integral_norm_bound_integral [OF int1 int2 pw])
-      ultimately have nh_le_const: 
-        \<open>integral (S - cbox a b) (\<lambda>x. norm (h x)) \<le> integral (box c d - cbox a b) (\<lambda>x. B)\<close> 
+      ultimately have nh_le_const:
+        \<open>integral (S - cbox a b) (\<lambda>x. norm (h x)) \<le> integral (box c d - cbox a b) (\<lambda>x. B)\<close>
         by simp
-      have const_integral: \<open>integral (box c d - cbox a b) (\<lambda>x. B) = B * measure lebesgue (box c d - cbox a b)\<close>
+      also have \<open>\<dots> = B * (measure lebesgue (box c d) - measure lebesgue (cbox a b))\<close>
         by (metis (no_types, lifting) ext Henstock_Kurzweil_Integration.integral_mult_right
-            cd_ab_meas lmeasure_integral mult_1_right)
-      have meas_diff_eq: \<open>measure lebesgue (box c d - cbox a b) =
-            measure lebesgue (box c d) - measure lebesgue (cbox a b)\<close>
-        by (rule measurable_measure_Diff [OF lmeasurable_box])
-           (use cd_sub lmeasurable_cbox fmeasurableD in auto)
-      have \<open>integral (box c d - cbox a b) (\<lambda>x. B) =
-            B * (measure lebesgue (box c d) - measure lebesgue (cbox a b))\<close>
-        by (simp add: const_integral meas_diff_eq)
+            cd_ab_meas lmeasure_integral mult_1_right
+            measurable_measure_Diff [OF lmeasurable_box]
+            lmeasurable_cbox fmeasurableD cd_sub)
       also have \<open>\<dots> < B * (e / 3 / B)\<close>
         using cd_meas B_pos by (intro mult_strict_left_mono) auto
       also have \<open>\<dots> = e / 3\<close>
         using B_pos by auto
-      finally have const_bound: \<open>integral (box c d - cbox a b) (\<lambda>x. B) < e / 3\<close> .
-      with nh_le_const show ?thesis by linarith
-    qed
-    have sum_int_bound: \<open>integral (S - cbox a b) (\<lambda>x. norm (f x) + norm (h x)) < 2 / 3 * e\<close>
-    proof -
-      have \<open>integral (S - cbox a b) (\<lambda>x. norm (f x) + norm (h x)) =
-          integral (S - cbox a b) (\<lambda>x. norm (f x)) + integral (S - cbox a b) (\<lambda>x. norm (h x))\<close>
-        by (rule integral_add [OF nf_int_diff nh_int_diff])
-      also have \<open>\<dots> < e / 3 + e / 3\<close>
-        using nf_diff_bound nh_diff_bound by linarith
-      also have \<open>\<dots> = 2 / 3 * e\<close> by simp
       finally show ?thesis .
     qed
     have step1: \<open>norm (integral (S \<inter> cbox a b) (\<lambda>x. norm (f x - h x))) < e / 3\<close>
       using g_approx by (simp add: integral_fg_eq)
     have step2: \<open>norm (integral (S - cbox a b) (\<lambda>x. norm (f x - h x))) < 2 / 3 * e\<close>
-      using norm_diff_bound sum_int_bound by linarith
+      using norm_diff_bound integral_add [OF nf_int_diff nh_int_diff]
+            nf_diff_bound nh_diff_bound
+      by linarith
     have \<open>norm (integral S (\<lambda>x. norm (f x - h x))) \<le>
         norm (integral (S \<inter> cbox a b) (\<lambda>x. norm (f x - h x))) +
         norm (integral (S - cbox a b) (\<lambda>x. norm (f x - h x)))\<close>
