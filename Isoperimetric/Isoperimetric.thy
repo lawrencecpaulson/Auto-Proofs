@@ -730,19 +730,9 @@ proof -
   have g'_int: "g' integrable_on {a..b}"
     using g'abs absolutely_integrable_on_def by blast
   have f_cont: "continuous_on {a..b} f"
-  proof -
-    have "continuous_on {a..b} (\<lambda>x. integral {a..x} f')"
-      using indefinite_integral_continuous_1[OF f'_int] .
-    then show ?thesis
-      using continuous_on_eq f'int_eq by force
-  qed
+    by (metis (mono_tags, lifting) continuous_on_cong f'_int f'int_eq indefinite_integral_continuous_1)
   have g_cont: "continuous_on {a..b} g"
-  proof -
-    have "continuous_on {a..b} (\<lambda>x. integral {a..x} g')"
-      using indefinite_integral_continuous_1[OF g'_int] .
-    then show ?thesis
-      using continuous_on_eq g'int_eq by force
-  qed
+    by (metis (mono_tags, lifting) continuous_on_cong g'_int g'int_eq indefinite_integral_continuous_1)
   have ab_sets: "{a..b} \<in> sets lebesgue"
     by simp
   have f_meas: "f \<in> borel_measurable (lebesgue_on {a..b})"
@@ -759,10 +749,209 @@ proof -
     using absolutely_integrable_bounded_measurable_product[OF \<open>bilinear bop\<close> f_meas ab_sets f_bounded g'abs] .
   show "(\<lambda>x. bop (f' x) (g x)) absolutely_integrable_on {a..b}"
     using absolutely_integrable_bounded_measurable_product[OF bop_swap g_meas ab_sets g_bounded f'abs] .
-  show "integral {a..b} (\<lambda>x. bop (f x) (g' x)) + integral {a..b} (\<lambda>x. bop (f' x) (g x)) 
+
+  obtain ff' where ff': \<open>\<forall>n. ff' n absolutely_integrable_on {a..b} \<and> continuous_on UNIV (ff' n) \<and>
+              bounded (range (ff' n)) \<and>
+              norm (integral {a..b} (\<lambda>x. norm (f' x - ff' n x))) < inverse (real n + 1)\<close>
+  proof -
+    have \<open>\<forall>n. \<exists>h. h absolutely_integrable_on {a..b} \<and> continuous_on UNIV h \<and>
+                bounded (range h) \<and>
+                norm (integral {a..b} (\<lambda>x. norm (f' x - h x))) < inverse (real n + 1)\<close> (is "All ?P")
+    proof
+      fix n :: nat
+      have e_pos: \<open>inverse (real n + 1) > 0\<close> by simp
+      show "?P n"
+        using absolutely_integrable_approximate_continuous_vector [OF _ f'abs e_pos]
+        by force
+    qed
+    with that show thesis 
+      unfolding choice_iff by blast
+  qed
+  obtain gg' where gg': \<open>\<forall>n. gg' n absolutely_integrable_on {a..b} \<and> continuous_on UNIV (gg' n) \<and>
+              bounded (range (gg' n)) \<and>
+              norm (integral {a..b} (\<lambda>x. norm (g' x - gg' n x))) < inverse (real n + 1)\<close>
+  proof -
+    have \<open>\<forall>n. \<exists>h. h absolutely_integrable_on {a..b} \<and> continuous_on UNIV h \<and>
+                bounded (range h) \<and>
+                norm (integral {a..b} (\<lambda>x. norm (g' x - h x))) < inverse (real n + 1)\<close> (is "All ?P")
+    proof
+      fix n :: nat
+      have e_pos: \<open>inverse (real n + 1) > 0\<close> by simp
+      show "?P n"
+        using absolutely_integrable_approximate_continuous_vector [OF _ g'abs e_pos]
+        by force
+    qed
+    with that show thesis 
+      unfolding choice_iff by blast
+  qed
+  \<comment> \<open>ff' n and gg' n are continuous on {a..b} (restriction of continuous_on UNIV).\<close>
+  have ff'_cont_ab: \<open>\<And>n. continuous_on {a..b} (ff' n)\<close>
+    using ff' continuous_on_subset by blast
+  have gg'_cont_ab: \<open>\<And>n. continuous_on {a..b} (gg' n)\<close>
+    using gg' continuous_on_subset by blast
+
+  \<comment> \<open>Define the indefinite integrals of ff' and gg'.\<close>
+  define ff where \<open>ff \<equiv> \<lambda>n x. integral {a..x} (ff' n)\<close>
+  define gg where \<open>gg \<equiv> \<lambda>n x. integral {a..x} (gg' n)\<close>
+
+  \<comment> \<open>ff n and gg n are continuous on {a..b}.\<close>
+  have ff_cont: \<open>\<And>n. continuous_on {a..b} (ff n)\<close>
+    unfolding ff_def using ff' indefinite_integral_continuous_1 set_lebesgue_integral_eq_integral(1)
+    by blast
+  have gg_cont: \<open>\<And>n. continuous_on {a..b} (gg n)\<close>
+    unfolding gg_def using gg' indefinite_integral_continuous_1 set_lebesgue_integral_eq_integral(1)
+    by blast
+
+  \<comment> \<open>f, g, ff n, gg n are all absolutely integrable on {a..b}.\<close>
+  have f_absint: \<open>f absolutely_integrable_on {a..b}\<close>
+    using f_cont absolutely_integrable_continuous_real by blast
+  have g_absint: \<open>g absolutely_integrable_on {a..b}\<close>
+    using g_cont absolutely_integrable_continuous_real by blast
+  have ff_absint: \<open>\<And>n. ff n absolutely_integrable_on {a..b}\<close>
+    using ff_cont absolutely_integrable_continuous_real by blast
+  have gg_absint: \<open>\<And>n. gg n absolutely_integrable_on {a..b}\<close>
+    using gg_cont absolutely_integrable_continuous_real by blast
+
+  \<comment> \<open>Bilinear product is absolutely integrable when one factor is abs.\ integrable
+    and the other is continuous on the compact interval.\<close>
+  have bop_absint_cont1: \<open>(\<lambda>x. bop (h x) (k x)) absolutely_integrable_on {a..b}\<close>
+    if \<open>h absolutely_integrable_on {a..b}\<close> \<open>continuous_on {a..b} k\<close> for h :: \<open>real \<Rightarrow> 'a\<close> and k :: \<open>real \<Rightarrow> 'b\<close>
+  proof -
+    have \<open>k \<in> borel_measurable (lebesgue_on {a..b})\<close>
+      using continuous_imp_measurable_on_sets_lebesgue[OF that(2) ab_sets] .
+    moreover have \<open>bounded (k ` {a..b})\<close>
+      using compact_imp_bounded[OF compact_continuous_image[OF that(2) compact_Icc]] .
+    ultimately show ?thesis
+      using absolutely_integrable_bounded_measurable_product[OF bop_swap _ ab_sets _ that(1)]
+      by simp
+  qed
+  have bop_absint_cont2: \<open>(\<lambda>x. bop (h x) (k x)) absolutely_integrable_on {a..b}\<close>
+    if \<open>continuous_on {a..b} h\<close> \<open>k absolutely_integrable_on {a..b}\<close> for h :: \<open>real \<Rightarrow> 'a\<close> and k :: \<open>real \<Rightarrow> 'b\<close>
+  proof -
+    have \<open>h \<in> borel_measurable (lebesgue_on {a..b})\<close>
+      using continuous_imp_measurable_on_sets_lebesgue[OF that(1) ab_sets] .
+    moreover have \<open>bounded (h ` {a..b})\<close>
+      using compact_imp_bounded[OF compact_continuous_image[OF that(1) compact_Icc]] .
+    ultimately show ?thesis
+      using absolutely_integrable_bounded_measurable_product[OF \<open>bilinear bop\<close> _ ab_sets _ that(2)]
+      by simp
+  qed
+  define s where \<open>s \<equiv> \<lambda>n.
+      (integral {a..b} (\<lambda>x. bop (ff n x) (gg' n x)) +
+       integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x))) -
+      (bop (ff n b) (gg n b) - bop (ff n a) (gg n a))\<close>
+  have lim_zero: \<open>s \<longlonglongrightarrow> 0\<close>
+  proof -
+    have s_eq: \<open>s n = 0\<close> for n
+    proof -
+      \<comment> \<open>ff n and gg n have the right derivatives at interior points of {a..b}.\<close>
+      have ff_deriv: \<open>(ff n has_vector_derivative ff' n x) (at x)\<close> if \<open>x \<in> {a<..<b}\<close> for x
+      proof -
+        have \<open>((\<lambda>u. integral {a..u} (ff' n)) has_vector_derivative ff' n x) (at x within {a..b})\<close>
+          using integral_has_vector_derivative[OF ff'_cont_ab] that by auto
+        then have \<open>((\<lambda>u. integral {a..u} (ff' n)) has_vector_derivative ff' n x) (at x)\<close>
+          using at_within_Icc_at that by fastforce
+        then show ?thesis unfolding ff_def .
+      qed
+      have gg_deriv: \<open>(gg n has_vector_derivative gg' n x) (at x)\<close> if \<open>x \<in> {a<..<b}\<close> for x
+      proof -
+        have \<open>((\<lambda>u. integral {a..u} (gg' n)) has_vector_derivative gg' n x) (at x within {a..b})\<close>
+          using integral_has_vector_derivative[OF gg'_cont_ab] that by auto
+        then have \<open>((\<lambda>u. integral {a..u} (gg' n)) has_vector_derivative gg' n x) (at x)\<close>
+          using at_within_Icc_at that by fastforce
+        then show ?thesis unfolding gg_def .
+      qed
+      \<comment> \<open>Apply integration by parts (interior version) for continuous ff' n, gg' n.\<close>
+      have bb: \<open>bounded_bilinear bop\<close>
+        using \<open>bilinear bop\<close> bilinear_conv_bounded_bilinear by blast
+      have bop_int1: \<open>(\<lambda>x. bop (ff n x) (gg' n x)) integrable_on {a..b}\<close>
+        using bop_absint_cont2[OF ff_cont gg'_cont_ab[THEN absolutely_integrable_continuous_real]]
+              set_lebesgue_integral_eq_integral(1) by blast
+      have ibp: \<open>((\<lambda>x. bop (ff' n x) (gg n x)) has_integral
+            (bop (ff n b) (gg n b) - bop (ff n a) (gg n a) -
+             integral {a..b} (\<lambda>x. bop (ff n x) (gg' n x)))) {a..b}\<close>
+      proof (rule integration_by_parts_interior[OF bb ab ff_cont gg_cont ff_deriv gg_deriv])
+        show \<open>((\<lambda>x. bop (ff n x) (gg' n x)) has_integral
+              bop (ff n b) (gg n b) - bop (ff n a) (gg n a) -
+              (bop (ff n b) (gg n b) - bop (ff n a) (gg n a) -
+               integral {a..b} (\<lambda>x. bop (ff n x) (gg' n x)))) {a..b}\<close>
+          using integrable_integral[OF bop_int1] by simp
+      qed
+      show ?thesis
+        unfolding s_def
+        using integral_unique[OF ibp] by (simp add: algebra_simps)
+    qed
+    show ?thesis
+      using s_eq tendsto_const[of 0 sequentially]
+      by (simp add: LIMSEQ_iff)
+  qed
+  moreover have lim_goal: \<open>s \<longlonglongrightarrow>
+      (integral {a..b} (\<lambda>x. bop (f x) (g' x)) +
+       integral {a..b} (\<lambda>x. bop (f' x) (g x))) -
+      (bop (f b) (g b) - bop (f a) (g a))\<close>
+  proof -
+    \<comment> \<open>Obtain the bilinear norm bound K.\<close>
+    have bb: \<open>bounded_bilinear bop\<close>
+      using \<open>bilinear bop\<close> bilinear_conv_bounded_bilinear by blast
+    obtain K where \<open>K > 0\<close> and K: \<open>\<And>u v. norm (bop u v) \<le> norm u * norm v * K\<close>
+      using bounded_bilinear.pos_bounded[OF bb] by blast
+    \<comment> \<open>L1 convergence: \<integral> \<Parallel>f' - ff' n\<Parallel> \<rightarrow> 0 and \<integral> \<Parallel>g' - gg' n\<Parallel> \<rightarrow> 0.\<close>
+    have ff'_L1: \<open>(\<lambda>n. integral {a..b} (\<lambda>x. norm (f' x - ff' n x))) \<longlonglongrightarrow> 0\<close>
+    proof (rule LIMSEQ_norm_0)
+      fix n
+      have \<open>norm (integral {a..b} (\<lambda>x. norm (f' x - ff' n x))) < inverse (real n + 1)\<close>
+        using ff' by blast
+      also have \<open>inverse (real n + 1) = 1 / real (Suc n)\<close>
+        by (simp add: inverse_eq_divide)
+      finally show \<open>norm (integral {a..b} (\<lambda>x. norm (f' x - ff' n x))) < 1 / real (Suc n)\<close> .
+    qed
+    have gg'_L1: \<open>(\<lambda>n. integral {a..b} (\<lambda>x. norm (g' x - gg' n x))) \<longlonglongrightarrow> 0\<close>
+    proof (rule LIMSEQ_norm_0)
+      fix n
+      have \<open>norm (integral {a..b} (\<lambda>x. norm (g' x - gg' n x))) < inverse (real n + 1)\<close>
+        using gg' by blast
+      also have \<open>inverse (real n + 1) = 1 / real (Suc n)\<close>
+        by (simp add: inverse_eq_divide)
+      finally show \<open>norm (integral {a..b} (\<lambda>x. norm (g' x - gg' n x))) < 1 / real (Suc n)\<close> .
+    qed
+
+
+    \<comment> \<open>Uniform convergence: ff n \<rightarrow> f and gg n \<rightarrow> g uniformly on {a..b}.\<close>
+    have ff_uniform: \<open>(\<lambda>n. SUP x\<in>{a..b}. norm (ff n x - f x)) \<longlonglongrightarrow> 0\<close>
+      sorry
+    have gg_uniform: \<open>(\<lambda>n. SUP x\<in>{a..b}. norm (gg n x - g x)) \<longlonglongrightarrow> 0\<close>
+      sorry
+    \<comment> \<open>Pointwise convergence at a and b.\<close>
+    have ff_b: \<open>(\<lambda>n. ff n b) \<longlonglongrightarrow> f b\<close>
+      sorry
+    have ff_a: \<open>(\<lambda>n. ff n a) \<longlonglongrightarrow> f a\<close>
+      sorry
+    have gg_b: \<open>(\<lambda>n. gg n b) \<longlonglongrightarrow> g b\<close>
+      sorry
+    have gg_a: \<open>(\<lambda>n. gg n a) \<longlonglongrightarrow> g a\<close>
+      sorry
+    \<comment> \<open>Bilinear limit at endpoints.\<close>
+    have bop_b: \<open>(\<lambda>n. bop (ff n b) (gg n b)) \<longlonglongrightarrow> bop (f b) (g b)\<close>
+      using Lim_bilinear[OF ff_b gg_b bb] .
+    have bop_a: \<open>(\<lambda>n. bop (ff n a) (gg n a)) \<longlonglongrightarrow> bop (f a) (g a)\<close>
+      using Lim_bilinear[OF ff_a gg_a bb] .
+    \<comment> \<open>Integral convergence.\<close>
+    have int1: \<open>(\<lambda>n. integral {a..b} (\<lambda>x. bop (ff n x) (gg' n x))) \<longlonglongrightarrow>
+               integral {a..b} (\<lambda>x. bop (f x) (g' x))\<close>
+      sorry
+    have int2: \<open>(\<lambda>n. integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x))) \<longlonglongrightarrow>
+               integral {a..b} (\<lambda>x. bop (f' x) (g x))\<close>
+      sorry
+    \<comment> \<open>Combine via tendsto_add and tendsto_diff.\<close>
+    show ?thesis
+      unfolding s_def
+      using tendsto_diff[OF tendsto_add[OF int1 int2] tendsto_diff[OF bop_b bop_a]] .
+  qed
+  ultimately show "integral {a..b} (\<lambda>x. bop (f x) (g' x)) + integral {a..b} (\<lambda>x. bop (f' x) (g x))
        = bop (f b) (g b) - bop (f a) (g a)"
-    sorry
+      using LIMSEQ_unique eq_iff_diff_eq_0 by blast
 qed
+
 text \<open>The real-valued specialisation: HOL Light's @{text ABSOLUTE_REAL_INTEGRATION_BY_PARTS}.\<close>
 
 lemma absolute_real_integration_by_parts:
