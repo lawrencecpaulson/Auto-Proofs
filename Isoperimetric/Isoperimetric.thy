@@ -1025,9 +1025,135 @@ proof -
     \<comment> \<open>Uniform convergence: ff n \<rightarrow> f and gg n \<rightarrow> g uniformly on {a..b}.\<close>
       by (simp add: assms(2) tendsto_diff)
     have ff_uniform: \<open>(\<lambda>n. SUP x\<in>{a..b}. norm (ff n x - f x)) \<longlonglongrightarrow> 0\<close>
-      sorry
+    proof (rule Lim_null_comparison[OF _ ff'_L1])
+      show \<open>\<forall>\<^sub>F n in sequentially. norm (SUP x\<in>{a..b}. norm (ff n x - f x))
+            \<le> integral {a..b} (\<lambda>x. norm (f' x - ff' n x))\<close>
+      proof (intro always_eventually allI)
+        fix n
+        have ne: \<open>{a..b} \<noteq> {}\<close> using ab by auto
+        have ff'n_int: \<open>ff' n integrable_on {a..b}\<close>
+          using ff'_cont_ab integrable_continuous_real by blast
+        have diff_int: \<open>(\<lambda>x. ff' n x - f' x) integrable_on {a..b}\<close>
+          using integrable_diff[OF ff'n_int f'_int] .
+        have norm_diff_int: \<open>(\<lambda>x. norm (f' x - ff' n x)) integrable_on {a..b}\<close>
+          by (metis absolutely_integrable_on_def f'abs ff' set_integral_diff(1))
+        \<comment> \<open>Pointwise bound for each x \<in> {a..b}.\<close>
+        have bound: \<open>norm (ff n x - f x) \<le> integral {a..b} (\<lambda>t. norm (f' t - ff' n t))\<close>
+          if \<open>x \<in> {a..b}\<close> for x
+        proof -
+          have ac_sub: \<open>{a..x} \<subseteq> {a..b}\<close> using that by auto
+          have ff'n_int_x: \<open>ff' n integrable_on {a..x}\<close>
+            using integrable_on_subinterval[OF ff'n_int ac_sub] .
+          have f'_int_x: \<open>f' integrable_on {a..x}\<close>
+            using integrable_on_subinterval[OF f'_int ac_sub] .
+          have diff_int_x: \<open>(\<lambda>t. ff' n t - f' t) integrable_on {a..x}\<close>
+            using integrable_diff[OF ff'n_int_x f'_int_x] .
+          have norm_diff_int_x: \<open>(\<lambda>t. norm (f' t - ff' n t)) integrable_on {a..x}\<close>
+            using integrable_on_subinterval[OF norm_diff_int ac_sub] .
+          have \<open>norm (ff n x - f x) = norm (integral {a..x} (ff' n) - integral {a..x} f')\<close>
+            unfolding ff_def using f_eq[OF that] by simp
+          also have \<open>\<dots> = norm (integral {a..x} (\<lambda>t. ff' n t - f' t))\<close>
+            using integral_diff[OF ff'n_int_x f'_int_x] by simp
+          also have \<open>\<dots> \<le> integral {a..x} (\<lambda>t. norm (ff' n t - f' t))\<close>
+            using integral_norm_bound_integral[OF diff_int_x norm_diff_int_x]
+            by (simp add: norm_minus_commute)
+          also have \<open>\<dots> = integral {a..x} (\<lambda>t. norm (f' t - ff' n t))\<close>
+            by (simp add: norm_minus_commute)
+          also have \<open>\<dots> \<le> integral {a..b} (\<lambda>t. norm (f' t - ff' n t))\<close>
+            using integral_subset_le[OF ac_sub norm_diff_int_x norm_diff_int] by simp
+          finally show ?thesis .
+        qed
+        \<comment> \<open>SUP bound via cSup_least.\<close>
+        have bdd: \<open>bdd_above ((\<lambda>x. norm (ff n x - f x)) ` {a..b})\<close>
+        proof -
+          have \<open>continuous_on {a..b} (\<lambda>x. norm (ff n x - f x))\<close>
+            by (intro continuous_on_norm continuous_on_diff ff_cont f_cont)
+          then have \<open>compact ((\<lambda>x. norm (ff n x - f x)) ` {a..b})\<close>
+            using compact_continuous_image compact_Icc by blast
+          then have \<open>bounded ((\<lambda>x. norm (ff n x - f x)) ` {a..b})\<close>
+            using compact_imp_bounded by blast
+          then show ?thesis using bounded_imp_bdd_above by auto
+        qed
+        have sup_bound: \<open>(SUP x\<in>{a..b}. norm (ff n x - f x))
+              \<le> integral {a..b} (\<lambda>t. norm (f' t - ff' n t))\<close>
+          using cSup_least[of \<open>(\<lambda>x. norm (ff n x - f x)) ` {a..b}\<close>] ne bound
+          by (force simp: image_iff)
+        have sup_nonneg: \<open>(SUP x\<in>{a..b}. norm (ff n x - f x)) \<ge> 0\<close>
+        proof -
+          have \<open>a \<in> {a..b}\<close> using ab by auto
+          then have \<open>norm (ff n a - f a) \<le> (SUP x\<in>{a..b}. norm (ff n x - f x))\<close>
+            using cSUP_upper[OF _ bdd] by blast
+          then show ?thesis using norm_ge_zero[of \<open>ff n a - f a\<close>] by linarith
+        qed
+        show \<open>norm (SUP x\<in>{a..b}. norm (ff n x - f x))
+              \<le> integral {a..b} (\<lambda>x. norm (f' x - ff' n x))\<close>
+          using sup_bound sup_nonneg by simp
+      qed
+    qed
     have gg_uniform: \<open>(\<lambda>n. SUP x\<in>{a..b}. norm (gg n x - g x)) \<longlonglongrightarrow> 0\<close>
-      sorry
+    proof (rule Lim_null_comparison[OF _ gg'_L1])
+      show \<open>\<forall>\<^sub>F n in sequentially. norm (SUP x\<in>{a..b}. norm (gg n x - g x))
+            \<le> integral {a..b} (\<lambda>x. norm (g' x - gg' n x))\<close>
+      proof (intro always_eventually allI)
+        fix n
+        have ne: \<open>{a..b} \<noteq> {}\<close> using ab by auto
+        have gg'n_int: \<open>gg' n integrable_on {a..b}\<close>
+          using gg'_cont_ab integrable_continuous_real by blast
+        have diff_int: \<open>(\<lambda>x. gg' n x - g' x) integrable_on {a..b}\<close>
+          using integrable_diff[OF gg'n_int g'_int] .
+        have norm_diff_int: \<open>(\<lambda>x. norm (g' x - gg' n x)) integrable_on {a..b}\<close>
+          by (metis absolutely_integrable_on_def g'abs gg' set_integral_diff(1))
+        have bound: \<open>norm (gg n x - g x) \<le> integral {a..b} (\<lambda>t. norm (g' t - gg' n t))\<close>
+          if \<open>x \<in> {a..b}\<close> for x
+        proof -
+          have ac_sub: \<open>{a..x} \<subseteq> {a..b}\<close> using that by auto
+          have gg'n_int_x: \<open>gg' n integrable_on {a..x}\<close>
+            using integrable_on_subinterval[OF gg'n_int ac_sub] .
+          have g'_int_x: \<open>g' integrable_on {a..x}\<close>
+            using integrable_on_subinterval[OF g'_int ac_sub] .
+          have diff_int_x: \<open>(\<lambda>t. gg' n t - g' t) integrable_on {a..x}\<close>
+            using integrable_diff[OF gg'n_int_x g'_int_x] .
+          have norm_diff_int_x: \<open>(\<lambda>t. norm (g' t - gg' n t)) integrable_on {a..x}\<close>
+            using integrable_on_subinterval[OF norm_diff_int ac_sub] .
+          have \<open>norm (gg n x - g x) = norm (integral {a..x} (gg' n) - integral {a..x} g')\<close>
+            unfolding gg_def using g_eq[OF that] by simp
+          also have \<open>\<dots> = norm (integral {a..x} (\<lambda>t. gg' n t - g' t))\<close>
+            using integral_diff[OF gg'n_int_x g'_int_x] by simp
+          also have \<open>\<dots> \<le> integral {a..x} (\<lambda>t. norm (gg' n t - g' t))\<close>
+            using integral_norm_bound_integral[OF diff_int_x norm_diff_int_x]
+            by (simp add: norm_minus_commute)
+          also have \<open>\<dots> = integral {a..x} (\<lambda>t. norm (g' t - gg' n t))\<close>
+            by (simp add: norm_minus_commute)
+          also have \<open>\<dots> \<le> integral {a..b} (\<lambda>t. norm (g' t - gg' n t))\<close>
+            using integral_subset_le[OF ac_sub norm_diff_int_x norm_diff_int] by simp
+          finally show ?thesis .
+        qed
+        have bdd: \<open>bdd_above ((\<lambda>x. norm (gg n x - g x)) ` {a..b})\<close>
+        proof -
+          have \<open>continuous_on {a..b} (\<lambda>x. norm (gg n x - g x))\<close>
+            by (intro continuous_on_norm continuous_on_diff gg_cont g_cont)
+          then have \<open>compact ((\<lambda>x. norm (gg n x - g x)) ` {a..b})\<close>
+            using compact_continuous_image compact_Icc by blast
+          then have \<open>bounded ((\<lambda>x. norm (gg n x - g x)) ` {a..b})\<close>
+            using compact_imp_bounded by blast
+          then show ?thesis using bounded_imp_bdd_above by auto
+        qed
+        have sup_bound: \<open>(SUP x\<in>{a..b}. norm (gg n x - g x))
+              \<le> integral {a..b} (\<lambda>t. norm (g' t - gg' n t))\<close>
+          using cSup_least[of \<open>(\<lambda>x. norm (gg n x - g x)) ` {a..b}\<close>] ne bound
+          by (force simp: image_iff)
+        have sup_nonneg: \<open>(SUP x\<in>{a..b}. norm (gg n x - g x)) \<ge> 0\<close>
+        proof -
+          have \<open>a \<in> {a..b}\<close> using ab by auto
+          then have \<open>norm (gg n a - g a) \<le> (SUP x\<in>{a..b}. norm (gg n x - g x))\<close>
+            using cSUP_upper[OF _ bdd] by blast
+          then show ?thesis using norm_ge_zero[of \<open>gg n a - g a\<close>] by linarith
+        qed
+        show \<open>norm (SUP x\<in>{a..b}. norm (gg n x - g x))
+              \<le> integral {a..b} (\<lambda>x. norm (g' x - gg' n x))\<close>
+          using sup_bound sup_nonneg by simp
+      qed
+    qed
     \<comment> \<open>Pointwise convergence at a and b.\<close>
     have ff_b: \<open>(\<lambda>n. ff n b) \<longlonglongrightarrow> f b\<close>
       using ff_ptwise[of b] ab by auto
