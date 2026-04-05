@@ -915,21 +915,128 @@ proof -
       finally show \<open>norm (integral {a..b} (\<lambda>x. norm (g' x - gg' n x))) < 1 / real (Suc n)\<close> .
     qed
 
+    \<comment> \<open>FTC identity: f and g are the indefinite integrals of f' and g' on {a..b}.\<close>
+    have f_eq: \<open>f x = integral {a..x} f'\<close> if \<open>x \<in> {a..b}\<close> for x
+      using f'int_eq[OF that] .
+    have g_eq: \<open>g x = integral {a..x} g'\<close> if \<open>x \<in> {a..b}\<close> for x
+      using g'int_eq[OF that] .
+
+    \<comment> \<open>Pointwise convergence: ff n c \<rightarrow> f c and gg n c \<rightarrow> g c for any c \<in> {a..b},
+      via L1 convergence of ff' n \<rightarrow> f' and gg' n \<rightarrow> g'.\<close>
+    have ff_ptwise: \<open>(\<lambda>n. ff n c) \<longlonglongrightarrow> f c\<close> if c_ab: \<open>c \<in> {a..b}\<close> for c
+    proof -
+      have ac_sub: \<open>{a..c} \<subseteq> {a..b}\<close> using c_ab by auto
+      have ff'n_int_c: \<open>ff' n integrable_on {a..c}\<close> for n
+        using ff'_cont_ab integrable_continuous_real integrable_on_subinterval ac_sub by blast
+      have f'_int_c: \<open>f' integrable_on {a..c}\<close>
+        using f'_int integrable_on_subinterval ac_sub by blast
+      have diff_int_c: \<open>(\<lambda>x. ff' n x - f' x) integrable_on {a..c}\<close> for n
+        using integrable_diff[OF ff'n_int_c f'_int_c] .
+      \<comment> \<open>The norm of the difference is integrable on {a..b} (absolute integrability).\<close>
+      have ff'n_int: \<open>ff' n integrable_on {a..b}\<close> for n
+        using ff'_cont_ab integrable_continuous_real by blast
+      have diff_int: \<open>(\<lambda>x. ff' n x - f' x) integrable_on {a..b}\<close> for n
+        using integrable_diff[OF ff'n_int f'_int] .
+      have norm_f': \<open>(\<lambda>x. norm (f' x)) integrable_on {a..b}\<close>
+        using f'abs absolutely_integrable_on_def by blast
+      have norm_ff'n: \<open>(\<lambda>x. norm (ff' n x)) integrable_on {a..b}\<close> for n
+        using ff' absolutely_integrable_on_def by blast
+      have norm_sum: \<open>(\<lambda>x. norm (f' x) + norm (ff' n x)) integrable_on {a..b}\<close> for n
+        using integrable_add[OF norm_f' norm_ff'n] .
+      have norm_diff_int: \<open>(\<lambda>x. norm (f' x - ff' n x)) integrable_on {a..b}\<close> for n
+        by (metis absolutely_integrable_on_def assms(3) ff' set_integral_diff(1))
+      \<comment> \<open>Key bound: \<Parallel>ff n c - f c\<Parallel> \<le> \<integral>{a..b} \<Parallel>f' - ff' n\<Parallel>.\<close>
+      have bound: \<open>norm (ff n c - f c) \<le> integral {a..b} (\<lambda>x. norm (f' x - ff' n x))\<close> for n
+      proof -
+        have eq: \<open>ff n c - f c = integral {a..c} (\<lambda>x. ff' n x - f' x)\<close>
+          unfolding ff_def using f_eq[OF c_ab] integral_diff[OF ff'n_int_c f'_int_c] by simp
+        have norm_diff_int_c: \<open>(\<lambda>x. norm (f' x - ff' n x)) integrable_on {a..c}\<close>
+          using integrable_on_subinterval[OF norm_diff_int ac_sub] .
+        have \<open>norm (integral {a..c} (\<lambda>x. ff' n x - f' x))
+              \<le> integral {a..c} (\<lambda>x. norm (ff' n x - f' x))\<close>
+          using integral_norm_bound_integral[OF diff_int_c norm_diff_int_c]
+          by (simp add: norm_minus_commute)
+        also have \<open>\<dots> = integral {a..c} (\<lambda>x. norm (f' x - ff' n x))\<close>
+          by (simp add: norm_minus_commute)
+        also have \<open>\<dots> \<le> integral {a..b} (\<lambda>x. norm (f' x - ff' n x))\<close>
+          using integral_subset_le[OF ac_sub norm_diff_int_c norm_diff_int] by simp
+        finally show ?thesis unfolding eq .
+      qed
+      have \<open>(\<lambda>n. ff n c - f c) \<longlonglongrightarrow> 0\<close>
+      proof (rule Lim_null_comparison[OF _ ff'_L1])
+        show \<open>\<forall>\<^sub>F n in sequentially. norm (ff n c - f c) \<le> integral {a..b} (\<lambda>x. norm (f' x - ff' n x))\<close>
+          using bound by (simp add: eventually_sequentially)
+      qed
+      then show ?thesis
+        using LIM_zero_iff by blast
+    qed
+    have gg_ptwise: \<open>(\<lambda>n. gg n c) \<longlonglongrightarrow> g c\<close> if c_ab: \<open>c \<in> {a..b}\<close> for c
+    proof -
+      have ac_sub: \<open>{a..c} \<subseteq> {a..b}\<close> using c_ab by auto
+      have gg'n_int_c: \<open>gg' n integrable_on {a..c}\<close> for n
+        using gg'_cont_ab integrable_continuous_real integrable_on_subinterval ac_sub by blast
+      have g'_int_c: \<open>g' integrable_on {a..c}\<close>
+        using g'_int integrable_on_subinterval ac_sub by blast
+      have diff_int_c: \<open>(\<lambda>x. gg' n x - g' x) integrable_on {a..c}\<close> for n
+        using integrable_diff[OF gg'n_int_c g'_int_c] .
+      have gg'n_int: \<open>gg' n integrable_on {a..b}\<close> for n
+        using gg'_cont_ab integrable_continuous_real by blast
+      have diff_int: \<open>(\<lambda>x. gg' n x - g' x) integrable_on {a..b}\<close> for n
+        using integrable_diff[OF gg'n_int g'_int] .
+      have norm_g': \<open>(\<lambda>x. norm (g' x)) integrable_on {a..b}\<close>
+        using g'abs absolutely_integrable_on_def by blast
+      have norm_gg'n: \<open>(\<lambda>x. norm (gg' n x)) integrable_on {a..b}\<close> for n
+        using gg' absolutely_integrable_on_def by blast
+      have norm_sum: \<open>(\<lambda>x. norm (g' x) + norm (gg' n x)) integrable_on {a..b}\<close> for n
+        using integrable_add[OF norm_g' norm_gg'n] .
+      have norm_diff_int: \<open>(\<lambda>x. norm (g' x - gg' n x)) integrable_on {a..b}\<close> for n
+        by (metis absolutely_integrable_on_def assms(4) gg' set_integral_diff(1))
+      have bound: \<open>norm (gg n c - g c) \<le> integral {a..b} (\<lambda>x. norm (g' x - gg' n x))\<close> for n
+      proof -
+        have eq: \<open>gg n c - g c = integral {a..c} (\<lambda>x. gg' n x - g' x)\<close>
+          unfolding gg_def using g_eq[OF c_ab] integral_diff[OF gg'n_int_c g'_int_c] by simp
+        have norm_diff_int_c: \<open>(\<lambda>x. norm (g' x - gg' n x)) integrable_on {a..c}\<close>
+          using integrable_on_subinterval[OF norm_diff_int ac_sub] .
+        have \<open>norm (integral {a..c} (\<lambda>x. gg' n x - g' x))
+              \<le> integral {a..c} (\<lambda>x. norm (gg' n x - g' x))\<close>
+          using integral_norm_bound_integral[OF diff_int_c norm_diff_int_c]
+          by (simp add: norm_minus_commute)
+        also have \<open>\<dots> = integral {a..c} (\<lambda>x. norm (g' x - gg' n x))\<close>
+          by (simp add: norm_minus_commute)
+        also have \<open>\<dots> \<le> integral {a..b} (\<lambda>x. norm (g' x - gg' n x))\<close>
+          using integral_subset_le[OF ac_sub norm_diff_int_c norm_diff_int] by simp
+        finally show ?thesis unfolding eq .
+      qed
+      have \<open>(\<lambda>n. gg n c - g c) \<longlonglongrightarrow> 0\<close>
+      proof (rule Lim_null_comparison[OF _ gg'_L1])
+        show \<open>\<forall>\<^sub>F n in sequentially. norm (gg n c - g c) \<le> integral {a..b} (\<lambda>x. norm (g' x - gg' n x))\<close>
+          using bound by (simp add: eventually_sequentially)
+      qed
+      then show ?thesis
+        by (simp add: LIM_zero_iff)
+    qed
+    have \<open>(\<lambda>n. bop (ff n c) (gg n c)) \<longlonglongrightarrow> bop (f c) (g c)\<close> if c_ab: \<open>c \<in> {a..b}\<close> for c
+      using bb bounded_bilinear.tendsto c_ab ff_ptwise gg_ptwise by blast
+    then have *: \<open>(\<lambda>n. bop (ff n b) (gg n b) - bop (ff n a) (gg n a)) 
+         \<longlonglongrightarrow> bop (f b) (g b) - bop (f a) (g a)\<close> 
+
+
 
     \<comment> \<open>Uniform convergence: ff n \<rightarrow> f and gg n \<rightarrow> g uniformly on {a..b}.\<close>
+      by (simp add: assms(2) tendsto_diff)
     have ff_uniform: \<open>(\<lambda>n. SUP x\<in>{a..b}. norm (ff n x - f x)) \<longlonglongrightarrow> 0\<close>
       sorry
     have gg_uniform: \<open>(\<lambda>n. SUP x\<in>{a..b}. norm (gg n x - g x)) \<longlonglongrightarrow> 0\<close>
       sorry
     \<comment> \<open>Pointwise convergence at a and b.\<close>
     have ff_b: \<open>(\<lambda>n. ff n b) \<longlonglongrightarrow> f b\<close>
-      sorry
+      using ff_ptwise[of b] ab by auto
     have ff_a: \<open>(\<lambda>n. ff n a) \<longlonglongrightarrow> f a\<close>
-      sorry
+      using ff_ptwise[of a] ab by auto
     have gg_b: \<open>(\<lambda>n. gg n b) \<longlonglongrightarrow> g b\<close>
-      sorry
+      using gg_ptwise[of b] ab by auto
     have gg_a: \<open>(\<lambda>n. gg n a) \<longlonglongrightarrow> g a\<close>
-      sorry
+      using gg_ptwise[of a] ab by auto
     \<comment> \<open>Bilinear limit at endpoints.\<close>
     have bop_b: \<open>(\<lambda>n. bop (ff n b) (gg n b)) \<longlonglongrightarrow> bop (f b) (g b)\<close>
       using Lim_bilinear[OF ff_b gg_b bb] .
