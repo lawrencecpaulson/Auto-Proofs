@@ -1154,7 +1154,9 @@ proof -
           using sup_bound sup_nonneg by simp
       qed
     qed
+    obtain M where "M>0" and M: "norm (bop x y) \<le> M * norm x * norm y" for x y
     \<comment> \<open>Pointwise convergence at a and b.\<close>
+      using assms(1) bilinear_bounded_pos by blast
     have ff_b: \<open>(\<lambda>n. ff n b) \<longlonglongrightarrow> f b\<close>
       using ff_ptwise[of b] ab by auto
     have ff_a: \<open>(\<lambda>n. ff n a) \<longlonglongrightarrow> f a\<close>
@@ -1168,10 +1170,67 @@ proof -
       using Lim_bilinear[OF ff_b gg_b bb] .
     have bop_a: \<open>(\<lambda>n. bop (ff n a) (gg n a)) \<longlonglongrightarrow> bop (f a) (g a)\<close>
       using Lim_bilinear[OF ff_a gg_a bb] .
-    \<comment> \<open>Integral convergence.\<close>
+    \<comment> \<open>Obtain B bounding integral norms of |f'| and |g'|.\<close>
+    obtain B where \<open>B > 0\<close>
+      and B_f': \<open>integral {a..b} (\<lambda>x. norm (f' x)) \<le> B\<close>
+      and B_g': \<open>integral {a..b} (\<lambda>x. norm (g' x)) \<le> B\<close>
+    proof -
+      let ?A = \<open>max (integral {a..b} (\<lambda>x. norm (f' x))) (integral {a..b} (\<lambda>x. norm (g' x))) + 1\<close>
+      have \<open>0 < ?A\<close>
+        by (smt (verit) Henstock_Kurzweil_Integration.integral_norm_bound_integral f'_int
+            norm_imp_pos_and_ge not_integrable_integral)
+      moreover have \<open>integral {a..b} (\<lambda>x. norm (f' x)) \<le> ?A\<close> by linarith
+      moreover have \<open>integral {a..b} (\<lambda>x. norm (g' x)) \<le> ?A\<close> by linarith
+      ultimately show thesis using that by blast
+    qed
+    \<comment> \<open>Bound on sup norms of f and g on {a..b}: \<Parallel>f(x)\<Parallel> \<le> B, \<Parallel>g(x)\<Parallel> \<le> B.\<close>
+    obtain M_f where \<open>M_f > 0\<close> and M_f: \<open>\<And>x. x \<in> {a..b} \<Longrightarrow> norm (f x) \<le> M_f\<close>
+      using bounded_normE[OF f_bounded]
+      by (metis image_eqI)
+    obtain M_g where \<open>M_g > 0\<close> and M_g: \<open>\<And>x. x \<in> {a..b} \<Longrightarrow> norm (g x) \<le> M_g\<close>
+      using bounded_normE[OF g_bounded] by (metis image_eqI)
+    \<comment> \<open>Integrability of norm differences.\<close>
+    have norm_f'_int: \<open>(\<lambda>x. norm (f' x)) integrable_on {a..b}\<close>
+      using f'abs absolutely_integrable_on_def by blast
+    have norm_g'_int: \<open>(\<lambda>x. norm (g' x)) integrable_on {a..b}\<close>
+      using g'abs absolutely_integrable_on_def by blast
+    have norm_gg'_diff_int: \<open>(\<lambda>x. norm (g' x - gg' n x)) integrable_on {a..b}\<close> for n
+      by (metis absolutely_integrable_on_def g'abs gg' set_integral_diff(1))
+    have norm_ff'_diff_int: \<open>(\<lambda>x. norm (f' x - ff' n x)) integrable_on {a..b}\<close> for n
+      by (metis absolutely_integrable_on_def f'abs ff' set_integral_diff(1))
+    \<comment> \<open>Integral convergence: int1.\<close>
     have int1: \<open>(\<lambda>n. integral {a..b} (\<lambda>x. bop (ff n x) (gg' n x))) \<longlonglongrightarrow>
                integral {a..b} (\<lambda>x. bop (f x) (g' x))\<close>
-      sorry
+    proof (rule LIM_zero_iff[THEN iffD1])
+      \<comment> \<open>Decompose the integrand difference using bilinearity.\<close>
+      have decomp: \<open>bop (ff n x) (gg' n x) - bop (f x) (g' x) =
+            bop (ff n x - f x) (gg' n x - g' x) + bop (ff n x - f x) (g' x) +
+            bop (f x) (gg' n x - g' x)\<close> for n x
+        using bounded_bilinear.prod_diff_prod[OF bb] by blast
+      \<comment> \<open>Integrability of each term.\<close>
+      have fg'_int: \<open>(\<lambda>x. bop (f x) (g' x)) integrable_on {a..b}\<close>
+        using set_lebesgue_integral_eq_integral(1)
+              [OF bop_absint_cont2[OF f_cont g'abs]] .
+      have ffgg'_int: \<open>(\<lambda>x. bop (ff n x) (gg' n x)) integrable_on {a..b}\<close> for n
+        by (simp add: bop_absint_cont2 ff_cont gg' set_lebesgue_integral_eq_integral(1))
+      \<comment> \<open>Now show the integral of the decomposed sum \<rightarrow> 0.\<close>
+      have eq: \<open>integral {a..b} (\<lambda>x. bop (ff n x) (gg' n x)) - integral {a..b} (\<lambda>x. bop (f x) (g' x))
+                = integral {a..b} (\<lambda>x. bop (ff n x) (gg' n x) - bop (f x) (g' x))\<close> for n
+        by (simp add: Henstock_Kurzweil_Integration.integral_diff ffgg'_int fg'_int)
+      \<comment> \<open>Integrability of each bilinear term.\<close>
+      have t1_int: \<open>(\<lambda>x. bop (ff n x - f x) (gg' n x - g' x)) integrable_on {a..b}\<close> for n
+        by (simp add: absolutely_integrable_continuous_real assms(4) bop_absint_cont2
+            continuous_on_diff f_cont ff_cont gg'_cont_ab
+            set_lebesgue_integral_eq_integral(1))
+      have t2_int: \<open>(\<lambda>x. bop (ff n x - f x) (g' x)) integrable_on {a..b}\<close> for n
+        by (simp add: assms(4) bop_absint_cont2 continuous_on_diff f_cont ff_cont
+            set_lebesgue_integral_eq_integral(1))
+      have t3_int: \<open>(\<lambda>x. bop (f x) (gg' n x - g' x)) integrable_on {a..b}\<close> for n
+        using absolutely_integrable_on_def assms(4) bop_absint_cont2 f_cont gg' by blast
+      show "(\<lambda>n. integral {a..b} (\<lambda>x. bop (ff n x) (gg' n x)) -
+                 integral {a..b} (\<lambda>x. bop (f x) (g' x))) \<longlonglongrightarrow> 0"
+        sorry
+    qed
     have int2: \<open>(\<lambda>n. integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x))) \<longlonglongrightarrow>
                integral {a..b} (\<lambda>x. bop (f' x) (g x))\<close>
       sorry
