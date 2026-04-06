@@ -1408,6 +1408,8 @@ proof -
           qed
         qed
       qed
+    qed
+
     have int2: \<open>(\<lambda>n. integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x))) \<longlonglongrightarrow>
                integral {a..b} (\<lambda>x. bop (f' x) (g x))\<close>
       sorry
