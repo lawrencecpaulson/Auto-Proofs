@@ -1301,7 +1301,111 @@ proof -
           qed
         qed
         show ?thesis
-          sorry
+        proof -
+          have I2: \<open>(\<lambda>n. integral {a..b} (\<lambda>x. bop (ff n x - f x) (g' x))) \<longlonglongrightarrow> 0\<close>
+          proof (rule Lim_null_comparison[where g=\<open>\<lambda>n. M * (SUP x\<in>{a..b}. norm (ff n x - f x)) * integral {a..b} (\<lambda>x. norm (g' x))\<close>])
+            show \<open>\<forall>\<^sub>F n in sequentially. norm (integral {a..b} (\<lambda>x. bop (ff n x - f x) (g' x))) \<le>
+                M * (SUP x\<in>{a..b}. norm (ff n x - f x)) * integral {a..b} (\<lambda>x. norm (g' x))\<close>
+            proof (intro always_eventually allI)
+              fix n
+              have sup_int: \<open>(\<lambda>x. M * (SUP x\<in>{a..b}. norm (ff n x - f x)) * norm (g' x)) integrable_on {a..b}\<close>
+                using integrable_on_cmult_left[OF norm_g'_int, of \<open>M * (SUP x\<in>{a..b}. norm (ff n x - f x))\<close>]
+                by (simp add: mult.assoc)
+              have \<open>norm (integral {a..b} (\<lambda>x. bop (ff n x - f x) (g' x))) \<le>
+                  integral {a..b} (\<lambda>x. M * (SUP x\<in>{a..b}. norm (ff n x - f x)) * norm (g' x))\<close>
+              proof (rule integral_norm_bound_integral[OF t2_int sup_int])
+                fix x assume \<open>x \<in> {a..b}\<close>
+                have \<open>norm (bop (ff n x - f x) (g' x)) \<le> M * norm (ff n x - f x) * norm (g' x)\<close>
+                  using M by simp
+                also have \<open>\<dots> \<le> M * (SUP x\<in>{a..b}. norm (ff n x - f x)) * norm (g' x)\<close>
+                  using sup_bound[OF \<open>x \<in> {a..b}\<close>, of n] \<open>M > 0\<close>
+                  by (intro mult_right_mono mult_left_mono) auto
+                finally show \<open>norm (bop (ff n x - f x) (g' x)) \<le>
+                    M * (SUP x\<in>{a..b}. norm (ff n x - f x)) * norm (g' x)\<close> .
+              qed
+              also have \<open>\<dots> = M * (SUP x\<in>{a..b}. norm (ff n x - f x)) * integral {a..b} (\<lambda>x. norm (g' x))\<close>
+                using integral_cmul[of \<open>{a..b}\<close> \<open>M * (SUP x\<in>{a..b}. norm (ff n x - f x))\<close> \<open>\<lambda>x. norm (g' x)\<close>]
+                by (simp add: mult.assoc scaleR_conv_of_real)
+              finally show \<open>norm (integral {a..b} (\<lambda>x. bop (ff n x - f x) (g' x))) \<le>
+                  M * (SUP x\<in>{a..b}. norm (ff n x - f x)) * integral {a..b} (\<lambda>x. norm (g' x))\<close> .
+            qed
+          next
+            have \<open>(\<lambda>n. (SUP x\<in>{a..b}. norm (ff n x - f x))) \<longlonglongrightarrow> 0\<close>
+              using ff_uniform .
+            then have \<open>(\<lambda>n. M * (SUP x\<in>{a..b}. norm (ff n x - f x))) \<longlonglongrightarrow> 0\<close>
+              using tendsto_mult_left[of \<open>\<lambda>n. (SUP x\<in>{a..b}. norm (ff n x - f x))\<close> 0 sequentially M]
+              by simp
+            then show \<open>(\<lambda>n. M * (SUP x\<in>{a..b}. norm (ff n x - f x)) * integral {a..b} (\<lambda>x. norm (g' x))) \<longlonglongrightarrow> 0\<close>
+              using tendsto_mult_right[of \<open>\<lambda>n. M * (SUP x\<in>{a..b}. norm (ff n x - f x))\<close> 0 sequentially \<open>integral {a..b} (\<lambda>x. norm (g' x))\<close>]
+              by simp
+          qed
+          have I3: \<open>(\<lambda>n. integral {a..b} (\<lambda>x. bop (f x) (gg' n x - g' x))) \<longlonglongrightarrow> 0\<close>
+          proof (rule Lim_null_comparison[where g=\<open>\<lambda>n. M * M_f * integral {a..b} (\<lambda>x. norm (g' x - gg' n x))\<close>])
+            show \<open>\<forall>\<^sub>F n in sequentially. norm (integral {a..b} (\<lambda>x. bop (f x) (gg' n x - g' x))) \<le>
+                M * M_f * integral {a..b} (\<lambda>x. norm (g' x - gg' n x))\<close>
+            proof (intro always_eventually allI)
+              fix n
+              have sup_int: \<open>(\<lambda>x. M * M_f * norm (gg' n x - g' x)) integrable_on {a..b}\<close>
+                using integrable_on_cmult_left[OF norm_gg'_diff_int, of \<open>M * M_f\<close>]
+                by (simp add: mult.assoc norm_minus_commute)
+              have \<open>norm (integral {a..b} (\<lambda>x. bop (f x) (gg' n x - g' x))) \<le>
+                  integral {a..b} (\<lambda>x. M * M_f * norm (gg' n x - g' x))\<close>
+              proof (rule integral_norm_bound_integral[OF t3_int sup_int])
+                fix x assume \<open>x \<in> {a..b}\<close>
+                have \<open>norm (bop (f x) (gg' n x - g' x)) \<le> M * norm (f x) * norm (gg' n x - g' x)\<close>
+                  using M by simp
+                also have \<open>\<dots> \<le> M * M_f * norm (gg' n x - g' x)\<close>
+                  using M_f[OF \<open>x \<in> {a..b}\<close>] \<open>M > 0\<close>
+                  by (intro mult_right_mono mult_left_mono) auto
+                finally show \<open>norm (bop (f x) (gg' n x - g' x)) \<le>
+                    M * M_f * norm (gg' n x - g' x)\<close> .
+              qed
+              also have \<open>\<dots> = M * M_f * integral {a..b} (\<lambda>x. norm (gg' n x - g' x))\<close>
+                using integral_cmul[of \<open>{a..b}\<close> \<open>M * M_f\<close> \<open>\<lambda>x. norm (gg' n x - g' x)\<close>]
+                by (simp add: mult.assoc scaleR_conv_of_real)
+              also have \<open>\<dots> = M * M_f * integral {a..b} (\<lambda>x. norm (g' x - gg' n x))\<close>
+                by (simp add: norm_minus_commute)
+              finally show \<open>norm (integral {a..b} (\<lambda>x. bop (f x) (gg' n x - g' x))) \<le>
+                  M * M_f * integral {a..b} (\<lambda>x. norm (g' x - gg' n x))\<close> .
+            qed
+          next
+            show \<open>(\<lambda>n. M * M_f * integral {a..b} (\<lambda>x. norm (g' x - gg' n x))) \<longlonglongrightarrow> 0\<close>
+              using tendsto_mult_left[of \<open>\<lambda>n. integral {a..b} (\<lambda>x. norm (g' x - gg' n x))\<close> 0 sequentially \<open>M * M_f\<close>]
+                    gg'_L1
+              by simp
+          qed
+          show ?thesis
+          proof -
+            have sum_eq: \<open>integral {a..b} (\<lambda>x. bop (ff n x) (gg' n x) - bop (f x) (g' x)) =
+                integral {a..b} (\<lambda>x. bop (ff n x - f x) (gg' n x - g' x)) +
+                integral {a..b} (\<lambda>x. bop (ff n x - f x) (g' x)) +
+                integral {a..b} (\<lambda>x. bop (f x) (gg' n x - g' x))\<close> for n
+            proof -
+              have \<open>integral {a..b} (\<lambda>x. bop (ff n x) (gg' n x) - bop (f x) (g' x)) =
+                  integral {a..b} (\<lambda>x. bop (ff n x - f x) (gg' n x - g' x) + bop (ff n x - f x) (g' x) +
+                      bop (f x) (gg' n x - g' x))\<close>
+                by (simp only: decomp)
+              also have \<open>\<dots> = integral {a..b} (\<lambda>x. bop (ff n x - f x) (gg' n x - g' x) + bop (ff n x - f x) (g' x)) +
+                  integral {a..b} (\<lambda>x. bop (f x) (gg' n x - g' x))\<close>
+                by (rule Henstock_Kurzweil_Integration.integral_add[OF integrable_add[OF t1_int t2_int] t3_int])
+              also have \<open>\<dots> = integral {a..b} (\<lambda>x. bop (ff n x - f x) (gg' n x - g' x)) +
+                  integral {a..b} (\<lambda>x. bop (ff n x - f x) (g' x)) +
+                  integral {a..b} (\<lambda>x. bop (f x) (gg' n x - g' x))\<close>
+                by (simp add: Henstock_Kurzweil_Integration.integral_add[OF t1_int t2_int])
+              finally show ?thesis .
+            qed
+            have \<open>(\<lambda>n. integral {a..b} (\<lambda>x. bop (ff n x) (gg' n x) - bop (f x) (g' x))) \<longlonglongrightarrow> 0\<close>
+            proof -
+              have \<open>(\<lambda>n. integral {a..b} (\<lambda>x. bop (ff n x - f x) (gg' n x - g' x)) +
+                  integral {a..b} (\<lambda>x. bop (ff n x - f x) (g' x)) +
+                  integral {a..b} (\<lambda>x. bop (f x) (gg' n x - g' x))) \<longlonglongrightarrow> 0 + 0 + 0\<close>
+                by (intro tendsto_intros I1 I2 I3)
+              then show ?thesis
+                by (simp add: sum_eq)
+            qed
+            then show ?thesis
+              by (simp add: eq)
+          qed
         qed
       qed
     have int2: \<open>(\<lambda>n. integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x))) \<longlonglongrightarrow>
