@@ -1229,8 +1229,81 @@ proof -
         using absolutely_integrable_on_def assms(4) bop_absint_cont2 f_cont gg' by blast
       show "(\<lambda>n. integral {a..b} (\<lambda>x. bop (ff n x) (gg' n x)) -
                  integral {a..b} (\<lambda>x. bop (f x) (g' x))) \<longlonglongrightarrow> 0"
-        sorry
-    qed
+      proof -
+        \<comment> \<open>bdd_above for the uniform-convergence sup.\<close>
+        have bdd_ff: \<open>bdd_above ((\<lambda>x. norm (ff n x - f x)) ` {a..b})\<close> for n
+        proof -
+          have \<open>continuous_on {a..b} (\<lambda>x. norm (ff n x - f x))\<close>
+            by (intro continuous_on_norm continuous_on_diff ff_cont f_cont)
+          then show ?thesis
+            using compact_continuous_image compact_Icc compact_imp_bounded bounded_imp_bdd_above
+            by metis
+        qed
+        have sup_bound: \<open>norm (ff n x - f x) \<le> (SUP x\<in>{a..b}. norm (ff n x - f x))\<close>
+          if \<open>x \<in> {a..b}\<close> for n x
+          using cSUP_upper[OF that bdd_ff] .
+        \<comment> \<open>Integrability of scaled norm functions.\<close>
+        have sc_gg'_int: \<open>(\<lambda>x. c * norm (g' x - gg' n x)) integrable_on {a..b}\<close> for c :: real and n
+          using integrable_cmul[OF norm_gg'_diff_int, of c n] by (simp add: scaleR_conv_of_real)
+        have sc_g'_int: \<open>(\<lambda>x. c * norm (g' x)) integrable_on {a..b}\<close> for c :: real
+          using integrable_cmul[OF norm_g'_int, of c] by (simp add: scaleR_conv_of_real)
+        \<comment> \<open>Term 1: \<integral> bop(ff n - f)(gg' n - g') \<rightarrow> 0.\<close>
+        have I1: \<open>(\<lambda>n. integral {a..b} (\<lambda>x. bop (ff n x - f x) (gg' n x - g' x))) \<longlonglongrightarrow> 0\<close>
+        proof -
+          have lim_bound: \<open>(\<lambda>n. M * ((SUP x\<in>{a..b}. norm (ff n x - f x)) *
+              integral {a..b} (\<lambda>x. norm (g' x - gg' n x)))) \<longlonglongrightarrow> 0\<close>
+          proof -
+            have \<open>(\<lambda>n. (SUP x\<in>{a..b}. norm (ff n x - f x)) *
+                integral {a..b} (\<lambda>x. norm (g' x - gg' n x))) \<longlonglongrightarrow> 0\<close>
+              using tendsto_mult_zero[OF ff_uniform gg'_L1] .
+            then show ?thesis
+              using tendsto_mult_left[of \<open>\<lambda>n. (SUP x\<in>{a..b}. norm (ff n x - f x)) *
+                integral {a..b} (\<lambda>x. norm (g' x - gg' n x))\<close> 0 sequentially M]
+              by simp
+          qed
+          show ?thesis
+          proof (rule Lim_null_comparison[OF _ lim_bound])
+            show \<open>\<forall>\<^sub>F n in sequentially.
+              norm (integral {a..b} (\<lambda>x. bop (ff n x - f x) (gg' n x - g' x))) \<le>
+              M * ((SUP x\<in>{a..b}. norm (ff n x - f x)) *
+                integral {a..b} (\<lambda>x. norm (g' x - gg' n x)))\<close>
+            proof (intro always_eventually allI)
+              fix n
+              have sup_int: \<open>(\<lambda>x. M * (SUP x\<in>{a..b}. norm (ff n x - f x)) * norm (gg' n x - g' x))
+                    integrable_on {a..b}\<close>
+                using sc_gg'_int integrable_on_cmult_left
+                by (simp add: norm_minus_commute)
+              have \<open>norm (integral {a..b} (\<lambda>x. bop (ff n x - f x) (gg' n x - g' x))) \<le>
+                integral {a..b} (\<lambda>x. M * (SUP x\<in>{a..b}. norm (ff n x - f x)) * norm (gg' n x - g' x))\<close>
+              proof (rule integral_norm_bound_integral[OF t1_int sup_int])
+                fix x assume xab: \<open>x \<in> {a..b}\<close>
+                have \<open>norm (bop (ff n x - f x) (gg' n x - g' x)) \<le>
+                      M * norm (ff n x - f x) * norm (gg' n x - g' x)\<close>
+                  using M[of \<open>ff n x - f x\<close> \<open>gg' n x - g' x\<close>] by simp
+                also have \<open>\<dots> \<le> M * (SUP x\<in>{a..b}. norm (ff n x - f x)) * norm (gg' n x - g' x)\<close>
+                  using sup_bound[OF xab, of n] \<open>M > 0\<close>
+                  by (intro mult_right_mono mult_left_mono) auto
+                finally show \<open>norm (bop (ff n x - f x) (gg' n x - g' x)) \<le>
+                      M * (SUP x\<in>{a..b}. norm (ff n x - f x)) * norm (gg' n x - g' x)\<close> .
+              qed
+              also have \<open>\<dots> = M * (SUP x\<in>{a..b}. norm (ff n x - f x)) *
+                  integral {a..b} (\<lambda>x. norm (gg' n x - g' x))\<close>
+                using integral_cmul[of \<open>{a..b}\<close>
+                      \<open>M * (SUP x\<in>{a..b}. norm (ff n x - f x))\<close> \<open>\<lambda>x. norm (gg' n x - g' x)\<close>]
+                by (simp add: mult.assoc scaleR_conv_of_real)
+              also have \<open>\<dots> = M * ((SUP x\<in>{a..b}. norm (ff n x - f x)) *
+                  integral {a..b} (\<lambda>x. norm (g' x - gg' n x)))\<close>
+                by (simp add: norm_minus_commute mult.assoc)
+              finally show \<open>norm (integral {a..b} (\<lambda>x. bop (ff n x - f x) (gg' n x - g' x))) \<le>
+                  M * ((SUP x\<in>{a..b}. norm (ff n x - f x)) *
+                  integral {a..b} (\<lambda>x. norm (g' x - gg' n x)))\<close> .
+            qed
+          qed
+        qed
+        show ?thesis
+          sorry
+        qed
+      qed
     have int2: \<open>(\<lambda>n. integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x))) \<longlonglongrightarrow>
                integral {a..b} (\<lambda>x. bop (f' x) (g x))\<close>
       sorry
