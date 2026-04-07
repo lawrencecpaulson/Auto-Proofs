@@ -1407,11 +1407,116 @@ proof -
        proof -
         have pw1: \<open>norm (bop (ff n x - f x) (g' x)) \<le> M * inverse (real n + 1) * norm (g' x)\<close>
                   if \<open>x \<in> {a..b}\<close> for x
-          sorry
+        proof -
+          have ac_sub: \<open>{a..x} \<subseteq> {a..b}\<close> using that by auto
+          have ff'n_int: \<open>ff' n integrable_on {a..b}\<close>
+            using ff'_cont_ab integrable_continuous_real by blast
+          have ff'n_int_x: \<open>ff' n integrable_on {a..x}\<close>
+            using integrable_on_subinterval[OF ff'n_int ac_sub] .
+          have f'_int_x: \<open>f' integrable_on {a..x}\<close>
+            using integrable_on_subinterval[OF f'_int ac_sub] .
+          have diff_int_x: \<open>(\<lambda>t. ff' n t - f' t) integrable_on {a..x}\<close>
+            using integrable_diff[OF ff'n_int_x f'_int_x] .
+          have norm_diff_int_x: \<open>(\<lambda>t. norm (f' t - ff' n t)) integrable_on {a..x}\<close>
+            using integrable_on_subinterval[OF norm_ff'_diff_int ac_sub] .
+          \<comment> \<open>FTC bound: \<Parallel>ff n x - f x\<Parallel> \<le> \<integral>{a..b} \<Parallel>f' - ff' n\<Parallel>.\<close>
+          have \<open>norm (ff n x - f x) = norm (integral {a..x} (ff' n) - integral {a..x} f')\<close>
+            unfolding ff_def using f_eq[OF that] by simp
+          also have \<open>\<dots> = norm (integral {a..x} (\<lambda>t. ff' n t - f' t))\<close>
+            using integral_diff[OF ff'n_int_x f'_int_x] by simp
+          also have \<open>\<dots> \<le> integral {a..x} (\<lambda>t. norm (ff' n t - f' t))\<close>
+            using integral_norm_bound_integral[OF diff_int_x norm_diff_int_x]
+            by (simp add: norm_minus_commute)
+          also have \<open>\<dots> = integral {a..x} (\<lambda>t. norm (f' t - ff' n t))\<close>
+            by (simp add: norm_minus_commute)
+          also have \<open>\<dots> \<le> integral {a..b} (\<lambda>t. norm (f' t - ff' n t))\<close>
+            using integral_subset_le[OF ac_sub norm_diff_int_x norm_ff'_diff_int] by simp
+          finally have ff_bound: \<open>norm (ff n x - f x)
+                                  \<le> integral {a..b} (\<lambda>t. norm (f' t - ff' n t))\<close> .
+          \<comment> \<open>The L1 bound gives < inverse(n+1).\<close>
+          have nn: \<open>integral {a..b} (\<lambda>t. norm (f' t - ff' n t)) \<ge> 0\<close>
+            using integral_nonneg[OF norm_ff'_diff_int] by simp
+          have \<open>norm (integral {a..b} (\<lambda>t. norm (f' t - ff' n t))) < inverse (real n + 1)\<close>
+            using ff' by simp
+          then have L1: \<open>integral {a..b} (\<lambda>t. norm (f' t - ff' n t)) < inverse (real n + 1)\<close>
+            using nn by simp
+          have ff_inv: \<open>norm (ff n x - f x) \<le> inverse (real n + 1)\<close>
+            using ff_bound L1 by linarith
+          \<comment> \<open>Apply bilinear bound and monotonicity.\<close>
+          have \<open>norm (bop (ff n x - f x) (g' x)) \<le> M * norm (ff n x - f x) * norm (g' x)\<close>
+            using M by simp
+          also have \<open>\<dots> \<le> M * inverse (real n + 1) * norm (g' x)\<close>
+            using ff_inv \<open>M > 0\<close>
+            by (intro mult_right_mono mult_left_mono) auto
+          finally show ?thesis .
+        qed
         have pw2: \<open>norm (bop (ff' n x - f' x) (gg n x))
                    \<le> M * (B + inverse (real n + 1)) * norm (ff' n x - f' x)\<close>
                   if \<open>x \<in> {a..b}\<close> for x
-          sorry
+        proof -
+          have ac_sub: \<open>{a..x} \<subseteq> {a..b}\<close> using that by auto
+          \<comment> \<open>Step 1: \<Parallel>gg n x - g x\<Parallel> \<le> inverse(n+1).\<close>
+          have gg'n_int: \<open>gg' n integrable_on {a..b}\<close>
+            using gg'_cont_ab integrable_continuous_real by blast
+          have gg'n_int_x: \<open>gg' n integrable_on {a..x}\<close>
+            using integrable_on_subinterval[OF gg'n_int ac_sub] .
+          have g'_int_x: \<open>g' integrable_on {a..x}\<close>
+            using integrable_on_subinterval[OF g'_int ac_sub] .
+          have diff_int_x: \<open>(\<lambda>t. gg' n t - g' t) integrable_on {a..x}\<close>
+            using integrable_diff[OF gg'n_int_x g'_int_x] .
+          have norm_diff_int_x: \<open>(\<lambda>t. norm (g' t - gg' n t)) integrable_on {a..x}\<close>
+            using integrable_on_subinterval[OF norm_gg'_diff_int ac_sub] .
+          have \<open>norm (gg n x - g x) = norm (integral {a..x} (gg' n) - integral {a..x} g')\<close>
+            unfolding gg_def using g_eq[OF that] by simp
+          also have \<open>\<dots> = norm (integral {a..x} (\<lambda>t. gg' n t - g' t))\<close>
+            using integral_diff[OF gg'n_int_x g'_int_x] by simp
+          also have \<open>\<dots> \<le> integral {a..x} (\<lambda>t. norm (gg' n t - g' t))\<close>
+            using integral_norm_bound_integral[OF diff_int_x norm_diff_int_x]
+            by (simp add: norm_minus_commute)
+          also have \<open>\<dots> = integral {a..x} (\<lambda>t. norm (g' t - gg' n t))\<close>
+            by (simp add: norm_minus_commute)
+          also have \<open>\<dots> \<le> integral {a..b} (\<lambda>t. norm (g' t - gg' n t))\<close>
+            using integral_subset_le[OF ac_sub norm_diff_int_x norm_gg'_diff_int] by simp
+          finally have gg_bound: \<open>norm (gg n x - g x)
+                                  \<le> integral {a..b} (\<lambda>t. norm (g' t - gg' n t))\<close> .
+          have nn: \<open>integral {a..b} (\<lambda>t. norm (g' t - gg' n t)) \<ge> 0\<close>
+            using integral_nonneg[OF norm_gg'_diff_int] by simp
+          have \<open>norm (integral {a..b} (\<lambda>t. norm (g' t - gg' n t))) < inverse (real n + 1)\<close>
+            using gg' by simp
+          then have L1: \<open>integral {a..b} (\<lambda>t. norm (g' t - gg' n t)) < inverse (real n + 1)\<close>
+            using nn by simp
+          have gg_inv: \<open>norm (gg n x - g x) \<le> inverse (real n + 1)\<close>
+            using gg_bound L1 by linarith
+          \<comment> \<open>Step 2: \<Parallel>g x\<Parallel> \<le> B.\<close>
+          have g'_int_x2: \<open>g' integrable_on {a..x}\<close>
+            using integrable_on_subinterval[OF g'_int ac_sub] .
+          have norm_g'_int_x: \<open>(\<lambda>t. norm (g' t)) integrable_on {a..x}\<close>
+            using integrable_on_subinterval[OF norm_g'_int ac_sub] .
+          have \<open>norm (g x) = norm (integral {a..x} g')\<close>
+            using g_eq[OF that] by simp
+          also have \<open>\<dots> \<le> integral {a..x} (\<lambda>t. norm (g' t))\<close>
+            using integral_norm_bound_integral[OF g'_int_x2 norm_g'_int_x] by simp
+          also have \<open>\<dots> \<le> integral {a..b} (\<lambda>t. norm (g' t))\<close>
+            using integral_subset_le[OF ac_sub norm_g'_int_x norm_g'_int] by simp
+          also have \<open>\<dots> \<le> B\<close> using B_g' .
+          finally have g_bound: \<open>norm (g x) \<le> B\<close> .
+          \<comment> \<open>Step 3: \<Parallel>gg n x\<Parallel> \<le> B + inverse(n+1) via triangle inequality.\<close>
+          have \<open>norm (gg n x) \<le> norm (g x) + norm (gg n x - g x)\<close>
+            by (metis norm_triangle_sub)
+          also have \<open>\<dots> \<le> B + inverse (real n + 1)\<close>
+            using g_bound gg_inv by linarith
+          finally have gg_norm: \<open>norm (gg n x) \<le> B + inverse (real n + 1)\<close> .
+          \<comment> \<open>Step 4: Apply bilinear bound and monotonicity.\<close>
+          have \<open>norm (bop (ff' n x - f' x) (gg n x))
+                \<le> M * norm (ff' n x - f' x) * norm (gg n x)\<close>
+            using M by simp
+          also have \<open>\<dots> \<le> M * norm (ff' n x - f' x) * (B + inverse (real n + 1))\<close>
+            using gg_norm \<open>M > 0\<close>
+            by (intro mult_left_mono mult_nonneg_nonneg) auto
+          also have \<open>\<dots> = M * (B + inverse (real n + 1)) * norm (ff' n x - f' x)\<close>
+            by (simp add: mult.commute mult.left_commute)
+          finally show ?thesis .
+        qed
         have I1: \<open>norm (integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (gg n x)))
                   \<le> M * (B + inverse (real n + 1)) * inverse (real n + 1)\<close>
         proof -
