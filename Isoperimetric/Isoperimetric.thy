@@ -1404,7 +1404,30 @@ proof -
          by (intro Henstock_Kurzweil_Integration.integral_add
                Henstock_Kurzweil_Integration.integrable_diff ffgg'_int f'gg_int fg'_int)
        have "norm (integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (g x))) \<le> \<phi> n"
-         sorry
+       proof -
+         have I1: \<open>norm (integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (gg n x)))
+                   \<le> M * (B + inverse (real n + 1)) * inverse (real n + 1)\<close>
+           sorry
+         have I2: \<open>norm (integral {a..b} (\<lambda>x. bop (f' x) (gg n x) - bop (f' x) (g x)))
+                   \<le> M * B * inverse (real n + 1)\<close>
+           sorry
+         have \<open>norm (integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (g x)))
+               = norm (integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (gg n x) +
+                    (bop (f' x) (gg n x) - bop (f' x) (g x))))\<close>
+         by force
+         also have \<open>\<dots> = norm (integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (gg n x)) +
+                              integral {a..b} (\<lambda>x. bop (f' x) (gg n x) - bop (f' x) (g x)))\<close>
+           by (simp only: split_int)
+         also have \<open>\<dots> \<le> norm (integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (gg n x))) +
+                         norm (integral {a..b} (\<lambda>x. bop (f' x) (gg n x) - bop (f' x) (g x)))\<close>
+           by (rule norm_triangle_ineq)
+         also have \<open>\<dots> \<le> M * (B + inverse (real n + 1)) * inverse (real n + 1) +
+                         M * B * inverse (real n + 1)\<close>
+           by (intro add_mono I1 I2)
+         also have \<open>\<dots> = \<phi> n\<close>
+           unfolding \<phi>_def by (simp add: algebra_simps power2_eq_square)
+         finally show ?thesis .
+       qed
        then show "norm (integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x)) - integral {a..b} (\<lambda>x. bop (f' x) (g x))) \<le> \<phi> n"
        by (simp add: eq)
        qed
