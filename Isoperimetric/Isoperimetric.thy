@@ -1410,7 +1410,86 @@ proof -
            sorry
          have I2: \<open>norm (integral {a..b} (\<lambda>x. bop (f' x) (gg n x) - bop (f' x) (g x)))
                    \<le> M * B * inverse (real n + 1)\<close>
-           sorry
+        proof -
+          \<comment> \<open>Rewrite using bilinearity: bop f' (gg n - g) = bop f' (gg n) - bop f' g.\<close>
+          have diff_eq: \<open>bop (f' x) (gg n x) - bop (f' x) (g x) = bop (f' x) (gg n x - g x)\<close> for x
+            using bounded_bilinear.diff_right[OF bb] by simp
+          \<comment> \<open>Re-derive FTC bound: \<Parallel>gg n x - g x\<Parallel> \<le> \<integral>{a..b} \<Parallel>g' - gg' n\<Parallel>.\<close>
+          have gg'n_int: \<open>gg' n integrable_on {a..b}\<close>
+            using gg'_cont_ab integrable_continuous_real by blast
+          have gg_bound: \<open>norm (gg n x - g x) \<le> integral {a..b} (\<lambda>t. norm (g' t - gg' n t))\<close>
+            if xab: \<open>x \<in> {a..b}\<close> for x
+          proof -
+            have ac_sub: \<open>{a..x} \<subseteq> {a..b}\<close> using xab by auto
+            have gg'n_int_x: \<open>gg' n integrable_on {a..x}\<close>
+              using integrable_on_subinterval[OF gg'n_int ac_sub] .
+            have g'_int_x: \<open>g' integrable_on {a..x}\<close>
+              using integrable_on_subinterval[OF g'_int ac_sub] .
+            have diff_int_x: \<open>(\<lambda>t. gg' n t - g' t) integrable_on {a..x}\<close>
+              using integrable_diff[OF gg'n_int_x g'_int_x] .
+            have norm_diff_int_x: \<open>(\<lambda>t. norm (g' t - gg' n t)) integrable_on {a..x}\<close>
+              using integrable_on_subinterval[OF norm_gg'_diff_int ac_sub] .
+            have \<open>norm (gg n x - g x) = norm (integral {a..x} (gg' n) - integral {a..x} g')\<close>
+              unfolding gg_def using g_eq[OF xab] by simp
+            also have \<open>\<dots> = norm (integral {a..x} (\<lambda>t. gg' n t - g' t))\<close>
+              using integral_diff[OF gg'n_int_x g'_int_x] by simp
+            also have \<open>\<dots> \<le> integral {a..x} (\<lambda>t. norm (gg' n t - g' t))\<close>
+              using integral_norm_bound_integral[OF diff_int_x norm_diff_int_x]
+              by (simp add: norm_minus_commute)
+            also have \<open>\<dots> = integral {a..x} (\<lambda>t. norm (g' t - gg' n t))\<close>
+              by (simp add: norm_minus_commute)
+            also have \<open>\<dots> \<le> integral {a..b} (\<lambda>t. norm (g' t - gg' n t))\<close>
+              using integral_subset_le[OF ac_sub norm_diff_int_x norm_gg'_diff_int] by simp
+            finally show ?thesis .
+          qed
+          \<comment> \<open>The L1 approximation bound: \<integral> \<Parallel>g' - gg' n\<Parallel> < inverse(n+1).\<close>
+          have L1_bound: \<open>integral {a..b} (\<lambda>t. norm (g' t - gg' n t)) < inverse (real n + 1)\<close>
+          proof -
+            have nn: \<open>integral {a..b} (\<lambda>t. norm (g' t - gg' n t)) \<ge> 0\<close>
+              using integral_nonneg[OF norm_gg'_diff_int] by simp
+            have \<open>norm (integral {a..b} (\<lambda>t. norm (g' t - gg' n t))) < inverse (real n + 1)\<close>
+              using gg' by simp
+            then show ?thesis using nn by simp
+          qed
+          \<comment> \<open>Combine: \<Parallel>gg n x - g x\<Parallel> \<le> inverse(n+1) for x \<in> {a..b}.\<close>
+          have gg_inv_bound: \<open>norm (gg n x - g x) \<le> inverse (real n + 1)\<close>
+            if \<open>x \<in> {a..b}\<close> for x
+            using gg_bound[OF that] L1_bound by linarith
+          \<comment> \<open>Integrability of the bounding function.\<close>
+          have bound_int: \<open>(\<lambda>x. M * inverse (real n + 1) * norm (f' x)) integrable_on {a..b}\<close>
+            using integrable_on_mult_right[OF norm_f'_int] .
+          \<comment> \<open>First leg: norm of integral \<le> integral of pointwise bound.\<close>
+          have \<open>norm (integral {a..b} (\<lambda>x. bop (f' x) (gg n x) - bop (f' x) (g x)))
+                \<le> integral {a..b} (\<lambda>x. M * inverse (real n + 1) * norm (f' x))\<close>
+          proof (rule integral_norm_bound_integral[OF _ bound_int])
+            show \<open>(\<lambda>x. bop (f' x) (gg n x) - bop (f' x) (g x)) integrable_on {a..b}\<close>
+              using Henstock_Kurzweil_Integration.integrable_diff[OF f'gg_int fg'_int] .
+          next
+            fix x assume xab: \<open>x \<in> {a..b}\<close>
+            have \<open>norm (bop (f' x) (gg n x) - bop (f' x) (g x))
+                  = norm (bop (f' x) (gg n x - g x))\<close>
+              by (simp add: diff_eq)
+            also have \<open>\<dots> \<le> M * norm (f' x) * norm (gg n x - g x)\<close>
+              using M by simp
+            also have \<open>\<dots> \<le> M * norm (f' x) * inverse (real n + 1)\<close>
+              using gg_inv_bound[OF xab] \<open>M > 0\<close>
+              by (intro mult_left_mono mult_nonneg_nonneg) auto
+            also have \<open>\<dots> = M * inverse (real n + 1) * norm (f' x)\<close>
+              by (simp add: mult.commute mult.left_commute)
+            finally show \<open>norm (bop (f' x) (gg n x) - bop (f' x) (g x))
+                  \<le> M * inverse (real n + 1) * norm (f' x)\<close> .
+          qed
+          \<comment> \<open>Second leg: factor out constant and use B bound.\<close>
+          also have \<open>\<dots> = M * inverse (real n + 1) * integral {a..b} (\<lambda>x. norm (f' x))\<close>
+            using integral_cmul[of \<open>{a..b}\<close> \<open>M * inverse (real n + 1)\<close> \<open>\<lambda>x. norm (f' x)\<close>]
+            by (simp add: mult.assoc scaleR_conv_of_real)
+          also have \<open>\<dots> \<le> M * inverse (real n + 1) * B\<close>
+            using B_f' \<open>M > 0\<close>
+            by (intro mult_left_mono) auto
+          also have \<open>\<dots> = M * B * inverse (real n + 1)\<close>
+            by (simp add: mult.commute mult.left_commute)
+          finally show ?thesis .
+        qed
          have step1: \<open>integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (g x))
                = integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (gg n x)) +
                  integral {a..b} (\<lambda>x. bop (f' x) (gg n x) - bop (f' x) (g x))\<close>
