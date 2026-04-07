@@ -1405,9 +1405,62 @@ proof -
                Henstock_Kurzweil_Integration.integrable_diff ffgg'_int f'gg_int fg'_int)
        have "norm (integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (g x))) \<le> \<phi> n"
        proof -
-         have I1: \<open>norm (integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (gg n x)))
-                   \<le> M * (B + inverse (real n + 1)) * inverse (real n + 1)\<close>
-           sorry
+        have pw1: \<open>norm (bop (ff n x - f x) (g' x)) \<le> M * inverse (real n + 1) * norm (g' x)\<close>
+                  if \<open>x \<in> {a..b}\<close> for x
+          sorry
+        have pw2: \<open>norm (bop (ff' n x - f' x) (gg n x))
+                   \<le> M * (B + inverse (real n + 1)) * norm (ff' n x - f' x)\<close>
+                  if \<open>x \<in> {a..b}\<close> for x
+          sorry
+        have I1: \<open>norm (integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (gg n x)))
+                  \<le> M * (B + inverse (real n + 1)) * inverse (real n + 1)\<close>
+        proof -
+          \<comment> \<open>Rewrite using bilinearity: bop (ff' n x - f' x) (gg n x).\<close>
+          have diff_eq: \<open>bop (ff' n x) (gg n x) - bop (f' x) (gg n x)
+                         = bop (ff' n x - f' x) (gg n x)\<close> for x
+            using bounded_bilinear.diff_left[OF bb] by simp
+          \<comment> \<open>Integrability of the integrand.\<close>
+          have int1: \<open>(\<lambda>x. bop (ff' n x - f' x) (gg n x)) integrable_on {a..b}\<close>
+            using Henstock_Kurzweil_Integration.integrable_diff[OF ffgg'_int f'gg_int]
+            by (simp add: diff_eq[symmetric])
+          \<comment> \<open>Integrability of the bounding function.\<close>
+          have bound_int: \<open>(\<lambda>x. M * (B + inverse (real n + 1)) * norm (ff' n x - f' x))
+                           integrable_on {a..b}\<close>
+            using integrable_on_cmult_left[OF norm_ff'_diff_int,
+                    of \<open>M * (B + inverse (real n + 1))\<close>]
+            by (simp add: norm_minus_commute mult.assoc)
+          \<comment> \<open>First leg: norm of integral \<le> integral of pointwise bound.\<close>
+          have \<open>norm (integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (gg n x)))
+                = norm (integral {a..b} (\<lambda>x. bop (ff' n x - f' x) (gg n x)))\<close>
+            by (simp add: diff_eq)
+          also have \<open>\<dots> \<le> integral {a..b} (\<lambda>x. M * (B + inverse (real n + 1)) * norm (ff' n x - f' x))\<close>
+          proof (rule integral_norm_bound_integral[OF int1 bound_int])
+            fix x assume \<open>x \<in> {a..b}\<close>
+            then show \<open>norm (bop (ff' n x - f' x) (gg n x))
+                       \<le> M * (B + inverse (real n + 1)) * norm (ff' n x - f' x)\<close>
+              using pw2 by simp
+          qed
+          \<comment> \<open>Second leg: factor out constant and use ff' L1 bound.\<close>
+          also have \<open>\<dots> = M * (B + inverse (real n + 1)) *
+                          integral {a..b} (\<lambda>x. norm (ff' n x - f' x))\<close>
+            using integral_cmul[of \<open>{a..b}\<close>
+                  \<open>M * (B + inverse (real n + 1))\<close> \<open>\<lambda>x. norm (ff' n x - f' x)\<close>]
+            by (simp add: mult.assoc scaleR_conv_of_real norm_minus_commute)
+          also have \<open>\<dots> \<le> M * (B + inverse (real n + 1)) * inverse (real n + 1)\<close>
+          proof (intro mult_left_mono)
+            have nn: \<open>integral {a..b} (\<lambda>x. norm (f' x - ff' n x)) \<ge> 0\<close>
+              using integral_nonneg[OF norm_ff'_diff_int] by simp
+            have \<open>norm (integral {a..b} (\<lambda>x. norm (f' x - ff' n x))) < inverse (real n + 1)\<close>
+              using ff' by simp
+            then have L1: \<open>integral {a..b} (\<lambda>x. norm (f' x - ff' n x)) < inverse (real n + 1)\<close>
+              using nn by simp
+            then show \<open>integral {a..b} (\<lambda>x. norm (ff' n x - f' x)) \<le> inverse (real n + 1)\<close>
+              by (simp add: norm_minus_commute)
+            show \<open>0 \<le> M * (B + inverse (real n + 1))\<close>
+              using \<open>M > 0\<close> \<open>B > 0\<close> by (intro mult_nonneg_nonneg) auto
+          qed
+          finally show ?thesis .
+        qed
          have I2: \<open>norm (integral {a..b} (\<lambda>x. bop (f' x) (gg n x) - bop (f' x) (g x)))
                    \<le> M * B * inverse (real n + 1)\<close>
         proof -
