@@ -1411,16 +1411,23 @@ proof -
          have I2: \<open>norm (integral {a..b} (\<lambda>x. bop (f' x) (gg n x) - bop (f' x) (g x)))
                    \<le> M * B * inverse (real n + 1)\<close>
            sorry
+         have step1: \<open>integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (g x))
+               = integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (gg n x)) +
+                 integral {a..b} (\<lambda>x. bop (f' x) (gg n x) - bop (f' x) (g x))\<close>
+         proof -
+           have \<open>integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (g x))
+                 = integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (gg n x) +
+                      (bop (f' x) (gg n x) - bop (f' x) (g x)))\<close>
+             by (rule Henstock_Kurzweil_Integration.integral_cong, simp)
+           also have \<open>\<dots> = integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (gg n x)) +
+                           integral {a..b} (\<lambda>x. bop (f' x) (gg n x) - bop (f' x) (g x))\<close>
+             by (rule split_int)
+           finally show ?thesis .
+         qed
          have \<open>norm (integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (g x)))
-               = norm (integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (gg n x) +
-                    (bop (f' x) (gg n x) - bop (f' x) (g x))))\<close>
-         by force
-         also have \<open>\<dots> = norm (integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (gg n x)) +
-                              integral {a..b} (\<lambda>x. bop (f' x) (gg n x) - bop (f' x) (g x)))\<close>
-           by (simp only: split_int)
-         also have \<open>\<dots> \<le> norm (integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (gg n x))) +
-                         norm (integral {a..b} (\<lambda>x. bop (f' x) (gg n x) - bop (f' x) (g x)))\<close>
-           by (rule norm_triangle_ineq)
+               \<le> norm (integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (gg n x))) +
+                 norm (integral {a..b} (\<lambda>x. bop (f' x) (gg n x) - bop (f' x) (g x)))\<close>
+           by (subst step1, rule norm_triangle_ineq)
          also have \<open>\<dots> \<le> M * (B + inverse (real n + 1)) * inverse (real n + 1) +
                          M * B * inverse (real n + 1)\<close>
            by (intro add_mono I1 I2)
