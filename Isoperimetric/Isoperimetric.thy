@@ -1836,7 +1836,79 @@ next
     qed
   qed
 qed
-  
+
+text \<open>If f is absolutely continuous on [a,b] and has vector derivative f'(x) a.e.,
+  then f' is absolutely integrable on [a,b].
+  HOL Light: @{text ABSOLUTELY_INTEGRABLE_ABSOLUTELY_CONTINUOUS_DERIVATIVE}.\<close>
+
+lemma absolutely_integrable_absolutely_continuous_derivative:
+  fixes f :: \<open>real \<Rightarrow> 'a::euclidean_space\<close> and f' :: \<open>real \<Rightarrow> 'a\<close>
+  assumes ac: \<open>absolutely_continuous_on {a..b} f\<close>
+    and neg: \<open>negligible s\<close>
+    and deriv: \<open>\<And>x. x \<in> {a..b} - s \<Longrightarrow> (f has_vector_derivative f' x) (at x within {a..b})\<close>
+  shows \<open>f' absolutely_integrable_on {a..b}\<close>
+proof (cases \<open>a \<le> b\<close>)
+  case False
+  then have \<open>negligible {a..b}\<close>
+    by (intro negligible_atLeastAtMostI) simp
+  then show ?thesis
+    by (rule absolutely_integrable_negligible)
+next
+  case ab: True
+  show ?thesis
+  proof -
+    have \<open>f' integrable_on {a..b} \<and>
+         has_bounded_variation_on (\<lambda>t. integral {a..t} f') {a..b}\<close>
+    proof (intro conjI)
+      \<comment> \<open>Part 1: f' is integrable (via FTC for absolutely continuous functions)\<close>
+      have ftc: \<open>(f' has_integral (f b - f a)) {a..b}\<close>
+        by (rule fundamental_theorem_of_calculus_absolutely_continuous
+                [OF neg ab ac deriv])
+      then show \<open>f' integrable_on {a..b}\<close>
+        by (auto simp: integrable_on_def)
+    next
+      \<comment> \<open>Part 2: the indefinite integral of f' has bounded variation\<close>
+      show \<open>has_bounded_variation_on (\<lambda>t. integral {a..t} f') {a..b}\<close>
+      proof -
+        \<comment> \<open>On [a,c] for c \<in> [a,b], FTC gives integral {a..c} f' = f c - f a\<close>
+        have eq: \<open>integral {a..c} f' = f c - f a\<close> if \<open>c \<in> {a..b}\<close> for c
+        proof -
+          from that have ac_le: \<open>a \<le> c\<close> and cb: \<open>c \<le> b\<close> by auto
+          have \<open>(f' has_integral (f c - f a)) {a..c}\<close>
+          proof (rule fundamental_theorem_of_calculus_absolutely_continuous
+                      [OF _ ac_le])
+            show \<open>negligible s\<close> by (rule neg)
+            show \<open>absolutely_continuous_on {a..c} f\<close>
+              by (rule absolutely_continuous_on_subset[OF ac])
+                 (use cb in auto)
+            fix x assume \<open>x \<in> {a..c} - s\<close>
+            then have \<open>x \<in> {a..b} - s\<close>
+              using cb by auto
+            then have \<open>(f has_vector_derivative f' x) (at x within {a..b})\<close>
+              by (rule deriv)
+            then show \<open>(f has_vector_derivative f' x) (at x within {a..c})\<close>
+              by (rule has_vector_derivative_within_subset) (use cb in auto)
+          qed
+          then show ?thesis
+            by (rule integral_unique)
+        qed
+        \<comment> \<open>So (\<lambda>t. integral {a..t} f') agrees with (\<lambda>t. f t - f a) on [a,b]\<close>
+        have \<open>absolutely_continuous_on {a..b} (\<lambda>t. f t - f a)\<close>
+          by (intro absolutely_continuous_on_sub ac absolutely_continuous_on_const)
+        then have \<open>absolutely_continuous_on {a..b} (\<lambda>t. integral {a..t} f')\<close>
+          by (rule absolutely_continuous_on_eq[rotated]) (use eq in auto)
+        then show ?thesis
+          by (rule absolutely_continuous_on_imp_has_bounded_variation_on)
+             (simp add: bounded_iff, rule exI[of _ \<open>max (norm a) (norm b)\<close>], auto)
+      qed
+    qed
+    then show ?thesis
+      by (subst absolutely_integrable_bounded_variation_eq
+            [where a=a and b=b, unfolded box_real])
+  qed
+qed
+
+
 text \<open>Integration by parts for absolutely integrable functions (shifted / sum version).
   Bilinear generalisation: HOL Light's @{text ABSOLUTE_INTEGRATION_BY_PARTS_SUM}.\<close>
 
