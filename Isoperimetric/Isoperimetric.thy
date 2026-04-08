@@ -1908,6 +1908,27 @@ next
   qed
 qed
 
+text \<open>HOL Light: @{text ABSOLUTE_INTEGRAL_ABSOLUTELY_CONTINUOUS_DERIVATIVE_EQ}.\<close>
+
+lemma absolute_integral_absolutely_continuous_derivative_eq:
+  fixes f :: \<open>real \<Rightarrow> 'a::euclidean_space\<close> and f' :: \<open>real \<Rightarrow> 'a\<close>
+  shows \<open>(f' absolutely_integrable_on {a..b} \<and>
+          (\<forall>x \<in> {a..b}. (f' has_integral (f x - f a)) {a..x}))
+     \<longleftrightarrow> (absolutely_continuous_on {a..b} f \<and>
+          (\<exists>s. negligible s \<and>
+               (\<forall>x \<in> {a..b} - s.
+                  (f has_vector_derivative f' x) (at x within {a..b}))))\<close>
+  (is \<open>?L \<longleftrightarrow> ?R\<close>)
+proof
+  assume L: ?L
+  then show ?R
+    sorry
+next
+  assume R: ?R
+  then show ?L
+    sorry
+qed
+
 
 text \<open>Integration by parts for absolutely integrable functions (shifted / sum version).
   Bilinear generalisation: HOL Light's @{text ABSOLUTE_INTEGRATION_BY_PARTS_SUM}.\<close>
