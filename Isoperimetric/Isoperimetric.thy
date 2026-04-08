@@ -1707,7 +1707,135 @@ lemma absolutely_integrable_bounded_variation_eq:
   shows \<open>f absolutely_integrable_on (cbox a b) \<longleftrightarrow>
     f integrable_on (cbox a b) \<and>
     has_bounded_variation_on (\<lambda>t. integral (cbox a t) f) (cbox a b)\<close>
-  sorry
+proof (cases \<open>f integrable_on cbox a b\<close>)
+  case False
+  then show ?thesis
+    by (auto simp: absolutely_integrable_on_def)
+next
+  case True
+  note fint = this
+  show ?thesis
+  proof (intro iffI conjI)
+    assume abs: \<open>f absolutely_integrable_on cbox a b\<close>
+    from abs show \<open>f integrable_on cbox a b\<close>
+      by (simp add: absolutely_integrable_on_def)
+    show \<open>has_bounded_variation_on (\<lambda>t. integral (cbox a t) f) (cbox a b)\<close>
+    proof (unfold has_bounded_variation_on_def has_bounded_setvariation_on_def,
+           intro exI allI impI)
+      fix d t
+      assume dt: \<open>d division_of t \<and> t \<subseteq> cbox a b\<close>
+      from abs have nint: \<open>(\<lambda>x. norm (f x)) integrable_on cbox a b\<close>
+        by (simp add: absolutely_integrable_on_def)
+      have \<open>(\<Sum>k\<in>d. norm (integral (cbox a (Sup k)) f - integral (cbox a (Inf k)) f))
+            \<le> integral (cbox a b) (\<lambda>x. norm (f x))\<close>
+      proof -
+        have div: \<open>d division_of t\<close> and sub: \<open>t \<subseteq> cbox a b\<close> using dt by auto
+        have step1: \<open>\<And>k. k \<in> d \<Longrightarrow>
+          integral (cbox a (Sup k)) f - integral (cbox a (Inf k)) f = integral k f\<close>
+        proof -
+          fix k assume kd: \<open>k \<in> d\<close>
+          obtain c e where ke: \<open>k = cbox c e\<close>
+            using division_ofD(4)[OF div kd] by auto
+          have ce: \<open>c \<le> e\<close>
+            using division_ofD(3)[OF div kd] ke
+            by (simp add: box_real atLeastatMost_empty_iff)
+          have ksub: \<open>k \<subseteq> cbox a b\<close> using division_ofD(2)[OF div kd] sub by auto
+          then have ac: \<open>a \<le> c\<close> and eb: \<open>e \<le> b\<close>
+            using ke ce by (auto simp: box_real atLeastatMost_subset_iff)
+          have fint_ae: \<open>f integrable_on {a..e}\<close>
+            using integrable_subinterval_real[OF fint[unfolded box_real]]
+              ac ce eb by (auto simp: atLeastatMost_subset_iff)
+          have eq: \<open>integral {a..c} f + integral {c..e} f = integral {a..e} f\<close>
+            using Henstock_Kurzweil_Integration.integral_combine[OF ac ce fint_ae] by simp
+          have \<open>Sup k = e\<close> \<open>Inf k = c\<close>
+            using ke ce by (simp_all add: box_real interval_bounds_real)
+          then show \<open>integral (cbox a (Sup k)) f - integral (cbox a (Inf k)) f = integral k f\<close>
+            using eq ke by (simp add: box_real algebra_simps)
+        qed
+        have step2: \<open>\<And>k. k \<in> d \<Longrightarrow>
+          norm (integral k f) \<le> integral k (\<lambda>x. norm (f x))\<close>
+        by (smt (verit, ccfv_SIG) integral_norm_bound_integral True
+          division_ofD(2,4) dt elementary_interval integrable_on_subdivision nint)
+        have nf_int_t: \<open>(\<lambda>x. norm (f x)) integrable_on t\<close>
+          using integrable_on_subdivision[OF div nint sub] .
+        have step3: \<open>(\<Sum>k\<in>d. integral k (\<lambda>x. norm (f x))) = integral t (\<lambda>x. norm (f x))\<close>
+          using integral_combine_division_topdown[OF nf_int_t div] by simp
+        have step4: \<open>integral t (\<lambda>x. norm (f x)) \<le> integral (cbox a b) (\<lambda>x. norm (f x))\<close>
+          using integral_subset_le[OF sub nf_int_t nint] by auto
+        have \<open>(\<Sum>k\<in>d. norm (integral (cbox a (Sup k)) f - integral (cbox a (Inf k)) f))
+              = (\<Sum>k\<in>d. norm (integral k f))\<close>
+          by (rule sum.cong[OF refl]) (use step1 in auto)
+        also have \<open>\<dots> \<le> (\<Sum>k\<in>d. integral k (\<lambda>x. norm (f x)))\<close>
+          by (rule sum_mono) (use step2 in auto)
+        also have \<open>\<dots> = integral t (\<lambda>x. norm (f x))\<close> by (rule step3)
+        also have \<open>\<dots> \<le> integral (cbox a b) (\<lambda>x. norm (f x))\<close> by (rule step4)
+        finally show ?thesis .
+      qed
+      then show \<open>(\<Sum>k\<in>d. norm ((\<lambda>t. integral (cbox a t) f) (Sup k) -
+                               (\<lambda>t. integral (cbox a t) f) (Inf k))) \<le>
+                  integral (cbox a b) (\<lambda>x. norm (f x))\<close>
+        by simp
+    qed
+  next
+    assume rhs: \<open>f integrable_on cbox a b \<and>
+      has_bounded_variation_on (\<lambda>t. integral (cbox a t) f) (cbox a b)\<close>
+    show \<open>f absolutely_integrable_on cbox a b\<close>
+    proof -
+      from rhs have bv: \<open>has_bounded_variation_on (\<lambda>t. integral (cbox a t) f) (cbox a b)\<close>
+        by simp
+      have key: \<open>\<And>c d. c \<le> d \<Longrightarrow> {c..d} \<subseteq> {a..b} \<Longrightarrow>
+        integral {c..d} f = integral {a..d} f - integral {a..c} f\<close>
+      proof -
+        fix c d :: real assume cd: \<open>c \<le> d\<close> and sub: \<open>{c..d} \<subseteq> {a..b}\<close>
+        from sub cd have ac: \<open>a \<le> c\<close> and db: \<open>d \<le> b\<close>
+          by (auto simp: atLeastatMost_subset_iff)
+        have fint_ad: \<open>f integrable_on {a..d}\<close>
+          using integrable_subinterval_real[OF fint[unfolded box_real]] ac cd db
+          by (auto simp: atLeastatMost_subset_iff)
+        have eq: \<open>integral {a..c} f + integral {c..d} f = integral {a..d} f\<close>
+          using Henstock_Kurzweil_Integration.integral_combine[OF ac cd fint_ad] by simp
+        show \<open>integral {c..d} f = integral {a..d} f - integral {a..c} f\<close>
+          using eq by (simp add: algebra_simps)
+      qed
+      have integral_eq: \<open>integral K f =
+        integral (cbox a (Sup K)) f - integral (cbox a (Inf K)) f\<close>
+        if div: \<open>d division_of cbox a b\<close> and Kd: \<open>K \<in> d\<close> for d K
+      proof -
+        obtain c' e' where Ke: \<open>K = cbox c' e'\<close>
+          using division_ofD(4)[OF div Kd] by auto
+        have Kne: \<open>K \<noteq> {}\<close> using division_ofD(3)[OF div Kd] .
+        have Ksub: \<open>K \<subseteq> cbox a b\<close> using division_ofD(2)[OF div Kd] .
+        have ce: \<open>c' \<le> e'\<close>
+          using Kne Ke by (simp add: box_real atLeastatMost_empty_iff)
+        have \<open>Sup K = e'\<close> \<open>Inf K = c'\<close>
+          using Ke ce by (simp_all add: box_real interval_bounds_real)
+        moreover have \<open>integral K f = integral {a..e'} f - integral {a..c'} f\<close>
+          using key[OF ce] Ksub Ke by (simp add: box_real)
+        ultimately show ?thesis
+          by (simp add: box_real)
+      qed
+      have sum_eq: \<open>(\<Sum>K\<in>d. norm (integral K f)) =
+        (\<Sum>K\<in>d. norm (integral (cbox a (Sup K)) f - integral (cbox a (Inf K)) f))\<close>
+        if \<open>d division_of cbox a b\<close> for d
+        using integral_eq[OF that] by (intro sum.cong refl) auto
+      from bv have bvsv: \<open>has_bounded_setvariation_on
+        (\<lambda>k. integral (cbox a (Sup k)) f - integral (cbox a (Inf k)) f) (cbox a b)\<close>
+        unfolding has_bounded_variation_on_def .
+      obtain B where B: \<open>\<And>d t. d division_of t \<Longrightarrow> t \<subseteq> cbox a b \<Longrightarrow>
+        (\<Sum>k\<in>d. norm (integral (cbox a (Sup k)) f - integral (cbox a (Inf k)) f)) \<le> B\<close>
+        using bvsv unfolding has_bounded_setvariation_on_def by blast
+      show ?thesis
+      proof (rule bounded_variation_absolutely_integrable_interval[OF fint])
+        fix d assume div: \<open>d division_of cbox a b\<close>
+        have \<open>(\<Sum>K\<in>d. norm (integral K f)) =
+          (\<Sum>K\<in>d. norm (integral (cbox a (Sup K)) f - integral (cbox a (Inf K)) f))\<close>
+          using sum_eq[OF div] .
+        also have \<open>\<dots> \<le> B\<close> using B[OF div order_refl] .
+        finally show \<open>(\<Sum>K\<in>d. norm (integral K f)) \<le> B\<close> .
+      qed
+    qed
+  qed
+qed
   
 text \<open>Integration by parts for absolutely integrable functions (shifted / sum version).
   Bilinear generalisation: HOL Light's @{text ABSOLUTE_INTEGRATION_BY_PARTS_SUM}.\<close>
