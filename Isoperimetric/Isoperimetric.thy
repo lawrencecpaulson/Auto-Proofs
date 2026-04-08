@@ -1933,13 +1933,69 @@ proof
       if f is integrable on {a..b}, then a.e. x \<in> {a..b},
       (\<lambda>u. integral {a..u} f) has_vector_derivative f x.
       Not yet available in Isabelle's HOL-Analysis.\<close>
-    obtain x where \<open>x \<in> {a..b} - s\<close>
   show ?R
-    sorry
+  proof (intro conjI)
+    show \<open>absolutely_continuous_on {a..b} f\<close>
+    proof -
+      have \<open>absolutely_continuous_on {a..b} (\<lambda>x. f a + integral {a..x} f')\<close>
+        sorry \<comment> \<open>Requires: absolutely integrable \<Longrightarrow> indefinite integral is absolutely continuous.
+          (ABSOLUTELY_INTEGRABLE_ABSOLUTELY_CONTINUOUS_ON in HOL Light).
+          Not yet available in Isabelle's HOL-Analysis for general euclidean_space.\<close>
+      then show ?thesis
+        by (rule absolutely_continuous_on_eq[rotated]) (use feq in auto)
+    qed
+  next
+    show \<open>\<exists>s. negligible s \<and>
+              (\<forall>x \<in> {a..b} - s. (f has_vector_derivative f' x) (at x within {a..b}))\<close>
+    proof (intro exI conjI ballI)
+      show \<open>negligible s\<close> by (rule negs)
+    next
+      fix x assume xmem: \<open>x \<in> {a..b} - s\<close>
+      have \<open>((\<lambda>u. integral {a..u} f') has_vector_derivative f' x) (at x within {a..b})\<close>
+        using ideriv[OF xmem] .
+      then have \<open>((\<lambda>u. f a + integral {a..u} f') has_vector_derivative 0 + f' x) (at x within {a..b})\<close>
+        by (intro has_vector_derivative_add has_vector_derivative_const)
+      then have \<open>((\<lambda>u. f a + integral {a..u} f') has_vector_derivative f' x) (at x within {a..b})\<close>
+        by simp
+      then show \<open>(f has_vector_derivative f' x) (at x within {a..b})\<close>
+        unfolding has_vector_derivative_def
+      proof (rule has_derivative_transform_eventually)
+        show \<open>\<forall>\<^sub>F u in at x within {a..b}. f a + integral {a..u} f' = f u\<close>
+          unfolding eventually_at_topological
+          by (intro exI[of _ UNIV]) (auto simp: feq)
+        show \<open>f a + integral {a..x} f' = f x\<close>
+          using feq xmem by auto
+        show \<open>x \<in> {a..b}\<close>
+          using xmem by auto
+      qed
+    qed
+  qed
 next
   assume R: ?R
-  then show ?L
-    sorry
+  then obtain s where ac: \<open>absolutely_continuous_on {a..b} f\<close> and negs: \<open>negligible s\<close> and
+    deriv: \<open>\<And>x. x \<in> {a..b} - s \<Longrightarrow> (f has_vector_derivative f' x) (at x within {a..b})\<close>
+    by auto
+  show ?L
+  proof (intro conjI ballI)
+    show \<open>f' absolutely_integrable_on {a..b}\<close>
+      by (rule absolutely_integrable_absolutely_continuous_derivative[OF ac negs deriv])
+  next
+    fix c assume cmem: \<open>c \<in> {a..b}\<close>
+    then have ac_le: \<open>a \<le> c\<close> and cb: \<open>c \<le> b\<close> by auto
+    show \<open>(f' has_integral (f c - f a)) {a..c}\<close>
+    proof (rule fundamental_theorem_of_calculus_absolutely_continuous[OF negs ac_le])
+      show \<open>absolutely_continuous_on {a..c} f\<close>
+        by (rule absolutely_continuous_on_subset[OF ac]) (use cb in auto)
+    next
+      fix x assume \<open>x \<in> {a..c} - s\<close>
+      then have \<open>x \<in> {a..b} - s\<close>
+        using cb by auto
+      then have \<open>(f has_vector_derivative f' x) (at x within {a..b})\<close>
+        by (rule deriv)
+      then show \<open>(f has_vector_derivative f' x) (at x within {a..c})\<close>
+        by (rule has_vector_derivative_within_subset) (use cb in auto)
+    qed
+  qed
 qed
 
 
