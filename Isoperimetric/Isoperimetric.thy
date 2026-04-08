@@ -1161,7 +1161,7 @@ proof -
     have norm_ff'_diff_int: \<open>(\<lambda>x. norm (f' x - ff' n x)) integrable_on {a..b}\<close> for n
       by (metis absolutely_integrable_on_def f'abs ff' set_integral_diff(1))
     define \<phi> where "\<phi> \<equiv> \<lambda>n. 2 * M * B * inverse(real n + 1) + M * inverse(real n + 1)^2"
-    \<comment> \<open>Integral convergence: int1.\<close>
+    \<comment> \<open>Integral convergence: int1.\<close> (*Could this be done better following int2?*)
     have int1: \<open>(\<lambda>n. integral {a..b} (\<lambda>x. bop (ff n x) (gg' n x))) \<longlonglongrightarrow>
                integral {a..b} (\<lambda>x. bop (f x) (g' x))\<close>
     proof (rule LIM_zero_iff[THEN iffD1])
@@ -1488,14 +1488,12 @@ proof -
           have gg_inv: \<open>norm (gg n x - g x) \<le> inverse (real n + 1)\<close>
             using gg_bound L1 by linarith
           \<comment> \<open>Step 2: \<Parallel>g x\<Parallel> \<le> B.\<close>
-          have g'_int_x2: \<open>g' integrable_on {a..x}\<close>
-            using integrable_on_subinterval[OF g'_int ac_sub] .
           have norm_g'_int_x: \<open>(\<lambda>t. norm (g' t)) integrable_on {a..x}\<close>
             using integrable_on_subinterval[OF norm_g'_int ac_sub] .
           have \<open>norm (g x) = norm (integral {a..x} g')\<close>
             using g_eq[OF that] by simp
           also have \<open>\<dots> \<le> integral {a..x} (\<lambda>t. norm (g' t))\<close>
-            using integral_norm_bound_integral[OF g'_int_x2 norm_g'_int_x] by simp
+            using integral_norm_bound_integral[OF g'_int_x norm_g'_int_x] by simp
           also have \<open>\<dots> \<le> integral {a..b} (\<lambda>t. norm (g' t))\<close>
             using integral_subset_le[OF ac_sub norm_g'_int_x norm_g'_int] by simp
           also have \<open>\<dots> \<le> B\<close> using B_g' .
@@ -1703,7 +1701,14 @@ lemma absolute_real_integration_by_parts:
       integral {a..b} (\<lambda>x. f' x * g x) = f b * g b - f a * g a"
   using absolute_integration_by_parts[OF bilinear_times ab f'abs g'abs f'int g'int]
   by auto
-
+  
+lemma absolutely_integrable_bounded_variation_eq:
+  fixes f :: \<open>real \<Rightarrow> 'a::euclidean_space\<close>
+  shows \<open>f absolutely_integrable_on (cbox a b) \<longleftrightarrow>
+    f integrable_on (cbox a b) \<and>
+    has_bounded_variation_on (\<lambda>t. integral (cbox a t) f) (cbox a b)\<close>
+  sorry
+  
 text \<open>Integration by parts for absolutely integrable functions (shifted / sum version).
   Bilinear generalisation: HOL Light's @{text ABSOLUTE_INTEGRATION_BY_PARTS_SUM}.\<close>
 
