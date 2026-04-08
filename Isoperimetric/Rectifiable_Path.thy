@@ -2,6 +2,7 @@ theory Rectifiable_Path
   imports Absolute_Continuity
 begin
 
+(*TO BE MOVED ELSEWHERE*)
 
 corollary bounded_variation_absolutely_integrable_real_interval:
   fixes f :: "real \<Rightarrow> 'm::euclidean_space"
@@ -9,6 +10,107 @@ corollary bounded_variation_absolutely_integrable_real_interval:
     and "\<And>d. d division_of {a..b} \<Longrightarrow> sum (\<lambda>K. norm(integral K f)) d \<le> B"
   shows "f absolutely_integrable_on {a..b}"
   by (metis assms bounded_variation_absolutely_integrable_interval interval_cbox)
+
+lemma absolutely_integrable_bounded_variation_eq:
+  fixes f :: \<open>real \<Rightarrow> 'a::euclidean_space\<close>
+  shows \<open>f absolutely_integrable_on {a..b} \<longleftrightarrow>
+    f integrable_on {a..b} \<and>
+    has_bounded_variation_on (\<lambda>t. integral {a..t} f) {a..b}\<close>
+  (is \<open>?L \<longleftrightarrow> ?R\<close>)
+proof
+  assume L: ?L
+  then have int: \<open>f integrable_on {a..b}\<close>
+    using absolutely_integrable_on_def by blast
+  have nint: \<open>(\<lambda>x. norm (f x)) integrable_on {a..b}\<close>
+    using L absolutely_integrable_on_def by blast
+  have bv: \<open>has_bounded_variation_on (\<lambda>t. integral {a..t} f) {a..b}\<close>
+    unfolding has_bounded_variation_on_def has_bounded_setvariation_on_def
+  proof (intro exI allI impI)
+    fix d t assume dt: \<open>d division_of t \<and> t \<subseteq> {a..b}\<close>
+    then have div: \<open>d division_of t\<close> and sub: \<open>t \<subseteq> {a..b}\<close> by auto
+    have \<open>(\<Sum>k\<in>d. norm (integral {a..Sup k} f - integral {a..Inf k} f))
+        = (\<Sum>k\<in>d. norm (integral k f))\<close>
+    proof (rule sum.cong[OF refl])
+      fix k assume kd: \<open>k \<in> d\<close>
+      obtain c e where ke: \<open>k = {c..e}\<close> \<open>c \<le> e\<close>
+        using division_ofD(4)[OF div kd] unfolding box_real
+        by (metis atLeastatMost_empty_iff2 division_ofD(3) dt kd)
+      have ksub: \<open>k \<subseteq> {a..b}\<close> using division_ofD(2)[OF div kd] sub by auto
+      then have ce_sub: \<open>a \<le> c\<close> \<open>e \<le> b\<close> using ke by auto
+      have \<open>Inf k = c\<close> \<open>Sup k = e\<close> using ke by auto
+      have fint_ac: \<open>f integrable_on {a..c}\<close>
+        using integrable_on_subinterval[OF int] ce_sub \<open>c \<le> e\<close> by auto
+      have fint_ce: \<open>f integrable_on {c..e}\<close>
+        using integrable_on_subinterval[OF int] ce_sub ke by auto
+      have fint_ae: \<open>f integrable_on {a..e}\<close>
+        using integrable_on_subinterval[OF int] ce_sub by auto
+      have \<open>integral {a..e} f = integral {a..c} f + integral {c..e} f\<close>
+        by (simp add: Henstock_Kurzweil_Integration.integral_combine ce_sub(1) fint_ae ke(2))
+      then have \<open>integral {a..e} f - integral {a..c} f = integral {c..e} f\<close>
+        by simp
+      then show \<open>norm (integral {a..Sup k} f - integral {a..Inf k} f) = norm (integral k f)\<close>
+        using \<open>Inf k = c\<close> \<open>Sup k = e\<close> ke by auto
+    qed
+    also have \<open>\<dots> \<le> (\<Sum>k\<in>d. integral k (\<lambda>x. norm (f x)))\<close>
+    proof (rule sum_mono)
+      fix k assume \<open>k \<in> d\<close>
+      obtain c e where ke: \<open>k = {c..e}\<close> \<open>c \<le> e\<close>
+        using division_ofD(4)[OF div \<open>k \<in> d\<close>] unfolding box_real
+        by (metis atLeastatMost_empty_iff2 division_ofD(3) dt \<open>k \<in> d\<close>)
+      have ksub: \<open>k \<subseteq> {a..b}\<close> using division_ofD(2)[OF div \<open>k \<in> d\<close>] sub by auto
+      have fint: \<open>f integrable_on k\<close>
+        using integrable_on_subinterval[OF int] ksub ke(1) by blast
+      show \<open>norm (integral k f) \<le> integral k (\<lambda>x. norm (f x))\<close>
+        using Henstock_Kurzweil_Integration.integral_norm_bound_integral fint
+              integrable_on_subinterval ke(1) ksub nint by blast
+    qed
+    also have \<open>\<dots> \<le> integral t (\<lambda>x. norm (f x))\<close>
+      by (metis dt integrable_on_subdivision integral_combine_division_topdown landau_omega.R_refl
+      nint)
+    also have \<open>\<dots> \<le> integral {a..b} (\<lambda>x. norm (f x))\<close>
+      by (metis dt integrable_on_subdivision integral_subset_le nint norm_ge_zero)
+    finally show \<open>(\<Sum>k\<in>d. norm (integral {a..Sup k} f - integral {a..Inf k} f))
+        \<le> integral {a..b} (\<lambda>x. norm (f x))\<close> .
+  qed
+  show ?R using int bv by blast
+next
+  assume R: ?R
+  then have int: \<open>f integrable_on {a..b}\<close>
+    and bv: \<open>has_bounded_variation_on (\<lambda>t. integral {a..t} f) {a..b}\<close>
+    by auto
+ then obtain B where B: \<open>\<And>d t. d division_of t \<Longrightarrow> t \<subseteq> {a..b} \<Longrightarrow>
+          (\<Sum>k\<in>d. norm (integral {a..Sup k} f - integral {a..Inf k} f)) \<le> B\<close>
+   unfolding has_bounded_variation_on_def has_bounded_setvariation_on_def by meson
+  show ?L
+  proof (rule bounded_variation_absolutely_integrable_real_interval[OF int])
+    fix d assume ddiv: \<open>d division_of {a..b}\<close>
+    have \<open>(\<Sum>k\<in>d. norm (integral k f))
+        = (\<Sum>k\<in>d. norm (integral {a..Sup k} f - integral {a..Inf k} f))\<close>
+    proof (rule sum.cong[OF refl])
+      fix k assume kd: \<open>k \<in> d\<close>
+      obtain c e where ke: \<open>k = {c..e}\<close> \<open>c \<le> e\<close>
+        using division_ofD(4)[OF ddiv kd] unfolding box_real
+        by (metis atLeastatMost_empty_iff2 division_ofD(3) ddiv kd)
+      have ksub: \<open>k \<subseteq> {a..b}\<close> using division_ofD(2)[OF ddiv kd] by auto
+      then have ce_sub: \<open>a \<le> c\<close> \<open>e \<le> b\<close> using ke by auto
+      have \<open>Inf k = c\<close> \<open>Sup k = e\<close> using ke by auto
+      have fint_ac: \<open>f integrable_on {a..c}\<close>
+        using integrable_on_subinterval[OF int] ce_sub \<open>c \<le> e\<close> by auto
+      have fint_ce: \<open>f integrable_on {c..e}\<close>
+        using integrable_on_subinterval[OF int] ce_sub ke by auto
+      have fint_ae: \<open>f integrable_on {a..e}\<close>
+        using integrable_on_subinterval[OF int] ce_sub by auto
+      have \<open>integral {a..e} f = integral {a..c} f + integral {c..e} f\<close>
+        by (simp add: Henstock_Kurzweil_Integration.integral_combine ce_sub(1) fint_ae ke(2))
+      then have \<open>integral {a..e} f - integral {a..c} f = integral {c..e} f\<close>
+        by simp
+      then show \<open>norm (integral k f) = norm (integral {a..Sup k} f - integral {a..Inf k} f)\<close>
+        using \<open>Inf k = c\<close> \<open>Sup k = e\<close> ke by auto
+    qed
+    also have \<open>\<dots> \<le> B\<close> using B[OF ddiv] by auto
+    finally show \<open>(\<Sum>k\<in>d. norm (integral k f)) \<le> B\<close> .
+  qed
+qed
 
 text \<open>
   Rectifiable paths and arc length, following HOL Light's

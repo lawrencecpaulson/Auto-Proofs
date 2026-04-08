@@ -1921,7 +1921,20 @@ lemma absolute_integral_absolutely_continuous_derivative_eq:
   (is \<open>?L \<longleftrightarrow> ?R\<close>)
 proof
   assume L: ?L
-  then show ?R
+  have f'abs: \<open>f' absolutely_integrable_on {a..b}\<close> and
+       f'int: \<open>\<And>c. c \<in> {a..b} \<Longrightarrow> (f' has_integral (f c - f a)) {a..c}\<close>
+    using L by auto
+  have feq: \<open>f a + integral {a..c} f' = f c\<close> if \<open>c \<in> {a..b}\<close> for c
+    using integral_unique[OF f'int[OF that]] by simp
+  obtain s where negs: \<open>negligible s\<close> and
+    ideriv: \<open>\<And>x. x \<in> {a..b} - s \<Longrightarrow> ((\<lambda>u. integral {a..u} f') has_vector_derivative f' x) (at x within {a..b})\<close>
+    sorry \<comment> \<open>Requires the Lebesgue differentiation theorem
+      (HAS_VECTOR_DERIVATIVE_INDEFINITE_INTEGRAL in HOL Light):
+      if f is integrable on {a..b}, then a.e. x \<in> {a..b},
+      (\<lambda>u. integral {a..u} f) has_vector_derivative f x.
+      Not yet available in Isabelle's HOL-Analysis.\<close>
+    obtain x where \<open>x \<in> {a..b} - s\<close>
+  show ?R
     sorry
 next
   assume R: ?R
