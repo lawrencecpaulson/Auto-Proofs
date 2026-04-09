@@ -133,6 +133,40 @@ qed
 
 section "Measure Theory"
 
+lemma negligible_linear_image:
+  fixes f :: \<open>'a::euclidean_space \<Rightarrow> 'a::euclidean_space\<close>
+  assumes \<open>linear f\<close> \<open>negligible S\<close>
+  shows \<open>negligible (f ` S)\<close>
+proof (cases \<open>inj f\<close>)
+  case True
+  have \<open>bounded_linear f\<close>
+    using assms(1) linear_conv_bounded_linear by blast
+  then have \<open>f differentiable_on S\<close>
+    using bounded_linear_imp_differentiable differentiable_on_def by blast
+    then show ?thesis
+    using negligible_differentiable_image_negligible assms(2) by blast
+next
+  case False
+  then show ?thesis
+  using assms(1) negligible_linear_singular_image by blast
+qed
+
+lemma negligible_linear_image_eq:
+  fixes f :: \<open>'a::euclidean_space \<Rightarrow> 'a::euclidean_space\<close>
+  assumes \<open>linear f\<close> \<open>inj f\<close>
+  shows \<open>negligible (f ` S) \<longleftrightarrow> negligible S\<close>
+proof
+  assume \<open>negligible S\<close>
+  then show \<open>negligible (f ` S)\<close>
+    using assms(1) negligible_linear_image by blast
+next
+  assume neg_fS: \<open>negligible (f ` S)\<close>
+  then have \<open>negligible (inv f ` f ` S)\<close>
+    using assms inj_linear_imp_inv_linear negligible_linear_image by blast
+  then show \<open>negligible S\<close>
+    using assms by force
+qed
+
 lemma absolutely_integrable_approximate_continuous_vector:
   fixes f :: \<open>'a::euclidean_space \<Rightarrow> 'b::euclidean_space\<close>
     and S :: \<open>'a set\<close>
@@ -1908,6 +1942,183 @@ next
   qed
 qed
 
+thm Equivalence_Measurable_On_Borel.Austin_Lemma
+(*Belongs after Equivalence_Measurable_On_Borel.Austin_Lemma?*)
+
+theorem has_vector_derivative_indefinite_integral:
+  fixes f :: \<open>real \<Rightarrow> 'a::euclidean_space\<close>
+  assumes \<open>f integrable_on {a..b}\<close>
+  obtains k where \<open>negligible k\<close>
+    \<open>\<And>x. x \<in> {a..b} - k \<Longrightarrow>
+      ((\<lambda>u. integral {a..u} f) has_vector_derivative f x) (at x within {a..b})\<close>
+proof -
+  have onesided: \<open>\<exists>k. negligible k \<and>
+        (\<forall>x\<in>{u..v} - k. \<forall>e>0.
+          \<exists>d>0. \<forall>x'\<in>{u..v}.
+            x < x' \<and> x' < x + d \<longrightarrow> norm (integral {x..x'} f - (x' - x) *\<^sub>R f x) / norm (x' - x) < e)\<close>
+    if \<open>f integrable_on {u..v}\<close> for f::"real \<Rightarrow> 'a" and u v::real
+  proof -
+    define g where \<open>g \<equiv> \<lambda>x. if x \<in> {u..v} then f x else 0\<close>
+    have gint: \<open>g integrable_on cbox a b\<close> for a b
+      unfolding g_def using integrable_altD(1) that by blast
+    show ?thesis
+    proof (rule integrable_ccontinuous_explicit[OF gint])
+      fix N :: \<open>real set\<close>
+      assume negN: \<open>negligible N\<close>
+      assume Nprop: \<open>\<And>x e. x \<notin> N \<Longrightarrow> 0 < e \<Longrightarrow>
+        \<exists>d>0. \<forall>h. 0 < h \<and> h < d \<longrightarrow>
+          norm (integral (cbox x (x + h *\<^sub>R One)) g /\<^sub>R h ^ DIM(real) - g x) < e\<close>
+      show \<open>\<exists>k. negligible k \<and>
+        (\<forall>x\<in>{u..v} - k. \<forall>e>0.
+          \<exists>d>0. \<forall>x'\<in>{u..v}.
+            x < x' \<and> x' < x + d \<longrightarrow>
+              norm (integral {x..x'} f - (x' - x) *\<^sub>R f x) / norm (x' - x) < e)\<close>
+      proof (intro exI[of _ N] conjI strip)
+        show \<open>negligible N\<close>
+          by (rule negN)
+      next
+        fix x e
+        assume xmem: \<open>x \<in> {u..v} - N\<close> and epos: \<open>(0::real) < e\<close>
+        then have xN: \<open>x \<notin> N\<close> and xu: \<open>u \<le> x\<close> and xv: \<open>x \<le> v\<close> by auto
+        obtain d where dpos: \<open>0 < d\<close> and
+          dprop: \<open>\<And>h. 0 < h \<and> h < d \<Longrightarrow>
+            norm (integral (cbox x (x + h *\<^sub>R One)) g /\<^sub>R h ^ DIM(real) - g x) < e\<close>
+          using Nprop[OF xN epos] by auto
+        show \<open>\<exists>d>0. \<forall>x'\<in>{u..v}.
+          x < x' \<and> x' < x + d \<longrightarrow>
+            norm (integral {x..x'} f - (x' - x) *\<^sub>R f x) / norm (x' - x) < e\<close>
+        proof (intro exI[of _ d] conjI ballI impI)
+          show \<open>0 < d\<close> by (rule dpos)
+        next
+          fix x'
+          assume x'mem: \<open>x' \<in> {u..v}\<close> and x'bd: \<open>x < x' \<and> x' < x + d\<close>
+          define h where \<open>h \<equiv> x' - x\<close>
+          have hpos: \<open>0 < h\<close> and hd: \<open>h < d\<close>
+            using x'bd unfolding h_def by auto
+          have x'eq: \<open>x' = x + h\<close> unfolding h_def by simp
+          have sub: \<open>{x..x'} \<subseteq> {u..v}\<close>
+            using xu xv x'mem by auto
+          have cbox_eq: \<open>cbox x (x + h *\<^sub>R One) = {x..x'}\<close>
+            by (simp add: x'eq cbox_interval)
+          have int_if_eq: \<open>integral {x..x'} (\<lambda>t. if t \<in> {u..v} then f t else 0) = integral {x..x'} f\<close>
+            by (metis (mono_tags) Henstock_Kurzweil_Integration.integral_restrict_Int Int_absorb1 sub)
+          have int_eq: \<open>integral {x..x + h} g = integral {x..x + h} f\<close>
+            unfolding g_def
+            using int_if_eq x'eq by simp
+          have gx_eq: \<open>g x = f x\<close>
+            unfolding g_def using xu xv by simp
+          have \<open>norm (integral (cbox x (x + h *\<^sub>R One)) g /\<^sub>R h ^ DIM(real) - g x) < e\<close>
+            by (rule dprop) (use hpos hd in auto)
+          then have \<open>norm (integral {x..x'} f /\<^sub>R h - f x) < e\<close>
+            by (simp add: cbox_eq int_eq gx_eq x'eq)
+          moreover have \<open>norm (integral {x..x'} f - (x' - x) *\<^sub>R f x) / norm (x' - x) =
+                norm (integral {x..x'} f /\<^sub>R h - f x)\<close>
+          by (smt (verit, best) mult.commute scale_right_diff_distrib divideR_right divide_inverse h_def
+            hpos norm_inverse norm_scaleR real_norm_def)
+          ultimately show \<open>norm (integral {x..x'} f - (x' - x) *\<^sub>R f x) / norm (x' - x) < e\<close>
+            by simp
+        qed
+      qed
+    qed
+  qed
+
+  obtain K1 where \<open>negligible K1\<close> and K1:
+    \<open>\<And>x e. \<lbrakk>x \<in> {a..b} - K1; 0 < e\<rbrakk> \<Longrightarrow>
+      \<exists>d>0. \<forall>x'\<in>{a..b}. x < x' \<and> x' < x + d \<longrightarrow>
+        norm (integral {x..x'} f - (x' - x) *\<^sub>R f x) / norm (x' - x) < e\<close>
+    using onesided [OF assms] by auto
+    have \<open>((\<lambda>x. f (- x)) integrable_on {- b..- a})\<close>
+    by (simp add: assms)
+  then obtain K2 where \<open>negligible K2\<close> and K2:
+    \<open>\<And>x e. \<lbrakk>x \<in> {-b..-a} - K2; 0 < e\<rbrakk> \<Longrightarrow>
+      \<exists>d>0. \<forall>x'\<in>{-b..-a}. x < x' \<and> x' < x + d \<longrightarrow>
+        norm (integral {x..x'} (\<lambda>x. f (-x)) - (x' - x) *\<^sub>R f (-x)) / norm (x' - x) < e\<close>
+    using onesided by metis 
+    define K where "K \<equiv> K1 \<union> uminus ` K2"
+    show ?thesis
+    proof
+    show "negligible K"
+    by (simp add: K_def \<open>negligible K1\<close> \<open>negligible K2\<close> module_hom_uminus negligible_linear_image)
+    next
+    fix x :: real
+    assume x: "x \<in> {a..b} - K"
+    have "bounded_linear (\<lambda>u. u *\<^sub>R f x)"
+    by (simp add: bounded_linear_scaleR_left)
+    moreover have "\<exists>d>0. \<forall>y\<in>{a..b}. \<bar>y - x\<bar> < d \<longrightarrow> norm (integral {a..y} f - integral {a..x} f - (y - x) *\<^sub>R f x) \<le> e * \<bar>y - x\<bar>"
+    if "0 < e"
+    for e :: real
+    proof -
+      have xK1: \<open>x \<in> {a..b} - K1\<close> and xK2: \<open>-x \<in> {-b..-a} - K2\<close>
+      using x by (auto simp: K_def image_iff)
+      obtain d1 where \<open>d1 > 0\<close> and d1:
+        \<open>\<And>x'. \<lbrakk>x' \<in> {a..b}; x < x'; x' < x + d1\<rbrakk>
+          \<Longrightarrow> norm (integral {x..x'} f - (x' - x) *\<^sub>R f x) / norm (x' - x) < e\<close>
+        using K1 [OF xK1 \<open>0 < e\<close>] x by metis
+      obtain d2 where \<open>d2 > 0\<close> and d2:
+        \<open>\<And>x'. \<lbrakk>x' \<in> {-b..-a}; -x < x'; x' < -x + d2\<rbrakk>
+          \<Longrightarrow> norm (integral {-x..x'} (\<lambda>x. f (-x)) - (x'+x) *\<^sub>R f x) / norm (x' + x) < e\<close>
+        using K2[OF xK2 \<open>0 < e\<close>] xK2 by force
+        show ?thesis
+        proof (intro exI conjI strip)
+    show "0 < min d1 d2"
+    by (simp add: \<open>0 < d1\<close> \<open>0 < d2\<close>)
+    next
+    fix y :: real
+    assume "y \<in> {a..b}" and y: "\<bar>y - x\<bar> < min d1 d2"
+    consider "x<y" | "x=y" | "x>y"
+    by linarith
+    then show "norm (integral {a..y} f - integral {a..x} f - (y - x) *\<^sub>R f x) \<le> e * \<bar>y - x\<bar>"
+    proof cases
+    case 1
+    have ax: \<open>a \<le> x\<close> and xy: \<open>x \<le> y\<close> and yb: \<open>y \<le> b\<close>
+      using 1 x \<open>y \<in> {a..b}\<close> by (auto simp: K_def)
+    have fint_ay: \<open>f integrable_on {a..y}\<close>
+      using integrable_on_subinterval[OF assms] ax yb by auto
+    have eq: \<open>integral {a..x} f + integral {x..y} f = integral {a..y} f\<close>
+      using Henstock_Kurzweil_Integration.integral_combine[OF ax xy fint_ay] .
+    have goal_eq: \<open>integral {a..y} f - integral {a..x} f - (y - x) *\<^sub>R f x
+                 = integral {x..y} f - (y - x) *\<^sub>R f x\<close>
+      using eq by (simp add: algebra_simps)
+    have \<open>norm (integral {x..y} f - (y - x) *\<^sub>R f x) / norm (y - x) < e\<close>
+      using d1[of y] \<open>y \<in> {a..b}\<close> 1 y by auto
+    then have \<open>norm (integral {x..y} f - (y - x) *\<^sub>R f x) < e * (y - x)\<close>
+      using 1 by (simp add: divide_simps)
+    then show ?thesis
+      using goal_eq 1 by (simp add: real_norm_def)
+    next
+    case 2 then show ?thesis by simp
+    next
+    case 3
+    have ay: \<open>a \<le> y\<close> and yx: \<open>y \<le> x\<close> and xb: \<open>x \<le> b\<close>
+      using 3 x \<open>y \<in> {a..b}\<close> by (auto simp: K_def)
+    have fint_ax: \<open>f integrable_on {a..x}\<close>
+      using integrable_on_subinterval[OF assms] ay xb by auto
+    have eq: \<open>integral {a..y} f + integral {y..x} f = integral {a..x} f\<close>
+      using Henstock_Kurzweil_Integration.integral_combine[OF ay yx fint_ax] .
+    have goal_eq: \<open>integral {a..y} f - integral {a..x} f - (y - x) *\<^sub>R f x
+                 = -(integral {y..x} f - (x - y) *\<^sub>R f x)\<close>
+      using eq by (simp add: algebra_simps)
+    have reflect_eq: \<open>integral {-x..-y} (\<lambda>t. f(-t)) = integral {y..x} f\<close>
+      by (simp add: integral_reflect_real)
+    have \<open>norm (integral {-x..-y} (\<lambda>t. f(-t)) - (-y + x) *\<^sub>R f x) / norm (-y + x) < e\<close>
+      using d2[of \<open>-y\<close>] \<open>y \<in> {a..b}\<close> 3 y by auto
+    then have \<open>norm (integral {y..x} f - (x - y) *\<^sub>R f x) / (x - y) < e\<close>
+      using reflect_eq 3 by simp
+    then have \<open>norm (integral {y..x} f - (x - y) *\<^sub>R f x) < e * (x - y)\<close>
+      using 3 by (simp add: divide_simps)
+    then show ?thesis
+      using goal_eq 3 by (simp add: norm_minus_cancel norm_minus_commute)
+    qed    
+    qed
+    qed
+    ultimately show "((\<lambda>u. integral {a..u} f) has_vector_derivative f x) (at x within {a..b})"
+      unfolding has_vector_derivative_def has_derivative_within_alt2
+       unfolding eventually_at_filter eventually_nhds_metric
+       by (force simp: dist_real_def)
+    qed
+    qed
+
+
 text \<open>HOL Light: @{text ABSOLUTE_INTEGRAL_ABSOLUTELY_CONTINUOUS_DERIVATIVE_EQ}.\<close>
 
 lemma absolute_integral_absolutely_continuous_derivative_eq:
@@ -1928,11 +2139,8 @@ proof
     using integral_unique[OF f'int[OF that]] by simp
   obtain s where negs: \<open>negligible s\<close> and
     ideriv: \<open>\<And>x. x \<in> {a..b} - s \<Longrightarrow> ((\<lambda>u. integral {a..u} f') has_vector_derivative f' x) (at x within {a..b})\<close>
-    sorry \<comment> \<open>Requires the Lebesgue differentiation theorem
-      (HAS_VECTOR_DERIVATIVE_INDEFINITE_INTEGRAL in HOL Light):
-      if f is integrable on {a..b}, then a.e. x \<in> {a..b},
-      (\<lambda>u. integral {a..u} f) has_vector_derivative f x.
-      Not yet available in Isabelle's HOL-Analysis.\<close>
+    using has_vector_derivative_indefinite_integral[of f' a b] f'abs
+    by (auto simp: absolutely_integrable_on_def)
   show ?R
   proof (intro conjI)
     show \<open>absolutely_continuous_on {a..b} f\<close>
@@ -2110,13 +2318,13 @@ proof -
     using f'c_abs set_lebesgue_integral_eq_integral by blast
   \<comment> \<open>The norm of each component is integrable.\<close>
   have Fg'_norm: "(\<lambda>x. norm (F x * g' x)) integrable_on {a..b}"
-    using Fg'_abs absolutely_integrable_on_def by blast
+    using Fg'_abs absolutely_integrable_on_def by metis
   have f'G_norm: "(\<lambda>x. norm (f' x * G x)) integrable_on {a..b}"
-    using f'G_abs absolutely_integrable_on_def by blast
+    using f'G_abs absolutely_integrable_on_def by metis
   have cg'_norm: "(\<lambda>x. norm (f a * g' x)) integrable_on {a..b}"
-    using cg'_abs absolutely_integrable_on_def by blast
+    using cg'_abs absolutely_integrable_on_def by metis
   have f'c_norm: "(\<lambda>x. norm (f' x * g a)) integrable_on {a..b}"
-    using f'c_abs absolutely_integrable_on_def by blast
+    using f'c_abs absolutely_integrable_on_def by metis
   \<comment> \<open>The decomposition: f x * g' x + f' x * g x = F x * g' x + f a * g' x + f' x * G x + f' x * g a.\<close>
   have decomp: "\<And>x. f x * g' x + f' x * g x = F x * g' x + f a * g' x + (f' x * G x + f' x * g a)"
     unfolding F_def G_def by (simp add: algebra_simps)
