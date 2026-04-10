@@ -1873,14 +1873,139 @@ proof -
   finally show ?thesis .
 qed
 
-text \<open>HOL Light: @{text ABSOLUTELY_SETCONTINUOUS_ON_ALT}.\<close>
+
+lemma absolutely_setcontinuous_on_componentwise:
+  fixes f :: \<open>'a::euclidean_space set \<Rightarrow> 'b::euclidean_space\<close>
+  shows \<open>absolutely_setcontinuous_on f s \<longleftrightarrow>
+    (\<forall>b\<in>Basis. absolutely_setcontinuous_on (\<lambda>k. f k \<bullet> b) s)\<close>
+    (is \<open>?L \<longleftrightarrow> ?R\<close>)
+proof
+  assume L: \<open>?L\<close>
+  show \<open>?R\<close>
+    unfolding absolutely_setcontinuous_on_def
+  proof (intro ballI allI impI)
+    fix b :: 'b and \<epsilon> :: real
+    assume \<open>b \<in> Basis\<close> and \<open>0 < \<epsilon>\<close>
+    with L obtain \<delta> where \<open>0 < \<delta>\<close> and
+      \<delta>: \<open>\<And>d t. d division_of t \<Longrightarrow> t \<subseteq> s \<Longrightarrow> sum content d < \<delta> \<Longrightarrow> (\<Sum>k\<in>d. norm (f k)) < \<epsilon>\<close>
+    unfolding absolutely_setcontinuous_on_def
+      by metis
+    show \<open>\<exists>\<delta>>0. \<forall>d t. d division_of t \<and> t \<subseteq> s \<and> (\<Sum>k\<in>d. content k) < \<delta> \<longrightarrow>
+              (\<Sum>k\<in>d. norm (f k \<bullet> b)) < \<epsilon>\<close>
+    proof (intro exI conjI allI impI)
+      show \<open>0 < \<delta>\<close> by fact
+    next
+      fix d t
+      assume asm: \<open>d division_of t \<and> t \<subseteq> s \<and> (\<Sum>k\<in>d. content k) < \<delta>\<close>
+      have \<open>(\<Sum>k\<in>d. norm (f k \<bullet> b)) \<le> (\<Sum>k\<in>d. norm (f k))\<close>
+        by (rule sum_mono) (use \<open>b \<in> Basis\<close> norm_nth_le in blast)
+      also have \<open>\<dots> < \<epsilon>\<close>
+        using \<delta> asm by auto
+      finally show \<open>(\<Sum>k\<in>d. norm (f k \<bullet> b)) < \<epsilon>\<close> .
+    qed
+  qed
+next
+  assume R: \<open>?R\<close>
+  show \<open>?L\<close>
+    unfolding absolutely_setcontinuous_on_def
+  proof (intro allI impI)
+    fix \<epsilon> :: real assume \<epsilon>_pos: \<open>0 < \<epsilon>\<close>
+    have comp: \<open>\<forall>b\<in>(Basis :: 'b set). \<exists>r>0. \<forall>d t. d division_of t \<and> t \<subseteq> s \<and> sum content d < r
+              \<longrightarrow> (\<Sum>k\<in>d. \<bar>f k \<bullet> b\<bar>) < \<epsilon> / DIM('b)\<close>
+    proof (intro ballI)
+      fix b :: 'b assume \<open>b \<in> Basis\<close>
+      with R have \<open>absolutely_setcontinuous_on (\<lambda>k. f k \<bullet> b) s\<close> by blast
+      moreover have \<open>0 < \<epsilon> / DIM('b)\<close> using \<epsilon>_pos DIM_positive by simp
+      ultimately obtain r where \<open>0 < r\<close> and
+        r: \<open>\<And>d t. d division_of t \<Longrightarrow> t \<subseteq> s \<Longrightarrow> sum content d < r \<Longrightarrow> (\<Sum>k\<in>d. norm ((\<lambda>k. f k \<bullet> b) k)) < \<epsilon> / DIM('b)\<close>
+        unfolding absolutely_setcontinuous_on_def by meson
+      then show \<open>\<exists>r>0. \<forall>d t. d division_of t \<and> t \<subseteq> s \<and> sum content d < r
+                \<longrightarrow> (\<Sum>k\<in>d. \<bar>f k \<bullet> b\<bar>) < \<epsilon> / DIM('b)\<close>
+        by (intro exI[of _ r]) (auto simp: real_norm_def)
+    qed
+    then obtain r where r_pos: \<open>\<And>b. b \<in> (Basis :: 'b set) \<Longrightarrow> (0::real) < r b\<close>
+      and r_bound: \<open>\<And>b d t. b \<in> (Basis :: 'b set) \<Longrightarrow> d division_of t \<Longrightarrow> t \<subseteq> s \<Longrightarrow> sum content d < r b
+                      \<Longrightarrow> (\<Sum>k\<in>d. \<bar>f k \<bullet> b\<bar>) < \<epsilon> / DIM('b)\<close>
+      by (metis bchoice)
+    define \<delta> where \<open>\<delta> = Min (r ` (Basis :: 'b set))\<close>
+    have \<delta>_pos: \<open>0 < \<delta>\<close>
+      unfolding \<delta>_def using r_pos finite_Basis nonempty_Basis
+      by (subst Min_gr_iff) (auto simp: image_is_empty)
+    moreover have \<open>\<forall>d t. d division_of t \<and> t \<subseteq> s \<and> sum content d < \<delta>
+                    \<longrightarrow> (\<Sum>k\<in>d. norm (f k)) < \<epsilon>\<close>
+    proof (intro allI impI)
+      fix d t assume asm: \<open>d division_of t \<and> t \<subseteq> s \<and> sum content d < \<delta>\<close>
+      have finite_d: \<open>finite d\<close> using asm division_of_finite by blast
+      have \<open>(\<Sum>k\<in>d. norm (f k)) \<le> (\<Sum>k\<in>d. \<Sum>b\<in>(Basis :: 'b set). \<bar>f k \<bullet> b\<bar>)\<close>
+        by (rule sum_mono) (rule norm_le_l1)
+      also have \<open>\<dots> = (\<Sum>b\<in>(Basis :: 'b set). \<Sum>k\<in>d. \<bar>f k \<bullet> b\<bar>)\<close>
+        by (rule sum.swap)
+      also have \<open>\<dots> < of_nat (DIM('b)) * (\<epsilon> / of_nat (DIM('b)))\<close>
+      proof (rule sum_bounded_above_strict)
+        fix b :: 'b assume \<open>b \<in> Basis\<close>
+        then have \<open>\<delta> \<le> r b\<close>
+          unfolding \<delta>_def by (intro Min_le finite_imageI finite_Basis) (auto simp: image_iff)
+        then have \<open>sum content d < r b\<close>
+          using asm by linarith
+        then show \<open>(\<Sum>k\<in>d. \<bar>f k \<bullet> b\<bar>) < \<epsilon> / real DIM('b)\<close>
+          using r_bound \<open>b \<in> Basis\<close> asm by blast
+      next
+        show \<open>0 < card (Basis :: 'b set)\<close> by (simp add: DIM_positive)
+      qed
+      also have \<open>\<dots> = \<epsilon>\<close>
+        using DIM_positive[where 'a='b] by simp
+      finally show \<open>(\<Sum>k\<in>d. norm (f k)) < \<epsilon>\<close> .
+    qed
+    ultimately show \<open>\<exists>\<delta>>0. \<forall>d t. d division_of t \<and> t \<subseteq> s \<and> sum content d < \<delta> \<longrightarrow> (\<Sum>k\<in>d. norm (f k)) < \<epsilon>\<close>
+      by auto
+  qed
+  qed
+
 
 lemma absolutely_setcontinuous_on_alt:
   \<open>absolutely_setcontinuous_on f s \<longleftrightarrow>
     (\<forall>\<epsilon>>0. \<exists>\<delta>>0. \<forall>d t. d division_of t \<and> t \<subseteq> s \<and>
-      (\<Sum>k\<in>d. content k) < \<delta> \<longrightarrow> norm (\<Sum>k\<in>d. f k) < \<epsilon>)\<close>
-  sorry
-
+      (\<Sum>k\<in>d. content k) < \<delta> \<longrightarrow> norm (\<Sum>k\<in>d. f k) < \<epsilon>)\<close>  (is \<open>?L = ?R\<close>)
+proof
+  assume L: \<open>?L\<close>
+  show \<open>?R\<close>
+  proof (intro allI impI)
+    fix \<epsilon> :: real
+    assume \<open>0 < \<epsilon>\<close>
+    with L obtain \<delta> where \<open>0 < \<delta>\<close> and
+      \<delta>: \<open>\<And>d t. d division_of t \<Longrightarrow> t \<subseteq> s \<Longrightarrow> sum content d < \<delta> \<Longrightarrow> (\<Sum>k\<in>d. norm (f k)) < \<epsilon>\<close>
+      unfolding absolutely_setcontinuous_on_def by meson
+    show \<open>\<exists>\<delta>>0. \<forall>d t. d division_of t \<and> t \<subseteq> s \<and> (\<Sum>k\<in>d. content k) < \<delta> \<longrightarrow> norm (\<Sum>k\<in>d. f k) < \<epsilon>\<close>
+    proof (intro exI conjI allI impI)
+      show \<open>0 < \<delta>\<close> by fact
+    next
+      fix d t
+      assume \<open>d division_of t \<and> t \<subseteq> s \<and> (\<Sum>k\<in>d. content k) < \<delta>\<close>
+      then have \<open>(\<Sum>k\<in>d. norm (f k)) < \<epsilon>\<close>
+        using \<delta> by auto
+      moreover have \<open>norm (\<Sum>k\<in>d. f k) \<le> (\<Sum>k\<in>d. norm (f k))\<close>
+        by (rule norm_sum)
+      ultimately show \<open>norm (\<Sum>k\<in>d. f k) < \<epsilon>\<close>
+        by linarith
+    qed
+  qed
+next
+  assume R: \<open>?R\<close>
+  show \<open>?L\<close>
+  proof -
+    have "absolutely_setcontinuous_on (\<lambda>k. f k \<bullet> b) s"
+      if "b \<in> Basis" for b :: 'b
+      unfolding absolutely_setcontinuous_on_def
+    proof (intro strip)
+      fix \<epsilon> :: real
+      assume "0 < \<epsilon>"
+      show "\<exists>\<delta>>0. \<forall>d t. d division_of t \<and> t \<subseteq> s \<and> sum content d < \<delta> \<longrightarrow> (\<Sum>k\<in>d. norm (f k \<bullet> b)) < \<epsilon>"
+      sorry
+    qed
+    then show ?thesis
+    using absolutely_setcontinuous_on_componentwise by blast
+  qed  
+qed
 
 text \<open>HOL Light: @{text ABSOLUTELY_CONTINUOUS_INTEGRAL}.\<close>
 
