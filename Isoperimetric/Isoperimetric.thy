@@ -2119,7 +2119,6 @@ proof -
     qed
 
 
-text \<open>HOL Light: @{text ABSOLUTE_INTEGRAL_ABSOLUTELY_CONTINUOUS_DERIVATIVE_EQ}.\<close>
 
 lemma absolute_integral_absolutely_continuous_derivative_eq:
   fixes f :: \<open>real \<Rightarrow> 'a::euclidean_space\<close> and f' :: \<open>real \<Rightarrow> 'a\<close>
@@ -2144,13 +2143,11 @@ proof
   show ?R
   proof (intro conjI)
     show \<open>absolutely_continuous_on {a..b} f\<close>
-    proof -
-      have \<open>absolutely_continuous_on {a..b} (\<lambda>x. f a + integral {a..x} f')\<close>
-        sorry \<comment> \<open>Requires: absolutely integrable \<Longrightarrow> indefinite integral is absolutely continuous.
-          (ABSOLUTELY_INTEGRABLE_ABSOLUTELY_CONTINUOUS_ON in HOL Light).
-          Not yet available in Isabelle's HOL-Analysis for general euclidean_space.\<close>
-      then show ?thesis
-        by (rule absolutely_continuous_on_eq[rotated]) (use feq in auto)
+    proof (rule absolutely_continuous_on_eq)
+      show \<open>absolutely_continuous_on {a..b} (\<lambda>x. f a + integral {a..x} f')\<close>
+        sorry
+      show \<open>\<And>x. x \<in> {a..b} \<Longrightarrow> f a + integral {a..x} f' = f x\<close>
+      using feq by blast
     qed
   next
     show \<open>\<exists>s. negligible s \<and>

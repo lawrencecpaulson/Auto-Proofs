@@ -1873,5 +1873,91 @@ proof -
   finally show ?thesis .
 qed
 
+text \<open>HOL Light: @{text ABSOLUTELY_CONTINUOUS_INDEFINITE_INTEGRAL_RIGHT}.\<close>
+
+lemma absolutely_continuous_indefinite_integral_right:
+  fixes f :: \<open>real \<Rightarrow> 'a::euclidean_space\<close>
+  assumes \<open>f absolutely_integrable_on {a..b}\<close>
+  shows \<open>absolutely_continuous_on {a..b} (\<lambda>x. integral {a..x} f)\<close>
+  unfolding absolutely_continuous_on_def absolutely_setcontinuous_on_def
+proof (intro allI impI)
+  fix \<epsilon> :: real assume \<open>\<epsilon> > 0\<close>
+  from assms have f_int: \<open>f integrable_on {a..b}\<close>
+    using absolutely_integrable_on_def by blast
+  from assms have nf_int: \<open>(\<lambda>x. norm (f x)) integrable_on {a..b}\<close>
+    using absolutely_integrable_on_def by blast
+  \<comment> \<open>Truncation argument: approximate norm\<circ>f by a bounded function\<close>
+  define h where \<open>h \<equiv> \<lambda>n x. max (norm (f x) - real n) 0\<close>
+  have h_int: \<open>h n integrable_on {a..b}\<close> for n
+  proof -
+    have \<open>(\<lambda>x. norm (f x)) absolutely_integrable_on {a..b}\<close>
+      by (metis assms set_integrable_norm)
+    moreover have \<open>(\<lambda>x. real n) absolutely_integrable_on {a..b}\<close>
+      by (intro absolutely_integrable_continuous_real continuous_intros)
+    ultimately have \<open>(\<lambda>x. max (norm (f x)) (real n)) absolutely_integrable_on {a..b}\<close>
+      by (rule absolutely_integrable_max_1)
+    then have \<open>(\<lambda>x. max (norm (f x)) (real n)) integrable_on {a..b}\<close>
+      using absolutely_integrable_on_def by blast
+    moreover have \<open>(\<lambda>x. real n) integrable_on {a..b}\<close>
+      by (intro integrable_continuous_real continuous_intros)
+    ultimately have \<open>(\<lambda>x. max (norm (f x)) (real n) - real n) integrable_on {a..b}\<close>
+      by (rule integrable_diff)
+    moreover have \<open>max (norm (f x)) (real n) - real n = max (norm (f x) - real n) 0\<close> for x
+      by linarith
+    ultimately show ?thesis
+      unfolding h_def by (auto simp: o_def)
+  qed
+  have h_dom: \<open>norm (h n x) \<le> norm (f x)\<close> for n x
+    unfolding h_def by auto
+  have h_tends: \<open>(\<lambda>n. h n x) \<longlonglongrightarrow> 0\<close> for x
+    unfolding h_def
+  proof -
+    have \<open>eventually (\<lambda>n. real n \<ge> norm (f x)) sequentially\<close>
+      using real_arch_simple by (intro eventually_sequentialI[of \<open>nat (ceiling (norm (f x)))\<close>]) linarith
+    then have \<open>eventually (\<lambda>n. max (norm (f x) - real n) 0 = 0) sequentially\<close>
+      by (eventually_elim) (auto)
+    then show \<open>(\<lambda>n. max (norm (f x) - real n) 0) \<longlonglongrightarrow> 0\<close>
+      by (rule tendsto_eventually)
+  qed
+  have \<open>(\<lambda>n. integral {a..b} (h n)) \<longlonglongrightarrow> integral {a..b} (\<lambda>x. 0)\<close>
+  proof (rule dominated_convergence(2))
+    show \<open>h n integrable_on {a..b}\<close> for n by (rule h_int)
+    show \<open>(\<lambda>x. norm (f x)) integrable_on {a..b}\<close> by (rule nf_int)
+    show \<open>norm (h n x) \<le> norm (f x)\<close> if \<open>x \<in> {a..b}\<close> for n x using h_dom .
+    show \<open>(\<lambda>n. h n x) \<longlonglongrightarrow> 0\<close> if \<open>x \<in> {a..b}\<close> for x using h_tends .
+  qed
+  then have int_h_tends: \<open>(\<lambda>n. integral {a..b} (h n)) \<longlonglongrightarrow> 0\<close> by simp
+  \<comment> \<open>Choose N such that the tail integral is small\<close>
+  from int_h_tends obtain N where hN: \<open>integral {a..b} (h N) < \<epsilon> / 2\<close>
+    using \<open>\<epsilon> > 0\<close> by (auto simp: tendsto_iff eventually_sequentially dist_real_def
+                         intro!: exE[of \<open>\<lambda>N. integral {a..b} (h N) < \<epsilon> / 2\<close>])
+    sorry
+  \<comment> \<open>The bounded part is controlled by content\<close>
+  define C where \<open>C \<equiv> real N\<close>
+  have C_bound: \<open>min (norm (f x)) C \<le> C\<close> for x by simp
+  \<comment> \<open>Choose \<delta>\<close>
+  define \<delta> where \<open>\<delta> \<equiv> if C > 0 then \<epsilon> / (2 * C) else 1\<close>
+  have \<open>\<delta> > 0\<close> unfolding \<delta>_def using \<open>\<epsilon> > 0\<close> by auto
+  show \<open>\<exists>\<delta>>0. \<forall>d t. d division_of t \<and> t \<subseteq> {a..b} \<and> sum content d < \<delta> \<longrightarrow>
+    (\<Sum>k\<in>d. norm (integral {a..Sup k} f - integral {a..Inf k} f)) < \<epsilon>\<close>
+  proof (intro exI conjI allI impI)
+    show \<open>\<delta> > 0\<close> by fact
+  next
+    fix d t assume H: \<open>d division_of t \<and> t \<subseteq> {a..b} \<and> sum content d < \<delta>\<close>
+    then have div: \<open>d division_of t\<close> and sub: \<open>t \<subseteq> {a..b}\<close>
+      and content_bound: \<open>sum content d < \<delta>\<close> by auto
+    sorry
+  qed
+qed
+
+text \<open>HOL Light: @{text ABSOLUTELY_CONTINUOUS_INDEFINITE_INTEGRAL_LEFT}.\<close>
+
+lemma absolutely_continuous_indefinite_integral_left:
+  fixes f :: \<open>real \<Rightarrow> 'a::euclidean_space\<close>
+  assumes \<open>f absolutely_integrable_on {a..b}\<close>
+  shows \<open>absolutely_continuous_on {a..b} (\<lambda>x. integral {x..b} f)\<close>
+  sorry
+
+
 end
 
