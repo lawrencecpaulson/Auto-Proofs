@@ -1888,21 +1888,11 @@ proof
     assume \<open>b \<in> Basis\<close> and \<open>0 < \<epsilon>\<close>
     with L obtain \<delta> where \<open>0 < \<delta>\<close> and
       \<delta>: \<open>\<And>d t. d division_of t \<Longrightarrow> t \<subseteq> s \<Longrightarrow> sum content d < \<delta> \<Longrightarrow> (\<Sum>k\<in>d. norm (f k)) < \<epsilon>\<close>
-    unfolding absolutely_setcontinuous_on_def
+      unfolding absolutely_setcontinuous_on_def
       by metis
     show \<open>\<exists>\<delta>>0. \<forall>d t. d division_of t \<and> t \<subseteq> s \<and> (\<Sum>k\<in>d. content k) < \<delta> \<longrightarrow>
               (\<Sum>k\<in>d. norm (f k \<bullet> b)) < \<epsilon>\<close>
-    proof (intro exI conjI allI impI)
-      show \<open>0 < \<delta>\<close> by fact
-    next
-      fix d t
-      assume asm: \<open>d division_of t \<and> t \<subseteq> s \<and> (\<Sum>k\<in>d. content k) < \<delta>\<close>
-      have \<open>(\<Sum>k\<in>d. norm (f k \<bullet> b)) \<le> (\<Sum>k\<in>d. norm (f k))\<close>
-        by (rule sum_mono) (use \<open>b \<in> Basis\<close> norm_nth_le in blast)
-      also have \<open>\<dots> < \<epsilon>\<close>
-        using \<delta> asm by auto
-      finally show \<open>(\<Sum>k\<in>d. norm (f k \<bullet> b)) < \<epsilon>\<close> .
-    qed
+      by (metis (mono_tags, lifting) norm_nth_le \<delta> \<open>0 < \<delta>\<close> \<open>b \<in> Basis\<close> order.strict_trans1 sum_mono)
   qed
 next
   assume R: \<open>?R\<close>
@@ -1959,7 +1949,7 @@ next
     ultimately show \<open>\<exists>\<delta>>0. \<forall>d t. d division_of t \<and> t \<subseteq> s \<and> sum content d < \<delta> \<longrightarrow> (\<Sum>k\<in>d. norm (f k)) < \<epsilon>\<close>
       by auto
   qed
-  qed
+qed
 
 
 lemma absolutely_setcontinuous_on_alt:
@@ -1976,18 +1966,7 @@ proof
       \<delta>: \<open>\<And>d t. d division_of t \<Longrightarrow> t \<subseteq> s \<Longrightarrow> sum content d < \<delta> \<Longrightarrow> (\<Sum>k\<in>d. norm (f k)) < \<epsilon>\<close>
       unfolding absolutely_setcontinuous_on_def by meson
     show \<open>\<exists>\<delta>>0. \<forall>d t. d division_of t \<and> t \<subseteq> s \<and> (\<Sum>k\<in>d. content k) < \<delta> \<longrightarrow> norm (\<Sum>k\<in>d. f k) < \<epsilon>\<close>
-    proof (intro exI conjI allI impI)
-      show \<open>0 < \<delta>\<close> by fact
-    next
-      fix d t
-      assume \<open>d division_of t \<and> t \<subseteq> s \<and> (\<Sum>k\<in>d. content k) < \<delta>\<close>
-      then have \<open>(\<Sum>k\<in>d. norm (f k)) < \<epsilon>\<close>
-        using \<delta> by auto
-      moreover have \<open>norm (\<Sum>k\<in>d. f k) \<le> (\<Sum>k\<in>d. norm (f k))\<close>
-        by (rule norm_sum)
-      ultimately show \<open>norm (\<Sum>k\<in>d. f k) < \<epsilon>\<close>
-        by linarith
-    qed
+      by (meson \<delta> \<open>0 < \<delta>\<close> norm_sum order.strict_trans1)
   qed
 next
   assume R: \<open>?R\<close>
@@ -2029,33 +2008,13 @@ next
           have div_neg: \<open>d_neg division_of \<Union>d_neg\<close>
             using division_of_subset[OF div_d d_neg_sub] .
           have union_pos_sub: \<open>\<Union>d_pos \<subseteq> s\<close>
-          proof -
-            have \<open>\<Union>d_pos \<subseteq> \<Union>d\<close> using Union_mono[OF d_pos_sub] .
-            also have \<open>\<Union>d = t\<close> using asm by (simp add: division_ofD(6))
-            also have \<open>t \<subseteq> s\<close> using asm by blast
-            finally show ?thesis .
-          qed
+            using asm d_pos_sub by blast
           have union_neg_sub: \<open>\<Union>d_neg \<subseteq> s\<close>
-          proof -
-            have \<open>\<Union>d_neg \<subseteq> \<Union>d\<close> using Union_mono[OF d_neg_sub] .
-            also have \<open>\<Union>d = t\<close> using asm by (simp add: division_ofD(6))
-            also have \<open>t \<subseteq> s\<close> using asm by blast
-            finally show ?thesis .
-          qed
+            using asm d_split by blast
           have content_pos: \<open>sum content d_pos < r\<close>
-          proof -
-            have \<open>sum content d_pos \<le> sum content d\<close>
-              using sum_mono2[OF fin d_pos_sub] content_pos_le by auto
-            also have \<open>\<dots> < r\<close> using asm by blast
-            finally show ?thesis .
-          qed
+            by (meson asm content_pos_le d_pos_sub fin order_le_less_trans sum_mono2)
           have content_neg: \<open>sum content d_neg < r\<close>
-          proof -
-            have \<open>sum content d_neg \<le> sum content d\<close>
-              using sum_mono2[OF fin d_neg_sub] content_pos_le by auto
-            also have \<open>\<dots> < r\<close> using asm by blast
-            finally show ?thesis .
-          qed
+            by (meson asm content_pos_le d_neg_sub fin order_le_less_trans sum_mono2)
           have norm_pos: \<open>norm (sum f d_pos) < \<epsilon> / 2\<close>
             using r[OF div_pos union_pos_sub content_pos] .
           have norm_neg: \<open>norm (sum f d_neg) < \<epsilon> / 2\<close>
@@ -2114,33 +2073,33 @@ lemma absolutely_setcontinuous_indefinite_integral:
   assumes \<open>f absolutely_integrable_on S\<close> \<open>S \<in> lmeasurable\<close>
   shows \<open>absolutely_setcontinuous_on (\<lambda>k. integral k f) S\<close>
   unfolding absolutely_setcontinuous_on_alt
-  proof (intro strip)
+proof (intro strip)
   fix \<epsilon> :: real
   assume "0 < \<epsilon>"
   then obtain \<delta> where "\<delta>>0" 
-       and d: "\<And>T. T \<subseteq> S \<Longrightarrow> T \<in> lmeasurable \<Longrightarrow> measure lebesgue T < \<delta>
+    and d: "\<And>T. T \<subseteq> S \<Longrightarrow> T \<in> lmeasurable \<Longrightarrow> measure lebesgue T < \<delta>
                        \<Longrightarrow> norm (integral T f) < \<epsilon>"
-                       using absolutely_continuous_integral assms(1) by blast
-   have "norm (\<Sum>k\<in>d. integral k f) < \<epsilon>"
-                       if "d division_of T" "T \<subseteq> S" "sum content d < \<delta>"
-                       for d T
-   proof -
-     have f_int: "f integrable_on T"
-       using integrable_on_subdivision[OF that(1)] set_lebesgue_integral_eq_integral(1)[OF assms(1)] that(2) by auto
-     then have eq: "integral T f = (\<Sum>k\<in>d. integral k f)"
-       using integral_combine_division_topdown[OF _ that(1)] by auto
-     have meas: "T \<in> lmeasurable"
-       using lmeasurable_division that(1) by auto
-       have "sum content d = measure lebesgue T"
-       by (metis lebesgue_measure_eq_content that(1))
-     then have "measure lebesgue T < \<delta>"
-       using that(3) by auto
-     then show ?thesis
-       using d[OF that(2) meas] eq by auto
-   qed
-  then show "\<exists>\<delta>>0. \<forall>d t. d division_of t \<and> t \<subseteq> S \<and> sum content d < \<delta> \<longrightarrow> norm (\<Sum>k\<in>d. integral k f) < \<epsilon>"
-  using \<open>0 < \<delta>\<close> by blast
+    using absolutely_continuous_integral assms(1) by blast
+  have "norm (\<Sum>k\<in>d. integral k f) < \<epsilon>"
+    if "d division_of T" "T \<subseteq> S" "sum content d < \<delta>"
+    for d T
+  proof -
+    have f_int: "f integrable_on T"
+      using integrable_on_subdivision[OF that(1)] set_lebesgue_integral_eq_integral(1)[OF assms(1)] that(2) by auto
+    then have eq: "integral T f = (\<Sum>k\<in>d. integral k f)"
+      using integral_combine_division_topdown[OF _ that(1)] by auto
+    have meas: "T \<in> lmeasurable"
+      using lmeasurable_division that(1) by auto
+    have "sum content d = measure lebesgue T"
+      by (metis lebesgue_measure_eq_content that(1))
+    then have "measure lebesgue T < \<delta>"
+      using that(3) by auto
+    then show ?thesis
+      using d[OF that(2) meas] eq by auto
   qed
+  then show "\<exists>\<delta>>0. \<forall>d t. d division_of t \<and> t \<subseteq> S \<and> sum content d < \<delta> \<longrightarrow> norm (\<Sum>k\<in>d. integral k f) < \<epsilon>"
+    using \<open>0 < \<delta>\<close> by blast
+qed
 
 lemma absolutely_continuous_indefinite_integral_right:
   fixes f :: \<open>real \<Rightarrow> 'a::euclidean_space\<close>

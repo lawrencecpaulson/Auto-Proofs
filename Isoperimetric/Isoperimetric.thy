@@ -1,6 +1,5 @@
 theory Isoperimetric
   imports Arc_Length_Reparametrization "Fourier.Fourier" "Green.Green"
- "HOL-ex.Sketch_and_Explore"  "Isar_Explore"
 begin
 
 text \<open>
@@ -78,11 +77,10 @@ proof -
   finally show ?thesis .
 qed
 
-
 lemma frontier_convex_hull_eq_path_image':
   fixes g :: "real \<Rightarrow> complex"
   assumes "simple_path g" "pathfinish g = pathstart g"
-    "path_image g \<subseteq> frontier (convex hull (path_image g))"
+          "path_image g \<subseteq> frontier (convex hull (path_image g))"
   shows "frontier (convex hull (path_image g)) = path_image g"
 proof (rule equalityI)
   show "frontier (convex hull path_image g) \<subseteq> path_image g"
@@ -1979,8 +1977,8 @@ proof -
             by (simp add: cbox_eq int_eq gx_eq x'eq)
           moreover have \<open>norm (integral {x..x'} f - (x' - x) *\<^sub>R f x) / norm (x' - x) =
                 norm (integral {x..x'} f /\<^sub>R h - f x)\<close>
-          by (smt (verit, best) mult.commute scale_right_diff_distrib divideR_right divide_inverse h_def
-            hpos norm_inverse norm_scaleR real_norm_def)
+            by (smt (verit, best) mult.commute scale_right_diff_distrib divideR_right divide_inverse h_def
+                hpos norm_inverse norm_scaleR real_norm_def)
           ultimately show \<open>norm (integral {x..x'} f - (x' - x) *\<^sub>R f x) / norm (x' - x) < e\<close>
             by simp
         qed
@@ -1993,29 +1991,29 @@ proof -
       \<exists>d>0. \<forall>x'\<in>{a..b}. x < x' \<and> x' < x + d \<longrightarrow>
         norm (integral {x..x'} f - (x' - x) *\<^sub>R f x) / norm (x' - x) < e\<close>
     using onesided [OF assms] by auto
-    have \<open>((\<lambda>x. f (- x)) integrable_on {- b..- a})\<close>
+  have \<open>((\<lambda>x. f (- x)) integrable_on {- b..- a})\<close>
     by (simp add: assms)
   then obtain K2 where \<open>negligible K2\<close> and K2:
     \<open>\<And>x e. \<lbrakk>x \<in> {-b..-a} - K2; 0 < e\<rbrakk> \<Longrightarrow>
       \<exists>d>0. \<forall>x'\<in>{-b..-a}. x < x' \<and> x' < x + d \<longrightarrow>
         norm (integral {x..x'} (\<lambda>x. f (-x)) - (x' - x) *\<^sub>R f (-x)) / norm (x' - x) < e\<close>
     using onesided by metis 
-    define K where "K \<equiv> K1 \<union> uminus ` K2"
-    show ?thesis
-    proof
+  define K where "K \<equiv> K1 \<union> uminus ` K2"
+  show ?thesis
+  proof
     show "negligible K"
-    by (simp add: K_def \<open>negligible K1\<close> \<open>negligible K2\<close> module_hom_uminus negligible_linear_image)
-    next
+      by (simp add: K_def \<open>negligible K1\<close> \<open>negligible K2\<close> module_hom_uminus negligible_linear_image)
+  next
     fix x :: real
     assume x: "x \<in> {a..b} - K"
     have "bounded_linear (\<lambda>u. u *\<^sub>R f x)"
-    by (simp add: bounded_linear_scaleR_left)
+      by (simp add: bounded_linear_scaleR_left)
     moreover have "\<exists>d>0. \<forall>y\<in>{a..b}. \<bar>y - x\<bar> < d \<longrightarrow> norm (integral {a..y} f - integral {a..x} f - (y - x) *\<^sub>R f x) \<le> e * \<bar>y - x\<bar>"
-    if "0 < e"
-    for e :: real
+      if "0 < e"
+      for e :: real
     proof -
       have xK1: \<open>x \<in> {a..b} - K1\<close> and xK2: \<open>-x \<in> {-b..-a} - K2\<close>
-      using x by (auto simp: K_def image_iff)
+        using x by (auto simp: K_def image_iff)
       obtain d1 where \<open>d1 > 0\<close> and d1:
         \<open>\<And>x'. \<lbrakk>x' \<in> {a..b}; x < x'; x' < x + d1\<rbrakk>
           \<Longrightarrow> norm (integral {x..x'} f - (x' - x) *\<^sub>R f x) / norm (x' - x) < e\<close>
@@ -2024,65 +2022,65 @@ proof -
         \<open>\<And>x'. \<lbrakk>x' \<in> {-b..-a}; -x < x'; x' < -x + d2\<rbrakk>
           \<Longrightarrow> norm (integral {-x..x'} (\<lambda>x. f (-x)) - (x'+x) *\<^sub>R f x) / norm (x' + x) < e\<close>
         using K2[OF xK2 \<open>0 < e\<close>] xK2 by force
-        show ?thesis
-        proof (intro exI conjI strip)
-    show "0 < min d1 d2"
-    by (simp add: \<open>0 < d1\<close> \<open>0 < d2\<close>)
-    next
-    fix y :: real
-    assume "y \<in> {a..b}" and y: "\<bar>y - x\<bar> < min d1 d2"
-    consider "x<y" | "x=y" | "x>y"
-    by linarith
-    then show "norm (integral {a..y} f - integral {a..x} f - (y - x) *\<^sub>R f x) \<le> e * \<bar>y - x\<bar>"
-    proof cases
-    case 1
-    have ax: \<open>a \<le> x\<close> and xy: \<open>x \<le> y\<close> and yb: \<open>y \<le> b\<close>
-      using 1 x \<open>y \<in> {a..b}\<close> by (auto simp: K_def)
-    have fint_ay: \<open>f integrable_on {a..y}\<close>
-      using integrable_on_subinterval[OF assms] ax yb by auto
-    have eq: \<open>integral {a..x} f + integral {x..y} f = integral {a..y} f\<close>
-      using Henstock_Kurzweil_Integration.integral_combine[OF ax xy fint_ay] .
-    have goal_eq: \<open>integral {a..y} f - integral {a..x} f - (y - x) *\<^sub>R f x
+      show ?thesis
+      proof (intro exI conjI strip)
+        show "0 < min d1 d2"
+          by (simp add: \<open>0 < d1\<close> \<open>0 < d2\<close>)
+      next
+        fix y :: real
+        assume "y \<in> {a..b}" and y: "\<bar>y - x\<bar> < min d1 d2"
+        consider "x<y" | "x=y" | "x>y"
+          by linarith
+        then show "norm (integral {a..y} f - integral {a..x} f - (y - x) *\<^sub>R f x) \<le> e * \<bar>y - x\<bar>"
+        proof cases
+          case 1
+          have ax: \<open>a \<le> x\<close> and xy: \<open>x \<le> y\<close> and yb: \<open>y \<le> b\<close>
+            using 1 x \<open>y \<in> {a..b}\<close> by (auto simp: K_def)
+          have fint_ay: \<open>f integrable_on {a..y}\<close>
+            using integrable_on_subinterval[OF assms] ax yb by auto
+          have eq: \<open>integral {a..x} f + integral {x..y} f = integral {a..y} f\<close>
+            using Henstock_Kurzweil_Integration.integral_combine[OF ax xy fint_ay] .
+          have goal_eq: \<open>integral {a..y} f - integral {a..x} f - (y - x) *\<^sub>R f x
                  = integral {x..y} f - (y - x) *\<^sub>R f x\<close>
-      using eq by (simp add: algebra_simps)
-    have \<open>norm (integral {x..y} f - (y - x) *\<^sub>R f x) / norm (y - x) < e\<close>
-      using d1[of y] \<open>y \<in> {a..b}\<close> 1 y by auto
-    then have \<open>norm (integral {x..y} f - (y - x) *\<^sub>R f x) < e * (y - x)\<close>
-      using 1 by (simp add: divide_simps)
-    then show ?thesis
-      using goal_eq 1 by (simp add: real_norm_def)
-    next
-    case 2 then show ?thesis by simp
-    next
-    case 3
-    have ay: \<open>a \<le> y\<close> and yx: \<open>y \<le> x\<close> and xb: \<open>x \<le> b\<close>
-      using 3 x \<open>y \<in> {a..b}\<close> by (auto simp: K_def)
-    have fint_ax: \<open>f integrable_on {a..x}\<close>
-      using integrable_on_subinterval[OF assms] ay xb by auto
-    have eq: \<open>integral {a..y} f + integral {y..x} f = integral {a..x} f\<close>
-      using Henstock_Kurzweil_Integration.integral_combine[OF ay yx fint_ax] .
-    have goal_eq: \<open>integral {a..y} f - integral {a..x} f - (y - x) *\<^sub>R f x
+            using eq by (simp add: algebra_simps)
+          have \<open>norm (integral {x..y} f - (y - x) *\<^sub>R f x) / norm (y - x) < e\<close>
+            using d1[of y] \<open>y \<in> {a..b}\<close> 1 y by auto
+          then have \<open>norm (integral {x..y} f - (y - x) *\<^sub>R f x) < e * (y - x)\<close>
+            using 1 by (simp add: divide_simps)
+          then show ?thesis
+            using goal_eq 1 by (simp add: real_norm_def)
+        next
+          case 2 then show ?thesis by simp
+        next
+          case 3
+          have ay: \<open>a \<le> y\<close> and yx: \<open>y \<le> x\<close> and xb: \<open>x \<le> b\<close>
+            using 3 x \<open>y \<in> {a..b}\<close> by (auto simp: K_def)
+          have fint_ax: \<open>f integrable_on {a..x}\<close>
+            using integrable_on_subinterval[OF assms] ay xb by auto
+          have eq: \<open>integral {a..y} f + integral {y..x} f = integral {a..x} f\<close>
+            using Henstock_Kurzweil_Integration.integral_combine[OF ay yx fint_ax] .
+          have goal_eq: \<open>integral {a..y} f - integral {a..x} f - (y - x) *\<^sub>R f x
                  = -(integral {y..x} f - (x - y) *\<^sub>R f x)\<close>
-      using eq by (simp add: algebra_simps)
-    have reflect_eq: \<open>integral {-x..-y} (\<lambda>t. f(-t)) = integral {y..x} f\<close>
-      by (simp add: integral_reflect_real)
-    have \<open>norm (integral {-x..-y} (\<lambda>t. f(-t)) - (-y + x) *\<^sub>R f x) / norm (-y + x) < e\<close>
-      using d2[of \<open>-y\<close>] \<open>y \<in> {a..b}\<close> 3 y by auto
-    then have \<open>norm (integral {y..x} f - (x - y) *\<^sub>R f x) / (x - y) < e\<close>
-      using reflect_eq 3 by simp
-    then have \<open>norm (integral {y..x} f - (x - y) *\<^sub>R f x) < e * (x - y)\<close>
-      using 3 by (simp add: divide_simps)
-    then show ?thesis
-      using goal_eq 3 by (simp add: norm_minus_cancel norm_minus_commute)
-    qed    
-    qed
+            using eq by (simp add: algebra_simps)
+          have reflect_eq: \<open>integral {-x..-y} (\<lambda>t. f(-t)) = integral {y..x} f\<close>
+            by (simp add: integral_reflect_real)
+          have \<open>norm (integral {-x..-y} (\<lambda>t. f(-t)) - (-y + x) *\<^sub>R f x) / norm (-y + x) < e\<close>
+            using d2[of \<open>-y\<close>] \<open>y \<in> {a..b}\<close> 3 y by auto
+          then have \<open>norm (integral {y..x} f - (x - y) *\<^sub>R f x) / (x - y) < e\<close>
+            using reflect_eq 3 by simp
+          then have \<open>norm (integral {y..x} f - (x - y) *\<^sub>R f x) < e * (x - y)\<close>
+            using 3 by (simp add: divide_simps)
+          then show ?thesis
+            using goal_eq 3 by (simp add: norm_minus_cancel norm_minus_commute)
+        qed    
+      qed
     qed
     ultimately show "((\<lambda>u. integral {a..u} f) has_vector_derivative f x) (at x within {a..b})"
       unfolding has_vector_derivative_def has_derivative_within_alt2
-       unfolding eventually_at_filter eventually_nhds_metric
-       by (force simp: dist_real_def)
-    qed
-    qed
+      unfolding eventually_at_filter eventually_nhds_metric
+      by (force simp: dist_real_def)
+  qed
+qed
 
 
 lemma absolute_integral_absolutely_continuous_derivative_eq:
@@ -2093,11 +2091,11 @@ lemma absolute_integral_absolutely_continuous_derivative_eq:
           (\<exists>s. negligible s \<and>
                (\<forall>x \<in> {a..b} - s.
                   (f has_vector_derivative f' x) (at x within {a..b}))))\<close>
-  (is \<open>?L \<longleftrightarrow> ?R\<close>)
+    (is \<open>?L \<longleftrightarrow> ?R\<close>)
 proof
   assume L: ?L
   have f'abs: \<open>f' absolutely_integrable_on {a..b}\<close> and
-       f'int: \<open>\<And>c. c \<in> {a..b} \<Longrightarrow> (f' has_integral (f c - f a)) {a..c}\<close>
+    f'int: \<open>\<And>c. c \<in> {a..b} \<Longrightarrow> (f' has_integral (f c - f a)) {a..c}\<close>
     using L by auto
   have feq: \<open>f a + integral {a..c} f' = f c\<close> if \<open>c \<in> {a..b}\<close> for c
     using integral_unique[OF f'int[OF that]] by simp
@@ -2109,11 +2107,11 @@ proof
   proof (intro conjI)
     show \<open>absolutely_continuous_on {a..b} f\<close>
     proof (rule absolutely_continuous_on_eq)
-    show \<open>absolutely_continuous_on {a..b} (\<lambda>x. f a + integral {a..x} f')\<close>
-      using absolutely_continuous_indefinite_integral_right
-      using absolutely_continuous_on_add absolutely_continuous_on_const f'abs by blast
+      show \<open>absolutely_continuous_on {a..b} (\<lambda>x. f a + integral {a..x} f')\<close>
+        using absolutely_continuous_indefinite_integral_right
+        using absolutely_continuous_on_add absolutely_continuous_on_const f'abs by blast
       show \<open>\<And>x. x \<in> {a..b} \<Longrightarrow> f a + integral {a..x} f' = f x\<close>
-      using feq by blast
+        using feq by blast
     qed
   next
     show \<open>\<exists>s. negligible s \<and>
@@ -2195,45 +2193,7 @@ theorem absolute_integration_by_parts_sum:
 text \<open>Helper: the indefinite integral of an absolutely integrable function
   is absolutely continuous.\<close>
 
-lemma indefinite_integral_absolutely_continuous:
-  fixes f' :: "real \<Rightarrow> real"
-  assumes ab: "a \<le> b" and f'abs: "f' absolutely_integrable_on {a..b}"
-  shows "absolutely_continuous_on {a..b} (\<lambda>x. integral {a..x} f')"
-unfolding absolutely_continuous_on_def absolutely_setcontinuous_on_def
-proof (intro allI impI)
-  fix \<epsilon> :: real assume "\<epsilon> > 0"
-  have nf'_int: "(\<lambda>x. norm (f' x)) integrable_on {a..b}"
-    using f'abs unfolding absolutely_integrable_on_def by simp
-  have f'_int: "f' integrable_on {a..b}"
-    using f'abs absolutely_integrable_on_def by blast
-  \<comment> \<open>Truncation approach: split |f'| into bounded and tail parts.\<close>
-  define I where "I = integral {a..b} (\<lambda>x. norm (f' x))"
-  \<comment> \<open>For any M > 0, the tail integral \<integral> max(|f'| - M, 0) can be made small.\<close>
-  \<comment> \<open>Since min(|f'|, M) \<le> M, we have \<integral>_k min(|f'|, M) \<le> M * content(k).\<close>
-  \<comment> \<open>And norm(\<integral>_k f') \<le> \<integral>_k |f'| = \<integral>_k min(|f'|, M) + \<integral>_k max(|f'| - M, 0).\<close>
-  \<comment> \<open>Choose M so that \<integral>_{a..b} max(|f'| - M, 0) < \<epsilon>/2, then \<delta> = \<epsilon>/(2M).\<close>
-  have tail_small: "\<exists>M>0. integral {a..b} (\<lambda>x. max (norm (f' x) - M) 0) < \<epsilon> / 2"
-  proof -
-    \<comment> \<open>max(|f'(x)| - M, 0) \<le> |f'(x)| and \<rightarrow> 0 pointwise, so integral \<rightarrow> 0 by DCT.\<close>
-    sorry
-  qed
-  then obtain M where "M > 0"
-    and tail: "integral {a..b} (\<lambda>x. max (norm (f' x) - M) 0) < \<epsilon> / 2"
-    by auto
-  define \<delta> where "\<delta> = \<epsilon> / (2 * M)"
-  have "\<delta> > 0" using \<open>\<epsilon> > 0\<close> \<open>M > 0\<close> unfolding \<delta>_def by simp
-  show "\<exists>\<delta>>0. \<forall>d t. d division_of t \<and> t \<subseteq> {a..b} \<and> (\<Sum>k\<in>d. content k) < \<delta> \<longrightarrow>
-    (\<Sum>k\<in>d. norm (integral {a..Sup k} f' - integral {a..Inf k} f')) < \<epsilon>"
-  proof (intro exI conjI allI impI)
-    show "\<delta> > 0" by fact
-    fix d t assume dt: "d division_of t \<and> t \<subseteq> {a..b} \<and> (\<Sum>k\<in>d. content k) < \<delta>"
-    then have div: "d division_of t" and sub: "t \<subseteq> {a..b}"
-      and content_bound: "(\<Sum>k\<in>d. content k) < \<delta>" by auto
-    \<comment> \<open>Each interval in the division satisfies integral {a..Sup k} - integral {a..Inf k} = integral {Inf k..Sup k}\<close>
-    sorry
-  qed
-qed
-
+lemmas indefinite_integral_absolutely_continuous = absolutely_continuous_indefinite_integral_right
 
 
 text \<open>The real-valued shifted version:
@@ -2560,7 +2520,7 @@ lemma area_below_arclet:
     and "\<And>t. t \<in> {u..v} - S \<Longrightarrow> (g has_vector_derivative g' t) (at t)"
   shows "(\<lambda>t. Re (g' t) * Im (g t)) absolutely_integrable_on {u..v}"
     and "integral {u..v} (\<lambda>t. Re (g' t) * Im (g t)) =
-      measure {z. \<exists>w \<in> g ` {u..v}. Re w = Re z \<and> 0 \<le> Im z \<and> Im z \<le> Im w}"
+      measure lebesgue {z. \<exists>w \<in> g ` {u..v}. Re w = Re z \<and> 0 \<le> Im z \<and> Im z \<le> Im w}"
   sorry 
 
 lemma area_above_arclet:
@@ -2575,7 +2535,7 @@ lemma area_above_arclet:
     and "\<And>t. t \<in> {u..v} - S \<Longrightarrow> (g has_vector_derivative g' t) (at t)"
   shows "(\<lambda>t. Re (g' t) * Im (g t)) absolutely_integrable_on {u..v}"
     and "integral {u..v} (\<lambda>t. Re (g' t) * Im (g t)) =
-      measure {z. \<exists>w \<in> g ` {u..v}. Re w = Re z \<and> Im w \<le> Im z \<and> Im z \<le> 0}"
+      measure lebesgue {z. \<exists>w \<in> g ` {u..v}. Re w = Re z \<and> Im w \<le> Im z \<and> Im z \<le> 0}"
   sorry
 
 theorem green_area_theorem:
@@ -2590,7 +2550,7 @@ theorem green_area_theorem:
     and "\<And>t. t \<in> {0..1} - U \<Longrightarrow> (g has_vector_derivative g' t) (at t)"
   shows "(\<lambda>t. Re (g' t) * Im (g t)) absolutely_integrable_on {0..1}"
     and "\<bar>integral {0..1} (\<lambda>t. Re (g' t) * Im (g t))\<bar> =
-      measure (inside (path_image g))"
+      measure lebesgue (inside (path_image g))"
   sorry
 
 section \<open>Part 3: Isoperimetric theorem for convex curves\<close>
