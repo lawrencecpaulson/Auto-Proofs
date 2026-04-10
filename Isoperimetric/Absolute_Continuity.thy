@@ -1,5 +1,5 @@
 theory Absolute_Continuity
-  imports Bounded_Variation 
+  imports Bounded_Variation "HOL-ex.Sketch_and_Explore" 
 begin
 
 text \<open>
@@ -1873,221 +1873,71 @@ proof -
   finally show ?thesis .
 qed
 
-text \<open>HOL Light: @{text ABSOLUTELY_CONTINUOUS_INDEFINITE_INTEGRAL_RIGHT}.\<close>
+text \<open>HOL Light: @{text ABSOLUTELY_SETCONTINUOUS_ON_ALT}.\<close>
 
-lemma absolutely_continuous_indefinite_integral_right:
+lemma absolutely_setcontinuous_on_alt:
+  \<open>absolutely_setcontinuous_on f s \<longleftrightarrow>
+    (\<forall>\<epsilon>>0. \<exists>\<delta>>0. \<forall>d t. d division_of t \<and> t \<subseteq> s \<and>
+      (\<Sum>k\<in>d. content k) < \<delta> \<longrightarrow> norm (\<Sum>k\<in>d. f k) < \<epsilon>)\<close>
+  sorry
+
+
+text \<open>HOL Light: @{text ABSOLUTELY_CONTINUOUS_INTEGRAL}.\<close>
+
+lemma absolutely_continuous_integral:
+  fixes f :: \<open>'a::euclidean_space \<Rightarrow> 'b::euclidean_space\<close>
+  assumes \<open>f absolutely_integrable_on s\<close> \<open>0 < \<epsilon>\<close>
+  obtains \<delta> where \<open>\<delta>>0\<close> \<open>\<And>t. t \<subseteq> s \<Longrightarrow> t \<in> lmeasurable \<Longrightarrow> measure lebesgue t < \<delta>
+              \<Longrightarrow> norm (integral t f) < \<epsilon>\<close>
+  sorry
+
+
+lemma absolutely_setcontinuous_indefinite_integral:
   fixes f :: \<open>real \<Rightarrow> 'a::euclidean_space\<close>
-  assumes \<open>f absolutely_integrable_on {a..b}\<close>
-  shows \<open>absolutely_continuous_on {a..b} (\<lambda>x. integral {a..x} f)\<close>
-  unfolding absolutely_continuous_on_def absolutely_setcontinuous_on_def
-proof (intro allI impI)
-  fix \<epsilon> :: real assume \<open>\<epsilon> > 0\<close>
-  from assms have f_int: \<open>f integrable_on {a..b}\<close>
-    using absolutely_integrable_on_def by blast
-  from assms have nf_int: \<open>(\<lambda>x. norm (f x)) integrable_on {a..b}\<close>
-    using absolutely_integrable_on_def by blast
-  \<comment> \<open>Truncation argument: approximate norm\<circ>f by a bounded function\<close>
-  define h where \<open>h \<equiv> \<lambda>n x. max (norm (f x) - real n) 0\<close>
-  have h_int: \<open>h n integrable_on {a..b}\<close> for n
-  proof -
-    have \<open>(\<lambda>x. norm (f x)) absolutely_integrable_on {a..b}\<close>
-      by (metis assms set_integrable_norm)
-    moreover have \<open>(\<lambda>x. real n) absolutely_integrable_on {a..b}\<close>
-      by (intro absolutely_integrable_continuous_real continuous_intros)
-    ultimately have \<open>(\<lambda>x. max (norm (f x)) (real n)) absolutely_integrable_on {a..b}\<close>
-      by (rule absolutely_integrable_max_1)
-    then have \<open>(\<lambda>x. max (norm (f x)) (real n)) integrable_on {a..b}\<close>
-      using absolutely_integrable_on_def by blast
-    moreover have \<open>(\<lambda>x. real n) integrable_on {a..b}\<close>
-      by (intro integrable_continuous_real continuous_intros)
-    ultimately have \<open>(\<lambda>x. max (norm (f x)) (real n) - real n) integrable_on {a..b}\<close>
-      by (rule integrable_diff)
-    moreover have \<open>max (norm (f x)) (real n) - real n = max (norm (f x) - real n) 0\<close> for x
-      by linarith
-    ultimately show ?thesis
-      unfolding h_def by (auto simp: o_def)
+  assumes \<open>f absolutely_integrable_on S\<close> \<open>S \<in> lmeasurable\<close>
+  shows \<open>absolutely_setcontinuous_on (\<lambda>k. integral k f) S\<close>
+  unfolding absolutely_setcontinuous_on_alt
+  proof (intro strip)
+  fix \<epsilon> :: real
+  assume "0 < \<epsilon>"
+  then obtain \<delta> where "\<delta>>0" 
+       and d: "\<And>T. T \<subseteq> S \<Longrightarrow> T \<in> lmeasurable \<Longrightarrow> measure lebesgue T < \<delta>
+                       \<Longrightarrow> norm (integral T f) < \<epsilon>"
+                       using absolutely_continuous_integral assms(1) by blast
+   have "norm (\<Sum>k\<in>d. integral k f) < \<epsilon>"
+                       if "d division_of T" "T \<subseteq> S" "sum content d < \<delta>"
+                       for d T
+   proof -
+     have f_int: "f integrable_on T"
+       using integrable_on_subdivision[OF that(1)] set_lebesgue_integral_eq_integral(1)[OF assms(1)] that(2) by auto
+     then have eq: "integral T f = (\<Sum>k\<in>d. integral k f)"
+       using integral_combine_division_topdown[OF _ that(1)] by auto
+     have meas: "T \<in> lmeasurable"
+       using lmeasurable_division that(1) by auto
+       have "sum content d = measure lebesgue T"
+       by (metis lebesgue_measure_eq_content that(1))
+     then have "measure lebesgue T < \<delta>"
+       using that(3) by auto
+     then show ?thesis
+       using d[OF that(2) meas] eq by auto
+   qed
+  then show "\<exists>\<delta>>0. \<forall>d t. d division_of t \<and> t \<subseteq> S \<and> sum content d < \<delta> \<longrightarrow> norm (\<Sum>k\<in>d. integral k f) < \<epsilon>"
+  using \<open>0 < \<delta>\<close> by blast
   qed
-  have h_dom: \<open>norm (h n x) \<le> norm (f x)\<close> for n x
-    unfolding h_def by auto
-  have h_tends: \<open>(\<lambda>n. h n x) \<longlonglongrightarrow> 0\<close> for x
-    unfolding h_def
-  proof -
-    have \<open>eventually (\<lambda>n. real n \<ge> norm (f x)) sequentially\<close>
-      using real_arch_simple by (intro eventually_sequentiallyI[of \<open>nat (ceiling (norm (f x)))\<close>]) linarith
-    then have \<open>eventually (\<lambda>n. max (norm (f x) - real n) 0 = 0) sequentially\<close>
-      by (eventually_elim) (auto)
-    then show \<open>(\<lambda>n. max (norm (f x) - real n) 0) \<longlonglongrightarrow> 0\<close>
-      by (rule tendsto_eventually)
-  qed
-  have \<open>(\<lambda>n. integral {a..b} (h n)) \<longlonglongrightarrow> integral {a..b} (\<lambda>x. 0)\<close>
-  proof (rule dominated_convergence(2))
-    show \<open>h n integrable_on {a..b}\<close> for n by (rule h_int)
-    show \<open>(\<lambda>x. norm (f x)) integrable_on {a..b}\<close> by (rule nf_int)
-    show \<open>norm (h n x) \<le> norm (f x)\<close> if \<open>x \<in> {a..b}\<close> for n x using h_dom .
-    show \<open>(\<lambda>n. h n x) \<longlonglongrightarrow> 0\<close> if \<open>x \<in> {a..b}\<close> for x using h_tends .
-  qed
-  then have int_h_tends: \<open>(\<lambda>n. integral {a..b} (h n)) \<longlonglongrightarrow> 0\<close> by simp
-  \<comment> \<open>Choose N such that the tail integral is small\<close>
-  from int_h_tends obtain N where hN: \<open>integral {a..b} (h N) < \<epsilon> / 2\<close>
-  using \<open>\<epsilon> > 0\<close>
-  unfolding tendsto_iff eventually_sequentially dist_real_def
-  by (metis abs_of_nonneg diff_zero half_gt_zero nle_le order_le_less_trans)
-  \<comment> \<open>The bounded part is controlled by content\<close>
-  define C where \<open>C \<equiv> real N\<close>
-  have C_bound: \<open>min (norm (f x)) C \<le> C\<close> for x by simp
-  \<comment> \<open>Choose \<delta>\<close>
-  define \<delta> where \<open>\<delta> \<equiv> if C > 0 then \<epsilon> / (2 * C) else 1\<close>
-  have \<open>\<delta> > 0\<close> unfolding \<delta>_def using \<open>\<epsilon> > 0\<close> by auto
-  show \<open>\<exists>\<delta>>0. \<forall>d t. d division_of t \<and> t \<subseteq> {a..b} \<and> sum content d < \<delta> \<longrightarrow>
-    (\<Sum>k\<in>d. norm (integral {a..Sup k} f - integral {a..Inf k} f)) < \<epsilon>\<close>
-  proof (intro exI conjI allI impI)
-    show \<open>\<delta> > 0\<close> by fact
-  next
-    fix d t assume H: \<open>d division_of t \<and> t \<subseteq> {a..b} \<and> sum content d < \<delta>\<close>
-    then have div: \<open>d division_of t\<close> and sub: \<open>t \<subseteq> {a..b}\<close>
-      and content_bound: \<open>sum content d < \<delta>\<close> by auto
-    \<comment> \<open>Each interval k in d is a cbox [Inf k, Sup k] \<subseteq> [a,b]\<close>
-    have fin_d: \<open>finite d\<close> using division_of_finite[OF div] .
-    have k_props: \<open>Inf k \<ge> a\<close> \<open>Sup k \<le> b\<close> \<open>Inf k \<le> Sup k\<close> \<open>k = {Inf k..Sup k}\<close>
-      if \<open>k \<in> d\<close> for k
-    proof -
-      have \<open>\<exists>c e. k = cbox c e\<close> using division_ofD(4)[OF div that] .
-      then obtain c e where ke: \<open>k = cbox c e\<close> by auto
-      have \<open>k \<noteq> {}\<close> using division_ofD(3)[OF div that] .
-      then have \<open>c \<le> e\<close> using ke by auto
-      have \<open>k \<subseteq> {a..b}\<close> using division_ofD(2)[OF div that] sub by auto
-      then have \<open>c \<ge> a\<close> \<open>e \<le> b\<close> using ke \<open>c \<le> e\<close> by auto
-      moreover have \<open>Inf k = c\<close> \<open>Sup k = e\<close> using ke \<open>c \<le> e\<close> by auto
-      ultimately show \<open>Inf k \<ge> a\<close> \<open>Sup k \<le> b\<close> \<open>Inf k \<le> Sup k\<close> \<open>k = {Inf k..Sup k}\<close>
-        using ke \<open>c \<le> e\<close> by auto
-    qed
-    \<comment> \<open>Rewrite: integral {a..Sup k} f - integral {a..Inf k} f = integral k f\<close>
-    have int_diff_eq: \<open>integral {a..Sup k} f - integral {a..Inf k} f = integral k f\<close>
-      if \<open>k \<in> d\<close> for k
-    proof -
-      have \<open>a \<le> Sup k\<close> \<open>a \<le> Inf k\<close> using k_props[OF that] by auto
-      have \<open>f integrable_on {a..max (Sup k) (Inf k)}\<close>
-        using integrable_subinterval_real[OF f_int] k_props[OF that] by auto
-      then have \<open>integral {a..Sup k} f - integral {a..Inf k} f =
-        (if Sup k \<le> Inf k then - integral {Sup k..Inf k} f else integral {Inf k..Sup k} f)\<close>
-        using integral_minus_sets[OF \<open>a \<le> Sup k\<close> \<open>a \<le> Inf k\<close>] by auto
-      also have \<open>\<dots> = integral {Inf k..Sup k} f\<close>
-        using k_props(3)[OF that]
-        by (auto simp: Henstock_Kurzweil_Integration.integral_empty)
-      also have \<open>\<dots> = integral k f\<close> using k_props(4)[OF that] by simp
-      finally show ?thesis .
-    qed
-    \<comment> \<open>Bound: norm (integral k f) \<le> integral k (norm \<circ> f)\<close>
-    have f_int_k: \<open>f integrable_on k\<close> if \<open>k \<in> d\<close> for k
-    proof -
-      have \<open>{Inf k..Sup k} \<subseteq> {a..b}\<close>
-        using k_props(1,2)[OF that] by auto
-      then have \<open>f integrable_on {Inf k..Sup k}\<close>
-        using integrable_subinterval_real[OF f_int] by auto
-      then show ?thesis using k_props(4)[OF that] by simp
-    qed
-    have nf_int_k: \<open>(\<lambda>x. norm (f x)) integrable_on k\<close> if \<open>k \<in> d\<close> for k
-    proof -
-      have \<open>{Inf k..Sup k} \<subseteq> {a..b}\<close>
-        using k_props(1,2)[OF that] by auto
-      then have \<open>(\<lambda>x. norm (f x)) integrable_on {Inf k..Sup k}\<close>
-        using integrable_subinterval_real[OF nf_int] by auto
-      then show ?thesis using k_props(4)[OF that] by simp
-    qed
-    have norm_int_bound: \<open>norm (integral k f) \<le> integral k (\<lambda>x. norm (f x))\<close> if \<open>k \<in> d\<close> for k
-      using integral_norm_bound_integral[OF f_int_k[OF that] nf_int_k[OF that]] by auto
-    \<comment> \<open>Key bound: norm (f x) \<le> C + h N x\<close>
-    have norm_bound: \<open>norm (f x) \<le> C + h N x\<close> for x
-      unfolding h_def C_def by auto
-    \<comment> \<open>h N is integrable on each k\<close>
-    have h_int_k: \<open>h N integrable_on k\<close> if \<open>k \<in> d\<close> for k
-    proof -
-      have \<open>{Inf k..Sup k} \<subseteq> {a..b}\<close>
-        using k_props(1,2)[OF that] by auto
-      then have \<open>h N integrable_on {Inf k..Sup k}\<close>
-        using integrable_subinterval_real[OF h_int] by auto
-      then show ?thesis using k_props(4)[OF that] by simp
-    qed
-    \<comment> \<open>Bound each norm (integral k f) \<le> C * content k + integral k (h N)\<close>
-    have const_int_k: \<open>(\<lambda>x. C) integrable_on k\<close> if \<open>k \<in> d\<close> for k
-      using k_props(4)[OF that] integrable_const_ivl by metis
-    have per_k_bound: \<open>norm (integral k f) \<le> C * content k + integral k (h N)\<close>
-      if kd: \<open>k \<in> d\<close> for k
-    proof -
-      have \<open>norm (integral k f) \<le> integral k (\<lambda>x. norm (f x))\<close>
-        using norm_int_bound[OF kd] .
-      also have \<open>\<dots> \<le> integral k (\<lambda>x. C + h N x)\<close>
-      proof (rule integral_le[OF nf_int_k[OF kd]])
-        show \<open>(\<lambda>x. C + h N x) integrable_on k\<close>
-          by (rule integrable_add[OF const_int_k[OF kd] h_int_k[OF kd]])
-        show \<open>norm (f x) \<le> C + h N x\<close> if \<open>x \<in> k\<close> for x
-          using norm_bound by auto
-      qed
-      also have \<open>\<dots> = integral k (\<lambda>x. C) + integral k (h N)\<close>
-        using integral_add[OF const_int_k[OF kd] h_int_k[OF kd]] by auto
-      also have \<open>integral k (\<lambda>x. C) = C * content k\<close>
-        using k_props(4)[OF kd] integral_const[of \<open>Inf k\<close> \<open>Sup k\<close> C]
-        by auto
-      finally show ?thesis by auto
-    qed
-    \<comment> \<open>Sum the per-interval bounds\<close>
-    have sum_eq: \<open>(\<Sum>k\<in>d. norm (integral {a..Sup k} f - integral {a..Inf k} f)) =
-      (\<Sum>k\<in>d. norm (integral k f))\<close>
-      using int_diff_eq by (intro sum.cong) auto
-    have sum_le: \<open>(\<Sum>k\<in>d. norm (integral k f)) \<le>
-      C * (\<Sum>k\<in>d. content k) + (\<Sum>k\<in>d. integral k (h N))\<close>
-    proof -
-      have \<open>(\<Sum>k\<in>d. norm (integral k f)) \<le> (\<Sum>k\<in>d. C * content k + integral k (h N))\<close>
-        using per_k_bound by (intro sum_mono) auto
-      also have \<open>\<dots> = C * (\<Sum>k\<in>d. content k) + (\<Sum>k\<in>d. integral k (h N))\<close>
-        by (simp add: sum.distrib sum_distrib_left)
-      finally show ?thesis .
-    qed
-    \<comment> \<open>Bound the bounded part: C * sum content d \<le> \<epsilon>/2\<close>
-    have bounded_part: \<open>C * (\<Sum>k\<in>d. content k) \<le> \<epsilon> / 2\<close>
-    proof (cases \<open>C > 0\<close>)
-      case True
-      have \<open>C * (\<Sum>k\<in>d. content k) < C * \<delta>\<close>
-        using content_bound True by (simp add: mult_strict_left_mono)
-      also have \<open>\<dots> = \<epsilon> / 2\<close> unfolding \<delta>_def using True by auto
-      finally show ?thesis by auto
-    next
-      case False
-      then have \<open>C = 0\<close> unfolding C_def by auto
-      then show ?thesis using \<open>\<epsilon> > 0\<close> by auto
-    qed
-    \<comment> \<open>Bound the tail part: sum of integrals of h N \<le> \<epsilon>/2\<close>
-    have \<open>(\<Sum>k\<in>d. integral k (h N)) = integral t (h N)\<close>
-    proof (rule integral_combine_division_bottomup[symmetric, OF div])
-      show \<open>h N integrable_on k\<close> if \<open>k \<in> d\<close> for k
-        using h_int_k[OF that] .
-    qed
-    also have \<open>\<dots> \<le> integral {a..b} (h N)\<close>
-    proof (rule integral_subset_le[OF sub])
-      show \<open>h N integrable_on t\<close>
-        using integrable_combine_division[OF div] h_int_k by auto
-      show \<open>h N integrable_on {a..b}\<close> by (rule h_int)
-      show \<open>\<forall>x\<in>{a..b}. 0 \<le> h N x\<close> unfolding h_def by auto
-    qed
-    finally have tail_part: \<open>(\<Sum>k\<in>d. integral k (h N)) \<le> integral {a..b} (h N)\<close> .
-    \<comment> \<open>Combine\<close>
-    have \<open>(\<Sum>k\<in>d. norm (integral {a..Sup k} f - integral {a..Inf k} f)) \<le>
-      \<epsilon> / 2 + integral {a..b} (h N)\<close>
-      using sum_eq sum_le bounded_part tail_part by linarith
-    also have \<open>\<dots> < \<epsilon> / 2 + \<epsilon> / 2\<close>
-      using hN by linarith
-    finally show \<open>(\<Sum>k\<in>d. norm (integral {a..Sup k} f - integral {a..Inf k} f)) < \<epsilon>\<close>
-      by linarith
-  qed
-qed
 
-text \<open>HOL Light: @{text ABSOLUTELY_CONTINUOUS_INDEFINITE_INTEGRAL_LEFT}.\<close>
-
+  
 lemma absolutely_continuous_indefinite_integral_left:
   fixes f :: \<open>real \<Rightarrow> 'a::euclidean_space\<close>
   assumes \<open>f absolutely_integrable_on {a..b}\<close>
   shows \<open>absolutely_continuous_on {a..b} (\<lambda>x. integral {x..b} f)\<close>
-  sorry
+proof (rule absolutely_continuous_on_eq)
+  show \<open>x \<in> {a..b} \<Longrightarrow> integral {a..b} f - integral {a..x} f = integral {x..b} f\<close> for x
+    using integral_minus_sets[of a b x f] absolutely_integrable_on_def assms
+    by (fastforce simp: algebra_simps max_def integral_refl)
+  show \<open>absolutely_continuous_on {a..b} (\<lambda>x. integral {a..b} f - integral {a..x} f)\<close>
+    by (intro absolutely_continuous_on_sub absolutely_continuous_on_const
+              absolutely_continuous_indefinite_integral_right assms)
+qed
 
 
 end

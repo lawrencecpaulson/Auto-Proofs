@@ -2,6 +2,12 @@ theory Bounded_Variation
   imports "HOL-Analysis.Analysis"
 begin
 
+lemma lebesgue_measure_eq_content:
+  assumes "d division_of S"
+  shows "measure lebesgue S = sum Henstock_Kurzweil_Integration.content d"
+by (metis Finite_Cartesian_Product.sum_cong_aux assms content_division division_ofD(4)
+    fmeasurableD fmeasurable_cbox measure_completion)
+
 lemma continuous_within_comparison:
   fixes f :: \<open>'a::metric_space \<Rightarrow> 'b::metric_space\<close>
     and g :: \<open>'a::metric_space \<Rightarrow> 'c::metric_space\<close>
@@ -36,6 +42,40 @@ proof -
   then have \<open>{a..b} = {a..c} \<union> {c..b}\<close> by (rule ivl_disj_un_two_touch(4) [symmetric])
   then show ?thesis
     by (simp add: continuous_within Lim_within_Un)
+qed
+
+lemma negligible_linear_image:
+  fixes f :: \<open>'a::euclidean_space \<Rightarrow> 'a::euclidean_space\<close>
+  assumes \<open>linear f\<close> \<open>negligible S\<close>
+  shows \<open>negligible (f ` S)\<close>
+proof (cases \<open>inj f\<close>)
+  case True
+  have \<open>bounded_linear f\<close>
+    using assms(1) linear_conv_bounded_linear by blast
+  then have \<open>f differentiable_on S\<close>
+    using bounded_linear_imp_differentiable differentiable_on_def by blast
+    then show ?thesis
+    using negligible_differentiable_image_negligible assms(2) by blast
+next
+  case False
+  then show ?thesis
+  using assms(1) negligible_linear_singular_image by blast
+qed
+
+lemma negligible_linear_image_eq:
+  fixes f :: \<open>'a::euclidean_space \<Rightarrow> 'a::euclidean_space\<close>
+  assumes \<open>linear f\<close> \<open>inj f\<close>
+  shows \<open>negligible (f ` S) \<longleftrightarrow> negligible S\<close>
+proof
+  assume \<open>negligible S\<close>
+  then show \<open>negligible (f ` S)\<close>
+    using assms(1) negligible_linear_image by blast
+next
+  assume neg_fS: \<open>negligible (f ` S)\<close>
+  then have \<open>negligible (inv f ` f ` S)\<close>
+    using assms inj_linear_imp_inv_linear negligible_linear_image by blast
+  then show \<open>negligible S\<close>
+    using assms by force
 qed
 
 hide_const (open) Polynomial.content

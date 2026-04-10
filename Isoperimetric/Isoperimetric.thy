@@ -133,40 +133,6 @@ qed
 
 section "Measure Theory"
 
-lemma negligible_linear_image:
-  fixes f :: \<open>'a::euclidean_space \<Rightarrow> 'a::euclidean_space\<close>
-  assumes \<open>linear f\<close> \<open>negligible S\<close>
-  shows \<open>negligible (f ` S)\<close>
-proof (cases \<open>inj f\<close>)
-  case True
-  have \<open>bounded_linear f\<close>
-    using assms(1) linear_conv_bounded_linear by blast
-  then have \<open>f differentiable_on S\<close>
-    using bounded_linear_imp_differentiable differentiable_on_def by blast
-    then show ?thesis
-    using negligible_differentiable_image_negligible assms(2) by blast
-next
-  case False
-  then show ?thesis
-  using assms(1) negligible_linear_singular_image by blast
-qed
-
-lemma negligible_linear_image_eq:
-  fixes f :: \<open>'a::euclidean_space \<Rightarrow> 'a::euclidean_space\<close>
-  assumes \<open>linear f\<close> \<open>inj f\<close>
-  shows \<open>negligible (f ` S) \<longleftrightarrow> negligible S\<close>
-proof
-  assume \<open>negligible S\<close>
-  then show \<open>negligible (f ` S)\<close>
-    using assms(1) negligible_linear_image by blast
-next
-  assume neg_fS: \<open>negligible (f ` S)\<close>
-  then have \<open>negligible (inv f ` f ` S)\<close>
-    using assms inj_linear_imp_inv_linear negligible_linear_image by blast
-  then show \<open>negligible S\<close>
-    using assms by force
-qed
-
 lemma absolutely_integrable_approximate_continuous_vector:
   fixes f :: \<open>'a::euclidean_space \<Rightarrow> 'b::euclidean_space\<close>
     and S :: \<open>'a set\<close>
