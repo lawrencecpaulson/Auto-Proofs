@@ -1925,7 +1925,55 @@ lemma absolutely_setcontinuous_indefinite_integral:
   using \<open>0 < \<delta>\<close> by blast
   qed
 
-  
+lemma absolutely_continuous_indefinite_integral_right:
+  fixes f :: \<open>real \<Rightarrow> 'a::euclidean_space\<close>
+  assumes \<open>f absolutely_integrable_on {a..b}\<close>
+  shows \<open>absolutely_continuous_on {a..b} (\<lambda>x. integral {a..x} f)\<close>
+proof -
+  have sc: \<open>absolutely_setcontinuous_on (\<lambda>k. integral k f) {a..b}\<close>
+    using absolutely_setcontinuous_indefinite_integral assms by blast
+  have key: \<open>integral {a..Sup k} f - integral {a..Inf k} f = integral k f\<close>
+    if \<open>k \<in> d\<close> \<open>d division_of t\<close> \<open>t \<subseteq> {a..b}\<close> for k d t
+  proof -
+    obtain c e where ke: \<open>k = cbox c e\<close> and \<open>k \<subseteq> t\<close>
+      using division_ofD(4,2)  \<open>k \<in> d\<close> \<open>d division_of t\<close> by meson
+    have \<open>k \<noteq> {}\<close> using that(1,2) division_ofD(3) by blast
+    then have \<open>c \<le> e\<close> using ke by auto
+    have \<open>c \<in> {a..b}\<close> \<open>e \<in> {a..b}\<close>
+      using \<open>k \<subseteq> t\<close> that(3) ke \<open>c \<le> e\<close> by (auto simp add: subset_eq)
+    then have \<open>a \<le> c\<close> \<open>a \<le> e\<close> \<open>e \<le> b\<close> by auto
+    have f_int: \<open>f integrable_on {a..e}\<close>
+      using assms absolutely_integrable_on_def integrable_on_subinterval
+      by (meson \<open>a \<le> e\<close> \<open>e \<le> b\<close> atLeastatMost_subset_iff order_refl)
+    have \<open>integral {a..e} f - integral {a..c} f
+        = (if e \<le> c then - integral {e..c} f else integral {c..e} f)\<close>
+      by (simp add: \<open>a \<le> c\<close> \<open>a \<le> e\<close> \<open>c \<le> e\<close> f_int integral_minus_sets)
+    then show ?thesis using ke \<open>c \<le> e\<close> by auto
+  qed
+  show ?thesis
+    unfolding absolutely_continuous_on_def absolutely_setcontinuous_on_def
+  proof (intro strip)
+    fix \<epsilon> :: real assume \<open>0 < \<epsilon>\<close>
+    then obtain \<delta> where \<open>\<delta> > 0\<close>
+      and \<delta>: \<open>\<And>d t. d division_of t \<Longrightarrow> t \<subseteq> {a..b} \<Longrightarrow> sum content d < \<delta>
+                    \<Longrightarrow> (\<Sum>k\<in>d. norm (integral k f)) < \<epsilon>\<close>
+      using sc unfolding absolutely_setcontinuous_on_def by meson
+    show \<open>\<exists>\<delta>>0. \<forall>d t. d division_of t \<and> t \<subseteq> {a..b} \<and> sum content d < \<delta> \<longrightarrow>
+               (\<Sum>k\<in>d. norm (integral {a..Sup k} f - integral {a..Inf k} f)) < \<epsilon>\<close>
+    proof (intro exI conjI allI impI)
+      show \<open>0 < \<delta>\<close> by fact
+    next
+      fix d t assume \<open>d division_of t \<and> t \<subseteq> {a..b} \<and> sum content d < \<delta>\<close>
+      then have dt: \<open>d division_of t\<close> \<open>t \<subseteq> {a..b}\<close> \<open>sum content d < \<delta>\<close> by auto
+      have \<open>(\<Sum>k\<in>d. norm (integral {a..Sup k} f - integral {a..Inf k} f))
+          = (\<Sum>k\<in>d. norm (integral k f))\<close>
+        using dt key by auto
+      also have \<open>\<dots> < \<epsilon>\<close> using \<delta> dt by auto
+      finally show \<open>(\<Sum>k\<in>d. norm (integral {a..Sup k} f - integral {a..Inf k} f)) < \<epsilon>\<close> .
+    qed
+  qed
+qed
+
 lemma absolutely_continuous_indefinite_integral_left:
   fixes f :: \<open>real \<Rightarrow> 'a::euclidean_space\<close>
   assumes \<open>f absolutely_integrable_on {a..b}\<close>
@@ -1933,12 +1981,11 @@ lemma absolutely_continuous_indefinite_integral_left:
 proof (rule absolutely_continuous_on_eq)
   show \<open>x \<in> {a..b} \<Longrightarrow> integral {a..b} f - integral {a..x} f = integral {x..b} f\<close> for x
     using integral_minus_sets[of a b x f] absolutely_integrable_on_def assms
-    by (fastforce simp: algebra_simps max_def integral_refl)
+    by (fastforce simp: algebra_simps max_def)
   show \<open>absolutely_continuous_on {a..b} (\<lambda>x. integral {a..b} f - integral {a..x} f)\<close>
     by (intro absolutely_continuous_on_sub absolutely_continuous_on_const
               absolutely_continuous_indefinite_integral_right assms)
 qed
-
 
 end
 
