@@ -2119,7 +2119,6 @@ proof -
     qed
 
 
-
 lemma absolute_integral_absolutely_continuous_derivative_eq:
   fixes f :: \<open>real \<Rightarrow> 'a::euclidean_space\<close> and f' :: \<open>real \<Rightarrow> 'a\<close>
   shows \<open>(f' absolutely_integrable_on {a..b} \<and>
@@ -2144,8 +2143,9 @@ proof
   proof (intro conjI)
     show \<open>absolutely_continuous_on {a..b} f\<close>
     proof (rule absolutely_continuous_on_eq)
-      show \<open>absolutely_continuous_on {a..b} (\<lambda>x. f a + integral {a..x} f')\<close>
-        sorry
+    show \<open>absolutely_continuous_on {a..b} (\<lambda>x. f a + integral {a..x} f')\<close>
+      using absolutely_continuous_indefinite_integral_right
+      using absolutely_continuous_on_add absolutely_continuous_on_const f'abs by blast
       show \<open>\<And>x. x \<in> {a..b} \<Longrightarrow> f a + integral {a..x} f' = f x\<close>
       using feq by blast
     qed
