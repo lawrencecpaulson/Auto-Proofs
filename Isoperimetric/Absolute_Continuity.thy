@@ -2000,7 +2000,99 @@ next
       fix \<epsilon> :: real
       assume "0 < \<epsilon>"
       show "\<exists>\<delta>>0. \<forall>d t. d division_of t \<and> t \<subseteq> s \<and> sum content d < \<delta> \<longrightarrow> (\<Sum>k\<in>d. norm (f k \<bullet> b)) < \<epsilon>"
-      sorry
+      proof -
+        have \<open>0 < \<epsilon> / 2\<close> using \<open>0 < \<epsilon>\<close> by simp
+        with R obtain r where \<open>0 < r\<close> and
+          r: \<open>\<And>d t. d division_of t \<Longrightarrow> t \<subseteq> s \<Longrightarrow> sum content d < r \<Longrightarrow> norm (\<Sum>k\<in>d. f k) < \<epsilon> / 2\<close>
+          by meson
+        show ?thesis
+        proof (intro exI conjI allI impI)
+          show \<open>0 < r\<close> by fact
+        next
+          fix d t
+          assume asm: \<open>d division_of t \<and> t \<subseteq> s \<and> sum content d < r\<close>
+          have fin: \<open>finite d\<close> using asm division_of_finite by blast
+          define d_pos where \<open>d_pos = {k \<in> d. 0 \<le> f k \<bullet> b}\<close>
+          define d_neg where \<open>d_neg = {k \<in> d. f k \<bullet> b < 0}\<close>
+          have d_split: \<open>d = d_pos \<union> d_neg\<close>
+            unfolding d_pos_def d_neg_def by auto
+          have d_disj: \<open>d_pos \<inter> d_neg = {}\<close>
+            unfolding d_pos_def d_neg_def by auto
+          have fin_pos: \<open>finite d_pos\<close> and fin_neg: \<open>finite d_neg\<close>
+            using fin unfolding d_pos_def d_neg_def by auto
+          have d_pos_sub: \<open>d_pos \<subseteq> d\<close> and d_neg_sub: \<open>d_neg \<subseteq> d\<close>
+            unfolding d_pos_def d_neg_def by auto
+          have div_d: \<open>d division_of \<Union>d\<close>
+            using asm division_of_union_self by blast
+          have div_pos: \<open>d_pos division_of \<Union>d_pos\<close>
+            using division_of_subset[OF div_d d_pos_sub] .
+          have div_neg: \<open>d_neg division_of \<Union>d_neg\<close>
+            using division_of_subset[OF div_d d_neg_sub] .
+          have union_pos_sub: \<open>\<Union>d_pos \<subseteq> s\<close>
+          proof -
+            have \<open>\<Union>d_pos \<subseteq> \<Union>d\<close> using Union_mono[OF d_pos_sub] .
+            also have \<open>\<Union>d = t\<close> using asm by (simp add: division_ofD(6))
+            also have \<open>t \<subseteq> s\<close> using asm by blast
+            finally show ?thesis .
+          qed
+          have union_neg_sub: \<open>\<Union>d_neg \<subseteq> s\<close>
+          proof -
+            have \<open>\<Union>d_neg \<subseteq> \<Union>d\<close> using Union_mono[OF d_neg_sub] .
+            also have \<open>\<Union>d = t\<close> using asm by (simp add: division_ofD(6))
+            also have \<open>t \<subseteq> s\<close> using asm by blast
+            finally show ?thesis .
+          qed
+          have content_pos: \<open>sum content d_pos < r\<close>
+          proof -
+            have \<open>sum content d_pos \<le> sum content d\<close>
+              using sum_mono2[OF fin d_pos_sub] content_pos_le by auto
+            also have \<open>\<dots> < r\<close> using asm by blast
+            finally show ?thesis .
+          qed
+          have content_neg: \<open>sum content d_neg < r\<close>
+          proof -
+            have \<open>sum content d_neg \<le> sum content d\<close>
+              using sum_mono2[OF fin d_neg_sub] content_pos_le by auto
+            also have \<open>\<dots> < r\<close> using asm by blast
+            finally show ?thesis .
+          qed
+          have norm_pos: \<open>norm (sum f d_pos) < \<epsilon> / 2\<close>
+            using r[OF div_pos union_pos_sub content_pos] .
+          have norm_neg: \<open>norm (sum f d_neg) < \<epsilon> / 2\<close>
+            using r[OF div_neg union_neg_sub content_neg] .
+          have sum_pos: \<open>(\<Sum>k\<in>d_pos. norm (f k \<bullet> b)) \<le> norm (sum f d_pos)\<close>
+          proof -
+            have \<open>(\<Sum>k\<in>d_pos. norm (f k \<bullet> b)) = (\<Sum>k\<in>d_pos. f k \<bullet> b)\<close>
+              by (rule sum.cong) (auto simp: d_pos_def real_norm_def abs_of_nonneg)
+            also have \<open>\<dots> = (sum f d_pos) \<bullet> b\<close>
+              by (simp add: inner_sum_left)
+            also have \<open>\<dots> \<le> \<bar>(sum f d_pos) \<bullet> b\<bar>\<close> by (rule abs_ge_self)
+            also have \<open>\<dots> \<le> norm (sum f d_pos)\<close> by (rule Basis_le_norm[OF that])
+            finally show ?thesis .
+          qed
+          have sum_neg: \<open>(\<Sum>k\<in>d_neg. norm (f k \<bullet> b)) \<le> norm (sum f d_neg)\<close>
+          proof -
+            have \<open>(\<Sum>k\<in>d_neg. norm (f k \<bullet> b)) = (\<Sum>k\<in>d_neg. -(f k \<bullet> b))\<close>
+              by (rule sum.cong) (auto simp: d_neg_def real_norm_def abs_of_neg)
+            also have \<open>\<dots> = -((sum f d_neg) \<bullet> b)\<close>
+              by (simp add: inner_sum_left sum_negf)
+            also have \<open>\<dots> \<le> \<bar>(sum f d_neg) \<bullet> b\<bar>\<close> by (rule abs_ge_minus_self)
+            also have \<open>\<dots> \<le> norm (sum f d_neg)\<close> by (rule Basis_le_norm[OF that])
+            finally show ?thesis .
+          qed
+          show \<open>(\<Sum>k\<in>d. norm (f k \<bullet> b)) < \<epsilon>\<close>
+          proof -
+            have \<open>(\<Sum>k\<in>d. norm (f k \<bullet> b)) = (\<Sum>k\<in>d_pos. norm (f k \<bullet> b)) + (\<Sum>k\<in>d_neg. norm (f k \<bullet> b))\<close>
+              by (subst d_split) (rule sum.union_disjoint[OF fin_pos fin_neg d_disj])
+            also have \<open>\<dots> \<le> norm (sum f d_pos) + norm (sum f d_neg)\<close>
+              by (rule add_mono[OF sum_pos sum_neg])
+            also have \<open>\<dots> < \<epsilon> / 2 + \<epsilon> / 2\<close>
+              by (rule add_strict_mono[OF norm_pos norm_neg])
+            also have \<open>\<dots> = \<epsilon>\<close> by simp
+            finally show ?thesis .
+          qed
+        qed
+      qed
     qed
     then show ?thesis
     using absolutely_setcontinuous_on_componentwise by blast
