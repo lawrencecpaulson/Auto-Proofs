@@ -4424,8 +4424,53 @@ theorem absolute_integration_by_parts_sum:
     and \<open>\<And>x. x \<in> {a..b} \<Longrightarrow>
       ((\<lambda>x. bop (f x) (g' x) + bop (f' x) (g x))
         has_integral (bop (f x) (g x) - bop (f a) (g a))) {a..x}\<close>
-
-  sorry
+proof -
+  have bb: \<open>bounded_bilinear bop\<close>
+    using bop bilinear_conv_bounded_bilinear by blast
+  \<comment> \<open>Rewrite both pairs of conditions using the characterisation.\<close>
+  have fL: \<open>absolutely_continuous_on {a..b} f \<and>
+    (\<exists>s. negligible s \<and> (\<forall>x \<in> {a..b} - s. (f has_vector_derivative f' x) (at x within {a..b})))\<close>
+    by (subst absolute_integral_absolutely_continuous_derivative_eq[symmetric])
+       (use f'abs f'int in auto)
+  have gL: \<open>absolutely_continuous_on {a..b} g \<and>
+    (\<exists>s. negligible s \<and> (\<forall>x \<in> {a..b} - s. (g has_vector_derivative g' x) (at x within {a..b})))\<close>
+    by (subst absolute_integral_absolutely_continuous_derivative_eq[symmetric])
+       (use g'abs g'int in auto)
+  obtain s where f_ac: \<open>absolutely_continuous_on {a..b} f\<close> and negs: \<open>negligible s\<close>
+    and f_deriv: \<open>\<And>x. x \<in> {a..b} - s \<Longrightarrow> (f has_vector_derivative f' x) (at x within {a..b})\<close>
+    using fL by auto
+  obtain t where g_ac: \<open>absolutely_continuous_on {a..b} g\<close> and negt: \<open>negligible t\<close>
+    and g_deriv: \<open>\<And>x. x \<in> {a..b} - t \<Longrightarrow> (g has_vector_derivative g' x) (at x within {a..b})\<close>
+    using gL by auto
+  \<comment> \<open>The composed function is absolutely continuous.\<close>
+  have fg_ac: \<open>absolutely_continuous_on {a..b} (\<lambda>x. bop (f x) (g x))\<close>
+    by (rule absolutely_continuous_on_bilinear[OF bop f_ac g_ac is_interval_cc
+            compact_imp_bounded[OF compact_Icc]])
+  \<comment> \<open>The negligible set for the derivative.\<close>
+  have neg_st: \<open>negligible (s \<union> t)\<close>
+    using negs negt negligible_Un by blast
+  \<comment> \<open>The derivative of bop(f,g) at each point outside s \<union> t.\<close>
+  have fg_deriv: \<open>((\<lambda>x. bop (f x) (g x)) has_vector_derivative
+    bop (f x) (g' x) + bop (f' x) (g x)) (at x within {a..b})\<close>
+    if \<open>x \<in> {a..b} - (s \<union> t)\<close> for x
+  proof -
+    have \<open>x \<in> {a..b} - s\<close> \<open>x \<in> {a..b} - t\<close> using that by auto
+    then show ?thesis
+      using bounded_bilinear.has_vector_derivative[OF bb f_deriv g_deriv] by blast
+  qed
+  \<comment> \<open>Now apply the characterisation in the reverse direction.\<close>
+  have main: \<open>(\<lambda>x. bop (f x) (g' x) + bop (f' x) (g x)) absolutely_integrable_on {a..b} \<and>
+    (\<forall>x \<in> {a..b}. ((\<lambda>x. bop (f x) (g' x) + bop (f' x) (g x))
+      has_integral ((\<lambda>x. bop (f x) (g x)) x - (\<lambda>x. bop (f x) (g x)) a)) {a..x})\<close>
+    by (subst absolute_integral_absolutely_continuous_derivative_eq)
+       (use fg_ac neg_st fg_deriv in \<open>blast+\<close>)
+  show \<open>(\<lambda>x. bop (f x) (g' x) + bop (f' x) (g x)) absolutely_integrable_on {a..b}\<close>
+    using main by blast
+  show \<open>((\<lambda>x. bop (f x) (g' x) + bop (f' x) (g x))
+    has_integral (bop (f x) (g x) - bop (f a) (g a))) {a..x}\<close>
+    if \<open>x \<in> {a..b}\<close> for x
+    using main that by auto
+qed
 
 
 text \<open>Helper: the indefinite integral of an absolutely integrable function
