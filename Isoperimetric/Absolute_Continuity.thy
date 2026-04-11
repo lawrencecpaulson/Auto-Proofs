@@ -4306,6 +4306,54 @@ next
 qed
 
 
+lemma absolute_integral_absolutely_continuous_derivative_eq_alt:
+  fixes f :: \<open>real \<Rightarrow> 'a::euclidean_space\<close> and f' :: \<open>real \<Rightarrow> 'a\<close>
+  shows \<open>(f' absolutely_integrable_on {a..b} \<and>
+          (\<forall>x \<in> {a..b}. (f' has_integral (f x - f a)) {a..x}))
+     \<longleftrightarrow> (absolutely_continuous_on {a..b} f \<and>
+          (\<exists>s. negligible s \<and> (\<forall>x \<in> {a..b} - s. (f has_vector_derivative f' x) (at x))))\<close>
+    (is \<open>?L \<longleftrightarrow> ?R\<close>)
+proof -
+  have base: \<open>?L \<longleftrightarrow> (absolutely_continuous_on {a..b} f \<and>
+          (\<exists>s. negligible s \<and> (\<forall>x \<in> {a..b} - s. (f has_vector_derivative f' x) (at x within {a..b}))))\<close>
+    (is \<open>_ \<longleftrightarrow> ?M\<close>)
+    by (rule absolute_integral_absolutely_continuous_derivative_eq)
+  also have \<open>?M \<longleftrightarrow> ?R\<close>
+  proof (intro conj_cong refl iffI)
+    assume \<open>\<exists>s. negligible s \<and>
+               (\<forall>x \<in> {a..b} - s.
+                  (f has_vector_derivative f' x) (at x within {a..b}))\<close>
+    then obtain s where negs: \<open>negligible s\<close> and
+      deriv: \<open>\<And>x. x \<in> {a..b} - s \<Longrightarrow>
+                  (f has_vector_derivative f' x) (at x within {a..b})\<close>
+      by auto
+    show \<open>\<exists>s. negligible s \<and>
+               (\<forall>x \<in> {a..b} - s.
+                  (f has_vector_derivative f' x) (at x))\<close>
+    proof (intro exI conjI ballI)
+      show \<open>negligible ({a, b} \<union> s)\<close>
+        using negs by (simp add: negligible_insert)
+    next
+      fix x assume xmem: \<open>x \<in> {a..b} - ({a, b} \<union> s)\<close>
+      then have \<open>x \<in> {a..b} - s\<close> \<open>a < x\<close> \<open>x < b\<close>
+        by auto
+      then have \<open>(f has_vector_derivative f' x) (at x within {a..b})\<close>
+        by (intro deriv)
+      then show \<open>(f has_vector_derivative f' x) (at x)\<close>
+        using \<open>a < x\<close> \<open>x < b\<close>
+        by (subst (asm) at_within_Icc_at)
+    qed
+  next
+    assume \<open>\<exists>s. negligible s \<and> (\<forall>x \<in> {a..b} - s. (f has_vector_derivative f' x) (at x))\<close>
+    then obtain s where negs: \<open>negligible s\<close> and \<open>\<And>x. x \<in> {a..b} - s \<Longrightarrow> (f has_vector_derivative f' x) (at x)\<close>
+      by auto
+    then show \<open>\<exists>s. negligible s \<and> (\<forall>x \<in> {a..b} - s. (f has_vector_derivative f' x) (at x within {a..b}))\<close>
+      by (meson has_vector_derivative_at_within negs)
+  qed
+  finally show ?thesis .
+qed
+
+
 text \<open>Integration by parts for absolutely integrable functions (shifted / sum version).
   Bilinear generalisation: HOL Light's @{text ABSOLUTE_INTEGRATION_BY_PARTS_SUM}.\<close>
 
