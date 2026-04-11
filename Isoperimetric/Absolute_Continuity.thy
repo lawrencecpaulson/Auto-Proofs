@@ -4306,6 +4306,58 @@ next
 qed
 
 
+text \<open>Existential version: @{term f'} is absolutely integrable iff there exists an
+  absolutely continuous antiderivative.\<close>
+
+lemma absolutely_integrable_absolutely_continuous_derivative_eq:
+  fixes f' :: \<open>real \<Rightarrow> 'a::euclidean_space\<close>
+  shows \<open>f' absolutely_integrable_on {a..b} \<longleftrightarrow>
+    (\<exists>f s. absolutely_continuous_on {a..b} f \<and>
+           negligible s \<and>
+           (\<forall>x \<in> {a..b} - s.
+              (f has_vector_derivative f' x) (at x within {a..b})))\<close>
+    (is \<open>?L \<longleftrightarrow> ?R\<close>)
+proof
+  assume L: ?L
+  define f where \<open>f \<equiv> \<lambda>t. integral {a..t} f'\<close>
+  have f'int: \<open>f' integrable_on {a..b}\<close>
+    using L set_lebesgue_integral_eq_integral by blast
+  have f_a: \<open>f a = 0\<close>
+    unfolding f_def by (simp add: integral_singleton)
+  have hi: \<open>(f' has_integral (f x - f a)) {a..x}\<close> if \<open>x \<in> {a..b}\<close> for x
+  proof -
+    have \<open>a \<le> x\<close> \<open>x \<le> b\<close> using that by auto
+    have \<open>f' integrable_on {a..x}\<close>
+      by (rule integrable_subinterval_real[OF f'int])
+         (use \<open>x \<le> b\<close> in auto)
+
+    then have \<open>(f' has_integral integral {a..x} f') {a..x}\<close>
+      by (rule integrable_integral)
+    then show ?thesis
+      unfolding f_def f_a by simp
+  qed
+  have \<open>f' absolutely_integrable_on {a..b} \<and>
+        (\<forall>x \<in> {a..b}. (f' has_integral (f x - f a)) {a..x})\<close>
+    using L hi by auto
+  then have \<open>absolutely_continuous_on {a..b} f \<and>
+        (\<exists>s. negligible s \<and>
+             (\<forall>x \<in> {a..b} - s.
+                (f has_vector_derivative f' x) (at x within {a..b})))\<close>
+    by (subst (asm) absolute_integral_absolutely_continuous_derivative_eq)
+  then show ?R
+    by blast
+next
+  assume ?R
+  then obtain f s where ac: \<open>absolutely_continuous_on {a..b} f\<close> and
+    neg: \<open>negligible s\<close> and
+    deriv: \<open>\<And>x. x \<in> {a..b} - s \<Longrightarrow>
+               (f has_vector_derivative f' x) (at x within {a..b})\<close>
+    by auto
+  show ?L
+    by (rule absolutely_integrable_absolutely_continuous_derivative[OF ac neg deriv])
+qed
+
+
 lemma absolute_integral_absolutely_continuous_derivative_eq_alt:
   fixes f :: \<open>real \<Rightarrow> 'a::euclidean_space\<close> and f' :: \<open>real \<Rightarrow> 'a\<close>
   shows \<open>(f' absolutely_integrable_on {a..b} \<and>
