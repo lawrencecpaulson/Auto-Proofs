@@ -1016,14 +1016,14 @@ proof -
     unfolding absolutely_continuous_on_def absolutely_setcontinuous_on_def
   proof (intro allI impI)
     fix \<epsilon> :: real assume \<open>\<epsilon> > 0\<close>
-    have eB2K: \<open>\<epsilon> / 2 / B2 / K > 0\<close> using \<open>\<epsilon> > 0\<close> \<open>B2 > 0\<close> \<open>K > 0\<close> by simp
-    have eB1K: \<open>\<epsilon> / 2 / B1 / K > 0\<close> using \<open>\<epsilon> > 0\<close> \<open>B1 > 0\<close> \<open>K > 0\<close> by simp
+    have eB2K: \<open>\<epsilon>/2 / B2 / K > 0\<close> using \<open>\<epsilon> > 0\<close> \<open>B2 > 0\<close> \<open>K > 0\<close> by simp
+    have eB1K: \<open>\<epsilon>/2 / B1 / K > 0\<close> using \<open>\<epsilon> > 0\<close> \<open>B1 > 0\<close> \<open>K > 0\<close> by simp
     obtain \<delta>1 where \<open>\<delta>1 > 0\<close> and \<delta>1: \<open>\<And>d t. d division_of t \<Longrightarrow> t \<subseteq> s \<Longrightarrow>
-      (\<Sum>k\<in>d. content k) < \<delta>1 \<Longrightarrow> (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) < \<epsilon> / 2 / B2 / K\<close>
+      (\<Sum>k\<in>d. content k) < \<delta>1 \<Longrightarrow> (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) < \<epsilon>/2 / B2 / K\<close>
       using f unfolding absolutely_continuous_on_def absolutely_setcontinuous_on_def
       using eB2K by (meson order.strict_trans2)
     obtain \<delta>2 where \<open>\<delta>2 > 0\<close> and \<delta>2: \<open>\<And>d t. d division_of t \<Longrightarrow> t \<subseteq> s \<Longrightarrow>
-      (\<Sum>k\<in>d. content k) < \<delta>2 \<Longrightarrow> (\<Sum>k\<in>d. norm (g (Sup k) - g (Inf k))) < \<epsilon> / 2 / B1 / K\<close>
+      (\<Sum>k\<in>d. content k) < \<delta>2 \<Longrightarrow> (\<Sum>k\<in>d. norm (g (Sup k) - g (Inf k))) < \<epsilon>/2 / B1 / K\<close>
       using g unfolding absolutely_continuous_on_def absolutely_setcontinuous_on_def
       using eB1K by (meson order.strict_trans2)
     show \<open>\<exists>\<delta>>0. \<forall>d t. d division_of t \<and> t \<subseteq> s \<and> (\<Sum>k\<in>d. content k) < \<delta> \<longrightarrow>
@@ -1073,26 +1073,26 @@ proof -
       also have \<open>\<dots> = K * B2 * (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) +
                       K * B1 * (\<Sum>k\<in>d. norm (g (Sup k) - g (Inf k)))\<close>
         by (simp add: sum.distrib sum_distrib_left algebra_simps)
-      also have \<open>\<dots> < \<epsilon> / 2 + \<epsilon> / 2\<close>
+      also have \<open>\<dots> < \<epsilon>/2 + \<epsilon>/2\<close>
       proof -
         have KB2: \<open>K * B2 > 0\<close> using \<open>K > 0\<close> \<open>B2 > 0\<close> by simp
         have KB1: \<open>K * B1 > 0\<close> using \<open>K > 0\<close> \<open>B1 > 0\<close> by simp
-        have f_bound: \<open>(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) < \<epsilon> / 2 / B2 / K\<close>
+        have f_bound: \<open>(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) < \<epsilon>/2 / B2 / K\<close>
           using \<delta>1[OF div sub meas(1)] .
-        have g_bound: \<open>(\<Sum>k\<in>d. norm (g (Sup k) - g (Inf k))) < \<epsilon> / 2 / B1 / K\<close>
+        have g_bound: \<open>(\<Sum>k\<in>d. norm (g (Sup k) - g (Inf k))) < \<epsilon>/2 / B1 / K\<close>
           using \<delta>2[OF div sub meas(2)] .
-        have A: \<open>K * B2 * (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) < \<epsilon> / 2\<close>
+        have A: \<open>K * B2 * (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) < \<epsilon>/2\<close>
         proof -
-          have \<open>K * B2 * (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) < K * B2 * (\<epsilon> / 2 / B2 / K)\<close>
+          have \<open>K * B2 * (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) < K * B2 * (\<epsilon>/2 / B2 / K)\<close>
             using mult_strict_left_mono[OF f_bound KB2] .
-          also have \<open>\<dots> = \<epsilon> / 2\<close> using \<open>K > 0\<close> \<open>B2 > 0\<close> by (simp add: field_simps)
+          also have \<open>\<dots> = \<epsilon>/2\<close> using \<open>K > 0\<close> \<open>B2 > 0\<close> by (simp add: field_simps)
           finally show ?thesis .
         qed
-        have B: \<open>K * B1 * (\<Sum>k\<in>d. norm (g (Sup k) - g (Inf k))) < \<epsilon> / 2\<close>
+        have B: \<open>K * B1 * (\<Sum>k\<in>d. norm (g (Sup k) - g (Inf k))) < \<epsilon>/2\<close>
         proof -
-          have \<open>K * B1 * (\<Sum>k\<in>d. norm (g (Sup k) - g (Inf k))) < K * B1 * (\<epsilon> / 2 / B1 / K)\<close>
+          have \<open>K * B1 * (\<Sum>k\<in>d. norm (g (Sup k) - g (Inf k))) < K * B1 * (\<epsilon>/2 / B1 / K)\<close>
             using mult_strict_left_mono[OF g_bound KB1] .
-          also have \<open>\<dots> = \<epsilon> / 2\<close> using \<open>K > 0\<close> \<open>B1 > 0\<close> by (simp add: field_simps)
+          also have \<open>\<dots> = \<epsilon>/2\<close> using \<open>K > 0\<close> \<open>B1 > 0\<close> by (simp add: field_simps)
           finally show ?thesis .
         qed
         from A B show ?thesis by linarith
@@ -1174,11 +1174,11 @@ proof (cases \<open>a<b\<close>)
 
       have \<open>\<exists>d>0. (x \<in> {a..b} - S \<longrightarrow>
               (\<forall>y. \<bar>y - x\<bar> < d \<and> y \<in> {a..b} \<longrightarrow>
-                norm (f y - f x - (y - x) *\<^sub>R g x) \<le> \<epsilon> / 2 / (b - a) * \<bar>y - x\<bar>))\<close> for x
+                norm (f y - f x - (y - x) *\<^sub>R g x) \<le> \<epsilon>/2 / (b - a) * \<bar>y - x\<bar>))\<close> for x
       proof -
         show \<open>\<exists>d>0. x \<in> {a..b} - S \<longrightarrow>
                 (\<forall>y. \<bar>y - x\<bar> < d \<and> y \<in> {a..b} \<longrightarrow>
-                  norm (f y - f x - (y - x) *\<^sub>R g x) \<le> \<epsilon> / 2 / (b - a) * \<bar>y - x\<bar>)\<close>
+                  norm (f y - f x - (y - x) *\<^sub>R g x) \<le> \<epsilon>/2 / (b - a) * \<bar>y - x\<bar>)\<close>
         proof (cases \<open>x \<in> {a..b} - S\<close>)
           case False
           then show ?thesis
@@ -1189,11 +1189,11 @@ proof (cases \<open>a<b\<close>)
             using deriv by blast
           then have hd: \<open>(f has_derivative (\<lambda>h. h *\<^sub>R f' x)) (at x within {a..b})\<close>
             by (simp add: has_vector_derivative_def)
-          have \<open>0 < \<epsilon> / 2 / (b - a)\<close>
+          have \<open>0 < \<epsilon>/2 / (b - a)\<close>
             using \<open>0 < \<epsilon>\<close> \<open>a < b\<close> by simp
           with hd obtain d where \<open>d > 0\<close>
             and d: \<open>\<And>y. y \<in> {a..b} \<Longrightarrow> norm (y - x) < d \<Longrightarrow>
-                       norm (f y - f x - (y - x) *\<^sub>R f' x) \<le> \<epsilon> / 2 / (b - a) * norm (y - x)\<close>
+                       norm (f y - f x - (y - x) *\<^sub>R f' x) \<le> \<epsilon>/2 / (b - a) * norm (y - x)\<close>
             unfolding has_derivative_within_alt by blast
           have gx: \<open>g x = f' x\<close>
             using True by (simp add: g_def)
@@ -1203,7 +1203,7 @@ proof (cases \<open>a<b\<close>)
           next
             fix y
             assume \<open>x \<in> {a..b} - S\<close> \<open>\<bar>y - x\<bar> < d \<and> y \<in> {a..b}\<close>
-            then show \<open>norm (f y - f x - (y - x) *\<^sub>R g x) \<le> \<epsilon> / 2 / (b - a) * \<bar>y - x\<bar>\<close>
+            then show \<open>norm (f y - f x - (y - x) *\<^sub>R g x) \<le> \<epsilon>/2 / (b - a) * \<bar>y - x\<bar>\<close>
               using d[of y] by (simp add: gx real_norm_def)
           qed
         qed
@@ -1211,7 +1211,7 @@ proof (cases \<open>a<b\<close>)
       then obtain d where dpos: \<open>\<And>x. d x >0\<close>
           and D: \<open>\<And>x. x \<in> {a..b} - S \<longrightarrow>
                       (\<forall>y. \<bar>y - x\<bar> < d x \<and> y \<in> {a..b} \<longrightarrow>
-                      norm (f y - f x - (y - x) *\<^sub>R g x) \<le> \<epsilon> / 2 / (b - a) * \<bar>y - x\<bar>)\<close>
+                      norm (f y - f x - (y - x) *\<^sub>R g x) \<le> \<epsilon>/2 / (b - a) * \<bar>y - x\<bar>)\<close>
         by metis
       define \<gamma> where \<open>\<gamma> \<equiv> \<lambda>x. g1 x \<inter> ball x (d x)\<close>
       show "\<exists>\<gamma>. gauge \<gamma> \<and> (\<forall>\<D>. \<D> tagged_division_of {a..b} \<and> \<gamma> fine \<D> \<longrightarrow> norm ((\<Sum>(x, k)\<in>\<D>. content k *\<^sub>R g x) - (f b - f a)) < \<epsilon>)"
@@ -1254,7 +1254,7 @@ proof (cases \<open>a<b\<close>)
           have N_bound: \<open>norm (\<Sum>(x,k)\<in>\<D>N. content k *\<^sub>R g x - (f (Sup k) - f (Inf k))) \<le> \<epsilon>/2\<close> (is "?L \<le> _")
           proof -
             \<comment> \<open>Fact 1: norm bound by per-element derivative bound\<close>
-            have step1: \<open>?L \<le> (\<Sum>(x,k)\<in>\<D>N. \<epsilon> / 2 / (b - a) * (Sup k - Inf k))\<close>
+            have step1: \<open>?L \<le> (\<Sum>(x,k)\<in>\<D>N. \<epsilon>/2 / (b - a) * (Sup k - Inf k))\<close>
             proof (rule sum_norm_le)
               fix xk assume xk_in: \<open>xk \<in> \<D>N\<close>
               obtain x k where xk: \<open>xk = (x, k)\<close> by (cases xk)
@@ -1285,10 +1285,10 @@ proof (cases \<open>a<b\<close>)
                 using k_ball inf_in by (auto simp: dist_real_def)
               \<comment> \<open>Apply derivative bound D at Sup k and Inf k\<close>
               have bnd_sup: \<open>norm (f (Sup k) - f x - (Sup k - x) *\<^sub>R g x)
-                            \<le> \<epsilon> / 2 / (b - a) * \<bar>Sup k - x\<bar>\<close>
+                            \<le> \<epsilon>/2 / (b - a) * \<bar>Sup k - x\<bar>\<close>
                 using D x_ab sup_near sup_ab by auto
               have bnd_inf: \<open>norm (f (Inf k) - f x - (Inf k - x) *\<^sub>R g x)
-                            \<le> \<epsilon> / 2 / (b - a) * \<bar>Inf k - x\<bar>\<close>
+                            \<le> \<epsilon>/2 / (b - a) * \<bar>Inf k - x\<bar>\<close>
                 using D x_ab inf_near inf_ab by auto
               \<comment> \<open>Algebraic decomposition\<close>
               have decomp: \<open>content k *\<^sub>R g x - (f (Sup k) - f (Inf k))
@@ -1300,10 +1300,10 @@ proof (cases \<open>a<b\<close>)
                   \<le> norm (f (Inf k) - f x - (Inf k - x) *\<^sub>R g x)
                    + norm (f (Sup k) - f x - (Sup k - x) *\<^sub>R g x)\<close>
                 unfolding decomp by (rule norm_triangle_ineq4)
-              also have \<open>\<dots> \<le> \<epsilon> / 2 / (b - a) * \<bar>Inf k - x\<bar>
-                           + \<epsilon> / 2 / (b - a) * \<bar>Sup k - x\<bar>\<close>
+              also have \<open>\<dots> \<le> \<epsilon>/2 / (b - a) * \<bar>Inf k - x\<bar>
+                           + \<epsilon>/2 / (b - a) * \<bar>Sup k - x\<bar>\<close>
                 using bnd_inf bnd_sup by linarith
-              also have \<open>\<dots> = \<epsilon> / 2 / (b - a) * (Sup k - Inf k)\<close>
+              also have \<open>\<dots> = \<epsilon>/2 / (b - a) * (Sup k - Inf k)\<close>
               proof -
                 have abs1: \<open>\<bar>Inf k - x\<bar> = x - Inf k\<close> using ce sup_k inf_k by auto
                 have abs2: \<open>\<bar>Sup k - x\<bar> = Sup k - x\<close> using ce sup_k inf_k by auto
@@ -1311,12 +1311,12 @@ proof (cases \<open>a<b\<close>)
                   by (simp add: add_divide_distrib[symmetric] algebra_simps)
               qed
               finally show \<open>norm (case xk of (x,k) \<Rightarrow> content k *\<^sub>R g x - (f (Sup k) - f (Inf k)))
-                          \<le> (case xk of (x,k) \<Rightarrow> \<epsilon> / 2 / (b - a) * (Sup k - Inf k))\<close>
+                          \<le> (case xk of (x,k) \<Rightarrow> \<epsilon>/2 / (b - a) * (Sup k - Inf k))\<close>
                 by (simp add: xk)
             qed
             \<comment> \<open>Fact 2: subset monotonicity of nonneg sum\<close>
-            have step2: \<open>(\<Sum>(x,k)\<in>\<D>N. \<epsilon> / 2 / (b - a) * (Sup k - Inf k))
-                        \<le> (\<Sum>(x,k)\<in>\<D>.  \<epsilon> / 2 / (b - a) * (Sup k - Inf k))\<close>
+            have step2: \<open>(\<Sum>(x,k)\<in>\<D>N. \<epsilon>/2 / (b - a) * (Sup k - Inf k))
+                        \<le> (\<Sum>(x,k)\<in>\<D>.  \<epsilon>/2 / (b - a) * (Sup k - Inf k))\<close>
             proof (rule sum_mono2)
               show \<open>finite \<D>\<close> using tagged_division_of_finite[OF td] .
               show \<open>\<D>N \<subseteq> \<D>\<close> unfolding \<D>N_def by auto
@@ -1326,22 +1326,22 @@ proof (cases \<open>a<b\<close>)
                 using tagged_division_ofD(4,2) td
                 by (smt (verit) atLeastAtMost_iff box_real(2) subset_iff)
               then have \<open>Sup k \<ge> Inf k\<close> by simp
-              then show \<open>0 \<le> (case xk of (x,k) \<Rightarrow> \<epsilon> / 2 / (b - a) * (Sup k - Inf k))\<close>
+              then show \<open>0 \<le> (case xk of (x,k) \<Rightarrow> \<epsilon>/2 / (b - a) * (Sup k - Inf k))\<close>
                 using \<open>0 < \<epsilon>\<close> True \<open>xk = (x,k)\<close> by (auto intro!: mult_nonneg_nonneg)
             qed
-            have sum_eq: \<open>(\<Sum>(x,k)\<in>\<D>. \<epsilon> / 2 / (b - a) * (Sup k - Inf k))
-                        = \<epsilon> / 2 / (b - a) * (b - a)\<close>
+            have sum_eq: \<open>(\<Sum>(x,k)\<in>\<D>. \<epsilon>/2 / (b - a) * (Sup k - Inf k))
+                        = \<epsilon>/2 / (b - a) * (b - a)\<close>
             proof -
-              have \<open>(\<Sum>(x,k)\<in>\<D>. \<epsilon> / 2 / (b - a) * (Sup k - Inf k))
-                  = \<epsilon> / 2 / (b - a) * (\<Sum>(x,k)\<in>\<D>. Sup k - Inf k)\<close>
+              have \<open>(\<Sum>(x,k)\<in>\<D>. \<epsilon>/2 / (b - a) * (Sup k - Inf k))
+                  = \<epsilon>/2 / (b - a) * (\<Sum>(x,k)\<in>\<D>. Sup k - Inf k)\<close>
                 by (auto simp: sum_distrib_left case_prod_unfold)
-              also have \<open>\<dots> = \<epsilon> / 2 / (b - a) * (b - a)\<close>
+              also have \<open>\<dots> = \<epsilon>/2 / (b - a) * (b - a)\<close>
                 by (simp add: sum_len)
               finally show ?thesis .
             qed
-            have \<open>?L \<le> \<epsilon> / 2 / (b - a) * (b - a)\<close>
+            have \<open>?L \<le> \<epsilon>/2 / (b - a) * (b - a)\<close>
               using step1 step2 sum_eq by linarith
-            also have \<open>\<dots> = \<epsilon> / 2\<close>
+            also have \<open>\<dots> = \<epsilon>/2\<close>
               using True divide_eq_eq by fastforce
             finally show ?thesis .
           qed
@@ -1998,9 +1998,9 @@ next
       assume "0 < \<epsilon>"
       show "\<exists>\<delta>>0. \<forall>d t. d division_of t \<and> t \<subseteq> s \<and> sum content d < \<delta> \<longrightarrow> (\<Sum>k\<in>d. norm (f k \<bullet> b)) < \<epsilon>"
       proof -
-        have \<open>0 < \<epsilon> / 2\<close> using \<open>0 < \<epsilon>\<close> by simp
+        have \<open>0 < \<epsilon>/2\<close> using \<open>0 < \<epsilon>\<close> by simp
         with R obtain r where \<open>0 < r\<close> and
-          r: \<open>\<And>d t. d division_of t \<Longrightarrow> t \<subseteq> s \<Longrightarrow> sum content d < r \<Longrightarrow> norm (\<Sum>k\<in>d. f k) < \<epsilon> / 2\<close>
+          r: \<open>\<And>d t. d division_of t \<Longrightarrow> t \<subseteq> s \<Longrightarrow> sum content d < r \<Longrightarrow> norm (\<Sum>k\<in>d. f k) < \<epsilon>/2\<close>
           by meson
         show ?thesis
         proof (intro exI conjI allI impI)
@@ -2033,9 +2033,9 @@ next
             by (meson asm content_pos_le d_pos_sub fin order_le_less_trans sum_mono2)
           have content_neg: \<open>sum content d_neg < r\<close>
             by (meson asm content_pos_le d_neg_sub fin order_le_less_trans sum_mono2)
-          have norm_pos: \<open>norm (sum f d_pos) < \<epsilon> / 2\<close>
+          have norm_pos: \<open>norm (sum f d_pos) < \<epsilon>/2\<close>
             using r[OF div_pos union_pos_sub content_pos] .
-          have norm_neg: \<open>norm (sum f d_neg) < \<epsilon> / 2\<close>
+          have norm_neg: \<open>norm (sum f d_neg) < \<epsilon>/2\<close>
             using r[OF div_neg union_neg_sub content_neg] .
           have sum_pos: \<open>(\<Sum>k\<in>d_pos. norm (f k \<bullet> b)) \<le> norm (sum f d_pos)\<close>
           proof -
@@ -2063,7 +2063,7 @@ next
               by (subst d_split) (rule sum.union_disjoint[OF fin_pos fin_neg d_disj])
             also have \<open>\<dots> \<le> norm (sum f d_pos) + norm (sum f d_neg)\<close>
               by (rule add_mono[OF sum_pos sum_neg])
-            also have \<open>\<dots> < \<epsilon> / 2 + \<epsilon> / 2\<close>
+            also have \<open>\<dots> < \<epsilon>/2 + \<epsilon>/2\<close>
               by (rule add_strict_mono[OF norm_pos norm_neg])
             also have \<open>\<dots> = \<epsilon>\<close> by simp
             finally show ?thesis .
@@ -2644,12 +2644,10 @@ proof -
   have nf0_int: "(\<lambda>x. norm (f0 x)) integrable_on UNIV"
     using f0_ai absolutely_integrable_on_def by blast
   have f0_eq: "\<And>x. x \<in> s \<Longrightarrow> f0 x = f x" unfolding f0_def by simp
-  obtain g :: \<open>'a \<Rightarrow> 'b\<close> where
-    g_ai: \<open>g absolutely_integrable_on UNIV\<close> and
-    g_cont: \<open>continuous_on UNIV g\<close> and         
-    g_bdd: \<open>bounded (range g)\<close> and
-    g_approx: \<open>norm (integral UNIV (\<lambda>x. norm (f0 x - g x))) < \<epsilon> / 2\<close>
-      using \<open>0 < \<epsilon>\<close> absolutely_integrable_approximate_continuous [OF _ f0_ai, where e = \<open> \<epsilon> / 2\<close>]
+  obtain g :: \<open>'a \<Rightarrow> 'b\<close> where g_ai: \<open>g absolutely_integrable_on UNIV\<close> 
+               and g_bdd: \<open>bounded (range g)\<close> 
+               and g_approx: \<open>norm (integral UNIV (\<lambda>x. norm (f0 x - g x))) < \<epsilon>/2\<close>
+      using \<open>0 < \<epsilon>\<close> absolutely_integrable_approximate_continuous [OF _ f0_ai, where e = \<open> \<epsilon>/2\<close>]
       by force
   obtain B where \<open>B > 0\<close> and B: \<open>\<And>x. norm (g x) \<le> B\<close>
     using g_bdd bounded_pos[of \<open>range g\<close>] by auto
@@ -2671,7 +2669,7 @@ proof -
     have f0g_ai_t: \<open>(\<lambda>x. f0 x - g x) absolutely_integrable_on t\<close>
       using f0_ai_t g_ai_t by blast
     have nf0g_int_t: \<open>(\<lambda>x. norm (f0 x - g x)) integrable_on t\<close>
-      using f0g_ai_t absolutely_integrable_on_def by blast
+      using f0g_ai_t absolutely_integrable_on_def by metis
     have ng_int_t: \<open>(\<lambda>x. norm (g x)) integrable_on t\<close>
       using g_ai_t absolutely_integrable_on_def by blast
     have bnd_int_t: \<open>(\<lambda>x. norm (f0 x - g x) + norm (g x)) integrable_on t\<close>
@@ -2687,8 +2685,45 @@ proof -
       then show \<open>norm (f x) \<le> norm (f0 x - g x) + norm (g x)\<close>
         using norm_triangle_ineq[of \<open>f0 x - g x\<close> \<open>g x\<close>] by simp
     qed
-    show "norm (integral t f) < \<epsilon>"
-      sorry
+    also have \<open>... = integral t (\<lambda>x. norm (f0 x - g x)) + integral t (\<lambda>x. norm (g x))\<close>
+      using integral_add[OF nf0g_int_t ng_int_t] .
+    also have \<open>... < \<epsilon>\<close>
+    proof -
+      have ineq2a: \<open>integral t (\<lambda>x. norm (f0 x - g x)) < \<epsilon>/2\<close>
+      proof -
+        have nf0g_int: \<open>(\<lambda>x. norm (f0 x - g x)) integrable_on UNIV\<close>
+          using f0_ai g_ai absolutely_integrable_on_def set_integral_diff
+          by metis
+        have \<open>integral t (\<lambda>x. norm (f0 x - g x)) \<le> integral UNIV (\<lambda>x. norm (f0 x - g x))\<close>
+          by (rule integral_subset_le[OF subset_UNIV nf0g_int_t nf0g_int]) simp
+        also have \<open>... \<le> norm (integral UNIV (\<lambda>x. norm (f0 x - g x)))\<close>
+          by auto
+        also have \<open>... < \<epsilon>/2\<close>
+          using g_approx .
+        finally show ?thesis .
+      qed
+      have ineq2b: \<open>integral t (\<lambda>x. norm (g x)) < \<epsilon>/2\<close>
+      proof -
+        have B_int_t: \<open>(\<lambda>x. B) integrable_on t\<close>
+          using \<open>t \<in> lmeasurable\<close> integrable_on_const by blast
+        have \<open>integral t (\<lambda>x. norm (g x)) \<le> integral t (\<lambda>x. B)\<close>
+          by (rule integral_le[OF ng_int_t B_int_t]) (use B in auto)
+        also have \<open>... = B * measure lebesgue t\<close>
+        proof -
+          have \<open>integral t (\<lambda>x. B) = integral t (\<lambda>x. B *\<^sub>R (1::real))\<close> by simp
+          also have \<open>... = B *\<^sub>R integral t (\<lambda>x. 1::real)\<close>
+            using integral_cmul .
+          also have \<open>... = B * measure lebesgue t\<close>
+            using lmeasure_integral[OF \<open>t \<in> lmeasurable\<close>] by (simp add: real_scaleR_def)
+          finally show \<open>integral t (\<lambda>x. B) = B * measure lebesgue t\<close> .
+        qed
+        also have \<open>... < \<epsilon>/2\<close>
+          using * \<open>B > 0\<close> by (simp add: field_simps)
+        finally show ?thesis .
+      qed
+      from ineq2a ineq2b show ?thesis by linarith
+    qed
+    finally show "norm (integral t f) < \<epsilon>" .
   qed 
 qed
 
