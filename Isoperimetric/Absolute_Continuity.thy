@@ -4068,13 +4068,11 @@ proof -
       fix N :: \<open>real set\<close>
       assume negN: \<open>negligible N\<close>
       assume Nprop: \<open>\<And>x e. x \<notin> N \<Longrightarrow> 0 < e \<Longrightarrow>
-        \<exists>d>0. \<forall>h. 0 < h \<and> h < d \<longrightarrow>
-          norm (integral (cbox x (x + h *\<^sub>R One)) g /\<^sub>R h ^ DIM(real) - g x) < e\<close>
+        \<exists>d>0. \<forall>h. 0 < h \<and> h < d \<longrightarrow> norm (integral (cbox x (x + h *\<^sub>R One)) g /\<^sub>R h ^ DIM(real) - g x) < e\<close>
       show \<open>\<exists>k. negligible k \<and>
         (\<forall>x\<in>{u..v} - k. \<forall>e>0.
           \<exists>d>0. \<forall>x'\<in>{u..v}.
-            x < x' \<and> x' < x + d \<longrightarrow>
-              norm (integral {x..x'} f - (x' - x) *\<^sub>R f x) / norm (x' - x) < e)\<close>
+            x < x' \<and> x' < x + d \<longrightarrow> norm (integral {x..x'} f - (x' - x) *\<^sub>R f x) / norm (x' - x) < e)\<close>
       proof (intro exI[of _ N] conjI strip)
         show \<open>negligible N\<close>
           by (rule negN)
@@ -4265,16 +4263,7 @@ proof
       then have \<open>((\<lambda>u. f a + integral {a..u} f') has_vector_derivative f' x) (at x within {a..b})\<close>
         by simp
       then show \<open>(f has_vector_derivative f' x) (at x within {a..b})\<close>
-        unfolding has_vector_derivative_def
-      proof (rule has_derivative_transform_eventually)
-        show \<open>\<forall>\<^sub>F u in at x within {a..b}. f a + integral {a..u} f' = f u\<close>
-          unfolding eventually_at_topological
-          by (intro exI[of _ UNIV]) (auto simp: feq)
-        show \<open>f a + integral {a..x} f' = f x\<close>
-          using feq xmem by auto
-        show \<open>x \<in> {a..b}\<close>
-          using xmem by auto
-      qed
+        by (metis (no_types, lifting) Diff_iff feq has_vector_derivative_transform xmem)
     qed
   qed
 next
@@ -4313,9 +4302,7 @@ lemma absolutely_integrable_absolutely_continuous_derivative_eq:
   fixes f' :: \<open>real \<Rightarrow> 'a::euclidean_space\<close>
   shows \<open>f' absolutely_integrable_on {a..b} \<longleftrightarrow>
     (\<exists>f s. absolutely_continuous_on {a..b} f \<and>
-           negligible s \<and>
-           (\<forall>x \<in> {a..b} - s.
-              (f has_vector_derivative f' x) (at x within {a..b})))\<close>
+           negligible s \<and> (\<forall>x \<in> {a..b} - s. (f has_vector_derivative f' x) (at x within {a..b})))\<close>
     (is \<open>?L \<longleftrightarrow> ?R\<close>)
 proof
   assume L: ?L
@@ -4325,36 +4312,15 @@ proof
   have f_a: \<open>f a = 0\<close>
     unfolding f_def by (simp add: integral_singleton)
   have hi: \<open>(f' has_integral (f x - f a)) {a..x}\<close> if \<open>x \<in> {a..b}\<close> for x
-  proof -
-    have \<open>a \<le> x\<close> \<open>x \<le> b\<close> using that by auto
-    have \<open>f' integrable_on {a..x}\<close>
-      by (rule integrable_subinterval_real[OF f'int])
-         (use \<open>x \<le> b\<close> in auto)
-
-    then have \<open>(f' has_integral integral {a..x} f') {a..x}\<close>
-      by (rule integrable_integral)
-    then show ?thesis
-      unfolding f_def f_a by simp
-  qed
+    using f'int f_def integrable_on_subinterval that by fastforce
   have \<open>f' absolutely_integrable_on {a..b} \<and>
         (\<forall>x \<in> {a..b}. (f' has_integral (f x - f a)) {a..x})\<close>
     using L hi by auto
-  then have \<open>absolutely_continuous_on {a..b} f \<and>
-        (\<exists>s. negligible s \<and>
-             (\<forall>x \<in> {a..b} - s.
-                (f has_vector_derivative f' x) (at x within {a..b})))\<close>
-    by (subst (asm) absolute_integral_absolutely_continuous_derivative_eq)
   then show ?R
-    by blast
+    by (metis absolute_integral_absolutely_continuous_derivative_eq)
 next
-  assume ?R
-  then obtain f s where ac: \<open>absolutely_continuous_on {a..b} f\<close> and
-    neg: \<open>negligible s\<close> and
-    deriv: \<open>\<And>x. x \<in> {a..b} - s \<Longrightarrow>
-               (f has_vector_derivative f' x) (at x within {a..b})\<close>
-    by auto
-  show ?L
-    by (rule absolutely_integrable_absolutely_continuous_derivative[OF ac neg deriv])
+  assume ?R then show ?L
+    using absolutely_integrable_absolutely_continuous_derivative by blast
 qed
 
 
@@ -4372,28 +4338,19 @@ proof -
     by (rule absolute_integral_absolutely_continuous_derivative_eq)
   also have \<open>?M \<longleftrightarrow> ?R\<close>
   proof (intro conj_cong refl iffI)
-    assume \<open>\<exists>s. negligible s \<and>
-               (\<forall>x \<in> {a..b} - s.
-                  (f has_vector_derivative f' x) (at x within {a..b}))\<close>
+    assume \<open>\<exists>s. negligible s \<and> (\<forall>x \<in> {a..b} - s. (f has_vector_derivative f' x) (at x within {a..b}))\<close>
     then obtain s where negs: \<open>negligible s\<close> and
       deriv: \<open>\<And>x. x \<in> {a..b} - s \<Longrightarrow>
                   (f has_vector_derivative f' x) (at x within {a..b})\<close>
       by auto
-    show \<open>\<exists>s. negligible s \<and>
-               (\<forall>x \<in> {a..b} - s.
-                  (f has_vector_derivative f' x) (at x))\<close>
+    show \<open>\<exists>s. negligible s \<and> (\<forall>x \<in> {a..b} - s. (f has_vector_derivative f' x) (at x))\<close>
     proof (intro exI conjI ballI)
       show \<open>negligible ({a, b} \<union> s)\<close>
         using negs by (simp add: negligible_insert)
     next
       fix x assume xmem: \<open>x \<in> {a..b} - ({a, b} \<union> s)\<close>
-      then have \<open>x \<in> {a..b} - s\<close> \<open>a < x\<close> \<open>x < b\<close>
-        by auto
-      then have \<open>(f has_vector_derivative f' x) (at x within {a..b})\<close>
-        by (intro deriv)
       then show \<open>(f has_vector_derivative f' x) (at x)\<close>
-        using \<open>a < x\<close> \<open>x < b\<close>
-        by (subst (asm) at_within_Icc_at)
+        by (metis Diff_iff Diff_insert UnCI atLeastAtMost_iff atLeastAtMost_singleton at_within_Icc_at deriv leI)
     qed
   next
     assume \<open>\<exists>s. negligible s \<and> (\<forall>x \<in> {a..b} - s. (f has_vector_derivative f' x) (at x))\<close>
@@ -4450,8 +4407,7 @@ proof -
   have neg_st: \<open>negligible (s \<union> t)\<close>
     using negs negt negligible_Un by blast
   \<comment> \<open>The derivative of bop(f,g) at each point outside s \<union> t.\<close>
-  have fg_deriv: \<open>((\<lambda>x. bop (f x) (g x)) has_vector_derivative
-    bop (f x) (g' x) + bop (f' x) (g x)) (at x within {a..b})\<close>
+  have fg_deriv: \<open>((\<lambda>x. bop (f x) (g x)) has_vector_derivative bop (f x) (g' x) + bop (f' x) (g x)) (at x within {a..b})\<close>
     if \<open>x \<in> {a..b} - (s \<union> t)\<close> for x
   proof -
     have \<open>x \<in> {a..b} - s\<close> \<open>x \<in> {a..b} - t\<close> using that by auto
