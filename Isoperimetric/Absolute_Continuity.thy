@@ -2636,23 +2636,60 @@ lemma absolutely_continuous_integral:
   obtains \<delta> where \<open>\<delta>>0\<close> \<open>\<And>t. t \<subseteq> s \<Longrightarrow> t \<in> lmeasurable \<Longrightarrow> measure lebesgue t < \<delta>
               \<Longrightarrow> norm (integral t f) < \<epsilon>\<close>
 proof -
-  define f' where "f' \<equiv> \<lambda>x. if x \<in> s then f x else 0"
-  have f'_ai: "f' absolutely_integrable_on UNIV"
-    using assms(1) unfolding f'_def absolutely_integrable_restrict_UNIV .
-  have f'_int: "f' integrable_on UNIV"
-    using f'_ai absolutely_integrable_on_def by blast
-  have nf'_int: "(\<lambda>x. norm (f' x)) integrable_on UNIV"
-    using f'_ai absolutely_integrable_on_def by blast
-  have f'_eq: "\<And>x. x \<in> s \<Longrightarrow> f' x = f x" unfolding f'_def by simp
+  define f0 where "f0 \<equiv> \<lambda>x. if x \<in> s then f x else 0"
+  have f0_ai: "f0 absolutely_integrable_on UNIV"
+    using assms(1) unfolding f0_def absolutely_integrable_restrict_UNIV .
+  have f0_int: "f0 integrable_on UNIV"
+    using f0_ai absolutely_integrable_on_def by blast
+  have nf0_int: "(\<lambda>x. norm (f0 x)) integrable_on UNIV"
+    using f0_ai absolutely_integrable_on_def by blast
+  have f0_eq: "\<And>x. x \<in> s \<Longrightarrow> f0 x = f x" unfolding f0_def by simp
   obtain g :: \<open>'a \<Rightarrow> 'b\<close> where
     g_ai: \<open>g absolutely_integrable_on UNIV\<close> and
     g_cont: \<open>continuous_on UNIV g\<close> and         
     g_bdd: \<open>bounded (range g)\<close> and
-    g_approx: \<open>norm (integral UNIV (\<lambda>x. norm (f' x - g x))) < \<epsilon> / 2\<close>
-      using \<open>0 < \<epsilon>\<close> absolutely_integrable_approximate_continuous [OF _ f'_ai, where e = \<open> \<epsilon> / 2\<close>]
+    g_approx: \<open>norm (integral UNIV (\<lambda>x. norm (f0 x - g x))) < \<epsilon> / 2\<close>
+      using \<open>0 < \<epsilon>\<close> absolutely_integrable_approximate_continuous [OF _ f0_ai, where e = \<open> \<epsilon> / 2\<close>]
       by force
-
-  show ?thesis sorry
+  obtain B where \<open>B > 0\<close> and B: \<open>\<And>x. norm (g x) \<le> B\<close>
+    using g_bdd bounded_pos[of \<open>range g\<close>] by auto
+  show ?thesis
+  proof
+    show "\<epsilon>/2/B > 0"
+      by (simp add: \<open>0 < B\<close> \<open>0 < \<epsilon>\<close>)
+  next
+    fix t
+    assume "t \<subseteq> s"
+      and "t \<in> lmeasurable"
+      and *: "Sigma_Algebra.measure lebesgue t < \<epsilon>/2/B"
+    have g_ai_t: \<open>g absolutely_integrable_on t\<close>
+      by (meson \<open>t \<in> lmeasurable\<close> fmeasurableD g_ai set_integrable_subset subset_UNIV)
+    have f0_ai_t: \<open>f0 absolutely_integrable_on t\<close>
+      by (meson \<open>t \<in> lmeasurable\<close> f0_ai fmeasurableD set_integrable_subset subset_UNIV)
+    have f_ai_t: \<open>f absolutely_integrable_on t\<close>
+      using \<open>t \<in> lmeasurable\<close> \<open>t \<subseteq> s\<close> assms(1) set_integrable_subset by blast
+    have f0g_ai_t: \<open>(\<lambda>x. f0 x - g x) absolutely_integrable_on t\<close>
+      using f0_ai_t g_ai_t by blast
+    have nf0g_int_t: \<open>(\<lambda>x. norm (f0 x - g x)) integrable_on t\<close>
+      using f0g_ai_t absolutely_integrable_on_def by blast
+    have ng_int_t: \<open>(\<lambda>x. norm (g x)) integrable_on t\<close>
+      using g_ai_t absolutely_integrable_on_def by blast
+    have bnd_int_t: \<open>(\<lambda>x. norm (f0 x - g x) + norm (g x)) integrable_on t\<close>
+      using nf0g_int_t ng_int_t integrable_add by blast
+    have ineq1: \<open>norm (integral t f) \<le> integral t (\<lambda>x. norm (f0 x - g x) + norm (g x))\<close>
+    proof (rule integral_norm_bound_integral)
+      show \<open>f integrable_on t\<close>
+        using f_ai_t set_lebesgue_integral_eq_integral by blast
+      show \<open>(\<lambda>x. norm (f0 x - g x) + norm (g x)) integrable_on t\<close>
+        using bnd_int_t .
+      fix x assume \<open>x \<in> t\<close>
+      then have \<open>f x = f0 x\<close> using \<open>t \<subseteq> s\<close> f0_eq by auto
+      then show \<open>norm (f x) \<le> norm (f0 x - g x) + norm (g x)\<close>
+        using norm_triangle_ineq[of \<open>f0 x - g x\<close> \<open>g x\<close>] by simp
+    qed
+    show "norm (integral t f) < \<epsilon>"
+      sorry
+  qed 
 qed
 
 text \<open>Integration by parts for absolutely integrable functions.
