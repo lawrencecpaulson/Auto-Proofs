@@ -338,7 +338,7 @@ lemma area_above_arclet:
   fixes g :: "real \<Rightarrow> complex" and g' :: "real \<Rightarrow> complex"
   assumes "u \<le> v"
     and "Re (g v) \<le> Re (g u)"
-    and "absolutely_continuous_on g {u..v}"
+    and "absolutely_continuous_on {u..v} g"
     and "g ` {u..v} \<subseteq> {z. Im z \<le> 0}"
     and "inj_on g {u..v}"
     and "\<And>x y. x \<in> g ` {u..v} \<Longrightarrow> y \<in> g ` {u..v} \<Longrightarrow> Re x = Re y \<Longrightarrow> x = y"
@@ -356,7 +356,7 @@ theorem green_area_theorem:
     and "b \<in> path_image g" "Re a < Re b" "Im a = Im b"
     and "dist a b = diameter (path_image g)"
     and "convex (inside (path_image g))"
-    and "absolutely_continuous_on g {0..1}"
+    and "absolutely_continuous_on {0..1} g"
     and "negligible U"
     and "\<And>t. t \<in> {0..1} - U \<Longrightarrow> (g has_vector_derivative g' t) (at t)"
   shows "(\<lambda>t. Re (g' t) * Im (g t)) absolutely_integrable_on {0..1}"
@@ -372,8 +372,8 @@ theorem isoperimetric_theorem_convex:
     "pathfinish g = pathstart g"
     "convex (inside (path_image g))"
     "path_length g = L"
-  shows "measure (inside (path_image g)) \<le> L\<^sup>2 / (4 * pi)"
-    and "measure (inside (path_image g)) = L\<^sup>2 / (4 * pi) \<Longrightarrow>
+  shows "measure lebesgue (inside (path_image g)) \<le> L\<^sup>2 / (4 * pi)"
+    and "measure lebesgue (inside (path_image g)) = L\<^sup>2 / (4 * pi) \<Longrightarrow>
       \<exists>a r. path_image g = sphere a r"
   sorry
 
@@ -421,7 +421,7 @@ theorem isoperimetric_convexification_strict:
     path_length h \<le> path_length g \<and>
     convex hull (path_image h) = convex hull (path_image g) \<and>
     path_image h = frontier (convex hull (path_image g)) \<and>
-    measure (inside (path_image g)) < measure (inside (path_image h))"
+    measure lebesgue (inside (path_image g)) < measure lebesgue (inside (path_image h))"
   sorry
 
 section \<open>Part 5: The isoperimetric theorem\<close>
@@ -431,9 +431,67 @@ theorem isoperimetric_theorem:
   assumes "rectifiable_path g" "simple_path g"
     "pathfinish g = pathstart g"
     "path_length g = L"
-  shows "measure (inside (path_image g)) \<le> L\<^sup>2 / (4 * pi)"
-    and "measure (inside (path_image g)) = L\<^sup>2 / (4 * pi) \<Longrightarrow>
+  shows "measure lebesgue (inside (path_image g)) \<le> L\<^sup>2 / (4 * pi)"
+    and "measure lebesgue (inside (path_image g)) = L\<^sup>2 / (4 * pi) \<Longrightarrow>
       \<exists>a r. path_image g = sphere a r"
-  sorry
+proof -
+  show ineq: "measure lebesgue (inside (path_image g)) \<le> L\<^sup>2 / (4 * pi)"
+  proof (cases "convex (inside (path_image g))")
+    case True
+    show ?thesis
+      using isoperimetric_theorem_convex(1)[OF assms(1-3) True assms(4)] .
+  next
+    case False
+    obtain h where h: "rectifiable_path h" "simple_path h"
+      "pathfinish h = pathstart h"
+      "path_length h \<le> path_length g"
+      "convex hull (path_image h) = convex hull (path_image g)"
+      "path_image h = frontier (convex hull (path_image g))"
+      "measure lebesgue (inside (path_image g)) < measure lebesgue (inside (path_image h))"
+      using isoperimetric_convexification_strict[OF assms(1-3) False] by blast
+    have bounded_hull: "bounded (convex hull (path_image g))"
+      by (intro bounded_convex_hull compact_imp_bounded compact_simple_path_image assms(2))
+    have eq_int: "inside (path_image h) = interior (convex hull (path_image g))"
+      using inside_frontier_eq_interior[OF bounded_hull convex_convex_hull] h(6) by simp
+    have convex_h: "convex (inside (path_image h))"
+      using eq_int convex_interior[OF convex_convex_hull] by simp
+    have ineq_h: "measure lebesgue (inside (path_image h)) \<le> (path_length h)\<^sup>2 / (4 * pi)"
+      using isoperimetric_theorem_convex(1)[OF h(1-3) convex_h refl] .
+    have mono: "(path_length h)\<^sup>2 / (4 * pi) \<le> L\<^sup>2 / (4 * pi)"
+      by (intro divide_right_mono power_mono)
+        (use h(4) assms(4) path_length_pos_le[OF h(1)] pi_gt_zero in simp_all)
+    show ?thesis using h(7) ineq_h mono by linarith
+  qed
+  show "\<exists>a r. path_image g = sphere a r"
+    if eq: "measure lebesgue (inside (path_image g)) = L\<^sup>2 / (4 * pi)"
+  proof (cases "convex (inside (path_image g))")
+    case True
+    show ?thesis
+      using isoperimetric_theorem_convex(2)[OF assms(1-3) True assms(4)] eq .
+  next
+    case False
+    obtain h where h: "rectifiable_path h" "simple_path h"
+      "pathfinish h = pathstart h"
+      "path_length h \<le> path_length g"
+      "convex hull (path_image h) = convex hull (path_image g)"
+      "path_image h = frontier (convex hull (path_image g))"
+      "measure lebesgue (inside (path_image g)) < measure lebesgue (inside (path_image h))"
+      using isoperimetric_convexification_strict[OF assms(1-3) False] by blast
+    have bounded_hull: "bounded (convex hull (path_image g))"
+      by (intro bounded_convex_hull compact_imp_bounded compact_simple_path_image assms(2))
+    have eq_int: "inside (path_image h) = interior (convex hull (path_image g))"
+      using inside_frontier_eq_interior[OF bounded_hull convex_convex_hull] h(6) by simp
+    have convex_h: "convex (inside (path_image h))"
+      using eq_int convex_interior[OF convex_convex_hull] by simp
+    have ineq_h: "measure lebesgue (inside (path_image h)) \<le> (path_length h)\<^sup>2 / (4 * pi)"
+      using isoperimetric_theorem_convex(1)[OF h(1-3) convex_h refl] .
+    have mono: "(path_length h)\<^sup>2 / (4 * pi) \<le> L\<^sup>2 / (4 * pi)"
+      by (intro divide_right_mono power_mono)
+        (use h(4) assms(4) path_length_pos_le[OF h(1)] pi_gt_zero in simp_all)
+    have "measure lebesgue (inside (path_image g)) < L\<^sup>2 / (4 * pi)"
+      using h(7) ineq_h mono by linarith
+    with eq show ?thesis by simp
+  qed
+qed
 
 end
