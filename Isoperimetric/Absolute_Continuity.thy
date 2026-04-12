@@ -1,5 +1,5 @@
 theory Absolute_Continuity
-  imports Bounded_Variation "HOL-ex.Sketch_and_Explore" 
+  imports Bounded_Variation 
 begin
 
 text \<open>
@@ -13,8 +13,11 @@ text \<open>
   We give an equivalent direct \<open>\<epsilon>\<close>-\<open>\<delta>\<close> formulation.
 \<close>
 
-section "moved from Green/Paths.thy"
-
+lemma lebesgue_measure_eq_content:
+  assumes "d division_of S"
+  shows "measure lebesgue S = sum Henstock_Kurzweil_Integration.content d"
+by (metis Finite_Cartesian_Product.sum_cong_aux assms content_division division_ofD(4)
+    fmeasurableD fmeasurable_cbox measure_completion)
 
 lemma content_box_cases:
   "measure lborel (box a b) = (if \<forall>i\<in>Basis. a\<bullet>i \<le> b\<bullet>i then prod (\<lambda>i. b\<bullet>i - a\<bullet>i) Basis else 0)"
