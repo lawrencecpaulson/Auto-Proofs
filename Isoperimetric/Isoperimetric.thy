@@ -1,5 +1,5 @@
 theory Isoperimetric
-  imports Arc_Length_Reparametrization "Fourier.Fourier" "Green.Green"
+  imports Arc_Length_Reparametrization "Fourier.Fourier" "Green.Green" "HOL-ex.Sketch_and_Explore" 
 begin
 
 text \<open>
@@ -833,6 +833,68 @@ proof -
     qed
   qed
 
+
+  text \<open>The integral over mainly trouble-free intervals:
+    we only need \<open>sin(x - a) \<noteq> 0\<close> on the open interior, allowing zeros at the endpoints.\<close>
+  have mainly_trouble_free:
+    "(g' has_integral g d - g c) {c..d}"
+    if "c \<le> d" and "{c..d} \<subseteq> {0..2*pi}"
+      and "\<And>x. x \<in> {c<..<d} \<Longrightarrow> sin (x - a) \<noteq> 0"
+    for c d
+  proof -
+    have "g' absolutely_integrable_on {c..d}"
+    proof -
+      have f'2_abs: "(\<lambda>x. (f' x)\<^sup>2) absolutely_integrable_on {0..2*pi}"
+        by (rule abs_absolutely_integrableI_1[OF f'2]) (simp add: integrable_eq[OF f'2])
+      have ffa_abs: "(\<lambda>x. (f x - f a)\<^sup>2) absolutely_integrable_on {0..2*pi}"
+        by (rule absolutely_integrable_continuous_real)
+          (intro continuous_intros contf)
+      note cd_le = \<open>c \<le> d\<close> and cd_sub = \<open>{c..d} \<subseteq> {0..2*pi}\<close>
+        and sin_nz = \<open>\<And>x. x \<in> {c<..<d} \<Longrightarrow> sin (x - a) \<noteq> 0\<close>
+      have g'_int_sub: "g' integrable_on {u..v}" if uv_sub: "{u..v} \<subseteq> {c<..<d}" for u v
+      proof (cases "u \<le> v")
+        case False
+        then show ?thesis by (simp add: not_le integrable_on_empty)
+      next
+        case True
+        then have uv_mem: "u \<in> {c<..<d}" "v \<in> {c<..<d}"
+          using uv_sub by auto
+        have uv_cd: "{u..v} \<subseteq> {c..d}"
+          using uv_sub greaterThanLessThan_subseteq_atLeastAtMost_iff by blast
+        then have uv_2pi: "{u..v} \<subseteq> {0..2*pi}" using cd_sub by auto
+        have sin_nz': "sin (x - a) \<noteq> 0" if "x \<in> {u..v}" for x
+        proof -
+          have "x \<in> {c<..<d}" using that uv_sub by blast
+          then show ?thesis using sin_nz by auto
+        qed
+      show ?thesis
+        using has_integral_integrable[OF trouble_free[OF True uv_2pi sin_nz']] by auto
+      qed
+      have g'_int: "g' integrable_on {c'..d'}" if "{c'..d'} \<subseteq> {c<..<d}" for c' d'
+        using \<open>{c'..d'} \<subseteq> {c<..<d}\<close> g'_int_sub by blast
+      have abs_g_cont: \<open>continuous_on {0..2 * pi} (\<lambda>x. \<bar>g x\<bar>)\<close>
+        using g_cont
+          sorry
+      show ?thesis
+      proof (intro g'_int absolutely_integrable_improper [of c d , unfolded box_real])
+        obtain w where "w\<in>{0..2 * pi}" "\<forall>y\<in>{0..2 * pi}. \<bar>g y\<bar> \<le> \<bar>g w\<bar>"
+          using continuous_attains_sup [of \<open>{0..2*pi}\<close> \<open>\<lambda>x. \<bar>g x\<bar>\<close>]
+          by (metis add_increasing atLeastatMost_empty_iff compact_Icc abs_g_cont mult_2
+            pi_ge_zero)        
+        show "bounded {integral {c'..d'} g' |c' d'. {c'..d'} \<subseteq> {c<..<d}}"
+        sorry
+      next
+        fix i :: real
+        assume "i \<in> Basis"
+        show "\<exists>g. g absolutely_integrable_on {c..d} \<and> ((\<forall>x\<in>{c..d}. g' x \<bullet> i \<le> g x) \<or> (\<forall>x\<in>{c..d}. g x \<le> g' x \<bullet> i))"
+        sorry
+      qed
+    qed
+    show ?thesis
+      sorry
+  qed
+
+    
 
   show "integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2) \<le> integral {0..2*pi} (\<lambda>x. (f' x)\<^sup>2)"
     sorry
