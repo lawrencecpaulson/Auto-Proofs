@@ -698,30 +698,30 @@ qed
 
 lemma has_bounded_variation_on_closure:
   fixes f :: "real \<Rightarrow> 'a::euclidean_space"
-  assumes "is_interval s" "has_bounded_variation_on f s"
-  shows "has_bounded_variation_on f (closure s)"
+  assumes "is_interval S" "has_bounded_variation_on f S"
+  shows "has_bounded_variation_on f (closure S)"
 proof -
-  have fin_fr: "finite (frontier s)" and card2: "card (frontier s) \<le> 2"
-    using finite_frontier_interval_real [OF \<open>is_interval s\<close>] by auto
-  have "bounded (f ` closure s)"
+  have fin_fr: "finite (frontier S)" and card2: "card (frontier S) \<le> 2"
+    using finite_frontier_interval_real [OF \<open>is_interval S\<close>] by auto
+  have "bounded (f ` closure S)"
   proof (rule bounded_subset)
-    show "bounded (f ` (s \<union> frontier s))"
+    show "bounded (f ` (S \<union> frontier S))"
     proof -
-      have "bounded (f ` s)"
-      proof (cases "s = {}")
+      have "bounded (f ` S)"
+      proof (cases "S = {}")
         case True then show ?thesis by simp
       next
         case False
-        then obtain a where aS: "a \<in> s" by auto
-        obtain K where K: "\<And>d t. d division_of t \<Longrightarrow> t \<subseteq> s \<Longrightarrow>
+        then obtain a where aS: "a \<in> S" by auto
+        obtain K where K: "\<And>d T. d division_of T \<Longrightarrow> T \<subseteq> S \<Longrightarrow>
           (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> K"
           using assms(2) unfolding has_bounded_variation_on_def has_bounded_setvariation_on_def
           by blast
         show ?thesis unfolding bounded_iff
         proof (intro exI[of _ "norm (f a) + K"] ballI)
-          fix y assume "y \<in> f ` s"
-          then obtain x where xS: "x \<in> s" and y_eq: "y = f x" by auto
-          have sub: "{min a x..max a x} \<subseteq> s"
+          fix y assume "y \<in> f ` S"
+          then obtain x where xS: "x \<in> S" and y_eq: "y = f x" by auto
+          have sub: "{min a x..max a x} \<subseteq> S"
             using assms
             by (metis aS xS cbox_interval interval_subset_is_interval max_def min_def)
           have d: "{{min a x..max a x}} division_of {min a x..max a x}"
@@ -733,61 +733,61 @@ proof -
             by (metis add.commute diff_le_eq norm_triangle_ineq2 order_trans y_eq)
         qed
       qed
-      moreover have "bounded (f ` frontier s)"
+      moreover have "bounded (f ` frontier S)"
         using fin_fr by (intro finite_imp_bounded finite_imageI)
       ultimately show ?thesis
         by (simp add: image_Un bounded_Un)
     qed
   next
-    show "f ` closure s \<subseteq> f ` (s \<union> frontier s)"
+    show "f ` closure S \<subseteq> f ` (S \<union> frontier S)"
       by (simp add: closure_Un_frontier)
   qed
-  then obtain B' where B'bd: "\<And>x. x \<in> closure s \<Longrightarrow> norm (f x) \<le> B'"
+  then obtain B' where B'bd: "\<And>x. x \<in> closure S \<Longrightarrow> norm (f x) \<le> B'"
     unfolding bounded_iff by (auto simp: image_iff)
   define B where "B = max B' 0"
-  have Bbd: "norm (f x) \<le> B" if "x \<in> closure s" for x 
+  have Bbd: "norm (f x) \<le> B" if "x \<in> closure S" for x 
     using B'bd[OF that] unfolding B_def by simp
   have Bge0: "B \<ge> 0" unfolding B_def by simp
-  obtain K where K: "\<And>d t. d division_of t \<Longrightarrow> t \<subseteq> s \<Longrightarrow> (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> K"
+  obtain K where K: "\<And>d T. d division_of T \<Longrightarrow> T \<subseteq> S \<Longrightarrow> (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> K"
     using assms(2) unfolding has_bounded_variation_on_def has_bounded_setvariation_on_def
     by blast
   let ?B = "K + 8*B"
   show ?thesis
     unfolding has_bounded_variation_on_def has_bounded_setvariation_on_def
   proof (intro exI strip)
-    fix d t
-    assume dt: "d division_of t \<and> t \<subseteq> closure s"
+    fix d T
+    assume dt: "d division_of T \<and> T \<subseteq> closure S"
     then have \<open>finite d\<close>
       by blast
-    define dd where "dd \<equiv> {k \<in> d. k \<subseteq> s} \<union> {k \<in> d. \<not> k \<subseteq> s}"
+    define dd where "dd \<equiv> {k \<in> d. k \<subseteq> S} \<union> {k \<in> d. \<not> k \<subseteq> S}"
     have \<open>d = dd\<close>
       unfolding dd_def by blast
     have \<open>(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) 
-        = (\<Sum>k\<in>{k \<in> d. k \<subseteq> s}. norm (f (Sup k) - f (Inf k))) + (\<Sum>k\<in>{k \<in> d. \<not> k \<subseteq> s}. norm (f (Sup k) - f (Inf k))) \<close>
+        = (\<Sum>k\<in>{k \<in> d. k \<subseteq> S}. norm (f (Sup k) - f (Inf k))) + (\<Sum>k\<in>{k \<in> d. \<not> k \<subseteq> S}. norm (f (Sup k) - f (Inf k))) \<close>
       using \<open>finite d\<close> \<open>d = dd\<close> dd_def sum.union_disjoint
       by (metis (mono_tags, lifting) IntE equals0I finite_Un mem_Collect_eq) 
     also have \<open>... \<le> ?B\<close>
     proof (rule add_mono)
-      show "(\<Sum>k | k \<in> d \<and> k \<subseteq> s. norm (f (Sup k) - f (Inf k))) \<le> K"
+      show "(\<Sum>k | k \<in> d \<and> k \<subseteq> S. norm (f (Sup k) - f (Inf k))) \<le> K"
       proof (rule K)
-        show "{k \<in> d. k \<subseteq> s} division_of \<Union> {k \<in> d. k \<subseteq> s}"
+        show "{k \<in> d. k \<subseteq> S} division_of \<Union> {k \<in> d. k \<subseteq> S}"
           by (metis (lifting) \<open>d = dd\<close> dd_def division_ofD(6) division_of_subset dt sup_ge1)
-        show "\<Union>{k \<in> d. k \<subseteq> s} \<subseteq> s"
+        show "\<Union>{k \<in> d. k \<subseteq> S} \<subseteq> S"
           by blast
       qed
-      have "(\<Sum>k | k \<in> d \<and> \<not> k \<subseteq> s. norm (f (Sup k) - f (Inf k))) 
-          = (\<Sum>k | k \<in> d \<and> \<not> k \<subseteq> s \<and> f (Sup k) \<noteq> f (Inf k). norm (f (Sup k) - f (Inf k)))"
+      have "(\<Sum>k | k \<in> d \<and> \<not> k \<subseteq> S. norm (f (Sup k) - f (Inf k))) 
+          = (\<Sum>k | k \<in> d \<and> \<not> k \<subseteq> S \<and> f (Sup k) \<noteq> f (Inf k). norm (f (Sup k) - f (Inf k)))"
         using \<open>finite d\<close> by (intro sum.mono_neutral_right) auto
-      also have \<open>... \<le> real (card {k \<in> d. \<not> k \<subseteq> s \<and> f (Sup k) \<noteq> f (Inf k)}) * (2 * B)\<close>
+      also have \<open>... \<le> real (card {k \<in> d. \<not> k \<subseteq> S \<and> f (Sup k) \<noteq> f (Inf k)}) * (2 * B)\<close>
       proof (rule sum_bounded_above)
         fix i :: "real set"
-        assume "i \<in> {k \<in> d. \<not> k \<subseteq> s \<and> f (Sup k) \<noteq> f (Inf k)}"
-        then have "i \<in> d" " \<not> i \<subseteq> s" "f (Sup i) \<noteq> f (Inf i)"
+        assume "i \<in> {k \<in> d. \<not> k \<subseteq> S \<and> f (Sup k) \<noteq> f (Inf k)}"
+        then have "i \<in> d" " \<not> i \<subseteq> S" "f (Sup i) \<noteq> f (Inf i)"
           by auto
         show "norm (f (Sup i) - f (Inf i)) \<le> 2 * B"
         proof -
-          have "i \<subseteq> t" using division_ofD(2)[OF conjunct1[OF dt] \<open>i \<in> d\<close>] .
-          then have isub: "i \<subseteq> closure s" using dt by blast
+          have "i \<subseteq> T" using division_ofD(2)[OF conjunct1[OF dt] \<open>i \<in> d\<close>] .
+          then have isub: "i \<subseteq> closure S" using dt by blast
           have "i \<noteq> {}" using division_ofD(3)[OF conjunct1[OF dt] \<open>i \<in> d\<close>] .
           moreover obtain a b where iab: "i = cbox a b"
             using division_ofD(4)[OF conjunct1[OF dt] \<open>i \<in> d\<close>] by auto
@@ -795,7 +795,7 @@ proof -
           then have "Sup i = b" "Inf i = a" 
             using iab by (simp_all add: cbox_interval cSup_atLeastAtMost cInf_atLeastAtMost)
           moreover have "a \<in> i" "b \<in> i" using iab ab by (auto simp: cbox_interval)
-          ultimately have "Sup i \<in> closure s" "Inf i \<in> closure s"
+          ultimately have "Sup i \<in> closure S" "Inf i \<in> closure S"
             using isub by auto
           then have "norm (f (Sup i)) \<le> B" "norm (f (Inf i)) \<le> B"
             using Bbd by auto
@@ -805,26 +805,26 @@ proof -
       qed
       also have \<open>... \<le> 8 * B\<close>
       proof -
-        have "card {k \<in> d. \<not> k \<subseteq> s \<and> f (Sup k) \<noteq> f (Inf k)} \<le> 4"
+        have "card {k \<in> d. \<not> k \<subseteq> S \<and> f (Sup k) \<noteq> f (Inf k)} \<le> 4"
         proof -
-          let ?S = "{k \<in> d. \<not> k \<subseteq> s \<and> f (Sup k) \<noteq> f (Inf k)}"
-          define g where "g k = (if Inf k \<in> frontier s then (Inf k, True) else (Sup k, False))" for k
-          have endpt_frontier: "Inf k \<in> frontier s \<or> Sup k \<in> frontier s" if "k \<in> ?S" for k
+          let ?S = "{k \<in> d. \<not> k \<subseteq> S \<and> f (Sup k) \<noteq> f (Inf k)}"
+          define g where "g k = (if Inf k \<in> frontier S then (Inf k, True) else (Sup k, False))" for k
+          have endpt_frontier: "Inf k \<in> frontier S \<or> Sup k \<in> frontier S" if "k \<in> ?S" for k
           proof -
-            from that have kd: "k \<in> d" and nks: "\<not> k \<subseteq> s" and neq: "f (Sup k) \<noteq> f (Inf k)" by auto
+            from that have kd: "k \<in> d" and nks: "\<not> k \<subseteq> S" and neq: "f (Sup k) \<noteq> f (Inf k)" by auto
             obtain a b where kab: "k = cbox a b" and "a \<le> b" 
               using division_ofD(4)[OF conjunct1[OF dt] kd] nks by auto
             have inf_k: "Inf k = a" "Sup k = b" 
               using kab \<open>a \<le> b\<close> by (simp_all add: cbox_interval cSup_atLeastAtMost cInf_atLeastAtMost)
             have "a \<in> k" "b \<in> k" using kab \<open>a \<le> b\<close> by (auto simp: cbox_interval)
-            then have "Inf k \<in> closure s" "Sup k \<in> closure s"
+            then have "Inf k \<in> closure S" "Sup k \<in> closure S"
               using inf_k dt kd by blast+
-            moreover have "Inf k \<notin> s \<or> Sup k \<notin> s"
+            moreover have "Inf k \<notin> S \<or> Sup k \<notin> S"
               using assms(1) inf_k interval_subset_is_interval kab nks by blast
             ultimately show ?thesis
               using closure_Un_frontier by auto
           qed
-          have g_img: "g ` ?S \<subseteq> frontier s \<times> UNIV"
+          have g_img: "g ` ?S \<subseteq> frontier S \<times> UNIV"
             using endpt_frontier unfolding g_def by auto
           have g_inj: "inj_on g ?S"
           proof (rule inj_onI)
@@ -843,9 +843,9 @@ proof -
             have int: "interior k1 = {a1<..<b1}" "interior k2 = {a2<..<b2}"
               using k1ab k2ab by (simp_all add: cbox_interval interior_atLeastAtMost_real)
             show "k1 = k2"
-            proof (cases "Inf k1 \<in> frontier s")
+            proof (cases "Inf k1 \<in> frontier S")
               case True
-              then have "Inf k2 \<in> frontier s" and "Inf k1 = Inf k2"
+              then have "Inf k2 \<in> frontier S" and "Inf k1 = Inf k2"
                 using geq unfolding g_def by (auto split: if_splits)
               then have "a1 = a2"
                 using k1ab k2ab nondeg1 nondeg2 by auto
@@ -857,7 +857,7 @@ proof -
                 using division_ofD(5)[OF conjunct1[OF dt] k1d k2d] by auto
             next
               case False
-              then have "Inf k2 \<notin> frontier s" and "Sup k1 = Sup k2"
+              then have "Inf k2 \<notin> frontier S" and "Sup k1 = Sup k2"
                 using geq unfolding g_def by (auto split: if_splits)
               then have "b1 = b2" using k1ab k2ab nondeg1 nondeg2 by auto
               then have "(max a1 a2 + b1) / 2 \<in> {a1<..<b1} \<inter> {a2<..<b2}"
@@ -868,19 +868,19 @@ proof -
                 using division_ofD(5)[OF conjunct1[OF dt] k1d k2d] by auto
             qed
           qed
-          have "card ?S \<le> card (frontier s \<times> (UNIV :: bool set))"
+          have "card ?S \<le> card (frontier S \<times> (UNIV :: bool set))"
             using card_inj_on_le[OF g_inj g_img] fin_fr finite by blast
-          also have "... = card (frontier s) * 2"
+          also have "... = card (frontier S) * 2"
             using card_cartesian_product card_UNIV_bool by metis
           also have "... \<le> 2 * 2" using card2 by auto
           finally show ?thesis by simp
         qed
-        then have card_le: "real (card {k \<in> d. \<not> k \<subseteq> s \<and> f (Sup k) \<noteq> f (Inf k)}) \<le> 4"
+        then have card_le: "real (card {k \<in> d. \<not> k \<subseteq> S \<and> f (Sup k) \<noteq> f (Inf k)}) \<le> 4"
           by auto
         show ?thesis
           using mult_right_mono [OF card_le Bge0] by linarith
       qed
-      finally show "(\<Sum>k | k \<in> d \<and> \<not> k \<subseteq> s. norm (f (Sup k) - f (Inf k))) \<le> 8 * B" .
+      finally show "(\<Sum>k | k \<in> d \<and> \<not> k \<subseteq> S. norm (f (Sup k) - f (Inf k))) \<le> 8 * B" .
     qed
     finally show "(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> ?B" .
   qed
@@ -888,13 +888,13 @@ qed
 
 lemma has_bounded_variation_on_closure_eq:
   fixes f :: "real \<Rightarrow> 'a::euclidean_space"
-  assumes "is_interval s"
-  shows "has_bounded_variation_on f (closure s) \<longleftrightarrow> has_bounded_variation_on f s"
+  assumes "is_interval S"
+  shows "has_bounded_variation_on f (closure S) \<longleftrightarrow> has_bounded_variation_on f S"
   by (meson assms closure_subset has_bounded_variation_on_closure has_bounded_variation_on_subset)
 
 lemma has_bounded_set_variation:
-  "has_bounded_setvariation_on f s \<and> set_variation s f \<le> c \<longleftrightarrow>
-    (\<forall>d t. d division_of t \<and> t \<subseteq> s \<longrightarrow> (\<Sum>k\<in>d. norm (f k)) \<le> c)"
+  "has_bounded_setvariation_on f S \<and> set_variation S f \<le> c \<longleftrightarrow>
+    (\<forall>d T. d division_of T \<and> T \<subseteq> S \<longrightarrow> (\<Sum>k\<in>d. norm (f k)) \<le> c)"
   by (metis has_bounded_setvariation_on_def has_bounded_setvariation_works le_left_mono)
 
 lemma has_bounded_vector_variation_on_interval:
@@ -907,13 +907,8 @@ proof
   then have bdd: "has_bounded_variation_on f {a..b}"
     and le: "vector_variation {a..b} f \<le> c" by auto
   show ?R
-  proof (intro allI impI)
-    fix d assume "d division_of {a..b}"
-    then have "(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> vector_variation {a..b} f"
-      using has_bounded_variation_works(1)[OF bdd] by auto
-    also have "\<dots> \<le> c" using le .
-    finally show "(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> c" .
-  qed
+    using has_bounded_variation_works(1)[OF bdd] 
+    by (meson dual_order.trans le subset_refl) 
 next
   assume R: ?R
   show ?L
@@ -930,16 +925,13 @@ next
         using division_ofD(6)[OF div_d] .
       ultimately have "\<Union>d \<subseteq> cbox a b"
         using sub by (simp add: cbox_interval)
-      then obtain q where dq: "d \<subseteq> q" and q_div: "q division_of cbox a b"
-        using partial_division_extend_interval \<open>d division_of \<Union>d\<close> by blast
-      have q_div': "q division_of {a..b}"
-        using q_div by (simp add: cbox_interval)
-      have fin_q: "finite q"
-        using division_of_finite[OF q_div] .
+      then obtain q where dq: "d \<subseteq> q" and q_div: "q division_of {a..b}"
+        using partial_division_extend_interval \<open>d division_of \<Union>d\<close> cbox_interval by metis
       have "(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> (\<Sum>k\<in>q. norm (f (Sup k) - f (Inf k)))"
-        by (rule sum_mono2[OF fin_q dq]) auto
+        using division_of_finite[OF q_div]
+        by (rule sum_mono2[OF _ dq]) auto
       also have "\<dots> \<le> c"
-        using R q_div' by auto
+        using R q_div by auto
       finally show "(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> c" .
     qed
   qed
@@ -954,22 +946,22 @@ lemma has_bounded_vector_variation:
 
 
 lemma 
-  fixes f :: "real \<Rightarrow> 'a::euclidean_space" and s t :: "real set"
-  assumes "is_interval s" "is_interval t"
-    "has_bounded_variation_on f s" "has_bounded_variation_on f t"
-  shows has_bounded_variation_on_Un: "has_bounded_variation_on f (s \<union> t)" (is ?th1)
+  fixes f :: "real \<Rightarrow> 'a::euclidean_space" and S T :: "real set"
+  assumes "is_interval S" "is_interval T"
+    "has_bounded_variation_on f S" "has_bounded_variation_on f T"
+  shows has_bounded_variation_on_Un: "has_bounded_variation_on f (S \<union> T)" (is ?th1)
     and vector_variation_Un_le:
-    "(s \<inter> t = {} \<Longrightarrow> s \<inter> closure t = {} \<and> t \<inter> closure s = {}) 
-    \<Longrightarrow> vector_variation (s \<union> t) f \<le> vector_variation s f + vector_variation t f" (is "PROP ?th2")
+    "(S \<inter> T = {} \<Longrightarrow> S \<inter> closure T = {} \<and> T \<inter> closure S = {}) 
+    \<Longrightarrow> vector_variation (S \<union> T) f \<le> vector_variation S f + vector_variation T f" (is "PROP ?th2")
 proof -
-  have combined: "has_bounded_variation_on f (s \<union> t) \<and> vector_variation (s \<union> t) f 
-         \<le> vector_variation s f + vector_variation t f"
-    if "is_interval s" and "is_interval t"
-      and clo: "s \<inter> t = {} \<Longrightarrow> s \<inter> closure t = {} \<and> t \<inter> closure s = {}"
-      and bv_fs: "has_bounded_variation_on f s"
-      and bv_ft: "has_bounded_variation_on f t"
-    for f :: "real \<Rightarrow> 'a" and s t
-  proof (cases "s={} \<or> t={}")
+  have combined: "has_bounded_variation_on f (S \<union> T) \<and> vector_variation (S \<union> T) f 
+         \<le> vector_variation S f + vector_variation T f"
+    if "is_interval S" and "is_interval T"
+      and clo: "S \<inter> T = {} \<Longrightarrow> S \<inter> closure T = {} \<and> T \<inter> closure S = {}"
+      and bv_fs: "has_bounded_variation_on f S"
+      and bv_ft: "has_bounded_variation_on f T"
+    for f :: "real \<Rightarrow> 'a" and S T
+  proof (cases "S={} \<or> T={}")
     case True
     then show ?thesis
       using that vector_variation_pos_le [of f]
@@ -977,15 +969,15 @@ proof -
           sup_bot_right)
   next
     case False
-    then obtain p q where "p \<in> s" and "q \<in> t"
+    then obtain p q where "p \<in> S" and "q \<in> T"
        by blast
     show ?thesis
       unfolding has_bounded_vector_variation
     proof (intro strip)
       fix d u
-      assume du: "d division_of u \<and> u \<subseteq> s \<union> t"
+      assume du: "d division_of u \<and> u \<subseteq> S \<union> T"
       have "\<exists>j k. j \<noteq> {} \<and> k \<noteq> {} \<and> (\<exists>a b. j = {a..b}) \<and> (\<exists>a b. k = {a..b})
-                \<and> j \<subseteq> s \<and> k \<subseteq> t \<and> (j \<subseteq> i \<or> interior j = {}) \<and> (k \<subseteq> i \<or> interior k = {}) 
+                \<and> j \<subseteq> S \<and> k \<subseteq> T \<and> (j \<subseteq> i \<or> interior j = {}) \<and> (k \<subseteq> i \<or> interior k = {}) 
                 \<and> norm (f (Sup i) - f (Inf i)) \<le> norm (f (Sup j) - f (Inf j)) + norm (f (Sup k) - f (Inf k))"
         if "i \<in> d" for i 
       proof -
@@ -996,48 +988,47 @@ proof -
         then have "a \<in> {a..b}" "b \<in> {a..b}" using ab by auto
         have iSup: "Sup i = b" and iInf: "Inf i = a"
           using ab iab by auto
-        have isub: "i \<subseteq> u" and usub: "u \<subseteq> s \<union> t"
+        have isub: "i \<subseteq> u" and usub: "u \<subseteq> S \<union> T"
           using du that division_ofD(2) by (blast, meson)
-        then have ab_st: "{a,b} \<subseteq> s \<union> t"
-          by (metis Un_insert_left Un_insert_right atLeastatMost_empty_iff2 ne
-              empty_subsetI iab insert_subset ivl_disj_un_singleton(5,6) subset_iff)
+        then have ab_st: "{a,b} \<subseteq> S \<union> T"
+          using iab \<open>a \<in> {a..b}\<close> by auto
         have one_in_each: ?thesis
-          if aS: "a \<in> S" and bT: "b \<in> T" and ivS: "is_interval S" and ivT: "is_interval T"
-            and st: "(S = s \<and> T = t) \<or> (S = t \<and> T = s)"
-          for S T
-        proof (cases "s \<inter> t = {}")
+          if aS: "a \<in> U" and bT: "b \<in> V" and ivS: "is_interval U" and ivT: "is_interval V"
+            and st: "(U = S \<and> V = T) \<or> (U = T \<and> V = S)"
+          for U V
+        proof (cases "S \<inter> T = {}")
           case True
           \<comment> \<open>Separated case: connectedness contradiction\<close>
-          have sep: "s \<inter> closure t = {} \<and> t \<inter> closure s = {}" using clo True by blast
-          have sub: "{a..b} \<subseteq> s \<union> t" using isub usub iab by blast
-          have o1: "open (- closure t)" and o2: "open (- closure s)"
+          have sep: "S \<inter> closure T = {} \<and> T \<inter> closure S = {}" using clo True by blast
+          have sub: "{a..b} \<subseteq> S \<union> T" using isub usub iab by blast
+          have o1: "open (- closure T)" and o2: "open (- closure S)"
             using open_Compl closed_closure by blast+
-          have s_sub: "s \<subseteq> - closure t" and t_sub: "t \<subseteq> - closure s"
+          have s_sub: "S \<subseteq> - closure T" and t_sub: "T \<subseteq> - closure S"
             using sep by blast+
-          have "{a..b} \<subseteq> (- closure t) \<union> (- closure s)"
+          have "{a..b} \<subseteq> (- closure T) \<union> (- closure S)"
             using sub s_sub t_sub by blast
-          moreover have "(- closure t) \<inter> (- closure s) \<inter> {a..b} = {}"
+          moreover have "(- closure T) \<inter> (- closure S) \<inter> {a..b} = {}"
             using sub closure_subset by blast
-          moreover have "(- closure t) \<inter> {a..b} \<noteq> {} \<and> (- closure s) \<inter> {a..b} \<noteq> {}"
+          moreover have "(- closure T) \<inter> {a..b} \<noteq> {} \<and> (- closure S) \<inter> {a..b} \<noteq> {}"
             using aS bT st s_sub t_sub ab by auto
           ultimately show ?thesis
             by (meson connectedD connected_Icc o1 o2)
         next
           case False
-          \<comment> \<open>Overlapping case: pick @{term \<open>c \<in> s \<inter> t\<close>}, split at @{term \<open>c' = max a (min c b)\<close>}\<close>
-          obtain c where "c \<in> s" "c \<in> t" using False by blast
+          \<comment> \<open>Overlapping case: pick @{term \<open>c \<in> S \<inter> T\<close>}, split at @{term \<open>c' = max a (min c b)\<close>}\<close>
+          obtain c where "c \<in> S" "c \<in> T" using False by blast
           with aS bT ivS ivT st
-          have c': "max a (min c b) \<in> s \<and> max a (min c b) \<in> t \<and> max a (min c b) \<in> {a..b}"
+          have c': "max a (min c b) \<in> S \<and> max a (min c b) \<in> T \<and> max a (min c b) \<in> {a..b}"
             by (smt (verit) ab atLeastAtMost_iff max.absorb1 max.absorb2 mem_is_interval_1_I
                 min_le_iff_disj)
           define c' where "c' = max a (min c b)"
-          then have c'_s: "c' \<in> s" and c'_t: "c' \<in> t" and c'_ab: "a \<le> c'" "c' \<le> b"
+          then have c'_s: "c' \<in> S" and c'_t: "c' \<in> T" and c'_ab: "a \<le> c'" "c' \<le> b"
             using c' by auto
-          have lo_sub_S: "{a..c'} \<subseteq> S"
-            using aS c'_s c'_t ivS st interval_subset_is_interval[of S a c']
+          have lo_sub_S: "{a..c'} \<subseteq> U"
+            using aS c'_s c'_t ivS st interval_subset_is_interval[of U a c']
             by (auto simp: box_real)
-          have hi_sub_T: "{c'..b} \<subseteq> T"
-            using bT c'_s c'_t ivT st interval_subset_is_interval[of T c' b]
+          have hi_sub_T: "{c'..b} \<subseteq> V"
+            using bT c'_s c'_t ivT st interval_subset_is_interval[of V c' b]
             by (auto simp: box_real)
           have lo_sub_i: "{a..c'} \<subseteq> {a..b}" and hi_sub_i: "{c'..b} \<subseteq> {a..b}"
             using c'_ab ab by auto
@@ -1045,46 +1036,46 @@ proof -
             by (simp add: order_trans [OF _ norm_triangle_ineq])
           show ?thesis using st
           proof
-            assume st': "S = s \<and> T = t"
+            assume st': "U = S \<and> V = T"
             show ?thesis
               apply (rule_tac x="{a..c'}" in exI, rule_tac x="{c'..b}" in exI)
               using c'_ab ab lo_sub_S hi_sub_T lo_sub_i hi_sub_i iab ne tri st'
               by (auto simp: iSup iInf)
           next
-            assume st': "S = t \<and> T = s"
+            assume st': "U = T \<and> V = S"
             show ?thesis
               apply (rule_tac x="{c'..b}" in exI, rule_tac x="{a..c'}" in exI)
               using c'_ab ab lo_sub_S hi_sub_T lo_sub_i hi_sub_i iab ne tri st'
               by (auto simp: iSup iInf)
           qed
         qed
-        from ab_st consider "a \<in> s \<and> b \<in> s" | "a \<in> s \<and> b \<in> t" | "a \<in> t \<and> b \<in> s" | "a \<in> t \<and> b \<in> t"
+        from ab_st consider "a \<in> S \<and> b \<in> S" | "a \<in> S \<and> b \<in> T" | "a \<in> T \<and> b \<in> S" | "a \<in> T \<and> b \<in> T"
           by blast
         then show ?thesis
         proof cases
-          case 1 \<comment> \<open>Both endpoints in @{term s}\<close>
+          case 1 \<comment> \<open>Both endpoints in @{term S}\<close>
           show ?thesis
             apply (rule exI[where x="{a..b}"])
             apply (rule exI[where x="{q..q}"])
-            using 1 ne \<open>q \<in> t\<close> iab ab \<open>is_interval s\<close> interval_subset_is_interval[of _ a b] 
+            using 1 ne \<open>q \<in> T\<close> iab ab \<open>is_interval S\<close> interval_subset_is_interval[of _ a b] 
             by (force simp: iSup iInf interior_atLeastAtMost_real)
         next
-          case 2 \<comment> \<open>@{term \<open>a \<in> s\<close>}, @{term \<open>b \<in> t\<close>}\<close>
-          then show ?thesis using one_in_each[where S=s and T=t] \<open>is_interval s\<close> \<open>is_interval t\<close> by blast
+          case 2 \<comment> \<open>@{term \<open>a \<in> S\<close>}, @{term \<open>b \<in> T\<close>}\<close>
+          then show ?thesis using one_in_each[where U=S and V=T] \<open>is_interval S\<close> \<open>is_interval T\<close> by blast
         next
-          case 3 \<comment> \<open>@{term \<open>a \<in> t\<close>}, @{term \<open>b \<in> s\<close>}\<close>
-          then show ?thesis using one_in_each[where S=t and T=s] \<open>is_interval s\<close> \<open>is_interval t\<close> by blast
+          case 3 \<comment> \<open>@{term \<open>a \<in> T\<close>}, @{term \<open>b \<in> S\<close>}\<close>
+          then show ?thesis using one_in_each[where U=T and V=S] \<open>is_interval S\<close> \<open>is_interval T\<close> by blast
         next
-          case 4 \<comment> \<open>Both endpoints in @{term t}\<close>
+          case 4 \<comment> \<open>Both endpoints in @{term T}\<close>
           show ?thesis
             apply (rule exI[where x="{p..p}"])
             apply (rule exI[where x="{a..b}"])
-            using 4 ne \<open>p \<in> s\<close> iab ab \<open>is_interval t\<close> interval_subset_is_interval[of _ a b] 
+            using 4 ne \<open>p \<in> S\<close> iab ab \<open>is_interval T\<close> interval_subset_is_interval[of _ a b] 
             by (force simp: iSup iInf interior_atLeastAtMost_real)
         qed
       qed
       then obtain L R where LR: "\<forall>i\<in>d. L i \<noteq> {} \<and> R i \<noteq> {} \<and> (\<exists>a b. L i = {a..b}) 
-             \<and> (\<exists>a b. R i = {a..b}) \<and> L i \<subseteq> s \<and> R i \<subseteq> t \<and> (L i \<subseteq> i \<or> interior (L i) = {}) 
+             \<and> (\<exists>a b. R i = {a..b}) \<and> L i \<subseteq> S \<and> R i \<subseteq> T \<and> (L i \<subseteq> i \<or> interior (L i) = {}) 
              \<and> (R i \<subseteq> i \<or> interior (R i) = {}) 
              \<and> norm (f (Sup i) - f (Inf i)) \<le> norm (f (Sup (L i)) - f (Inf (L i))) + norm (f (Sup (R i)) - f (Inf (R i)))"
         by metis
@@ -1113,22 +1104,15 @@ proof -
         qed
         have split_sum: "(\<Sum>k\<in>d. norm (f (Sup (g k)) - f (Inf (g k)))) 
                        = (\<Sum>k\<in>d'. norm (f (Sup (g k)) - f (Inf (g k))))"
-        proof -
-          have "(\<Sum>k\<in>d. norm (f (Sup (g k)) - f (Inf (g k)))) 
-              = (\<Sum>k\<in>d'. norm (f (Sup (g k)) - f (Inf (g k)))) + (\<Sum>k\<in>d-d'. norm (f (Sup (g k)) - f (Inf (g k))))"
-            using sum.subset_diff[OF d'_sub \<open>finite d\<close>]
-            by (metis (mono_tags, lifting) add.commute)
-          with zero show ?thesis by simp
-        qed
+          using sum.subset_diff[OF d'_sub \<open>finite d\<close>] zero
+          by (simp add: \<open>finite d\<close> d'_sub sum.mono_neutral_right)
         have inj_g: "inj_on g d'"
         proof (rule inj_onI)
           fix x y assume "x \<in> d'" "y \<in> d'" "g x = g y"
           then have \<section>: "x \<in> d" "y \<in> d" "interior (g x) \<noteq> {}" "interior (g y) \<noteq> {}"
             unfolding d'_def by auto
-          then have "interior (g x) \<subseteq> interior x" "interior (g y) \<subseteq> interior y"
-            using interior_mono gcontain by metis+
           then show "x = y"
-            using du \<open>x \<in> d\<close> \<open>y \<in> d\<close> \<section>
+            using du \<open>x \<in> d\<close> \<open>y \<in> d\<close> interior_mono gcontain \<section>
             by (metis \<open>g x = g y\<close> division_ofD(5) inf.boundedI subset_empty)
         qed
         have gd'_div: "g ` d' division_of \<Union> (g ` d')"
@@ -1142,10 +1126,8 @@ proof -
           then have "g x1 \<subseteq> x1" "g x2 \<subseteq> x2" using gcontain \<open>x1 \<in> d\<close> \<open>x2 \<in> d\<close> by meson+
           then have "interior (g x1) \<subseteq> interior x1" "interior (g x2) \<subseteq> interior x2"
             using interior_mono by blast+
-          moreover have "interior x1 \<inter> interior x2 = {}"
-            using du \<open>x1 \<in> d\<close> \<open>x2 \<in> d\<close> \<open>x1 \<noteq> x2\<close> by (meson division_ofD(5))
-          ultimately show "interior K1 \<inter> interior K2 = {}"
-            using k12 by auto
+          then show "interior K1 \<inter> interior K2 = {}"
+            using k12 du \<open>x1 \<in> d\<close> \<open>x2 \<in> d\<close> \<open>x1 \<noteq> x2\<close> division_ofD(5) by blast
         qed (use fd' gcbox gne in \<open>auto simp: d'_def\<close>)
         have gd'_sub_S: "\<Union> (g ` d') \<subseteq> S"
           using gsub bot.extremum by (fastforce simp: d'_def)
@@ -1159,32 +1141,31 @@ proof -
       have "(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) 
           \<le> (\<Sum>k\<in>d. norm (f (Sup (L k)) - f (Inf (L k))) + norm (f (Sup (R k)) - f (Inf (R k))))"
         by (meson LR sum_mono)
-      also have "\<dots> \<le> vector_variation s f + vector_variation t f"
+      also have "\<dots> \<le> vector_variation S f + vector_variation T f"
         unfolding sum.distrib
       proof (intro add_mono)
-        show "(\<Sum>k\<in>d. norm (f (Sup (L k)) - f (Inf (L k)))) \<le> vector_variation s f"
-          using div_sum_bound[of L s] LR bv_fs by blast
+        show "(\<Sum>k\<in>d. norm (f (Sup (L k)) - f (Inf (L k)))) \<le> vector_variation S f"
+          using div_sum_bound[of L S] LR bv_fs by blast
       next
-        show "(\<Sum>k\<in>d. norm (f (Sup (R k)) - f (Inf (R k)))) \<le> vector_variation t f"
-          using div_sum_bound[of R t] LR bv_ft by blast
+        show "(\<Sum>k\<in>d. norm (f (Sup (R k)) - f (Inf (R k)))) \<le> vector_variation T f"
+          using div_sum_bound[of R T] LR bv_ft by blast
       qed
-
-      finally show "(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> vector_variation s f + vector_variation t f" .
+      finally show "(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> vector_variation S f + vector_variation T f" .
     qed
   qed
-  show "has_bounded_variation_on f (s \<union> t)"
+  show "has_bounded_variation_on f (S \<union> T)"
   proof -
-    have "has_bounded_variation_on f (closure s \<union> closure t)"
+    have "has_bounded_variation_on f (closure S \<union> closure T)"
       by (metis (lifting) ext assms closure_closure combined convex_closure
           has_bounded_variation_on_closure_eq inf_commute is_interval_convex_1)
-    then have "has_bounded_variation_on f (closure s \<union> closure t)"
+    then have "has_bounded_variation_on f (closure S \<union> closure T)"
       using combined by blast
     then show ?thesis
       by (metis has_bounded_variation_on_subset closure_Un closure_subset)
   qed
-  show "(s \<inter> t = {} \<Longrightarrow> s \<inter> closure t = {} \<and> t \<inter> closure s = {}) 
-    \<Longrightarrow> vector_variation (s \<union> t) f \<le> vector_variation s f + vector_variation t f" 
-      using combined assms  by blast
+  show "(S \<inter> T = {} \<Longrightarrow> S \<inter> closure T = {} \<and> T \<inter> closure S = {}) 
+    \<Longrightarrow> vector_variation (S \<union> T) f \<le> vector_variation S f + vector_variation T f" 
+      using combined assms by blast
 qed
 
 
@@ -1217,16 +1198,11 @@ proof -
       by (auto intro: is_interval_Int assms(1) is_interval_ic is_interval_ci)
     show "has_bounded_variation_on f ?L" "has_bounded_variation_on f ?R"
       by (auto intro: has_bounded_variation_on_subset[OF assms(2)])
-    show "?L \<inter> ?R = {} \<Longrightarrow> ?L \<inter> closure ?R = {} \<and> ?R \<inter> closure ?L = {}"
+    show "?L \<inter> closure ?R = {} \<and> ?R \<inter> closure ?L = {}" if disj: "?L \<inter> ?R = {}"
     proof -
-      assume disj: "?L \<inter> ?R = {}"
-      have "closure ?R \<subseteq> {a..}"
-        by (rule closure_minimal) (auto intro: closed_real_atLeast)
-      moreover have "closure ?L \<subseteq> {..a}"
-        by (rule closure_minimal) (auto intro: closed_real_atMost)
-      moreover have "?L \<inter> ?R = s \<inter> {a}" by auto
-      moreover note disj
-      ultimately show "?L \<inter> closure ?R = {} \<and> ?R \<inter> closure ?L = {}"
+      obtain "closure ?R \<subseteq> {a..}" "closure ?L \<subseteq> {..a}"
+        by (simp add: closure_minimal)
+      with disj show "?L \<inter> closure ?R = {} \<and> ?R \<inter> closure ?L = {}"
         by auto
     qed
   qed
@@ -1237,8 +1213,7 @@ qed
 lemma has_bounded_variation_on_split:
   assumes "is_interval s"
   shows "has_bounded_variation_on f s \<longleftrightarrow>
-    has_bounded_variation_on f (s \<inter> {..a}) \<and>
-    has_bounded_variation_on f (s \<inter> {a..})"
+    has_bounded_variation_on f (s \<inter> {..a}) \<and> has_bounded_variation_on f (s \<inter> {a..})"
   (is "?lhs \<longleftrightarrow> ?rhs")
 proof
   assume bv: ?lhs
@@ -1260,8 +1235,7 @@ lemma has_bounded_variation_on_combine:
     has_bounded_variation_on f {a..c} \<and> has_bounded_variation_on f {c..b}"
 proof -
   have *: "has_bounded_variation_on f {a..b} \<longleftrightarrow>
-    has_bounded_variation_on f ({a..b} \<inter> {..c}) \<and>
-    has_bounded_variation_on f ({a..b} \<inter> {c..})"
+    has_bounded_variation_on f ({a..b} \<inter> {..c}) \<and> has_bounded_variation_on f ({a..b} \<inter> {c..})"
     by (rule has_bounded_variation_on_split) (simp add: is_interval_cc)
   show ?thesis
     using * assms by (simp add: Int_atLeastAtMostL1 Int_atLeastAtMostL2 min_absorb2 max_absorb2)
@@ -1298,25 +1272,11 @@ proof -
     have int_disj: "\<And>k1 k2. k1 \<in> d \<Longrightarrow> k2 \<in> d \<Longrightarrow> k1 \<noteq> k2 \<Longrightarrow> interior k1 \<inter> interior k2 = {}"
       using division_ofD(5)[OF that] by auto
     have k_interval: "\<And>k. k \<in> d \<Longrightarrow> \<exists>l u. l \<le> u \<and> k = {l..u} \<and> Inf k = l \<and> Sup k = u"
-    proof -
-      fix k assume "k \<in> d"
-      then obtain l u where "k = cbox l u" "k \<noteq> {}" using kprops by blast
-      then have "l \<le> u" by force
-      then have "k = {l..u}" "Inf k = l" "Sup k = u"
-        using \<open>k = cbox l u\<close> by (auto simp: cbox_interval)
-      with \<open>l \<le> u\<close> show "\<exists>l u. l \<le> u \<and> k = {l..u} \<and> Inf k = l \<and> Sup k = u" by auto
-    qed
+      using kprops by fastforce
     have mono_le: "\<And>x y. x \<in> {a..b} \<Longrightarrow> y \<in> {a..b} \<Longrightarrow> x \<le> y \<Longrightarrow> f x \<le> f y"
       using mono by (simp add: monotone_on_def)
     have fInf_le_fSup: "\<And>k. k \<in> d \<Longrightarrow> f (Inf k) \<le> f (Sup k)"
-    proof -
-      fix k assume "k \<in> d"
-      then obtain l u where lu: "l \<le> u" "k = {l..u}" "Inf k = l" "Sup k = u"
-        using k_interval by blast
-      have "k \<subseteq> {a..b}" using kprops \<open>k \<in> d\<close> by auto
-      then have "l \<in> {a..b}" "u \<in> {a..b}" using lu by auto
-      then show "f (Inf k) \<le> f (Sup k)" using lu mono_le by auto
-    qed
+      using kprops mono_le by fastforce
     have \<open>D division_of \<Union>D\<close>
       unfolding division_of_def
     proof (intro conjI ballI allI impI)
@@ -1325,8 +1285,7 @@ proof -
       fix K assume "K \<in> D"
       then obtain k where kd: "k \<in> d" and K_eq: "K = {f (Inf k)..f (Sup k)}"
         unfolding D_def by auto
-      show "K \<subseteq> \<Union>D" using \<open>K \<in> D\<close> by auto
-      show "K \<noteq> {}" using K_eq fInf_le_fSup[OF kd] by auto
+      show "K \<subseteq> \<Union>D" "K \<noteq> {}" using \<open>K \<in> D\<close> K_eq fInf_le_fSup[OF kd] by auto
       show "\<exists>a b. K = cbox a b" using K_eq by (auto simp: cbox_interval)
     next
       fix K1 K2 assume K1D: "K1 \<in> D" and K2D: "K2 \<in> D" and ne: "K1 \<noteq> K2"
@@ -1366,21 +1325,9 @@ proof -
           using fl1_lt_fu1 lu1(1) by (cases "l1 = u1") auto
         have l2_lt_u2: "l2 < u2"
           using fl2_lt_fu2 lu2(1) by (cases "l2 = u2") auto
-        have "l1 < u2"
-        proof (rule ccontr)
-          assume "\<not> l1 < u2"
-          then have "u2 \<le> l1" by linarith
-          then have "f u2 \<le> f l1" using mono_le l1a(1) l2a(2) by auto
-          with y_in1(1) y_in2(2) show False by linarith
-        qed
-        moreover have "l2 < u1"
-        proof (rule ccontr)
-          assume "\<not> l2 < u1"
-          then have "u1 \<le> l2" by linarith
-          then have "f u1 \<le> f l2" using mono_le l2a(1) l1a(2) by auto
-          with y_in2(1) y_in1(2) show False by linarith
-        qed
-        ultimately have "max l1 l2 < min u1 u2"
+        have "l1 < u2" "l2 < u1"
+          using l1a l2a mono_le y_in1 y_in2 by fastforce+
+        then have "max l1 l2 < min u1 u2"
           using l1_lt_u1 l2_lt_u2 by auto
         then have "(max l1 l2 + min u1 u2) / 2 \<in> {l1<..<u1} \<inter> {l2<..<u2}"
           using l1_lt_u1 l2_lt_u2 by auto
@@ -1396,15 +1343,14 @@ proof -
       fix x assume "x \<in> \<Union>D"
       then obtain K where KD: "K \<in> D" and xK: "x \<in> K" by auto
       from KD obtain k where kd: "k \<in> d" and K_eq: "K = {f (Inf k)..f (Sup k)}"
-        unfolding D_def by auto
+                       and k_sub: "k \<subseteq> {a..b}"
+        unfolding D_def using kprops by auto
       obtain l u where lu: "l \<le> u" "k = {l..u}" "Inf k = l" "Sup k = u"
         using k_interval[OF kd] by blast
       have k_sub: "k \<subseteq> {a..b}" using kprops kd by auto
-      then have la: "l \<in> {a..b}" "u \<in> {a..b}" using lu by auto
-      have "f a \<le> f l" using mono_le la(1) by auto
-      moreover have "f u \<le> f b" using mono_le la(2) by auto
-      moreover have "x \<in> {f l..f u}" using xK K_eq lu by auto
-      ultimately show "x \<in> {f a..f b}" by auto
+      then have "l \<in> {a..b}" "u \<in> {a..b}" using lu by auto
+      then have "f a \<le> f l" "f u \<le> f b" using mono_le by auto
+      then show "x \<in> {f a..f b}" using xK K_eq lu by auto
     qed
     ultimately have *: \<open>(\<Sum>k\<in>D. norm (g (Sup k) - g (Inf k))) \<le> vector_variation {f a..f b} g\<close>
       using has_bounded_variation_works [OF bv] by auto
@@ -1450,11 +1396,10 @@ proof -
           have "l1 = u1 \<or> l2 = u2"
           proof (rule ccontr)
             assume "\<not> (l1 = u1 \<or> l2 = u2)"
-            then have "l1 < u1" "l2 < u2" using lu1(1) lu2(1) by linarith+
             then have "max l1 l2 < min u1 u2"
-              using \<open>l2 < u1\<close> \<open>l1 < u2\<close> by auto
+              using lu1(1) lu2(1) \<open>l2 < u1\<close> \<open>l1 < u2\<close> by auto
             then have "(max l1 l2 + min u1 u2) / 2 \<in> {l1<..<u1} \<inter> {l2<..<u2}"
-              using \<open>l1 < u1\<close> \<open>l2 < u2\<close> by auto
+              by fastforce
             with disj show False by auto
           qed
           then show ?thesis
@@ -1502,25 +1447,24 @@ proof -
     (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> M"
   proof (intro exI[of _ "\<bar>B\<bar> * content (cbox (-R) R)"] allI impI)
     fix d t assume dt: "d division_of t \<and> t \<subseteq> s"
-    then have div_d: "d division_of t" and sub: "t \<subseteq> s" by auto
-    have fin_d: "finite d" using division_of_finite[OF div_d] .
-    have union_d: "\<Union>d = t" using division_ofD(6)[OF div_d] .
-    have div_union: "d division_of \<Union>d" using division_of_union_self[OF div_d] .
-    have union_sub: "\<Union>d \<subseteq> cbox (-R) R" using sub s_sub union_d by auto
-    obtain q where dq: "d \<subseteq> q" and q_div: "q division_of cbox (-R) R"
-      using partial_division_extend_interval[OF div_union union_sub] by auto
-    have fin_q: "finite q" using division_of_finite[OF q_div] .
+    obtain fin_d: "finite d" and union_d: "\<Union>d = t" 
+       and div_union: "d division_of \<Union>d" and union_sub: "\<Union>d \<subseteq> cbox (-R) R"
+      by (metis division_of_def dt order.trans s_sub)
+    obtain q where dq: "d \<subseteq> q" and q_div: "q division_of cbox (-R) R" and "finite q"
+      using partial_division_extend_interval[OF div_union union_sub]
+      by (metis division_of_finite)
     have "(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> (\<Sum>k\<in>d. \<bar>B\<bar> * content k)"
     proof (rule sum_mono)
       fix k assume kd: "k \<in> d"
-      from division_ofD(2,4)[OF div_d kd] obtain l u where
-        k_eq: "k = cbox l u" and kne: "k \<noteq> {}"
-        using dt kd by blast
+      with division_ofD dt kd obtain l u where
+        k_eq: "k = cbox l u" and kne: "k \<noteq> {}" and lu: "l \<le> u"
+        using dt kd
+        by (metis atLeastatMost_empty_iff box_real(2))
       then have lu: "l \<le> u"
         by fastforce
       have "k \<subseteq> t" using kd union_d by auto
       then have ls: "l \<in> s" and us: "u \<in> s"
-        using lu sub k_eq by (auto simp: cbox_interval)
+        using lu dt k_eq by (auto simp: cbox_interval)
       have "norm (f u - f l) \<le> B * norm (u - l)"
         using assms(2)[OF us ls] .
       also have "\<dots> = B * (u - l)" using lu by (simp add: real_norm_def)
@@ -1533,7 +1477,7 @@ proof -
     also have "\<dots> = \<bar>B\<bar> * (\<Sum>k\<in>d. content k)"
       by (simp add: sum_distrib_left)
     also have "\<dots> \<le> \<bar>B\<bar> * (\<Sum>k\<in>q. content k)"
-      by (intro mult_left_mono sum_mono2[OF fin_q dq]) auto
+      by (intro mult_left_mono sum_mono2[OF \<open>finite q\<close> dq]) auto
     also have "(\<Sum>k\<in>q. content k) = content (cbox (-R) R)"
       using additive_content_division[OF q_div] .
     finally show "(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> \<bar>B\<bar> * content (cbox (-R) R)" .
