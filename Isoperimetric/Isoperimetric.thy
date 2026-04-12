@@ -873,8 +873,7 @@ proof -
       have g'_int: "g' integrable_on {c'..d'}" if "{c'..d'} \<subseteq> {c<..<d}" for c' d'
         using \<open>{c'..d'} \<subseteq> {c<..<d}\<close> g'_int_sub by blast
       have abs_g_cont: \<open>continuous_on {0..2 * pi} (\<lambda>x. \<bar>g x\<bar>)\<close>
-        using g_cont
-          sorry
+        by (intro continuous_intros g_cont)
       show ?thesis
       proof (intro g'_int absolutely_integrable_improper [of c d , unfolded box_real])
         obtain w where "w\<in>{0..2 * pi}" "\<forall>y\<in>{0..2 * pi}. \<bar>g y\<bar> \<le> \<bar>g w\<bar>"
@@ -882,7 +881,39 @@ proof -
           by (metis add_increasing atLeastatMost_empty_iff compact_Icc abs_g_cont mult_2
             pi_ge_zero)        
         show "bounded {integral {c'..d'} g' |c' d'. {c'..d'} \<subseteq> {c<..<d}}"
-        sorry
+        proof (rule boundedI[where B = "2 * \<bar>g w\<bar>"])
+          fix x assume "x \<in> {integral {c'..d'} g' |c' d'. {c'..d'} \<subseteq> {c<..<d}}"
+          then obtain c' d' where cd': "{c'..d'} \<subseteq> {c<..<d}" and xeq: "x = integral {c'..d'} g'"
+            by auto
+          show "norm x \<le> 2 * \<bar>g w\<bar>"
+          proof (cases "c' \<le> d'")
+            case False
+            then have "{c'..d'} = {}" by auto
+            then show ?thesis by (simp add: xeq)
+          next
+            case True
+            then have mem: "c' \<in> {c<..<d}" "d' \<in> {c<..<d}" using cd' by auto
+            have sub_2pi: "{c'..d'} \<subseteq> {0..2*pi}"
+              using cd' cd_sub greaterThanLessThan_subseteq_atLeastAtMost_iff by blast
+            have sin_nz': "sin (t - a) \<noteq> 0" if "t \<in> {c'..d'}" for t
+              using that cd' sin_nz by (meson greaterThanLessThan_subseteq_atLeastAtMost_iff subsetD)
+            have hi: "(g' has_integral g d' - g c') {c'..d'}"
+              using trouble_free[OF True sub_2pi sin_nz'] .
+            then have "integral {c'..d'} g' = g d' - g c'"
+              using has_integral_integrable_integral g'_int_sub[OF cd'] by auto
+            then have "\<bar>x\<bar> = \<bar>g d' - g c'\<bar>" by (simp add: xeq)
+            also have "\<dots> \<le> \<bar>g d'\<bar> + \<bar>g c'\<bar>" by linarith
+            also have "\<dots> \<le> \<bar>g w\<bar> + \<bar>g w\<bar>"
+            proof -
+              have "c' \<in> {0..2*pi}" "d' \<in> {0..2*pi}"
+                using mem cd_sub greaterThanLessThan_subseteq_atLeastAtMost_iff by blast+
+              then show ?thesis
+                using \<open>\<forall>y\<in>{0..2 * pi}. \<bar>g y\<bar> \<le> \<bar>g w\<bar>\<close> by (meson add_mono)
+            qed
+            also have "\<dots> = 2 * \<bar>g w\<bar>" by algebra
+            finally show ?thesis by (simp add: xeq)
+          qed
+        qed
       next
         fix i :: real
         assume "i \<in> Basis"
