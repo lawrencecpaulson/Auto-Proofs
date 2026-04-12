@@ -433,22 +433,28 @@ proof -
       then show ?thesis
         using inv_tan_eq[of x] inv_tan_eq[of c] cx by simp
     qed
-    note ibp = absolute_real_integration_by_parts_sum
-      [where f = "\<lambda>x. (f x - f a)\<^sup>2"
-         and g = "\<lambda>x. inverse (tan (x - a))"
-         and f' = "\<lambda>x. 2 * (f x - f a) * f' x"
-         and g' = "\<lambda>x. - inverse ((sin (x - a))\<^sup>2)"
-         and a = c and b = d,
-       OF that(1) f'_abs g'_abs f'_int g'_int]
     text \<open>The IBP conclusion gives us \<open>has_integral\<close> for the sum
       \<open>(f x - f a)² * (- inverse (sin (x - a)²)) + 2 * (f x - f a) * f' x * inverse (tan (x - a))\<close>,
       which after algebra equals \<open>g'\<close>, with value \<open>g d - g c\<close>.\<close>
-    \<comment> \<open>Specialize IBP at d to get has_integral on {c..d}\<close>
     have ibp_int: "((\<lambda>x. (f x - f a)\<^sup>2 * (- inverse ((sin (x - a))\<^sup>2)) +
       2 * (f x - f a) * f' x * inverse (tan (x - a)))
-      has_integral ((f d - f a)\<^sup>2 * inverse (tan (d - a)) -
-                    (f c - f a)\<^sup>2 * inverse (tan (c - a)))) {c..d}"
-      using ibp(2)[of d] cd by auto
+      has_integral ((f y - f a)\<^sup>2 * inverse (tan (y - a)) -
+                    (f c - f a)\<^sup>2 * inverse (tan (c - a)))) {c..y}"
+      if "y \<in> {c..d}" for y
+    proof (rule absolute_real_integration_by_parts_sum(2))
+      show "c \<le> d" using cd .
+      show "(\<lambda>x. 2 * (f x - f a) * f' x) absolutely_integrable_on {c..d}"
+        using f'_abs .
+      show "(\<lambda>x. - inverse ((sin (x - a))\<^sup>2)) absolutely_integrable_on {c..d}"
+        using g'_abs .
+      show "((\<lambda>t. 2 * (f t - f a) * f' t) has_integral
+            ((f x - f a)\<^sup>2 - (f c - f a)\<^sup>2)) {c..x}"
+        if "x \<in> {c..d}" for x using f'_int[OF that] .
+      show "((\<lambda>t. - inverse ((sin (t - a))\<^sup>2)) has_integral
+            (inverse (tan (x - a)) - inverse (tan (c - a)))) {c..x}"
+        if "x \<in> {c..d}" for x using g'_int[OF that] .
+      show "y \<in> {c..d}" using that .
+    qed
     \<comment> \<open>The IBP integrand equals g' pointwise on {c..d}\<close>
     have integrand_eq: "(f x - f a)\<^sup>2 * (- inverse ((sin (x - a))\<^sup>2)) +
       2 * (f x - f a) * f' x * inverse (tan (x - a)) = g' x"
@@ -497,7 +503,8 @@ proof -
       unfolding g_def divide_inverse by (rule refl)
     \<comment> \<open>Combine using has_integral_eq\<close>
     show ?thesis
-      by (metis (no_types, lifting) has_integral_eq ibp_int integrand_eq value_eq)
+    using has_integral_eq ibp_int integrand_eq value_eq
+      by (metis (no_types, lifting) atLeastAtMost_iff order.refl that(1))
   qed
 
   show "integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2) \<le> integral {0..2*pi} (\<lambda>x. (f' x)\<^sup>2)"
