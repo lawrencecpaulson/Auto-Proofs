@@ -1923,15 +1923,8 @@ proof
   define h where "h x = vector_variation {a..x} f - f x" for x
   have g_mono: "mono_on {a..b} g"
     unfolding mono_on_def g_def
-  proof (intro allI impI)
-    fix x y assume "x \<in> {a..b} \<and> y \<in> {a..b} \<and> x \<le> y"
-    then have xy: "x \<in> {a..b}" "y \<in> {a..b}" "x \<le> y" by auto
-    have bv_ay: "has_bounded_variation_on f {a..y}"
-      using has_bounded_variation_on_subset[OF bv] xy(2) by auto
-    have sub: "{a..x} \<subseteq> {a..y}" using xy(3) by auto
-    show "vector_variation {a..x} f \<le> vector_variation {a..y} f"
-      by (rule vector_variation_monotone[OF bv_ay sub])
-  qed
+    by (metis atLeastAtMost_iff atLeastatMost_subset_iff bv has_bounded_variation_on_combine
+        landau_omega.R_refl vector_variation_monotone)
   have h_mono: "mono_on {a..b} h"
     unfolding mono_on_def h_def
   proof (intro allI impI)
@@ -1944,13 +1937,8 @@ proof
     also have "\<dots> \<le> vector_variation {x..y} f"
       using vector_variation_minus_function_monotone(1)[OF bv xy] .
     also have "\<dots> = vector_variation {a..y} f - vector_variation {a..x} f"
-    proof -
-      have bv_ay: "has_bounded_variation_on f {a..y}"
-        using has_bounded_variation_on_subset[OF bv] xy(2) by auto
-      have "x \<in> {a..y}" using xy by auto
-      from vector_variation_combine[OF bv_ay this]
-      show ?thesis by linarith
-    qed
+      by (smt (verit) bv has_bounded_variation_on_combine interval_cbox mem_box_real(2)
+          vector_variation_combine xy)
     finally show "vector_variation {a..x} f - f x \<le> vector_variation {a..y} f - f y"
       by linarith
   qed
@@ -1987,14 +1975,7 @@ proof
     unfolding strict_mono_on_def g'_def
     by (metis add_le_less_mono linorder_not_less mono_g nle_le ord.mono_on_def)
   have sh: "strict_mono_on {a..b} h'"
-    unfolding strict_mono_on_def h'_def
-  proof clarify
-    fix x y assume "x \<in> {a..b}" "y \<in> {a..b}" "x < y"
-    then have "h x \<le> h y"
-      using mono_h unfolding mono_on_def by (simp add: less_imp_le)
-    then show "h x + x < h y + y"
-      using \<open>x < y\<close> by linarith
-  qed
+    by (smt (verit, del_insts) h'_def mono_h monotone_on_def)
   have "\<forall>x. f x = g' x - h' x"
     unfolding g'_def h'_def using eq by simp
   then show ?R using sg sh by blast

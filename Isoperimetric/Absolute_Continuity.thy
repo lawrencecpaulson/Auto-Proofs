@@ -202,13 +202,7 @@ proof -
           have fin_A: \<open>finite {k \<in> d. k \<inter> {u..v} \<noteq> {}}\<close> using fin_d by auto
           have reindex: \<open>sum (\<lambda>k. norm (f k)) ((\<lambda>k. k \<inter> {u..v}) ` {k \<in> d. k \<inter> {u..v} \<noteq> {}})
               = sum ((\<lambda>k. norm (f k)) \<circ> (\<lambda>k. k \<inter> {u..v})) {k \<in> d. k \<inter> {u..v} \<noteq> {}}\<close>
-          proof (intro sum.reindex_nontrivial[OF fin_A])
-            fix x y
-            assume \<open>x \<in> {k \<in> d. k \<inter> {u..v} \<noteq> {}}\<close> \<open>y \<in> {k \<in> d. k \<inter> {u..v} \<noteq> {}}\<close>
-              \<open>x \<noteq> y\<close> \<open>x \<inter> {u..v} = y \<inter> {u..v}\<close>
-            then show \<open>norm (f (x \<inter> {u..v})) = 0\<close>
-              using collision by auto
-          qed
+            by (smt (verit) collision fin_A mem_Collect_eq sum.reindex_nontrivial)
           have \<open>(\<Sum>k\<in>d. norm (f (k \<inter> l)))
               = (\<Sum>k\<in>{k \<in> d. k \<inter> {u..v} \<noteq> {}}. norm (f (k \<inter> {u..v})))\<close>
             by (auto intro!: sum.mono_neutral_right simp: luv f_empty fin_d)
