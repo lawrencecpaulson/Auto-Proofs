@@ -1615,20 +1615,16 @@ lemma vector_variation_minus_function_monotone:
 proof -
   have bv_xy: "has_bounded_variation_on f {x..y}"
     using has_bounded_variation_on_subset[OF assms(1)] assms(2,3) by auto
-  show goal1: "norm (f y - f x) \<le> vector_variation {x..y} f"
-    using vector_variation_ge_norm_function[OF bv_xy] assms(4) by auto
-  have bv_ay: "has_bounded_variation_on f {a..y}"
+  then show 1: "norm (f y - f x) \<le> vector_variation {x..y} f"
+    using vector_variation_ge_norm_function assms(4) by force
+  have "has_bounded_variation_on f {a..y}"
     using has_bounded_variation_on_subset[OF assms(1)] assms(3) by auto
-  have x_in_ay: "x \<in> {a..y}"
-    using assms(2,4) by auto
-  have combine: "vector_variation {a..y} f =
+  then have combine: "vector_variation {a..y} f =
       vector_variation {a..x} f + vector_variation {x..y} f"
-    using vector_variation_combine[OF bv_ay x_in_ay] .
+    using vector_variation_combine assms by auto
   have "norm (f y - f a) \<le> norm (f y - f x) + norm (f x - f a)"
     using norm_triangle_ineq[of "f y - f x" "f x - f a"] by simp
-  then have "norm (f y - f a) \<le> vector_variation {x..y} f + norm (f x - f a)"
-    using goal1 by linarith
-  then show "vector_variation {a..x} f - norm (f x - f a) \<le>
+  with 1 show "vector_variation {a..x} f - norm (f x - f a) \<le>
       vector_variation {a..y} f - norm (f y - f a)"
     using combine by linarith
 qed
@@ -1701,14 +1697,7 @@ proof -
       assume "box a' b' = {}"
       then have "a' \<ge> b'" by (simp add: box_eq_empty)
       then show "h (cbox a' b') = 0"
-      proof (cases "a' = b'")
-        case True then show ?thesis unfolding h_def by (simp add: cbox_interval)
-      next
-        case False
-        with \<open>a' \<ge> b'\<close> have "b' < a'" by linarith
-        then have "cbox a' b' = {}" by (simp add: cbox_interval)
-        then show ?thesis unfolding h_def by simp
-      qed
+        by (auto simp: h_def cbox_interval)
     next
       fix a' b' c :: real and k :: real
       assume kB: "k \<in> Basis"
@@ -1730,24 +1719,8 @@ proof -
           ultimately show ?thesis using eq1 eq2 whole h_def by auto
         next
           case False
-          then have ca': "a' \<le> c" by linarith
-          show ?thesis
-          proof (cases "b' < c")
-            case True
-            then have "{max a' c..b'} = {}" by auto
-            moreover have "min b' c = b'" using True by auto
-            ultimately show ?thesis using eq1 eq2 whole h_def by auto
-          next
-            case False
-            then have cb': "c \<le> b'" by linarith
-            have minv: "min b' c = c" using cb' by auto
-            have maxv: "max a' c = c" using ca' by auto
-            have left: "h {a'..min b' c} = g c - g a'"
-              using h_interval[of a' c] ca' minv by simp
-            have right: "h {max a' c..b'} = g b' - g c"
-              using h_interval[of c b'] cb' maxv by simp
-            show ?thesis using eq1 eq2 whole left right by auto
-          qed
+          then show ?thesis
+            using eq1 eq2 h_def by fastforce
         qed
       next
         case False
