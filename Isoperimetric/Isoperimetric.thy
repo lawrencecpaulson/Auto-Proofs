@@ -840,6 +840,8 @@ proof -
         using \<open>{c'..d'} \<subseteq> {c<..<d}\<close> g'_int_sub by blast
       have abs_g_cont: \<open>continuous_on {0..2 * pi} (\<lambda>x. \<bar>g x\<bar>)\<close>
         by (intro continuous_intros g_cont)
+      obtain h where h: "h absolutely_integrable_on {c..d}" "((\<forall>x\<in>{c..d}. g' x \<le> h x) \<or> (\<forall>x\<in>{c..d}. h x \<le> g' x))"
+        sorry
       show ?thesis
       proof (intro g'_int absolutely_integrable_improper [of c d , unfolded box_real])
         obtain w where "w\<in>{0..2 * pi}" "\<forall>y\<in>{0..2 * pi}. \<bar>g y\<bar> \<le> \<bar>g w\<bar>"
@@ -880,12 +882,7 @@ proof -
             finally show ?thesis by (simp add: xeq)
           qed
         qed
-      next
-        fix i :: real
-        assume "i \<in> Basis"
-        show "\<exists>g. g absolutely_integrable_on {c..d} \<and> ((\<forall>x\<in>{c..d}. g' x \<bullet> i \<le> g x) \<or> (\<forall>x\<in>{c..d}. g x \<le> g' x \<bullet> i))"
-          sorry
-      qed
+      qed (use h in auto)
     qed
     show ?thesis
       sorry
