@@ -641,6 +641,39 @@ proof -
     by metis+
 qed
 
+proposition
+  fixes S :: "'a::euclidean_space set"
+  assumes "S \<in> lmeasurable"
+  shows measurable_stretch_eu: "((\<lambda>x. \<Sum>k\<in>Basis. (m k * (x \<bullet> k)) *\<^sub>R k) ` S) \<in> lmeasurable" (is "?f ` S \<in> _")
+    and measure_stretch_eu: "measure lebesgue ((\<lambda>x. \<Sum>k\<in>Basis. (m k * (x \<bullet> k)) *\<^sub>R k) ` S) = \<bar>\<Prod>k\<in>Basis. m k\<bar> * measure lebesgue S"
+      (is "?MEQ")
+proof -
+  have lin: "linear ?f"
+  proof (intro linearI)
+    fix x y :: 'a
+    show "?f (x + y) = ?f x + ?f y"
+      unfolding sum.distrib[symmetric]
+      by (intro sum.cong refl)
+         (simp only: inner_add_left distrib_left scaleR_add_left)
+    fix c :: real
+    show "?f (c *\<^sub>R x) = c *\<^sub>R ?f x"
+      by (simp add: inner_scaleR_right mult.left_commute scaleR_sum_right)
+  qed
+  have meq: "measure lebesgue (?f ` cbox a b) = \<bar>\<Prod>k\<in>Basis. m k\<bar> * measure lebesgue (cbox a b)" for a b
+  proof -
+    have "measure lebesgue (?f ` cbox a b) = content (?f ` cbox a b)"
+      using interval_image_stretch_interval [of m a b] by (force simp del: content_cbox_if)
+    also have "\<dots> = \<bar>\<Prod>k\<in>Basis. m k\<bar> * content (cbox a b)"
+      by (rule content_image_stretch_interval)
+    also have "\<dots> = \<bar>\<Prod>k\<in>Basis. m k\<bar> * measure lebesgue (cbox a b)"
+      by simp
+    finally show ?thesis .
+  qed
+  show "?f ` S \<in> lmeasurable" ?MEQ
+    using measure_linear_sufficient [OF lin assms meq] by metis+
+qed
+
+
 
 proposition
  fixes f :: "real^'n::{finite,wellorder} \<Rightarrow> real^'n::_"
