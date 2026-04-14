@@ -673,6 +673,79 @@ proof -
     using measure_linear_sufficient [OF lin assms meq] by metis+
 qed
 
+(* notepad removed - had type errors *)
+
+lemma measurable_linear_image_eu:
+  fixes f :: "'a::euclidean_space \<Rightarrow> 'a"
+  assumes "linear f" "S \<in> lmeasurable"
+  shows "f ` S \<in> lmeasurable"
+proof (cases "inj f")
+  case False
+  then show ?thesis
+    using assms(1) negligible_linear_singular_image negligible_imp_measurable by blast
+next
+  case True
+  then have "surj f"
+    using assms(1) linear_injective_imp_surjective by blast
+  have cont: "continuous_on UNIV f"
+    using assms(1) linear_continuous_on
+    using linear_conv_bounded_linear by blast
+  have diff_f: "f differentiable_on UNIV"
+    using assms(1) linear_imp_has_derivative differentiable_on_def differentiable_def by blast
+  have fsets: "f ` T \<in> sets lebesgue" if "T \<in> sets lebesgue" for T
+  proof -
+    have "negligible (f ` N)" if "negligible N" for N
+      using negligible_differentiable_image_negligible[of N f] that diff_f
+      using assms(1) linear_imp_differentiable_on by blast
+    then show ?thesis
+      by (simp add: assms(1) differentiable_image_in_sets_lebesgue linear_imp_differentiable_on that)
+  qed
+  have S_sets: "S \<in> sets lebesgue"
+    using assms(2) fmeasurableD by blast
+  obtain g where g: "linear g" "\<And>x. g (f x) = x" "\<And>x. f (g x) = x"
+    using assms(1) True linear_injective_isomorphism by blast
+  have blin_f: "bounded_linear f"
+    by (simp add: assms(1) linear_linear)
+  have blin_g: "bounded_linear g"
+    by (simp add: g(1) linear_linear)
+  define B where "B \<equiv> \<lambda>n::nat. cbox (- real n *\<^sub>R (\<Sum>i\<in>Basis. i)) (real n *\<^sub>R (\<Sum>i\<in>Basis. i::'a))"
+  have S_union: "S = (\<Union>n. S \<inter> B n)"
+  proof
+    show "S \<subseteq> (\<Union>n. S \<inter> B n)"
+    proof
+      fix x :: 'a assume "x \<in> S"
+      obtain n where "norm x \<le> real n"
+        using real_arch_simple by blast
+      then have "x \<in> B n"
+        unfolding B_def 
+        using norm_bound_Basis_le by (fastforce simp: inner_sum_right inner_Basis abs_le_iff mem_box)
+      then show "x \<in> (\<Union>n. S \<inter> B n)"
+        using \<open>x \<in> S\<close> by auto
+    qed
+  qed auto
+  have fSn_meas: "f ` (S \<inter> B n) \<in> lmeasurable" for n
+  proof (rule bounded_set_imp_lmeasurable)
+    show "bounded (f ` (S \<inter> B n))"
+      by (simp add: B_def blin_f bounded_Int bounded_linear_image)
+    show "f ` (S \<inter> B n) \<in> sets lebesgue"
+      by (metis B_def S_sets fmeasurableD fsets lmeasurable_cbox sets.Int)
+  qed
+  have incr: "f ` (S \<inter> B n) \<subseteq> f ` (S \<inter> B (Suc n))" for n
+    unfolding B_def by (intro image_mono Int_mono order_refl subset_box_imp ballI conjI)
+      (auto simp: inner_sum_left inner_Basis)
+  have "f ` S = (\<Union>n. f ` (S \<inter> B n))"
+    by (metis S_union image_UN)
+  also have "\<dots> \<in> lmeasurable"
+  proof (rule fmeasurable_UN)
+    show "countable (UNIV :: nat set)" by simp
+    show "\<And>n. f ` (S \<inter> B n) \<subseteq> f ` S" by auto
+    show "\<And>n. f ` (S \<inter> B n) \<in> sets lebesgue"
+      using fSn_meas fmeasurableD by blast
+    show "f ` S \<in> fmeasurable lebesgue"
+      oops
+  qed
+  finally show ?thesis .
+qed
 
 
 proposition
@@ -683,6 +756,8 @@ proposition
 proof -
   have "\<forall>S \<in> lmeasurable. (f ` S) \<in> lmeasurable \<and> ?Q f S"
   proof (rule induct_linear_elementary [OF \<open>linear f\<close>]; intro ballI)
+
+
     fix f g and S :: "(real,'n) vec set"
     assume "linear f" and "linear g"
       and f [rule_format]: "\<forall>S \<in> lmeasurable. f ` S \<in> lmeasurable \<and> ?Q f S"
