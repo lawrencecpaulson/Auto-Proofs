@@ -840,8 +840,20 @@ proof -
         using \<open>{c'..d'} \<subseteq> {c<..<d}\<close> g'_int_sub by blast
       have abs_g_cont: \<open>continuous_on {0..2 * pi} (\<lambda>x. \<bar>g x\<bar>)\<close>
         by (intro continuous_intros g_cont)
-      obtain h where h: "h absolutely_integrable_on {c..d}" "((\<forall>x\<in>{c..d}. g' x \<le> h x) \<or> (\<forall>x\<in>{c..d}. h x \<le> g' x))"
-        sorry
+      obtain h where h_abs: "h absolutely_integrable_on {c..d}" 
+                 and h_bounded: "(\<forall>x\<in>{c..d}. g' x \<le> h x) \<or> (\<forall>x\<in>{c..d}. h x \<le> g' x)"
+      proof -
+        have abs: \<open>(\<lambda>x. (f' x)\<^sup>2) absolutely_integrable_on {c..d}\<close>
+          using absolutely_integrable_on_subinterval[OF f'2_abs cd_sub] .
+        have bnd: \<open>\<forall>x\<in>{c..d}. g' x \<le> (f' x)\<^sup>2\<close>
+        proof (intro ballI)
+          fix x assume \<open>x \<in> {c..d}\<close>
+          show \<open>g' x \<le> (f' x)\<^sup>2\<close>
+            unfolding g'_def by simp
+        qed
+        show ?thesis
+          using abs bnd by (intro that[of \<open>\<lambda>x. (f' x)\<^sup>2\<close>]) auto
+      qed
       show ?thesis
       proof (intro g'_int absolutely_integrable_improper [of c d , unfolded box_real])
         obtain w where "w\<in>{0..2 * pi}" "\<forall>y\<in>{0..2 * pi}. \<bar>g y\<bar> \<le> \<bar>g w\<bar>"
@@ -882,7 +894,7 @@ proof -
             finally show ?thesis by (simp add: xeq)
           qed
         qed
-      qed (use h in auto)
+      qed (use h_abs h_bounded in auto)
     qed
     show ?thesis
       sorry
