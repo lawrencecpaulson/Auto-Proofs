@@ -897,7 +897,91 @@ proof -
       qed (use h_abs h_bounded in auto)
     qed
     show ?thesis
-      sorry
+    proof -
+      note cd_le = \<open>c \<le> d\<close> and cd_sub = \<open>{c..d} \<subseteq> {0..2*pi}\<close>
+        and sin_nz = \<open>\<And>x. x \<in> {c<..<d} \<Longrightarrow> sin (x - a) \<noteq> 0\<close>
+      have g'_int: "g' integrable_on {c..d}"
+        using \<open>g' absolutely_integrable_on {c..d}\<close> set_lebesgue_integral_eq_integral by blast
+      have g_cont_cd: "continuous_on {c..d} g"
+        using continuous_on_subset[OF g_cont cd_sub] .
+      have goal: "integral {c..d} g' = g d - g c"
+      proof (cases "c < d")
+        case False
+        then have "c = d" using cd_le by linarith
+        then show ?thesis by simp
+      next
+        case True
+        \<comment> \<open>Pick sequences c_n \<rightarrow> c and d_n \<rightarrow> d from inside (c,d)\<close>
+        define c_n where "c_n \<equiv> \<lambda>n. c + (d - c) / (real n + 2)"
+        define d_n where "d_n \<equiv> \<lambda>n. d - (d - c) / (real n + 2)"
+        have pos: "0 < (d - c) / (real n + 2)" for n
+          using True by auto
+        have lt_dc: "(d - c) / (real n + 2) < d - c" for n
+        proof -
+          have "real n + 2 > 1" by auto
+          then show ?thesis using True by (simp add: divide_less_eq)
+        qed
+        have c_n_in: "c_n n \<in> {c<..<d}" for n
+          using pos[of n] lt_dc[of n] unfolding c_n_def by auto
+        have d_n_in: "d_n n \<in> {c<..<d}" for n
+          using pos[of n] lt_dc[of n] unfolding d_n_def by auto
+        have c_n_le_d_n: "c_n n \<le> d_n n" for n
+        proof -
+          have "0 \<le> real n" by simp
+          then have "c * real n \<le> d * real n"
+            using True by (intro mult_right_mono) linarith+
+          then have "2 * ((d - c) / (real n + 2)) \<le> d - c"
+            using True by (simp add: field_simps)
+          then show ?thesis unfolding c_n_def d_n_def by linarith
+        qed
+        have frac_lim: "(\<lambda>n. (d - c) / (real n + 2)) \<longlonglongrightarrow> 0"
+        proof (rule real_tendsto_sandwich)
+          show "\<forall>\<^sub>F n in sequentially. 0 \<le> (d - c) / (real n + 2)"
+            using True by (intro always_eventually allI) (auto simp: field_simps)
+          show "\<forall>\<^sub>F n in sequentially. (d - c) / (real n + 2) \<le> (d - c) * (1 / real n)"
+            by (intro eventually_sequentiallyI[of 1]) (auto simp: field_simps)
+          show "(\<lambda>_. (0::real)) \<longlonglongrightarrow> 0" by simp
+          show "(\<lambda>n. (d - c) * (1 / real n)) \<longlonglongrightarrow> 0"
+            using tendsto_mult_right_zero[OF lim_inverse_n'] by simp
+        qed
+          unfolding c_n_def using tendsto_add[OF tendsto_const frac_lim] by simp
+        have d_n_lim: "d_n \<longlonglongrightarrow> d"
+          unfolding d_n_def using tendsto_diff[OF tendsto_const frac_lim] by simp
+        \<comment> \<open>On each [c_n, d_n], trouble_free applies\<close>
+        have sub_n: "{c_n n..d_n n} \<subseteq> {c<..<d}" for n
+          using c_n_in[of n] d_n_in[of n] c_n_le_d_n[of n] by auto
+        have sub_2pi_n: "{c_n n..d_n n} \<subseteq> {0..2*pi}" for n
+          using sub_n[of n] cd_sub greaterThanLessThan_subseteq_atLeastAtMost_iff by blast
+        have sin_nz_n: "sin (x - a) \<noteq> 0" if "x \<in> {c_n n..d_n n}" for n x
+          using that sub_n[of n] sin_nz
+          by (meson greaterThanLessThan_subseteq_atLeastAtMost_iff subsetD)
+        have tf_n: "(g' has_integral g (d_n n) - g (c_n n)) {c_n n..d_n n}" for n
+          using trouble_free[OF c_n_le_d_n sub_2pi_n sin_nz_n] .
+        have int_n: "integral {c_n n..d_n n} g' = g (d_n n) - g (c_n n)" for n
+          using tf_n[of n] by (rule integral_unique)
+        \<comment> \<open>The integrals converge to integral {c..d} g'\<close>
+        have int_lim: "(\<lambda>n. integral {c_n n..d_n n} g') \<longlonglongrightarrow> integral {c..d} g'"
+          sorry
+        \<comment> \<open>The RHS converges to g d - g c by continuity\<close>
+        moreover have "(\<lambda>n. g (d_n n) - g (c_n n)) \<longlonglongrightarrow> g d - g c"
+        proof (intro tendsto_diff)
+          have d_n_cd: "d_n n \<in> {c..d}" for n
+            using d_n_in[of n] by (meson atLeastAtMost_iff greaterThanLessThan_iff less_imp_le)
+          have c_n_cd: "c_n n \<in> {c..d}" for n
+            using c_n_in[of n] by (meson atLeastAtMost_iff greaterThanLessThan_iff less_imp_le)
+          show "(\<lambda>n. g (d_n n)) \<longlonglongrightarrow> g d"
+            by (rule continuous_on_tendsto_compose[OF g_cont_cd d_n_lim])
+               (use d_n_cd cd_le in \<open>auto intro: always_eventually\<close>)
+          show "(\<lambda>n. g (c_n n)) \<longlonglongrightarrow> g c"
+            by (rule continuous_on_tendsto_compose[OF g_cont_cd c_n_lim])
+               (use c_n_cd cd_le in \<open>auto intro: always_eventually\<close>)
+        qed
+        ultimately show ?thesis
+          using int_n by (metis LIMSEQ_unique)
+      qed
+      show ?thesis
+        using integrable_integral[OF g'_int] goal by auto
+    qed
   qed
 
 
