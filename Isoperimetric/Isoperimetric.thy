@@ -939,11 +939,12 @@ proof -
           show "\<forall>\<^sub>F n in sequentially. 0 \<le> (d - c) / (real n + 2)"
             using True by (intro always_eventually allI) (auto simp: field_simps)
           show "\<forall>\<^sub>F n in sequentially. (d - c) / (real n + 2) \<le> (d - c) * (1 / real n)"
-            by (intro eventually_sequentiallyI[of 1]) (auto simp: field_simps)
+            using True by (intro eventually_sequentiallyI[of 1]) (auto simp: field_simps)
           show "(\<lambda>_. (0::real)) \<longlonglongrightarrow> 0" by simp
           show "(\<lambda>n. (d - c) * (1 / real n)) \<longlonglongrightarrow> 0"
             using tendsto_mult_right_zero[OF lim_inverse_n'] by simp
         qed
+        have c_n_lim: "c_n \<longlonglongrightarrow> c"
           unfolding c_n_def using tendsto_add[OF tendsto_const frac_lim] by simp
         have d_n_lim: "d_n \<longlonglongrightarrow> d"
           unfolding d_n_def using tendsto_diff[OF tendsto_const frac_lim] by simp
@@ -961,7 +962,34 @@ proof -
           using tf_n[of n] by (rule integral_unique)
         \<comment> \<open>The integrals converge to integral {c..d} g'\<close>
         have int_lim: "(\<lambda>n. integral {c_n n..d_n n} g') \<longlonglongrightarrow> integral {c..d} g'"
-          sorry
+        proof -
+          have indef_cont: "continuous_on {c..d} (\<lambda>x. integral {c..x} g')"
+            by (rule indefinite_integral_continuous_1[OF g'_int])
+          have c_n_cd: "c_n n \<in> {c..d}" for n
+            using c_n_in[of n] by (meson atLeastAtMost_iff greaterThanLessThan_iff less_imp_le)
+          have d_n_cd: "d_n n \<in> {c..d}" for n
+            using d_n_in[of n] by (meson atLeastAtMost_iff greaterThanLessThan_iff less_imp_le)
+          have split: "integral {c_n n..d_n n} g' = integral {c..d_n n} g' - integral {c..c_n n} g'" for n
+          proof -
+            have cn_le: "c \<le> c_n n" using c_n_in[of n] by auto
+            have int_cdn: "g' integrable_on {c..d_n n}"
+              by (rule integrable_subinterval_real[OF g'_int])
+                 (use d_n_cd[of n] cd_le in auto)
+            have "integral {c..c_n n} g' + integral {c_n n..d_n n} g' = integral {c..d_n n} g'"
+              by (rule Henstock_Kurzweil_Integration.integral_combine[OF cn_le c_n_le_d_n int_cdn])
+            then show ?thesis by linarith
+          qed
+          have "(\<lambda>n. integral {c..d_n n} g') \<longlonglongrightarrow> integral {c..d} g'"
+            by (rule continuous_on_tendsto_compose[OF indef_cont d_n_lim])
+               (use d_n_cd cd_le in \<open>auto intro: always_eventually\<close>)
+          moreover have "(\<lambda>n. integral {c..c_n n} g') \<longlonglongrightarrow> integral {c..c} g'"
+            by (rule continuous_on_tendsto_compose[OF indef_cont c_n_lim])
+               (use c_n_cd cd_le in \<open>auto intro: always_eventually\<close>)
+          moreover have "integral {c..c} g' = 0" by simp
+          ultimately have "(\<lambda>n. integral {c..d_n n} g' - integral {c..c_n n} g') \<longlonglongrightarrow> integral {c..d} g' - 0"
+            by (intro tendsto_diff) simp_all
+          then show ?thesis using split by simp
+        qed
         \<comment> \<open>The RHS converges to g d - g c by continuity\<close>
         moreover have "(\<lambda>n. g (d_n n) - g (c_n n)) \<longlonglongrightarrow> g d - g c"
         proof (intro tendsto_diff)
@@ -977,15 +1005,12 @@ proof -
                (use c_n_cd cd_le in \<open>auto intro: always_eventually\<close>)
         qed
         ultimately show ?thesis
-          using int_n by (metis LIMSEQ_unique)
+          using int_n LIMSEQ_unique by auto
       qed
       show ?thesis
         using integrable_integral[OF g'_int] goal by auto
     qed
   qed
-
-
-
   show "integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2) \<le> integral {0..2*pi} (\<lambda>x. (f' x)\<^sup>2)"
     sorry
   show "\<exists>c a. \<forall>x \<in> {0..2*pi}. f x = c * sin (x - a)"
