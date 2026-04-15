@@ -179,11 +179,7 @@ proof -
     have "negligible {x. ?mn \<bullet> x = b \<bullet> m}"
       using mn_ne by (intro negligible_hyperplane) auto
     moreover have "(?f ` cbox a b) \<inter> (cbox a ?c \<inter> {x. ?mn \<bullet> x \<ge> b \<bullet> m}) \<subseteq> {x. ?mn \<bullet> x = b \<bullet> m}"
-    proof clarsimp
-      fix x assume "x \<in> cbox a b" and "b \<bullet> m \<le> ?mn \<bullet> (?f x)"
-      then show "?mn \<bullet> (?f x) = b \<bullet> m"
-        using mn_f[of x] mB by (auto simp: mem_box intro: antisym)
-    qed
+      by (smt (verit) IntE imageE mB mem_Collect_eq mem_box(2) mn_f subsetI)
     ultimately show "negligible (?f ` cbox a b \<inter> (cbox a ?c \<inter> {x. ?mn \<bullet> x \<ge> b \<bullet> m}))"
       by (rule negligible_subset)
     have "negligible {x. ?mn \<bullet> x = b \<bullet> m}"
@@ -219,18 +215,7 @@ proof -
           case True
           \<comment> \<open>y is in the image of the shear\<close>
           have "y - (y \<bullet> n) *\<^sub>R m \<in> cbox a b"
-            unfolding mem_box
-          proof (intro ballI conjI)
-            fix i :: 'a assume iB: "i \<in> Basis"
-            show "a \<bullet> i \<le> (y - (y \<bullet> n) *\<^sub>R m) \<bullet> i"
-              using iB yac mB nB \<open>m \<noteq> n\<close> True
-              by (cases "i = m")
-                 (auto simp: inner_diff_left inner_scaleR_left inner_same_Basis inner_not_same_Basis inner_c)
-            show "(y - (y \<bullet> n) *\<^sub>R m) \<bullet> i \<le> b \<bullet> i"
-              using iB yac mB nB \<open>m \<noteq> n\<close> True inner_c[of i]
-              by (cases "i = m")
-                 (auto simp: inner_diff_left inner_scaleR_left inner_same_Basis inner_not_same_Basis)
-          qed
+            unfolding mem_box by (metis True inner_f inner_mn mn_f shear_Galois yac)
           moreover have "?f (y - (y \<bullet> n) *\<^sub>R m) = y"
             using shear_Galois[of "y - (y \<bullet> n) *\<^sub>R m" y] by simp
           ultimately show ?thesis
@@ -673,81 +658,67 @@ proof -
     using measure_linear_sufficient [OF lin assms meq] by metis+
 qed
 
-(* notepad removed - had type errors *)
-
-lemma measurable_linear_image_eu:
+lemma 
   fixes f :: "'a::euclidean_space \<Rightarrow> 'a"
   assumes "linear f" "S \<in> lmeasurable"
-  shows "f ` S \<in> lmeasurable"
-proof (cases "inj f")
-  case False
-  then show ?thesis
-    using assms(1) negligible_linear_singular_image negligible_imp_measurable by blast
-next
-  case True
-  then have "surj f"
-    using assms(1) linear_injective_imp_surjective by blast
-  have cont: "continuous_on UNIV f"
-    using assms(1) linear_continuous_on
-    using linear_conv_bounded_linear by blast
-  have diff_f: "f differentiable_on UNIV"
-    using assms(1) linear_imp_has_derivative differentiable_on_def differentiable_def by blast
-  have fsets: "f ` T \<in> sets lebesgue" if "T \<in> sets lebesgue" for T
-    by (meson assms(1) differentiable_image_in_sets_lebesgue dual_order.eq_iff
-        linear_imp_differentiable_on that)
-  have S_sets: "S \<in> sets lebesgue"
-    using assms(2) fmeasurableD by blast
-  obtain g where g: "linear g" "\<And>x. g (f x) = x" "\<And>x. f (g x) = x"
-    using assms(1) True linear_injective_isomorphism by blast
-  have blin_f: "bounded_linear f"
-    by (simp add: assms(1) linear_linear)
-  have blin_g: "bounded_linear g"
-    by (simp add: g(1) linear_linear)
-  define B where "B \<equiv> \<lambda>n::nat. cbox (- real n *\<^sub>R (\<Sum>i\<in>Basis. i)) (real n *\<^sub>R (\<Sum>i\<in>Basis. i::'a))"
-  have S_union: "S = (\<Union>n. S \<inter> B n)"
-  proof
-    show "S \<subseteq> (\<Union>n. S \<inter> B n)"
-    proof
-      fix x :: 'a assume "x \<in> S"
-      obtain n where "norm x \<le> real n"
-        using real_arch_simple by blast
-      then have "x \<in> B n"
-        unfolding B_def 
-        using norm_bound_Basis_le by (fastforce simp: inner_sum_right inner_Basis abs_le_iff mem_box)
-      then show "x \<in> (\<Union>n. S \<inter> B n)"
-        using \<open>x \<in> S\<close> by auto
-    qed
-  qed auto
-  have fSn_meas: "f ` (S \<inter> B n) \<in> lmeasurable" for n
-  proof (rule bounded_set_imp_lmeasurable)
-    show "bounded (f ` (S \<inter> B n))"
-      by (simp add: B_def blin_f bounded_Int bounded_linear_image)
-    show "f ` (S \<inter> B n) \<in> sets lebesgue"
-      by (metis B_def S_sets fmeasurableD fsets lmeasurable_cbox sets.Int)
-  qed
-  have incr: "f ` (S \<inter> B n) \<subseteq> f ` (S \<inter> B (Suc n))" for n
-    unfolding B_def by (intro image_mono Int_mono order_refl subset_box_imp ballI conjI)
-      (auto simp: inner_sum_left inner_Basis)
-  have "f ` S = (\<Union>n. f ` (S \<inter> B n))"
-    by (metis S_union image_UN)
-  show "f ` S \<in> lmeasurable"
-    sorry (*DO NOT TRY TO PROVE*)
-qed
-
-
-proposition
- fixes f :: "real^'n::{finite,wellorder} \<Rightarrow> real^'n::_"
-  assumes "linear f" "S \<in> lmeasurable"
-  shows measurable_linear_image: "(f ` S) \<in> lmeasurable"
-    and measure_linear_image: "measure lebesgue (f ` S) = \<bar>eucl.det f\<bar> * measure lebesgue S"
+  shows measurable_linear_image_eu: "f ` S \<in> lmeasurable"
+    and measure_linear_image_eu: "measure lebesgue (f ` S) = \<bar>eucl.det f\<bar> * measure lebesgue S"
 proof -
-  show "(f ` S) \<in> lmeasurable"
-    using Change_Of_Vars.measurable_linear_image [OF assms] .
-  have "measure lebesgue (f ` S) = \<bar>matrix_det (matrix f)\<bar> * measure lebesgue S"
-    using Change_Of_Vars.measure_linear_image [OF assms] .
-  also have "matrix_det (matrix f) = eucl.det f"
-    using eucl_det_conv_matrix_det [OF \<open>linear f\<close>, symmetric] .
-  finally show "measure lebesgue (f ` S) = \<bar>eucl.det f\<bar> * measure lebesgue S" .
+  have I: "f ` S \<in> lmeasurable" if "\<not> inj f"
+    by (simp add: assms negligible_imp_measurable negligible_linear_singular_image that)
+  have II: "measure lebesgue (f ` S) = \<bar>eucl.det f\<bar> * measure lebesgue S" if "\<not> inj f"
+    by (simp add: assms(1) det_eq_0_iff negligible_imp_measure0 negligible_linear_singular_image that)
+  { assume "inj f"
+    then have "surj f"
+      using assms(1) linear_injective_imp_surjective by blast
+    have cont: "continuous_on UNIV f"
+      using assms(1) linear_continuous_on
+      using linear_conv_bounded_linear by blast
+    have diff_f: "f differentiable_on UNIV"
+      using assms(1) linear_imp_has_derivative differentiable_on_def differentiable_def by blast
+    have fsets: "f ` T \<in> sets lebesgue" if "T \<in> sets lebesgue" for T
+      by (meson assms(1) differentiable_image_in_sets_lebesgue dual_order.eq_iff
+          linear_imp_differentiable_on that)
+    have S_sets: "S \<in> sets lebesgue"
+      using assms(2) fmeasurableD by blast
+    obtain g where g: "linear g" "\<And>x. g (f x) = x" "\<And>x. f (g x) = x"
+      using assms(1) \<open>inj f\<close> linear_injective_isomorphism by blast
+    have blin_f: "bounded_linear f"
+      by (simp add: assms(1) linear_linear)
+    have blin_g: "bounded_linear g"
+      by (simp add: g(1) linear_linear)
+    define B where "B \<equiv> \<lambda>n::nat. cbox (- real n *\<^sub>R (\<Sum>i\<in>Basis. i)) (real n *\<^sub>R (\<Sum>i\<in>Basis. i::'a))"
+    have S_union: "S = (\<Union>n. S \<inter> B n)"
+    proof
+      show "S \<subseteq> (\<Union>n. S \<inter> B n)"
+      proof
+        fix x :: 'a assume "x \<in> S"
+        obtain n where "norm x \<le> real n"
+          using real_arch_simple by blast
+        then have "x \<in> B n"
+          unfolding B_def 
+          using norm_bound_Basis_le by (fastforce simp: inner_sum_right inner_Basis abs_le_iff mem_box)
+        then show "x \<in> (\<Union>n. S \<inter> B n)"
+          using \<open>x \<in> S\<close> by auto
+      qed
+    qed auto
+    have fSn_meas: "f ` (S \<inter> B n) \<in> lmeasurable" for n
+    proof (rule bounded_set_imp_lmeasurable)
+      show "bounded (f ` (S \<inter> B n))"
+        by (simp add: B_def blin_f bounded_Int bounded_linear_image)
+      show "f ` (S \<inter> B n) \<in> sets lebesgue"
+        by (metis B_def S_sets fmeasurableD fsets lmeasurable_cbox sets.Int)
+    qed
+    have incr: "f ` (S \<inter> B n) \<subseteq> f ` (S \<inter> B (Suc n))" for n
+      unfolding B_def by (intro image_mono Int_mono order_refl subset_box_imp ballI conjI)
+        (auto simp: inner_sum_left inner_Basis)
+    have "f ` S = (\<Union>n. f ` (S \<inter> B n))"
+      by (metis S_union image_UN)
+    have "f ` S \<in> lmeasurable \<and> measure lebesgue (f ` S) = \<bar>eucl.det f\<bar> * measure lebesgue S"
+      sorry
+  }
+  with I II show "f ` S \<in> lmeasurable" "measure lebesgue (f ` S) = \<bar>eucl.det f\<bar> * measure lebesgue S"
+    by blast+
 qed
 
 
@@ -762,7 +733,22 @@ proof -
   then show "f ` S \<in> lmeasurable"
     by (metis S measurable_linear_image)
   show "measure lebesgue (f ` S) = measure lebesgue S"
-    by (simp add: measure_linear_image \<open>linear f\<close> S f)
+    using S f measure_orthogonal_image by blast
+qed
+
+
+lemma
+ fixes f :: "'a::euclidean_space \<Rightarrow> 'a"
+  assumes f: "orthogonal_transformation f" and S: "S \<in> lmeasurable"
+  shows measurable_orthogonal_image_eu: "f ` S \<in> lmeasurable"
+    and measure_orthogonal_image_eu: "measure lebesgue (f ` S) = \<bar>eucl.det f\<bar> * measure lebesgue S"
+proof -
+  have "linear f"
+    by (simp add: f orthogonal_transformation_linear)
+  then show "f ` S \<in> lmeasurable"
+    by (metis S measurable_linear_image_eu)
+  show "measure lebesgue (f ` S) = \<bar>eucl.det f\<bar> * measure lebesgue S"
+    using S f \<open>linear f\<close> measure_linear_image_eu by blast
 qed
 
 proposition measure_semicontinuous_with_hausdist_explicit:
