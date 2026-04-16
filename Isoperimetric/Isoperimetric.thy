@@ -1012,10 +1012,120 @@ proof -
     qed
   qed
   show "integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2) \<le> integral {0..2*pi} (\<lambda>x. (f' x)\<^sup>2)"
-    sorry
+  proof -
+    \<comment> \<open>Zeros of sin(x - a) in [0, 2\<pi>] are exactly at x = a and x = a + \<pi>.\<close>
+    have sin_nz_1: "sin (x - a) \<noteq> 0" if "a + pi < x" "x < 2*pi" for x
+      by (smt (verit) \<open>0 \<le> a\<close> sin_lt_zero that)
+    have sin_nz_2: "sin (x - a) \<noteq> 0" if "a < x" "x < a + pi" for x
+      by (smt (verit, ccfv_threshold) sin_gt_zero that)
+    have sin_nz_3: "sin (x - a) \<noteq> 0" if "0 < x" "x < a" for x
+    proof -
+      have "0 < a - x" "a - x < pi" using that \<open>a < pi\<close> by auto
+      hence "0 < sin (a - x)" by (rule sin_gt_zero)
+      moreover have "sin (x - a) = - sin (a - x)"
+        by (metis sin_minus minus_diff_eq)
+      ultimately show ?thesis by simp
+    qed
+    \<comment> \<open>Apply mainly_trouble_free on three intervals.\<close>
+    have int1: "(g' has_integral g (2*pi) - g (a + pi)) {a + pi..2*pi}"
+      by (rule mainly_trouble_free) (use \<open>0 \<le> a\<close> \<open>a < pi\<close> sin_nz_1 in auto)
+    have int2: "(g' has_integral g (a + pi) - g a) {a..a + pi}"
+      by (rule mainly_trouble_free) (use \<open>0 \<le> a\<close> \<open>a < pi\<close> sin_nz_2 in auto)
+    have int3: "(g' has_integral g a - g 0) {0..a}"
+      by (rule mainly_trouble_free) (use \<open>0 \<le> a\<close> \<open>a < pi\<close> sin_nz_3 in auto)
+    \<comment> \<open>Combine the three integrals using has_integral_combine.\<close>
+    have api_le: "a \<le> a + pi" and api_le2: "a + pi \<le> 2*pi"
+      using \<open>0 \<le> a\<close> \<open>a < pi\<close> by auto
+    have a_le_2pi: "a \<le> 2*pi" using \<open>0 \<le> a\<close> \<open>a < pi\<close> by auto
+    have int12: "(g' has_integral (g (a + pi) - g a) + (g (2*pi) - g (a + pi))) {a..2*pi}"
+      by (rule has_integral_combine[OF api_le api_le2 int2 int1])
+    have int_all: "(g' has_integral (g a - g 0) + ((g (a + pi) - g a) + (g (2*pi) - g (a + pi)))) {0..2*pi}"
+      by (rule has_integral_combine[OF \<open>0 \<le> a\<close> a_le_2pi int3 int12])
+    \<comment> \<open>Simplify: the telescoping sum gives g(2\<pi>) - g(0).\<close>
+    have int_all': "(g' has_integral g (2*pi) - g 0) {0..2*pi}"
+      using int_all by (simp add: algebra_simps)
+    \<comment> \<open>Show g(2\<pi>) = g(0), so the integral of g' is 0.\<close>
+    have "g (2*pi) = g 0"
+      unfolding g_def using feq by (simp add: tan_def)
+    hence g'_zero: "(g' has_integral 0) {0..2*pi}"
+      using int_all' by simp
+    \<comment> \<open>Extract the inequality from \<integral>g' = 0.\<close>
+    \<comment> \<open>g'(x) = (f'(x))² − (f(x)−f(a))² − rest(x)², so (f'(x))² − g'(x) = (f(x)−f(a))² + rest(x)² \<ge> (f(x)−f(a))².\<close>
+    have ffa_int: "(\<lambda>x. (f x - f a)\<^sup>2) integrable_on {0..2*pi}"
+      by (intro integrable_continuous_interval continuous_intros contf)
+    have g'_int: "g' integrable_on {0..2*pi}"
+      using g'_zero by (auto simp: has_integral_integrable_integral)
+    \<comment> \<open>(f')² − g' is integrable and its integral = \<integral>(f')² − 0 = \<integral>(f')².\<close>
+    have diff_int: "((\<lambda>x. (f' x)\<^sup>2 - g' x) has_integral integral {0..2*pi} (\<lambda>x. (f' x)\<^sup>2) - 0) {0..2*pi}"
+      by (rule has_integral_diff[OF integrable_integral[OF f'2] g'_zero])
+    \<comment> \<open>(f')²(x) − g'(x) = (f(x)−f(a))² + rest(x)² \<ge> (f(x)−f(a))².\<close>
+    have diff_eq: "(f' x)\<^sup>2 - g' x = (f x - f a)\<^sup>2 + (f' x - (f x - f a) / tan (x - a))\<^sup>2" for x
+      unfolding g'_def by (simp add: algebra_simps)
+    have diff_ge: "(f' x)\<^sup>2 - g' x \<ge> (f x - f a)\<^sup>2" for x
+      unfolding diff_eq by (simp add: zero_le_power2)
+    \<comment> \<open>Therefore \<integral>(f')² \<ge> \<integral>(f(x)−f(a))².\<close>
+    have "integral {0..2*pi} (\<lambda>x. (f x - f a)\<^sup>2) \<le> integral {0..2*pi} (\<lambda>x. (f' x)\<^sup>2 - g' x)"
+      by (rule integral_le[OF ffa_int]) (use diff_int has_integral_integrable_integral in \<open>auto intro: diff_ge\<close>)
+    also have "\<dots> = integral {0..2*pi} (\<lambda>x. (f' x)\<^sup>2)"
+      using diff_int has_integral_integrable_integral by auto
+    finally have ineq_ffa: "integral {0..2*pi} (\<lambda>x. (f x - f a)\<^sup>2) \<le> integral {0..2*pi} (\<lambda>x. (f' x)\<^sup>2)" .
+    \<comment> \<open>Show \<integral>(f(x))² \<le> \<integral>(f(x)−f(a))² using \<integral>f = 0.\<close>
+    have "(f x)\<^sup>2 \<le> (f x - f a)\<^sup>2 + 2 * f a * f x - (f a)\<^sup>2" for x
+      by (simp add: power2_eq_square algebra_simps)
+    \<comment> \<open>Actually: (f(x)−f(a))² = (f(x))² − 2\<sqdot>f(a)\<sqdot>f(x) + (f(a))², so (f(x))² = (f(x)−f(a))² + 2\<sqdot>f(a)\<sqdot>f(x) − (f(a))².\<close>
+    have fx_eq: "(f x)\<^sup>2 = (f x - f a)\<^sup>2 + 2 * f a * f x - (f a)\<^sup>2" for x
+      by (simp add: power2_eq_square algebra_simps)
+    have f_int: "f integrable_on {0..2*pi}"
+      by (rule integrable_continuous_interval[OF contf])
+    \<comment> \<open>\<integral>f = 0 by assumption.\<close>
+    have f_integral_0: "integral {0..2*pi} f = 0"
+      using f0 by (auto simp: has_integral_integrable_integral)
+    \<comment> \<open>\<integral>(f(x)−f(a))² = \<integral>(f(x))² + (f(a))²\<sqdot>2\<pi>  (using \<integral>f = 0).\<close>
+    have ffa_2fa_int: "(\<lambda>x. 2 * f a * f x) integrable_on {0..2*pi}"
+    proof -
+      have "(\<lambda>x. (2 * f a) *\<^sub>R f x) integrable_on {0..2*pi}"
+        by (rule integrable_cmul[OF f_int])
+      thus ?thesis by simp
+    qed
+    have ffa_expand: "integral {0..2*pi} (\<lambda>x. (f x - f a)\<^sup>2) =
+      integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2) - 2 * f a * integral {0..2*pi} f +
+      (f a)\<^sup>2 * (2*pi)"
+    proof -
+      have eq: "(f x - f a)\<^sup>2 = (f x)\<^sup>2 - 2 * f a * f x + (f a)\<^sup>2" for x
+        by (simp add: power2_eq_square algebra_simps)
+      have fx2_int: "(\<lambda>x. (f x)\<^sup>2) integrable_on {0..2*pi}"
+        by (intro integrable_continuous_interval continuous_intros contf)
+      have const_int: "(\<lambda>x::real. (f a)\<^sup>2) integrable_on {0..2*pi}"
+        by blast
+      \<comment> \<open>Split: (f−fa)² = f² − 2\<sqdot>fa\<sqdot>f + fa²\<close>
+      have "integral {0..2*pi} (\<lambda>x. (f x - f a)\<^sup>2) = integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2 - 2 * f a * f x + (f a)\<^sup>2)"
+        by (rule integral_cong) (simp add: eq)
+      also have "\<dots> = integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2 - 2 * f a * f x) + integral {0..2*pi} (\<lambda>x. (f a)\<^sup>2)"
+        by (rule Henstock_Kurzweil_Integration.integral_add)
+          (auto intro: integrable_diff fx2_int ffa_2fa_int)
+      also have "integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2 - 2 * f a * f x) =
+        integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2) - integral {0..2*pi} (\<lambda>x. 2 * f a * f x)"
+        by (rule Henstock_Kurzweil_Integration.integral_diff[OF fx2_int ffa_2fa_int])
+      also have "integral {0..2*pi} (\<lambda>x. 2 * f a * f x) = 2 * f a * integral {0..2*pi} f"
+        using integral_cmul by simp
+      also have "integral {0..2*pi} (\<lambda>x. (f a)\<^sup>2) = (f a)\<^sup>2 * (2*pi)"
+        by simp
+      finally show ?thesis by linarith
+    qed
+    have "integral {0..2*pi} (\<lambda>x. (f x - f a)\<^sup>2) =
+      integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2) + (f a)\<^sup>2 * (2*pi)"
+      using ffa_expand f_integral_0 by simp
+    hence "integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2) =
+      integral {0..2*pi} (\<lambda>x. (f x - f a)\<^sup>2) - (f a)\<^sup>2 * (2*pi)"
+      by linarith
+    moreover have "(f a)\<^sup>2 * (2*pi) \<ge> 0" by (simp add: zero_le_power2)
+    ultimately have "integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2) \<le> integral {0..2*pi} (\<lambda>x. (f x - f a)\<^sup>2)"
+      by linarith
+    thus ?thesis using ineq_ffa by linarith
+  qed
   show "\<exists>c a. \<forall>x \<in> {0..2*pi}. f x = c * sin (x - a)"
     if "integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2) = integral {0..2*pi} (\<lambda>x. (f' x)\<^sup>2)"
-    sorry
+    sorry 
 qed
 
 theorem scaled_Wirtinger_inequality:
