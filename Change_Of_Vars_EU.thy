@@ -9,6 +9,16 @@ theory Change_Of_Vars_EU
 
 begin
 
+lemma has_derivative_subset:
+  assumes "(f has_derivative f') (at x within s)" "t \<subseteq> s"
+  shows "(f has_derivative f') (at x within t)"
+  using assms(1,2) has_derivative_subset by blast
+
+lemma has_derivative_within_subset:
+  assumes "(f has_derivative f') (at x within s)" "t \<subseteq> s"
+  shows "(f has_derivative f') (at x within t)"
+  by (rule has_derivative_subset[OF assms])
+
 subsection \<open>Measurable Shear and Stretch\<close>
 
 proposition
@@ -808,7 +818,122 @@ proof -
   define m where "m \<equiv> integral S (\<lambda>x. \<bar>eucl.det (f' x)\<bar>)"
   have *: "f ` S \<in> lmeasurable" "?\<mu> (f ` S) \<le> m + e * ?\<mu> S"
     if "e > 0" for e
-    sorry
+  proof -
+    define Sn where "Sn \<equiv> \<lambda>n. {x \<in> S. real n * e \<le> \<bar>eucl.det (f' x)\<bar> \<and> \<bar>eucl.det (f' x)\<bar> < real (Suc n) * e}"
+    have Sn_sub: "Sn n \<subseteq> S" for n
+      by (auto simp: Sn_def)
+    have S_eq: "S = (\<Union>n. Sn n)"
+    proof (intro equalityI subsetI)
+      fix x assume "x \<in> S"
+      define n where "n = nat \<lfloor>\<bar>eucl.det (f' x)\<bar> / e\<rfloor>"
+      have "real_of_int \<lfloor>\<bar>eucl.det (f' x)\<bar> / e\<rfloor> * e \<le> \<bar>eucl.det (f' x)\<bar>"
+        using floor_divide_lower \<open>e > 0\<close> by blast
+      moreover have "\<bar>eucl.det (f' x)\<bar> < (real_of_int \<lfloor>\<bar>eucl.det (f' x)\<bar> / e\<rfloor> + 1) * e"
+        using floor_divide_upper \<open>e > 0\<close> by blast
+      moreover have "\<lfloor>\<bar>eucl.det (f' x)\<bar> / e\<rfloor> \<ge> 0"
+        using \<open>e > 0\<close> by (simp add: floor_divide_lower)
+      ultimately have "x \<in> Sn n"
+        using \<open>x \<in> S\<close> by (auto simp: Sn_def n_def of_nat_nat nat_add_distrib algebra_simps)
+      then show "x \<in> (\<Union>n. Sn n)" by auto
+    qed (auto simp: Sn_def)
+    have Sn_mble: "Sn n \<in> lmeasurable" for n
+    proof -
+      have meas: "(\<lambda>x. \<bar>eucl.det (f' x)\<bar>) \<in> borel_measurable (lebesgue_on S)"
+        using integrable_imp_measurable[OF int] .
+      have 1: "{x \<in> S. real n * e \<le> \<bar>eucl.det (f' x)\<bar>} \<in> sets (lebesgue_on S)"
+        using borel_measurable_le[OF _ meas] by (simp add: space_lebesgue_on)
+      have 2: "{x \<in> S. \<bar>eucl.det (f' x)\<bar> < real (Suc n) * e} \<in> sets (lebesgue_on S)"
+        using borel_measurable_less[OF meas] by (simp add: space_lebesgue_on)
+      have "{x \<in> S. real n * e \<le> \<bar>eucl.det (f' x)\<bar> \<and> \<bar>eucl.det (f' x)\<bar> < real (Suc n) * e} \<in> sets (lebesgue_on S)"
+        using Int_Collect sets.Int[OF 1 2] by (metis Collect_conj_eq2)
+      then have "Sn n \<in> sets (lebesgue_on S)"
+        by (simp add: Sn_def)
+      then have "Sn n \<in> sets lebesgue"
+        using S sets_restrict_space_iff[of S lebesgue] by blast
+      then show ?thesis
+        using fmeasurableI2[OF S Sn_sub] by blast
+    qed
+    have Sn_deriv: "(f has_derivative f' x) (at x within Sn n)" if "x \<in> Sn n" for x n
+      by (meson Sn_sub deriv has_derivative_subset subsetD that)
+    have Sn_int: "(\<lambda>x. \<bar>eucl.det (f' x)\<bar>) integrable_on Sn n" for n
+    proof -
+      have "Sn n \<in> sets (lebesgue_on S)"
+        using Sn_mble Sn_sub S
+        by (simp add: sets_restrict_space_iff fmeasurable.UNIV fmeasurableD2)
+      then have "(\<lambda>x. \<bar>eucl.det (f' x)\<bar>) absolutely_integrable_on Sn n"
+        using set_integrable_restrict_space[OF aint_S] by auto
+      then show ?thesis
+        using set_lebesgue_integral_eq_integral by blast
+    qed
+    have Sn_bdd: "\<bar>eucl.det (f' x)\<bar> \<le> real (Suc n) * e" if "x \<in> Sn n" for x n
+      using that by (auto simp: Sn_def less_imp_le)
+    have fSn_mble: "f ` Sn n \<in> lmeasurable" for n
+      using measurable_bounded_differentiable_image_eu [OF Sn_mble Sn_deriv Sn_int Sn_bdd] .
+    have fSn_meas: "?\<mu> (f ` Sn n) \<le> real (Suc n) * e * ?\<mu> (Sn n)" for n
+      using measure_bounded_differentiable_image_eu [OF Sn_mble Sn_deriv Sn_int Sn_bdd] .
+    have fSn_meas2: "?\<mu> (f ` Sn n) \<le> integral (Sn n) (\<lambda>x. \<bar>eucl.det (f' x)\<bar>) + e * ?\<mu> (Sn n)" for n
+    proof -
+      have "real (Suc n) * e * ?\<mu> (Sn n) = real n * e * ?\<mu> (Sn n) + e * ?\<mu> (Sn n)"
+        by (simp add: algebra_simps)
+      also have "real n * e * ?\<mu> (Sn n) \<le> integral (Sn n) (\<lambda>x. \<bar>eucl.det (f' x)\<bar>)"
+      proof -
+        have "real n * e * ?\<mu> (Sn n) = integral (Sn n) (\<lambda>x. real n * e)"
+          using lmeasure_integral[OF Sn_mble] integral_mult_right[of "Sn n" "\<lambda>x. 1" "real n * e"]
+          by simp
+        also have "\<dots> \<le> integral (Sn n) (\<lambda>x. \<bar>eucl.det (f' x)\<bar>)"
+          using integral_le[OF integrable_on_const[OF Sn_mble] Sn_int]
+          by (auto simp: Sn_def)
+        finally show ?thesis .
+      qed
+      finally show ?thesis using fSn_meas [of n] by linarith
+    qed
+    have "f ` S = (\<Union>n. f ` Sn n)"
+      using S_eq by auto
+    have bound: "?\<mu> (\<Union> ((\<lambda>k. f ` Sn k) ` {..n})) \<le> m + e * ?\<mu> S" for n
+    proof -
+      have "?\<mu> (\<Union> ((\<lambda>k. f ` Sn k) ` {..n})) \<le> (\<Sum>k\<le>n. ?\<mu> (f ` Sn k))"
+        by (intro measure_UNION_le) (auto simp: fSn_mble fmeasurableD2)
+      also have "\<dots> \<le> (\<Sum>k\<le>n. integral (Sn k) (\<lambda>x. \<bar>eucl.det (f' x)\<bar>) + e * ?\<mu> (Sn k))"
+        by (intro sum_mono) (use fSn_meas2 in auto)
+      also have "\<dots> = (\<Sum>k\<le>n. integral (Sn k) (\<lambda>x. \<bar>eucl.det (f' x)\<bar>)) + e * (\<Sum>k\<le>n. ?\<mu> (Sn k))"
+        by (simp add: sum.distrib sum_distrib_left)
+      also have "\<dots> \<le> m + e * ?\<mu> S"
+      proof (intro add_mono mult_left_mono)
+        show "(\<Sum>k\<le>n. integral (Sn k) (\<lambda>x. \<bar>eucl.det (f' x)\<bar>)) \<le> m"
+        proof -
+          have disj: "disjoint_family_on Sn {..n}"
+            unfolding disjoint_family_on_def Sn_def
+            by (auto simp: linorder_not_le dest: mult_strict_left_mono[OF _ \<open>e > 0\<close>])
+          have "(\<Sum>k\<le>n. integral (Sn k) (\<lambda>x. \<bar>eucl.det (f' x)\<bar>)) = integral (\<Union>k\<le>n. Sn k) (\<lambda>x. \<bar>eucl.det (f' x)\<bar>)"
+            by (intro integral_unique has_integral_Union[OF _ _ disj]) (auto intro: Sn_int Sn_mble integrable_on_def[THEN iffD1])
+          also have "\<dots> \<le> integral S (\<lambda>x. \<bar>eucl.det (f' x)\<bar>)"
+            by (intro integral_subset_le) (auto simp: Sn_sub int intro: integrable_on_Union Sn_int Sn_mble)
+          finally show ?thesis by (simp add: m_def)
+        qed
+        show "(\<Sum>k\<le>n. ?\<mu> (Sn k)) \<le> ?\<mu> S"
+        proof -
+          have disj: "disjoint_family_on Sn {..n}"
+            unfolding disjoint_family_on_def Sn_def
+            by (auto simp: linorder_not_le dest: mult_strict_left_mono[OF _ \<open>e > 0\<close>])
+          have "(\<Sum>k\<le>n. ?\<mu> (Sn k)) = ?\<mu> (\<Union>k\<le>n. Sn k)"
+            by (intro measure_Union'[symmetric]) (auto simp: Sn_mble fmeasurableD2 disj)
+          also have "\<dots> \<le> ?\<mu> S"
+            using Sn_sub S by (intro measure_mono_fmeasurable) auto
+          finally show ?thesis .
+        qed
+        show "0 \<le> e" using \<open>e > 0\<close> by linarith
+      qed
+      finally show ?thesis .
+    qed
+    have fS_mble: "f ` S \<in> lmeasurable"
+      using fmeasurable_countable_Union[OF fSn_mble bound] \<open>f ` S = (\<Union>n. f ` Sn n)\<close>
+      by (metis (no_types) atMost_atLeast0 image_comp)
+    have fS_meas: "?\<mu> (f ` S) \<le> m + e * ?\<mu> S"
+      using measure_countable_Union_le[OF fSn_mble bound] \<open>f ` S = (\<Union>n. f ` Sn n)\<close>
+      by (metis (no_types) atMost_atLeast0 image_comp)
+    show "f ` S \<in> lmeasurable" "?\<mu> (f ` S) \<le> m + e * ?\<mu> S"
+      using fS_mble fS_meas by auto
+  qed
   show ?thesis
   proof
     show "f ` S \<in> lmeasurable"
