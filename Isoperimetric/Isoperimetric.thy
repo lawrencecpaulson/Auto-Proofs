@@ -1237,7 +1237,57 @@ proof -
     show ?thesis
     proof (cases "a=0")
       case True
-      then show ?thesis sorry
+
+      then show ?thesis
+      proof -
+        obtain c1 where c1: "\<And>x. x \<in> {0..pi} \<Longrightarrow> f x = c1 * sin (x - a)"
+          sorry
+        obtain c2 where c2: "\<And>x. x \<in> {pi..2*pi} \<Longrightarrow> f x = c2 * sin (x - a)"
+          sorry
+        \<comment> \<open>Use \<integral>f = 0 and csin_integral to show c1 = c2.\<close>
+        have eq1: "integral {0..pi} f = c1 * (cos (0 - a) - cos (pi - a))"
+        proof -
+          have "integral {0..pi} f = integral {0..pi} (\<lambda>x. c1 * sin (x - a))"
+            by (rule integral_cong) (use c1 in auto)
+          also have "\<dots> = c1 * (cos (0 - a) - cos (pi - a))"
+            by (rule csin_integral) (use pi_ge_zero in auto)
+          finally show ?thesis .
+        qed
+        have eq2: "integral {pi..2*pi} f = c2 * (cos (pi - a) - cos (2*pi - a))"
+        proof -
+          have "integral {pi..2*pi} f = integral {pi..2*pi} (\<lambda>x. c2 * sin (x - a))"
+            by (rule integral_cong) (use c2 in auto)
+          also have "\<dots> = c2 * (cos (pi - a) - cos (2*pi - a))"
+            by (rule csin_integral) (use pi_ge_zero in auto)
+          finally show ?thesis .
+        qed
+        have int_split: "integral {0..2*pi} f = integral {0..pi} f + integral {pi..2*pi} f"
+        proof -
+          have f_int: "f integrable_on {0..2*pi}"
+            using f0 has_integral_integrable by blast
+          show ?thesis
+            using Henstock_Kurzweil_Integration.integral_combine[OF pi_ge_zero _ f_int]
+              pi_ge_zero by linarith
+        qed
+        have "integral {0..2*pi} f = 0"
+          using f0 by (simp add: has_integral_integrable_integral)
+        hence "c1 * (cos (0 - a) - cos (pi - a)) + c2 * (cos (pi - a) - cos (2*pi - a)) = 0"
+          using int_split eq1 eq2 by linarith
+        hence c_eq: "c1 = c2" using True
+          by (simp add: cos_two_pi cos_pi)
+        show "\<exists>c a. \<forall>x\<in>{0..2 * pi}. f x = c * sin (x - a)"
+        proof (intro exI ballI)
+          fix x assume "x \<in> {0..2*pi}"
+          show "f x = c1 * sin (x - a)"
+          proof (cases "x \<le> pi")
+            case True
+            then show ?thesis using c1[of x] \<open>x \<in> {0..2*pi}\<close> by auto
+          next
+            case False
+            then show ?thesis using c2[of x] c_eq \<open>x \<in> {0..2*pi}\<close> by auto
+          qed
+        qed
+      qed
     next
       case False
       then show ?thesis sorry
