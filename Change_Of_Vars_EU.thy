@@ -849,9 +849,39 @@ proof -
     by (auto simp: mem_box)
   have fIn: "f ` ?I n \<in> lmeasurable"
        and mfIn: "?\<mu> (f ` ?I n) \<le> integral S (\<lambda>x. \<bar>eucl.det (f' x)\<bar>)" (is ?MN) for n
-    sorry
+  proof -
+    have In_mble: "?I n \<in> lmeasurable"
+      using S by (auto intro!: fmeasurableI2 lmeasurable_cbox simp: sets.Int sets_completionI_sets)
+    have In_sub: "?I n \<subseteq> S" by auto
+    have In_deriv: "\<And>x. x \<in> ?I n \<Longrightarrow> (f has_derivative f' x) (at x within ?I n)"
+      by (meson In_sub has_derivative_subset deriv subsetD)
+    have In_int: "(\<lambda>x. \<bar>eucl.det (f' x)\<bar>) integrable_on ?I n"
+      using absolutely_integrable_on_subcbox [OF aint_S, of "- real n *\<^sub>R ?One" "real n *\<^sub>R ?One"]
+      unfolding absolutely_integrable_on_def
+      sorry
+    have res: "f ` ?I n \<in> lmeasurable \<and> ?\<mu> (f ` ?I n) \<le> integral (?I n) (\<lambda>x. \<bar>eucl.det (f' x)\<bar>)"
+      using m_diff_image_weak_eu [OF In_mble In_deriv In_int] .
+    then show "f ` ?I n \<in> lmeasurable" by blast
+    have "integral (?I n) (\<lambda>x. \<bar>eucl.det (f' x)\<bar>) \<le> integral S (\<lambda>x. \<bar>eucl.det (f' x)\<bar>)"
+      using integral_subset_le [OF In_sub In_int int] by auto
+    with res show ?MN by linarith
+  qed
+    have In_mble: "?I n \<in> lmeasurable"
+      by (meson S cbox_borel fmeasurableI2 lmeasurable_cbox sets.Int sets_completionI_sets)
+    have In_deriv: "(f has_derivative f' x) (at x within ?I n)" if "x \<in> ?I n" for x
+      using deriv that has_derivative_within_subset by fastforce
+    have In_int: "(\<lambda>x. \<bar>eucl.det (f' x)\<bar>) integrable_on ?I n"
+      using int integrable_on_subcbox
+      by (meson inf_le2 integrable_on_subset)
+    have res: "f ` ?I n \<in> lmeasurable \<and> ?\<mu> (f ` ?I n) \<le> integral (?I n) (\<lambda>x. \<bar>eucl.det (f' x)\<bar>)"
+      by (rule m_diff_image_weak_eu [OF In_mble In_deriv In_int])
+    then show "f ` ?I n \<in> lmeasurable" by blast
+    have "integral (?I n) (\<lambda>x. \<bar>eucl.det (f' x)\<bar>) \<le> integral S (\<lambda>x. \<bar>eucl.det (f' x)\<bar>)"
+      by (rule integral_subset_le [OF _ In_int int]) auto
+    with res show ?MN by linarith
+  qed
   have "?I k \<subseteq> ?I n" if "k \<le> n" for k n
-    sorry
+    using that by (force simp: mem_box)
   then have "(\<Union>k\<le>n. f ` ?I k) = f ` ?I n" for n
     by (fastforce simp add:)
   with mfIn have "?\<mu> (\<Union>k\<le>n. f ` ?I k) \<le> integral S (\<lambda>x. \<bar>eucl.det (f' x)\<bar>)" for n

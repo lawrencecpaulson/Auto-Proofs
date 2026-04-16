@@ -1219,7 +1219,29 @@ proof -
       hence "(f a)\<^sup>2 * (2*pi) = 0" using fa2_nonneg by linarith
       thus "f a = 0" using pi_gt_zero by (simp add: power2_eq_square)
     qed
-    show ?thesis sorry
+    \<comment> \<open>Integral of c * sin(x - a) via the fundamental theorem of calculus.\<close>
+    have csin_integral: "integral {u..v} (\<lambda>x. c * sin (x - a)) =
+        c * (cos (u - a) - cos (v - a))" if "u \<le> v" for u v c
+    proof -
+      have "((\<lambda>x. - (c * cos (x - a))) has_real_derivative c * sin (x - a)) (at x)" for x
+        by (auto intro!: derivative_eq_intros simp: algebra_simps)
+      hence hvd: "((\<lambda>x. - (c * cos (x - a))) has_vector_derivative c * sin (x - a))
+        (at x within {u..v})" for x
+        by (meson has_real_derivative_iff_has_vector_derivative has_vector_derivative_at_within)
+      hence "((\<lambda>x. c * sin (x - a)) has_integral
+        (- (c * cos (v - a)) - (- (c * cos (u - a))))) {u..v}"
+        using that by (intro fundamental_theorem_of_calculus) auto
+      thus ?thesis
+        by (simp add: has_integral_integrable_integral algebra_simps)
+    qed
+    show ?thesis
+    proof (cases "a=0")
+      case True
+      then show ?thesis sorry
+    next
+      case False
+      then show ?thesis sorry
+    qed
   qed
 qed
 
