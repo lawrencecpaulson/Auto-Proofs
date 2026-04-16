@@ -1219,6 +1219,44 @@ proof -
       hence "(f a)\<^sup>2 * (2*pi) = 0" using fa2_nonneg by linarith
       thus "f a = 0" using pi_gt_zero by (simp add: power2_eq_square)
     qed
+    \<comment> \<open>Step 2: The "rest" term integrates to 0.\<close>
+    define rest where "rest \<equiv> \<lambda>x. f' x - (f x - f a) / tan (x - a)"
+    have diff_eq: "(f' x)\<^sup>2 - g' x = (f x - f a)\<^sup>2 + (rest x)\<^sup>2" for x
+      unfolding g'_def rest_def by (simp add: algebra_simps)
+    have rest_sq_int: "(\<lambda>x. (rest x)\<^sup>2) integrable_on {0..2*pi}"
+    proof -
+      have diff_int: "(\<lambda>x. (f' x)\<^sup>2 - g' x) integrable_on {0..2*pi}"
+        using has_integral_diff[OF integrable_integral[OF f'2] g'_zero]
+              has_integral_integrable by blast
+      have eq: "(\<lambda>x. (rest x)\<^sup>2) = (\<lambda>x. (f' x)\<^sup>2 - g' x - (f x - f a)\<^sup>2)"
+        by (rule ext) (use diff_eq in \<open>simp add: algebra_simps\<close>)
+      show ?thesis unfolding eq
+        by (rule integrable_diff[OF diff_int ffa_int])
+    qed
+    have rest_sq_zero: "integral {0..2*pi} (\<lambda>x. (rest x)\<^sup>2) = 0"
+    proof -
+      have "integral {0..2*pi} (\<lambda>x. (f' x)\<^sup>2 - g' x) =
+        integral {0..2*pi} (\<lambda>x. (f' x)\<^sup>2)"
+        using has_integral_diff[OF integrable_integral[OF f'2] g'_zero]
+              has_integral_integrable_integral by auto
+      moreover have "integral {0..2*pi} (\<lambda>x. (f' x)\<^sup>2 - g' x) =
+        integral {0..2*pi} (\<lambda>x. (f x - f a)\<^sup>2) + integral {0..2*pi} (\<lambda>x. (rest x)\<^sup>2)"
+      proof -
+        have eq: "(f' x)\<^sup>2 - g' x = (f x - f a)\<^sup>2 + (rest x)\<^sup>2" for x
+          using diff_eq by auto
+        have "integral {0..2*pi} (\<lambda>x. (f' x)\<^sup>2 - g' x) =
+          integral {0..2*pi} (\<lambda>x. (f x - f a)\<^sup>2 + (rest x)\<^sup>2)"
+          by (rule integral_cong) (use eq in auto)
+        also have "\<dots> = integral {0..2*pi} (\<lambda>x. (f x - f a)\<^sup>2) +
+          integral {0..2*pi} (\<lambda>x. (rest x)\<^sup>2)"
+          by (rule Henstock_Kurzweil_Integration.integral_add[OF ffa_int rest_sq_int])
+        finally show ?thesis .
+      qed
+      moreover have "integral {0..2*pi} (\<lambda>x. (f x - f a)\<^sup>2) =
+        integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2)"
+        using ffa_eq fa0 by simp
+      ultimately show ?thesis using eq_hyp by linarith
+    qed
     \<comment> \<open>Integral of c * sin(x - a) via the fundamental theorem of calculus.\<close>
     have csin_integral: "integral {u..v} (\<lambda>x. c * sin (x - a)) =
         c * (cos (u - a) - cos (v - a))" if "u \<le> v" for u v c
