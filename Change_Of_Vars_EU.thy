@@ -12,109 +12,6 @@ begin
 subsection \<open>Measurable Shear and Stretch\<close>
 
 proposition
-  fixes a :: "real^'n"
-  assumes "m \<noteq> n" and ab_ne: "cbox a b \<noteq> {}" and an: "0 \<le> a$n"
-  shows measurable_shear_interval: "(\<lambda>x. \<chi> i. if i = m then x$m + x$n else x$i) ` (cbox a b) \<in> lmeasurable"
-       (is  "?f ` _ \<in> _")
-   and measure_shear_interval: "measure lebesgue ((\<lambda>x. \<chi> i. if i = m then x$m + x$n else x$i) ` cbox a b)
-               = measure lebesgue (cbox a b)" (is "?Q")
-proof -
-  have lin: "linear ?f"
-    by (rule linearI) (auto simp: plus_vec_def scaleR_vec_def algebra_simps)
-  show fab: "?f ` cbox a b \<in> lmeasurable"
-    by (simp add: lin measurable_linear_image_interval)
-  let ?c = "\<chi> i. if i = m then b$m + b$n else b$i"
-  let ?mn = "axis m 1 - axis n (1::real)"
-  have eq1: "measure lebesgue (cbox a ?c)
-            = measure lebesgue (?f ` cbox a b)
-            + measure lebesgue (cbox a ?c \<inter> {x. ?mn \<bullet> x \<le> a$m})
-            + measure lebesgue (cbox a ?c \<inter> {x. ?mn \<bullet> x \<ge> b$m})"
-  proof (rule measure_Un3_negligible)
-    show "cbox a ?c \<inter> {x. ?mn \<bullet> x \<le> a$m} \<in> lmeasurable" "cbox a ?c \<inter> {x. ?mn \<bullet> x \<ge> b$m} \<in> lmeasurable"
-      by (auto simp: convex_Int convex_halfspace_le convex_halfspace_ge bounded_Int measurable_convex)
-    have "negligible {x. ?mn \<bullet> x = a$m}"
-      by (metis \<open>m \<noteq> n\<close> axis_index_axis eq_iff_diff_eq_0 negligible_hyperplane)
-    moreover have "?f ` cbox a b \<inter> (cbox a ?c \<inter> {x. ?mn \<bullet> x \<le> a $ m}) \<subseteq> {x. ?mn \<bullet> x = a$m}"
-      using \<open>m \<noteq> n\<close> antisym_conv by (fastforce simp: algebra_simps mem_box_cart inner_axis')
-    ultimately show "negligible ((?f ` cbox a b) \<inter> (cbox a ?c \<inter> {x. ?mn \<bullet> x \<le> a $ m}))"
-      by (rule negligible_subset)
-    have "negligible {x. ?mn \<bullet> x = b$m}"
-      by (metis \<open>m \<noteq> n\<close> axis_index_axis eq_iff_diff_eq_0 negligible_hyperplane)
-    moreover have "(?f ` cbox a b) \<inter> (cbox a ?c \<inter> {x. ?mn \<bullet> x \<ge> b$m}) \<subseteq> {x. ?mn \<bullet> x = b$m}"
-      using \<open>m \<noteq> n\<close> antisym_conv by (fastforce simp: algebra_simps mem_box_cart inner_axis')
-    ultimately show "negligible (?f ` cbox a b \<inter> (cbox a ?c \<inter> {x. ?mn \<bullet> x \<ge> b$m}))"
-      by (rule negligible_subset)
-    have "negligible {x. ?mn \<bullet> x = b$m}"
-      by (metis \<open>m \<noteq> n\<close> axis_index_axis eq_iff_diff_eq_0 negligible_hyperplane)
-    moreover have "(cbox a ?c \<inter> {x. ?mn \<bullet> x \<le> a $ m} \<inter> (cbox a ?c \<inter> {x. ?mn \<bullet> x \<ge> b$m})) \<subseteq> {x. ?mn \<bullet> x = b$m}"
-      using \<open>m \<noteq> n\<close> ab_ne
-      apply (clarsimp simp: algebra_simps mem_box_cart inner_axis')
-      by (smt (verit, ccfv_SIG) interval_ne_empty_cart(1))
-    ultimately show "negligible (cbox a ?c \<inter> {x. ?mn \<bullet> x \<le> a $ m} \<inter> (cbox a ?c \<inter> {x. ?mn \<bullet> x \<ge> b$m}))"
-      by (rule negligible_subset)
-    show "?f ` cbox a b \<union> cbox a ?c \<inter> {x. ?mn \<bullet> x \<le> a $ m} \<union> cbox a ?c \<inter> {x. ?mn \<bullet> x \<ge> b$m} = cbox a ?c" (is "?lhs = _")
-    proof
-      show "?lhs \<subseteq> cbox a ?c"
-        by (auto simp: mem_box_cart add_mono) (meson add_increasing2 an order_trans)
-      show "cbox a ?c \<subseteq> ?lhs"
-        apply (clarsimp simp: algebra_simps image_iff inner_axis' lambda_add_Galois [OF \<open>m \<noteq> n\<close>])
-        by (smt (verit, del_insts) mem_box_cart(2) vec_lambda_beta)
-    qed
-  qed (fact fab)
-  let ?d = "\<chi> i. if i = m then a $ m - b $ m else 0"
-  have eq2: "measure lebesgue (cbox a ?c \<inter> {x. ?mn \<bullet> x \<le> a $ m}) + measure lebesgue (cbox a ?c \<inter> {x. ?mn \<bullet> x \<ge> b$m})
-           = measure lebesgue (cbox a (\<chi> i. if i = m then a $ m + b $ n else b $ i))"
-  proof (rule measure_translate_add[of "cbox a ?c \<inter> {x. ?mn \<bullet> x \<le> a$m}" "cbox a ?c \<inter> {x. ?mn \<bullet> x \<ge> b$m}"
-     "(\<chi> i. if i = m then a$m - b$m else 0)" "cbox a (\<chi> i. if i = m then a$m + b$n else b$i)"])
-    show "(cbox a ?c \<inter> {x. ?mn \<bullet> x \<le> a$m}) \<in> lmeasurable"
-      "cbox a ?c \<inter> {x. ?mn \<bullet> x \<ge> b$m} \<in> lmeasurable"
-      by (auto simp: convex_Int convex_halfspace_le convex_halfspace_ge bounded_Int measurable_convex)
-    have "\<And>x. \<lbrakk>x $ n + a $ m \<le> x $ m\<rbrakk>
-         \<Longrightarrow> x \<in> (+) (\<chi> i. if i = m then a $ m - b $ m else 0) ` {x. x $ n + b $ m \<le> x $ m}"
-      using \<open>m \<noteq> n\<close>
-      by (rule_tac x="x - (\<chi> i. if i = m then a$m - b$m else 0)" in image_eqI)
-         (simp_all add: mem_box_cart)
-    then have imeq: "(+) ?d ` {x. b $ m \<le> ?mn \<bullet> x} = {x. a $ m \<le> ?mn \<bullet> x}"
-      using \<open>m \<noteq> n\<close> by (auto simp: mem_box_cart inner_axis' algebra_simps)
-    have "\<And>x. \<lbrakk>0 \<le> a $ n; x $ n + a $ m \<le> x $ m;
-                \<forall>i. i \<noteq> m \<longrightarrow> a $ i \<le> x $ i \<and> x $ i \<le> b $ i\<rbrakk>
-         \<Longrightarrow> a $ m \<le> x $ m"
-      using \<open>m \<noteq> n\<close>  by force
-    then have "(+) ?d ` (cbox a ?c \<inter> {x. b $ m \<le> ?mn \<bullet> x})
-            = cbox a (\<chi> i. if i = m then a $ m + b $ n else b $ i) \<inter> {x. a $ m \<le> ?mn \<bullet> x}"
-      using an ab_ne
-      apply (simp add: cbox_translation [symmetric] translation_Int interval_ne_empty_cart imeq)
-      apply (auto simp: mem_box_cart inner_axis' algebra_simps if_distrib all_if_distrib)
-      by (metis (full_types) add_mono mult_2_right)
-    then show "cbox a ?c \<inter> {x. ?mn \<bullet> x \<le> a $ m} \<union>
-          (+) ?d ` (cbox a ?c \<inter> {x. b $ m \<le> ?mn \<bullet> x}) =
-          cbox a (\<chi> i. if i = m then a $ m + b $ n else b $ i)"  (is "?lhs = ?rhs")
-      using an \<open>m \<noteq> n\<close>
-      apply (auto simp: mem_box_cart inner_axis' algebra_simps if_distrib all_if_distrib, force)
-        apply (drule_tac x=n in spec)+
-      by (meson ab_ne add_mono_thms_linordered_semiring(3) dual_order.trans interval_ne_empty_cart(1))
-    have "negligible{x. ?mn \<bullet> x = a$m}"
-      by (metis \<open>m \<noteq> n\<close> axis_index_axis eq_iff_diff_eq_0 negligible_hyperplane)
-    moreover have "(cbox a ?c \<inter> {x. ?mn \<bullet> x \<le> a $ m} \<inter>
-                                 (+) ?d ` (cbox a ?c \<inter> {x. b $ m \<le> ?mn \<bullet> x})) \<subseteq> {x. ?mn \<bullet> x = a$m}"
-      using \<open>m \<noteq> n\<close> antisym_conv by (fastforce simp: algebra_simps mem_box_cart inner_axis')
-    ultimately show "negligible (cbox a ?c \<inter> {x. ?mn \<bullet> x \<le> a $ m} \<inter>
-                                 (+) ?d ` (cbox a ?c \<inter> {x. b $ m \<le> ?mn \<bullet> x}))"
-      by (rule negligible_subset)
-  qed
-  have ac_ne: "cbox a ?c \<noteq> {}"
-    by (smt (verit, del_insts) ab_ne an interval_ne_empty_cart(1) vec_lambda_beta)
-  have ax_ne: "cbox a (\<chi> i. if i = m then a $ m + b $ n else b $ i) \<noteq> {}"
-    using ab_ne an
-    by (smt (verit, ccfv_threshold) interval_ne_empty_cart(1) vec_lambda_beta)
-  have eq3: "measure lebesgue (cbox a ?c) = measure lebesgue (cbox a (\<chi> i. if i = m then a$m + b$n else b$i)) + measure lebesgue (cbox a b)"
-    by (simp add: content_cbox_if_cart ab_ne ac_ne ax_ne algebra_simps prod.delta_remove
-             if_distrib [of "\<lambda>u. u - z" for z] prod.remove)
-  show ?Q
-    using eq1 eq2 eq3 by (simp add: algebra_simps)
-qed
-
-proposition
   fixes a :: "'a::euclidean_space"
   assumes "m \<in> Basis" "n \<in> Basis" "m \<noteq> n" and ab_ne: "cbox a b \<noteq> {}" and an: "0 \<le> a \<bullet> n"
   shows measurable_shear_interval_eu: "(\<lambda>x. x + (x \<bullet> n) *\<^sub>R m) ` (cbox a b) \<in> lmeasurable"
@@ -523,109 +420,6 @@ proof -
     using eq1 eq2 eq3 by (simp add: algebra_simps)
 qed
 
-
-
-proposition
-  fixes S :: "(real^'n) set"
-  assumes "S \<in> lmeasurable"
-  shows measurable_stretch: "((\<lambda>x. \<chi> k. m k * x$k) ` S) \<in> lmeasurable" (is  "?f ` S \<in> _")
-    and measure_stretch: "measure lebesgue ((\<lambda>x. \<chi> k. m k * x$k) ` S) = \<bar>prod m UNIV\<bar> * measure lebesgue S"
-    (is "?MEQ")
-proof -
-  have "(?f ` S) \<in> lmeasurable \<and> ?MEQ"
-  proof (cases "\<forall>k. m k \<noteq> 0")
-    case True
-    have m0: "0 < \<bar>prod m UNIV\<bar>"
-      using True by simp
-    have "(indicat_real (?f ` S) has_integral \<bar>prod m UNIV\<bar> * measure lebesgue S) UNIV"
-    proof (clarsimp simp add: has_integral_alt [where i=UNIV])
-      fix e :: "real"
-      assume "e > 0"
-      have "(indicat_real S has_integral (measure lebesgue S)) UNIV"
-        using assms lmeasurable_iff_has_integral by blast
-      then obtain B where "B>0"
-        and B: "\<And>a b. ball 0 B \<subseteq> cbox a b \<Longrightarrow>
-                        \<exists>z. (indicat_real S has_integral z) (cbox a b) \<and>
-                            \<bar>z - measure lebesgue S\<bar> < e / \<bar>prod m UNIV\<bar>"
-        by (simp add: has_integral_alt [where i=UNIV]) (metis (full_types) divide_pos_pos m0  m0 \<open>e > 0\<close>)
-      show "\<exists>B>0. \<forall>a b. ball 0 B \<subseteq> cbox a b \<longrightarrow>
-                  (\<exists>z. (indicat_real (?f ` S) has_integral z) (cbox a b) \<and>
-                       \<bar>z - \<bar>prod m UNIV\<bar> * measure lebesgue S\<bar> < e)"
-      proof (intro exI conjI allI)
-        let ?C = "Max (range (\<lambda>k. \<bar>m k\<bar>)) * B"
-        show "?C > 0"
-          using True \<open>B > 0\<close> by (simp add: Max_gr_iff)
-        show "ball 0 ?C \<subseteq> cbox u v \<longrightarrow>
-                  (\<exists>z. (indicat_real (?f ` S) has_integral z) (cbox u v) \<and>
-                       \<bar>z - \<bar>prod m UNIV\<bar> * measure lebesgue S\<bar> < e)" for u v
-        proof
-          assume uv: "ball 0 ?C \<subseteq> cbox u v"
-          with \<open>?C > 0\<close> have cbox_ne: "cbox u v \<noteq> {}"
-            using centre_in_ball by blast
-          let ?\<alpha> = "\<lambda>k. u$k / m k"
-          let ?\<beta> = "\<lambda>k. v$k / m k"
-          have invm0: "\<And>k. inverse (m k) \<noteq> 0"
-            using True by auto
-          have "ball 0 B \<subseteq> (\<lambda>x. \<chi> k. x $ k / m k) ` ball 0 ?C"
-          proof clarsimp
-            fix x :: "real^'n"
-            assume x: "norm x < B"
-            have [simp]: "\<bar>Max (range (\<lambda>k. \<bar>m k\<bar>))\<bar> = Max (range (\<lambda>k. \<bar>m k\<bar>))"
-              by (meson Max_ge abs_ge_zero abs_of_nonneg finite finite_imageI order_trans rangeI)
-            have "norm (\<chi> k. m k * x $ k) \<le> norm (Max (range (\<lambda>k. \<bar>m k\<bar>)) *\<^sub>R x)"
-              by (rule norm_le_componentwise_cart) (auto simp: abs_mult intro: mult_right_mono)
-            also have "\<dots> < ?C"
-              using x \<open>0 < (MAX k. \<bar>m k\<bar>) * B\<close> \<open>0 < B\<close> zero_less_mult_pos2 by fastforce
-            finally have "norm (\<chi> k. m k * x $ k) < ?C" .
-            then show "x \<in> (\<lambda>x. \<chi> k. x $ k / m k) ` ball 0 ?C"
-              using stretch_Galois [of "inverse \<circ> m"] True by (auto simp: image_iff field_simps)
-          qed
-          then have Bsub: "ball 0 B \<subseteq> cbox (\<chi> k. min (?\<alpha> k) (?\<beta> k)) (\<chi> k. max (?\<alpha> k) (?\<beta> k))"
-            using cbox_ne uv image_stretch_interval_cart [of "inverse \<circ> m" u v, symmetric]
-            by (force simp: field_simps)
-          obtain z where zint: "(indicat_real S has_integral z) (cbox (\<chi> k. min (?\<alpha> k) (?\<beta> k)) (\<chi> k. max (?\<alpha> k) (?\<beta> k)))"
-                   and zless: "\<bar>z - measure lebesgue S\<bar> < e / \<bar>prod m UNIV\<bar>"
-            using B [OF Bsub] by blast
-          have ind: "indicat_real (?f ` S) = (\<lambda>x. indicator S (\<chi> k. x$k / m k))"
-            using True stretch_Galois [of m] by (force simp: indicator_def)
-          show "\<exists>z. (indicat_real (?f ` S) has_integral z) (cbox u v) \<and>
-                       \<bar>z - \<bar>prod m UNIV\<bar> * measure lebesgue S\<bar> < e"
-          proof (simp add: ind, intro conjI exI)
-            have "((\<lambda>x. indicat_real S (\<chi> k. x $ k/ m k)) has_integral z *\<^sub>R \<bar>prod m UNIV\<bar>)
-                ((\<lambda>x. \<chi> k. x $ k * m k) ` cbox (\<chi> k. min (?\<alpha> k) (?\<beta> k)) (\<chi> k. max (?\<alpha> k) (?\<beta> k)))"
-              using True has_integral_stretch_cart [OF zint, of "inverse \<circ> m"]
-              by (simp add: field_simps prod_dividef)
-            moreover have "((\<lambda>x. \<chi> k. x $ k * m k) ` cbox (\<chi> k. min (?\<alpha> k) (?\<beta> k)) (\<chi> k. max (?\<alpha> k) (?\<beta> k))) = cbox u v"
-              using True image_stretch_interval_cart [of "inverse \<circ> m" u v, symmetric]
-                image_stretch_interval_cart [of "\<lambda>k. 1" u v, symmetric] \<open>cbox u v \<noteq> {}\<close>
-              by (simp add: field_simps image_comp o_def)
-            ultimately show "((\<lambda>x. indicat_real S (\<chi> k. x $ k/ m k)) has_integral z *\<^sub>R \<bar>prod m UNIV\<bar>) (cbox u v)"
-              by simp
-            have "\<bar>z *\<^sub>R \<bar>prod m UNIV\<bar> - \<bar>prod m UNIV\<bar> * measure lebesgue S\<bar>
-                 = \<bar>prod m UNIV\<bar> * \<bar>z - measure lebesgue S\<bar>"
-              by (metis (no_types, opaque_lifting) abs_abs abs_scaleR mult.commute real_scaleR_def right_diff_distrib')
-            also have "\<dots> < e"
-              using zless True by (simp add: field_simps)
-            finally show "\<bar>z *\<^sub>R \<bar>prod m UNIV\<bar> - \<bar>prod m UNIV\<bar> * measure lebesgue S\<bar> < e" .
-          qed
-        qed
-      qed
-    qed
-    then show ?thesis
-      by (auto simp: has_integral_integrable integral_unique lmeasure_integral_UNIV measurable_integrable)
-  next
-    case False
-    then obtain k where "m k = 0" and prm: "prod m UNIV = 0"
-      by auto
-    have nfS: "negligible (?f ` S)"
-      by (rule negligible_subset [OF negligible_standard_hyperplane_cart]) (use \<open>m k = 0\<close> in auto)
-    then show ?thesis
-      by (simp add: negligible_iff_measure prm)
-  qed
-  then show "(?f ` S) \<in> lmeasurable" ?MEQ
-    by metis+
-qed
-
 proposition
   fixes S :: "'a::euclidean_space set"
   assumes "S \<in> lmeasurable"
@@ -680,22 +474,6 @@ proof -
   show "f ` S \<in> lmeasurable" "measure lebesgue (f ` S) = \<bar>eucl.det f\<bar> * measure lebesgue S"
     using measure_linear_sufficient [OF assms(1) assms(2) meq] by metis+
 qed
-
-
-lemma
- fixes f :: "real^'n::{finite,wellorder} \<Rightarrow> real^'n::_"
-  assumes f: "orthogonal_transformation f" and S: "S \<in> lmeasurable"
-  shows measurable_orthogonal_image: "f ` S \<in> lmeasurable"
-    and measure_orthogonal_image: "measure lebesgue (f ` S) = measure lebesgue S"
-proof -
-  have "linear f"
-    by (simp add: f orthogonal_transformation_linear)
-  then show "f ` S \<in> lmeasurable"
-    by (metis S measurable_linear_image)
-  show "measure lebesgue (f ` S) = measure lebesgue S"
-    using S f measure_orthogonal_image by blast
-qed
-
 
 lemma
  fixes f :: "'a::euclidean_space \<Rightarrow> 'a"
@@ -778,243 +556,6 @@ next
     with mU show "measure lebesgue T < measure lebesgue S + e"
       by linarith
   qed
-qed
-
-proposition
- fixes f :: "real^'n::{finite,wellorder} \<Rightarrow> real^'n::_"
-  assumes S: "S \<in> lmeasurable"
-  and deriv: "\<And>x. x \<in> S \<Longrightarrow> (f has_derivative f' x) (at x within S)"
-  and int: "(\<lambda>x. \<bar>matrix_det (matrix (f' x))\<bar>) integrable_on S"
-  and bounded: "\<And>x. x \<in> S \<Longrightarrow> \<bar>matrix_det (matrix (f' x))\<bar> \<le> B"
-  shows measurable_bounded_differentiable_image:
-       "f ` S \<in> lmeasurable"
-    and measure_bounded_differentiable_image:
-       "measure lebesgue (f ` S) \<le> B * measure lebesgue S" (is "?M")
-proof -
-  have "f ` S \<in> lmeasurable \<and> measure lebesgue (f ` S) \<le> B * measure lebesgue S"
-  proof (cases "B < 0")
-    case True
-    then have "S = {}"
-      by (meson abs_ge_zero bounded empty_iff equalityI less_le_trans linorder_not_less subsetI)
-    then show ?thesis
-      by auto
-  next
-    case False
-    then have "B \<ge> 0"
-      by arith
-    let ?\<mu> = "measure lebesgue"
-    have f_diff: "f differentiable_on S"
-      using deriv by (auto simp: differentiable_on_def differentiable_def)
-    have eps: "f ` S \<in> lmeasurable" "?\<mu> (f ` S) \<le> (B+e) * ?\<mu> S" (is "?ME")
-              if "e > 0" for e
-    proof -
-      have eps_d: "f ` S \<in> lmeasurable"  "?\<mu> (f ` S) \<le> (B+e) * (?\<mu> S + d)" (is "?MD")
-                  if "d > 0" for d
-      proof -
-        obtain T where T: "open T" "S \<subseteq> T" and TS: "(T-S) \<in> lmeasurable" and "emeasure lebesgue (T-S) < ennreal d"
-          using S \<open>d > 0\<close> sets_lebesgue_outer_open by blast
-        then have "?\<mu> (T-S) < d"
-          by (metis emeasure_eq_measure2 ennreal_leI not_less)
-        with S T TS have "T \<in> lmeasurable" and Tless: "?\<mu> T < ?\<mu> S + d"
-          by (auto simp: measurable_measure_Diff dest!: fmeasurable_Diff_D)
-        have "\<exists>r. 0 < r \<and> r < d \<and> ball x r \<subseteq> T \<and> f ` (S \<inter> ball x r) \<in> lmeasurable \<and>
-                  ?\<mu> (f ` (S \<inter> ball x r)) \<le> (B + e) * ?\<mu> (ball x r)"
-          if "x \<in> S" "d > 0" for x d
-        proof -
-          have lin: "linear (f' x)"
-            and lim0: "((\<lambda>y. (f y - (f x + f' x (y - x))) /\<^sub>R norm(y - x)) \<longlongrightarrow> 0) (at x within S)"
-            using deriv \<open>x \<in> S\<close> by (auto simp: has_derivative_within bounded_linear.linear field_simps)
-          have bo: "bounded (f' x ` ball 0 1)"
-            by (simp add: bounded_linear_image linear_linear lin)
-          have neg: "negligible (frontier (f' x ` ball 0 1))"
-            using deriv has_derivative_linear \<open>x \<in> S\<close>
-            by (auto intro!: negligible_convex_frontier [OF convex_linear_image])
-          let ?unit_vol = "Henstock_Kurzweil_Integration.content (ball (0 :: real ^ 'n :: {finite, wellorder}) 1)"
-          have 0: "0 < e * ?unit_vol"
-            using \<open>e > 0\<close> by (simp add: content_ball_pos)
-          obtain k where "k > 0" and k:
-                  "\<And>U. \<lbrakk>U \<in> lmeasurable; \<And>y. y \<in> U \<Longrightarrow> \<exists>z. z \<in> f' x ` ball 0 1 \<and> dist z y < k\<rbrakk>
-                        \<Longrightarrow> ?\<mu> U < ?\<mu> (f' x ` ball 0 1) + e * ?unit_vol"
-            using measure_semicontinuous_with_hausdist_explicit [OF bo neg 0] by blast
-          obtain l where "l > 0" and l: "ball x l \<subseteq> T"
-            using \<open>x \<in> S\<close> \<open>open T\<close> \<open>S \<subseteq> T\<close> openE by blast
-          obtain \<zeta> where "0 < \<zeta>"
-            and \<zeta>: "\<And>y. \<lbrakk>y \<in> S; y \<noteq> x; dist y x < \<zeta>\<rbrakk>
-                        \<Longrightarrow> norm (f y - (f x + f' x (y - x))) / norm (y - x) < k"
-            using lim0 \<open>k > 0\<close> by (simp add: Lim_within) (auto simp add: field_simps)
-          define r where "r \<equiv> min (min l (\<zeta>/2)) (min 1 (d/2))"
-          show ?thesis
-          proof (intro exI conjI)
-            show "r > 0" "r < d"
-              using \<open>l > 0\<close> \<open>\<zeta> > 0\<close> \<open>d > 0\<close> by (auto simp: r_def)
-            have "r \<le> l"
-              by (auto simp: r_def)
-            with l show "ball x r \<subseteq> T"
-              by auto
-            have ex_lessK: "\<exists>x' \<in> ball 0 1. dist (f' x x') ((f y - f x) /\<^sub>R r) < k"
-              if "y \<in> S" and "dist x y < r" for y
-            proof (cases "y = x")
-              case True
-              with lin linear_0 \<open>k > 0\<close> that show ?thesis
-                by (rule_tac x=0 in bexI) (auto simp: linear_0)
-            next
-              case False
-              then show ?thesis
-              proof (rule_tac x="(y - x) /\<^sub>R r" in bexI)
-                have "f' x ((y - x) /\<^sub>R r) = f' x (y - x) /\<^sub>R r"
-                  by (simp add: lin linear_scale)
-                then have "dist (f' x ((y - x) /\<^sub>R r)) ((f y - f x) /\<^sub>R r) = norm (f' x (y - x) /\<^sub>R r - (f y - f x) /\<^sub>R r)"
-                  by (simp add: dist_norm)
-                also have "\<dots> = norm (f' x (y - x) - (f y - f x)) / r"
-                  using \<open>r > 0\<close> by (simp add: divide_simps scale_right_diff_distrib [symmetric])
-                also have "\<dots> \<le> norm (f y - (f x + f' x (y - x))) / norm (y - x)"
-                  using that \<open>r > 0\<close> False by (simp add: field_split_simps dist_norm norm_minus_commute mult_right_mono)
-                also have "\<dots> < k"
-                  using that \<open>0 < \<zeta>\<close> by (simp add: dist_commute r_def  \<zeta> [OF \<open>y \<in> S\<close> False])
-                finally show "dist (f' x ((y - x) /\<^sub>R r)) ((f y - f x) /\<^sub>R r) < k" .
-                show "(y - x) /\<^sub>R r \<in> ball 0 1"
-                  using that \<open>r > 0\<close> by (simp add: dist_norm divide_simps norm_minus_commute)
-              qed
-            qed
-            let ?rfs = "(\<lambda>x. x /\<^sub>R r) ` (+) (- f x) ` f ` (S \<inter> ball x r)"
-            have rfs_mble: "?rfs \<in> lmeasurable"
-            proof (rule bounded_set_imp_lmeasurable)
-              have "f differentiable_on S \<inter> ball x r"
-                using f_diff by (auto simp: fmeasurableD differentiable_on_subset)
-              with S show "?rfs \<in> sets lebesgue"
-                by (auto simp: sets.Int intro!: lebesgue_sets_translation differentiable_image_in_sets_lebesgue)
-              let ?B = "(\<lambda>(x, y). x + y) ` (f' x ` ball 0 1 \<times> ball 0 k)"
-              have "bounded ?B"
-                by (simp add: bounded_plus [OF bo])
-              moreover have "?rfs \<subseteq> ?B"
-                apply (auto simp: dist_norm image_iff dest!: ex_lessK)
-                by (metis (no_types, opaque_lifting) add.commute diff_add_cancel dist_0_norm dist_commute dist_norm mem_ball)
-              ultimately show "bounded (?rfs)"
-                by (rule bounded_subset)
-            qed
-            then have "(\<lambda>x. r *\<^sub>R x) ` ?rfs \<in> lmeasurable"
-              by (simp add: measurable_linear_image)
-            with \<open>r > 0\<close> have "(+) (- f x) ` f ` (S \<inter> ball x r) \<in> lmeasurable"
-              by (simp add: image_comp o_def)
-            then have "(+) (f x) ` (+) (- f x) ` f ` (S \<inter> ball x r) \<in> lmeasurable"
-              using  measurable_translation by blast
-            then show fsb: "f ` (S \<inter> ball x r) \<in> lmeasurable"
-              by (simp add: image_comp o_def)
-            have "?\<mu> (f ` (S \<inter> ball x r)) = ?\<mu> (?rfs) * r ^ CARD('n)"
-              using \<open>r > 0\<close> fsb
-              by (simp add: measure_linear_image measure_translation_subtract measurable_translation_subtract field_simps cong: image_cong_simp)
-            also have "\<dots> \<le> (\<bar>matrix_det (matrix (f' x))\<bar> * ?unit_vol + e * ?unit_vol) * r ^ CARD('n)"
-            proof -
-              have "?\<mu> (?rfs) < ?\<mu> (f' x ` ball 0 1) + e * ?unit_vol"
-                using rfs_mble by (force intro: k dest!: ex_lessK)
-              then have "?\<mu> (?rfs) < \<bar>matrix_det (matrix (f' x))\<bar> * ?unit_vol + e * ?unit_vol"
-                by (simp add: lin measure_linear_image [of "f' x"])
-              with \<open>r > 0\<close> show ?thesis
-                by auto
-            qed
-            also have "\<dots> \<le> (B + e) * ?\<mu> (ball x r)"
-              using bounded [OF \<open>x \<in> S\<close>] \<open>r > 0\<close>
-              by (simp add: algebra_simps content_ball_conv_unit_ball[of r] content_ball_pos)
-            finally show "?\<mu> (f ` (S \<inter> ball x r)) \<le> (B + e) * ?\<mu> (ball x r)" .
-          qed
-        qed
-        then obtain r where
-          r0d: "\<And>x d. \<lbrakk>x \<in> S; d > 0\<rbrakk> \<Longrightarrow> 0 < r x d \<and> r x d < d"
-          and rT: "\<And>x d. \<lbrakk>x \<in> S; d > 0\<rbrakk> \<Longrightarrow> ball x (r x d) \<subseteq> T"
-          and r: "\<And>x d. \<lbrakk>x \<in> S; d > 0\<rbrakk> \<Longrightarrow>
-                  (f ` (S \<inter> ball x (r x d))) \<in> lmeasurable \<and>
-                  ?\<mu> (f ` (S \<inter> ball x (r x d))) \<le> (B + e) * ?\<mu> (ball x (r x d))"
-          by metis
-        obtain C where "countable C" and Csub: "C \<subseteq> {(x,r x t) |x t. x \<in> S \<and> 0 < t}"
-          and pwC: "pairwise (\<lambda>i j. disjnt (ball (fst i) (snd i)) (ball (fst j) (snd j))) C"
-          and negC: "negligible(S - (\<Union>i \<in> C. ball (fst i) (snd i)))"
-          apply (rule Vitali_covering_theorem_balls [of S "{(x,r x t) |x t. x \<in> S \<and> 0 < t}" fst snd])
-           apply auto
-          by (metis dist_eq_0_iff r0d)
-        let ?UB = "(\<Union>(x,s) \<in> C. ball x s)"
-        have eq: "f ` (S \<inter> ?UB) = (\<Union>(x,s) \<in> C. f ` (S \<inter> ball x s))"
-          by auto
-        have mle: "?\<mu> (\<Union>(x,s) \<in> K. f ` (S \<inter> ball x s)) \<le> (B + e) * (?\<mu> S + d)"  (is "?l \<le> ?r")
-          if "K \<subseteq> C" and "finite K" for K
-        proof -
-          have gt0: "b > 0" if "(a, b) \<in> K" for a b
-            using Csub that \<open>K \<subseteq> C\<close> r0d by auto
-          have inj: "inj_on (\<lambda>(x, y). ball x y) K"
-            by (force simp: inj_on_def ball_eq_ball_iff dest: gt0)
-          have disjnt: "disjoint ((\<lambda>(x, y). ball x y) ` K)"
-            using pwC that pairwise_image pairwise_mono by fastforce
-          have "?l \<le> (\<Sum>i\<in>K. ?\<mu> (case i of (x, s) \<Rightarrow> f ` (S \<inter> ball x s)))"
-          proof (rule measure_UNION_le [OF \<open>finite K\<close>], clarify)
-            fix x r
-            assume "(x,r) \<in> K"
-            then have "x \<in> S"
-              using Csub \<open>K \<subseteq> C\<close> by auto
-            show "f ` (S \<inter> ball x r) \<in> sets lebesgue"
-              by (meson Int_lower1 S differentiable_on_subset f_diff fmeasurableD lmeasurable_ball order_refl sets.Int differentiable_image_in_sets_lebesgue)
-          qed
-          also have "\<dots> \<le> (\<Sum>(x,s) \<in> K. (B + e) * ?\<mu> (ball x s))"
-            using Csub r \<open>K \<subseteq> C\<close>  by (intro sum_mono) auto
-          also have "\<dots> = (B + e) * (\<Sum>(x,s) \<in> K. ?\<mu> (ball x s))"
-            by (simp add: prod.case_distrib sum_distrib_left)
-          also have "\<dots> = (B + e) * sum ?\<mu> ((\<lambda>(x, y). ball x y) ` K)"
-            using \<open>B \<ge> 0\<close> \<open>e > 0\<close> by (simp add: inj sum.reindex prod.case_distrib)
-          also have "\<dots> = (B + e) * ?\<mu> (\<Union>(x,s) \<in> K. ball x s)"
-            using \<open>B \<ge> 0\<close> \<open>e > 0\<close> that
-            by (subst measure_Union') (auto simp: disjnt measure_Union')
-          also have "\<dots> \<le> (B + e) * ?\<mu> T"
-            using \<open>B \<ge> 0\<close> \<open>e > 0\<close> that apply simp
-            using measure_mono_fmeasurable [OF _ _ \<open>T \<in> lmeasurable\<close>] Csub rT
-            by (smt (verit) SUP_least measure_nonneg measure_notin_sets mem_Collect_eq old.prod.case subset_iff)
-          also have "\<dots> \<le> (B + e) * (?\<mu> S + d)"
-            using \<open>B \<ge> 0\<close> \<open>e > 0\<close> Tless by simp
-          finally show ?thesis .
-        qed
-        have fSUB_mble: "(f ` (S \<inter> ?UB)) \<in> lmeasurable"
-          unfolding eq using Csub r False \<open>e > 0\<close> that
-          by (auto simp: intro!: fmeasurable_UN_bound [OF \<open>countable C\<close> _ mle])
-        have fSUB_meas: "?\<mu> (f ` (S \<inter> ?UB)) \<le> (B + e) * (?\<mu> S + d)"  (is "?MUB")
-          unfolding eq using Csub r False \<open>e > 0\<close> that
-          by (auto simp: intro!: measure_UN_bound [OF \<open>countable C\<close> _ mle])
-        have neg: "negligible ((f ` (S \<inter> ?UB) - f ` S) \<union> (f ` S - f ` (S \<inter> ?UB)))"
-        proof (rule negligible_subset [OF negligible_differentiable_image_negligible [OF order_refl negC, where f=f]])
-          show "f differentiable_on S - (\<Union>i\<in>C. ball (fst i) (snd i))"
-            by (meson DiffE differentiable_on_subset subsetI f_diff)
-        qed force
-        show "f ` S \<in> lmeasurable"
-          by (rule lmeasurable_negligible_symdiff [OF fSUB_mble neg])
-        show ?MD
-          using fSUB_meas measure_negligible_symdiff [OF fSUB_mble neg] by simp
-      qed
-      show "f ` S \<in> lmeasurable"
-        using eps_d [of 1] by simp
-      show ?ME
-      proof (rule field_le_epsilon)
-        fix \<delta> :: real
-        assume "0 < \<delta>"
-        then show "?\<mu> (f ` S) \<le> (B + e) * ?\<mu> S + \<delta>"
-          using eps_d [of "\<delta> / (B+e)"] \<open>e > 0\<close> \<open>B \<ge> 0\<close> by (auto simp: divide_simps mult_ac)
-      qed
-    qed
-    show ?thesis
-    proof (cases "?\<mu> S = 0")
-      case True
-      with eps have "?\<mu> (f ` S) = 0"
-        by (metis mult_zero_right not_le zero_less_measure_iff)
-      then show ?thesis
-        using eps [of 1] by (simp add: True)
-    next
-      case False
-      have "?\<mu> (f ` S) \<le> B * ?\<mu> S"
-      proof (rule field_le_epsilon)
-        fix e :: real
-        assume "e > 0"
-        then show "?\<mu> (f ` S) \<le> B * ?\<mu> S + e"
-          using eps [of "e / ?\<mu> S"] False by (auto simp: algebra_simps zero_less_measure_iff)
-      qed
-      with eps [of 1] show ?thesis by auto
-    qed
-  qed
-  then show "f ` S \<in> lmeasurable" ?M by blast+
 qed
 
 proposition
@@ -1254,186 +795,26 @@ proof -
   then show "f ` S \<in> lmeasurable" ?M by blast+
 qed
 
-lemma m_diff_image_weak:
- fixes f :: "real^'n::{finite,wellorder} \<Rightarrow> real^'n::_"
+lemma m_diff_image_weak_eu:
+ fixes f :: "'a::euclidean_space \<Rightarrow> 'a"
   assumes S: "S \<in> lmeasurable"
     and deriv: "\<And>x. x \<in> S \<Longrightarrow> (f has_derivative f' x) (at x within S)"
-    and int: "(\<lambda>x. \<bar>matrix_det (matrix (f' x))\<bar>) integrable_on S"
-  shows "f ` S \<in> lmeasurable \<and> measure lebesgue (f ` S) \<le> integral S (\<lambda>x. \<bar>matrix_det (matrix (f' x))\<bar>)"
+    and int: "(\<lambda>x. \<bar>eucl.det (f' x)\<bar>) integrable_on S"
+  shows "f ` S \<in> lmeasurable \<and> measure lebesgue (f ` S) \<le> integral S (\<lambda>x. \<bar>eucl.det (f' x)\<bar>)"
 proof -
   let ?\<mu> = "measure lebesgue"
-  have aint_S: "(\<lambda>x. \<bar>matrix_det (matrix (f' x))\<bar>) absolutely_integrable_on S"
+  have aint_S: "(\<lambda>x. \<bar>eucl.det (f' x)\<bar>) absolutely_integrable_on S"
     using int unfolding absolutely_integrable_on_def by auto
-  define m where "m \<equiv> integral S (\<lambda>x. \<bar>matrix_det (matrix (f' x))\<bar>)"
+  define m where "m \<equiv> integral S (\<lambda>x. \<bar>eucl.det (f' x)\<bar>)"
   have *: "f ` S \<in> lmeasurable" "?\<mu> (f ` S) \<le> m + e * ?\<mu> S"
     if "e > 0" for e
-  proof -
-    define T where "T \<equiv> \<lambda>n. {x \<in> S. n * e \<le> \<bar>matrix_det (matrix (f' x))\<bar> \<and>
-                                     \<bar>matrix_det (matrix (f' x))\<bar> < (Suc n) * e}"
-    have meas_t: "T n \<in> lmeasurable" for n
-    proof -
-      have *: "(\<lambda>x. \<bar>matrix_det (matrix (f' x))\<bar>) \<in> borel_measurable (lebesgue_on S)"
-        using aint_S by (simp add: S borel_measurable_restrict_space_iff fmeasurableD set_integrable_def)
-      have [intro]: "x \<in> sets (lebesgue_on S) \<Longrightarrow> x \<in> sets lebesgue" for x
-        using S sets_restrict_space_subset by blast
-      have "{x \<in> S. real n * e \<le> \<bar>matrix_det (matrix (f' x))\<bar>} \<in> sets lebesgue"
-        using * by (auto simp: borel_measurable_iff_halfspace_ge space_restrict_space)
-      then have 1: "{x \<in> S. real n * e \<le> \<bar>matrix_det (matrix (f' x))\<bar>} \<in> lmeasurable"
-        using S by (simp add: fmeasurableI2)
-      have "{x \<in> S. \<bar>matrix_det (matrix (f' x))\<bar> < (1 + real n) * e} \<in> sets lebesgue"
-        using * by (auto simp: borel_measurable_iff_halfspace_less space_restrict_space)
-      then have 2: "{x \<in> S. \<bar>matrix_det (matrix (f' x))\<bar> < (1 + real n) * e} \<in> lmeasurable"
-        using S by (simp add: fmeasurableI2)
-      show ?thesis
-        using fmeasurable.Int [OF 1 2] by (simp add: T_def Int_def cong: conj_cong)
-    qed
-    have aint_T: "\<And>k. (\<lambda>x. \<bar>matrix_det (matrix (f' x))\<bar>) absolutely_integrable_on T k"
-      using set_integrable_subset [OF aint_S] meas_t T_def by blast
-    have Seq: "S = (\<Union>n. T n)"
-      apply (auto simp: T_def)
-      apply (rule_tac x = "nat \<lfloor>\<bar>matrix_det (matrix (f' x))\<bar> / e\<rfloor>" in exI)
-      by (smt (verit, del_insts) divide_nonneg_nonneg floor_eq_iff of_nat_nat pos_divide_less_eq that zero_le_floor)
-    have meas_ft: "f ` T n \<in> lmeasurable" for n
-    proof (rule measurable_bounded_differentiable_image)
-      show "T n \<in> lmeasurable"
-        by (simp add: meas_t)
-    next
-      fix x :: "(real,'n) vec"
-      assume "x \<in> T n"
-      show "(f has_derivative f' x) (at x within T n)"
-        by (metis (no_types, lifting) \<open>x \<in> T n\<close> deriv has_derivative_subset mem_Collect_eq subsetI T_def)
-      show "\<bar>matrix_det (matrix (f' x))\<bar> \<le> (Suc n) * e"
-        using \<open>x \<in> T n\<close> T_def by auto
-    next
-      show "(\<lambda>x. \<bar>matrix_det (matrix (f' x))\<bar>) integrable_on T n"
-        using aint_T absolutely_integrable_on_def by blast
-    qed
-    have disT: "disjoint (range T)"
-      unfolding disjoint_def
-    proof clarsimp
-      show "T m \<inter> T n = {}" if "T m \<noteq> T n" for m n
-        using that
-      proof (induction m n rule: linorder_less_wlog)
-        case (less m n)
-        with \<open>e > 0\<close> show ?case
-          unfolding T_def
-          proof (clarsimp simp add: Collect_conj_eq [symmetric])
-            fix x
-            assume "e > 0"  "m < n"  "n * e \<le> \<bar>matrix_det (matrix (f' x))\<bar>"  "\<bar>matrix_det (matrix (f' x))\<bar> < (1 + real m) * e"
-            then have "n < 1 + real m"
-              by (metis (no_types, opaque_lifting) less_le_trans mult.commute not_le mult_le_cancel_left_pos)
-            then show "False"
-              using less.hyps by linarith
-          qed
-      qed auto
-    qed
-    have injT: "inj_on T ({n. T n \<noteq> {}})"
-      unfolding inj_on_def
-    proof clarsimp
-      show "m = n" if "T m = T n" "T n \<noteq> {}" for m n
-        using that
-      proof (induction m n rule: linorder_less_wlog)
-        case (less m n)
-        have False if "T n \<subseteq> T m" "x \<in> T n" for x
-          using \<open>e > 0\<close> \<open>m < n\<close> that
-          apply (auto simp: T_def mult.commute intro: less_le_trans dest!: subsetD)
-          by (smt (verit, best) mult_less_cancel_left_disj nat_less_real_le)
-        then show ?case
-          using less.prems by blast
-      qed auto
-    qed
-    have sum_eq_Tim: "(\<Sum>k\<le>n. f (T k)) = sum f (T ` {..n})" if "f {} = 0" for f :: "_ \<Rightarrow> real" and n
-    proof (subst sum.reindex_nontrivial)
-      fix i j  assume "i \<in> {..n}" "j \<in> {..n}" "i \<noteq> j" "T i = T j"
-      with that  injT [unfolded inj_on_def] show "f (T i) = 0"
-        by simp metis
-    qed (use atMost_atLeast0 in auto)
-    let ?B = "m + e * ?\<mu> S"
-    have "(\<Sum>k\<le>n. ?\<mu> (f ` T k)) \<le> ?B" for n
-    proof -
-      have "(\<Sum>k\<le>n. ?\<mu> (f ` T k)) \<le> (\<Sum>k\<le>n. ((k+1) * e) * ?\<mu>(T k))"
-      proof (rule sum_mono [OF measure_bounded_differentiable_image])
-        show "(f has_derivative f' x) (at x within T k)" if "x \<in> T k" for k x
-          using that unfolding T_def by (blast intro: deriv has_derivative_subset)
-        show "(\<lambda>x. \<bar>matrix_det (matrix (f' x))\<bar>) integrable_on T k" for k
-          using absolutely_integrable_on_def aint_T by blast
-        show "\<bar>matrix_det (matrix (f' x))\<bar> \<le> real (k + 1) * e" if "x \<in> T k" for k x
-          using T_def that by auto
-      qed (use meas_t in auto)
-      also have "\<dots> \<le> (\<Sum>k\<le>n. (k * e) * ?\<mu>(T k)) + (\<Sum>k\<le>n. e * ?\<mu>(T k))"
-        by (simp add: algebra_simps sum.distrib)
-      also have "\<dots> \<le> ?B"
-      proof (rule add_mono)
-        have "(\<Sum>k\<le>n. real k * e * ?\<mu> (T k)) = (\<Sum>k\<le>n. integral (T k) (\<lambda>x. k * e))"
-          by (simp add: lmeasure_integral [OF meas_t]
-                   flip: integral_mult_right integral_mult_left)
-        also have "\<dots> \<le> (\<Sum>k\<le>n. integral (T k) (\<lambda>x.  (abs (matrix_det (matrix (f' x))))))"
-        proof (rule sum_mono)
-          fix k
-          assume "k \<in> {..n}"
-          show "integral (T k) (\<lambda>x. k * e) \<le> integral (T k) (\<lambda>x. \<bar>matrix_det (matrix (f' x))\<bar>)"
-          proof (rule integral_le [OF integrable_on_const [OF meas_t]])
-            show "(\<lambda>x. \<bar>matrix_det (matrix (f' x))\<bar>) integrable_on T k"
-              using absolutely_integrable_on_def aint_T by blast
-          next
-            fix x assume "x \<in> T k"
-            show "k * e \<le> \<bar>matrix_det (matrix (f' x))\<bar>"
-              using \<open>x \<in> T k\<close> T_def by blast
-          qed
-        qed
-        also have "\<dots> = sum (\<lambda>T. integral T (\<lambda>x. \<bar>matrix_det (matrix (f' x))\<bar>)) (T ` {..n})"
-          by (auto intro: sum_eq_Tim)
-        also have "\<dots> = integral (\<Union>k\<le>n. T k) (\<lambda>x. \<bar>matrix_det (matrix (f' x))\<bar>)"
-        proof (rule integral_unique [OF has_integral_Union, symmetric])
-          fix S  assume "S \<in> T ` {..n}"
-          then show "((\<lambda>x. \<bar>matrix_det (matrix (f' x))\<bar>) has_integral integral S (\<lambda>x. \<bar>matrix_det (matrix (f' x))\<bar>)) S"
-          using absolutely_integrable_on_def aint_T by blast
-        next
-          show "pairwise (\<lambda>S S'. negligible (S \<inter> S')) (T ` {..n})"
-            using disT unfolding disjnt_iff by (auto simp: pairwise_def intro!: empty_imp_negligible)
-        qed auto
-        also have "\<dots> \<le> m"
-          unfolding m_def
-        proof (rule integral_subset_le)
-          have "(\<lambda>x. \<bar>matrix_det (matrix (f' x))\<bar>) absolutely_integrable_on (\<Union>k\<le>n. T k)"
-          proof (rule set_integrable_subset [OF aint_S])
-            show "\<Union> (T ` {..n}) \<in> sets lebesgue"
-              by (intro measurable meas_t fmeasurableD)
-          qed (force simp: Seq)
-          then show "(\<lambda>x. \<bar>matrix_det (matrix (f' x))\<bar>) integrable_on (\<Union>k\<le>n. T k)"
-            using absolutely_integrable_on_def by blast
-        qed (use Seq int in auto)
-        finally show "(\<Sum>k\<le>n. real k * e * ?\<mu> (T k)) \<le> m" .
-      next
-        have "(\<Sum>k\<le>n. ?\<mu> (T k)) = sum ?\<mu> (T ` {..n})"
-          by (auto intro: sum_eq_Tim)
-        also have "\<dots> = ?\<mu> (\<Union>k\<le>n. T k)"
-          using S disT by (auto simp: pairwise_def meas_t intro: measure_Union' [symmetric])
-        also have "\<dots> \<le> ?\<mu> S"
-          using S by (auto simp: Seq intro: meas_t fmeasurableD measure_mono_fmeasurable)
-        finally have "(\<Sum>k\<le>n. ?\<mu> (T k)) \<le> ?\<mu> S" .
-        then show "(\<Sum>k\<le>n. e * ?\<mu> (T k)) \<le> e * ?\<mu> S"
-          by (metis less_eq_real_def ordered_comm_semiring_class.comm_mult_left_mono sum_distrib_left that)
-      qed
-      finally show "(\<Sum>k\<le>n. ?\<mu> (f ` T k)) \<le> ?B" .
-    qed
-    moreover have "measure lebesgue (\<Union>k\<le>n. f ` T k) \<le> (\<Sum>k\<le>n. ?\<mu> (f ` T k))" for n
-      by (simp add: fmeasurableD meas_ft measure_UNION_le)
-    ultimately have B_ge_m: "?\<mu> (\<Union>k\<le>n. (f ` T k)) \<le> ?B" for n
-      by (meson order_trans)
-    have "(\<Union>n. f ` T n) \<in> lmeasurable"
-      by (rule fmeasurable_countable_Union [OF meas_ft B_ge_m])
-    moreover have "?\<mu> (\<Union>n. f ` T n) \<le> m + e * ?\<mu> S"
-      by (rule measure_countable_Union_le [OF meas_ft B_ge_m])
-    ultimately show "f ` S \<in> lmeasurable" "?\<mu> (f ` S) \<le> m + e * ?\<mu> S"
-      by (auto simp: Seq image_Union)
-  qed
+    sorry
   show ?thesis
   proof
     show "f ` S \<in> lmeasurable"
       using * linordered_field_no_ub by blast
     let ?x = "m - ?\<mu> (f ` S)"
-    have False if "?\<mu> (f ` S) > integral S (\<lambda>x. \<bar>matrix_det (matrix (f' x))\<bar>)"
+    have False if "?\<mu> (f ` S) > integral S (\<lambda>x. \<bar>eucl.det (f' x)\<bar>)"
     proof -
       have ml: "m < ?\<mu> (f ` S)"
         using m_def that by blast
@@ -1444,51 +825,38 @@ proof -
       then show ?thesis
         using * [OF 0] that by (auto simp: field_split_simps m_def split: if_split_asm)
     qed
-    then show "?\<mu> (f ` S) \<le> integral S (\<lambda>x. \<bar>matrix_det (matrix (f' x))\<bar>)"
+    then show "?\<mu> (f ` S) \<le> integral S (\<lambda>x. \<bar>eucl.det (f' x)\<bar>)"
       by fastforce
   qed
 qed
 
 
 theorem
- fixes f :: "real^'n::{finite,wellorder} \<Rightarrow> real^'n::_"
+ fixes f :: "'a::euclidean_space \<Rightarrow> 'a"
   assumes S: "S \<in> sets lebesgue"
     and deriv: "\<And>x. x \<in> S \<Longrightarrow> (f has_derivative f' x) (at x within S)"
-    and int: "(\<lambda>x. \<bar>matrix_det (matrix (f' x))\<bar>) integrable_on S"
-  shows measurable_differentiable_image: "f ` S \<in> lmeasurable"
-    and measure_differentiable_image:
-       "measure lebesgue (f ` S) \<le> integral S (\<lambda>x. \<bar>matrix_det (matrix (f' x))\<bar>)" (is "?M")
+    and int: "(\<lambda>x. \<bar>eucl.det (f' x)\<bar>) integrable_on S"
+  shows measurable_differentiable_image_eu: "f ` S \<in> lmeasurable"
+    and measure_differentiable_image_eu:
+       "measure lebesgue (f ` S) \<le> integral S (\<lambda>x. \<bar>eucl.det (f' x)\<bar>)" (is "?M")
 proof -
-  let ?I = "\<lambda>n::nat. cbox (vec (-n)) (vec n) \<inter> S"
+  let ?One = "\<Sum>i\<in>Basis. i :: 'a"
+  let ?I = "\<lambda>n::nat. cbox (- real n *\<^sub>R ?One) (real n *\<^sub>R ?One) \<inter> S"
   let ?\<mu> = "measure lebesgue"
-  have "x \<in> cbox (vec (- real (nat \<lceil>norm x\<rceil>))) (vec (real (nat \<lceil>norm x\<rceil>)))" for x :: "real^'n::_"
-    apply (simp add: mem_box_cart)
-    by (smt (verit, best) component_le_norm_cart le_of_int_ceiling)
+  have "\<And>x. x \<in> S \<Longrightarrow> \<exists>xa. \<forall>i\<in>Basis. - real xa \<le> x \<bullet> i \<and> x \<bullet> i \<le> real xa"
+    by (meson abs_le_iff minus_le_iff norm_bound_Basis_le real_arch_simple)
   then have Seq: "S = (\<Union>n. ?I n)"
-    by blast
+    by (auto simp: mem_box)
   have fIn: "f ` ?I n \<in> lmeasurable"
-       and mfIn: "?\<mu> (f ` ?I n) \<le> integral S (\<lambda>x. \<bar>matrix_det (matrix (f' x))\<bar>)" (is ?MN) for n
-  proof -
-    have In: "?I n \<in> lmeasurable"
-      by (simp add: S bounded_Int bounded_set_imp_lmeasurable sets.Int)
-    moreover have "\<And>x. x \<in> ?I n \<Longrightarrow> (f has_derivative f' x) (at x within ?I n)"
-      by (meson Int_iff deriv has_derivative_subset subsetI)
-    moreover have int_In: "(\<lambda>x. \<bar>matrix_det (matrix (f' x))\<bar>) integrable_on ?I n"
-      by (metis (mono_tags) Int_commute int integrable_altD(1) integrable_restrict_Int)
-    ultimately have "f ` ?I n \<in> lmeasurable" "?\<mu> (f ` ?I n) \<le> integral (?I n) (\<lambda>x. \<bar>matrix_det (matrix (f' x))\<bar>)"
-      using m_diff_image_weak by metis+
-    moreover have "integral (?I n) (\<lambda>x. \<bar>matrix_det (matrix (f' x))\<bar>) \<le> integral S (\<lambda>x. \<bar>matrix_det (matrix (f' x))\<bar>)"
-      by (simp add: int_In int integral_subset_le)
-    ultimately show "f ` ?I n \<in> lmeasurable" ?MN
-      by auto
-  qed
+       and mfIn: "?\<mu> (f ` ?I n) \<le> integral S (\<lambda>x. \<bar>eucl.det (f' x)\<bar>)" (is ?MN) for n
+    sorry
   have "?I k \<subseteq> ?I n" if "k \<le> n" for k n
-    by (rule Int_mono) (use that in \<open>auto simp: subset_interval_imp_cart\<close>)
+    sorry
   then have "(\<Union>k\<le>n. f ` ?I k) = f ` ?I n" for n
     by (fastforce simp add:)
-  with mfIn have "?\<mu> (\<Union>k\<le>n. f ` ?I k) \<le> integral S (\<lambda>x. \<bar>matrix_det (matrix (f' x))\<bar>)" for n
+  with mfIn have "?\<mu> (\<Union>k\<le>n. f ` ?I k) \<le> integral S (\<lambda>x. \<bar>eucl.det (f' x)\<bar>)" for n
     by simp
-  then have "(\<Union>n. f ` ?I n) \<in> lmeasurable" "?\<mu> (\<Union>n. f ` ?I n) \<le> integral S (\<lambda>x. \<bar>matrix_det (matrix (f' x))\<bar>)"
+  then have "(\<Union>n. f ` ?I n) \<in> lmeasurable" "?\<mu> (\<Union>n. f ` ?I n) \<le> integral S (\<lambda>x. \<bar>eucl.det (f' x)\<bar>)"
     by (rule fmeasurable_countable_Union [OF fIn] measure_countable_Union_le [OF fIn])+
   then show "f ` S \<in> lmeasurable" ?M
     by (metis Seq image_UN)+
