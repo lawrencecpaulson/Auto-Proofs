@@ -1878,6 +1878,136 @@ proof -
     by (simp add: borel_measurable_vimage_halfspace_component_le sets_restrict_space_iff assms)
 qed
 
+proposition borel_measurable_partial_derivatives_eu:
+  fixes f :: "'a::euclidean_space \<Rightarrow> 'b::euclidean_space"
+  assumes S: "S \<in> sets lebesgue"
+    and f: "\<And>x. x \<in> S \<Longrightarrow> (f has_derivative f' x) (at x within S)"
+  shows "(\<lambda>x. f' x u \<bullet> v) \<in> borel_measurable (lebesgue_on S)"
+proof -
+  have lin: "linear (f' x)" if "x \<in> S" for x
+    using f[OF that] has_derivative_linear by blast
+  have basis_meas: "(\<lambda>x. f' x i \<bullet> j) \<in> borel_measurable (lebesgue_on S)"
+    if iB: "i \<in> (Basis :: 'a set)" and jB: "j \<in> (Basis :: 'b set)" for i j
+  proof -
+    let ?\<phi> = "eucl_to_vec :: 'a \<Rightarrow> real ^ 'a basis"
+    let ?\<psi> = "eucl_of_vec :: real ^ 'a basis \<Rightarrow> 'a"
+    let ?\<phi>' = "eucl_to_vec :: 'b \<Rightarrow> real ^ 'b basis"
+    let ?g = "?\<phi>' \<circ> f \<circ> ?\<psi>"
+    let ?g' = "\<lambda>x. ?\<phi>' \<circ> f' (?\<psi> x) \<circ> ?\<psi>"
+    let ?S' = "?\<phi> ` S"
+    let ?m = "Abs_basis j :: 'b basis"
+    let ?n = "Abs_basis i :: 'a basis"
+    have lin_\<phi>: "linear ?\<phi>"
+      unfolding linear_iff eucl_to_vec_def
+      by (auto simp: vec_eq_iff inner_add_left inner_scaleR_left)
+    have lin_\<psi>: "linear ?\<psi>"
+      unfolding linear_iff eucl_of_vec_def
+      by (auto simp: scaleR_sum_right algebra_simps sum.distrib)
+    have lin_\<phi>': "linear ?\<phi>'"
+      unfolding linear_iff eucl_to_vec_def
+      by (auto simp: vec_eq_iff inner_add_left inner_scaleR_left)
+    have S'_sets: "?S' \<in> sets lebesgue"
+    proof (rule differentiable_image_in_sets_lebesgue [OF S _ linear_imp_differentiable_on[OF lin_\<phi>]])
+      show "DIM('a) \<le> DIM(real ^ 'a basis)"
+      proof -
+        have "CARD('a basis) = card (Abs_basis ` (Basis :: 'a set))"
+          by (simp add: UNIV_basis_eq)
+        also have "\<dots> = DIM('a)"
+          using card_image inj_Abs_basis by fastforce
+        finally show ?thesis by simp
+      qed
+    qed
+    have g_deriv: "(?g has_derivative ?g' x) (at x within ?S')" if xS': "x \<in> ?S'" for x
+    proof -
+      from xS' obtain y where y: "y \<in> S" "x = ?\<phi> y" by auto
+      have df: "(f has_derivative f' y) (at y within S)"
+        using f[OF y(1)] .
+      have "(?\<psi> has_derivative ?\<psi>) (at x within ?S')"
+        using lin_\<psi> by (rule linear_imp_has_derivative)
+      moreover have "(f has_derivative f' (?\<psi> x)) (at (?\<psi> x) within ?\<psi> ` ?S')"
+      proof -
+        have "?\<psi> ` ?S' = S"
+          by (auto simp: image_comp)
+        then show ?thesis
+          using df y by simp
+      qed
+      moreover have "(?\<phi>' has_derivative ?\<phi>') (at (f (?\<psi> x)) within f ` (?\<psi> ` ?S'))"
+        using lin_\<phi>' by (rule linear_imp_has_derivative)
+      ultimately show ?thesis
+        unfolding comp_def
+        by (metis has_derivative_in_compose lin_\<phi>' linear_imp_has_derivative)
+    qed
+    have entry_eq: "matrix (?g' (?\<phi> x)) $ ?m $ ?n = f' x i \<bullet> j" if "x \<in> S" for x
+    proof -
+      have lin_g': "linear (?g' (?\<phi> x))"
+        using lin[OF that] lin_\<phi>' lin_\<psi> by (intro linear_compose) auto
+      have "matrix (?g' (?\<phi> x)) $ ?m $ ?n = (?g' (?\<phi> x) (axis ?n 1)) $ ?m"
+        by (simp add: matrix_def)
+      also have "axis ?n 1 = eucl_to_vec i"
+        by (metis Abs_basis_inverse eucl_of_vec_axis eucl_of_vec_eq_iff eucl_of_vec_to_vec iB
+            pth_1)
+      also have "?g' (?\<phi> x) (eucl_to_vec i) = ?\<phi>' (f' x i)"
+        by simp
+      also have "\<dots> $ ?m = f' x i \<bullet> j"
+        using jB by (simp add: eucl_to_vec_def Abs_basis_inverse)
+      finally show ?thesis .
+    qed
+    have vec_meas: "(\<lambda>x. matrix (?g' x) $ ?m $ ?n) \<in> borel_measurable (lebesgue_on ?S')"
+      by (rule borel_measurable_partial_derivatives [OF S'_sets g_deriv])
+    have comp_meas: "(\<lambda>x. matrix (?g' (?\<phi> x)) $ ?m $ ?n) \<in> borel_measurable (lebesgue_on S)"
+    proof -
+      have \<phi>_meas: "?\<phi> \<in> borel_measurable borel"
+        using lin_\<phi> continuous_on_eq_continuous_within linear_continuous_on
+        by (metis borel_measurable_continuous_onI linear_conv_bounded_linear)
+      have if_meas: "(\<lambda>x. if x \<in> ?S' then matrix (?g' x) $ ?m $ ?n else 0) \<in> borel_measurable lebesgue"
+        using borel_measurable_if_I[OF vec_meas S'_sets] .
+      have global_meas: "(\<lambda>x. if ?\<phi> x \<in> ?S' then matrix (?g' (?\<phi> x)) $ ?m $ ?n else 0) \<in> borel_measurable lebesgue"
+      proof -
+        have "(\<lambda>x. if x \<in> ?S' then matrix (?g' x) $ ?m $ ?n else 0) \<circ> ?\<phi> \<in> borel_measurable lebesgue"
+        proof (rule measurable_comp)
+          show "?\<phi> \<in> lebesgue \<rightarrow>\<^sub>M borel"
+            by (simp add: \<phi>_meas measurable_completion)
+          show "(\<lambda>x. if x \<in> ?S' then matrix (?g' x) $ ?m $ ?n else 0) \<in> borel \<rightarrow>\<^sub>M borel"
+            using if_meas measurable_cong_sets sorry
+        qed
+        then show ?thesis by (simp add: comp_def)
+      qed
+      have simp: "?\<phi> x \<in> ?S' \<longleftrightarrow> x \<in> S" for x
+        using eucl_to_vec_eq_iff by auto
+      have "(\<lambda>x. if x \<in> S then matrix (?g' (?\<phi> x)) $ ?m $ ?n else 0) \<in> borel_measurable lebesgue"
+        using global_meas by (simp add: simp)
+      then show ?thesis
+        using borel_measurable_if_D S by fastforce
+    qed
+    show "(\<lambda>x. f' x i \<bullet> j) \<in> borel_measurable (lebesgue_on S)"
+      by (smt (verit, del_insts) comp_meas entry_eq measurable_lebesgue_cong)
+  qed
+  have on_S: "f' x u \<bullet> v = (\<Sum>i\<in>(Basis::'a set). \<Sum>j\<in>(Basis::'b set). (u \<bullet> i) * (v \<bullet> j) * (f' x i \<bullet> j))"
+    if "x \<in> S" for x
+  proof -
+    have "f' x u = (\<Sum>i\<in>Basis. (u \<bullet> i) *\<^sub>R f' x i)"
+      using lin[OF that] using euclidean_representation linear_sum[of "f' x"] linear_scale[of "f' x"]
+      by (metis (no_types, lifting) ext)
+    then have eq1: "f' x u \<bullet> v = (\<Sum>i\<in>Basis. (u \<bullet> i) * (f' x i \<bullet> v))"
+      by (simp add: inner_sum_left)
+    have eq2: "f' x (i::'a) \<bullet> v = (\<Sum>j\<in>(Basis::'b set). (v \<bullet> j) * (f' x i \<bullet> j))" for i
+      by (subst euclidean_representation[of v, symmetric])
+         (simp add: inner_sum_right)
+    show ?thesis
+      unfolding eq1 by (simp add: eq2 sum_distrib_left mult.assoc)
+  qed
+  have "(\<lambda>x. \<Sum>i\<in>(Basis::'a set). \<Sum>j\<in>(Basis::'b set). (u \<bullet> i) * (v \<bullet> j) * (f' x i \<bullet> j))
+        \<in> borel_measurable (lebesgue_on S)"
+    by (intro borel_measurable_sum borel_measurable_times borel_measurable_const basis_meas) auto
+  moreover have "(\<lambda>x. f' x u \<bullet> v) \<in> borel_measurable (lebesgue_on S) \<longleftrightarrow>
+                 (\<lambda>x. \<Sum>i\<in>(Basis::'a set). \<Sum>j\<in>(Basis::'b set). (u \<bullet> i) * (v \<bullet> j) * (f' x i \<bullet> j))
+                 \<in> borel_measurable (lebesgue_on S)"
+    by (intro measurable_cong) (auto simp: on_S space_restrict_space)
+  ultimately show ?thesis
+    by simp
+qed
+
+
 
 theorem borel_measurable_det_Jacobian:
  fixes f :: "real^'n::{finite,wellorder} \<Rightarrow> real^'n::_"
