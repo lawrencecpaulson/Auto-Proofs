@@ -1728,9 +1728,169 @@ theorem scaled_Wirtinger_inequality:
     and "integral {0..1} (\<lambda>x. (2*pi * f x)\<^sup>2) \<le> integral {0..1} (\<lambda>x. (f' x)\<^sup>2)"
     and "integral {0..1} (\<lambda>x. (2*pi * f x)\<^sup>2) = integral {0..1} (\<lambda>x. (f' x)\<^sup>2) \<Longrightarrow>
       \<exists>c a. \<forall>x \<in> {0..1}. f x = c * sin (2*pi*x - a)"
-  sorry 
-
-section \<open>Part 2: Green's theorem for convex area\<close>
+proof -
+  define g where "g \<equiv> \<lambda>x. f (x / (2*pi))"
+  define g' where "g' \<equiv> \<lambda>x. (1/(2*pi)) * f' (x / (2*pi))"
+  have twopi_pos: "2 * pi > 0" and twopi_nz: "2 * pi \<noteq> 0"
+    and inv_twopi_pos: "1/(2*pi) > 0" and inv_twopi_nz: "1/(2*pi) \<noteq> (0::real)"
+    using pi_gt_zero by auto
+  have img: "(\<lambda>x. x / (1/(2*pi))) ` {0..1} = {0..2*pi}"
+    using image_divide_atLeastAtMost[OF inv_twopi_pos] by simp
+  text \<open>Precondition 1: g' has_integral (g x - g 0) on {0..x}\<close>
+  have prec1: "\<And>x. x \<in> {0..2*pi} \<Longrightarrow> (g' has_integral (g x - g 0)) {0..x}"
+  proof -
+    fix x :: real assume x: "x \<in> {0..2*pi}"
+    have y_mem: "x / (2*pi) \<in> {0..1}" using x twopi_pos by (auto simp: field_simps)
+    have step1: "(f' has_integral (f (x/(2*pi)) - f 0)) {0..x/(2*pi)}"
+      using assms(1)[OF y_mem] by simp
+    have step2: "((\<lambda>s. f' (1/(2*pi) * s)) has_integral (2*pi) *\<^sub>R (f (x/(2*pi)) - f 0))
+                 ((\<lambda>s. s / (1/(2*pi))) ` {0..x/(2*pi)})"
+      using has_integral_stretch_real[OF step1 inv_twopi_nz] inv_twopi_pos by simp
+    have img_sub: "(\<lambda>s. s / (1/(2*pi))) ` {0..x/(2*pi)} = {0..x}"
+      using image_divide_atLeastAtMost[OF inv_twopi_pos, of 0 "x/(2*pi)"]
+      using twopi_pos by (simp add: field_simps)
+    have step3: "((\<lambda>s. f' (s/(2*pi))) has_integral (2*pi) * (f (x/(2*pi)) - f 0)) {0..x}"
+      using step2 img_sub by (simp add: field_simps)
+    have step4: "((\<lambda>s. 1/(2*pi) * f' (s/(2*pi))) has_integral 1/(2*pi) * ((2*pi) * (f (x/(2*pi)) - f 0))) {0..x}"
+      using has_integral_mult_right[OF step3, of "1/(2*pi)"] by simp
+    have val: "1/(2*pi) * ((2*pi) * (f (x/(2*pi)) - f 0)) = f (x/(2*pi)) - f 0"
+      using twopi_nz by simp
+    then show "(g' has_integral (g x - g 0)) {0..x}"
+      using step4 unfolding g'_def g_def val by (simp add: field_simps)
+  qed
+  text \<open>Precondition 2: g(2*pi) = g(0)\<close>
+  have prec2: "g (2*pi) = g 0"
+    unfolding g_def using assms(2) by simp
+  text \<open>Precondition 3: (g has_integral 0) on {0..2*pi}\<close>
+  have prec3: "(g has_integral 0) {0..2*pi}"
+  proof -
+    have "(f has_integral \<bar>1/(2*pi)\<bar> *\<^sub>R 0) {0..1}"
+      using assms(3) by simp
+    then have "((\<lambda>x. f (1/(2*pi) * x)) has_integral 0) ((\<lambda>x. x / (1/(2*pi))) ` {0..1})"
+      using has_integral_stretch_real_iff[OF inv_twopi_nz, of f 0 0 1] by simp
+    then show ?thesis
+      unfolding g_def using img by (simp add: field_simps)
+  qed
+  text \<open>Precondition 4: (\<lambda>x. (g' x)²) integrable_on {0..2*pi}\<close>
+  have prec4: "(\<lambda>x. (g' x)\<^sup>2) integrable_on {0..2*pi}"
+  proof -
+    have "(\<lambda>x. (f' x)\<^sup>2) integrable_on {0..1}" by (rule assms(4))
+    then have "(\<lambda>x. (f' (1/(2*pi) * x))\<^sup>2) integrable_on ((\<lambda>x. x / (1/(2*pi))) ` {0..1})"
+      using integrable_stretch_real[OF _ inv_twopi_nz, of "\<lambda>x. (f' x)\<^sup>2" 0 1] by simp
+    then have int: "(\<lambda>x. (f' (x/(2*pi)))\<^sup>2) integrable_on {0..2*pi}"
+      using img by (simp add: field_simps)
+    show ?thesis
+      unfolding g'_def power_mult_distrib
+      using integrable_on_cmult_left[OF int, of "(1/(2*pi))\<^sup>2"]
+      by (simp add: power_mult_distrib algebra_simps)
+  qed
+  text \<open>Apply unscaled Wirtinger inequality\<close>
+  have W1: "(\<lambda>x. (g x)\<^sup>2) integrable_on {0..2*pi}"
+    and W2: "integral {0..2*pi} (\<lambda>x. (g x)\<^sup>2) \<le> integral {0..2*pi} (\<lambda>x. (g' x)\<^sup>2)"
+    and W3: "integral {0..2*pi} (\<lambda>x. (g x)\<^sup>2) = integral {0..2*pi} (\<lambda>x. (g' x)\<^sup>2) \<Longrightarrow>
+         \<exists>c a. \<forall>x \<in> {0..2*pi}. g x = c * sin (x - a)"
+    using Wirtinger_inequality[OF prec1 prec2 prec3 prec4] by auto
+  text \<open>Transfer conclusions back to scaled domain\<close>
+  have g_unfold: "\<And>x. (g x)\<^sup>2 = (f (1/(2*pi) * x))\<^sup>2"
+    unfolding g_def by (simp add: field_simps)
+  have g'_unfold: "\<And>x. (g' x)\<^sup>2 = (1/(2*pi))\<^sup>2 * (f' (1/(2*pi) * x))\<^sup>2"
+    unfolding g'_def by (simp add: power_mult_distrib field_simps)
+  text \<open>Show 1: integrability of (f x)² on {0..1}\<close>
+  show int_f2: "(\<lambda>x. (f x)\<^sup>2) integrable_on {0..1}"
+  proof -
+    from W1 have "(\<lambda>x. (f (1/(2*pi) * x))\<^sup>2) integrable_on {0..2*pi}"
+      by (simp add: g_unfold)
+    then have "(\<lambda>x. (f (1/(2*pi) * x))\<^sup>2) integrable_on ((\<lambda>x. x / (1/(2*pi))) ` {0..1})"
+      using img by simp
+    then show ?thesis
+      using integrable_stretch_real_iff[OF inv_twopi_nz, of "\<lambda>x. (f x)\<^sup>2" 0 1] by simp
+  qed
+  text \<open>Show 2: the scaled inequality\<close>
+  show "integral {0..1} (\<lambda>x. (2*pi * f x)\<^sup>2) \<le> integral {0..1} (\<lambda>x. (f' x)\<^sup>2)"
+  proof -
+    have lhs_stretch: "integral ((\<lambda>x. x / (1/(2*pi))) ` {0..1}) (\<lambda>x. (f (1/(2*pi) * x))\<^sup>2)
+             = (1 / \<bar>1/(2*pi)\<bar>) *\<^sub>R integral {0..1} (\<lambda>x. (f x)\<^sup>2)"
+      using integral_stretch_real[OF inv_twopi_nz, of 0 1 "\<lambda>x. (f x)\<^sup>2"] by simp
+    have lhs_val: "integral {0..2*pi} (\<lambda>x. (g x)\<^sup>2) = 2*pi * integral {0..1} (\<lambda>x. (f x)\<^sup>2)"
+      using lhs_stretch img inv_twopi_pos by (simp add: g_unfold)
+    have rhs_stretch: "integral ((\<lambda>x. x / (1/(2*pi))) ` {0..1}) (\<lambda>x. (1/(2*pi))\<^sup>2 * (f' (1/(2*pi) * x))\<^sup>2)
+             = (1 / \<bar>1/(2*pi)\<bar>) *\<^sub>R integral {0..1} (\<lambda>x. (1/(2*pi))\<^sup>2 * (f' x)\<^sup>2)"
+      using integral_stretch_real[OF inv_twopi_nz, of 0 1 "\<lambda>x. (1/(2*pi))\<^sup>2 * (f' x)\<^sup>2"] by simp
+    have factor_out: "integral {0..1} (\<lambda>x. (1/(2*pi))\<^sup>2 * (f' x)\<^sup>2) = (1/(2*pi))\<^sup>2 * integral {0..1} (\<lambda>x. (f' x)\<^sup>2)"
+      by (simp add: integral_mult_right)
+    have rhs_val: "integral {0..2*pi} (\<lambda>x. (g' x)\<^sup>2) 
+                 = 2*pi * ((1/(2*pi))\<^sup>2 * integral {0..1} (\<lambda>x. (f' x)\<^sup>2))"
+    proof -
+      have "integral {0..2*pi} (\<lambda>x. (g' x)\<^sup>2) 
+          = integral ((\<lambda>x. x / (1/(2*pi))) ` {0..1}) (\<lambda>x. (g' x)\<^sup>2)"
+        using img by simp
+      also have "\<dots> = integral ((\<lambda>x. x / (1/(2*pi))) ` {0..1}) (\<lambda>x. (1/(2*pi))\<^sup>2 * (f' (1/(2*pi) * x))\<^sup>2)"
+        by (simp add: g'_unfold)
+      also have "\<dots> = (1 / \<bar>1/(2*pi)\<bar>) *\<^sub>R integral {0..1} (\<lambda>x. (1/(2*pi))\<^sup>2 * (f' x)\<^sup>2)"
+        using rhs_stretch by simp
+      also have "\<dots> = 2*pi * ((1/(2*pi))\<^sup>2 * integral {0..1} (\<lambda>x. (f' x)\<^sup>2))"
+        using inv_twopi_pos factor_out by simp
+      finally show ?thesis .
+    qed
+    have rhs_simp: "2*pi * ((1/(2*pi))\<^sup>2 * integral {0..1} (\<lambda>x. (f' x)\<^sup>2))
+                  = (1/(2*pi)) * integral {0..1} (\<lambda>x. (f' x)\<^sup>2)"
+      using twopi_pos by (simp add: power2_eq_square field_simps)
+    from W2 lhs_val rhs_val rhs_simp
+    have ineq: "2*pi * integral {0..1} (\<lambda>x. (f x)\<^sup>2) \<le> (1/(2*pi)) * integral {0..1} (\<lambda>x. (f' x)\<^sup>2)"
+      by linarith
+    then have "(2*pi)\<^sup>2 * integral {0..1} (\<lambda>x. (f x)\<^sup>2) \<le> integral {0..1} (\<lambda>x. (f' x)\<^sup>2)"
+      using twopi_pos by (simp add: power2_eq_square field_simps)
+    then show ?thesis
+      by (simp add: power_mult_distrib)
+  qed
+  text \<open>Show 3: the equality case\<close>
+  show "integral {0..1} (\<lambda>x. (2*pi * f x)\<^sup>2) = integral {0..1} (\<lambda>x. (f' x)\<^sup>2) \<Longrightarrow>
+      \<exists>c a. \<forall>x \<in> {0..1}. f x = c * sin (2*pi*x - a)"
+  proof -
+    assume eq: "integral {0..1} (\<lambda>x. (2*pi * f x)\<^sup>2) = integral {0..1} (\<lambda>x. (f' x)\<^sup>2)"
+    have lhs: "integral {0..2*pi} (\<lambda>x. (g x)\<^sup>2) = 2*pi * integral {0..1} (\<lambda>x. (f x)\<^sup>2)"
+    proof -
+      have "integral {0..2*pi} (\<lambda>x. (g x)\<^sup>2)
+          = integral ((\<lambda>x. x / (1/(2*pi))) ` {0..1}) (\<lambda>x. (f (1/(2*pi) * x))\<^sup>2)"
+        using img by (simp add: g_unfold)
+      also have "\<dots> = (1 / \<bar>1/(2*pi)\<bar>) *\<^sub>R integral {0..1} (\<lambda>x. (f x)\<^sup>2)"
+        using integral_stretch_real[OF inv_twopi_nz, of 0 1 "\<lambda>x. (f x)\<^sup>2"] by simp
+      also have "\<dots> = 2*pi * integral {0..1} (\<lambda>x. (f x)\<^sup>2)"
+        using inv_twopi_pos by simp
+      finally show ?thesis .
+    qed
+    have rhs: "integral {0..2*pi} (\<lambda>x. (g' x)\<^sup>2) 
+             = (1/(2*pi)) * integral {0..1} (\<lambda>x. (f' x)\<^sup>2)"
+    proof -
+      have "integral {0..2*pi} (\<lambda>x. (g' x)\<^sup>2) 
+          = integral ((\<lambda>x. x / (1/(2*pi))) ` {0..1}) (\<lambda>x. (1/(2*pi))\<^sup>2 * (f' (1/(2*pi) * x))\<^sup>2)"
+        using img by (simp add: g'_unfold)
+      also have "\<dots> = (1 / \<bar>1/(2*pi)\<bar>) *\<^sub>R integral {0..1} (\<lambda>x. (1/(2*pi))\<^sup>2 * (f' x)\<^sup>2)"
+        using integral_stretch_real[OF inv_twopi_nz, of 0 1 "\<lambda>x. (1/(2*pi))\<^sup>2 * (f' x)\<^sup>2"] by simp
+      also have "\<dots> = 2*pi * ((1/(2*pi))\<^sup>2 * integral {0..1} (\<lambda>x. (f' x)\<^sup>2))"
+        using inv_twopi_pos by (simp add: integral_mult_right)
+      also have "\<dots> = (1/(2*pi)) * integral {0..1} (\<lambda>x. (f' x)\<^sup>2)"
+        using twopi_pos by (simp add: power2_eq_square field_simps)
+      finally show ?thesis .
+    qed
+    have "(2*pi)\<^sup>2 * integral {0..1} (\<lambda>x. (f x)\<^sup>2) = integral {0..1} (\<lambda>x. (f' x)\<^sup>2)"
+      using eq by (simp add: power_mult_distrib)
+    then have "2*pi * integral {0..1} (\<lambda>x. (f x)\<^sup>2) = (1/(2*pi)) * integral {0..1} (\<lambda>x. (f' x)\<^sup>2)"
+      using twopi_pos by (simp add: power2_eq_square field_simps)
+    then have weq: "integral {0..2*pi} (\<lambda>x. (g x)\<^sup>2) = integral {0..2*pi} (\<lambda>x. (g' x)\<^sup>2)"
+      using lhs rhs by linarith
+    from W3[OF weq] obtain c a where ca: "\<forall>x \<in> {0..2*pi}. g x = c * sin (x - a)" by auto
+    have "\<forall>x \<in> {0..1}. f x = c * sin (2*pi*x - a)"
+    proof
+      fix x :: real assume xmem: "x \<in> {0..1}"
+      then have "2*pi*x \<in> {0..2*pi}" using twopi_pos by (auto simp: field_simps)
+      from ca[rule_format, OF this]
+      show "f x = c * sin (2*pi*x - a)"
+        unfolding g_def using twopi_nz by (simp add: field_simps)
+    qed
+    then show "\<exists>c a. \<forall>x \<in> {0..1}. f x = c * sin (2*pi*x - a)" by auto
+  qed
+qed
 
 text \<open>Area under/above an arc, and the signed area formula for a convex closed curve.\<close>
 
