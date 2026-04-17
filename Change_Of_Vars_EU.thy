@@ -1704,10 +1704,18 @@ proof -
         using T orthogonal_transformation_surj surj_f_inv_f by fastforce
       then have "eucl.det T * eucl.det (inv T) = 1"
         using eucl.det_compose [OF linT linTi] by simp
-      then have "\<bar>eucl.det T\<bar> = 1"
-        using orthogonal_transformation_det [OF T] eucl_det_conv_matrix_det [OF linT] by simp
-      then show ?thesis
-        using mS S measure_orthogonal_image_eu [OF T S] by simp
+      have "\<bar>eucl.det T\<bar> = 1"
+      proof -
+        note [transfer_rule] = transfer_measure_bij_rules transfer_eucl_bij_rules
+        have "orthogonal_transformation f \<Longrightarrow> \<bar>eucl.det f\<bar> = 1" for f :: "'a \<Rightarrow> 'a"
+          using orthogonal_transformation_det[unfolded orthogonal_transformation_def,
+            where ?'n = "'a basis", untransferred]
+          by (simp add: orthogonal_transformation_def)
+        then show ?thesis using T by blast
+      qed
+      then have "measure lebesgue (T ` S) = measure lebesgue S"
+        using measure_orthogonal_image_eu [OF T S] by simp
+      then show ?thesis using mS by simp
     qed
   qed
 qed
@@ -1972,6 +1980,94 @@ proof -
   then show ?thesis
     by (subst eq) (simp add: image_Union negligible_Union_nat)
 qed
+
+theorem baby_Sard_eu:
+  fixes f :: "'a::euclidean_space \<Rightarrow> 'b::euclidean_space"
+  assumes mlen: "DIM('a) \<le> DIM('b)"
+    and der: "\<And>x. x \<in> S \<Longrightarrow> (f has_derivative f' x) (at x within S)"
+    and low_rank: "\<And>x. x \<in> S \<Longrightarrow> dim (f' x ` UNIV) < DIM('b)"
+  shows "negligible(f ` S)"
+proof -
+  let ?etv_a = "eucl_to_vec :: 'a \<Rightarrow> real^('a basis)"
+  let ?eov_a = "eucl_of_vec :: real^('a basis) \<Rightarrow> 'a"
+  let ?etv_b = "eucl_to_vec :: 'b \<Rightarrow> real^('b basis)"
+  define fv where "fv \<equiv> ?etv_b \<circ> f \<circ> ?eov_a"
+  define Sv where "Sv \<equiv> ?etv_a ` S"
+  define fv' where "fv' \<equiv> \<lambda>x. ?etv_b \<circ> f' (?eov_a x) \<circ> ?eov_a"
+  have card_eq_a: "CARD('a basis) = DIM('a)"
+    using UNIV_basis_eq inj_Abs_basis by (metis card_image)
+  have card_eq_b: "CARD('b basis) = DIM('b)"
+    using UNIV_basis_eq inj_Abs_basis by (metis card_image)
+  have lin_etv_b: "linear ?etv_b"
+    unfolding eucl_to_vec_def linear_iff
+    by (auto simp: vec_eq_iff inner_left_distrib inner_right_distrib)
+  have lin_eov_a: "linear ?eov_a"
+    unfolding eucl_of_vec_def linear_iff
+    by (auto simp: scaleR_sum_right algebra_simps sum.distrib)
+  have Sv_eq: "?eov_a ` Sv = S"
+    by (auto simp: Sv_def image_comp)
+  have inj_etv_b: "inj ?etv_b"
+    by (simp add: injI)
+  have der_v: "(fv has_derivative fv' x) (at x within Sv)" if "x \<in> Sv" for x
+  proof -
+    have x_in: "?eov_a x \<in> S"
+      using that by (auto simp: Sv_def)
+    have step1: "(f \<circ> ?eov_a has_derivative f' (?eov_a x) \<circ> ?eov_a) (at x within Sv)"
+      by (rule diff_chain_within [OF linear_imp_has_derivative [OF lin_eov_a]])
+         (use der x_in Sv_eq in auto)
+    show ?thesis
+      unfolding fv_def fv'_def comp_assoc
+      by (rule diff_chain_within [OF step1 linear_imp_has_derivative [OF lin_etv_b]])
+  qed
+  have lin_fv': "linear (fv' x)" if "x \<in> Sv" for x
+  proof -
+    have x_in: "?eov_a x \<in> S"
+      using that by (auto simp: Sv_def)
+    show ?thesis
+      unfolding fv'_def comp_def
+      using lin_etv_b lin_eov_a has_derivative_linear [OF der [OF x_in]]
+      by (auto intro!: linearI simp: linear_add linear_cmul)
+  qed
+  have rank_v: "rank (matrix (fv' x)) < CARD('b basis)" if "x \<in> Sv" for x
+  proof -
+    have x_in: "?eov_a x \<in> S"
+      using that by (auto simp: Sv_def)
+    have "rank (matrix (fv' x)) = dim (range (fv' x))"
+      using rank_dim_range [of "matrix (fv' x)"] lin_fv' [OF that]
+      by (simp add: matrix_works)
+    also have "range (fv' x) = ?etv_b ` (f' (?eov_a x) ` range ?eov_a)"
+      by (auto simp: fv'_def image_comp)
+    also have "range ?eov_a = (UNIV :: 'a set)"
+      using surj_def by (auto intro: image_eqI [of _ _ "?etv_a _"])
+    also have "dim (?etv_b ` (f' (?eov_a x) ` UNIV)) = dim (f' (?eov_a x) ` UNIV)"
+      by (rule eucl.dim_image_eq [OF lin_etv_b])
+         (meson inj_etv_b inj_on_subset subset_UNIV)
+    also have "\<dots> < DIM('b)"
+      using low_rank x_in by auto
+    finally show ?thesis
+      using card_eq_b by simp
+  qed
+  have mlen_v: "CARD('a basis) \<le> CARD('b basis)"
+    using mlen card_eq_a card_eq_b by simp
+  have "negligible (fv ` Sv)"
+    by (rule baby_Sard [OF mlen_v der_v rank_v])
+  moreover have "fv ` Sv = ?etv_b ` (f ` S)"
+    by (auto simp: fv_def Sv_def image_comp)
+  ultimately have neg_etv: "negligible (?etv_b ` (f ` S))"
+    by simp
+  show "negligible (f ` S)"
+  proof (rule negligible_subset [OF _ subset_refl])
+    have "f ` S = ?eov_b ` (?etv_b ` (f ` S))"
+      by (simp add: image_comp)
+    also have "negligible \<dots>"
+      using neg_etv negligible_iff_null_sets
+      by (metis (no_types) negligible_differentiable_image_negligible [OF le_refl]
+            differentiable_on_linear [OF eucl.linear_eucl_of_vec])
+    finally show "negligible (f ` S)" .
+  qed
+qed
+
+
 
 
 subsection\<open>A one-way version of change-of-variables not assuming injectivity. \<close>

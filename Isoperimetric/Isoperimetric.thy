@@ -1892,6 +1892,8 @@ proof -
   qed
 qed
 
+text \<open>Part 2: a very special case of Green's theorem for a convex area\<close>
+
 text \<open>Area under/above an arc, and the signed area formula for a convex closed curve.\<close>
 
 lemma area_below_arclet:
@@ -1900,14 +1902,67 @@ lemma area_below_arclet:
     and "Re (g u) \<le> Re (g v)"
     and "absolutely_continuous_on {u..v} g"
     and "g ` {u..v} \<subseteq> {z. Im z \<ge> 0}"
-    and "inj_on g {u..v}"
-    and "\<And>x y. x \<in> g ` {u..v} \<Longrightarrow> y \<in> g ` {u..v} \<Longrightarrow> Re x = Re y \<Longrightarrow> x = y"
+    and inj_g: "inj_on g {u..v}"
+    and inj_Re: "inj_on Re (g ` {u..v})"
     and "negligible S"
     and "\<And>t. t \<in> {u..v} - S \<Longrightarrow> (g has_vector_derivative g' t) (at t)"
   shows "(\<lambda>t. Re (g' t) * Im (g t)) absolutely_integrable_on {u..v}"
     and "integral {u..v} (\<lambda>t. Re (g' t) * Im (g t)) =
       measure lebesgue {z. \<exists>w \<in> g ` {u..v}. Re w = Re z \<and> 0 \<le> Im z \<and> Im z \<le> Im w}"
-  sorry 
+proof -
+  obtain h where h: "\<And>x. x \<in> {u..v} \<Longrightarrow> h (g (Re x)) = x"
+    using inj_Re unfolding inj_on_def
+    by (metis inj_g atLeastAtMost_iff the_inv_into_f_f Re_complex_of_real)
+  define ax where "ax \<equiv> (\<lambda>t. g (Re t)) ` {u..v}"
+  have cont_h: "continuous_on ax h"
+  proof -
+    have ax_eq: "ax = g ` {u..v}"
+      unfolding ax_def image_cong[OF refl] by simp
+    have cont_g: "continuous_on {u..v} g"
+      using assms(3) absolutely_continuous_on_imp_continuous is_interval_cc by blast
+    have "continuous_on (g ` {u..v}) (the_inv_into {u..v} g)"
+      by (rule continuous_on_inv_into[OF cont_g compact_Icc inj_g])
+    moreover have "h y = the_inv_into {u..v} g y" if "y \<in> g ` {u..v}" for y
+    proof -
+      from that obtain x where x: "x \<in> {u..v}" "y = g x" by auto
+      have "h y = h (g (Re (of_real x)))" using x by simp
+      also have "\<dots> = x" using h x(1) by blast
+      also have "\<dots> = the_inv_into {u..v} g y" 
+        using the_inv_into_f_f[OF inj_g x(1)] x(2) by simp
+      finally show ?thesis .
+    qed
+    ultimately show ?thesis
+      unfolding ax_eq using continuous_on_cong by force
+  qed
+  show "(\<lambda>t. Re (g' t) * Im (g t)) absolutely_integrable_on {u..v}"
+  proof -
+    have cont_g: "continuous_on {u..v} g"
+      using assms(3) absolutely_continuous_on_imp_continuous is_interval_cc by blast
+    have gp_ai: "g' absolutely_integrable_on {u..v}"
+      using absolutely_integrable_absolutely_continuous_derivative[OF assms(3) assms(7)]
+        assms(8) has_vector_derivative_at_within by blast
+    have Re_gp_ai: "(\<lambda>t. Re (g' t)) absolutely_integrable_on {u..v}"
+    proof -
+      have "(\<lambda>t. g' t \<bullet> 1) absolutely_integrable_on {u..v}"
+        by (rule absolutely_integrable_component[OF gp_ai])
+      then show ?thesis by (simp add: complex_inner_1_right)
+    qed
+    have Im_g_cont: "continuous_on {u..v} (\<lambda>t. Im (g t))"
+      by (intro continuous_intros cont_g)
+    have Im_g_bdd: "bounded ((\<lambda>t. Im (g t)) ` {u..v})"
+      by (intro compact_imp_bounded compact_continuous_image[OF Im_g_cont compact_Icc])
+    have Im_g_meas: "(\<lambda>t. Im (g t)) \<in> borel_measurable (lebesgue_on {u..v})"
+      using continuous_imp_measurable_on_sets_lebesgue[OF Im_g_cont]
+        atLeastAtMost_borel lborelD
+      by (metis sets_completionI_sets)
+    show ?thesis
+      using absolutely_integrable_bounded_measurable_product_real [OF Im_g_meas _ Im_g_bdd Re_gp_ai]
+      by (simp add: mult.commute)
+  qed
+  show "integral {u..v} (\<lambda>t. Re (g' t) * Im (g t)) =
+      measure lebesgue {z. \<exists>w \<in> g ` {u..v}. Re w = Re z \<and> 0 \<le> Im z \<and> Im z \<le> Im w}"
+    sorry
+qed
 
 lemma area_above_arclet:
   fixes g :: "real \<Rightarrow> complex" and g' :: "real \<Rightarrow> complex"
