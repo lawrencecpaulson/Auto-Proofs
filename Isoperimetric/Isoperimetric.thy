@@ -1906,7 +1906,65 @@ lemma subgraph_measure_eq_integral:
   shows "{z::complex. a \<le> Re z \<and> Re z \<le> b \<and> 0 \<le> Im z \<and> Im z \<le> f (Re z)} \<in> lmeasurable"
     and "measure lebesgue {z::complex. a \<le> Re z \<and> Re z \<le> b \<and> 0 \<le> Im z \<and> Im z \<le> f (Re z)}
        = integral {a..b} f"
-  sorry
+proof -
+  define S where "S \<equiv> {z::complex. a \<le> Re z \<and> Re z \<le> b \<and> 0 \<le> Im z \<and> Im z \<le> f (Re z)}"
+  have cont_g: "continuous_on {a..b} f" by fact
+  \<comment> \<open>The subgraph is the continuous image of a compact set, hence compact\<close>
+  have S_compact: "compact S"
+  proof -
+    define \<phi> where "\<phi> \<equiv> \<lambda>(x::real, t::real). Complex x (t * f x)"
+    have cont_\<phi>: "continuous_on ({a..b} \<times> {0..1}) \<phi>"
+      unfolding \<phi>_def split_def
+      by (intro continuous_intros continuous_on_compose2[OF cont_g] continuous_on_fst) auto
+    have img: "\<phi> ` ({a..b} \<times> {0..1}) = S"
+    proof (rule set_eqI)
+      fix z :: complex
+      show "z \<in> \<phi> ` ({a..b} \<times> {0..1}) \<longleftrightarrow> z \<in> S"
+      proof
+        assume "z \<in> \<phi> ` ({a..b} \<times> {0..1})"
+        then obtain x t where xt: "x \<in> {a..b}" "t \<in> {0..1}" "z = Complex x (t * f x)"
+          unfolding \<phi>_def by auto
+        then show "z \<in> S"
+          unfolding S_def using assms(3)[OF xt(1)]
+          by (auto simp: complex.sel intro: mult_left_le_one_le mult_nonneg_nonneg)
+      next
+        assume "z \<in> S"
+        then have hz: "a \<le> Re z" "Re z \<le> b" "0 \<le> Im z" "Im z \<le> f (Re z)"
+          unfolding S_def by auto
+        show "z \<in> \<phi> ` ({a..b} \<times> {0..1})"
+        proof (cases "f (Re z) = 0")
+          case True
+          then have "Im z = 0" using hz(3,4) by linarith
+          then have "z = \<phi> (Re z, 0)"
+            unfolding \<phi>_def by (simp add: complex_eq_iff)
+          then show ?thesis using hz(1,2) by auto
+        next
+          case False
+          define t where "t \<equiv> Im z / f (Re z)"
+          have "0 < f (Re z)" using False hz(3,4) assms(3) hz(1,2) by linarith
+          then have "t \<in> {0..1}" unfolding t_def using hz(3,4) by (auto simp: field_simps)
+          moreover have "z = \<phi> (Re z, t)"
+            unfolding \<phi>_def t_def using False by (simp add: complex_eq_iff)
+          ultimately show ?thesis using hz(1,2) by auto
+        qed
+      qed
+    qed
+    have "compact ({a..b} \<times> {0..1::real})"
+      by (intro compact_Times compact_Icc)
+    then show "compact S"
+      using img compact_continuous_image[OF cont_\<phi>] by simp
+  qed
+  have S_meas: "S \<in> lmeasurable"
+    using S_compact lmeasurable_compact by blast
+  \<comment> \<open>Now prove the measure equals the integral using change of variables\<close>
+  have S_measure: "measure lebesgue S = integral {a..b} f"
+    sorry
+  show "{z::complex. a \<le> Re z \<and> Re z \<le> b \<and> 0 \<le> Im z \<and> Im z \<le> f (Re z)} \<in> lmeasurable"
+    using S_meas unfolding S_def .
+  show "measure lebesgue {z::complex. a \<le> Re z \<and> Re z \<le> b \<and> 0 \<le> Im z \<and> Im z \<le> f (Re z)}
+       = integral {a..b} f"
+    using S_measure unfolding S_def .
+qed
 
 text \<open>1D substitution for absolutely continuous monotone functions.\<close>
 lemma has_integral_substitution_ac:
