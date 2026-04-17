@@ -1272,16 +1272,292 @@ proof -
       thus ?thesis
         by (simp add: has_integral_integrable_integral algebra_simps)
     qed
+    \<comment> \<open>Key fact: on intervals where sin(x−a) \<noteq> 0, f equals c * sin(x−a).\<close>
+    have key_fact: "\<exists>c. \<forall>x\<in>{u..v}. f x = c * sin (x - a)"
+      if huv: "0 \<le> u" "u < v" "v \<le> 2*pi"
+        and hsin: "\<And>x. x \<in> {u<..<v} \<Longrightarrow> sin (x - a) \<noteq> 0"
+      for u v
+    proof -
+      \<comment> \<open>Open-interval version (to be proved later).\<close>
+      have open_ver: "\<exists>c. \<forall>x\<in>{u<..<v}. f x = c * sin (x - a)"
+      proof -
+        \<comment> \<open>Step 1: \<integral>ᵤᵥ rest² = 0 from \<integral>₀²\<pi> rest² = 0 and nonnegativity.\<close>
+        have rest_sq_sub: "(\<lambda>x. (rest x)\<^sup>2) integrable_on {u..v}"
+          by (rule integrable_subinterval_real[OF rest_sq_int])
+             (use huv in auto)
+        have rest_sq_nonneg: "0 \<le> (rest x)\<^sup>2" for x
+          by (rule zero_le_power2)
+        have "integral {u..v} (\<lambda>x. (rest x)\<^sup>2) \<le> integral {0..2*pi} (\<lambda>x. (rest x)\<^sup>2)"
+          by (rule integral_subset_le[OF _ rest_sq_sub rest_sq_int])
+             (use huv rest_sq_nonneg in auto)
+        moreover have "0 \<le> integral {u..v} (\<lambda>x. (rest x)\<^sup>2)"
+          by (rule integral_nonneg[OF rest_sq_sub]) (use rest_sq_nonneg in auto)
+        ultimately have rest_sq_sub_zero: "integral {u..v} (\<lambda>x. (rest x)\<^sup>2) = 0"
+          using rest_sq_zero by linarith
+        \<comment> \<open>Step 2: rest = 0 a.e. on {u..v} via Lebesgue theory.\<close>
+        have rest_ae_zero: "AE x in lebesgue_on {u..v}. rest x = 0"
+        proof -
+          have uv_meas: "{u..v} \<in> sets lebesgue" by simp
+          have rest_sq_abs: "(\<lambda>x. (rest x)\<^sup>2) absolutely_integrable_on {u..v}"
+            by (rule nonnegative_absolutely_integrable_1[OF rest_sq_sub])
+               (use rest_sq_nonneg in auto)
+          have rest_sq_leb: "integrable (lebesgue_on {u..v}) (\<lambda>x. (rest x)\<^sup>2)"
+            by (rule absolutely_integrable_imp_integrable[OF rest_sq_abs uv_meas])
+          have "integral\<^sup>L (lebesgue_on {u..v}) (\<lambda>x. (rest x)\<^sup>2) = integral {u..v} (\<lambda>x. (rest x)\<^sup>2)"
+            by (rule lebesgue_integral_eq_integral[OF rest_sq_leb uv_meas])
+          hence leb_zero: "integral\<^sup>L (lebesgue_on {u..v}) (\<lambda>x. (rest x)\<^sup>2) = 0"
+            using rest_sq_sub_zero by simp
+          have "AE x in lebesgue_on {u..v}. (rest x)\<^sup>2 = 0"
+            using integral_nonneg_eq_0_iff_AE[OF rest_sq_leb] leb_zero
+            by (simp add: zero_le_power2)
+          thus ?thesis
+            by (rule AE_mp) (auto simp: power2_eq_square)
+        qed
+        \<comment> \<open>Step 3: h(x) = f(x)/sin(x-a) is constant on (u,v).\<close>
+        \<comment> \<open>For any [s,t] \<subseteq> (u,v), h is absolutely continuous and h' = rest/sin a.e.,\<close>
+        \<comment> \<open>so h(t) - h(s) = \<integral>ₛₜ rest/sin = 0.\<close>
+        have h_const: "f s / sin (s - a) = f t / sin (t - a)"
+          if hst: "s \<in> {u<..<v}" "t \<in> {u<..<v}" for s t
+        proof (cases "s = t")
+          case True thus ?thesis by simp
+        next
+          case False
+          \<comment> \<open>WLOG s < t\<close>
+          define s' where "s' = min s t"
+          define t' where "t' = max s t"
+          have st': "u < s'" "t' < v" "s' < t'"
+            using hst False unfolding s'_def t'_def by auto
+          have st'_sub: "{s'..t'} \<subseteq> {u<..<v}"
+            using st' by auto
+          have st'_sub2: "{s'..t'} \<subseteq> {0..2*pi}"
+            using st' huv by auto
+          \<comment> \<open>sin(x - a) \<noteq> 0 on [s', t']\<close>
+          have sin_nz_st: "sin (x - a) \<noteq> 0" if "x \<in> {s'..t'}" for x
+            using hsin st'_sub that by auto
+          \<comment> \<open>h = f/sin is absolutely continuous on [s', t']\<close>
+          define h where "h \<equiv> \<lambda>x. f x / sin (x - a)"
+          have ac_f: "absolutely_continuous_on {0..2*pi} f"
+            using absolute_integral_absolutely_continuous_derivative_eq f'abs f'hsd by blast
+          have ac_f_st: "absolutely_continuous_on {s'..t'} f"
+            using absolutely_continuous_on_subset[OF ac_f st'_sub2] .
+          \<comment> \<open>1/sin(x-a) is absolutely continuous on [s', t'] via Lipschitz bound\<close>
+          have ac_inv_sin: "absolutely_continuous_on {s'..t'} (\<lambda>x. inverse (sin (x - a)))"
+          proof -
+            \<comment> \<open>The derivative -cos/sin² is bounded on [s',t'] since sin is bounded away from 0\<close>
+            define deriv where "deriv \<equiv> \<lambda>x::real. - cos (x - a) / (sin (x - a))\<^sup>2"
+            have cont_deriv: "continuous_on {s'..t'} deriv"
+              unfolding deriv_def
+              by (intro continuous_intros) (use sin_nz_st in auto)
+            have bdd: "bounded (deriv ` {s'..t'})"
+              using compact_continuous_image[OF cont_deriv compact_Icc]
+                    compact_imp_bounded by blast
+            then obtain B where B: "\<And>x. x \<in> {s'..t'} \<Longrightarrow> \<bar>deriv x\<bar> \<le> B"
+              by (meson bounded_real imageI)
+            have lipschitz: "\<bar>inverse (sin (x - a)) - inverse (sin (y - a))\<bar> \<le> B * \<bar>x - y\<bar>"
+              if hx: "s' \<le> x" "x \<le> t'" and hy: "s' \<le> y" "y \<le> t'"
+              for x y
+            proof -
+              have deriv_at: "((\<lambda>x. inverse (sin (x - a))) has_real_derivative deriv z)
+                              (at z within {s'..t'})"
+                if hz: "z \<in> {s'..t'}" for z
+              proof -
+                have snz: "sin (z - a) \<noteq> 0" using sin_nz_st[OF hz] .
+                have "((\<lambda>x. sin (x - a)) has_real_derivative cos (z - a))
+                       (at z within {s'..t'})"
+                  by (intro derivative_eq_intros | simp)+
+                then have "((\<lambda>x. inverse (sin (x - a))) has_real_derivative
+                            - (cos (z - a) * inverse (sin (z - a) ^ Suc (Suc 0))))
+                           (at z within {s'..t'})"
+                  using DERIV_inverse_fun snz by blast
+                moreover have "- (cos (z - a) * inverse (sin (z - a) ^ Suc (Suc 0)))
+                              = deriv z"
+                  unfolding deriv_def power2_eq_square
+                  by (simp add: field_simps)
+                ultimately show ?thesis by simp
+              qed
+              have "norm (inverse (sin (x - a)) - inverse (sin (y - a)))
+                    \<le> B * norm (x - y)"
+              proof (rule field_differentiable_bound[OF convex_real_interval(5)])
+                fix z assume "z \<in> {s'..t'}"
+                then show "((\<lambda>x. inverse (sin (x - a))) has_field_derivative deriv z)
+                           (at z within {s'..t'})"
+                  using deriv_at by auto
+              next
+                fix z assume "z \<in> {s'..t'}"
+                then show "norm (deriv z) \<le> B" using B by (auto simp: abs_le_iff)
+              next
+                show "x \<in> {s'..t'}" using hx by auto
+              next
+                show "y \<in> {s'..t'}" using hy by auto
+              qed
+              then show ?thesis by (simp add: real_norm_def)
+            qed
+            then show ?thesis
+              by (intro Lipschitz_imp_absolutely_continuous strip; auto)
+          qed
+          \<comment> \<open>h = f \<sqdot> (1/sin) is AC on [s', t']\<close>
+          have ac_h: "absolutely_continuous_on {s'..t'} h"
+          proof -
+            have "absolutely_continuous_on {s'..t'} (\<lambda>x. f x *\<^sub>R inverse (sin (x - a)))"
+              by (rule absolutely_continuous_on_mul[OF ac_f_st ac_inv_sin]) auto
+            moreover have "h x = f x *\<^sub>R inverse (sin (x - a))" for x
+              unfolding h_def by (simp add: divide_inverse)
+            ultimately show ?thesis
+              using absolutely_continuous_on_eq by presburger
+          qed
+          \<comment> \<open>h has derivative rest/sin a.e. on [s', t']\<close>
+          obtain k where negk: "negligible k"
+            and derivf: "\<And>t. t \<in> {0..2*pi} - k \<Longrightarrow>
+              ((\<lambda>u. integral {0..u} f') has_vector_derivative f' t)
+              (at t within {0..2*pi})"
+            using f' has_vector_derivative_indefinite_integral by blast
+          have f_eq: "f t = f 0 + integral {0..t} f'" if "t \<in> {0..2*pi}" for t
+            using f'hsd[OF that] by (auto simp: has_integral_integrable_integral)
+          have fderiv: "(f has_vector_derivative f' t) (at t within {s'..t'})"
+            if "t \<in> {s'..t'} - k" for t
+          proof -
+            have t02: "t \<in> {0..2*pi}" using that st'_sub2 by auto
+            have "t \<in> {0..2*pi} - k" using that st'_sub2 by auto
+            then have "((\<lambda>u. integral {0..u} f') has_vector_derivative f' t)
+                       (at t within {0..2*pi})"
+              using derivf by auto
+            then have "((\<lambda>u. f u - f 0) has_vector_derivative f' t)
+                       (at t within {0..2*pi})"
+            proof (rule has_vector_derivative_transform_within)
+              show "0 < (1::real)" by simp
+              show "t \<in> {0..2*pi}" using t02 .
+              fix u assume "u \<in> {0..2*pi}" "dist u t < 1"
+              then show "integral {0..u} f' = f u - f 0"
+                using f_eq f'hsd by blast
+            qed
+            then have "(f has_vector_derivative f' t) (at t within {0..2*pi})"
+              using has_vector_derivative_diff_const by blast
+            then show ?thesis
+              by (rule has_vector_derivative_within_subset) (use st'_sub2 in auto)
+          qed
+          \<comment> \<open>Derivative of h = f/sin via quotient rule\<close>
+          have hderiv: "(h has_vector_derivative
+              (f' t * sin (t - a) - f t * cos (t - a)) / (sin (t - a))\<^sup>2)
+              (at t within {s'..t'})"
+            if "t \<in> {s'..t'} - k" for t
+          proof -
+            have snz: "sin (t - a) \<noteq> 0"
+              using sin_nz_st that by auto
+            have fd: "(f has_real_derivative f' t) (at t within {s'..t'})"
+              using fderiv that
+              by (simp add: has_real_derivative_iff_has_vector_derivative)
+            have sd: "((\<lambda>x. sin (x - a)) has_real_derivative cos (t - a))
+                      (at t within {s'..t'})"
+              by (auto intro!: derivative_eq_intros)
+            have "((\<lambda>x. f x / sin (x - a)) has_real_derivative
+                   (f' t * sin (t - a) - f t * cos (t - a)) / (sin (t - a))\<^sup>2)
+                  (at t within {s'..t'})"
+              using DERIV_quotient[OF fd sd snz]
+              by (simp add: power2_eq_square)
+            then show ?thesis unfolding h_def
+              by (simp add: has_real_derivative_iff_has_vector_derivative)
+          qed
+          \<comment> \<open>The derivative of h equals rest/sin\<close>
+          have hderiv_eq: "(f' t * sin (t - a) - f t * cos (t - a)) / (sin (t - a))\<^sup>2
+                          = rest t / sin (t - a)"
+            if "t \<in> {s'..t'}" for t
+          proof -
+            have snz: "sin (t - a) \<noteq> 0" using sin_nz_st that by auto
+            show ?thesis unfolding rest_def fa0
+              by (simp add: power2_eq_square field_simps snz
+                            Multiseries_Expansion.tan_conv_sin_cos)
+          qed
+          have hderiv': "(h has_vector_derivative rest t / sin (t - a))
+              (at t within {s'..t'})"
+            if "t \<in> {s'..t'} - k" for t
+            using hderiv[OF that] hderiv_eq[of t] that by auto
+          \<comment> \<open>rest = 0 a.e. on {u..v}, so get a negligible set N\<close>
+          obtain N where negN: "negligible N"
+            and restN: "\<And>x. x \<in> {u..v} - N \<Longrightarrow> rest x = 0"
+          proof -
+            from rest_ae_zero
+            obtain N0 where N0: "N0 \<in> null_sets (lebesgue_on {u..v})"
+              and sub: "{x \<in> space (lebesgue_on {u..v}). rest x \<noteq> 0} \<subseteq> N0"
+              using eventually_ae_filter by auto
+            have "N0 \<in> null_sets lebesgue"
+              using null_sets_restrict_space[of "{u..v}" lebesgue] N0 by auto
+            then have "negligible N0"
+              using negligible_iff_null_sets by auto
+            moreover have "rest x = 0" if "x \<in> {u..v} - N0" for x
+              using sub that space_lebesgue_on by auto
+            ultimately show ?thesis using that by blast
+          qed
+          \<comment> \<open>h has derivative 0 a.e. on {s'..t'}\<close>
+          have hderiv_zero: "(h has_vector_derivative 0) (at t within {s'..t'})"
+            if "t \<in> {s'..t'} - (k \<union> N)" for t
+          proof -
+            have "t \<in> {s'..t'} - k" using that by auto
+            then have "(h has_vector_derivative rest t / sin (t - a))
+                       (at t within {s'..t'})"
+              using hderiv' by auto
+            moreover have "rest t = 0"
+              using restN[of t] that st'_sub by auto
+            ultimately show ?thesis by simp
+          qed
+          have neg_kN: "negligible (k \<union> N)"
+            using negk negN by (rule negligible_Un)
+          \<comment> \<open>By FTC for AC: h(t') - h(s') = \<integral> 0 = 0\<close>
+          have "h t' - h s' = integral {s'..t'} (\<lambda>x. 0::real)"
+            using fundamental_theorem_of_calculus_absolutely_continuous
+              [OF neg_kN _ ac_h hderiv_zero]
+            using st' by auto
+          then have "h s' = h t'" by simp
+          \<comment> \<open>Translate back to f/sin\<close>
+          then show ?thesis
+            unfolding h_def s'_def t'_def
+            by (auto split: if_splits)
+
+        qed
+        \<comment> \<open>Conclude: pick any x₀ \<in> (u,v) and set c = f(x₀)/sin(x₀-a).\<close>
+        obtain x0 where x0_in: "x0 \<in> {u<..<v}"
+          using huv(2) dense
+          by (metis greaterThanLessThan_iff)
+        define c where "c = f x0 / sin (x0 - a)"
+        have "f x = c * sin (x - a)" if "x \<in> {u<..<v}" for x
+        proof -
+          have "f x / sin (x - a) = f x0 / sin (x0 - a)"
+            using h_const[OF that x0_in] .
+          hence "f x / sin (x - a) = c" unfolding c_def .
+          thus ?thesis using hsin[OF that]
+            by (simp add: field_simps)
+        qed
+        thus ?thesis by auto
+      qed
+      then obtain c where hc: "\<forall>x\<in>{u<..<v}. f x = c * sin (x - a)"
+        by auto
+      \<comment> \<open>Extend to the closed interval by continuity.\<close>
+      have "f x = c * sin (x - a)" if "x \<in> {u..v}" for x
+      proof -
+        have "f x - c * sin (x - a) = 0"
+        proof (rule continuous_constant_on_closure[of "{u<..<v}" "\<lambda>x. f x - c * sin (x - a)" 0])
+          show "continuous_on (closure {u<..<v}) (\<lambda>x. f x - c * sin (x - a))"
+            unfolding closure_greaterThanLessThan[OF huv(2)]
+            by (intro continuous_intros continuous_on_subset[OF contf])
+               (use huv in auto)
+          show "\<And>y. y \<in> {u<..<v} \<Longrightarrow> f y - c * sin (y - a) = 0"
+            using hc by simp
+          show "x \<in> closure {u<..<v}"
+            unfolding closure_greaterThanLessThan[OF huv(2)] using that by auto
+        qed
+        thus ?thesis by simp
+      qed
+      thus ?thesis by auto
+    qed
     show ?thesis
     proof (cases "a=0")
       case True
 
       then show ?thesis
       proof -
-        obtain c1 where c1: "\<And>x. x \<in> {0..pi} \<Longrightarrow> f x = c1 * sin (x - a)"
-          sorry
-        obtain c2 where c2: "\<And>x. x \<in> {pi..2*pi} \<Longrightarrow> f x = c2 * sin (x - a)"
-          sorry
+        obtain c1 where c1: "\<forall>x\<in>{0..pi}. f x = c1 * sin (x - a)"
+          using key_fact[of 0 pi] sin_nz_2 True pi_gt_zero by auto
+        obtain c2 where c2: "\<forall>x\<in>{pi..2*pi}. f x = c2 * sin (x - a)"
+          using key_fact[of pi "2*pi"] sin_nz_1 True pi_gt_zero by auto
         \<comment> \<open>Use \<integral>f = 0 and csin_integral to show c1 = c2.\<close>
         have eq1: "integral {0..pi} f = c1 * (cos (0 - a) - cos (pi - a))"
         proof -
@@ -1319,10 +1595,10 @@ proof -
           show "f x = c1 * sin (x - a)"
           proof (cases "x \<le> pi")
             case True
-            then show ?thesis using c1[of x] \<open>x \<in> {0..2*pi}\<close> by auto
+            then show ?thesis using c1 \<open>x \<in> {0..2*pi}\<close> by auto
           next
             case False
-            then show ?thesis using c2[of x] c_eq \<open>x \<in> {0..2*pi}\<close> by auto
+            then show ?thesis using c2 c_eq \<open>x \<in> {0..2*pi}\<close> by auto
           qed
         qed
       qed
