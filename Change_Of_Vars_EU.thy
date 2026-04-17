@@ -1840,23 +1840,21 @@ proof -
 qed
 
 
-
-
 subsection\<open>A one-way version of change-of-variables not assuming injectivity. \<close>
 
-lemma integral_on_image_ubound_weak:
-  fixes f :: "real^'n::{finite,wellorder} \<Rightarrow> real"
+lemma integral_on_image_ubound_weak_eu:
+  fixes f :: "'a::euclidean_space \<Rightarrow> real"
   assumes S: "S \<in> sets lebesgue"
       and f: "f \<in> borel_measurable (lebesgue_on (g ` S))"
       and nonneg_fg:  "\<And>x. x \<in> S \<Longrightarrow> 0 \<le> f(g x)"
       and der_g:   "\<And>x. x \<in> S \<Longrightarrow> (g has_derivative g' x) (at x within S)"
-      and det_int_fg: "(\<lambda>x. \<bar>matrix_det (matrix (g' x))\<bar> * f(g x)) integrable_on S"
+      and det_int_fg: "(\<lambda>x. \<bar>eucl.det (g' x)\<bar> * f(g x)) integrable_on S"
       and meas_gim: "\<And>T. \<lbrakk>T \<subseteq> g ` S; T \<in> sets lebesgue\<rbrakk> \<Longrightarrow> {x \<in> S. g x \<in> T} \<in> sets lebesgue"
     shows "f integrable_on (g ` S) \<and>
-           integral (g ` S) f \<le> integral S (\<lambda>x. \<bar>matrix_det (matrix (g' x))\<bar> * f(g x))"
+           integral (g ` S) f \<le> integral S (\<lambda>x. \<bar>eucl.det (g' x)\<bar> * f(g x))"
          (is "_ \<and> _ \<le> ?b")
 proof -
-  let ?D = "\<lambda>x. \<bar>matrix_det (matrix (g' x))\<bar>"
+  let ?D = "\<lambda>x. \<bar>eucl.det (g' x)\<bar>"
   have cont_g: "continuous_on S g"
     using der_g has_derivative_continuous_on by blast
   have [simp]: "space (lebesgue_on S) = S"
@@ -1881,7 +1879,7 @@ proof -
   qed
   have h_lmeas: "{t. h n (g t) = y} \<inter> S \<in> sets lebesgue" for y n
   proof -
-    have "space (lebesgue_on (UNIV::(real,'n) vec set)) = UNIV"
+    have "space (lebesgue_on (UNIV::'a set)) = UNIV"
       by simp
     then have "((h n) -`{y} \<inter> g ` S) \<in> sets (lebesgue_on (g ` S))"
       by (metis Int_commute borel_measurable_vimage h_meas image_eqI inf_top.right_neutral sets_restrict_space space_borel space_completion space_lborel)
@@ -1903,7 +1901,7 @@ proof -
       by (simp add: indicator_def if_distrib fin_R cong: if_cong)
     have yind: "(\<lambda>t. y * indicator{x. h n x = y} t) integrable_on (g ` S) \<and>
                 (integral (g ` S) (\<lambda>t. y * indicator {x. h n x = y} t))
-                 \<le> integral S (\<lambda>t. \<bar>matrix_det (matrix (g' t))\<bar> * y * indicator {x. h n x = y} (g t))"
+                 \<le> integral S (\<lambda>t. \<bar>eucl.det (g' t)\<bar> * y * indicator {x. h n x = y} (g t))"
        if y: "y \<in> ?R" for y::real
     proof (cases "y=0")
       case True
@@ -1916,8 +1914,8 @@ proof -
       proof (rule measurable_bounded_by_integrable_imp_integrable)
         have "(\<lambda>x. ?D x) \<in> borel_measurable (lebesgue_on ({t. h n (g t) = y} \<inter> S))"
         proof -
-          have "(\<lambda>v. matrix_det (matrix (g' v))) \<in> borel_measurable (lebesgue_on (S \<inter> {v. h n (g v) = y}))"
-            by (metis Int_lower1 S assms(4) borel_measurable_det_Jacobian_matrix measurable_restrict_mono)
+          have "(\<lambda>v. eucl.det (g' v)) \<in> borel_measurable (lebesgue_on (S \<inter> {v. h n (g v) = y}))"
+            by (metis Int_lower1 S assms(4) borel_measurable_det_Jacobian measurable_restrict_mono)
           then show ?thesis
             by (simp add: Int_commute)
         qed
@@ -1932,17 +1930,17 @@ proof -
           using nonneg_h [of n x] \<open>y > 0\<close> nonneg_fg [of x] h_le_f [of x n] that
           by (auto simp: divide_simps mult_left_mono)
       qed (use S in auto)
-      then have int_det: "(\<lambda>t. \<bar>matrix_det (matrix (g' t))\<bar>) integrable_on ({t. h n (g t) = y} \<inter> S)"
+      then have int_det: "(\<lambda>t. \<bar>eucl.det (g' t)\<bar>) integrable_on ({t. h n (g t) = y} \<inter> S)"
         using integrable_restrict_Int by force
       have "(g ` ({t. h n (g t) = y} \<inter> S)) \<in> lmeasurable"
-        by (blast intro: has_derivative_subset [OF der_g]  measurable_differentiable_image [OF h_lmeas] int_det)
+        by (blast intro: has_derivative_subset [OF der_g] measurable_differentiable_image_eu [OF h_lmeas] int_det)
       moreover have "g ` ({t. h n (g t) = y} \<inter> S) = {x. h n x = y} \<inter> g ` S"
         by blast
       moreover have "measure lebesgue (g ` ({t. h n (g t) = y} \<inter> S))
-                     \<le> integral ({t. h n (g t) = y} \<inter> S) (\<lambda>t. \<bar>matrix_det (matrix (g' t))\<bar>)"
-        by (blast intro: has_derivative_subset [OF der_g] measure_differentiable_image [OF h_lmeas _ int_det])
+                     \<le> integral ({t. h n (g t) = y} \<inter> S) (\<lambda>t. \<bar>eucl.det (g' t)\<bar>)"
+        by (blast intro: has_derivative_subset [OF der_g] measure_differentiable_image_eu [OF h_lmeas _ int_det])
       ultimately show ?thesis
-        using \<open>y > 0\<close> integral_restrict_Int [of S "{t. h n (g t) = y}" "\<lambda>t. \<bar>matrix_det (matrix (g' t))\<bar> * y"]
+        using \<open>y > 0\<close> integral_restrict_Int [of S "{t. h n (g t) = y}" "\<lambda>t. \<bar>eucl.det (g' t)\<bar> * y"]
         apply (simp add: integrable_on_indicator integral_indicator)
         apply (simp add: indicator_def of_bool_def if_distrib cong: if_cong)
         done
@@ -1956,20 +1954,20 @@ proof -
         by (metis hn_eq)
       also have "\<dots> = (\<Sum>y\<in>range (h n). integral (g ` S) (\<lambda>x. y * indicat_real {x. h n x = y} x))"
         by (rule integral_sum [OF fin_R]) (use yind in blast)
-      also have "\<dots> \<le> (\<Sum>y\<in>range (h n). integral S (\<lambda>u. \<bar>matrix_det (matrix (g' u))\<bar> * y * indicat_real {x. h n x = y} (g u)))"
+      also have "\<dots> \<le> (\<Sum>y\<in>range (h n). integral S (\<lambda>u. \<bar>eucl.det (g' u)\<bar> * y * indicat_real {x. h n x = y} (g u)))"
         using yind by (force intro: sum_mono)
-      also have "\<dots> = integral S (\<lambda>u. \<Sum>y\<in>range (h n). \<bar>matrix_det (matrix (g' u))\<bar> * y * indicat_real {x. h n x = y} (g u))"
+      also have "\<dots> = integral S (\<lambda>u. \<Sum>y\<in>range (h n). \<bar>eucl.det (g' u)\<bar> * y * indicat_real {x. h n x = y} (g u))"
       proof (rule integral_sum [OF fin_R, symmetric])
         fix y assume y: "y \<in> ?R"
         with nonneg_h have "y \<ge> 0"
           by auto
-        show "(\<lambda>u. \<bar>matrix_det (matrix (g' u))\<bar> * y * indicat_real {x. h n x = y} (g u)) integrable_on S"
+        show "(\<lambda>u. \<bar>eucl.det (g' u)\<bar> * y * indicat_real {x. h n x = y} (g u)) integrable_on S"
         proof (rule measurable_bounded_by_integrable_imp_integrable)
           have "(\<lambda>x. indicat_real {x. h n x = y} (g x)) \<in> borel_measurable (lebesgue_on S)"
             using h_lmeas S
             by (auto simp: indicator_vimage [symmetric] borel_measurable_indicator_iff sets_restrict_space_iff)
-          then show "(\<lambda>u. \<bar>matrix_det (matrix (g' u))\<bar> * y * indicat_real {x. h n x = y} (g u)) \<in> borel_measurable (lebesgue_on S)"
-            by (intro borel_measurable_times borel_measurable_abs borel_measurable_const borel_measurable_det_Jacobian_matrix [OF S der_g])
+          then show "(\<lambda>u. \<bar>eucl.det (g' u)\<bar> * y * indicat_real {x. h n x = y} (g u)) \<in> borel_measurable (lebesgue_on S)"
+            by (intro borel_measurable_times borel_measurable_abs borel_measurable_const borel_measurable_det_Jacobian [OF S der_g])
         next
           fix x
           assume "x \<in> S"
@@ -1979,7 +1977,7 @@ proof -
             by (simp add: abs_mult mult.assoc mult_left_mono)
         qed (use S det_int_fg in auto)
       qed
-      also have "\<dots> = integral S (\<lambda>T. \<bar>matrix_det (matrix (g' T))\<bar> *
+      also have "\<dots> = integral S (\<lambda>T. \<bar>eucl.det (g' T)\<bar> *
                                         (\<Sum>y\<in>range (h n). y * indicat_real {x. h n x = y} (g T)))"
         by (simp add: sum_distrib_left mult.assoc)
       also have "\<dots> = ?rhs"
@@ -1987,12 +1985,12 @@ proof -
       finally show "integral (g ` S) (h n) \<le> ?rhs" .
     qed
   qed
-  have le: "integral S (\<lambda>T. \<bar>matrix_det (matrix (g' T))\<bar> * h n (g T)) \<le> ?b" for n
+  have le: "integral S (\<lambda>T. \<bar>eucl.det (g' T)\<bar> * h n (g T)) \<le> ?b" for n
   proof (rule integral_le)
-    show "(\<lambda>T. \<bar>matrix_det (matrix (g' T))\<bar> * h n (g T)) integrable_on S"
+    show "(\<lambda>T. \<bar>eucl.det (g' T)\<bar> * h n (g T)) integrable_on S"
     proof (rule measurable_bounded_by_integrable_imp_integrable)
-      have "(\<lambda>T. \<bar>matrix_det (matrix (g' T))\<bar> *\<^sub>R h n (g T)) \<in> borel_measurable (lebesgue_on S)"
-      proof (intro borel_measurable_scaleR borel_measurable_abs borel_measurable_det_Jacobian_matrix \<open>S \<in> sets lebesgue\<close>)
+      have "(\<lambda>T. \<bar>eucl.det (g' T)\<bar> *\<^sub>R h n (g T)) \<in> borel_measurable (lebesgue_on S)"
+      proof (intro borel_measurable_scaleR borel_measurable_abs borel_measurable_det_Jacobian \<open>S \<in> sets lebesgue\<close>)
         have eq: "{x \<in> S. f x \<le> a} = (\<Union>b \<in> (f ` S) \<inter> atMost a. {x. f x = b} \<inter> S)" for f and a::real
           by auto
         have "finite ((\<lambda>x. h n (g x)) ` S \<inter> {..a})" for a
@@ -2001,7 +1999,7 @@ proof -
           apply (simp add: borel_measurable_vimage_halfspace_component_le \<open>S \<in> sets lebesgue\<close> sets_restrict_space_iff eq)
           by (metis (mono_tags) SUP_inf sets.finite_UN)
       qed (use der_g in blast)
-      then show "(\<lambda>T. \<bar>matrix_det (matrix (g' T))\<bar> * h n (g T)) \<in> borel_measurable (lebesgue_on S)"
+      then show "(\<lambda>T. \<bar>eucl.det (g' T)\<bar> * h n (g T)) \<in> borel_measurable (lebesgue_on S)"
         by simp
       show "norm (?D x * h n (g x)) \<le> ?D x *\<^sub>R f (g x)"
         if "x \<in> S" for x
@@ -2030,19 +2028,6 @@ proof -
   ultimately show ?thesis
     by (auto intro: Lim_bounded)
 qed
-
-
-lemma integral_on_image_ubound_weak_eu:
-  fixes f :: "'a::euclidean_space \<Rightarrow> real"
-  assumes S: "S \<in> sets lebesgue"
-      and f: "f \<in> borel_measurable (lebesgue_on (g ` S))"
-      and nonneg_fg:  "\<And>x. x \<in> S \<Longrightarrow> 0 \<le> f(g x)"
-      and der_g:   "\<And>x. x \<in> S \<Longrightarrow> (g has_derivative g' x) (at x within S)"
-      and det_int_fg: "(\<lambda>x. \<bar>eucl.det (g' x)\<bar> * f(g x)) integrable_on S"
-      and meas_gim: "\<And>T. \<lbrakk>T \<subseteq> g ` S; T \<in> sets lebesgue\<rbrakk> \<Longrightarrow> {x \<in> S. g x \<in> T} \<in> sets lebesgue"
-    shows "f integrable_on (g ` S) \<and>
-           integral (g ` S) f \<le> integral S (\<lambda>x. \<bar>eucl.det (g' x)\<bar> * f(g x))"
-  sorry
 
 
 lemma integral_on_image_ubound_nonneg:
