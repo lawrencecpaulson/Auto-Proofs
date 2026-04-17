@@ -1453,7 +1453,7 @@ proof -
                    (f' t * sin (t - a) - f t * cos (t - a)) / (sin (t - a))\<^sup>2)
                   (at t within {s'..t'})"
               using DERIV_quotient[OF fd sd snz]
-              by (simp add: power2_eq_square)
+              by (simp add: power2_eq_square algebra_simps)
             then show ?thesis unfolding h_def
               by (simp add: has_real_derivative_iff_has_vector_derivative)
           qed
@@ -1475,16 +1475,16 @@ proof -
           obtain N where negN: "negligible N"
             and restN: "\<And>x. x \<in> {u..v} - N \<Longrightarrow> rest x = 0"
           proof -
-            from rest_ae_zero
+            from rest_ae_zero[unfolded eventually_ae_filter[of _ "lebesgue_on {u..v}"]]
             obtain N0 where N0: "N0 \<in> null_sets (lebesgue_on {u..v})"
               and sub: "{x \<in> space (lebesgue_on {u..v}). rest x \<noteq> 0} \<subseteq> N0"
-              using eventually_ae_filter by auto
+              by auto
             have "N0 \<in> null_sets lebesgue"
               using null_sets_restrict_space[of "{u..v}" lebesgue] N0 by auto
             then have "negligible N0"
               using negligible_iff_null_sets by auto
             moreover have "rest x = 0" if "x \<in> {u..v} - N0" for x
-              using sub that space_lebesgue_on by auto
+              using sub that by (auto simp: space_lebesgue_on)
             ultimately show ?thesis using that by blast
           qed
           \<comment> \<open>h has derivative 0 a.e. on {s'..t'}\<close>
@@ -1604,7 +1604,115 @@ proof -
       qed
     next
       case False
-      then show ?thesis sorry
+      then show ?thesis
+      proof -
+        have a_pos: "0 < a" using \<open>0 \<le> a\<close> False by auto
+        \<comment> \<open>Three intervals where sin(x-a) \<noteq> 0\<close>
+        obtain c1 where c1: "\<forall>x\<in>{0..a}. f x = c1 * sin (x - a)"
+          using key_fact[of 0 a] sin_nz_3 a_pos \<open>a < pi\<close> by auto
+        obtain c2 where c2: "\<forall>x\<in>{a..a+pi}. f x = c2 * sin (x - a)"
+          using key_fact[of a "a+pi"] sin_nz_2 a_pos \<open>0 \<le> a\<close> \<open>a < pi\<close> by auto
+        obtain c3 where c3: "\<forall>x\<in>{a+pi..2*pi}. f x = c3 * sin (x - a)"
+          using key_fact[of "a+pi" "2*pi"] sin_nz_1 \<open>0 \<le> a\<close> \<open>a < pi\<close> by auto
+        \<comment> \<open>Show c1 = c3 using f(2\<pi>) = f(0)\<close>
+        have sin_a_nz: "sin a \<noteq> 0"
+          using sin_gt_zero[OF a_pos \<open>a < pi\<close>] by (simp add: less_imp_le)
+        have f0_eq: "f 0 = c1 * sin (0 - a)"
+          using c1 \<open>0 \<le> a\<close> by auto
+        have f2pi_eq: "f (2*pi) = c3 * sin (2*pi - a)"
+          using c3 \<open>0 \<le> a\<close> \<open>a < pi\<close> by auto
+        have c13_eq: "c1 = c3"
+        proof -
+          have "f 0 = f (2*pi)" using feq by simp
+          hence "c1 * sin (0 - a) = c3 * sin (2*pi - a)"
+            using f0_eq f2pi_eq by simp
+          hence "c1 * (- sin a) = c3 * (- sin a)"
+            by (simp add: sin_minus sin_2pi_minus)
+          thus ?thesis using sin_a_nz by auto
+        qed
+        \<comment> \<open>Compute integrals on each interval\<close>
+        have eq1: "integral {0..a} f = c1 * (cos (0 - a) - cos (a - a))"
+        proof -
+          have "integral {0..a} f = integral {0..a} (\<lambda>x. c1 * sin (x - a))"
+            by (rule integral_cong) (use c1 in auto)
+          also have "\<dots> = c1 * (cos (0 - a) - cos (a - a))"
+            by (rule csin_integral) (use a_pos in auto)
+          finally show ?thesis .
+        qed
+        have eq2: "integral {a..a+pi} f = c2 * (cos (a - a) - cos ((a+pi) - a))"
+        proof -
+          have "integral {a..a+pi} f = integral {a..a+pi} (\<lambda>x. c2 * sin (x - a))"
+            by (rule integral_cong) (use c2 in auto)
+          also have "\<dots> = c2 * (cos (a - a) - cos ((a+pi) - a))"
+            by (rule csin_integral) (use pi_ge_zero in auto)
+          finally show ?thesis .
+        qed
+        have eq3: "integral {a+pi..2*pi} f = c3 * (cos ((a+pi) - a) - cos (2*pi - a))"
+        proof -
+          have "integral {a+pi..2*pi} f = integral {a+pi..2*pi} (\<lambda>x. c3 * sin (x - a))"
+            by (rule integral_cong) (use c3 in auto)
+          also have "\<dots> = c3 * (cos ((a+pi) - a) - cos (2*pi - a))"
+            by (rule csin_integral) (use \<open>a < pi\<close> in linarith)
+          finally show ?thesis .
+        qed
+        \<comment> \<open>Split the integral into three parts\<close>
+        have f_int: "f integrable_on {0..2*pi}"
+          using f0 has_integral_integrable by blast
+        have a_le: "a \<le> a + pi" using pi_gt_zero by linarith
+        have api_le: "a + pi \<le> 2 * pi" using \<open>a < pi\<close> by linarith
+        have a_le_2pi: "a \<le> 2 * pi" using a_pos \<open>a < pi\<close> by linarith
+        have int_split: "integral {0..2*pi} f =
+          integral {0..a} f + integral {a..a+pi} f + integral {a+pi..2*pi} f"
+        proof -
+          have api_ge: "0 \<le> a + pi" using a_pos pi_gt_zero by linarith
+          have s2: "integral {0..2*pi} f = integral {0..a+pi} f + integral {a+pi..2*pi} f"
+            using Henstock_Kurzweil_Integration.integral_combine
+              [OF api_ge api_le f_int] by auto
+          have f_int_api: "f integrable_on {0..a+pi}"
+            using integrable_subinterval_real[OF f_int] a_pos api_le by auto
+          have s1: "integral {0..a+pi} f = integral {0..a} f + integral {a..a+pi} f"
+            using Henstock_Kurzweil_Integration.integral_combine
+              [OF \<open>0 \<le> a\<close> a_le f_int_api] by auto
+          show ?thesis using s1 s2 by linarith
+        qed
+        \<comment> \<open>Use \<integral>f = 0 to show c1 = c2\<close>
+        have "integral {0..2*pi} f = 0"
+          using f0 by (simp add: has_integral_integrable_integral)
+        hence sum_eq: "c1 * (cos (0 - a) - cos (a - a)) +
+          c2 * (cos (a - a) - cos ((a+pi) - a)) +
+          c3 * (cos ((a+pi) - a) - cos (2*pi - a)) = 0"
+          using int_split eq1 eq2 eq3 by linarith
+        \<comment> \<open>Simplify: cos(0-a) = cos(a), cos(a-a) = 1, cos(pi) = -1, cos(2\<pi>-a) = cos(a)\<close>
+        have "c1 * (cos a - 1) + c2 * (1 - (-1)) + c3 * ((-1) - cos a) = 0"
+          using sum_eq by (simp add: cos_diff cos_two_pi cos_pi)
+        hence "c1 * (cos a - 1) + 2 * c2 + c3 * (- 1 - cos a) = 0"
+          by (simp add: algebra_simps)
+        hence "c1 * (cos a - 1) + 2 * c2 + c1 * (- 1 - cos a) = 0"
+          using c13_eq by simp
+        hence "- 2 * c1 + 2 * c2 = 0"
+          by (simp add: algebra_simps)
+        hence c12_eq: "c1 = c2" by linarith
+        \<comment> \<open>Now show f x = c1 * sin (x - a) for all x \<in> {0..2\<pi>}\<close>
+        show "\<exists>c a. \<forall>x\<in>{0..2 * pi}. f x = c * sin (x - a)"
+        proof (intro exI ballI)
+          fix x assume hx: "x \<in> {0..2*pi}"
+          show "f x = c1 * sin (x - a)"
+          proof (cases "x \<le> a")
+            case True
+            then show ?thesis using c1 hx by auto
+          next
+            case False
+            then show ?thesis
+            proof (cases "x \<le> a + pi")
+              case True
+              then show ?thesis using c2 c12_eq hx \<open>\<not> x \<le> a\<close> by auto
+            next
+              case False
+              then show ?thesis using c3 c13_eq c12_eq hx by auto
+            qed
+          qed
+        qed
+      qed
     qed
   qed
 qed
