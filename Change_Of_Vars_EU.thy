@@ -2246,6 +2246,81 @@ proof -
     by simp
 qed
 
+lemma absolutely_integrable_on_image_real_eu:
+  fixes f :: "'a::euclidean_space \<Rightarrow> real" and g :: "'a \<Rightarrow> 'a"
+  assumes der_g: "\<And>x. x \<in> S \<Longrightarrow> (g has_derivative g' x) (at x within S)"
+    and intS: "(\<lambda>x. \<bar>eucl.det (g' x)\<bar> * f(g x)) absolutely_integrable_on S"
+  shows "f absolutely_integrable_on (g ` S)"
+proof -
+  let ?D = "\<lambda>x. \<bar>eucl.det (g' x)\<bar> * f (g x)"
+  let ?N = "{x \<in> S. f (g x) < 0}" and ?P = "{x \<in> S. f (g x) > 0}"
+  have eq: "{x. (if x \<in> S then ?D x else 0) > 0} = {x \<in> S. ?D x > 0}"
+           "{x. (if x \<in> S then ?D x else 0) < 0} = {x \<in> S. ?D x < 0}"
+    by auto
+  have "?D integrable_on S"
+    using intS absolutely_integrable_on_def by blast
+  then have "(\<lambda>x. if x \<in> S then ?D x else 0) integrable_on UNIV"
+    by (simp add: integrable_restrict_UNIV)
+  then have D_borel: "(\<lambda>x. if x \<in> S then ?D x else 0) \<in> borel_measurable (lebesgue_on UNIV)"
+    using integrable_imp_measurable lebesgue_on_UNIV_eq by blast
+  then have Dlt: "{x \<in> S. ?D x < 0} \<in> sets lebesgue"
+    unfolding borel_measurable_vimage_halfspace_component_lt
+    by (drule_tac x=0 in spec) (auto simp: eq)
+  from D_borel have Dgt: "{x \<in> S. ?D x > 0} \<in> sets lebesgue"
+    unfolding borel_measurable_vimage_halfspace_component_gt
+    by (drule_tac x=0 in spec) (auto simp: eq)
+
+  have dfgbm: "?D \<in> borel_measurable (lebesgue_on S)"
+    using intS absolutely_integrable_on_def integrable_imp_measurable by blast
+  have der_gN: "(g has_derivative g' x) (at x within ?N)" if "x \<in> ?N" for x
+      using der_g has_derivative_subset that by force
+  have "(\<lambda>x. - f x) integrable_on g ` ?N \<and>
+         integral (g ` ?N) (\<lambda>x. - f x) \<le> integral ?N (\<lambda>x. \<bar>eucl.det (g' x)\<bar> * - f (g x))"
+  proof (rule integral_on_image_ubound_nonneg_eu [OF _ der_gN])
+    have 1: "?D integrable_on {x \<in> S. ?D x < 0}"
+      using Dlt
+      by (auto intro: set_lebesgue_integral_eq_integral [OF set_integrable_subset] intS)
+    have "uminus \<circ> (\<lambda>x. \<bar>eucl.det (g' x)\<bar> * - f (g x)) integrable_on ?N"
+      by (simp add: o_def mult_less_0_iff empty_imp_negligible integrable_spike_set [OF 1])
+    then show "(\<lambda>x. \<bar>eucl.det (g' x)\<bar> * - f (g x)) integrable_on ?N"
+      by (simp add: integrable_neg_iff o_def)
+  qed auto
+  then have "f integrable_on g ` ?N"
+    by (simp add: integrable_neg_iff)
+  moreover have "g ` ?N = {y \<in> g ` S. f y < 0}"
+    by auto
+  ultimately have "f integrable_on {y \<in> g ` S. f y < 0}"
+    by simp
+  then have N: "f absolutely_integrable_on {y \<in> g ` S. f y < 0}"
+    by (rule absolutely_integrable_absolutely_integrable_ubound) auto
+
+  have der_gP: "(g has_derivative g' x) (at x within ?P)" if "x \<in> ?P" for x
+      using der_g has_derivative_subset that by force
+    have "f integrable_on g ` ?P \<and> integral (g ` ?P) f \<le> integral ?P ?D"
+    proof (rule integral_on_image_ubound_nonneg_eu [OF _ der_gP])
+      show "?D integrable_on ?P"
+      proof (rule integrable_spike_set)
+        show "?D integrable_on {x \<in> S. 0 < ?D x}"
+          using Dgt
+          by (auto intro: set_lebesgue_integral_eq_integral [OF set_integrable_subset] intS)
+      qed (auto simp: zero_less_mult_iff empty_imp_negligible)
+    qed auto
+  then have "f integrable_on g ` ?P"
+    by metis
+  moreover have "g ` ?P = {y \<in> g ` S. f y > 0}"
+    by auto
+  ultimately have "f integrable_on {y \<in> g ` S. f y > 0}"
+    by simp
+  then have P: "f absolutely_integrable_on {y \<in> g ` S. f y > 0}"
+    by (rule absolutely_integrable_absolutely_integrable_lbound) auto
+  have "(\<lambda>x. if x \<in> g ` S \<and> f x < 0 \<or> x \<in> g ` S \<and> 0 < f x then f x else 0) = (\<lambda>x. if x \<in> g ` S then f x else 0)"
+    by auto
+  then show ?thesis
+    using absolutely_integrable_Un [OF N P] absolutely_integrable_restrict_UNIV [symmetric, where f=f]
+    by simp
+qed
+
+
 
 proposition absolutely_integrable_on_image:
   fixes f :: "real^'m::{finite,wellorder} \<Rightarrow> real^'n" and g :: "real^'m::_ \<Rightarrow> real^'m::_"
@@ -2254,6 +2329,28 @@ proposition absolutely_integrable_on_image:
   shows "f absolutely_integrable_on (g ` S)"
   apply (rule absolutely_integrable_componentwise [OF absolutely_integrable_on_image_real [OF der_g]])
   using absolutely_integrable_component [OF intS]  by auto
+
+proposition absolutely_integrable_on_image_eu:
+  fixes f :: "'a::euclidean_space \<Rightarrow> 'b::euclidean_space" and g :: "'a \<Rightarrow> 'a"
+  assumes der_g: "\<And>x. x \<in> S \<Longrightarrow> (g has_derivative g' x) (at x within S)"
+    and intS: "(\<lambda>x. \<bar>eucl.det (g' x)\<bar> *\<^sub>R f(g x)) absolutely_integrable_on S"
+  shows "f absolutely_integrable_on (g ` S)"
+proof (rule absolutely_integrable_componentwise)
+  fix b :: 'b assume "b \<in> Basis"
+  have "(\<lambda>x. \<bar>eucl.det (g' x)\<bar> * (f (g x) \<bullet> b)) absolutely_integrable_on S"
+    using absolutely_integrable_component [OF intS \<open>b \<in> Basis\<close>] by simp
+  then show "(\<lambda>x. f x \<bullet> b) absolutely_integrable_on g ` S"
+    by (rule absolutely_integrable_on_image_real_eu [OF der_g])
+qed
+
+proposition integral_on_image_ubound_eu:
+  fixes f :: "'a::euclidean_space \<Rightarrow> real" and g :: "'a \<Rightarrow> 'a"
+  assumes "\<And>x. x \<in> S \<Longrightarrow> 0 \<le> f(g x)"
+    and "\<And>x. x \<in> S \<Longrightarrow> (g has_derivative g' x) (at x within S)"
+    and "(\<lambda>x. \<bar>eucl.det (g' x)\<bar> * f(g x)) integrable_on S"
+  shows "integral (g ` S) f \<le> integral S (\<lambda>x. \<bar>eucl.det (g' x)\<bar> * f(g x))"
+  using integral_on_image_ubound_nonneg_eu [OF assms] by simp
+
 
 proposition integral_on_image_ubound:
   fixes f :: "real^'n::{finite,wellorder} \<Rightarrow> real" and g :: "real^'n::_ \<Rightarrow> real^'n::_"
@@ -2334,6 +2431,78 @@ proof -
   qed
 qed
 
+lemma cov_invertible_nonneg_le_eu:
+  fixes f :: "'a::euclidean_space \<Rightarrow> real" and g :: "'a \<Rightarrow> 'a"
+  assumes der_g: "\<And>x. x \<in> S \<Longrightarrow> (g has_derivative g' x) (at x within S)"
+    and der_h: "\<And>y. y \<in> T \<Longrightarrow> (h has_derivative h' y) (at y within T)"
+    and f0: "\<And>y. y \<in> T \<Longrightarrow> 0 \<le> f y"
+    and hg: "\<And>x. x \<in> S \<Longrightarrow> g x \<in> T \<and> h(g x) = x"
+    and gh: "\<And>y. y \<in> T \<Longrightarrow> h y \<in> S \<and> g(h y) = y"
+    and id: "\<And>y. y \<in> T \<Longrightarrow> h' y \<circ> g'(h y) = id"
+  shows "f integrable_on T \<and> (integral T f) \<le> b \<longleftrightarrow>
+             (\<lambda>x. \<bar>eucl.det (g' x)\<bar> * f(g x)) integrable_on S \<and>
+             integral S (\<lambda>x. \<bar>eucl.det (g' x)\<bar> * f(g x)) \<le> b"
+        (is "?lhs = ?rhs")
+proof -
+  have Teq: "T = g`S" and Seq: "S = h`T"
+    using hg gh image_iff by fastforce+
+  have gS: "g differentiable_on S"
+    by (meson der_g differentiable_def differentiable_on_def)
+  let ?D = "\<lambda>x. \<bar>eucl.det (g' x)\<bar> * f (g x)"
+  show ?thesis
+  proof
+    assume ?lhs
+    then have fT: "f integrable_on T" and intf: "integral T f \<le> b"
+      by blast+
+    show ?rhs
+    proof
+      let ?fgh = "\<lambda>x. \<bar>eucl.det (h' x)\<bar> * (\<bar>eucl.det (g' (h x))\<bar> * f (g (h x)))"
+      have ddf: "?fgh x = f x"
+        if "x \<in> T" for x
+      proof -
+        have lin_h: "linear (h' x)" and lin_g: "linear (g' (h x))"
+          using der_h that gh der_g has_derivative_linear by blast+
+        have "h' x \<circ> g'(h x) = id"
+          using id that by blast
+        then have "eucl.det (h' x \<circ> g' (h x)) = 1"
+          by (simp add: eucl.det_ident)
+        then have "eucl.det (h' x) * eucl.det (g' (h x)) = 1"
+          by (simp add: eucl.det_compose [OF lin_h lin_g])
+        then have "\<bar>eucl.det (h' x)\<bar> * \<bar>eucl.det (g' (h x))\<bar> = 1"
+          by (metis abs_1 abs_mult)
+        then show ?thesis
+          by (simp add: gh that)
+      qed
+      have "?D integrable_on (h ` T)"
+      proof (intro set_lebesgue_integral_eq_integral absolutely_integrable_on_image_real_eu)
+        show "(\<lambda>x. ?fgh x) absolutely_integrable_on T"
+          by (smt (verit, del_insts) abs_absolutely_integrableI_1 ddf f0 fT integrable_eq)
+      qed (use der_h in auto)
+      with Seq show "(\<lambda>x. ?D x) integrable_on S"
+        by simp
+      have "integral S (\<lambda>x. ?D x) \<le> integral T (\<lambda>x. ?fgh x)"
+        unfolding Seq
+      proof (rule integral_on_image_ubound_eu)
+        show "(\<lambda>x. ?fgh x) integrable_on T"
+        using ddf fT integrable_eq by force
+      qed (use f0 gh der_h in auto)
+      also have "\<dots> = integral T f"
+        by (force simp: ddf intro: integral_cong)
+      finally show "integral S (\<lambda>x. ?D x) \<le> b"
+        using intf by linarith
+    qed
+  next
+    assume R: ?rhs
+    then have "f integrable_on g ` S"
+      using der_g f0 hg integral_on_image_ubound_nonneg_eu by blast
+    moreover have "integral (g ` S) f \<le> integral S (\<lambda>x. ?D x)"
+      by (rule integral_on_image_ubound_eu [OF f0 der_g]) (use R Teq in auto)
+    ultimately show ?lhs
+      using R by (simp add: Teq)
+  qed
+qed
+
+
 
 lemma cov_invertible_nonneg_eq:
   fixes f :: "real^'n::{finite,wellorder} \<Rightarrow> real" and g :: "real^'n::_ \<Rightarrow> real^'n::_"
@@ -2346,6 +2515,19 @@ lemma cov_invertible_nonneg_eq:
   shows "((\<lambda>x. \<bar>matrix_det (matrix (g' x))\<bar> * f(g x)) has_integral b) S \<longleftrightarrow> (f has_integral b) T"
   using cov_invertible_nonneg_le [OF assms]
   by (simp add: has_integral_iff) (meson eq_iff)
+
+lemma cov_invertible_nonneg_eq_eu:
+  fixes f :: "'a::euclidean_space \<Rightarrow> real" and g :: "'a \<Rightarrow> 'a"
+  assumes "\<And>x. x \<in> S \<Longrightarrow> (g has_derivative g' x) (at x within S)"
+      and "\<And>y. y \<in> T \<Longrightarrow> (h has_derivative h' y) (at y within T)"
+      and "\<And>y. y \<in> T \<Longrightarrow> 0 \<le> f y"
+      and "\<And>x. x \<in> S \<Longrightarrow> g x \<in> T \<and> h(g x) = x"
+      and "\<And>y. y \<in> T \<Longrightarrow> h y \<in> S \<and> g(h y) = y"
+      and "\<And>y. y \<in> T \<Longrightarrow> h' y \<circ> g'(h y) = id"
+  shows "((\<lambda>x. \<bar>eucl.det (g' x)\<bar> * f(g x)) has_integral b) S \<longleftrightarrow> (f has_integral b) T"
+  using cov_invertible_nonneg_le_eu [OF assms]
+  by (simp add: has_integral_iff) (meson eq_iff)
+
 
 
 lemma cov_invertible_real:
