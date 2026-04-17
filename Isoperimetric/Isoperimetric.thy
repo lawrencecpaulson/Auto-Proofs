@@ -1896,6 +1896,30 @@ text \<open>Part 2: a very special case of Green's theorem for a convex area\<cl
 
 text \<open>Area under/above an arc, and the signed area formula for a convex closed curve.\<close>
 
+text \<open>Cavalieri principle: measure of the subgraph of a nonneg continuous function
+  equals the integral of that function.\<close>
+lemma subgraph_measure_eq_integral:
+  fixes f :: "real \<Rightarrow> real"
+  assumes "a \<le> b"
+    and "continuous_on {a..b} f"
+    and "\<And>x. x \<in> {a..b} \<Longrightarrow> 0 \<le> f x"
+  shows "{z::complex. a \<le> Re z \<and> Re z \<le> b \<and> 0 \<le> Im z \<and> Im z \<le> f (Re z)} \<in> lmeasurable"
+    and "measure lebesgue {z::complex. a \<le> Re z \<and> Re z \<le> b \<and> 0 \<le> Im z \<and> Im z \<le> f (Re z)}
+       = integral {a..b} f"
+  sorry
+
+text \<open>1D substitution for absolutely continuous monotone functions.\<close>
+lemma has_integral_substitution_ac:
+  fixes \<phi> :: "real \<Rightarrow> real" and \<phi>' :: "real \<Rightarrow> real" and f :: "real \<Rightarrow> real"
+  assumes "a \<le> b" "\<phi> a \<le> \<phi> b"
+    and "absolutely_continuous_on {a..b} \<phi>"
+    and "negligible S"
+    and "\<And>t. t \<in> {a..b} - S \<Longrightarrow> (\<phi> has_vector_derivative \<phi>' t) (at t)"
+    and "continuous_on {\<phi> a..\<phi> b} f"
+    and mono: "\<And>x y. x \<in> {a..b} \<Longrightarrow> y \<in> {a..b} \<Longrightarrow> x \<le> y \<Longrightarrow> \<phi> x \<le> \<phi> y"
+  shows "((\<lambda>t. \<phi>' t * f (\<phi> t)) has_integral (integral {\<phi> a..\<phi> b} f)) {a..b}"
+  sorry
+
 lemma area_below_arclet:
   fixes g :: "real \<Rightarrow> complex" and g' :: "real \<Rightarrow> complex"
   assumes "u \<le> v"

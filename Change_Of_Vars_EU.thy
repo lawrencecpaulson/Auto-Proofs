@@ -1746,241 +1746,6 @@ proof -
   qed
 qed
 
-lemma Sard_lemma2:
-  fixes f :: "real^'m::{finite,wellorder} \<Rightarrow> real^'n::{finite,wellorder}"
-  assumes mlen: "CARD('m) \<le> CARD('n)" (is "?m \<le> ?n")
-    and "B > 0" "bounded S"
-    and derS: "\<And>x. x \<in> S \<Longrightarrow> (f has_derivative f' x) (at x within S)"
-    and rank: "\<And>x. x \<in> S \<Longrightarrow> rank(matrix(f' x)) < CARD('n)"
-    and B: "\<And>x. x \<in> S \<Longrightarrow> onorm(f' x) \<le> B"
-  shows "negligible(f ` S)"
-proof -
-  have lin_f': "\<And>x. x \<in> S \<Longrightarrow> linear(f' x)"
-    using derS has_derivative_linear by blast
-  show ?thesis
-  proof (clarsimp simp add: negligible_outer_le)
-    fix e :: "real"
-    assume "e > 0"
-    obtain c where csub: "S \<subseteq> cbox (- (vec c)) (vec c)" and "c > 0"
-    proof -
-      obtain b where b: "\<And>x. x \<in> S \<Longrightarrow> norm x \<le> b"
-        using \<open>bounded S\<close> by (auto simp: bounded_iff)
-      show thesis
-      proof
-        have "- \<bar>b\<bar> - 1 \<le> x $ i \<and> x $ i \<le> \<bar>b\<bar> + 1" if "x \<in> S" for x i
-          using component_le_norm_cart [of x i] b [OF that] by auto
-        then show "S \<subseteq> cbox (- vec (\<bar>b\<bar> + 1)) (vec (\<bar>b\<bar> + 1))"
-          by (auto simp: mem_box_cart)
-      qed auto
-    qed
-    then have box_cc: "box (- (vec c)) (vec c) \<noteq> {}" and cbox_cc: "cbox (- (vec c)) (vec c) \<noteq> {}"
-      by (auto simp: interval_eq_empty_cart)
-    obtain d where "d > 0" "d \<le> B"
-             and d: "(d * 2) * (4 * B) ^ (?n - 1) \<le> e / (2*c) ^ ?m / ?m ^ ?m"
-      apply (rule that [of "min B (e / (2*c) ^ ?m / ?m ^ ?m / (4 * B) ^ (?n - 1) / 2)"])
-      using \<open>B > 0\<close> \<open>c > 0\<close> \<open>e > 0\<close>
-      by (simp_all add: divide_simps min_mult_distrib_right)
-    have "\<exists>r. 0 < r \<and> r \<le> 1/2 \<and>
-              (x \<in> S
-               \<longrightarrow> (\<forall>y. y \<in> S \<and> norm(y - x) < r
-                       \<longrightarrow> norm(f y - f x - f' x (y - x)) \<le> d * norm(y - x)))" for x
-    proof (cases "x \<in> S")
-      case True
-      then obtain r where "r > 0"
-              and "\<And>y. \<lbrakk>y \<in> S; norm (y - x) < r\<rbrakk>
-                       \<Longrightarrow> norm (f y - f x - f' x (y - x)) \<le> d * norm (y - x)"
-        using derS \<open>d > 0\<close> by (force simp: has_derivative_within_alt)
-      then show ?thesis
-        by (rule_tac x="min r (1/2)" in exI) simp
-    next
-      case False
-      then show ?thesis
-        by (rule_tac x="1/2" in exI) simp
-    qed
-    then obtain r where r12: "\<And>x. 0 < r x \<and> r x \<le> 1/2"
-            and r: "\<And>x y. \<lbrakk>x \<in> S; y \<in> S; norm(y - x) < r x\<rbrakk>
-                          \<Longrightarrow> norm(f y - f x - f' x (y - x)) \<le> d * norm(y - x)"
-      by metis
-    then have ga: "gauge (\<lambda>x. ball x (r x))"
-      by (auto simp: gauge_def)
-    obtain \<D> where \<D>: "countable \<D>" and sub_cc: "\<Union>\<D> \<subseteq> cbox (- vec c) (vec c)"
-      and cbox: "\<And>K. K \<in> \<D> \<Longrightarrow> interior K \<noteq> {} \<and> (\<exists>u v. K = cbox u v)"
-      and djointish: "pairwise (\<lambda>A B. interior A \<inter> interior B = {}) \<D>"
-      and covered: "\<And>K. K \<in> \<D> \<Longrightarrow> \<exists>x \<in> S \<inter> K. K \<subseteq> ball x (r x)"
-      and close: "\<And>u v. cbox u v \<in> \<D> \<Longrightarrow> \<exists>n. \<forall>i::'m. v $ i - u $ i = 2*c / 2^n"
-      and covers: "S \<subseteq> \<Union>\<D>"
-      apply (rule covering_lemma [OF csub box_cc ga])
-      apply (auto simp: Basis_vec_def cart_eq_inner_axis [symmetric])
-      done
-    let ?\<mu> = "measure lebesgue"
-    have "\<exists>T. T \<in> lmeasurable \<and> f ` (K \<inter> S) \<subseteq> T \<and> ?\<mu> T \<le> e / (2*c) ^ ?m * ?\<mu> K"
-      if "K \<in> \<D>" for K
-    proof -
-      obtain u v where uv: "K = cbox u v"
-        using cbox \<open>K \<in> \<D>\<close> by blast
-      then have uv_ne: "cbox u v \<noteq> {}"
-        using cbox that by fastforce
-      obtain x where x: "x \<in> S \<inter> cbox u v" "cbox u v \<subseteq> ball x (r x)"
-        using \<open>K \<in> \<D>\<close> covered uv by blast
-      then have "dim (range (f' x)) < ?n"
-        using rank_dim_range [of "matrix (f' x)"] x rank[of x]
-        by (auto simp: matrix_works scalar_mult_eq_scaleR lin_f')
-      then obtain T where T: "T \<in> lmeasurable"
-            and subT: "{z. norm(z - f x) \<le> (2 * B) * norm(v - u) \<and> (\<exists>t \<in> range (f' x). norm(z - f x - t) \<le> d * norm(v - u))} \<subseteq> T"
-            and measT: "?\<mu> T \<le> (2 * (d * norm(v - u))) * (2 * ((2 * B) * norm(v - u))) ^ (?n - 1)"
-                        (is "_ \<le> ?DVU")
-        using Sard_lemma1 [of "range (f' x)" "(2 * B) * norm(v - u)" "d * norm(v - u)"]
-        using \<open>B > 0\<close> \<open>d > 0\<close> by auto
-      show ?thesis
-      proof (intro exI conjI)
-        have "f ` (K \<inter> S) \<subseteq> {z. norm(z - f x) \<le> (2 * B) * norm(v - u) \<and> (\<exists>t \<in> range (f' x). norm(z - f x - t) \<le> d * norm(v - u))}"
-          unfolding uv
-        proof (clarsimp simp: mult.assoc, intro conjI)
-          fix y
-          assume y: "y \<in> cbox u v" and "y \<in> S"
-          then have "norm (y - x) < r x"
-            by (metis dist_norm mem_ball norm_minus_commute subsetCE x(2))
-          then have le_dyx: "norm (f y - f x - f' x (y - x)) \<le> d * norm (y - x)"
-            using r [of x y] x \<open>y \<in> S\<close> by blast
-          have yx_le: "norm (y - x) \<le> norm (v - u)"
-          proof (rule norm_le_componentwise_cart)
-            show "norm ((y - x) $ i) \<le> norm ((v - u) $ i)" for i
-              using x y by (force simp: mem_box_cart dest!: spec [where x=i])
-          qed
-          have *: "\<lbrakk>norm(y - x - z) \<le> d; norm z \<le> B; d \<le> B\<rbrakk> \<Longrightarrow> norm(y - x) \<le> 2 * B"
-            for x y z :: "real^'n::_" and d B
-            using norm_triangle_ineq2 [of "y - x" z] by auto
-          show "norm (f y - f x) \<le> 2 * (B * norm (v - u))"
-          proof (rule * [OF le_dyx])
-            have "norm (f' x (y - x)) \<le> onorm (f' x) * norm (y - x)"
-              using onorm [of "f' x" "y-x"] by (meson IntE lin_f' linear_linear x(1))
-            also have "\<dots> \<le> B * norm (v - u)"
-              by (meson B IntE lin_f' linear_linear mult_mono' norm_ge_zero onorm_pos_le x(1) yx_le)
-            finally show "norm (f' x (y - x)) \<le> B * norm (v - u)" .
-            show "d * norm (y - x) \<le> B * norm (v - u)"
-              using \<open>B > 0\<close> by (auto intro: mult_mono [OF \<open>d \<le> B\<close> yx_le])
-          qed
-          show "\<exists>t. norm (f y - f x - f' x t) \<le> d * norm (v - u)"
-            by (smt (verit, best) \<open>0 < d\<close> le_dyx mult_le_cancel_left_pos yx_le)
-        qed
-        with subT show "f ` (K \<inter> S) \<subseteq> T" by blast
-        show "?\<mu> T \<le> e / (2*c) ^ ?m * ?\<mu> K"
-        proof (rule order_trans [OF measT])
-          have "?DVU = (d * 2 * (4 * B) ^ (?n - 1)) * norm (v - u)^?n"
-            using \<open>c > 0\<close>
-            apply (simp add: algebra_simps)
-            by (metis Suc_pred power_Suc zero_less_card_finite)
-          also have "\<dots> \<le> (e / (2*c) ^ ?m / (?m ^ ?m)) * norm(v - u) ^ ?n"
-            by (rule mult_right_mono [OF d]) auto
-          also have "\<dots> \<le> e / (2*c) ^ ?m * ?\<mu> K"
-          proof -
-            have "u \<in> ball (x) (r x)" "v \<in> ball x (r x)"
-              using box_ne_empty(1) contra_subsetD [OF x(2)] mem_box(2) uv_ne by fastforce+
-            moreover have "r x \<le> 1/2"
-              using r12 by auto
-            ultimately have "norm (v - u) \<le> 1"
-              using norm_triangle_half_r [of x u 1 v]
-              by (metis (no_types, opaque_lifting) dist_commute dist_norm less_eq_real_def less_le_trans mem_ball)
-            then have "norm (v - u) ^ ?n \<le> norm (v - u) ^ ?m"
-              by (simp add: power_decreasing [OF mlen])
-            also have "\<dots> \<le> ?\<mu> K * real (?m ^ ?m)"
-            proof -
-              obtain n where n: "\<And>i. v$i - u$i = 2 * c / 2^n"
-                using close [of u v] \<open>K \<in> \<D>\<close> uv by blast
-              have "norm (v - u) ^ ?m \<le> (\<Sum>i\<in>UNIV. \<bar>(v - u) $ i\<bar>) ^ ?m"
-                by (intro norm_le_l1_cart power_mono) auto
-              also have "\<dots> \<le> (\<Prod>i\<in>UNIV. v $ i - u $ i) * real CARD('m) ^ CARD('m)"
-                by (simp add: n field_simps \<open>c > 0\<close> less_eq_real_def)
-              also have "\<dots> = ?\<mu> K * real (?m ^ ?m)"
-                by (simp add: uv uv_ne content_cbox_cart)
-              finally show ?thesis .
-            qed
-            finally have *: "1 / real (?m ^ ?m) * norm (v - u) ^ ?n \<le> ?\<mu> K"
-              by (simp add: field_split_simps)
-            show ?thesis
-              using mult_left_mono [OF *, of "e / (2*c) ^ ?m"] \<open>c > 0\<close> \<open>e > 0\<close> by auto
-          qed
-          finally show "?DVU \<le> e / (2*c) ^ ?m * ?\<mu> K" .
-        qed
-      qed (use T in auto)
-    qed
-    then obtain g where meas_g: "\<And>K. K \<in> \<D> \<Longrightarrow> g K \<in> lmeasurable"
-                    and sub_g: "\<And>K. K \<in> \<D> \<Longrightarrow> f ` (K \<inter> S) \<subseteq> g K"
-                    and le_g: "\<And>K. K \<in> \<D> \<Longrightarrow> ?\<mu> (g K) \<le> e / (2*c)^?m * ?\<mu> K"
-      by metis
-    have le_e: "?\<mu> (\<Union>i\<in>\<F>. g i) \<le> e"
-      if "\<F> \<subseteq> \<D>" "finite \<F>" for \<F>
-    proof -
-      have "?\<mu> (\<Union>i\<in>\<F>. g i) \<le> (\<Sum>i\<in>\<F>. ?\<mu> (g i))"
-        using meas_g \<open>\<F> \<subseteq> \<D>\<close> by (auto intro: measure_UNION_le [OF \<open>finite \<F>\<close>])
-      also have "\<dots> \<le> (\<Sum>K\<in>\<F>. e / (2*c) ^ ?m * ?\<mu> K)"
-        using \<open>\<F> \<subseteq> \<D>\<close> sum_mono [OF le_g] by (meson le_g subsetCE sum_mono)
-      also have "\<dots> = e / (2*c) ^ ?m * (\<Sum>K\<in>\<F>. ?\<mu> K)"
-        by (simp add: sum_distrib_left)
-      also have "\<dots> \<le> e"
-      proof -
-        have "\<F> division_of \<Union>\<F>"
-        proof (rule division_ofI)
-          show "K \<subseteq> \<Union>\<F>"  "K \<noteq> {}" "\<exists>a b. K = cbox a b" if "K \<in> \<F>" for K
-            using \<open>K \<in> \<F>\<close> covered cbox \<open>\<F> \<subseteq> \<D>\<close> by (auto simp: Union_upper)
-          show "interior K \<inter> interior L = {}" if "K \<in> \<F>" and "L \<in> \<F>" and "K \<noteq> L" for K L
-            by (metis (mono_tags, lifting) \<open>\<F> \<subseteq> \<D>\<close> pairwiseD djointish pairwise_subset that)
-        qed (use that in auto)
-        then have "sum ?\<mu> \<F> \<le> ?\<mu> (\<Union>\<F>)"
-          by (simp add: content_division)
-        also have "\<dots> \<le> ?\<mu> (cbox (- vec c) (vec c) :: (real, 'm) vec set)"
-        proof (rule measure_mono_fmeasurable)
-          show "\<Union>\<F> \<subseteq> cbox (- vec c) (vec c)"
-            by (meson Sup_subset_mono sub_cc order_trans \<open>\<F> \<subseteq> \<D>\<close>)
-        qed (use \<open>\<F> division_of \<Union>\<F>\<close> lmeasurable_division in auto)
-        also have "\<dots> = Henstock_Kurzweil_Integration.content (cbox (- vec c) (vec c) :: (real, 'm) vec set)"
-          by simp
-        also have "\<dots> \<le> (2 ^ ?m * c ^ ?m)"
-          using \<open>c > 0\<close> by (simp add: content_cbox_if_cart)
-        finally have "sum ?\<mu> \<F> \<le> (2 ^ ?m * c ^ ?m)" .
-        then show ?thesis
-          using \<open>e > 0\<close> \<open>c > 0\<close> by (auto simp: field_split_simps)
-      qed
-      finally show ?thesis .
-    qed
-    show "\<exists>T. f ` S \<subseteq> T \<and> T \<in> lmeasurable \<and> ?\<mu> T \<le> e"
-    proof (intro exI conjI)
-      show "f ` S \<subseteq> \<Union> (g ` \<D>)"
-        using covers sub_g by force
-      show "\<Union> (g ` \<D>) \<in> lmeasurable"
-        by (rule fmeasurable_UN_bound [OF \<open>countable \<D>\<close> meas_g le_e])
-      show "?\<mu> (\<Union> (g ` \<D>)) \<le> e"
-        by (rule measure_UN_bound [OF \<open>countable \<D>\<close> meas_g le_e])
-    qed
-  qed
-qed
-
-
-theorem baby_Sard:
-  fixes f :: "real^'m::{finite,wellorder} \<Rightarrow> real^'n::{finite,wellorder}"
-  assumes mlen: "CARD('m) \<le> CARD('n)"
-    and der: "\<And>x. x \<in> S \<Longrightarrow> (f has_derivative f' x) (at x within S)"
-    and rank: "\<And>x. x \<in> S \<Longrightarrow> rank(matrix(f' x)) < CARD('n)"
-  shows "negligible(f ` S)"
-proof -
-  let ?U = "\<lambda>n. {x \<in> S. norm(x) \<le> n \<and> onorm(f' x) \<le> real n}"
-  have "\<And>x. x \<in> S \<Longrightarrow> \<exists>n. norm x \<le> real n \<and> onorm (f' x) \<le> real n"
-    by (meson linear order_trans real_arch_simple)
-  then have eq: "S = (\<Union>n. ?U n)"
-    by auto
-  have "negligible (f ` ?U n)" for n
-  proof (rule Sard_lemma2 [OF mlen])
-    show "0 < real n + 1"
-      by auto
-    show "bounded (?U n)"
-      using bounded_iff by blast
-    show "(f has_derivative f' x) (at x within ?U n)" if "x \<in> ?U n" for x
-      using der that by (force intro: has_derivative_subset)
-  qed (use rank in auto)
-  then show ?thesis
-    by (subst eq) (simp add: image_Union negligible_Union_nat)
-qed
-
 theorem baby_Sard_eu:
   fixes f :: "'a::euclidean_space \<Rightarrow> 'b::euclidean_space"
   assumes mlen: "DIM('a) \<le> DIM('b)"
@@ -1991,6 +1756,7 @@ proof -
   let ?etv_a = "eucl_to_vec :: 'a \<Rightarrow> real^('a basis)"
   let ?eov_a = "eucl_of_vec :: real^('a basis) \<Rightarrow> 'a"
   let ?etv_b = "eucl_to_vec :: 'b \<Rightarrow> real^('b basis)"
+  let ?eov_b = "eucl_of_vec :: real^('b basis) \<Rightarrow> 'b"
   define fv where "fv \<equiv> ?etv_b \<circ> f \<circ> ?eov_a"
   define Sv where "Sv \<equiv> ?etv_a ` S"
   define fv' where "fv' \<equiv> \<lambda>x. ?etv_b \<circ> f' (?eov_a x) \<circ> ?eov_a"
@@ -2007,7 +1773,7 @@ proof -
   have Sv_eq: "?eov_a ` Sv = S"
     by (auto simp: Sv_def image_comp)
   have inj_etv_b: "inj ?etv_b"
-    by (simp add: injI)
+    by (simp add: inj_def)
   have der_v: "(fv has_derivative fv' x) (at x within Sv)" if "x \<in> Sv" for x
   proof -
     have x_in: "?eov_a x \<in> S"
@@ -2060,9 +1826,15 @@ proof -
     have "f ` S = ?eov_b ` (?etv_b ` (f ` S))"
       by (simp add: image_comp)
     also have "negligible \<dots>"
-      using neg_etv negligible_iff_null_sets
-      by (metis (no_types) negligible_differentiable_image_negligible [OF le_refl]
-            differentiable_on_linear [OF eucl.linear_eucl_of_vec])
+    proof -
+      have "linear ?eov_b"
+        unfolding eucl_of_vec_def linear_iff
+        by (auto simp: scaleR_sum_right algebra_simps sum.distrib)
+      then have diff: "?eov_b differentiable_on ?etv_b ` (f ` S)"
+        by (rule linear_imp_differentiable_on)
+      show ?thesis
+        by (rule negligible_differentiable_image_negligible [OF _ neg_etv diff]) (simp add: card_eq_b)
+    qed
     finally show "negligible (f ` S)" .
   qed
 qed
@@ -2258,6 +2030,19 @@ proof -
   ultimately show ?thesis
     by (auto intro: Lim_bounded)
 qed
+
+
+lemma integral_on_image_ubound_weak_eu:
+  fixes f :: "'a::euclidean_space \<Rightarrow> real"
+  assumes S: "S \<in> sets lebesgue"
+      and f: "f \<in> borel_measurable (lebesgue_on (g ` S))"
+      and nonneg_fg:  "\<And>x. x \<in> S \<Longrightarrow> 0 \<le> f(g x)"
+      and der_g:   "\<And>x. x \<in> S \<Longrightarrow> (g has_derivative g' x) (at x within S)"
+      and det_int_fg: "(\<lambda>x. \<bar>eucl.det (g' x)\<bar> * f(g x)) integrable_on S"
+      and meas_gim: "\<And>T. \<lbrakk>T \<subseteq> g ` S; T \<in> sets lebesgue\<rbrakk> \<Longrightarrow> {x \<in> S. g x \<in> T} \<in> sets lebesgue"
+    shows "f integrable_on (g ` S) \<and>
+           integral (g ` S) f \<le> integral S (\<lambda>x. \<bar>eucl.det (g' x)\<bar> * f(g x))"
+  sorry
 
 
 lemma integral_on_image_ubound_nonneg:
