@@ -2029,16 +2029,15 @@ proof -
     by (auto intro: Lim_bounded)
 qed
 
-
-lemma integral_on_image_ubound_nonneg:
-  fixes f :: "real^'n::{finite,wellorder} \<Rightarrow> real"
+lemma integral_on_image_ubound_nonneg_eu:
+  fixes f :: "'a::euclidean_space \<Rightarrow> real"
   assumes nonneg_fg: "\<And>x. x \<in> S \<Longrightarrow> 0 \<le> f(g x)"
       and der_g:   "\<And>x. x \<in> S \<Longrightarrow> (g has_derivative g' x) (at x within S)"
-      and intS: "(\<lambda>x. \<bar>matrix_det (matrix (g' x))\<bar> * f(g x)) integrable_on S"
-  shows "f integrable_on (g ` S) \<and> integral (g ` S) f \<le> integral S (\<lambda>x. \<bar>matrix_det (matrix (g' x))\<bar> * f(g x))"
+      and intS: "(\<lambda>x. \<bar>eucl.det (g' x)\<bar> * f(g x)) integrable_on S"
+  shows "f integrable_on (g ` S) \<and> integral (g ` S) f \<le> integral S (\<lambda>x. \<bar>eucl.det (g' x)\<bar> * f(g x))"
          (is "_ \<and> _ \<le> ?b")
 proof -
-  let ?D = "\<lambda>x. matrix_det (matrix (g' x))"
+  let ?D = "\<lambda>x. eucl.det (g' x)"
   define S' where "S' \<equiv> {x \<in> S. ?D x * f(g x) \<noteq> 0}"
   then have der_gS': "\<And>x. x \<in> S' \<Longrightarrow> (g has_derivative g' x) (at x within S')"
     by (metis (mono_tags, lifting) der_g has_derivative_subset mem_Collect_eq subset_iff)
@@ -2079,8 +2078,8 @@ proof -
         by (rule Df_borel)
       finally have *: "(\<lambda>x. \<bar>?D x\<bar> * f (g x)) \<in> borel_measurable (lebesgue_on S')"
         by (simp add: borel_measurable_if_D)
-      have "(\<lambda>v. matrix_det (matrix (g' v))) \<in> borel_measurable (lebesgue_on S')"
-        using S' borel_measurable_det_Jacobian_matrix der_gS' by blast
+      have "(\<lambda>v. eucl.det (g' v)) \<in> borel_measurable (lebesgue_on S')"
+        using S' borel_measurable_det_Jacobian der_gS' by blast
       then have "?h \<in> borel_measurable (lebesgue_on S')"
         using "*" borel_measurable_abs borel_measurable_inverse borel_measurable_scaleR by blast
       moreover have "?h x = f(g x)" if "x \<in> S'" for x
@@ -2113,22 +2112,32 @@ proof -
       then have "linear (g' x)"
         using der_gS' has_derivative_linear by blast
       with x show "inj (g' x)"
-        by (auto simp: S'_def det_nz_iff_inj)
+        using eucl.det_eq_0_iff by (auto simp: S'_def)
     qed (use der_gS' in auto)
     ultimately show ?thesis
       using double_lebesgue_sets [OF S' gS' order_refl] that by blast
   qed
   have int_gS': "f integrable_on g ` S' \<and> integral (g ` S') f \<le> integral S' (\<lambda>x. \<bar>?D x\<bar> * f(g x))"
-    using integral_on_image_ubound_weak [OF S' f nonneg_fg der_gS' intS' lebS'] S'_def by blast
-  have "negligible (g ` {x \<in> S. matrix_det(matrix(g' x)) = 0})"
-  proof (rule baby_Sard, simp_all)
+    using integral_on_image_ubound_weak_eu [OF S' f nonneg_fg der_gS' intS' lebS'] S'_def by blast
+  have neg_det: "negligible (g ` {x \<in> S. eucl.det (g' x) = 0})"
+  proof (rule baby_Sard_eu [OF order_refl], simp_all)
     fix x
-    assume x: "x \<in> S \<and> matrix_det (matrix (g' x)) = 0"
-    then show "(g has_derivative g' x) (at x within {x \<in> S. matrix_det (matrix (g' x)) = 0})"
+    assume x: "x \<in> S \<and> eucl.det (g' x) = 0"
+    then show "(g has_derivative g' x) (at x within {x \<in> S. eucl.det (g' x) = 0})"
       by (metis (no_types, lifting) der_g has_derivative_subset mem_Collect_eq subsetI)
-    then show "rank (matrix (g' x)) < CARD('n)"
-      using det_nz_iff_inj matrix_vector_mul_linear x
-      by (fastforce simp add: less_rank_noninjective)
+    have "linear (g' x)"
+      using \<open>(g has_derivative g' x) _\<close> has_derivative_linear by blast
+    then have "\<not> inj (g' x)"
+      using x eucl.det_eq_0_iff by auto
+    then have "\<not> surj (g' x)"
+      using \<open>linear (g' x)\<close> eucl.linear_surjective_imp_injective by auto
+    then have "g' x ` UNIV \<noteq> UNIV"
+      by (simp add: surj_def)
+    moreover have "subspace (g' x ` UNIV)"
+      using \<open>linear (g' x)\<close> linear_subspace_image subspace_UNIV by blast
+    ultimately show "dim (g' x ` UNIV) < DIM('a)"
+      using eucl.subspace_dim_equal [of "g' x ` UNIV" UNIV] subspace_UNIV eucl.dim_UNIV
+      by (metis eucl.dim_subset le_neq_implies_less subset_UNIV)
   qed
   then have negg: "negligible (g ` S - g ` {x \<in> S. ?D x \<noteq> 0})"
     by (rule negligible_subset) (auto simp: S'_def)
@@ -2152,7 +2161,7 @@ proof -
     also have "\<dots> = integral (g ` {x \<in> S. ?D x \<noteq> 0}) (\<lambda>x. if x \<in> g ` ?F then f x else 0)"
       by (auto simp: image_iff intro!: integral_cong)
     also have "\<dots> = integral (g ` S') f"
-      using  eq integral_restrict_Int by simp
+      using eq integral_restrict_Int by simp
     also have "\<dots> \<le> integral S' (\<lambda>x. \<bar>?D x\<bar> * f(g x))"
       by (metis int_gS')
     also have "\<dots> \<le> ?b"
@@ -2160,6 +2169,7 @@ proof -
     finally show "integral (g ` S) f \<le> ?b" .
   qed
 qed
+
 
 
 lemma absolutely_integrable_on_image_real:
