@@ -1908,6 +1908,18 @@ lemma has_integral_substitution_ac:
   shows "((\<lambda>t. \<phi>' t * f (\<phi> t)) has_integral (integral {\<phi> a..\<phi> b} f)) {a..b}"
   sorry
 
+text \<open>The measure of the subgraph of a continuous non-negative function equals its integral.
+  This is a special case of Fubini's theorem (Cavalieri's principle).
+  In HOL Light this is HAS\_REAL\_INTEGRAL\_AREA\_UNDER\_CURVE.\<close>
+lemma has_integral_area_under_curve:
+  fixes f :: "real \<Rightarrow> real"
+  assumes "a \<le> b"
+    and "continuous_on {a..b} f"
+    and "\<And>x. x \<in> {a..b} \<Longrightarrow> f x \<ge> 0"
+  shows "measure lebesgue {z :: complex. a \<le> Re z \<and> Re z \<le> b \<and> 0 \<le> Im z \<and> Im z \<le> f (Re z)} =
+         integral {a..b} f"
+  sorry
+
 lemma area_below_arclet:
   fixes g :: "real \<Rightarrow> complex" and g' :: "real \<Rightarrow> complex"
   assumes "u \<le> v"
@@ -2008,7 +2020,137 @@ proof -
   qed
   show "integral {u..v} (\<lambda>t. Re (g' t) * Im (g t)) =
       measure lebesgue {z. \<exists>w \<in> g ` {u..v}. Re w = Re z \<and> 0 \<le> Im z \<and> Im z \<le> Im w}"
-    sorry
+  proof -
+    define f where "f \<equiv> (\<lambda>x. Im (g (h x)))"
+    have h_mem: "\<And>x. x \<in> {u..v} \<Longrightarrow> h (Re (g x)) \<in> {u..v}"
+      using h by simp
+    have h_inv: "\<And>x. x \<in> ax \<Longrightarrow> Re (g (h x)) = x"
+    proof -
+      fix x assume "x \<in> ax"
+      then obtain t where t: "t \<in> {u..v}" "x = Re (g t)"
+        unfolding ax_def by auto
+      then have "h x = t" using h by simp
+      then show "Re (g (h x)) = x" using t by simp
+    qed
+    have f_gh: "\<And>t. t \<in> {u..v} \<Longrightarrow> f (Re (g t)) = Im (g t)"
+      unfolding f_def using h by simp
+    have h_range: "h ` ax \<subseteq> {u..v}"
+    proof
+      fix y assume "y \<in> h ` ax"
+      then obtain x where x: "x \<in> ax" "y = h x" by auto
+      then obtain t where t: "t \<in> {u..v}" "x = Re (g t)"
+        unfolding ax_def by auto
+      then have "h x = t" using h by simp
+      with x t show "y \<in> {u..v}" by simp
+    qed
+    have cont_f: "continuous_on ax f"
+    proof -
+      have "continuous_on ax (g \<circ> h)"
+        using continuous_on_compose[OF cont_h continuous_on_subset[OF cont_g h_range]]
+        by auto
+      then show ?thesis unfolding f_def
+        by (intro continuous_intros) (simp add: o_def)
+    qed
+    have f_nonneg: "\<And>x. x \<in> ax \<Longrightarrow> f x \<ge> 0"
+    proof -
+      fix x assume "x \<in> ax"
+      then obtain t where t: "t \<in> {u..v}" "x = Re (g t)"
+        unfolding ax_def by auto
+      have "g t \<in> g ` {u..v}" using t(1) by auto
+      then have "Im (g t) \<ge> 0" using assms(4) by auto
+      then show "f x \<ge> 0" unfolding f_def using h t by simp
+    qed
+    \<comment> \<open>Monotonicity of Re \<circ> g\<close>
+    have mono_Reg: "\<And>x y. x \<in> {u..v} \<Longrightarrow> y \<in> {u..v} \<Longrightarrow> x \<le> y \<Longrightarrow> Re (g x) \<le> Re (g y)"
+    proof -
+      have smono: "strict_mono_on {u..v} (\<lambda>t. Re (g t)) \<or>
+                   strict_antimono_on {u..v} (\<lambda>t. Re (g t))"
+        using injective_eq_monotone_map[OF is_interval_cc cont_Reg] inj_Reg by auto
+      have mono: "mono_on {u..v} (\<lambda>t. Re (g t))"
+      proof (cases "u = v")
+        case True then show ?thesis by (simp add: mono_on_def)
+      next
+        case False
+        with \<open>u \<le> v\<close> have "u < v" by auto
+        { assume am: "strict_antimono_on {u..v} (\<lambda>t. Re (g t))"
+          then have "Re (g v) < Re (g u)"
+            unfolding monotone_on_def using \<open>u < v\<close> \<open>u \<le> v\<close> by auto
+          with Re_g_le have False by auto }
+        with smono have "strict_mono_on {u..v} (\<lambda>t. Re (g t))" by blast
+        then show ?thesis
+          by (simp add: monotone_on_def less_eq_real_def)
+      qed
+      fix x y assume "x \<in> {u..v}" "y \<in> {u..v}" "x \<le> y"
+      then show "Re (g x) \<le> Re (g y)" using mono by (auto simp: mono_on_def)
+    qed
+    \<comment> \<open>Absolute continuity of Re \<circ> g\<close>
+    have acont_Reg: "absolutely_continuous_on {u..v} (\<lambda>t. Re (g t))"
+      using absolutely_continuous_on_compose_linear[OF acont_g bounded_linear_Re[THEN bounded_linear.linear]]
+      by (simp add: o_def)
+    \<comment> \<open>Derivative of Re \<circ> g\<close>
+    have deriv_Reg: "\<And>t. t \<in> {u..v} - S \<Longrightarrow> ((\<lambda>t. Re (g t)) has_vector_derivative Re (g' t)) (at t)"
+    proof -
+      fix t assume "t \<in> {u..v} - S"
+      then have "(g has_vector_derivative g' t) (at t)" using assms(8) by auto
+      then show "((\<lambda>t. Re (g t)) has_vector_derivative Re (g' t)) (at t)"
+        using bounded_linear_Re[THEN bounded_linear.has_vector_derivative] by auto
+    qed
+    \<comment> \<open>Apply substitution: \<integral>_{Re(g u)}^{Re(g v)} f = \<integral>_u^v Re(g') * f(Re(g)) = \<integral>_u^v Re(g') * Im(g)\<close>
+    have subst: "((\<lambda>t. Re (g' t) * f (Re (g t))) has_integral (integral {Re (g u)..Re (g v)} f)) {u..v}"
+      using has_integral_substitution_ac[OF \<open>u \<le> v\<close> Re_g_le acont_Reg assms(7) deriv_Reg _ mono_Reg]
+        cont_f ax by auto
+    \<comment> \<open>Since f(Re(g t)) = Im(g t), the LHS simplifies\<close>
+    have "integral {u..v} (\<lambda>t. Re (g' t) * Im (g t)) = integral {Re (g u)..Re (g v)} f"
+    proof -
+      have "((\<lambda>t. Re (g' t) * Im (g t)) has_integral (integral {Re (g u)..Re (g v)} f)) {u..v}"
+      proof -
+        have eq: "\<And>t. t \<in> {u..v} - {} \<Longrightarrow> Re (g' t) * Im (g t) = Re (g' t) * f (Re (g t))"
+          using f_gh by simp
+        show ?thesis
+          using has_integral_spike[OF negligible_empty eq subst] by auto
+      qed
+      then show ?thesis by (rule integral_unique)
+    qed
+    \<comment> \<open>Apply area-under-curve: measure of subgraph = \<integral> f\<close>
+    also have "\<dots> = measure lebesgue {z. \<exists>w \<in> g ` {u..v}. Re w = Re z \<and> 0 \<le> Im z \<and> Im z \<le> Im w}"
+    proof -
+      \<comment> \<open>First show the subgraph set equals {z. Re(g u) \<le> Re z \<and> Re z \<le> Re(g v) \<and> 0 \<le> Im z \<and> Im z \<le> f(Re z)}\<close>
+      have set_eq: "{z. \<exists>w \<in> g ` {u..v}. Re w = Re z \<and> 0 \<le> Im z \<and> Im z \<le> Im w} =
+                    {z. Re (g u) \<le> Re z \<and> Re z \<le> Re (g v) \<and> 0 \<le> Im z \<and> Im z \<le> f (Re z)}"
+      proof (rule antisym; rule subsetI)
+        fix z assume "z \<in> {z. \<exists>w \<in> g ` {u..v}. Re w = Re z \<and> 0 \<le> Im z \<and> Im z \<le> Im w}"
+        then obtain w t where wt: "t \<in> {u..v}" "w = g t" "Re w = Re z" "0 \<le> Im z" "Im z \<le> Im w"
+          by auto
+        have "Re z \<in> ax" unfolding ax_def using wt by force
+        then have "Re (g u) \<le> Re z" "Re z \<le> Re (g v)" using ax by auto
+        moreover have "f (Re z) = Im w"
+        proof -
+          have "h (Re z) = t"
+            by (metis h wt(1,2,3) atLeastAtMost_iff)
+          then show ?thesis unfolding f_def using wt by simp
+        qed
+        ultimately show "z \<in> {z. Re (g u) \<le> Re z \<and> Re z \<le> Re (g v) \<and> 0 \<le> Im z \<and> Im z \<le> f (Re z)}"
+          using wt by auto
+      next
+        fix z assume z: "z \<in> {z. Re (g u) \<le> Re z \<and> Re z \<le> Re (g v) \<and> 0 \<le> Im z \<and> Im z \<le> f (Re z)}"
+        then have Rez: "Re z \<in> ax" using ax by auto
+        then obtain t where t: "t \<in> {u..v}" "Re (g t) = Re z"
+          unfolding ax_def by auto
+        let ?w = "g t"
+        have "?w \<in> g ` {u..v}" using t by auto
+        moreover have "Re ?w = Re z" using t by auto
+        moreover have "Im ?w = f (Re z)"
+          using f_gh[OF t(1)] t(2) by simp
+        ultimately show "z \<in> {z. \<exists>w \<in> g ` {u..v}. Re w = Re z \<and> 0 \<le> Im z \<and> Im z \<le> Im w}"
+          using z by auto
+      qed
+      \<comment> \<open>Then apply area-under-curve (Fubini/Cavalieri)\<close>
+      show ?thesis unfolding set_eq
+        using has_integral_area_under_curve[OF Re_g_le _ _] cont_f f_nonneg ax
+        by auto
+    qed
+    finally show ?thesis .
+  qed
 qed
 
 lemma area_above_arclet:
