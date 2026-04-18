@@ -2539,7 +2539,7 @@ proof -
         f absolutely_integrable_on T \<and> (f has_integral b) T"
     unfolding absolutely_integrable_componentwise_iff [where f=f] has_integral_componentwise_iff [of f]
               absolutely_integrable_componentwise_iff [where f="?D"] has_integral_componentwise_iff [of ?D]
-    by (auto simp: all_conj_distrib has_integral_iff set_lebesgue_integral_eq_integral)
+    by (auto simp: all_conj_distrib has_integral_iff set_lebesgue_integral_eq_integral dest: absolutely_integrable_on_def [THEN iffD1, THEN conjunct1])
   then show ?thesis
     using absolutely_integrable_on_def by blast
 qed
@@ -2592,21 +2592,37 @@ theorem has_absolute_integral_change_of_variables_invertible:
          f absolutely_integrable_on (g ` S) \<and> integral (g ` S) f = b"
     (is "?lhs = ?rhs")
 proof -
-  let ?S = "{x \<in> S. invertible (matrix (g' x))}" and ?D = "\<lambda>x. \<bar>eucl.det(g' x)\<bar> *\<^sub>R f(g x)"
+  let ?S = "{x \<in> S. eucl.det(g' x) \<noteq> 0}" and ?D = "\<lambda>x. \<bar>eucl.det(g' x)\<bar> *\<^sub>R f(g x)"
   have *: "?D absolutely_integrable_on ?S \<and> integral ?S ?D = b
            \<longleftrightarrow> f absolutely_integrable_on (g ` ?S) \<and> integral (g ` ?S) f = b"
   proof (rule cv_inv_version4)
-    show "(g has_derivative g' x) (at x within ?S) \<and> invertible (matrix (g' x))"
+    show "(g has_derivative g' x) (at x within ?S) \<and> eucl.det(g' x) \<noteq> 0"
       if "x \<in> ?S" for x
       using der_g that has_derivative_subset that by fastforce
     show "continuous_on (g ` ?S) h \<and> h (g x) = x"
       if "x \<in> ?S" for x
       using that continuous_on_subset [OF conth]  by (simp add: hg image_mono)
   qed
-  have "(g has_derivative g' x) (at x within {x \<in> S. rank (matrix (g' x)) < CARD('m)})" if "x \<in> S" for x
-    by (metis (no_types, lifting) der_g has_derivative_subset mem_Collect_eq subsetI that)
-  then have "negligible (g ` {x \<in> S. \<not> invertible (matrix (g' x))})"
-    by (auto simp: invertible_det_nz det_eq_0_rank intro: baby_Sard)
+  have "negligible (g ` {x \<in> S. eucl.det(g' x) = 0})"
+  proof (rule baby_Sard_eu [OF order_refl], simp_all)
+    fix x
+    assume x: "x \<in> S \<and> eucl.det (g' x) = 0"
+    then show "(g has_derivative g' x) (at x within {x \<in> S. eucl.det (g' x) = 0})"
+      by (metis (no_types, lifting) der_g has_derivative_subset mem_Collect_eq subsetI)
+    have "linear (g' x)"
+      using \<open>(g has_derivative g' x) _\<close> has_derivative_linear by blast
+    then have "\<not> inj (g' x)"
+      using x eucl.det_eq_0_iff by auto
+    then have "\<not> surj (g' x)"
+      using \<open>linear (g' x)\<close> eucl.linear_surjective_imp_injective by auto
+    then have "g' x ` UNIV \<noteq> UNIV"
+      by (simp add: surj_def)
+    moreover have "subspace (g' x ` UNIV)"
+      using \<open>linear (g' x)\<close> linear_subspace_image subspace_UNIV by blast
+    ultimately show "dim (g' x ` UNIV) < DIM('a)"
+      using eucl.subspace_dim_equal [of "g' x ` UNIV" UNIV] subspace_UNIV eucl.dim_UNIV
+      by (metis eucl.dim_subset le_neq_implies_less subset_UNIV)
+  qed
   then have neg: "negligible {x \<in> g ` S. x \<notin> g ` ?S \<and> f x \<noteq> 0}"
     by (auto intro: negligible_subset)
   have [simp]: "{x \<in> g ` ?S. x \<notin> g ` S \<and> f x \<noteq> 0} = {}"
@@ -2614,7 +2630,7 @@ proof -
   have "?D absolutely_integrable_on ?S \<and> integral ?S ?D = b
     \<longleftrightarrow> ?D absolutely_integrable_on S \<and> integral S ?D = b"
     apply (intro conj_cong absolutely_integrable_spike_set_eq)
-      apply(auto simp: integral_spike_set invertible_det_nz empty_imp_negligible neg)
+      apply(auto simp: integral_spike_set empty_imp_negligible neg)
     done
   moreover
   have "f absolutely_integrable_on (g ` ?S) \<and> integral (g ` ?S) f = b
@@ -2644,6 +2660,34 @@ proof -
     by (rule has_absolute_integral_change_of_variables_invertible [OF der_g hg conth])
 qed
 
+lemma integral_countable_UN_eu:
+  fixes f :: "'a::euclidean_space \<Rightarrow> 'b::euclidean_space"
+    and s :: "nat \<Rightarrow> 'a set"
+  assumes f: "f absolutely_integrable_on (\<Union> (range s))"
+    and s: "\<And>m. s m \<in> sets lebesgue"
+  shows ai: "f absolutely_integrable_on (\<Union> (s ` {..n}))"
+    and "(\<lambda>n. integral (\<Union> (s ` {..n})) f) \<longlonglongrightarrow> integral (\<Union> (range s)) f" (is "?F \<longlonglongrightarrow> ?I")
+proof -
+  show fU: "f absolutely_integrable_on (\<Union>m\<le>n. s m)" for n
+    using assms by (blast intro: set_integrable_subset [OF f])
+  have fint: "f integrable_on (\<Union> (range s))"
+    using absolutely_integrable_on_def f by blast
+  let ?h = "\<lambda>x. if x \<in> \<Union>(s ` UNIV) then norm(f x) else 0"
+  have "(\<lambda>n. integral UNIV (\<lambda>x. if x \<in> (\<Union>m\<le>n. s m) then f x else 0))
+        \<longlonglongrightarrow> integral UNIV (\<lambda>x. if x \<in> \<Union>(s ` UNIV) then f x else 0)"
+  proof (rule dominated_convergence)
+    show "(\<lambda>x. if x \<in> (\<Union>m\<le>n. s m) then f x else 0) integrable_on UNIV" for n
+      unfolding integrable_restrict_UNIV
+      using fU absolutely_integrable_on_def by blast
+    show "(\<lambda>x. if x \<in> \<Union>(s ` UNIV) then norm(f x) else 0) integrable_on UNIV"
+      by (metis (no_types) absolutely_integrable_on_def f integrable_restrict_UNIV)
+    show "\<And>x. (\<lambda>n. if x \<in> (\<Union>m\<le>n. s m) then f x else 0)
+         \<longlonglongrightarrow> (if x \<in> \<Union>(s ` UNIV) then f x else 0)"
+      by (force intro: tendsto_eventually eventually_sequentiallyI)
+  qed auto
+  then show "?F \<longlonglongrightarrow> ?I"
+    by (simp only: integral_restrict_UNIV)
+qed 
 
 lemma has_absolute_integral_change_of_variables_compact_family:
   fixes f :: "'a::euclidean_space \<Rightarrow> 'b::euclidean_space" and g :: "'a \<Rightarrow> 'a"
@@ -2661,7 +2705,7 @@ proof -
     by (simp add: compact borel_compact)
   have iff: "(\<lambda>x. \<bar>eucl.det(g' x)\<bar> *\<^sub>R f (g x)) absolutely_integrable_on (?U n) \<and>
              integral (?U n) (\<lambda>x. \<bar>eucl.det(g' x)\<bar> *\<^sub>R f (g x)) = b
-         \<longleftrightarrow> f absolutely_integrable_on (g ` (?U n)) \<and> integral (g ` (?U n)) f = b" for n b and f :: "'a \<Rightarrow> real^'k"
+         \<longleftrightarrow> f absolutely_integrable_on (g ` (?U n)) \<and> integral (g ` (?U n)) f = b" for n b and f :: "'a \<Rightarrow> 'c::euclidean_space"
   proof (rule has_absolute_integral_change_of_variables_compact)
     show "compact (?U n)"
       by (simp add: compact compact_UN)
@@ -2678,7 +2722,7 @@ proof -
       and b: "b = integral (\<Union>n. F n) ?D"
     have DU: "\<And>n. ?D absolutely_integrable_on (?U n)"
              "(\<lambda>n. integral (?U n) ?D) \<longlonglongrightarrow> integral (\<Union>n. F n) ?D"
-      using integral_countable_UN [OF DS F_leb] by auto
+      using integral_countable_UN_eu [where s=F and f="?D"] DS F_leb by auto
     with iff have fag: "f absolutely_integrable_on g ` (?U n)"
       and fg_int: "integral (\<Union>m\<le>n. g ` F m) f = integral (?U n) ?D" for n
       by (auto simp: image_UN)
@@ -2698,8 +2742,8 @@ proof -
           have "(norm \<circ> ?D) absolutely_integrable_on ?U n"
             by (intro absolutely_integrable_norm DU)
           then have "integral (g ` ?U n) (norm \<circ> f) = integral (?U n) (norm \<circ> ?D)"
-            using iff [of n "vec \<circ> norm \<circ> f" "integral (?U n) (\<lambda>x. \<bar>eucl.det(g' x)\<bar> *\<^sub>R (?lift \<circ> norm \<circ> f) (g x))"]
-            unfolding absolutely_integrable_on_1_iff integral_on_1_eq by (auto simp: o_def)
+            using iff [of n "norm \<circ> f" "integral (?U n) (\<lambda>x. \<bar>eucl.det(g' x)\<bar> * norm (f (g x)))"]
+            by (auto simp: o_def)
         }
         moreover have "bounded (range (\<lambda>k. integral (?U k) (norm \<circ> ?D)))"
           unfolding bounded_iff
@@ -2737,7 +2781,7 @@ proof -
     proof (rule LIMSEQ_unique)
       show "(\<lambda>n. integral (?U n) ?D) \<longlonglongrightarrow> integral (\<Union>x. g ` F x) f"
         unfolding fg_int [symmetric]
-      proof (rule integral_countable_UN [OF fai])
+      proof (rule integral_countable_UN_eu [OF fai])
         show "g ` F m \<in> sets lebesgue" for m
         proof (rule differentiable_image_in_sets_lebesgue [OF F_leb])
           show "g differentiable_on F m"
@@ -2756,7 +2800,7 @@ proof -
     qed auto
     have fgU: "\<And>n. f absolutely_integrable_on (\<Union>m\<le>n. g ` F m)"
       "(\<lambda>n. integral (\<Union>m\<le>n. g ` F m) f) \<longlonglongrightarrow> integral (\<Union>m. g ` F m) f"
-      using integral_countable_UN [OF fs gF_leb] by auto
+      using integral_countable_UN_eu [OF fs gF_leb] by auto
     with iff have DUn: "?D absolutely_integrable_on ?U n"
       and D_int: "integral (?U n) ?D = integral (\<Union>m\<le>n. g ` F m) f" for n
       by (auto simp: image_UN)
@@ -2775,8 +2819,8 @@ proof -
           have "(norm \<circ> f) absolutely_integrable_on (\<Union>m\<le>n. g ` F m)"
             using absolutely_integrable_norm fgU by blast
           then have "integral (?U n) (norm \<circ> ?D) = integral (g ` ?U n) (norm \<circ> f)"
-            using iff [of n "?lift \<circ> norm \<circ> f" "integral (g ` ?U n) (?lift \<circ> norm \<circ> f)"]
-            unfolding absolutely_integrable_on_1_iff integral_on_1_eq image_UN by (auto simp: o_def)
+            using iff [of n "norm \<circ> f" "integral (g ` ?U n) (norm \<circ> f)"]
+            unfolding image_UN by (auto simp: o_def)
         }
         moreover have "bounded (range (\<lambda>k. integral (g ` ?U k) (norm \<circ> f)))"
           unfolding bounded_iff
@@ -2812,7 +2856,7 @@ proof -
     show "integral (\<Union>n. F n) ?D = integral ((\<Union>x. g ` F x)) f"
     proof (rule LIMSEQ_unique)
       show "(\<lambda>n. integral (\<Union>m\<le>n. g ` F m) f) \<longlonglongrightarrow> integral (\<Union>n. F n) ?D"
-        unfolding D_int [symmetric] by (rule integral_countable_UN [OF Dai F_leb])
+        unfolding D_int [symmetric] by (rule integral_countable_UN_eu [OF Dai F_leb])
     qed (use fgU in metis)
   qed
 qed
@@ -2903,7 +2947,7 @@ corollary integral_change_of_variables:
   by blast
 
 lemma has_absolute_integral_change_of_variables_1:
-  fixes f :: "real \<Rightarrow> 'b::euclidean_space::{finite,wellorder}" and g :: "real \<Rightarrow> real"
+  fixes f :: "real \<Rightarrow> 'b::euclidean_space" and g :: "real \<Rightarrow> real"
   assumes S: "S \<in> sets lebesgue"
     and der_g: "\<And>x. x \<in> S \<Longrightarrow> (g has_vector_derivative g' x) (at x within S)"
     and inj: "inj_on g S"
@@ -2911,37 +2955,17 @@ lemma has_absolute_integral_change_of_variables_1:
            integral S (\<lambda>x. \<bar>g' x\<bar> *\<^sub>R f(g x)) = b
      \<longleftrightarrow> f absolutely_integrable_on (g ` S) \<and> integral (g ` S) f = b"
 proof -
-  let ?lift = "vec :: real \<Rightarrow> real^1"
-  let ?drop = "(\<lambda>x::real^1. x $ 1)"
-  have S': "?lift ` S \<in> sets lebesgue"
-    by (auto intro: differentiable_image_in_sets_lebesgue [OF S] differentiable_vec)
-  have "((\<lambda>x. vec (g (x $ 1))) has_derivative (*\<^sub>R) (g' z)) (at (vec z) within ?lift ` S)"
-    if "z \<in> S" for z
-    using der_g [OF that]
-    by (simp add: has_vector_derivative_def has_derivative_vector_1)
-  then have der': "\<And>x. x \<in> ?lift ` S \<Longrightarrow>
-        (?lift \<circ> g \<circ> ?drop has_derivative (*\<^sub>R) (g' (?drop x))) (at x within ?lift ` S)"
-    by (auto simp: o_def)
-  have inj': "inj_on (vec \<circ> g \<circ> ?drop) (vec ` S)"
-    using inj by (simp add: inj_on_def)
-  let ?fg = "\<lambda>x. \<bar>g' x\<bar> *\<^sub>R f(g x)"
-  have "((\<lambda>x. ?fg x $ i) absolutely_integrable_on S \<and> ((\<lambda>x. ?fg x $ i) has_integral b $ i) S
-    \<longleftrightarrow> (\<lambda>x. f x $ i) absolutely_integrable_on g ` S \<and> ((\<lambda>x. f x $ i) has_integral b $ i) (g ` S))" for i
-    using has_absolute_integral_change_of_variables [OF S' der' inj', of "\<lambda>x. ?lift(f (?drop x) $ i)" "?lift (b$i)"]
-    unfolding integrable_on_1_iff integral_on_1_eq absolutely_integrable_on_1_iff absolutely_integrable_drop absolutely_integrable_on_def
-    by (auto simp: image_comp o_def integral_vec1_eq has_integral_iff)
-  then have "?fg absolutely_integrable_on S \<and> (?fg has_integral b) S
-         \<longleftrightarrow> f absolutely_integrable_on (g ` S) \<and> (f has_integral b) (g ` S)"
-    unfolding has_integral_componentwise_iff [where y=b]
-           absolutely_integrable_componentwise_iff [where f=f]
-           absolutely_integrable_componentwise_iff [where f = ?fg]
-    by (force simp: Basis_vec_def cart_eq_inner_axis)
+  have "(\<lambda>x. \<bar>eucl.det((*) (g' x))\<bar> *\<^sub>R f(g x)) absolutely_integrable_on S \<and>
+         integral S (\<lambda>x. \<bar>eucl.det((*) (g' x))\<bar> *\<^sub>R f(g x)) = b
+     \<longleftrightarrow> f absolutely_integrable_on (g ` S) \<and> integral (g ` S) f = b"
+    by (rule has_absolute_integral_change_of_variables [OF S _ inj])
+       (use der_g in \<open>auto simp: has_vector_derivative_def mult.commute\<close>)
   then show ?thesis
-    using absolutely_integrable_on_def by blast
+    by (simp add: det_real)
 qed
 
 corollary absolutely_integrable_change_of_variables_1:
-  fixes f :: "real \<Rightarrow> 'b::euclidean_space::{finite,wellorder}" and g :: "real \<Rightarrow> real"
+  fixes f :: "real \<Rightarrow> 'b::euclidean_space" and g :: "real \<Rightarrow> real"
   assumes S: "S \<in> sets lebesgue"
     and der_g: "\<And>x. x \<in> S \<Longrightarrow> (g has_vector_derivative g' x) (at x within S)"
     and inj: "inj_on g S"
@@ -2974,24 +2998,26 @@ subsection\<open>Change of variables for integrals: special case of linear funct
 lemma has_absolute_integral_change_of_variables_linear:
   fixes f :: "'a::euclidean_space \<Rightarrow> 'b::euclidean_space" and g :: "'a \<Rightarrow> 'a"
   assumes "linear g"
-  shows "(\<lambda>x. \<bar>matrix_det (matrix g)\<bar> *\<^sub>R f(g x)) absolutely_integrable_on S \<and>
-           integral S (\<lambda>x. \<bar>matrix_det (matrix g)\<bar> *\<^sub>R f(g x)) = b
+  shows "(\<lambda>x. \<bar>eucl.det g\<bar> *\<^sub>R f(g x)) absolutely_integrable_on S \<and>
+           integral S (\<lambda>x. \<bar>eucl.det g\<bar> *\<^sub>R f(g x)) = b
      \<longleftrightarrow> f absolutely_integrable_on (g ` S) \<and> integral (g ` S) f = b"
-proof (cases "matrix_det(matrix g) = 0")
+proof (cases "eucl.det g = 0")
   case True
   then have "negligible(g ` S)"
-    using assms det_nz_iff_inj negligible_linear_singular_image by blast
+    using assms eucl.det_eq_0_iff negligible_linear_singular_image by blast
   with True show ?thesis
     by (auto simp: absolutely_integrable_on_def integrable_negligible integral_negligible)
 next
   case False
-  then obtain h where h: "\<And>x. x \<in> S \<Longrightarrow> h (g x) = x" "linear h"
-    using assms det_nz_iff_inj linear_injective_isomorphism by metis
+  then have "inj g"
+    using assms eucl.det_eq_0_iff by blast
+  then have h: "\<And>x. x \<in> S \<Longrightarrow> inv g (g x) = x" "linear (inv g)"
+    using inv_f_f eucl.inj_linear_imp_inv_linear assms by auto
   show ?thesis
   proof (rule has_absolute_integral_change_of_variables_invertible)
     show "(g has_derivative g) (at x within S)" for x
       by (simp add: assms linear_imp_has_derivative)
-    show "continuous_on (g ` S) h"
+    show "continuous_on (g ` S) (inv g)"
       using continuous_on_eq_continuous_within has_derivative_continuous linear_imp_has_derivative h by blast
   qed (use h in auto)
 qed
@@ -2999,7 +3025,7 @@ qed
 lemma absolutely_integrable_change_of_variables_linear:
   fixes f :: "'a::euclidean_space \<Rightarrow> 'b::euclidean_space" and g :: "'a \<Rightarrow> 'a"
   assumes "linear g"
-  shows "(\<lambda>x. \<bar>matrix_det (matrix g)\<bar> *\<^sub>R f(g x)) absolutely_integrable_on S
+  shows "(\<lambda>x. \<bar>eucl.det g\<bar> *\<^sub>R f(g x)) absolutely_integrable_on S
      \<longleftrightarrow> f absolutely_integrable_on (g ` S)"
   using assms has_absolute_integral_change_of_variables_linear by blast
 
@@ -3007,7 +3033,7 @@ lemma absolutely_integrable_on_linear_image:
   fixes f :: "'a::euclidean_space \<Rightarrow> 'b::euclidean_space" and g :: "'a \<Rightarrow> 'a"
   assumes "linear g"
   shows "f absolutely_integrable_on (g ` S)
-     \<longleftrightarrow> (f \<circ> g) absolutely_integrable_on S \<or> matrix_det(matrix g) = 0"
+     \<longleftrightarrow> (f \<circ> g) absolutely_integrable_on S \<or> eucl.det g = 0"
   unfolding assms absolutely_integrable_change_of_variables_linear [OF assms, symmetric] absolutely_integrable_on_scaleR_iff
   by (auto simp: set_integrable_def)
 
@@ -3015,12 +3041,12 @@ lemma integral_change_of_variables_linear:
   fixes f :: "'a::euclidean_space \<Rightarrow> 'b::euclidean_space" and g :: "'a \<Rightarrow> 'a"
   assumes "linear g"
       and "f absolutely_integrable_on (g ` S) \<or> (f \<circ> g) absolutely_integrable_on S"
-    shows "integral (g ` S) f = \<bar>matrix_det (matrix g)\<bar> *\<^sub>R integral S (f \<circ> g)"
+    shows "integral (g ` S) f = \<bar>eucl.det g\<bar> *\<^sub>R integral S (f \<circ> g)"
 proof -
-  have "((\<lambda>x. \<bar>matrix_det (matrix g)\<bar> *\<^sub>R f (g x)) absolutely_integrable_on S) \<or> (f absolutely_integrable_on g ` S)"
+  have "((\<lambda>x. \<bar>eucl.det g\<bar> *\<^sub>R f (g x)) absolutely_integrable_on S) \<or> (f absolutely_integrable_on g ` S)"
     using absolutely_integrable_on_linear_image assms by blast
   moreover
-  have ?thesis if "((\<lambda>x. \<bar>matrix_det (matrix g)\<bar> *\<^sub>R f (g x)) absolutely_integrable_on S)" "(f absolutely_integrable_on g ` S)"
+  have ?thesis if "((\<lambda>x. \<bar>eucl.det g\<bar> *\<^sub>R f (g x)) absolutely_integrable_on S)" "(f absolutely_integrable_on g ` S)"
     using has_absolute_integral_change_of_variables_linear [OF \<open>linear g\<close>] that
     by (auto simp: o_def)
   ultimately show ?thesis
@@ -3096,7 +3122,7 @@ lemma has_measure_differentiable_image:
       and "\<And>x. x \<in> S \<Longrightarrow> (f has_derivative f' x) (at x within S)"
       and "inj_on f S"
   shows "f ` S \<in> lmeasurable \<and> measure lebesgue (f ` S) = m
-     \<longleftrightarrow> ((\<lambda>x. \<bar>matrix_det (matrix (f' x))\<bar>) has_integral m) S"
+     \<longleftrightarrow> ((\<lambda>x. \<bar>eucl.det (f' x)\<bar>) has_integral m) S"
   using has_absolute_integral_change_of_variables [OF assms, of "\<lambda>x. (1::real^1)" "vec m"]
   unfolding absolutely_integrable_on_1_iff integral_on_1_eq integrable_on_1_iff absolutely_integrable_on_def
   by (auto simp: has_integral_iff lmeasurable_iff_integrable_on lmeasure_integral)
@@ -3106,7 +3132,7 @@ lemma measurable_differentiable_image_eq:
   assumes "S \<in> sets lebesgue"
       and "\<And>x. x \<in> S \<Longrightarrow> (f has_derivative f' x) (at x within S)"
       and "inj_on f S"
-  shows "f ` S \<in> lmeasurable \<longleftrightarrow> (\<lambda>x. \<bar>matrix_det (matrix (f' x))\<bar>) integrable_on S"
+  shows "f ` S \<in> lmeasurable \<longleftrightarrow> (\<lambda>x. \<bar>eucl.det (f' x)\<bar>) integrable_on S"
   using has_measure_differentiable_image [OF assms]
   by blast
 
@@ -3115,7 +3141,7 @@ lemma measurable_differentiable_image_alt:
   assumes "S \<in> sets lebesgue"
     and "\<And>x. x \<in> S \<Longrightarrow> (f has_derivative f' x) (at x within S)"
     and "inj_on f S"
-  shows "f ` S \<in> lmeasurable \<longleftrightarrow> (\<lambda>x. \<bar>matrix_det (matrix (f' x))\<bar>) absolutely_integrable_on S"
+  shows "f ` S \<in> lmeasurable \<longleftrightarrow> (\<lambda>x. \<bar>eucl.det (f' x)\<bar>) absolutely_integrable_on S"
   using measurable_differentiable_image_eq [OF assms]
   by (simp only: absolutely_integrable_on_iff_nonneg)
 
@@ -3124,8 +3150,8 @@ lemma measure_differentiable_image_eq:
   assumes S: "S \<in> sets lebesgue"
     and der_f: "\<And>x. x \<in> S \<Longrightarrow> (f has_derivative f' x) (at x within S)"
     and inj: "inj_on f S"
-    and intS: "(\<lambda>x. \<bar>matrix_det (matrix (f' x))\<bar>) integrable_on S"
-  shows "measure lebesgue (f ` S) = integral S (\<lambda>x. \<bar>matrix_det (matrix (f' x))\<bar>)"
+    and intS: "(\<lambda>x. \<bar>eucl.det (f' x)\<bar>) integrable_on S"
+  shows "measure lebesgue (f ` S) = integral S (\<lambda>x. \<bar>eucl.det (f' x)\<bar>)"
   using measurable_differentiable_image_eq [OF S der_f inj]
         assms has_measure_differentiable_image by blast
 
