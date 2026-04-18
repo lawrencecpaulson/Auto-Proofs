@@ -2521,42 +2521,54 @@ qed
 
 
 lemma cv_inv_version3:
-  fixes f :: "real^'m::{finite,wellorder} \<Rightarrow> real^'n" and g :: "real^'m::_ \<Rightarrow> real^'m::_"
+  fixes f :: "'a::euclidean_space \<Rightarrow> 'b::euclidean_space" and g :: "'a \<Rightarrow> 'a"
   assumes der_g: "\<And>x. x \<in> S \<Longrightarrow> (g has_derivative g' x) (at x within S)"
     and der_h: "\<And>y. y \<in> T \<Longrightarrow> (h has_derivative h' y) (at y within T)"
     and hg: "\<And>x. x \<in> S \<Longrightarrow> g x \<in> T \<and> h(g x) = x"
     and gh: "\<And>y. y \<in> T \<Longrightarrow> h y \<in> S \<and> g(h y) = y"
     and id: "\<And>y. y \<in> T \<Longrightarrow> h' y \<circ> g'(h y) = id"
-  shows "(\<lambda>x. \<bar>matrix_det (matrix (g' x))\<bar> *\<^sub>R f(g x)) absolutely_integrable_on S \<and>
-             integral S (\<lambda>x. \<bar>matrix_det (matrix (g' x))\<bar> *\<^sub>R f(g x)) = b
+  shows "(\<lambda>x. \<bar>eucl.det(g' x)\<bar> *\<^sub>R f(g x)) absolutely_integrable_on S \<and>
+             integral S (\<lambda>x. \<bar>eucl.det(g' x)\<bar> *\<^sub>R f(g x)) = b
          \<longleftrightarrow> f absolutely_integrable_on T \<and> integral T f = b"
 proof -
-  let ?D = "\<lambda>x. \<bar>matrix_det (matrix (g' x))\<bar> *\<^sub>R f(g x)"
-  have "((\<lambda>x. \<bar>matrix_det (matrix (g' x))\<bar> * f(g x) $ i) absolutely_integrable_on S \<and> integral S (\<lambda>x. \<bar>matrix_det (matrix (g' x))\<bar> * (f(g x) $ i)) = b $ i) \<longleftrightarrow>
-        ((\<lambda>x. f x $ i) absolutely_integrable_on T \<and> integral T (\<lambda>x. f x $ i) = b $ i)" for i
-    by (rule cov_invertible_real [OF der_g der_h hg gh id])
+  let ?D = "\<lambda>x. \<bar>eucl.det(g' x)\<bar> *\<^sub>R f(g x)"
+  have "((\<lambda>x. \<bar>eucl.det(g' x)\<bar> * (f(g x) \<bullet> i)) absolutely_integrable_on S \<and> integral S (\<lambda>x. \<bar>eucl.det(g' x)\<bar> * (f(g x) \<bullet> i)) = b \<bullet> i) \<longleftrightarrow>
+        ((\<lambda>x. f x \<bullet> i) absolutely_integrable_on T \<and> integral T (\<lambda>x. f x \<bullet> i) = b \<bullet> i)" for i
+    by (rule cov_invertible_real_eu [OF der_g der_h hg gh id])
   then have "?D absolutely_integrable_on S \<and> (?D has_integral b) S \<longleftrightarrow>
         f absolutely_integrable_on T \<and> (f has_integral b) T"
     unfolding absolutely_integrable_componentwise_iff [where f=f] has_integral_componentwise_iff [of f]
               absolutely_integrable_componentwise_iff [where f="?D"] has_integral_componentwise_iff [of ?D]
-    by (auto simp: all_conj_distrib Basis_vec_def cart_eq_inner_axis [symmetric]
-           has_integral_iff set_lebesgue_integral_eq_integral)
+    by (auto simp: all_conj_distrib has_integral_iff set_lebesgue_integral_eq_integral)
   then show ?thesis
     using absolutely_integrable_on_def by blast
 qed
 
 
 lemma cv_inv_version4:
-  fixes f :: "real^'m::{finite,wellorder} \<Rightarrow> real^'n" and g :: "real^'m::_ \<Rightarrow> real^'m::_"
-  assumes der_g: "\<And>x. x \<in> S \<Longrightarrow> (g has_derivative g' x) (at x within S) \<and> invertible(matrix(g' x))"
+  fixes f :: "'a::euclidean_space \<Rightarrow> 'b::euclidean_space" and g :: "'a \<Rightarrow> 'a"
+  assumes der_g: "\<And>x. x \<in> S \<Longrightarrow> (g has_derivative g' x) (at x within S) \<and> eucl.det(g' x) \<noteq> 0"
     and hg: "\<And>x. x \<in> S \<Longrightarrow> continuous_on (g ` S) h \<and> h(g x) = x"
-  shows "(\<lambda>x. \<bar>matrix_det (matrix (g' x))\<bar> *\<^sub>R f(g x)) absolutely_integrable_on S \<and>
-             integral S (\<lambda>x. \<bar>matrix_det (matrix (g' x))\<bar> *\<^sub>R f(g x)) = b
+  shows "(\<lambda>x. \<bar>eucl.det(g' x)\<bar> *\<^sub>R f(g x)) absolutely_integrable_on S \<and>
+             integral S (\<lambda>x. \<bar>eucl.det(g' x)\<bar> *\<^sub>R f(g x)) = b
          \<longleftrightarrow> f absolutely_integrable_on (g ` S) \<and> integral (g ` S) f = b"
 proof -
   have "\<forall>x. \<exists>h'. x \<in> S
            \<longrightarrow> (g has_derivative g' x) (at x within S) \<and> linear h' \<and> g' x \<circ> h' = id \<and> h' \<circ> g' x = id"
-    using der_g matrix_invertible has_derivative_linear by blast
+  proof
+    fix x show "\<exists>h'. x \<in> S
+           \<longrightarrow> (g has_derivative g' x) (at x within S) \<and> linear h' \<and> g' x \<circ> h' = id \<and> h' \<circ> g' x = id"
+    proof (cases "x \<in> S")
+      case True
+      then have "linear (g' x)" "inj (g' x)" "(g has_derivative g' x) (at x within S)"
+        using der_g has_derivative_linear eucl.det_eq_0_iff by blast+
+      then have "linear (inv (g' x))" "g' x \<circ> inv (g' x) = id" "inv (g' x) \<circ> g' x = id"
+        using eucl.inj_linear_imp_inv_linear inv_o_cancel surj_iff eucl.linear_inj_imp_surj
+        by blast+
+      then show ?thesis
+        using \<open>(g has_derivative g' x) (at x within S)\<close> by blast
+    qed auto
+  qed
   then obtain h' where h':
     "\<And>x. x \<in> S
            \<Longrightarrow> (g has_derivative g' x) (at x within S) \<and>
@@ -2572,15 +2584,15 @@ qed
 
 
 theorem has_absolute_integral_change_of_variables_invertible:
-  fixes f :: "real^'m::{finite,wellorder} \<Rightarrow> real^'n" and g :: "real^'m::_ \<Rightarrow> real^'m::_"
+  fixes f :: "'a::euclidean_space \<Rightarrow> 'b::euclidean_space" and g :: "'a \<Rightarrow> 'a"
   assumes der_g: "\<And>x. x \<in> S \<Longrightarrow> (g has_derivative g' x) (at x within S)"
       and hg: "\<And>x. x \<in> S \<Longrightarrow> h(g x) = x"
       and conth: "continuous_on (g ` S) h"
-  shows "(\<lambda>x. \<bar>matrix_det (matrix (g' x))\<bar> *\<^sub>R f(g x)) absolutely_integrable_on S \<and> integral S (\<lambda>x. \<bar>matrix_det (matrix (g' x))\<bar> *\<^sub>R f(g x)) = b \<longleftrightarrow>
+  shows "(\<lambda>x. \<bar>eucl.det(g' x)\<bar> *\<^sub>R f(g x)) absolutely_integrable_on S \<and> integral S (\<lambda>x. \<bar>eucl.det(g' x)\<bar> *\<^sub>R f(g x)) = b \<longleftrightarrow>
          f absolutely_integrable_on (g ` S) \<and> integral (g ` S) f = b"
     (is "?lhs = ?rhs")
 proof -
-  let ?S = "{x \<in> S. invertible (matrix (g' x))}" and ?D = "\<lambda>x. \<bar>matrix_det (matrix (g' x))\<bar> *\<^sub>R f(g x)"
+  let ?S = "{x \<in> S. invertible (matrix (g' x))}" and ?D = "\<lambda>x. \<bar>eucl.det(g' x)\<bar> *\<^sub>R f(g x)"
   have *: "?D absolutely_integrable_on ?S \<and> integral ?S ?D = b
            \<longleftrightarrow> f absolutely_integrable_on (g ` ?S) \<and> integral (g ` ?S) f = b"
   proof (rule cv_inv_version4)
@@ -2616,12 +2628,12 @@ qed
 
 
 theorem has_absolute_integral_change_of_variables_compact:
-  fixes f :: "real^'m::{finite,wellorder} \<Rightarrow> real^'n" and g :: "real^'m::_ \<Rightarrow> real^'m::_"
+  fixes f :: "'a::euclidean_space \<Rightarrow> 'b::euclidean_space" and g :: "'a \<Rightarrow> 'a"
   assumes "compact S"
       and der_g: "\<And>x. x \<in> S \<Longrightarrow> (g has_derivative g' x) (at x within S)"
       and inj: "inj_on g S"
-  shows "((\<lambda>x. \<bar>matrix_det (matrix (g' x))\<bar> *\<^sub>R f(g x)) absolutely_integrable_on S \<and>
-             integral S (\<lambda>x. \<bar>matrix_det (matrix (g' x))\<bar> *\<^sub>R f(g x)) = b
+  shows "((\<lambda>x. \<bar>eucl.det(g' x)\<bar> *\<^sub>R f(g x)) absolutely_integrable_on S \<and>
+             integral S (\<lambda>x. \<bar>eucl.det(g' x)\<bar> *\<^sub>R f(g x)) = b
       \<longleftrightarrow> f absolutely_integrable_on (g ` S) \<and> integral (g ` S) f = b)"
 proof -
   obtain h where hg: "\<And>x. x \<in> S \<Longrightarrow> h(g x) = x"
@@ -2634,22 +2646,22 @@ qed
 
 
 lemma has_absolute_integral_change_of_variables_compact_family:
-  fixes f :: "real^'m::{finite,wellorder} \<Rightarrow> real^'n" and g :: "real^'m::_ \<Rightarrow> real^'m::_"
+  fixes f :: "'a::euclidean_space \<Rightarrow> 'b::euclidean_space" and g :: "'a \<Rightarrow> 'a"
   assumes compact: "\<And>n::nat. compact (F n)"
       and der_g: "\<And>x. x \<in> (\<Union>n. F n) \<Longrightarrow> (g has_derivative g' x) (at x within (\<Union>n. F n))"
       and inj: "inj_on g (\<Union>n. F n)"
-  shows "((\<lambda>x. \<bar>matrix_det (matrix (g' x))\<bar> *\<^sub>R f(g x)) absolutely_integrable_on (\<Union>n. F n) \<and>
-             integral (\<Union>n. F n) (\<lambda>x. \<bar>matrix_det (matrix (g' x))\<bar> *\<^sub>R f(g x)) = b
+  shows "((\<lambda>x. \<bar>eucl.det(g' x)\<bar> *\<^sub>R f(g x)) absolutely_integrable_on (\<Union>n. F n) \<and>
+             integral (\<Union>n. F n) (\<lambda>x. \<bar>eucl.det(g' x)\<bar> *\<^sub>R f(g x)) = b
       \<longleftrightarrow> f absolutely_integrable_on (g ` (\<Union>n. F n)) \<and> integral (g ` (\<Union>n. F n)) f = b)"
 proof -
-  let ?D = "\<lambda>x. \<bar>matrix_det (matrix (g' x))\<bar> *\<^sub>R f (g x)"
+  let ?D = "\<lambda>x. \<bar>eucl.det(g' x)\<bar> *\<^sub>R f (g x)"
   let ?U = "\<lambda>n. \<Union>m\<le>n. F m"
   let ?lift = "vec::real\<Rightarrow>real^1"
   have F_leb: "F m \<in> sets lebesgue" for m
     by (simp add: compact borel_compact)
-  have iff: "(\<lambda>x. \<bar>matrix_det (matrix (g' x))\<bar> *\<^sub>R f (g x)) absolutely_integrable_on (?U n) \<and>
-             integral (?U n) (\<lambda>x. \<bar>matrix_det (matrix (g' x))\<bar> *\<^sub>R f (g x)) = b
-         \<longleftrightarrow> f absolutely_integrable_on (g ` (?U n)) \<and> integral (g ` (?U n)) f = b" for n b and f :: "real^'m::_ \<Rightarrow> real^'k"
+  have iff: "(\<lambda>x. \<bar>eucl.det(g' x)\<bar> *\<^sub>R f (g x)) absolutely_integrable_on (?U n) \<and>
+             integral (?U n) (\<lambda>x. \<bar>eucl.det(g' x)\<bar> *\<^sub>R f (g x)) = b
+         \<longleftrightarrow> f absolutely_integrable_on (g ` (?U n)) \<and> integral (g ` (?U n)) f = b" for n b and f :: "'a \<Rightarrow> real^'k"
   proof (rule has_absolute_integral_change_of_variables_compact)
     show "compact (?U n)"
       by (simp add: compact compact_UN)
@@ -2686,7 +2698,7 @@ proof -
           have "(norm \<circ> ?D) absolutely_integrable_on ?U n"
             by (intro absolutely_integrable_norm DU)
           then have "integral (g ` ?U n) (norm \<circ> f) = integral (?U n) (norm \<circ> ?D)"
-            using iff [of n "vec \<circ> norm \<circ> f" "integral (?U n) (\<lambda>x. \<bar>matrix_det (matrix (g' x))\<bar> *\<^sub>R (?lift \<circ> norm \<circ> f) (g x))"]
+            using iff [of n "vec \<circ> norm \<circ> f" "integral (?U n) (\<lambda>x. \<bar>eucl.det(g' x)\<bar> *\<^sub>R (?lift \<circ> norm \<circ> f) (g x))"]
             unfolding absolutely_integrable_on_1_iff integral_on_1_eq by (auto simp: o_def)
         }
         moreover have "bounded (range (\<lambda>k. integral (?U k) (norm \<circ> ?D)))"
@@ -2807,22 +2819,22 @@ qed
 
 
 theorem has_absolute_integral_change_of_variables:
-  fixes f :: "real^'m::{finite,wellorder} \<Rightarrow> real^'n" and g :: "real^'m::_ \<Rightarrow> real^'m::_"
+  fixes f :: "'a::euclidean_space \<Rightarrow> 'b::euclidean_space" and g :: "'a \<Rightarrow> 'a"
   assumes S: "S \<in> sets lebesgue"
     and der_g: "\<And>x. x \<in> S \<Longrightarrow> (g has_derivative g' x) (at x within S)"
     and inj: "inj_on g S"
-  shows "(\<lambda>x. \<bar>matrix_det (matrix (g' x))\<bar> *\<^sub>R f(g x)) absolutely_integrable_on S \<and>
-           integral S (\<lambda>x. \<bar>matrix_det (matrix (g' x))\<bar> *\<^sub>R f(g x)) = b
+  shows "(\<lambda>x. \<bar>eucl.det(g' x)\<bar> *\<^sub>R f(g x)) absolutely_integrable_on S \<and>
+           integral S (\<lambda>x. \<bar>eucl.det(g' x)\<bar> *\<^sub>R f(g x)) = b
      \<longleftrightarrow> f absolutely_integrable_on (g ` S) \<and> integral (g ` S) f = b"
 proof -
   obtain C N where "fsigma C" and N: "N \<in> null_sets lebesgue" and CNS: "C \<union> N = S" and "disjnt C N"
     using lebesgue_set_almost_fsigma [OF S] .
-  then obtain F :: "nat \<Rightarrow> (real^'m::_) set"
+  then obtain F :: "nat \<Rightarrow> ('a) set"
     where F: "range F \<subseteq> Collect compact" and Ceq: "C = Union(range F)"
     using fsigma_Union_compact by metis
   have "negligible N"
     using N by (simp add: negligible_iff_null_sets)
-  let ?D = "\<lambda>x. \<bar>matrix_det (matrix (g' x))\<bar> *\<^sub>R f (g x)"
+  let ?D = "\<lambda>x. \<bar>eucl.det(g' x)\<bar> *\<^sub>R f (g x)"
   have "?D absolutely_integrable_on C \<and> integral C ?D = b
     \<longleftrightarrow> f absolutely_integrable_on (g ` C) \<and> integral (g ` C) f = b"
     unfolding Ceq
@@ -2871,27 +2883,27 @@ qed
 
 
 corollary absolutely_integrable_change_of_variables:
-  fixes f :: "real^'m::{finite,wellorder} \<Rightarrow> real^'n" and g :: "real^'m::_ \<Rightarrow> real^'m::_"
+  fixes f :: "'a::euclidean_space \<Rightarrow> 'b::euclidean_space" and g :: "'a \<Rightarrow> 'a"
   assumes "S \<in> sets lebesgue"
     and "\<And>x. x \<in> S \<Longrightarrow> (g has_derivative g' x) (at x within S)"
     and "inj_on g S"
   shows "f absolutely_integrable_on (g ` S)
-     \<longleftrightarrow> (\<lambda>x. \<bar>matrix_det (matrix (g' x))\<bar> *\<^sub>R f(g x)) absolutely_integrable_on S"
+     \<longleftrightarrow> (\<lambda>x. \<bar>eucl.det(g' x)\<bar> *\<^sub>R f(g x)) absolutely_integrable_on S"
   using assms has_absolute_integral_change_of_variables by blast
 
 corollary integral_change_of_variables:
-  fixes f :: "real^'m::{finite,wellorder} \<Rightarrow> real^'n" and g :: "real^'m::_ \<Rightarrow> real^'m::_"
+  fixes f :: "'a::euclidean_space \<Rightarrow> 'b::euclidean_space" and g :: "'a \<Rightarrow> 'a"
   assumes S: "S \<in> sets lebesgue"
     and der_g: "\<And>x. x \<in> S \<Longrightarrow> (g has_derivative g' x) (at x within S)"
     and inj: "inj_on g S"
     and disj: "(f absolutely_integrable_on (g ` S) \<or>
-        (\<lambda>x. \<bar>matrix_det (matrix (g' x))\<bar> *\<^sub>R f(g x)) absolutely_integrable_on S)"
-  shows "integral (g ` S) f = integral S (\<lambda>x. \<bar>matrix_det (matrix (g' x))\<bar> *\<^sub>R f(g x))"
+        (\<lambda>x. \<bar>eucl.det(g' x)\<bar> *\<^sub>R f(g x)) absolutely_integrable_on S)"
+  shows "integral (g ` S) f = integral S (\<lambda>x. \<bar>eucl.det(g' x)\<bar> *\<^sub>R f(g x))"
   using has_absolute_integral_change_of_variables [OF S der_g inj] disj
   by blast
 
 lemma has_absolute_integral_change_of_variables_1:
-  fixes f :: "real \<Rightarrow> real^'n::{finite,wellorder}" and g :: "real \<Rightarrow> real"
+  fixes f :: "real \<Rightarrow> 'b::euclidean_space::{finite,wellorder}" and g :: "real \<Rightarrow> real"
   assumes S: "S \<in> sets lebesgue"
     and der_g: "\<And>x. x \<in> S \<Longrightarrow> (g has_vector_derivative g' x) (at x within S)"
     and inj: "inj_on g S"
@@ -2929,7 +2941,7 @@ proof -
 qed
 
 corollary absolutely_integrable_change_of_variables_1:
-  fixes f :: "real \<Rightarrow> real^'n::{finite,wellorder}" and g :: "real \<Rightarrow> real"
+  fixes f :: "real \<Rightarrow> 'b::euclidean_space::{finite,wellorder}" and g :: "real \<Rightarrow> real"
   assumes S: "S \<in> sets lebesgue"
     and der_g: "\<And>x. x \<in> S \<Longrightarrow> (g has_vector_derivative g' x) (at x within S)"
     and inj: "inj_on g S"
@@ -2960,7 +2972,7 @@ qed
 subsection\<open>Change of variables for integrals: special case of linear function\<close>
 
 lemma has_absolute_integral_change_of_variables_linear:
-  fixes f :: "real^'m::{finite,wellorder} \<Rightarrow> real^'n" and g :: "real^'m::_ \<Rightarrow> real^'m::_"
+  fixes f :: "'a::euclidean_space \<Rightarrow> 'b::euclidean_space" and g :: "'a \<Rightarrow> 'a"
   assumes "linear g"
   shows "(\<lambda>x. \<bar>matrix_det (matrix g)\<bar> *\<^sub>R f(g x)) absolutely_integrable_on S \<and>
            integral S (\<lambda>x. \<bar>matrix_det (matrix g)\<bar> *\<^sub>R f(g x)) = b
@@ -2985,14 +2997,14 @@ next
 qed
 
 lemma absolutely_integrable_change_of_variables_linear:
-  fixes f :: "real^'m::{finite,wellorder} \<Rightarrow> real^'n" and g :: "real^'m::_ \<Rightarrow> real^'m::_"
+  fixes f :: "'a::euclidean_space \<Rightarrow> 'b::euclidean_space" and g :: "'a \<Rightarrow> 'a"
   assumes "linear g"
   shows "(\<lambda>x. \<bar>matrix_det (matrix g)\<bar> *\<^sub>R f(g x)) absolutely_integrable_on S
      \<longleftrightarrow> f absolutely_integrable_on (g ` S)"
   using assms has_absolute_integral_change_of_variables_linear by blast
 
 lemma absolutely_integrable_on_linear_image:
-  fixes f :: "real^'m::{finite,wellorder} \<Rightarrow> real^'n" and g :: "real^'m::_ \<Rightarrow> real^'m::_"
+  fixes f :: "'a::euclidean_space \<Rightarrow> 'b::euclidean_space" and g :: "'a \<Rightarrow> 'a"
   assumes "linear g"
   shows "f absolutely_integrable_on (g ` S)
      \<longleftrightarrow> (f \<circ> g) absolutely_integrable_on S \<or> matrix_det(matrix g) = 0"
@@ -3000,7 +3012,7 @@ lemma absolutely_integrable_on_linear_image:
   by (auto simp: set_integrable_def)
 
 lemma integral_change_of_variables_linear:
-  fixes f :: "real^'m::{finite,wellorder} \<Rightarrow> real^'n" and g :: "real^'m::_ \<Rightarrow> real^'m::_"
+  fixes f :: "'a::euclidean_space \<Rightarrow> 'b::euclidean_space" and g :: "'a \<Rightarrow> 'a"
   assumes "linear g"
       and "f absolutely_integrable_on (g ` S) \<or> (f \<circ> g) absolutely_integrable_on S"
     shows "integral (g ` S) f = \<bar>matrix_det (matrix g)\<bar> *\<^sub>R integral S (f \<circ> g)"
@@ -3079,7 +3091,7 @@ qed
 subsection\<open>Change of variable for measure\<close>
 
 lemma has_measure_differentiable_image:
-  fixes f :: "real^'n::{finite,wellorder} \<Rightarrow> real^'n::_"
+  fixes f :: "'a::euclidean_space \<Rightarrow> 'a"
   assumes "S \<in> sets lebesgue"
       and "\<And>x. x \<in> S \<Longrightarrow> (f has_derivative f' x) (at x within S)"
       and "inj_on f S"
@@ -3090,7 +3102,7 @@ lemma has_measure_differentiable_image:
   by (auto simp: has_integral_iff lmeasurable_iff_integrable_on lmeasure_integral)
 
 lemma measurable_differentiable_image_eq:
-  fixes f :: "real^'n::{finite,wellorder} \<Rightarrow> real^'n::_"
+  fixes f :: "'a::euclidean_space \<Rightarrow> 'a::euclidean_space"
   assumes "S \<in> sets lebesgue"
       and "\<And>x. x \<in> S \<Longrightarrow> (f has_derivative f' x) (at x within S)"
       and "inj_on f S"
@@ -3099,7 +3111,7 @@ lemma measurable_differentiable_image_eq:
   by blast
 
 lemma measurable_differentiable_image_alt:
-  fixes f :: "real^'n::{finite,wellorder} \<Rightarrow> real^'n::_"
+  fixes f :: "'a::euclidean_space \<Rightarrow> 'a"
   assumes "S \<in> sets lebesgue"
     and "\<And>x. x \<in> S \<Longrightarrow> (f has_derivative f' x) (at x within S)"
     and "inj_on f S"
@@ -3108,7 +3120,7 @@ lemma measurable_differentiable_image_alt:
   by (simp only: absolutely_integrable_on_iff_nonneg)
 
 lemma measure_differentiable_image_eq:
-  fixes f :: "real^'n::{finite,wellorder} \<Rightarrow> real^'n::_"
+  fixes f :: "'a::euclidean_space \<Rightarrow> 'a"
   assumes S: "S \<in> sets lebesgue"
     and der_f: "\<And>x. x \<in> S \<Longrightarrow> (f has_derivative f' x) (at x within S)"
     and inj: "inj_on f S"
