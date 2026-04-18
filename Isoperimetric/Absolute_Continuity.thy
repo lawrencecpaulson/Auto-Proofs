@@ -4,20 +4,15 @@ begin
 
 text \<open>
   Absolute continuity for functions @{typ "real \<Rightarrow> 'a::euclidean_space"},
-  following HOL Light's @{text "Multivariate/integration.ml"} (lines 22442--23825)
-  and the fundamental theorem of calculus for absolutely continuous functions
-  from @{text "Multivariate/measure.ml"} (line 24882).
-
-  In HOL Light, @{text "absolutely_continuous_on"} is defined via
-  @{text "absolutely_setcontinuous_on"} applied to the increment function.
-  We give an equivalent direct \<open>\<epsilon>\<close>-\<open>\<delta>\<close> formulation.
+   and the fundamental theorem of calculus for absolutely continuous functions
+  from HOL Light.
 \<close>
 
 lemma lebesgue_measure_eq_content:
   assumes "d division_of S"
   shows "measure lebesgue S = sum Henstock_Kurzweil_Integration.content d"
-by (metis Finite_Cartesian_Product.sum_cong_aux assms content_division division_ofD(4)
-    fmeasurableD fmeasurable_cbox measure_completion)
+  by (metis assms content_division division_ofD(4) fmeasurableD fmeasurable_cbox
+      measure_completion sum.cong)
 
 lemma content_box_cases:
   "measure lborel (box a b) = (if \<forall>i\<in>Basis. a\<bullet>i \<le> b\<bullet>i then prod (\<lambda>i. b\<bullet>i - a\<bullet>i) Basis else 0)"
@@ -38,7 +33,7 @@ section \<open>Absolute set-continuity\<close>
 
 definition absolutely_setcontinuous_on ::
   "('a::euclidean_space set \<Rightarrow> 'b::euclidean_space) \<Rightarrow> 'a set \<Rightarrow> bool" where
-  "absolutely_setcontinuous_on f s \<longleftrightarrow>
+  "absolutely_setcontinuous_on f s \<equiv>
     (\<forall>\<epsilon>>0. \<exists>\<delta>>0. \<forall>d t. d division_of t \<and> t \<subseteq> s \<and>
       (\<Sum>k\<in>d. content k) < \<delta> \<longrightarrow> (\<Sum>k\<in>d. norm (f k)) < \<epsilon>)"
 
@@ -220,7 +215,7 @@ section \<open>Absolute continuity for functions\<close>
 
 definition absolutely_continuous_on ::
   "real set \<Rightarrow> (real \<Rightarrow> 'a::euclidean_space) \<Rightarrow> bool" where
-  "absolutely_continuous_on s f \<longleftrightarrow>
+  "absolutely_continuous_on s f \<equiv>
     absolutely_setcontinuous_on (\<lambda>k. f (Sup k) - f (Inf k)) s"
 
 subsection \<open>Basic properties\<close>
