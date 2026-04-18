@@ -1958,7 +1958,73 @@ proof -
     using S_compact lmeasurable_compact by blast
   \<comment> \<open>Now prove the measure equals the integral using change of variables\<close>
   have S_measure: "measure lebesgue S = integral {a..b} f"
-    sorry
+  proof -
+    \<comment> \<open>Step 1: Get a bound M for f on [a,b]\<close>
+    have f_int: "f integrable_on {a..b}"
+      using integrable_continuous_real cont_g by blast
+    obtain M where M: "\<forall>x \<in> {a..b}. f x \<le> M" "0 \<le> M"
+    proof -
+      have "compact (f ` {a..b})"
+        using compact_continuous_image[OF cont_g compact_Icc] by blast
+      then obtain M where "M \<in> f ` {a..b}" "\<forall>y \<in> f ` {a..b}. y \<le> M"
+        using compact_attains_sup[of "f ` {a..b}"] assms(1) by auto
+      then have "\<forall>x \<in> {a..b}. f x \<le> M"
+        by auto
+      moreover have "0 \<le> M"
+        using \<open>M \<in> f ` {a..b}\<close> assms(3) by auto
+      ultimately show ?thesis using that by blast
+    qed
+    \<comment> \<open>Step 2: S is a subset of the complex cbox [a,b] \<times> [0,M]\<close>
+    define B where "B \<equiv> cbox (Complex a 0) (Complex b M)"
+    have S_sub_B: "S \<subseteq> B"
+      unfolding S_def B_def
+      by (smt (verit) M(1) complex.sel in_cbox_complex_iff interval_cbox mem_Collect_eq
+          mem_box_real(2) subsetI)
+    show ?thesis
+    proof -
+      \<comment> \<open>Use change of variables: \<psi> maps [a,b]\<times>[0,1] to S\<close>
+      define \<psi> where "\<psi> \<equiv> \<lambda>z::complex. Complex (Re z) (Im z * f (Re z))"
+      define R where "R \<equiv> cbox (Complex a 0) (Complex b 1)"
+      have \<psi>_R_eq_S: "\<psi> ` R = S"
+      proof (rule set_eqI)
+        fix z :: complex
+        show "z \<in> \<psi> ` R \<longleftrightarrow> z \<in> S"
+        proof
+          assume "z \<in> \<psi> ` R"
+          then obtain w where w: "w \<in> R" "z = \<psi> w" by auto
+          then have hw: "a \<le> Re w" "Re w \<le> b" "0 \<le> Im w" "Im w \<le> 1"
+            unfolding R_def by (auto simp: in_cbox_complex_iff)
+          show "z \<in> S"
+            unfolding S_def using hw assms(3)[of "Re w"] w
+            by (auto simp: \<psi>_def complex.sel intro: mult_left_le_one_le mult_nonneg_nonneg)
+        next
+          assume "z \<in> S"
+          then have hz: "a \<le> Re z" "Re z \<le> b" "0 \<le> Im z" "Im z \<le> f (Re z)"
+            unfolding S_def by auto
+          show "z \<in> \<psi> ` R"
+          proof (cases "f (Re z) = 0")
+            case True
+            then have "Im z = 0" using hz(3,4) by linarith
+            then have "z = \<psi> (Complex (Re z) 0)"
+              unfolding \<psi>_def by (simp add: complex_eq_iff)
+            then show ?thesis using hz(1,2) unfolding R_def
+              by (auto simp: in_cbox_complex_iff)
+          next
+            case False
+            define t where "t \<equiv> Im z / f (Re z)"
+            have "0 < f (Re z)" using False hz(3,4) assms(3) hz(1,2) by linarith
+            then have "t \<in> {0..1}" unfolding t_def using hz(3,4) by (auto simp: field_simps)
+            moreover have "z = \<psi> (Complex (Re z) t)"
+              unfolding \<psi>_def t_def using False by (simp add: complex_eq_iff)
+            ultimately show ?thesis using hz(1,2) unfolding R_def
+              by (auto simp: in_cbox_complex_iff)
+          qed
+        qed
+      qed
+      show ?thesis
+        sorry
+    qed
+  qed
   show "{z::complex. a \<le> Re z \<and> Re z \<le> b \<and> 0 \<le> Im z \<and> Im z \<le> f (Re z)} \<in> lmeasurable"
     using S_meas unfolding S_def .
   show "measure lebesgue {z::complex. a \<le> Re z \<and> Re z \<le> b \<and> 0 \<le> Im z \<and> Im z \<le> f (Re z)}

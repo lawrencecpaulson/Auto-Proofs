@@ -2170,82 +2170,6 @@ proof -
   qed
 qed
 
-
-
-lemma absolutely_integrable_on_image_real:
-  fixes f :: "real^'n::{finite,wellorder} \<Rightarrow> real" and g :: "real^'n::_ \<Rightarrow> real^'n::_"
-  assumes der_g: "\<And>x. x \<in> S \<Longrightarrow> (g has_derivative g' x) (at x within S)"
-    and intS: "(\<lambda>x. \<bar>matrix_det (matrix (g' x))\<bar> * f(g x)) absolutely_integrable_on S"
-  shows "f absolutely_integrable_on (g ` S)"
-proof -
-  let ?D = "\<lambda>x. \<bar>matrix_det (matrix (g' x))\<bar> * f (g x)"
-  let ?N = "{x \<in> S. f (g x) < 0}" and ?P = "{x \<in> S. f (g x) > 0}"
-  have eq: "{x. (if x \<in> S then ?D x else 0) > 0} = {x \<in> S. ?D x > 0}"
-           "{x. (if x \<in> S then ?D x else 0) < 0} = {x \<in> S. ?D x < 0}"
-    by auto
-  have "?D integrable_on S"
-    using intS absolutely_integrable_on_def by blast
-  then have "(\<lambda>x. if x \<in> S then ?D x else 0) integrable_on UNIV"
-    by (simp add: integrable_restrict_UNIV)
-  then have D_borel: "(\<lambda>x. if x \<in> S then ?D x else 0) \<in> borel_measurable (lebesgue_on UNIV)"
-    using integrable_imp_measurable lebesgue_on_UNIV_eq by blast
-  then have Dlt: "{x \<in> S. ?D x < 0} \<in> sets lebesgue"
-    unfolding borel_measurable_vimage_halfspace_component_lt
-    by (drule_tac x=0 in spec) (auto simp: eq)
-  from D_borel have Dgt: "{x \<in> S. ?D x > 0} \<in> sets lebesgue"
-    unfolding borel_measurable_vimage_halfspace_component_gt
-    by (drule_tac x=0 in spec) (auto simp: eq)
-
-  have dfgbm: "?D \<in> borel_measurable (lebesgue_on S)"
-    using intS absolutely_integrable_on_def integrable_imp_measurable by blast
-  have der_gN: "(g has_derivative g' x) (at x within ?N)" if "x \<in> ?N" for x
-      using der_g has_derivative_subset that by force
-  have "(\<lambda>x. - f x) integrable_on g ` ?N \<and>
-         integral (g ` ?N) (\<lambda>x. - f x) \<le> integral ?N (\<lambda>x. \<bar>matrix_det (matrix (g' x))\<bar> * - f (g x))"
-  proof (rule integral_on_image_ubound_nonneg [OF _ der_gN])
-    have 1: "?D integrable_on {x \<in> S. ?D x < 0}"
-      using Dlt
-      by (auto intro: set_lebesgue_integral_eq_integral [OF set_integrable_subset] intS)
-    have "uminus \<circ> (\<lambda>x. \<bar>matrix_det (matrix (g' x))\<bar> * - f (g x)) integrable_on ?N"
-      by (simp add: o_def mult_less_0_iff empty_imp_negligible integrable_spike_set [OF 1])
-    then show "(\<lambda>x. \<bar>matrix_det (matrix (g' x))\<bar> * - f (g x)) integrable_on ?N"
-      by (simp add: integrable_neg_iff o_def)
-  qed auto
-  then have "f integrable_on g ` ?N"
-    by (simp add: integrable_neg_iff)
-  moreover have "g ` ?N = {y \<in> g ` S. f y < 0}"
-    by auto
-  ultimately have "f integrable_on {y \<in> g ` S. f y < 0}"
-    by simp
-  then have N: "f absolutely_integrable_on {y \<in> g ` S. f y < 0}"
-    by (rule absolutely_integrable_absolutely_integrable_ubound) auto
-
-  have der_gP: "(g has_derivative g' x) (at x within ?P)" if "x \<in> ?P" for x
-      using der_g has_derivative_subset that by force
-    have "f integrable_on g ` ?P \<and> integral (g ` ?P) f \<le> integral ?P ?D"
-    proof (rule integral_on_image_ubound_nonneg [OF _ der_gP])
-      show "?D integrable_on ?P"
-      proof (rule integrable_spike_set)
-        show "?D integrable_on {x \<in> S. 0 < ?D x}"
-          using Dgt
-          by (auto intro: set_lebesgue_integral_eq_integral [OF set_integrable_subset] intS)
-      qed (auto simp: zero_less_mult_iff empty_imp_negligible)
-    qed auto
-  then have "f integrable_on g ` ?P"
-    by metis
-  moreover have "g ` ?P = {y \<in> g ` S. f y > 0}"
-    by auto
-  ultimately have "f integrable_on {y \<in> g ` S. f y > 0}"
-    by simp
-  then have P: "f absolutely_integrable_on {y \<in> g ` S. f y > 0}"
-    by (rule absolutely_integrable_absolutely_integrable_lbound) auto
-  have "(\<lambda>x. if x \<in> g ` S \<and> f x < 0 \<or> x \<in> g ` S \<and> 0 < f x then f x else 0) = (\<lambda>x. if x \<in> g ` S then f x else 0)"
-    by auto
-  then show ?thesis
-    using absolutely_integrable_Un [OF N P] absolutely_integrable_restrict_UNIV [symmetric, where f=f]
-    by simp
-qed
-
 lemma absolutely_integrable_on_image_real_eu:
   fixes f :: "'a::euclidean_space \<Rightarrow> real" and g :: "'a \<Rightarrow> 'a"
   assumes der_g: "\<And>x. x \<in> S \<Longrightarrow> (g has_derivative g' x) (at x within S)"
@@ -2320,16 +2244,6 @@ proof -
     by simp
 qed
 
-
-
-proposition absolutely_integrable_on_image:
-  fixes f :: "real^'m::{finite,wellorder} \<Rightarrow> real^'n" and g :: "real^'m::_ \<Rightarrow> real^'m::_"
-  assumes der_g: "\<And>x. x \<in> S \<Longrightarrow> (g has_derivative g' x) (at x within S)"
-    and intS: "(\<lambda>x. \<bar>matrix_det (matrix (g' x))\<bar> *\<^sub>R f(g x)) absolutely_integrable_on S"
-  shows "f absolutely_integrable_on (g ` S)"
-  apply (rule absolutely_integrable_componentwise [OF absolutely_integrable_on_image_real [OF der_g]])
-  using absolutely_integrable_component [OF intS]  by auto
-
 proposition absolutely_integrable_on_image_eu:
   fixes f :: "'a::euclidean_space \<Rightarrow> 'b::euclidean_space" and g :: "'a \<Rightarrow> 'a"
   assumes der_g: "\<And>x. x \<in> S \<Longrightarrow> (g has_derivative g' x) (at x within S)"
@@ -2338,9 +2252,10 @@ proposition absolutely_integrable_on_image_eu:
 proof (rule absolutely_integrable_componentwise)
   fix b :: 'b assume "b \<in> Basis"
   have "(\<lambda>x. \<bar>eucl.det (g' x)\<bar> * (f (g x) \<bullet> b)) absolutely_integrable_on S"
-    using absolutely_integrable_component [OF intS \<open>b \<in> Basis\<close>] by simp
+    using absolutely_integrable_component [OF intS, of b]
+    by (simp add: inner_scaleR_left)
   then show "(\<lambda>x. f x \<bullet> b) absolutely_integrable_on g ` S"
-    by (rule absolutely_integrable_on_image_real_eu [OF der_g])
+    by (auto intro: absolutely_integrable_on_image_real_eu der_g)
 qed
 
 proposition integral_on_image_ubound_eu:
