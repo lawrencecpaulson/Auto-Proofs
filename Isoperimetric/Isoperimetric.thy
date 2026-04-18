@@ -1896,142 +1896,6 @@ text \<open>Part 2: a very special case of Green's theorem for a convex area\<cl
 
 text \<open>Area under/above an arc, and the signed area formula for a convex closed curve.\<close>
 
-text \<open>Cavalieri principle: measure of the subgraph of a nonneg continuous function
-  equals the integral of that function.\<close>
-lemma subgraph_measure_eq_integral:
-  fixes f :: "real \<Rightarrow> real"
-  assumes "a \<le> b"
-    and "continuous_on {a..b} f"
-    and "\<And>x. x \<in> {a..b} \<Longrightarrow> 0 \<le> f x"
-  shows "{z::complex. a \<le> Re z \<and> Re z \<le> b \<and> 0 \<le> Im z \<and> Im z \<le> f (Re z)} \<in> lmeasurable"
-    and "measure lebesgue {z::complex. a \<le> Re z \<and> Re z \<le> b \<and> 0 \<le> Im z \<and> Im z \<le> f (Re z)}
-       = integral {a..b} f"
-proof -
-  define S where "S \<equiv> {z::complex. a \<le> Re z \<and> Re z \<le> b \<and> 0 \<le> Im z \<and> Im z \<le> f (Re z)}"
-  have cont_g: "continuous_on {a..b} f" by fact
-  \<comment> \<open>The subgraph is the continuous image of a compact set, hence compact\<close>
-  have S_compact: "compact S"
-  proof -
-    define \<phi> where "\<phi> \<equiv> \<lambda>(x::real, t::real). Complex x (t * f x)"
-    have cont_\<phi>: "continuous_on ({a..b} \<times> {0..1}) \<phi>"
-      unfolding \<phi>_def split_def
-      by (intro continuous_intros continuous_on_compose2[OF cont_g] continuous_on_fst) auto
-    have img: "\<phi> ` ({a..b} \<times> {0..1}) = S"
-    proof (rule set_eqI)
-      fix z :: complex
-      show "z \<in> \<phi> ` ({a..b} \<times> {0..1}) \<longleftrightarrow> z \<in> S"
-      proof
-        assume "z \<in> \<phi> ` ({a..b} \<times> {0..1})"
-        then obtain x t where xt: "x \<in> {a..b}" "t \<in> {0..1}" "z = Complex x (t * f x)"
-          unfolding \<phi>_def by auto
-        then show "z \<in> S"
-          unfolding S_def using assms(3)[OF xt(1)]
-          by (auto simp: complex.sel intro: mult_left_le_one_le mult_nonneg_nonneg)
-      next
-        assume "z \<in> S"
-        then have hz: "a \<le> Re z" "Re z \<le> b" "0 \<le> Im z" "Im z \<le> f (Re z)"
-          unfolding S_def by auto
-        show "z \<in> \<phi> ` ({a..b} \<times> {0..1})"
-        proof (cases "f (Re z) = 0")
-          case True
-          then have "Im z = 0" using hz(3,4) by linarith
-          then have "z = \<phi> (Re z, 0)"
-            unfolding \<phi>_def by (simp add: complex_eq_iff)
-          then show ?thesis using hz(1,2) by auto
-        next
-          case False
-          define t where "t \<equiv> Im z / f (Re z)"
-          have "0 < f (Re z)" using False hz(3,4) assms(3) hz(1,2) by linarith
-          then have "t \<in> {0..1}" unfolding t_def using hz(3,4) by (auto simp: field_simps)
-          moreover have "z = \<phi> (Re z, t)"
-            unfolding \<phi>_def t_def using False by (simp add: complex_eq_iff)
-          ultimately show ?thesis using hz(1,2) by auto
-        qed
-      qed
-    qed
-    have "compact ({a..b} \<times> {0..1::real})"
-      by (intro compact_Times compact_Icc)
-    then show "compact S"
-      using img compact_continuous_image[OF cont_\<phi>] by simp
-  qed
-  have S_meas: "S \<in> lmeasurable"
-    using S_compact lmeasurable_compact by blast
-  \<comment> \<open>Now prove the measure equals the integral using change of variables\<close>
-  have S_measure: "measure lebesgue S = integral {a..b} f"
-  proof -
-    \<comment> \<open>Step 1: Get a bound M for f on [a,b]\<close>
-    have f_int: "f integrable_on {a..b}"
-      using integrable_continuous_real cont_g by blast
-    obtain M where M: "\<forall>x \<in> {a..b}. f x \<le> M" "0 \<le> M"
-    proof -
-      have "compact (f ` {a..b})"
-        using compact_continuous_image[OF cont_g compact_Icc] by blast
-      then obtain M where "M \<in> f ` {a..b}" "\<forall>y \<in> f ` {a..b}. y \<le> M"
-        using compact_attains_sup[of "f ` {a..b}"] assms(1) by auto
-      then have "\<forall>x \<in> {a..b}. f x \<le> M"
-        by auto
-      moreover have "0 \<le> M"
-        using \<open>M \<in> f ` {a..b}\<close> assms(3) by auto
-      ultimately show ?thesis using that by blast
-    qed
-    \<comment> \<open>Step 2: S is a subset of the complex cbox [a,b] \<times> [0,M]\<close>
-    define B where "B \<equiv> cbox (Complex a 0) (Complex b M)"
-    have S_sub_B: "S \<subseteq> B"
-      unfolding S_def B_def
-      by (smt (verit) M(1) complex.sel in_cbox_complex_iff interval_cbox mem_Collect_eq
-          mem_box_real(2) subsetI)
-    show ?thesis
-    proof -
-      \<comment> \<open>Use change of variables: \<psi> maps [a,b]\<times>[0,1] to S\<close>
-      define \<psi> where "\<psi> \<equiv> \<lambda>z::complex. Complex (Re z) (Im z * f (Re z))"
-      define R where "R \<equiv> cbox (Complex a 0) (Complex b 1)"
-      have \<psi>_R_eq_S: "\<psi> ` R = S"
-      proof (rule set_eqI)
-        fix z :: complex
-        show "z \<in> \<psi> ` R \<longleftrightarrow> z \<in> S"
-        proof
-          assume "z \<in> \<psi> ` R"
-          then obtain w where w: "w \<in> R" "z = \<psi> w" by auto
-          then have hw: "a \<le> Re w" "Re w \<le> b" "0 \<le> Im w" "Im w \<le> 1"
-            unfolding R_def by (auto simp: in_cbox_complex_iff)
-          show "z \<in> S"
-            unfolding S_def using hw assms(3)[of "Re w"] w
-            by (auto simp: \<psi>_def complex.sel intro: mult_left_le_one_le mult_nonneg_nonneg)
-        next
-          assume "z \<in> S"
-          then have hz: "a \<le> Re z" "Re z \<le> b" "0 \<le> Im z" "Im z \<le> f (Re z)"
-            unfolding S_def by auto
-          show "z \<in> \<psi> ` R"
-          proof (cases "f (Re z) = 0")
-            case True
-            then have "Im z = 0" using hz(3,4) by linarith
-            then have "z = \<psi> (Complex (Re z) 0)"
-              unfolding \<psi>_def by (simp add: complex_eq_iff)
-            then show ?thesis using hz(1,2) unfolding R_def
-              by (auto simp: in_cbox_complex_iff)
-          next
-            case False
-            define t where "t \<equiv> Im z / f (Re z)"
-            have "0 < f (Re z)" using False hz(3,4) assms(3) hz(1,2) by linarith
-            then have "t \<in> {0..1}" unfolding t_def using hz(3,4) by (auto simp: field_simps)
-            moreover have "z = \<psi> (Complex (Re z) t)"
-              unfolding \<psi>_def t_def using False by (simp add: complex_eq_iff)
-            ultimately show ?thesis using hz(1,2) unfolding R_def
-              by (auto simp: in_cbox_complex_iff)
-          qed
-        qed
-      qed
-      show ?thesis
-        sorry
-    qed
-  qed
-  show "{z::complex. a \<le> Re z \<and> Re z \<le> b \<and> 0 \<le> Im z \<and> Im z \<le> f (Re z)} \<in> lmeasurable"
-    using S_meas unfolding S_def .
-  show "measure lebesgue {z::complex. a \<le> Re z \<and> Re z \<le> b \<and> 0 \<le> Im z \<and> Im z \<le> f (Re z)}
-       = integral {a..b} f"
-    using S_measure unfolding S_def .
-qed
-
 text \<open>1D substitution for absolutely continuous monotone functions.\<close>
 lemma has_integral_substitution_ac:
   fixes \<phi> :: "real \<Rightarrow> real" and \<phi>' :: "real \<Rightarrow> real" and f :: "real \<Rightarrow> real"
@@ -2047,8 +1911,8 @@ lemma has_integral_substitution_ac:
 lemma area_below_arclet:
   fixes g :: "real \<Rightarrow> complex" and g' :: "real \<Rightarrow> complex"
   assumes "u \<le> v"
-    and "Re (g u) \<le> Re (g v)"
-    and "absolutely_continuous_on {u..v} g"
+    and Re_g_le: "Re (g u) \<le> Re (g v)"
+    and acont_g: "absolutely_continuous_on {u..v} g"
     and "g ` {u..v} \<subseteq> {z. Im z \<ge> 0}"
     and inj_g: "inj_on g {u..v}"
     and inj_Re: "inj_on Re (g ` {u..v})"
@@ -2058,30 +1922,14 @@ lemma area_below_arclet:
     and "integral {u..v} (\<lambda>t. Re (g' t) * Im (g t)) =
       measure lebesgue {z. \<exists>w \<in> g ` {u..v}. Re w = Re z \<and> 0 \<le> Im z \<and> Im z \<le> Im w}"
 proof -
-  obtain h where h: "\<And>x. x \<in> {u..v} \<Longrightarrow> h (g (Re x)) = x"
-    using inj_Re unfolding inj_on_def
-    by (metis inj_g atLeastAtMost_iff the_inv_into_f_f Re_complex_of_real)
-  define ax where "ax \<equiv> (\<lambda>t. g (Re t)) ` {u..v}"
+  obtain h where h: "\<And>x. x \<in> {u..v} \<Longrightarrow> h (Re (g x)) = x"
+    using inj_Re inj_g inv_into_f_f [of "Re o g" "{u..v}"]
+    by (metis comp_inj_on inj_Re inj_g o_def)
+  define ax where "ax \<equiv> (\<lambda>t. Re (g t)) ` {u..v}"
   have cont_h: "continuous_on ax h"
-  proof -
-    have ax_eq: "ax = g ` {u..v}"
-      unfolding ax_def image_cong[OF refl] by simp
-    have cont_g: "continuous_on {u..v} g"
-      using assms(3) absolutely_continuous_on_imp_continuous is_interval_cc by blast
-    have "continuous_on (g ` {u..v}) (the_inv_into {u..v} g)"
-      by (rule continuous_on_inv_into[OF cont_g compact_Icc inj_g])
-    moreover have "h y = the_inv_into {u..v} g y" if "y \<in> g ` {u..v}" for y
-    proof -
-      from that obtain x where x: "x \<in> {u..v}" "y = g x" by auto
-      have "h y = h (g (Re (of_real x)))" using x by simp
-      also have "\<dots> = x" using h x(1) by blast
-      also have "\<dots> = the_inv_into {u..v} g y" 
-        using the_inv_into_f_f[OF inj_g x(1)] x(2) by simp
-      finally show ?thesis .
-    qed
-    ultimately show ?thesis
-      unfolding ax_eq using continuous_on_cong by force
-  qed
+    unfolding ax_def
+    by (simp add: absolutely_continuous_on_imp_continuous assms(3) continuous_on_Re
+        continuous_on_inv h)
   show "(\<lambda>t. Re (g' t) * Im (g t)) absolutely_integrable_on {u..v}"
   proof -
     have cont_g: "continuous_on {u..v} g"
@@ -2107,6 +1955,57 @@ proof -
       using absolutely_integrable_bounded_measurable_product_real [OF Im_g_meas _ Im_g_bdd Re_gp_ai]
       by (simp add: mult.commute)
   qed
+  have cont_g: "continuous_on {u..v} g"
+    using acont_g absolutely_continuous_on_imp_continuous is_interval_cc by blast
+  have cont_Reg: "continuous_on {u..v} (\<lambda>t. Re (g t))"
+    by (intro continuous_intros cont_g)
+  have inj_Reg: "inj_on (\<lambda>t. Re (g t)) {u..v}"
+    using comp_inj_on[OF inj_g inj_Re] by (simp add: o_def)
+  have ax: "ax = {Re (g u)..Re (g v)}"
+  proof (rule antisym)
+    show "ax \<subseteq> {Re (g u)..Re (g v)}"
+    proof (cases "u = v")
+      case True then show ?thesis unfolding ax_def by auto
+    next
+      case False
+      with \<open>u \<le> v\<close> have uv: "u < v" by auto
+      have smono: "strict_mono_on {u..v} (\<lambda>t. Re (g t)) \<or>
+                   strict_antimono_on {u..v} (\<lambda>t. Re (g t))"
+        using injective_eq_monotone_map[OF is_interval_cc cont_Reg] inj_Reg by auto
+      have mono: "strict_mono_on {u..v} (\<lambda>t. Re (g t))"
+      proof -
+        { assume am: "strict_antimono_on {u..v} (\<lambda>t. Re (g t))"
+          have "Re (g v) < Re (g u)"
+          proof -
+            from am have "antimono_on {u..v} (\<lambda>t. Re (g t))"
+              and "inj_on (\<lambda>t. Re (g t)) {u..v}"
+              using strict_antimono_iff_antimono by blast+
+            then have "mono_on {u..v} (\<lambda>t. - Re (g t))"
+              by (simp add: monotone_on_def)
+            then have "- Re (g u) \<le> - Re (g v)"
+              using mono_onD uv by fastforce
+            then show ?thesis
+              by (metis False assms(1,2) atLeastAtMost_iff h neg_le_iff_le nle_le)
+          qed
+          with Re_g_le have False by auto }
+        with smono show ?thesis by blast
+      qed
+      show ?thesis
+        using mono by (auto simp: monotone_on_def ax_def less_eq_real_def)
+    qed
+  next
+    show "{Re (g u)..Re (g v)} \<subseteq> ax"
+    proof
+      fix y assume "y \<in> {Re (g u)..Re (g v)}"
+      then have y: "Re (g u) \<le> y" "y \<le> Re (g v)" by auto
+      obtain t where t: "t \<in> {u..v}" "g t \<bullet> 1 = y"
+        using ivt_increasing_component_on_1[OF \<open>u \<le> v\<close> cont_g, of 1 y] y
+        by (auto simp: complex_inner_1_right)
+      then have "Re (g t) = y" by (simp add: complex_inner_1_right)
+      with t(1) show "y \<in> ax"
+        unfolding ax_def by force
+    qed
+  qed
   show "integral {u..v} (\<lambda>t. Re (g' t) * Im (g t)) =
       measure lebesgue {z. \<exists>w \<in> g ` {u..v}. Re w = Re z \<and> 0 \<le> Im z \<and> Im z \<le> Im w}"
     sorry
@@ -2127,7 +2026,7 @@ lemma area_above_arclet:
       measure lebesgue {z. \<exists>w \<in> g ` {u..v}. Re w = Re z \<and> Im w \<le> Im z \<and> Im z \<le> 0}"
   sorry
 
-theorem green_area_theorem:
+theorem Green_area_theorem:
   fixes g :: "real \<Rightarrow> complex" and g' :: "real \<Rightarrow> complex"
     and a b :: "complex"
   assumes "simple_path g" "pathstart g = a" "pathfinish g = a"
