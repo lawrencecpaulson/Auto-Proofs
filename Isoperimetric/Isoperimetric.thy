@@ -301,11 +301,7 @@ proof -
     have "emeasure (lborel \<Otimes>\<^sub>M lborel) {(x, y). h x = y} =
       (\<integral>\<^sup>+ x. emeasure lborel (Pair x -` {(x, y). h x = y}) \<partial>lborel)"
       by (rule lborel.emeasure_pair_measure_alt[OF graph_h_borel])
-    also have "\<dots> = (\<integral>\<^sup>+ x. 0 \<partial>lborel)"
-      by (simp add: emeasure_lborel_singleton)
-    also have "\<dots> = 0"
-      by force
-    finally show ?thesis by simp 
+    then show ?thesis by simp
   qed
   then have graph_h_null: "{(x, y). h x = y} \<in> null_sets (lborel :: (real \<times> real) measure)"
     by (metis graph_h_borel lborel_prod null_setsI)
@@ -2250,69 +2246,63 @@ lemma has_integral_area_under_curve:
   shows "measure lebesgue {z :: complex. a \<le> Re z \<and> Re z \<le> b \<and> 0 \<le> Im z \<and> Im z \<le> f (Re z)} =
          integral {a..b} f"
 proof -
-  \<comment> \<open>Define the subgraph set in \<real>²\<close>
-  define S' :: "(real \<times> real) set" where
-    "S' \<equiv> {(x, y). a \<le> x \<and> x \<le> b \<and> 0 \<le> y \<and> y \<le> f x}"
-  define \<phi> :: "real \<times> real \<Rightarrow> complex" where "\<phi> \<equiv> (\<lambda>(x, y). Complex x y)"
-  have S_eq: "{z :: complex. a \<le> Re z \<and> Re z \<le> b \<and> 0 \<le> Im z \<and> Im z \<le> f (Re z)} = \<phi> ` S'"
-    unfolding S'_def \<phi>_def by (fastforce simp: image_iff complex.expand)
-  \<comment> \<open>Show \<phi> is linear\<close>
-  have lin_\<phi>: "linear \<phi>"
-    unfolding \<phi>_def by (intro linearI) (auto simp: plus_complex.ctr scaleR_complex.ctr)
-  \<comment> \<open>Show |det(matrix \<phi>)| = 1\<close>
-  have det_\<phi>: "\<bar>det (matrix \<phi>)\<bar> = 1"
+  define S :: "complex set" where
+    "S \<equiv> {z. a \<le> Re z \<and> Re z \<le> b \<and> 0 \<le> Im z \<and> Im z \<le> f (Re z)}"
+  \<comment> \<open>Show S is compact hence lmeasurable\<close>
+  have compact_fimg: "compact (f ` {a..b})"
+    using compact_continuous_image[OF assms(2) compact_Icc] .
+  then have "bounded (f ` {a..b})" by (rule compact_imp_bounded)
+  then obtain M where M_bound: "\<And>y. y \<in> f ` {a..b} \<Longrightarrow> norm y \<le> M"
+    unfolding bounded_iff by auto
+  have M: "\<And>x. x \<in> {a..b} \<Longrightarrow> f x \<le> M"
   proof -
-    have "norm (\<phi> v) = norm v" for v
-      unfolding \<phi>_def by (cases v) (simp add: norm_complex_def norm_prod_def)
-    then have "orthogonal_matrix (matrix \<phi>)"
-      using lin_\<phi> unfolding orthogonal_transformation orthogonal_transformation_matrix
-      by auto
-    then show ?thesis by (simp add: orthogonal_matrix_def det_orthogonal_matrix)
-  qed
-  \<comment> \<open>Show S' is compact hence lmeasurable\<close>
-  have "compact S'"
-  proof -
-    have bdd: "bounded (f ` {a..b})"
-      using compact_continuous_image[OF assms(2) compact_Icc] compact_imp_bounded by blast
-    then obtain M where M: "\<And>x. x \<in> {a..b} \<Longrightarrow> f x \<le> M"
-      by (meson bounded_iff imageI)
-    have "S' \<subseteq> {a..b} \<times> {0..M}"
-      unfolding S'_def using M assms(3) by (auto simp: le_max_iff_disj)
-    moreover have "closed S'"
-    proof -
-      have "closed {(x, y). a \<le> x \<and> x \<le> b \<and> 0 \<le> y \<and> (y::real) \<le> f x}"
-      proof (intro closed_Collect_conj closed_Collect_le continuous_on_fst continuous_on_snd
-                   continuous_on_const continuous_on_compose2[OF assms(2)])
-        show "continuous_on UNIV fst" by (rule continuous_on_fst)
-      next
-        show "fst ` UNIV \<subseteq> {a..b}" sorry
-      qed sorry
-      then show ?thesis unfolding S'_def by auto
-    qed
-    ultimately show ?thesis
-      by (meson bounded_subset compact_Times compact_Icc compact_eq_bounded_closed)
-  qed
-  then have S'_meas: "S' \<in> lmeasurable" by (rule lmeasurable_compact)
-  \<comment> \<open>Convert measure to integral via change of variables\<close>
-  have S_meas: "\<phi> ` S' \<in> lmeasurable"
-    using measurable_linear_image[OF lin_\<phi> S'_meas] .
-  have meas_eq: "measure lebesgue (\<phi> ` S') = measure lebesgue S'"
-    using measure_linear_image[OF lin_\<phi> S'_meas] det_\<phi> by simp
-  \<comment> \<open>Compute measure of S' via Fubini\<close>
-  have "measure lebesgue S' = integral S' (\<lambda>p. 1 :: real)"
-    using lmeasure_integral[OF S'_meas] .
-  also have "\<dots> = integral {a..b} (\<lambda>x. integral {0..f x} (\<lambda>y. 1 :: real))"
-  proof -
-    sorry
-  qed
-  also have "\<dots> = integral {a..b} f"
-  proof (rule integral_cong)
     fix x assume "x \<in> {a..b}"
-    then have "f x \<ge> 0" using assms(3) by auto
-    then show "integral {0..f x} (\<lambda>y. 1 :: real) = f x"
-      by (simp add: integral_const_real)
+    then have "norm (f x) \<le> M" using M_bound by auto
+    moreover have "f x \<ge> 0" using assms(3) \<open>x \<in> {a..b}\<close> by auto
+    ultimately show "f x \<le> M" by auto
   qed
-  finally show ?thesis unfolding S_eq meas_eq .
+  have "S \<subseteq> cbox (Complex a 0) (Complex b M)"
+    unfolding S_def using M cbox_complex_eq by fastforce
+  then have bdd: "bounded S"
+    using bounded_subset bounded_cbox by blast
+  have "closed S"
+    unfolding S_def closed_sequential_limits
+  proof (intro allI impI)
+    fix s :: "nat \<Rightarrow> complex" and l :: complex
+    assume H: "(\<forall>n. s n \<in> {z. a \<le> Re z \<and> Re z \<le> b \<and> 0 \<le> Im z \<and> Im z \<le> f (Re z)}) \<and> s \<longlonglongrightarrow> l"
+    then have s_in: "\<And>n. a \<le> Re (s n) \<and> Re (s n) \<le> b \<and> 0 \<le> Im (s n) \<and> Im (s n) \<le> f (Re (s n))"
+      and lim: "s \<longlonglongrightarrow> l" by auto
+    have lim_Re: "(\<lambda>n. Re (s n)) \<longlonglongrightarrow> Re l"
+      using lim tendsto_Re by auto
+    have lim_Im: "(\<lambda>n. Im (s n)) \<longlonglongrightarrow> Im l"
+      using lim tendsto_Im by auto
+    have fl: "a \<le> Re l" "Re l \<le> b"
+      using lim_mono[OF _ tendsto_const lim_Re] s_in
+        lim_mono[OF _ lim_Re tendsto_const] s_in by auto
+    have nn: "0 \<le> Im l"
+      using lim_mono[OF _ tendsto_const lim_Im] s_in by auto
+    have le: "Im l \<le> f (Re l)"
+    proof -
+      have Rel: "Re l \<in> {a..b}" using fl by auto
+      have Re_s_in: "\<And>n. Re (s n) \<in> {a..b}"
+        using s_in by auto
+      have f_lim: "(\<lambda>n. f (Re (s n))) \<longlonglongrightarrow> f (Re l)"
+        by (rule continuous_on_tendsto_compose[OF assms(2) lim_Re])
+           (use Re_s_in Rel in auto)
+      show ?thesis
+        using lim_mono[of 0 "\<lambda>n. Im (s n)" "\<lambda>n. f (Re (s n))" "Im l" "f (Re l)"]
+          lim_Im f_lim s_in by auto
+    qed
+    show "l \<in> {z. a \<le> Re z \<and> Re z \<le> b \<and> 0 \<le> Im z \<and> Im z \<le> f (Re z)}"
+      using fl nn le by auto
+  qed
+  then have "compact S" using bdd compact_eq_bounded_closed by auto
+  then have S_meas: "S \<in> lmeasurable" by (rule lmeasurable_compact)
+  \<comment> \<open>Compute measure of S via Fubini / Cavalieri\<close>
+  \<comment> \<open>The measure of the subgraph equals the integral of the height function\<close>
+  have "measure lebesgue S = integral {a..b} f"
+    sorry
+  then show ?thesis unfolding S_def .
 qed
 
 lemma area_below_arclet:
