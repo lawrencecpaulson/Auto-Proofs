@@ -1078,7 +1078,7 @@ proof (cases \<open>a<b\<close>)
         using HS[of \<open>\<epsilon>/2\<close>] by force
       have \<open>\<exists>d>0. (x \<in> {a..b} - S \<longrightarrow>
               (\<forall>y. \<bar>y - x\<bar> < d \<and> y \<in> {a..b} \<longrightarrow>
-                norm (f y - f x - (y - x) *\<^sub>R g x) \<le> \<epsilon>/2 / (b - a) * \<bar>y - x\<bar>))\<close> for x
+                norm (f y - f x - (y - x) *\<^sub>R g x) \<le> \<epsilon>/2 / (b-a) * \<bar>y - x\<bar>))\<close> for x
       proof (cases \<open>x \<in> {a..b} - S\<close>)
         case False
         then show ?thesis
@@ -1089,28 +1089,21 @@ proof (cases \<open>a<b\<close>)
           using deriv by blast
         then have hd: \<open>(f has_derivative (\<lambda>h. h *\<^sub>R f' x)) (at x within {a..b})\<close>
           by (simp add: has_vector_derivative_def)
-        have \<open>0 < \<epsilon>/2 / (b - a)\<close>
+        have \<open>0 < \<epsilon>/2 / (b-a)\<close>
           using \<open>0 < \<epsilon>\<close> \<open>a < b\<close> by simp
         with hd obtain d where \<open>d > 0\<close>
           and d: \<open>\<And>y. y \<in> {a..b} \<Longrightarrow> norm (y - x) < d \<Longrightarrow>
-                       norm (f y - f x - (y - x) *\<^sub>R f' x) \<le> \<epsilon>/2 / (b - a) * norm (y - x)\<close>
+                       norm (f y - f x - (y - x) *\<^sub>R f' x) \<le> \<epsilon>/2 / (b-a) * norm (y - x)\<close>
           unfolding has_derivative_within_alt by blast
         have gx: \<open>g x = f' x\<close>
           using True by (simp add: g_def)
         show ?thesis
-        proof (intro exI conjI impI allI)
-          show \<open>d > 0\<close> by fact
-        next
-          fix y
-          assume \<open>x \<in> {a..b} - S\<close> \<open>\<bar>y - x\<bar> < d \<and> y \<in> {a..b}\<close>
-          then show \<open>norm (f y - f x - (y - x) *\<^sub>R g x) \<le> \<epsilon>/2 / (b - a) * \<bar>y - x\<bar>\<close>
-            using d[of y] by (simp add: gx real_norm_def)
-        qed
+          using \<open>0 < d\<close> d gx by auto
       qed
       then obtain d where dpos: \<open>\<And>x. d x >0\<close>
           and D: \<open>\<And>x. x \<in> {a..b} - S \<longrightarrow>
                       (\<forall>y. \<bar>y - x\<bar> < d x \<and> y \<in> {a..b} \<longrightarrow>
-                      norm (f y - f x - (y - x) *\<^sub>R g x) \<le> \<epsilon>/2 / (b - a) * \<bar>y - x\<bar>)\<close>
+                      norm (f y - f x - (y - x) *\<^sub>R g x) \<le> \<epsilon>/2 / (b-a) * \<bar>y - x\<bar>)\<close>
         by metis
       define \<gamma> where \<open>\<gamma> \<equiv> \<lambda>x. g1 x \<inter> ball x (d x)\<close>
       show "\<exists>\<gamma>. gauge \<gamma> \<and> (\<forall>\<D>. \<D> tagged_division_of {a..b} \<and> \<gamma> fine \<D> \<longrightarrow> norm ((\<Sum>(x, k)\<in>\<D>. content k *\<^sub>R g x) - (f b - f a)) < \<epsilon>)"
@@ -1153,7 +1146,7 @@ proof (cases \<open>a<b\<close>)
           have N_bound: \<open>norm (\<Sum>(x,k)\<in>\<D>N. content k *\<^sub>R g x - (f (Sup k) - f (Inf k))) \<le> \<epsilon>/2\<close> (is "?L \<le> _")
           proof -
             \<comment> \<open>Fact 1: norm bound by per-element derivative bound\<close>
-            have step1: \<open>?L \<le> (\<Sum>(x,k)\<in>\<D>N. \<epsilon>/2 / (b - a) * (Sup k - Inf k))\<close>
+            have step1: \<open>?L \<le> (\<Sum>(x,k)\<in>\<D>N. \<epsilon>/2 / (b-a) * (Sup k - Inf k))\<close>
             proof (rule sum_norm_le)
               fix xk assume xk_in: \<open>xk \<in> \<D>N\<close>
               obtain x k where xk: \<open>xk = (x, k)\<close> and mem: \<open>(x, k) \<in> \<D>\<close> \<open>x \<notin> S\<close>
@@ -1183,10 +1176,10 @@ proof (cases \<open>a<b\<close>)
                 using k_ball inf_in by (auto simp: dist_real_def)
               \<comment> \<open>Apply derivative bound D at Sup k and Inf k\<close>
               have bnd_sup: \<open>norm (f (Sup k) - f x - (Sup k - x) *\<^sub>R g x)
-                            \<le> \<epsilon>/2 / (b - a) * \<bar>Sup k - x\<bar>\<close>
+                            \<le> \<epsilon>/2 / (b-a) * \<bar>Sup k - x\<bar>\<close>
                 using D x_ab sup_near sup_ab by auto
               have bnd_inf: \<open>norm (f (Inf k) - f x - (Inf k - x) *\<^sub>R g x)
-                            \<le> \<epsilon>/2 / (b - a) * \<bar>Inf k - x\<bar>\<close>
+                            \<le> \<epsilon>/2 / (b-a) * \<bar>Inf k - x\<bar>\<close>
                 using D x_ab inf_near inf_ab by auto
               \<comment> \<open>Algebraic decomposition\<close>
               have decomp: \<open>content k *\<^sub>R g x - (f (Sup k) - f (Inf k))
@@ -1198,23 +1191,17 @@ proof (cases \<open>a<b\<close>)
                   \<le> norm (f (Inf k) - f x - (Inf k - x) *\<^sub>R g x)
                    + norm (f (Sup k) - f x - (Sup k - x) *\<^sub>R g x)\<close>
                 unfolding decomp by (rule norm_triangle_ineq4)
-              also have \<open>\<dots> \<le> \<epsilon>/2 / (b - a) * \<bar>Inf k - x\<bar>
-                           + \<epsilon>/2 / (b - a) * \<bar>Sup k - x\<bar>\<close>
+              also have \<open>\<dots> \<le> \<epsilon>/2 / (b-a) * \<bar>Inf k - x\<bar> + \<epsilon>/2 / (b-a) * \<bar>Sup k - x\<bar>\<close>
                 using bnd_inf bnd_sup by linarith
-              also have \<open>\<dots> = \<epsilon>/2 / (b - a) * (Sup k - Inf k)\<close>
-              proof -
-                have abs1: \<open>\<bar>Inf k - x\<bar> = x - Inf k\<close> using ce sup_k inf_k by auto
-                have abs2: \<open>\<bar>Sup k - x\<bar> = Sup k - x\<close> using ce sup_k inf_k by auto
-                show ?thesis unfolding abs1 abs2
-                  by (simp add: add_divide_distrib[symmetric] algebra_simps)
-              qed
+              also have \<open>\<dots> = \<epsilon>/2 / (b-a) * (Sup k - Inf k)\<close>
+                by (simp add: ce(2,3) inf_k right_diff_distrib' sup_k)
               finally show \<open>norm (case xk of (x,k) \<Rightarrow> content k *\<^sub>R g x - (f (Sup k) - f (Inf k)))
-                          \<le> (case xk of (x,k) \<Rightarrow> \<epsilon>/2 / (b - a) * (Sup k - Inf k))\<close>
+                          \<le> (case xk of (x,k) \<Rightarrow> \<epsilon>/2 / (b-a) * (Sup k - Inf k))\<close>
                 by (simp add: xk)
             qed
             \<comment> \<open>Fact 2: subset monotonicity of nonneg sum\<close>
-            have step2: \<open>(\<Sum>(x,k)\<in>\<D>N. \<epsilon>/2 / (b - a) * (Sup k - Inf k))
-                        \<le> (\<Sum>(x,k)\<in>\<D>.  \<epsilon>/2 / (b - a) * (Sup k - Inf k))\<close>
+            have step2: \<open>(\<Sum>(x,k)\<in>\<D>N. \<epsilon>/2 / (b-a) * (Sup k - Inf k))
+                        \<le> (\<Sum>(x,k)\<in>\<D>.  \<epsilon>/2 / (b-a) * (Sup k - Inf k))\<close>
             proof (rule sum_mono2)
               show \<open>finite \<D>\<close> using tagged_division_of_finite[OF td] .
               show \<open>\<D>N \<subseteq> \<D>\<close> unfolding \<D>N_def by auto
@@ -1224,20 +1211,12 @@ proof (cases \<open>a<b\<close>)
                 using tagged_division_ofD(4,2) td
                 by (smt (verit) atLeastAtMost_iff box_real(2) subset_iff)
               then have \<open>Sup k \<ge> Inf k\<close> by simp
-              then show \<open>0 \<le> (case xk of (x,k) \<Rightarrow> \<epsilon>/2 / (b - a) * (Sup k - Inf k))\<close>
+              then show \<open>0 \<le> (case xk of (x,k) \<Rightarrow> \<epsilon>/2 / (b-a) * (Sup k - Inf k))\<close>
                 using \<open>0 < \<epsilon>\<close> True \<open>xk = (x,k)\<close> by (auto intro!: mult_nonneg_nonneg)
             qed
-            have sum_eq: \<open>(\<Sum>(x,k)\<in>\<D>. \<epsilon>/2 / (b - a) * (Sup k - Inf k))
-                        = \<epsilon>/2 / (b - a) * (b - a)\<close>
-            proof -
-              have \<open>(\<Sum>(x,k)\<in>\<D>. \<epsilon>/2 / (b - a) * (Sup k - Inf k))
-                  = \<epsilon>/2 / (b - a) * (\<Sum>(x,k)\<in>\<D>. Sup k - Inf k)\<close>
-                by (auto simp: sum_distrib_left case_prod_unfold)
-              also have \<open>\<dots> = \<epsilon>/2 / (b - a) * (b - a)\<close>
-                by (simp add: sum_len)
-              finally show ?thesis .
-            qed
-            have \<open>?L \<le> \<epsilon>/2 / (b - a) * (b - a)\<close>
+            have sum_eq: \<open>(\<Sum>(x,k)\<in>\<D>. \<epsilon>/2 / (b-a) * (Sup k - Inf k)) = \<epsilon>/2 / (b-a) * (b-a)\<close>
+              by (smt (verit) case_prod_unfold divide_divide_eq_left sum.cong sum_distrib_left sum_len)
+            have \<open>?L \<le> \<epsilon>/2 / (b-a) * (b-a)\<close>
               using step1 step2 sum_eq by linarith
             also have \<open>\<dots> = \<epsilon>/2\<close>
               using True divide_eq_eq by fastforce
@@ -1262,7 +1241,8 @@ proof (cases \<open>a<b\<close>)
                    = (\<Sum>(x,k)\<in>\<D>S. f (Inf k) - f (Sup k))\<close>
           proof (rule sum.cong[OF refl])
             fix xk assume \<open>xk \<in> \<D>S\<close>
-            then obtain x k where \<open>xk = (x,k)\<close> \<open>x \<in> S\<close> unfolding \<D>S_def by auto
+            then obtain x k where \<open>xk = (x,k)\<close> \<open>x \<in> S\<close> 
+              unfolding \<D>S_def by auto
             then show \<open>(case xk of (x,k) \<Rightarrow> content k *\<^sub>R g x - (f (Sup k) - f (Inf k)))
                      = (case xk of (x,k) \<Rightarrow> (f (Inf k) - f (Sup k)))\<close>
               by (simp add: g_def split: prod.splits)
@@ -1322,9 +1302,8 @@ proof -
     have \<open>(\<Sum>(x,k)\<in>p. content k) = (\<Sum>(x,k)\<in>p. norm (content k *\<^sub>R indicat_real S x - integral k (indicat_real S)))\<close>
       using eq content_pos_le
       by (intro sum.cong[OF refl]) fastforce
-    also have \<open>\<dots> < \<delta>\<close>
-      using \<gamma>[OF pd fine] .
-    finally show \<open>(\<Sum>(x,k)\<in>p. content k) < \<delta>\<close> .
+    then show \<open>(\<Sum>(x,k)\<in>p. content k) < \<delta>\<close>
+      using \<gamma>[OF pd fine] by presburger
   qed
 qed
 
@@ -1374,13 +1353,7 @@ proof -
     have div: \<open>snd ` p division_of \<Union>(snd ` p)\<close>
       using partial_division_of_tagged_division[OF pd] .
     have sub: \<open>\<Union>(snd ` p) \<subseteq> {a..b}\<close>
-    proof
-      fix x assume \<open>x \<in> \<Union>(snd ` p)\<close>
-      then obtain K T where \<open>K \<in> snd ` p\<close> \<open>x \<in> K\<close> and \<open>(T, K) \<in> p\<close>
-        by fastforce
-      then have \<open>K \<subseteq> cbox a b\<close> using tagged_partial_division_ofD(3)[OF pd] by blast
-      with \<open>x \<in> K\<close> show \<open>x \<in> {a..b}\<close> by auto
-    qed
+      using asm tagged_partial_division_ofD(3) by fastforce
     have content_bound: \<open>sum content (snd ` p) < \<delta>\<close>
       by (metis (no_types, lifting) asm case_prod_unfold g inj sum.reindex_cong)
     have \<open>(\<Sum>k\<in>snd ` p. norm (F k)) < \<epsilon>\<close>
@@ -1485,18 +1458,15 @@ proof (intro allI impI)
             have \<open>\<forall>n. Sup K + (Inf K - Sup K) / 2^n \<in> S\<close>
             proof
               fix n :: nat
-              have \<open>Inf K \<le> Sup K + (Inf K - Sup K) / 2^n\<close>
-              proof -
-                have \<open>(Sup K - Inf K) * 1 \<le> (Sup K - Inf K) * 2^n\<close>
-                  using ab InfK SupK by (intro mult_left_mono) auto
-                then show ?thesis by (simp add: field_simps)
-              qed
-              moreover have \<open>Sup K + (Inf K - Sup K) / 2^n \<le> Sup K\<close>
-              proof -
-                have \<open>(Inf K - Sup K) / 2^n \<le> 0\<close>
-                  using ab InfK SupK by (intro divide_nonpos_nonneg) auto
-                then show ?thesis by linarith
-              qed
+              have \<open>(Sup K - Inf K) * 1 \<le> (Sup K - Inf K) * 2^n\<close>
+                using ab InfK SupK by (intro mult_left_mono) auto
+              then have \<open>Inf K \<le> Sup K + (Inf K - Sup K) / 2^n\<close>
+                by (simp add: field_simps)
+              moreover 
+              have \<open>(Inf K - Sup K) / 2^n \<le> 0\<close>
+                using ab InfK SupK by (intro divide_nonpos_nonneg) auto
+              then have \<open>Sup K + (Inf K - Sup K) / 2^n \<le> Sup K\<close>
+                by linarith
               ultimately show \<open>Sup K + (Inf K - Sup K) / 2^n \<in> S\<close>
                 using mid_in_K Ks by auto
             qed
@@ -1511,11 +1481,8 @@ proof (intro allI impI)
               have \<open>Inf K \<le> Inf K + (Sup K - Inf K) / 2^n\<close>
                 by (simp add: InfK SupK ab)
               moreover have \<open>Inf K + (Sup K - Inf K) / 2^n \<le> Sup K\<close>
-              proof -
-                have \<open>(Sup K - Inf K) * 1 \<le> (Sup K - Inf K) * 2^n\<close>
-                  using ab InfK SupK by (intro mult_left_mono) auto
-                then show ?thesis by (simp add: field_simps)
-              qed
+                by (metis InfK SupK ab dual_order.refl mult_1 one_le_numeral 
+                          one_le_power power_0 scaling_mono zero_le_power)
               ultimately show \<open>Inf K + (Sup K - Inf K) / 2^n \<in> S\<close>
                 using mid_in_K Ks by auto
             qed
@@ -1545,14 +1512,11 @@ proof (intro allI impI)
           if \<open>k \<in> ?S\<close> for k
         proof -
           from that have kd: \<open>k \<in> d\<close> and kcont: \<open>content k \<noteq> 0\<close> by auto
-          obtain a b where kab: \<open>k = cbox a b\<close> using division_ofD(4)[OF dt kd] by auto
-          then have kab': \<open>k = {a..b}\<close> using box_real by auto
-          have \<open>k \<noteq> {}\<close> using division_ofD(3)[OF dt kd] .
-          then have \<open>a \<le> b\<close> using kab' by auto
-          have \<open>a < b\<close> using kcont kab' content_real_eq_0 by auto
-          moreover have \<open>Inf k = a\<close> \<open>Sup k = b\<close> using kab' \<open>a \<le> b\<close> by auto
+          obtain a b where kab: \<open>k = {a..b}\<close> and \<open>a < b\<close>
+            using H content_real_eq_0 kcont kd by auto
+          moreover have \<open>Inf k = a\<close> \<open>Sup k = b\<close> using kab \<open>a < b\<close> by auto
           ultimately show \<open>Inf k < Sup k\<close> by auto
-          show \<open>k = {Inf k .. Sup k}\<close> using kab' \<open>Inf k = a\<close> \<open>Sup k = b\<close> by auto
+          show \<open>k = {Inf k .. Sup k}\<close> using kab \<open>Inf k = a\<close> \<open>Sup k = b\<close> by auto
           show \<open>k \<subseteq> S\<close> using division_ofD(2)[OF dt kd] ts by auto
           have pos: \<open>(Sup k - Inf k) / 2^n > 0\<close> using \<open>Inf k < Sup k\<close> by auto
           have two_le: \<open>(2::real) \<le> 2^n\<close> using \<open>2 \<le> n\<close>
@@ -1600,8 +1564,7 @@ proof (intro allI impI)
         moreover have \<open>\<Union>d' \<subseteq> interior S\<close>
         proof
           fix x assume \<open>x \<in> \<Union>d'\<close>
-          then obtain K where \<open>K \<in> d'\<close> \<open>x \<in> K\<close> by auto
-          then obtain k where kS: \<open>k \<in> ?S\<close> and Keq: \<open>K = ?shrink k\<close> 
+          then obtain K k where \<open>K \<in> d'\<close> \<open>x \<in> K\<close> and kS: \<open>k \<in> ?S\<close> and Keq: \<open>K = ?shrink k\<close> 
             unfolding d'_eq by auto
           have \<open>x \<in> interior k\<close>
           proof -
@@ -1612,9 +1575,9 @@ proof (intro allI impI)
             moreover have \<open>x \<in> {Inf k + (Sup k - Inf k) / 2^n .. Sup k - (Sup k - Inf k) / 2^n}\<close>
               using \<open>x \<in> K\<close> Keq box_real by auto
             ultimately have \<open>x \<in> {Inf k <..< Sup k}\<close> by auto
-            also have \<open>... = interior {Inf k .. Sup k}\<close>
+            also have \<open>\<dots> = interior {Inf k .. Sup k}\<close>
               using interior_atLeastAtMost_real by auto
-            also have \<open>... = interior k\<close> using k_props(2)[OF kS] by auto
+            also have \<open>\<dots> = interior k\<close> using k_props(2)[OF kS] by auto
             finally show ?thesis .
           qed
           also have \<open>interior k \<subseteq> interior S\<close>
@@ -1627,11 +1590,11 @@ proof (intro allI impI)
           have \<open>(\<Sum>k\<in>d'. content k) \<le> (\<Sum>k\<in>?S. content (?shrink k))\<close>
             unfolding d'_eq using sum_image_le[OF fin_S, of content ?shrink] content_pos_le
             by fastforce
-          also have \<open>... \<le> (\<Sum>k\<in>?S. content k)\<close>
+          also have \<open>\<dots> \<le> (\<Sum>k\<in>?S. content k)\<close>
             by (metis (lifting) box_real(2) content_subset k_props(2,4) sum_mono)
-          also have \<open>... \<le> (\<Sum>k\<in>d. content k)\<close>
+          also have \<open>\<dots> \<le> (\<Sum>k\<in>d. content k)\<close>
             by (rule sum_mono2[OF fin_d]) (auto simp: content_pos_le)
-          also have \<open>... < r\<close> using content_small .
+          also have \<open>\<dots> < r\<close> using content_small .
           finally show ?thesis .
         qed
           \<comment> \<open>Conclude with r_int'\<close>
@@ -1720,12 +1683,9 @@ proof (intro allI impI)
           proof
             fix k assume \<open>k \<in> d - ?S\<close>
             then have kd: \<open>k \<in> d\<close> and kcont: \<open>content k = 0\<close> by auto
-            obtain a b where kab: \<open>k = cbox a b\<close> using division_ofD(4)[OF dt kd] by auto
-            have kne: \<open>k \<noteq> {}\<close> using division_ofD(3)[OF dt kd] .
-            then have \<open>a \<le> b\<close> using kab by (auto simp: box_real)
-            have \<open>b \<le> a\<close> using kcont unfolding kab box_real(2) content_real_eq_0 .
-            then have \<open>a = b\<close> using \<open>a \<le> b\<close> by auto
-            then have \<open>Inf k = Sup k\<close> using kab \<open>a \<le> b\<close> by (auto simp: box_real)
+            then obtain a b where kab: \<open>k = cbox a b\<close> \<open>a = b\<close> 
+              by (metis H antisym atLeastatMost_empty_iff2 cbox_division_memE content_real_eq_0 interval_cbox)
+            then have \<open>Inf k = Sup k\<close> by (auto simp: box_real)
             then show \<open>norm (f (Sup k - (Sup k - Inf k) / 2^n) - 
               f (Inf k + (Sup k - Inf k) / 2^n)) = 0\<close> by simp
           qed
@@ -1911,8 +1871,8 @@ next
               by (rule sum.cong) (auto simp: d_pos_def real_norm_def abs_of_nonneg)
             also have \<open>\<dots> = (sum f d_pos) \<bullet> b\<close>
               by (simp add: inner_sum_left)
-            also have \<open>\<dots> \<le> \<bar>(sum f d_pos) \<bullet> b\<bar>\<close> by (rule abs_ge_self)
-            also have \<open>\<dots> \<le> norm (sum f d_pos)\<close> by (rule Basis_le_norm[OF that])
+            also have \<open>\<dots> \<le> norm (sum f d_pos)\<close>
+              by (smt (verit, best) Basis_le_norm that)
             finally show ?thesis .
           qed
           have sum_neg: \<open>(\<Sum>k\<in>d_neg. norm (f k \<bullet> b)) \<le> norm (sum f d_neg)\<close>
@@ -1921,8 +1881,8 @@ next
               by (rule sum.cong) (auto simp: d_neg_def real_norm_def abs_of_neg)
             also have \<open>\<dots> = -((sum f d_neg) \<bullet> b)\<close>
               by (simp add: inner_sum_left sum_negf)
-            also have \<open>\<dots> \<le> \<bar>(sum f d_neg) \<bullet> b\<bar>\<close> by (rule abs_ge_minus_self)
-            also have \<open>\<dots> \<le> norm (sum f d_neg)\<close> by (rule Basis_le_norm[OF that])
+            also have \<open>\<dots> \<le> norm (sum f d_neg)\<close> 
+              by (smt (verit, best) Basis_le_norm that)
             finally show ?thesis .
           qed
           show \<open>(\<Sum>k\<in>d. norm (f k \<bullet> b)) < \<epsilon>\<close>
@@ -1933,8 +1893,7 @@ next
               by (rule add_mono[OF sum_pos sum_neg])
             also have \<open>\<dots> < \<epsilon>/2 + \<epsilon>/2\<close>
               by (rule add_strict_mono[OF norm_pos norm_neg])
-            also have \<open>\<dots> = \<epsilon>\<close> by simp
-            finally show ?thesis .
+            finally show ?thesis by simp
           qed
         qed
       qed
@@ -1986,26 +1945,7 @@ proof -
       have \<open>(\<lambda>k. integral S (?fn k)) \<longlonglongrightarrow> integral S (\<lambda>x. 0 :: real)\<close>
       proof (rule dominated_convergence(2))
         show fn_int: \<open>(\<lambda>x. ?fn k x) integrable_on S\<close> for k
-        proof -
-          have f_int: \<open>f integrable_on S\<close>
-            using assms(2) set_lebesgue_integral_eq_integral(1) by blast
-          have t_int: \<open>(\<lambda>x. trunc k x) integrable_on S\<close>
-            using trunc_abs_int[of k] set_lebesgue_integral_eq_integral(1) by blast
-          have diff_int: \<open>(\<lambda>x. f x - trunc k x) integrable_on S\<close>
-            using integrable_diff[OF f_int t_int] .
-          have f_norm_int: \<open>(\<lambda>x. norm (f x)) integrable_on S\<close>
-            using assms(2) absolutely_integrable_on_def by blast
-          have t_norm_int: \<open>(\<lambda>x. norm (trunc k x)) integrable_on S\<close>
-            using trunc_abs_int[of k] absolutely_integrable_on_def by force
-          have bound_int: \<open>(\<lambda>x. norm (f x) + norm (trunc k x)) integrable_on S\<close>
-            using integrable_add[OF f_norm_int t_norm_int] .
-          have \<open>(\<lambda>x. f x - trunc k x) absolutely_integrable_on S\<close>
-            by (rule absolutely_integrable_integrable_bound[OF _ diff_int bound_int])
-              (simp add: norm_triangle_ineq4)
-          then show ?thesis
-            using absolutely_integrable_on_def absolutely_integrable_norm
-              set_lebesgue_integral_eq_integral(1) by (metis (no_types, lifting) ext)
-        qed
+          by (metis absolutely_integrable_on_def assms(2) set_integral_diff(1) trunc_abs_int)
         show dom_int: \<open>(\<lambda>x. 2 * norm (f x)) integrable_on S\<close>
           using assms(2)[unfolded absolutely_integrable_on_def]
           by (auto intro: integrable_on_mult_right)
@@ -2036,10 +1976,8 @@ proof -
               by (simp add: trunc_def euclidean_eqI)
             then show ?thesis by simp
           qed
-          then have \<open>\<forall>\<^sub>F k in sequentially. ?fn k x = 0\<close>
-            unfolding eventually_sequentially by blast
           then show ?thesis
-            by (simp add: tendsto_eventually)
+            using LIMSEQ_iff by force
         qed
       qed
       then show ?thesis by simp
@@ -2049,7 +1987,8 @@ proof -
     show ?thesis
     proof 
       show "bounded (range (trunc n))"
-      proof (unfold bounded_iff, intro exI allI ballI)
+        unfolding bounded_iff
+      proof (intro exI allI ballI)
         fix y assume "y \<in> range (trunc n)"
         then obtain x where y: "y = trunc n x" by auto
         have "norm (max (- real n) (min (real n) (f x \<bullet> b)) *\<^sub>R b) \<le> real n" if "b \<in> Basis" for b
@@ -2134,12 +2073,8 @@ proof -
     have meas: "g n \<in> borel_measurable (lebesgue_on S)"
       using continuous_imp_measurable_on_sets_lebesgue[OF continuous_on_subset[OF g_cont subset_UNIV] S_sets] .
     have "integrable (lebesgue_on S) (norm \<circ> g n)"
-    proof (rule finite_measure.integrable_const_bound[OF finite_measure_lebesgue_on[OF assms(1)]])
-      show "AE x in lebesgue_on S. norm ((norm \<circ> g n) x) \<le> norm (B *\<^sub>R (\<Sum>b\<in>Basis. b :: 'b))"
-        using g_bound by auto
-      show "norm \<circ> g n \<in> borel_measurable (lebesgue_on S)"
-        using borel_measurable_norm meas measurable_comp by blast
-    qed
+      using  finite_measure.integrable_const_bound[OF finite_measure_lebesgue_on[OF assms(1)]] g_bound
+      by (metis (no_types, lifting) ext comp_apply eventuallyI integrable_norm_iff meas)
     then show ?thesis
       using meas S_sets absolutely_integrable_measurable by blast
   qed
@@ -2258,17 +2193,12 @@ proof -
     and g_cont: \<open>continuous_on UNIV g\<close>
     and g_bdd: \<open>bounded (g ` UNIV)\<close>
     and g_approx: \<open>norm (integral (S \<inter> cbox a b) (\<lambda>x. norm (f x - g x))) < e / 3\<close>
-  proof -
-    have \<open>e / 3 > 0\<close> using e_pos by auto
-    then show ?thesis
-      using absolutely_integrable_approximate_continuous_vector [OF meas_inter f_int_inter]
-            that
-      by metis
-  qed
+    using absolutely_integrable_approximate_continuous_vector[of "S \<inter> cbox a b" f "e / 3"]
+      divide_pos_pos[of e "3"] e_pos f_int_inter[of a b] meas_inter
+      zero_less_numeral by blast
   text \<open>Extract an explicit positive bound on @{term g}.\<close>
   obtain B where B_pos: \<open>B > 0\<close> and B_bound: \<open>\<And>x. norm (g x) \<le> B\<close>
     using g_bdd [unfolded bounded_pos] by (auto simp: image_iff)
-  text \<open>Obtain @{term c}, @{term d} with @{term \<open>cbox a b \<subseteq> box c d\<close>} and small measure gap.\<close>
   have eB: \<open>e / 3 / B > 0\<close> using e_pos B_pos by auto
   obtain c d where cd_sub: \<open>cbox a b \<subseteq> box c d\<close>
     and cd_meas: \<open>measure lborel (box c d) - measure lborel (cbox a b) < e / 3 / B\<close>
@@ -2528,9 +2458,9 @@ proof -
       then show \<open>norm (f x) \<le> norm (f0 x - g x) + norm (g x)\<close>
         using norm_triangle_ineq[of \<open>f0 x - g x\<close> \<open>g x\<close>] by simp
     qed
-    also have \<open>... = integral T (\<lambda>x. norm (f0 x - g x)) + integral T (\<lambda>x. norm (g x))\<close>
+    also have \<open>\<dots> = integral T (\<lambda>x. norm (f0 x - g x)) + integral T (\<lambda>x. norm (g x))\<close>
       using integral_add[OF nf0g_int_t ng_int_t] .
-    also have \<open>... < \<epsilon>\<close>
+    also have \<open>\<dots> < \<epsilon>\<close>
     proof -
       have ineq2a: \<open>integral T (\<lambda>x. norm (f0 x - g x)) < \<epsilon>/2\<close>
       proof -
@@ -2539,9 +2469,9 @@ proof -
           by metis
         have \<open>integral T (\<lambda>x. norm (f0 x - g x)) \<le> integral UNIV (\<lambda>x. norm (f0 x - g x))\<close>
           by (rule integral_subset_le[OF subset_UNIV nf0g_int_t nf0g_int]) simp
-        also have \<open>... \<le> norm (integral UNIV (\<lambda>x. norm (f0 x - g x)))\<close>
+        also have \<open>\<dots> \<le> norm (integral UNIV (\<lambda>x. norm (f0 x - g x)))\<close>
           by auto
-        also have \<open>... < \<epsilon>/2\<close>
+        also have \<open>\<dots> < \<epsilon>/2\<close>
           using g_approx .
         finally show ?thesis .
       qed
@@ -2551,16 +2481,10 @@ proof -
           using \<open>T \<in> lmeasurable\<close> integrable_on_const by blast
         have \<open>integral T (\<lambda>x. norm (g x)) \<le> integral T (\<lambda>x. B)\<close>
           by (rule integral_le[OF ng_int_t B_int_t]) (use B in auto)
-        also have \<open>... = B * measure lebesgue T\<close>
-        proof -
-          have \<open>integral T (\<lambda>x. B) = integral T (\<lambda>x. B *\<^sub>R (1::real))\<close> by simp
-          also have \<open>... = B *\<^sub>R integral T (\<lambda>x. 1::real)\<close>
-            using integral_cmul .
-          also have \<open>... = B * measure lebesgue T\<close>
-            using lmeasure_integral[OF \<open>T \<in> lmeasurable\<close>] by (simp add: real_scaleR_def)
-          finally show \<open>integral T (\<lambda>x. B) = B * measure lebesgue T\<close> .
-        qed
-        also have \<open>... < \<epsilon>/2\<close>
+        also have \<open>\<dots> = B * measure lebesgue T\<close>
+          using Henstock_Kurzweil_Integration.integral_mult_right[of T B "\<lambda>_. 1"] \<open>T \<in> lmeasurable\<close>
+            lmeasure_integral[of T] by fastforce
+        also have \<open>\<dots> < \<epsilon>/2\<close>
           using * \<open>B > 0\<close> by (simp add: field_simps)
         finally show ?thesis .
       qed
@@ -2586,13 +2510,12 @@ lemma real_integration_by_parts_simple:
 
 
 text \<open>Integration by parts for absolutely integrable functions with indefinite integrals.
-  This is the bilinear generalisation: HOL Light's @{text ABSOLUTE_INTEGRATION_BY_PARTS}.\<close>
+  This is the bilinear generalisation.\<close>
 
 theorem absolute_integration_by_parts:
   fixes bop :: \<open>'a::euclidean_space \<Rightarrow> 'b::euclidean_space \<Rightarrow> 'c::euclidean_space\<close>
     and f :: \<open>real \<Rightarrow> 'a\<close> and g :: \<open>real \<Rightarrow> 'b\<close>
     and f' :: \<open>real \<Rightarrow> 'a\<close> and g' :: \<open>real \<Rightarrow> 'b\<close>
-    and a b :: real
   assumes \<open>bilinear bop\<close>
     and ab: \<open>a \<le> b\<close>
     and f'abs: \<open>f' absolutely_integrable_on {a..b}\<close>
@@ -2604,6 +2527,8 @@ theorem absolute_integration_by_parts:
     and \<open>integral {a..b} (\<lambda>x. bop (f x) (g' x)) + integral {a..b} (\<lambda>x. bop (f' x) (g x)) 
        = bop (f b) (g b) - bop (f a) (g a)\<close>
 proof -
+  have \<open>bounded_bilinear bop\<close>
+    using \<open>bilinear bop\<close> bilinear_conv_bounded_bilinear by blast
   have f'int_eq: "f x = integral {a..x} f'" if "x \<in> {a..b}" for x
     using integral_unique[OF f'int[OF that]] by simp
   have g'int_eq: "g x = integral {a..x} g'" if "x \<in> {a..b}" for x
@@ -2632,44 +2557,35 @@ proof -
     using absolutely_integrable_bounded_measurable_product[OF \<open>bilinear bop\<close> f_meas ab_sets f_bounded g'abs] .
   show "(\<lambda>x. bop (f' x) (g x)) absolutely_integrable_on {a..b}"
     using absolutely_integrable_bounded_measurable_product[OF bop_swap g_meas ab_sets g_bounded f'abs] .
-
-  obtain ff' where ff': \<open>\<forall>n. ff' n absolutely_integrable_on {a..b} \<and> continuous_on UNIV (ff' n) \<and>
+  have \<open>\<forall>n. \<exists>h. h absolutely_integrable_on {a..b} \<and> continuous_on UNIV h \<and> bounded (range h) \<and>
+                norm (integral {a..b} (\<lambda>x. norm (f' x - h x))) < inverse (real n + 1)\<close> 
+    using absolutely_integrable_approximate_continuous_vector [OF _ f'abs]
+    by (metis (full_types) bot_nat_0.extremum inverse_positive_iff_positive
+        lmeasurable_interval(1) nat_le_real_less of_nat_0_eq_iff)
+  then obtain ff' where ff': \<open>\<And>n. ff' n absolutely_integrable_on {a..b} \<and> continuous_on UNIV (ff' n) \<and>
               bounded (range (ff' n)) \<and>
               norm (integral {a..b} (\<lambda>x. norm (f' x - ff' n x))) < inverse (real n + 1)\<close>
-  proof -
-    have \<open>\<forall>n. \<exists>h. h absolutely_integrable_on {a..b} \<and> continuous_on UNIV h \<and>
-                bounded (range h) \<and>
-                norm (integral {a..b} (\<lambda>x. norm (f' x - h x))) < inverse (real n + 1)\<close> 
-        using absolutely_integrable_approximate_continuous_vector [OF _ f'abs]
-        by (metis (full_types) bot_nat_0.extremum inverse_positive_iff_positive
-            lmeasurable_interval(1) nat_le_real_less of_nat_0_eq_iff)
-    with that show thesis 
-      unfolding choice_iff by blast
-  qed
-  obtain gg' where gg': \<open>\<forall>n. gg' n absolutely_integrable_on {a..b} \<and> continuous_on UNIV (gg' n) \<and>
+    unfolding choice_iff by blast
+  have \<open>\<forall>n. \<exists>h. h absolutely_integrable_on {a..b} \<and> continuous_on UNIV h \<and> bounded (range h) \<and>
+                norm (integral {a..b} (\<lambda>x. norm (g' x - h x))) < inverse (real n + 1)\<close> 
+    using absolutely_integrable_approximate_continuous_vector [OF _ g'abs]
+    by (metis (full_types) inverse_positive_iff_positive le0 lmeasurable_interval(1)
+        nat_le_real_less of_nat_0)
+  then obtain gg' where gg': \<open>\<And>n. gg' n absolutely_integrable_on {a..b} \<and> continuous_on UNIV (gg' n) \<and>
               bounded (range (gg' n)) \<and>
               norm (integral {a..b} (\<lambda>x. norm (g' x - gg' n x))) < inverse (real n + 1)\<close>
-  proof -
-    have \<open>\<forall>n. \<exists>h. h absolutely_integrable_on {a..b} \<and> continuous_on UNIV h \<and>
-                bounded (range h) \<and>
-                norm (integral {a..b} (\<lambda>x. norm (g' x - h x))) < inverse (real n + 1)\<close> (is "All ?P")
-        using absolutely_integrable_approximate_continuous_vector [OF _ g'abs]
-        by (metis (full_types) inverse_positive_iff_positive le0 lmeasurable_interval(1)
-            nat_le_real_less of_nat_0)
-    with that show thesis 
-      unfolding choice_iff by blast
-  qed
-  \<comment> \<open>ff' n and gg' n are continuous on {a..b} (restriction of continuous_on UNIV).\<close>
+    unfolding choice_iff by blast
+      \<comment> \<open>ff' n and gg' n are continuous on {a..b} (restriction of continuous_on UNIV).\<close>
   have ff'_cont_ab: \<open>\<And>n. continuous_on {a..b} (ff' n)\<close>
     using ff' continuous_on_subset by blast
   have gg'_cont_ab: \<open>\<And>n. continuous_on {a..b} (gg' n)\<close>
     using gg' continuous_on_subset by blast
 
-  \<comment> \<open>Define the indefinite integrals of ff' and gg'.\<close>
+\<comment> \<open>Define the indefinite integrals of ff' and gg'.\<close>
   define ff where \<open>ff \<equiv> \<lambda>n x. integral {a..x} (ff' n)\<close>
   define gg where \<open>gg \<equiv> \<lambda>n x. integral {a..x} (gg' n)\<close>
 
-  \<comment> \<open>ff n and gg n are continuous on {a..b}.\<close>
+\<comment> \<open>ff n and gg n are continuous on {a..b}.\<close>
   have ff_cont: \<open>\<And>n. continuous_on {a..b} (ff n)\<close>
     unfolding ff_def using ff' indefinite_integral_continuous_1 set_lebesgue_integral_eq_integral(1)
     by blast
@@ -2677,7 +2593,7 @@ proof -
     unfolding gg_def using gg' indefinite_integral_continuous_1 set_lebesgue_integral_eq_integral(1)
     by blast
 
-  \<comment> \<open>f, g, ff n, gg n are all absolutely integrable on {a..b}.\<close>
+\<comment> \<open>f, g, ff n, gg n are all absolutely integrable on {a..b}.\<close>
   have f_absint: \<open>f absolutely_integrable_on {a..b}\<close>
     using f_cont absolutely_integrable_continuous_real by blast
   have g_absint: \<open>g absolutely_integrable_on {a..b}\<close>
@@ -2687,97 +2603,55 @@ proof -
   have gg_absint: \<open>\<And>n. gg n absolutely_integrable_on {a..b}\<close>
     using gg_cont absolutely_integrable_continuous_real by blast
 
-  \<comment> \<open>Bilinear product is absolutely integrable when one factor is abs.\ integrable
+\<comment> \<open>Bilinear product is absolutely integrable when one factor is abs.\ integrable
     and the other is continuous on the compact interval.\<close>
   have bop_absint_cont1: \<open>(\<lambda>x. bop (h x) (k x)) absolutely_integrable_on {a..b}\<close>
     if \<open>h absolutely_integrable_on {a..b}\<close> \<open>continuous_on {a..b} k\<close> for h :: \<open>real \<Rightarrow> 'a\<close> and k :: \<open>real \<Rightarrow> 'b\<close>
-  proof -
-    have \<open>k \<in> borel_measurable (lebesgue_on {a..b})\<close>
-      using continuous_imp_measurable_on_sets_lebesgue[OF that(2) ab_sets] .
-    moreover have \<open>bounded (k ` {a..b})\<close>
-      using compact_imp_bounded[OF compact_continuous_image[OF that(2) compact_Icc]] .
-    ultimately show ?thesis
-      using absolutely_integrable_bounded_measurable_product[OF bop_swap _ ab_sets _ that(1)]
-      by simp
-  qed
+    using continuous_imp_measurable_on_sets_lebesgue[OF that(2) ab_sets] 
+    using compact_imp_bounded[OF compact_continuous_image[OF that(2) compact_Icc]]
+    using ab_sets absolutely_integrable_bounded_measurable_product bop_swap that(1) by blast 
   have bop_absint_cont2: \<open>(\<lambda>x. bop (h x) (k x)) absolutely_integrable_on {a..b}\<close>
     if \<open>continuous_on {a..b} h\<close> \<open>k absolutely_integrable_on {a..b}\<close> for h :: \<open>real \<Rightarrow> 'a\<close> and k :: \<open>real \<Rightarrow> 'b\<close>
-  proof -
-    have \<open>h \<in> borel_measurable (lebesgue_on {a..b})\<close>
-      using continuous_imp_measurable_on_sets_lebesgue[OF that(1) ab_sets] .
-    moreover have \<open>bounded (h ` {a..b})\<close>
-      using compact_imp_bounded[OF compact_continuous_image[OF that(1) compact_Icc]] .
-    ultimately show ?thesis
-      using absolutely_integrable_bounded_measurable_product[OF \<open>bilinear bop\<close> _ ab_sets _ that(2)]
-      by simp
-  qed
+    by (simp add: absolutely_integrable_bounded_measurable_product assms(1) compact_continuous_image
+        compact_imp_bounded continuous_imp_measurable_on_sets_lebesgue that)
   define S where \<open>S \<equiv> \<lambda>n.
       (integral {a..b} (\<lambda>x. bop (ff n x) (gg' n x)) +
        integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x))) -
       (bop (ff n b) (gg n b) - bop (ff n a) (gg n a))\<close>
-  have lim_zero: \<open>S \<longlonglongrightarrow> 0\<close>
+  have \<open>S n = 0\<close> for n
   proof -
-    have s_eq: \<open>S n = 0\<close> for n
-    proof -
-      \<comment> \<open>ff n and gg n have the right derivatives at interior points of {a..b}.\<close>
-      have ff_deriv: \<open>(ff n has_vector_derivative ff' n x) (at x)\<close> if \<open>x \<in> {a<..<b}\<close> for x
-      proof -
-        have \<open>((\<lambda>u. integral {a..u} (ff' n)) has_vector_derivative ff' n x) (at x within {a..b})\<close>
-          using integral_has_vector_derivative[OF ff'_cont_ab] that by auto
-        then have \<open>((\<lambda>u. integral {a..u} (ff' n)) has_vector_derivative ff' n x) (at x)\<close>
-          using at_within_Icc_at that by fastforce
-        then show ?thesis unfolding ff_def .
-      qed
-      have gg_deriv: \<open>(gg n has_vector_derivative gg' n x) (at x)\<close> if \<open>x \<in> {a<..<b}\<close> for x
-      proof -
-        have \<open>((\<lambda>u. integral {a..u} (gg' n)) has_vector_derivative gg' n x) (at x within {a..b})\<close>
-          using integral_has_vector_derivative[OF gg'_cont_ab] that by auto
-        then have \<open>((\<lambda>u. integral {a..u} (gg' n)) has_vector_derivative gg' n x) (at x)\<close>
-          using at_within_Icc_at that by fastforce
-        then show ?thesis unfolding gg_def .
-      qed
-      \<comment> \<open>Apply integration by parts (interior version) for continuous ff' n, gg' n.\<close>
-      have bb: \<open>bounded_bilinear bop\<close>
-        using \<open>bilinear bop\<close> bilinear_conv_bounded_bilinear by blast
-      have bop_int1: \<open>(\<lambda>x. bop (ff n x) (gg' n x)) integrable_on {a..b}\<close>
-        using bop_absint_cont2[OF ff_cont gg'_cont_ab[THEN absolutely_integrable_continuous_real]]
-              set_lebesgue_integral_eq_integral(1) by blast
-      have ibp: \<open>((\<lambda>x. bop (ff' n x) (gg n x)) has_integral
-            (bop (ff n b) (gg n b) - bop (ff n a) (gg n a) -
-             integral {a..b} (\<lambda>x. bop (ff n x) (gg' n x)))) {a..b}\<close>
-        using integration_by_parts_interior[OF bb ab ff_cont gg_cont ff_deriv gg_deriv]
-        by (simp add: bop_int1 integrable_integral)
-      show ?thesis
-        using integral_unique[OF ibp] by (simp add: S_def algebra_simps)
-    qed
+    \<comment> \<open>ff n and gg n have the right derivatives at interior points of {a..b}.\<close>
+    have ff_deriv: \<open>(ff n has_vector_derivative ff' n x) (at x)\<close> if \<open>x \<in> {a<..<b}\<close> for x
+      using integral_has_vector_derivative[OF ff'_cont_ab] that
+      using at_within_Icc_at ff_def less_eq_real_def by fastforce
+    have gg_deriv: \<open>(gg n has_vector_derivative gg' n x) (at x)\<close> if \<open>x \<in> {a<..<b}\<close> for x
+      using integral_has_vector_derivative[OF gg'_cont_ab] that
+      using at_within_Icc_at gg_def less_eq_real_def by fastforce
+        \<comment> \<open>Apply integration by parts (interior version) for continuous ff' n, gg' n.\<close>
+    have bop_int1: \<open>(\<lambda>x. bop (ff n x) (gg' n x)) integrable_on {a..b}\<close>
+      using bop_absint_cont2[OF ff_cont gg'_cont_ab[THEN absolutely_integrable_continuous_real]]
+        set_lebesgue_integral_eq_integral(1) by blast
+    have ibp: \<open>((\<lambda>x. bop (ff' n x) (gg n x)) has_integral
+            (bop (ff n b) (gg n b) - bop (ff n a) (gg n a) - integral {a..b} (\<lambda>x. bop (ff n x) (gg' n x)))) {a..b}\<close>
+      using integration_by_parts_interior[OF \<open>bounded_bilinear bop\<close> ab ff_cont gg_cont ff_deriv gg_deriv]
+      by (simp add: bop_int1 integrable_integral)
     show ?thesis
-      using s_eq tendsto_const[of 0 sequentially]
-      by (simp add: LIMSEQ_iff)
+      using integral_unique[OF ibp] by (simp add: S_def algebra_simps)
   qed
+  then have lim_zero: \<open>S \<longlonglongrightarrow> 0\<close>
+    by (simp add: lim_explicit)
   moreover have lim_goal: \<open>S \<longlonglongrightarrow>
-      (integral {a..b} (\<lambda>x. bop (f x) (g' x)) +
-       integral {a..b} (\<lambda>x. bop (f' x) (g x))) -
-      (bop (f b) (g b) - bop (f a) (g a))\<close>
+      (integral {a..b} (\<lambda>x. bop (f x) (g' x)) + integral {a..b} (\<lambda>x. bop (f' x) (g x))) - (bop (f b) (g b) - bop (f a) (g a))\<close>
   proof -
-    \<comment> \<open>Obtain the bilinear norm bound K.\<close>
-    have bb: \<open>bounded_bilinear bop\<close>
-      using \<open>bilinear bop\<close> bilinear_conv_bounded_bilinear by blast
     obtain K where \<open>K > 0\<close> and K: \<open>\<And>u v. norm (bop u v) \<le> norm u * norm v * K\<close>
-      using bounded_bilinear.pos_bounded[OF bb] by blast
-    \<comment> \<open>L1 convergence: \<integral> \<Parallel>f' - ff' n\<Parallel> \<rightarrow> 0 and \<integral> \<Parallel>g' - gg' n\<Parallel> \<rightarrow> 0.\<close>
+      using bounded_bilinear.pos_bounded[OF \<open>bounded_bilinear bop\<close>] by blast
+        \<comment> \<open>L1 convergence: \<integral> \<Parallel>f' - ff' n\<Parallel> \<rightarrow> 0 and \<integral> \<Parallel>g' - gg' n\<Parallel> \<rightarrow> 0.\<close>
     have ff'_L1: \<open>(\<lambda>n. integral {a..b} (\<lambda>x. norm (f' x - ff' n x))) \<longlonglongrightarrow> 0\<close>
       by (metis (lifting) LIMSEQ_norm_0 Num.of_nat_simps(3) add.commute ff' inverse_eq_divide)
     have gg'_L1: \<open>(\<lambda>n. integral {a..b} (\<lambda>x. norm (g' x - gg' n x))) \<longlonglongrightarrow> 0\<close>
       by (metis (lifting) LIMSEQ_norm_0 Num.of_nat_simps(3) add.commute gg' inverse_eq_divide)
 
-    \<comment> \<open>FTC identity: f and g are the indefinite integrals of f' and g' on {a..b}.\<close>
-    have f_eq: \<open>f x = integral {a..x} f'\<close> if \<open>x \<in> {a..b}\<close> for x
-      using f'int_eq[OF that] .
-    have g_eq: \<open>g x = integral {a..x} g'\<close> if \<open>x \<in> {a..b}\<close> for x
-      using g'int_eq[OF that] .
-
-    \<comment> \<open>Pointwise convergence: ff n c \<rightarrow> f c and gg n c \<rightarrow> g c for any c \<in> {a..b},
-      via L1 convergence of ff' n \<rightarrow> f' and gg' n \<rightarrow> g'.\<close>
+\<comment> \<open>Pointwise convergence via L1 convergence of ff' and gg'.\<close>
     have ff_ptwise: \<open>(\<lambda>n. ff n c) \<longlonglongrightarrow> f c\<close> if c_ab: \<open>c \<in> {a..b}\<close> for c
     proof -
       have ac_sub: \<open>{a..c} \<subseteq> {a..b}\<close> using c_ab by auto
@@ -2787,7 +2661,7 @@ proof -
         using f'_int integrable_on_subinterval ac_sub by blast
       have diff_int_c: \<open>(\<lambda>x. ff' n x - f' x) integrable_on {a..c}\<close> for n
         using integrable_diff[OF ff'n_int_c f'_int_c] .
-      \<comment> \<open>The norm of the difference is integrable on {a..b} (absolute integrability).\<close>
+          \<comment> \<open>The norm of the difference is integrable on {a..b} (absolute integrability).\<close>
       have ff'n_int: \<open>ff' n integrable_on {a..b}\<close> for n
         using ff'_cont_ab integrable_continuous_real by blast
       have diff_int: \<open>(\<lambda>x. ff' n x - f' x) integrable_on {a..b}\<close> for n
@@ -2800,27 +2674,23 @@ proof -
         using integrable_add[OF norm_f' norm_ff'n] .
       have norm_diff_int: \<open>(\<lambda>x. norm (f' x - ff' n x)) integrable_on {a..b}\<close> for n
         by (metis absolutely_integrable_on_def assms(3) ff' set_integral_diff(1))
-      \<comment> \<open>Key bound: \<Parallel>ff n c - f c\<Parallel> \<le> \<integral>{a..b} \<Parallel>f' - ff' n\<Parallel>.\<close>
+          \<comment> \<open>Key bound: \<Parallel>ff n c - f c\<Parallel> \<le> \<integral>{a..b} \<Parallel>f' - ff' n\<Parallel>.\<close>
       have bound: \<open>norm (ff n c - f c) \<le> integral {a..b} (\<lambda>x. norm (f' x - ff' n x))\<close> for n
       proof -
         have eq: \<open>ff n c - f c = integral {a..c} (\<lambda>x. ff' n x - f' x)\<close>
-          unfolding ff_def using f_eq[OF c_ab] integral_diff[OF ff'n_int_c f'_int_c] by simp
+          unfolding ff_def using f'int_eq[OF c_ab] integral_diff[OF ff'n_int_c f'_int_c] by simp
         have norm_diff_int_c: \<open>(\<lambda>x. norm (f' x - ff' n x)) integrable_on {a..c}\<close>
           using integrable_on_subinterval[OF norm_diff_int ac_sub] .
-        have \<open>norm (integral {a..c} (\<lambda>x. ff' n x - f' x))
-              \<le> integral {a..c} (\<lambda>x. norm (ff' n x - f' x))\<close>
+        have \<open>norm (integral {a..c} (\<lambda>x. ff' n x - f' x)) \<le> integral {a..c} (\<lambda>x. norm (f' x - ff' n x))\<close>
           using integral_norm_bound_integral[OF diff_int_c norm_diff_int_c]
-          by (simp add: norm_minus_commute)
-        also have \<open>\<dots> = integral {a..c} (\<lambda>x. norm (f' x - ff' n x))\<close>
           by (simp add: norm_minus_commute)
         also have \<open>\<dots> \<le> integral {a..b} (\<lambda>x. norm (f' x - ff' n x))\<close>
           using integral_subset_le[OF ac_sub norm_diff_int_c norm_diff_int] by simp
         finally show ?thesis unfolding eq .
       qed
-      have \<open>(\<lambda>n. ff n c - f c) \<longlonglongrightarrow> 0\<close>
-        using Lim_null_comparison[OF _ ff'_L1] bound eventually_sequentially by blast
-      then show ?thesis
-        using LIM_zero_iff by blast
+      show ?thesis
+        using Lim_null_comparison[OF _ ff'_L1, of "(\<lambda>n. ff n c - f c)"] 
+        using bound eventually_sequentially by (auto simp: LIM_zero_iff)
     qed
     have gg_ptwise: \<open>(\<lambda>n. gg n c) \<longlonglongrightarrow> g c\<close> if c_ab: \<open>c \<in> {a..b}\<close> for c
     proof -
@@ -2846,30 +2716,27 @@ proof -
       have bound: \<open>norm (gg n c - g c) \<le> integral {a..b} (\<lambda>x. norm (g' x - gg' n x))\<close> for n
       proof -
         have eq: \<open>gg n c - g c = integral {a..c} (\<lambda>x. gg' n x - g' x)\<close>
-          unfolding gg_def using g_eq[OF c_ab] integral_diff[OF gg'n_int_c g'_int_c] by simp
+          unfolding gg_def using g'int_eq[OF c_ab] integral_diff[OF gg'n_int_c g'_int_c] by simp
         have norm_diff_int_c: \<open>(\<lambda>x. norm (g' x - gg' n x)) integrable_on {a..c}\<close>
           using integrable_on_subinterval[OF norm_diff_int ac_sub] .
         have \<open>norm (integral {a..c} (\<lambda>x. gg' n x - g' x))
-              \<le> integral {a..c} (\<lambda>x. norm (gg' n x - g' x))\<close>
+              \<le> integral {a..c} (\<lambda>x. norm (g' x - gg' n x))\<close>
           using integral_norm_bound_integral[OF diff_int_c norm_diff_int_c]
-          by (simp add: norm_minus_commute)
-        also have \<open>\<dots> = integral {a..c} (\<lambda>x. norm (g' x - gg' n x))\<close>
           by (simp add: norm_minus_commute)
         also have \<open>\<dots> \<le> integral {a..b} (\<lambda>x. norm (g' x - gg' n x))\<close>
           using integral_subset_le[OF ac_sub norm_diff_int_c norm_diff_int] by simp
         finally show ?thesis unfolding eq .
       qed
-      have \<open>(\<lambda>n. gg n c - g c) \<longlonglongrightarrow> 0\<close>
-        using bound Lim_null_comparison[OF _ gg'_L1] using eventually_sequentially by blast
-      then show ?thesis
-        by (simp add: LIM_zero_iff)
+      show ?thesis
+        using Lim_null_comparison[OF _ gg'_L1, of "(\<lambda>n. gg n c - g c)"] 
+        using bound eventually_sequentially by (auto simp: LIM_zero_iff)
     qed
     have \<open>(\<lambda>n. bop (ff n c) (gg n c)) \<longlonglongrightarrow> bop (f c) (g c)\<close> if c_ab: \<open>c \<in> {a..b}\<close> for c
-      using bb bounded_bilinear.tendsto c_ab ff_ptwise gg_ptwise by blast
+      using \<open>bounded_bilinear bop\<close> bounded_bilinear.tendsto c_ab ff_ptwise gg_ptwise by blast
     then have *: \<open>(\<lambda>n. bop (ff n b) (gg n b) - bop (ff n a) (gg n a)) 
-         \<longlonglongrightarrow> bop (f b) (g b) - bop (f a) (g a)\<close> 
-      by (simp add: assms(2) tendsto_diff)
-    \<comment> \<open>Uniform convergence: ff n \<rightarrow> f and gg n \<rightarrow> g uniformly on {a..b}.\<close>
+         \<longlonglongrightarrow> bop (f b) (g b) - bop (f a) (g a)\<close>
+      by (simp add: ab tendsto_diff)
+        \<comment> \<open>Uniform convergence: ff n \<rightarrow> f and gg n \<rightarrow> g uniformly on {a..b}.\<close>
     have ff_uniform: \<open>(\<lambda>n. SUP x\<in>{a..b}. norm (ff n x - f x)) \<longlonglongrightarrow> 0\<close>
     proof (rule Lim_null_comparison[OF _ ff'_L1])
       show \<open>\<forall>\<^sub>F n in sequentially. norm (SUP x\<in>{a..b}. norm (ff n x - f x))
@@ -2883,7 +2750,7 @@ proof -
           using integrable_diff[OF ff'n_int f'_int] .
         have norm_diff_int: \<open>(\<lambda>x. norm (f' x - ff' n x)) integrable_on {a..b}\<close>
           by (metis absolutely_integrable_on_def f'abs ff' set_integral_diff(1))
-        \<comment> \<open>Pointwise bound for each x \<in> {a..b}.\<close>
+            \<comment> \<open>Pointwise bound for each x in {a..b}.\<close>
         have bound: \<open>norm (ff n x - f x) \<le> integral {a..b} (\<lambda>t. norm (f' t - ff' n t))\<close>
           if \<open>x \<in> {a..b}\<close> for x
         proof -
@@ -2897,30 +2764,24 @@ proof -
           have norm_diff_int_x: \<open>(\<lambda>t. norm (f' t - ff' n t)) integrable_on {a..x}\<close>
             using integrable_on_subinterval[OF norm_diff_int ac_sub] .
           have \<open>norm (ff n x - f x) = norm (integral {a..x} (ff' n) - integral {a..x} f')\<close>
-            unfolding ff_def using f_eq[OF that] by simp
+            unfolding ff_def using f'int_eq[OF that] by simp
           also have \<open>\<dots> = norm (integral {a..x} (\<lambda>t. ff' n t - f' t))\<close>
             using integral_diff[OF ff'n_int_x f'_int_x] by simp
-          also have \<open>\<dots> \<le> integral {a..x} (\<lambda>t. norm (ff' n t - f' t))\<close>
+          also have \<open>\<dots> \<le> integral {a..x} (\<lambda>t. norm (f' t - ff' n t))\<close>
             using integral_norm_bound_integral[OF diff_int_x norm_diff_int_x]
-            by (simp add: norm_minus_commute)
-          also have \<open>\<dots> = integral {a..x} (\<lambda>t. norm (f' t - ff' n t))\<close>
             by (simp add: norm_minus_commute)
           also have \<open>\<dots> \<le> integral {a..b} (\<lambda>t. norm (f' t - ff' n t))\<close>
             using integral_subset_le[OF ac_sub norm_diff_int_x norm_diff_int] by simp
           finally show ?thesis .
         qed
-        \<comment> \<open>SUP bound via cSup_least.\<close>
+          \<comment> \<open>SUP bound via cSup_least.\<close>
         have bdd: \<open>bdd_above ((\<lambda>x. norm (ff n x - f x)) ` {a..b})\<close>
           by (meson bdd_above.I2 bound)
-        have sup_bound: \<open>(SUP x\<in>{a..b}. norm (ff n x - f x))
-              \<le> integral {a..b} (\<lambda>t. norm (f' t - ff' n t))\<close>
-          using cSup_least[of \<open>(\<lambda>x. norm (ff n x - f x)) ` {a..b}\<close>] ne bound
-          by (force simp: image_iff)
+        have sup_bound: \<open>(SUP x\<in>{a..b}. norm (ff n x - f x)) \<le> integral {a..b} (\<lambda>t. norm (f' t - ff' n t))\<close>
+          by (metis (mono_tags, lifting) bound cSUP_least ne)
         have sup_nonneg: \<open>(SUP x\<in>{a..b}. norm (ff n x - f x)) \<ge> 0\<close>
-          by (metis (mono_tags, lifting) assms(2) atLeastAtMost_iff bdd cSUP_upper2 norm_ge_zero
-              order.refl)
-        show \<open>norm (SUP x\<in>{a..b}. norm (ff n x - f x))
-              \<le> integral {a..b} (\<lambda>x. norm (f' x - ff' n x))\<close>
+          by (metis (no_types, lifting) ab atLeastAtMost_iff bdd cSUP_upper2 order.refl norm_ge_zero)
+        show \<open>norm (SUP x\<in>{a..b}. norm (ff n x - f x)) \<le> integral {a..b} (\<lambda>x. norm (f' x - ff' n x))\<close>
           using sup_bound sup_nonneg by simp
       qed
     qed
@@ -2950,7 +2811,7 @@ proof -
           have norm_diff_int_x: \<open>(\<lambda>t. norm (g' t - gg' n t)) integrable_on {a..x}\<close>
             using integrable_on_subinterval[OF norm_diff_int ac_sub] .
           have \<open>norm (gg n x - g x) = norm (integral {a..x} (gg' n) - integral {a..x} g')\<close>
-            unfolding gg_def using g_eq[OF that] by simp
+            unfolding gg_def using g'int_eq[OF that] by simp
           also have \<open>\<dots> = norm (integral {a..x} (\<lambda>t. gg' n t - g' t))\<close>
             using integral_diff[OF gg'n_int_x g'_int_x] by simp
           also have \<open>\<dots> \<le> integral {a..x} (\<lambda>t. norm (gg' n t - g' t))\<close>
@@ -2962,47 +2823,37 @@ proof -
             using integral_subset_le[OF ac_sub norm_diff_int_x norm_diff_int] by simp
           finally show ?thesis .
         qed
-        have bdd: \<open>bdd_above ((\<lambda>x. norm (gg n x - g x)) ` {a..b})\<close>
-          by (meson bdd_above.I2 bound)
-        have sup_bound: \<open>(SUP x\<in>{a..b}. norm (gg n x - g x))
-              \<le> integral {a..b} (\<lambda>t. norm (g' t - gg' n t))\<close>
-          using cSup_least[of \<open>(\<lambda>x. norm (gg n x - g x)) ` {a..b}\<close>] ne bound
-          by (force simp: image_iff)
+        have sup_bound: \<open>(SUP x\<in>{a..b}. norm (gg n x - g x)) \<le> integral {a..b} (\<lambda>t. norm (g' t - gg' n t))\<close>
+          by (metis (mono_tags, lifting) bound cSUP_least ne)
         have sup_nonneg: \<open>(SUP x\<in>{a..b}. norm (gg n x - g x)) \<ge> 0\<close>
-          by (metis (no_types, lifting) assms(2) atLeastAtMost_iff bdd cSup_upper2 image_eqI
-              norm_ge_zero order.refl)
-        show \<open>norm (SUP x\<in>{a..b}. norm (gg n x - g x))
-              \<le> integral {a..b} (\<lambda>x. norm (g' x - gg' n x))\<close>
+          by (metis (no_types, lifting) ab atLeastAtMost_iff bdd_above.I2 bound cSUP_upper2 order.refl
+              norm_imp_pos_and_ge)
+        show \<open>norm (SUP x\<in>{a..b}. norm (gg n x - g x)) \<le> integral {a..b} (\<lambda>x. norm (g' x - gg' n x))\<close>
           using sup_bound sup_nonneg by simp
       qed
     qed
     obtain M where "M>0" and M: "norm (bop x y) \<le> M * norm x * norm y" for x y
-    \<comment> \<open>Pointwise convergence at a and b.\<close>
+      \<comment> \<open>Pointwise convergence at a and b.\<close>
       using assms(1) bilinear_bounded_pos by blast
-    have ff_b: \<open>(\<lambda>n. ff n b) \<longlonglongrightarrow> f b\<close>
-      using ff_ptwise[of b] ab by auto
-    have ff_a: \<open>(\<lambda>n. ff n a) \<longlonglongrightarrow> f a\<close>
-      using ff_ptwise[of a] ab by auto
-    have gg_b: \<open>(\<lambda>n. gg n b) \<longlonglongrightarrow> g b\<close>
-      using gg_ptwise[of b] ab by auto
-    have gg_a: \<open>(\<lambda>n. gg n a) \<longlonglongrightarrow> g a\<close>
-      using gg_ptwise[of a] ab by auto
-    \<comment> \<open>Bilinear limit at endpoints.\<close>
+    obtain ff_a: \<open>(\<lambda>n. ff n a) \<longlonglongrightarrow> f a\<close> and ff_b: \<open>(\<lambda>n. ff n b) \<longlonglongrightarrow> f b\<close>
+      by (simp add: ab ff_ptwise)
+    obtain gg_a: \<open>(\<lambda>n. gg n a) \<longlonglongrightarrow> g a\<close> and gg_b: \<open>(\<lambda>n. gg n b) \<longlonglongrightarrow> g b\<close>
+      by (simp add: ab gg_ptwise)
+        \<comment> \<open>Bilinear limit at endpoints.\<close>
     have bop_b: \<open>(\<lambda>n. bop (ff n b) (gg n b)) \<longlonglongrightarrow> bop (f b) (g b)\<close>
-      using Lim_bilinear[OF ff_b gg_b bb] .
+      using Lim_bilinear[OF ff_b gg_b \<open>bounded_bilinear bop\<close>] .
     have bop_a: \<open>(\<lambda>n. bop (ff n a) (gg n a)) \<longlonglongrightarrow> bop (f a) (g a)\<close>
-      using Lim_bilinear[OF ff_a gg_a bb] .
-    \<comment> \<open>Obtain B bounding integral norms of |f'| and |g'|.\<close>
-    obtain B where \<open>B > 0\<close>
-      and B_f': \<open>integral {a..b} (\<lambda>x. norm (f' x)) \<le> B\<close>
+      using Lim_bilinear[OF ff_a gg_a \<open>bounded_bilinear bop\<close>] .
+        \<comment> \<open>Obtain B bounding integral norms of |f'| and |g'|.\<close>
+    obtain B where \<open>B > 0\<close> and B_f': \<open>integral {a..b} (\<lambda>x. norm (f' x)) \<le> B\<close>
       and B_g': \<open>integral {a..b} (\<lambda>x. norm (g' x)) \<le> B\<close>
       by (smt (verit, best) gt_ex)
-    \<comment> \<open>Bound on sup norms of f and g on {a..b}: \<Parallel>f(x)\<Parallel> \<le> B, \<Parallel>g(x)\<Parallel> \<le> B.\<close>
+        \<comment> \<open>Bound on sup norms of f and g on {a..b}: \<Parallel>f(x)\<Parallel> \<le> B, \<Parallel>g(x)\<Parallel> \<le> B.\<close>
     obtain M_f where \<open>M_f > 0\<close> and M_f: \<open>\<And>x. x \<in> {a..b} \<Longrightarrow> norm (f x) \<le> M_f\<close>
       using bounded_normE[OF f_bounded] by (metis image_eqI)
     obtain M_g where \<open>M_g > 0\<close> and M_g: \<open>\<And>x. x \<in> {a..b} \<Longrightarrow> norm (g x) \<le> M_g\<close>
       using bounded_normE[OF g_bounded] by (metis image_eqI)
-    \<comment> \<open>Integrability of norm differences.\<close>
+        \<comment> \<open>Integrability of norm differences.\<close>
     have norm_f'_int: \<open>(\<lambda>x. norm (f' x)) integrable_on {a..b}\<close>
       using f'abs absolutely_integrable_on_def by blast
     have norm_g'_int: \<open>(\<lambda>x. norm (g' x)) integrable_on {a..b}\<close>
@@ -3012,7 +2863,7 @@ proof -
     have norm_ff'_diff_int: \<open>(\<lambda>x. norm (f' x - ff' n x)) integrable_on {a..b}\<close> for n
       by (metis absolutely_integrable_on_def f'abs ff' set_integral_diff(1))
     define \<phi> where "\<phi> \<equiv> \<lambda>n. 2 * M * B * inverse(real n + 1) + M * inverse(real n + 1)^2"
-    \<comment> \<open>Integral convergence: int1.\<close> (*Could this be done better following int2?*)
+      \<comment> \<open>Integral convergence: int1.\<close> (*Could this be done better following int2?*)
     have int1: \<open>(\<lambda>n. integral {a..b} (\<lambda>x. bop (ff n x) (gg' n x))) \<longlonglongrightarrow>
                integral {a..b} (\<lambda>x. bop (f x) (g' x))\<close>
     proof (rule LIM_zero_iff[THEN iffD1])
@@ -3020,18 +2871,18 @@ proof -
       have decomp: \<open>bop (ff n x) (gg' n x) - bop (f x) (g' x) =
             bop (ff n x - f x) (gg' n x - g' x) + bop (ff n x - f x) (g' x) +
             bop (f x) (gg' n x - g' x)\<close> for n x
-        using bounded_bilinear.prod_diff_prod[OF bb] by blast
-      \<comment> \<open>Integrability of each term.\<close>
+        using bounded_bilinear.prod_diff_prod[OF \<open>bounded_bilinear bop\<close>] by blast
+          \<comment> \<open>Integrability of each term.\<close>
       have fg'_int: \<open>(\<lambda>x. bop (f x) (g' x)) integrable_on {a..b}\<close>
         using set_lebesgue_integral_eq_integral(1)
-              [OF bop_absint_cont2[OF f_cont g'abs]] .
+          [OF bop_absint_cont2[OF f_cont g'abs]] .
       have ffgg'_int: \<open>(\<lambda>x. bop (ff n x) (gg' n x)) integrable_on {a..b}\<close> for n
         by (simp add: bop_absint_cont2 ff_cont gg' set_lebesgue_integral_eq_integral(1))
-      \<comment> \<open>Now show the integral of the decomposed sum \<rightarrow> 0.\<close>
+          \<comment> \<open>Now show the integral of the decomposed sum \<rightarrow> 0.\<close>
       have eq: \<open>integral {a..b} (\<lambda>x. bop (ff n x) (gg' n x)) - integral {a..b} (\<lambda>x. bop (f x) (g' x))
                 = integral {a..b} (\<lambda>x. bop (ff n x) (gg' n x) - bop (f x) (g' x))\<close> for n
         by (simp add: Henstock_Kurzweil_Integration.integral_diff ffgg'_int fg'_int)
-      \<comment> \<open>Integrability of each bilinear term.\<close>
+          \<comment> \<open>Integrability of each bilinear term.\<close>
       have t1_int: \<open>(\<lambda>x. bop (ff n x - f x) (gg' n x - g' x)) integrable_on {a..b}\<close> for n
         by (simp add: absolutely_integrable_continuous_real assms(4) bop_absint_cont2
             continuous_on_diff f_cont ff_cont gg'_cont_ab
@@ -3051,12 +2902,12 @@ proof -
         have sup_bound: \<open>norm (ff n x - f x) \<le> (SUP x\<in>{a..b}. norm (ff n x - f x))\<close>
           if \<open>x \<in> {a..b}\<close> for n x
           using cSUP_upper[OF that bdd_ff] .
-        \<comment> \<open>Integrability of scaled norm functions.\<close>
+            \<comment> \<open>Integrability of scaled norm functions.\<close>
         have sc_gg'_int: \<open>(\<lambda>x. c * norm (g' x - gg' n x)) integrable_on {a..b}\<close> for c :: real and n
           using integrable_cmul[OF norm_gg'_diff_int, of c n] by (simp add: scaleR_conv_of_real)
         have sc_g'_int: \<open>(\<lambda>x. c * norm (g' x)) integrable_on {a..b}\<close> for c :: real
           using integrable_cmul[OF norm_g'_int, of c] by (simp add: scaleR_conv_of_real)
-        \<comment> \<open>Term 1: \<integral> bop(ff n - f)(gg' n - g') \<rightarrow> 0.\<close>
+            \<comment> \<open>Term 1: \<integral> bop(ff n - f)(gg' n - g') \<rightarrow> 0.\<close>
         have I1: \<open>(\<lambda>n. integral {a..b} (\<lambda>x. bop (ff n x - f x) (gg' n x - g' x))) \<longlonglongrightarrow> 0\<close>
         proof -
           have lim_bound: \<open>(\<lambda>n. M * ((SUP x\<in>{a..b}. norm (ff n x - f x)) *
@@ -3064,10 +2915,8 @@ proof -
             using ff_uniform gg'_L1 tendsto_mult_right_zero tendsto_mult_zero by blast
           show ?thesis
           proof (rule Lim_null_comparison[OF _ lim_bound])
-            show \<open>\<forall>\<^sub>F n in sequentially.
-              norm (integral {a..b} (\<lambda>x. bop (ff n x - f x) (gg' n x - g' x))) \<le>
-              M * ((SUP x\<in>{a..b}. norm (ff n x - f x)) *
-                integral {a..b} (\<lambda>x. norm (g' x - gg' n x)))\<close>
+            show \<open>\<forall>\<^sub>F n in sequentially. norm (integral {a..b} (\<lambda>x. bop (ff n x - f x) (gg' n x - g' x)))
+                 \<le> M * ((SUP x\<in>{a..b}. norm (ff n x - f x)) * integral {a..b} (\<lambda>x. norm (g' x - gg' n x)))\<close>
             proof (intro always_eventually allI)
               fix n
               have sup_int: \<open>(\<lambda>x. M * (SUP x\<in>{a..b}. norm (ff n x - f x)) * norm (gg' n x - g' x))
@@ -3080,7 +2929,7 @@ proof -
                 fix x assume xab: \<open>x \<in> {a..b}\<close>
                 have \<open>norm (bop (ff n x - f x) (gg' n x - g' x)) \<le>
                       M * norm (ff n x - f x) * norm (gg' n x - g' x)\<close>
-                  using M[of \<open>ff n x - f x\<close> \<open>gg' n x - g' x\<close>] by simp
+                  using M by blast
                 also have \<open>\<dots> \<le> M * (SUP x\<in>{a..b}. norm (ff n x - f x)) * norm (gg' n x - g' x)\<close>
                   using sup_bound[OF xab, of n] \<open>M > 0\<close>
                   by (intro mult_right_mono mult_left_mono) auto
@@ -3089,9 +2938,7 @@ proof -
               qed
               also have \<open>\<dots> = M * (SUP x\<in>{a..b}. norm (ff n x - f x)) *
                   integral {a..b} (\<lambda>x. norm (gg' n x - g' x))\<close>
-                using integral_cmul[of \<open>{a..b}\<close>
-                      \<open>M * (SUP x\<in>{a..b}. norm (ff n x - f x))\<close> \<open>\<lambda>x. norm (gg' n x - g' x)\<close>]
-                by (simp add: mult.assoc scaleR_conv_of_real)
+                using integral_cmul by (simp add: mult.assoc scaleR_conv_of_real)
               also have \<open>\<dots> = M * ((SUP x\<in>{a..b}. norm (ff n x - f x)) *
                   integral {a..b} (\<lambda>x. norm (g' x - gg' n x)))\<close>
                 by (simp add: norm_minus_commute mult.assoc)
@@ -3104,7 +2951,7 @@ proof -
         show ?thesis
         proof -
           have I2: \<open>(\<lambda>n. integral {a..b} (\<lambda>x. bop (ff n x - f x) (g' x))) \<longlonglongrightarrow> 0\<close>
-          proof (rule Lim_null_comparison[where g=\<open>\<lambda>n. M * (SUP x\<in>{a..b}. norm (ff n x - f x)) * integral {a..b} (\<lambda>x. norm (g' x))\<close>])
+          proof (rule Lim_null_comparison)
             show \<open>\<forall>\<^sub>F n in sequentially. norm (integral {a..b} (\<lambda>x. bop (ff n x - f x) (g' x))) \<le>
                 M * (SUP x\<in>{a..b}. norm (ff n x - f x)) * integral {a..b} (\<lambda>x. norm (g' x))\<close>
             proof (intro always_eventually allI)
@@ -3131,7 +2978,7 @@ proof -
                   M * (SUP x\<in>{a..b}. norm (ff n x - f x)) * integral {a..b} (\<lambda>x. norm (g' x))\<close> .
             qed
           next
-             show \<open>(\<lambda>n. M * (SUP x\<in>{a..b}. norm (ff n x - f x)) * integral {a..b} (\<lambda>x. norm (g' x))) \<longlonglongrightarrow> 0\<close>
+            show \<open>(\<lambda>n. M * (SUP x\<in>{a..b}. norm (ff n x - f x)) * integral {a..b} (\<lambda>x. norm (g' x))) \<longlonglongrightarrow> 0\<close>
               using ff_uniform tendsto_mult_left[of _ 0 sequentially M]
               using tendsto_mult_left_zero by fastforce
           qed
@@ -3166,9 +3013,7 @@ proof -
             qed
           next
             show \<open>(\<lambda>n. M * M_f * integral {a..b} (\<lambda>x. norm (g' x - gg' n x))) \<longlonglongrightarrow> 0\<close>
-              using tendsto_mult_left[of \<open>\<lambda>n. integral {a..b} (\<lambda>x. norm (g' x - gg' n x))\<close> 0 sequentially \<open>M * M_f\<close>]
-                    gg'_L1
-              by simp
+              using gg'_L1 tendsto_mult_right_zero by blast
           qed
           show ?thesis
           proof -
@@ -3180,11 +3025,9 @@ proof -
               have \<open>?L = integral {a..b} (\<lambda>x. bop (ff n x - f x) (gg' n x - g' x) + bop (ff n x - f x) (g' x) +
                       bop (f x) (gg' n x - g' x))\<close>
                 by (simp only: decomp)
-              also have \<open>\<dots> = integral {a..b} (\<lambda>x. bop (ff n x - f x) (gg' n x - g' x) + bop (ff n x - f x) (g' x)) +
-                  integral {a..b} (\<lambda>x. bop (f x) (gg' n x - g' x))\<close>
-                by (rule Henstock_Kurzweil_Integration.integral_add[OF integrable_add[OF t1_int t2_int] t3_int])
               also have \<open>\<dots> = ?R\<close>
-                by (simp add: Henstock_Kurzweil_Integration.integral_add[OF t1_int t2_int])
+                by (simp add: Henstock_Kurzweil_Integration.integrable_add
+                    Henstock_Kurzweil_Integration.integral_add t1_int t2_int t3_int)
               finally show ?thesis .
             qed
             then show ?thesis
@@ -3201,18 +3044,18 @@ proof -
       have decomp: \<open>bop (ff' n x) (gg n x) - bop (f' x) (g x) =
             bop (ff' n x - f' x) (gg n x - g x) + bop (ff' n x - f' x) (g x) +
             bop (f' x) (gg n x - g x)\<close> for n x
-        by (simp add: bounded_bilinear.prod_diff_prod[OF bb] )
-      \<comment> \<open>Integrability of each term.\<close>
+        by (simp add: bounded_bilinear.prod_diff_prod[OF \<open>bounded_bilinear bop\<close>] )
+          \<comment> \<open>Integrability of each term.\<close>
       have fg'_int: \<open>(\<lambda>x. bop (f' x) (g x)) integrable_on {a..b}\<close>
         using \<open>(\<lambda>x. bop (f' x) (g x)) absolutely_integrable_on {a..b}\<close>
           set_lebesgue_integral_eq_integral(1) by blast
       have ffgg'_int: \<open>(\<lambda>x. bop (ff' n x) (gg n x)) integrable_on {a..b}\<close> for n
         by (simp add: bop_absint_cont1 ff' gg_cont set_lebesgue_integral_eq_integral(1))
-      \<comment> \<open>Now show the integral of the decomposed sum \<rightarrow> 0.\<close>
+          \<comment> \<open>Now show the integral of the decomposed sum \<rightarrow> 0.\<close>
       have eq: \<open>integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x)) - integral {a..b} (\<lambda>x. bop (f' x) (g x))
                 = integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (g x))\<close> for n
         by (simp add: Henstock_Kurzweil_Integration.integral_diff ffgg'_int fg'_int)
-      \<comment> \<open>Integrability of each bilinear term.\<close>
+          \<comment> \<open>Integrability of each bilinear term.\<close>
       have t1_int: \<open>(\<lambda>x. bop (ff' n x - f' x) (gg n x - g x)) integrable_on {a..b}\<close> for n
         by (simp add: assms(3) bop_absint_cont1 continuous_on_diff ff' g_cont gg_cont
             set_lebesgue_integral_eq_integral(1))
@@ -3236,178 +3079,59 @@ proof -
                 (bop (f' x) (gg n x) - bop (f' x) (g x))) =
            integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (gg n x)) +
            integral {a..b} (\<lambda>x. bop (f' x) (gg n x) - bop (f' x) (g x))\<close>
-         by (intro Henstock_Kurzweil_Integration.integral_add
-               Henstock_Kurzweil_Integration.integrable_diff ffgg'_int f'gg_int fg'_int)
-       have "norm (integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (g x))) \<le> \<phi> n"
-       proof -
-        have pw1: \<open>norm (bop (ff n x - f x) (g' x)) \<le> M * inverse (real n + 1) * norm (g' x)\<close>
-                  if \<open>x \<in> {a..b}\<close> for x
+          by (intro Henstock_Kurzweil_Integration.integral_add
+              Henstock_Kurzweil_Integration.integrable_diff ffgg'_int f'gg_int fg'_int)
+        have "norm (integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (g x))) \<le> \<phi> n"
         proof -
-          have ac_sub: \<open>{a..x} \<subseteq> {a..b}\<close> using that by auto
-          have ff'n_int: \<open>ff' n integrable_on {a..b}\<close>
-            using ff'_cont_ab integrable_continuous_real by blast
-          have ff'n_int_x: \<open>ff' n integrable_on {a..x}\<close>
-            using integrable_on_subinterval[OF ff'n_int ac_sub] .
-          have f'_int_x: \<open>f' integrable_on {a..x}\<close>
-            using integrable_on_subinterval[OF f'_int ac_sub] .
-          have diff_int_x: \<open>(\<lambda>t. ff' n t - f' t) integrable_on {a..x}\<close>
-            using integrable_diff[OF ff'n_int_x f'_int_x] .
-          have norm_diff_int_x: \<open>(\<lambda>t. norm (f' t - ff' n t)) integrable_on {a..x}\<close>
-            using integrable_on_subinterval[OF norm_ff'_diff_int ac_sub] .
-          \<comment> \<open>FTC bound: \<Parallel>ff n x - f x\<Parallel> \<le> \<integral>{a..b} \<Parallel>f' - ff' n\<Parallel>.\<close>
-          have \<open>norm (ff n x - f x) = norm (integral {a..x} (ff' n) - integral {a..x} f')\<close>
-            unfolding ff_def using f_eq[OF that] by simp
-          also have \<open>\<dots> = norm (integral {a..x} (\<lambda>t. ff' n t - f' t))\<close>
-            using integral_diff[OF ff'n_int_x f'_int_x] by simp
-          also have \<open>\<dots> \<le> integral {a..x} (\<lambda>t. norm (ff' n t - f' t))\<close>
-            using integral_norm_bound_integral[OF diff_int_x norm_diff_int_x]
-            by (simp add: norm_minus_commute)
-          also have \<open>\<dots> = integral {a..x} (\<lambda>t. norm (f' t - ff' n t))\<close>
-            by (simp add: norm_minus_commute)
-          also have \<open>\<dots> \<le> integral {a..b} (\<lambda>t. norm (f' t - ff' n t))\<close>
-            using integral_subset_le[OF ac_sub norm_diff_int_x norm_ff'_diff_int] by simp
-          finally have ff_bound: \<open>norm (ff n x - f x)
-                                  \<le> integral {a..b} (\<lambda>t. norm (f' t - ff' n t))\<close> .
-          \<comment> \<open>The L1 bound gives < inverse(n+1).\<close>
-          have nn: \<open>integral {a..b} (\<lambda>t. norm (f' t - ff' n t)) \<ge> 0\<close>
-            using integral_nonneg[OF norm_ff'_diff_int] by simp
-          have \<open>norm (integral {a..b} (\<lambda>t. norm (f' t - ff' n t))) < inverse (real n + 1)\<close>
-            using ff' by simp
-          then have L1: \<open>integral {a..b} (\<lambda>t. norm (f' t - ff' n t)) < inverse (real n + 1)\<close>
-            using nn by simp
-          have ff_inv: \<open>norm (ff n x - f x) \<le> inverse (real n + 1)\<close>
-            using ff_bound L1 by linarith
-          \<comment> \<open>Apply bilinear bound and monotonicity.\<close>
-          have \<open>norm (bop (ff n x - f x) (g' x)) \<le> M * norm (ff n x - f x) * norm (g' x)\<close>
-            using M by simp
-          also have \<open>\<dots> \<le> M * inverse (real n + 1) * norm (g' x)\<close>
-            using ff_inv \<open>M > 0\<close>
-            by (intro mult_right_mono mult_left_mono) auto
-          finally show ?thesis .
-        qed
-        have pw2: \<open>norm (bop (ff' n x - f' x) (gg n x))
-                   \<le> M * (B + inverse (real n + 1)) * norm (ff' n x - f' x)\<close>
-                  if \<open>x \<in> {a..b}\<close> for x
-        proof -
-          have ac_sub: \<open>{a..x} \<subseteq> {a..b}\<close> using that by auto
-          \<comment> \<open>Step 1: \<Parallel>gg n x - g x\<Parallel> \<le> inverse(n+1).\<close>
-          have gg'n_int: \<open>gg' n integrable_on {a..b}\<close>
-            using gg'_cont_ab integrable_continuous_real by blast
-          have gg'n_int_x: \<open>gg' n integrable_on {a..x}\<close>
-            using integrable_on_subinterval[OF gg'n_int ac_sub] .
-          have g'_int_x: \<open>g' integrable_on {a..x}\<close>
-            using integrable_on_subinterval[OF g'_int ac_sub] .
-          have diff_int_x: \<open>(\<lambda>t. gg' n t - g' t) integrable_on {a..x}\<close>
-            using integrable_diff[OF gg'n_int_x g'_int_x] .
-          have norm_diff_int_x: \<open>(\<lambda>t. norm (g' t - gg' n t)) integrable_on {a..x}\<close>
-            using integrable_on_subinterval[OF norm_gg'_diff_int ac_sub] .
-          have \<open>norm (gg n x - g x) = norm (integral {a..x} (gg' n) - integral {a..x} g')\<close>
-            unfolding gg_def using g_eq[OF that] by simp
-          also have \<open>\<dots> = norm (integral {a..x} (\<lambda>t. gg' n t - g' t))\<close>
-            using integral_diff[OF gg'n_int_x g'_int_x] by simp
-          also have \<open>\<dots> \<le> integral {a..x} (\<lambda>t. norm (gg' n t - g' t))\<close>
-            using integral_norm_bound_integral[OF diff_int_x norm_diff_int_x]
-            by (simp add: norm_minus_commute)
-          also have \<open>\<dots> = integral {a..x} (\<lambda>t. norm (g' t - gg' n t))\<close>
-            by (simp add: norm_minus_commute)
-          also have \<open>\<dots> \<le> integral {a..b} (\<lambda>t. norm (g' t - gg' n t))\<close>
-            using integral_subset_le[OF ac_sub norm_diff_int_x norm_gg'_diff_int] by simp
-          finally have gg_bound: \<open>norm (gg n x - g x)
-                                  \<le> integral {a..b} (\<lambda>t. norm (g' t - gg' n t))\<close> .
-          have nn: \<open>integral {a..b} (\<lambda>t. norm (g' t - gg' n t)) \<ge> 0\<close>
-            using integral_nonneg[OF norm_gg'_diff_int] by simp
-          have \<open>norm (integral {a..b} (\<lambda>t. norm (g' t - gg' n t))) < inverse (real n + 1)\<close>
-            using gg' by simp
-          then have L1: \<open>integral {a..b} (\<lambda>t. norm (g' t - gg' n t)) < inverse (real n + 1)\<close>
-            using nn by simp
-          have gg_inv: \<open>norm (gg n x - g x) \<le> inverse (real n + 1)\<close>
-            using gg_bound L1 by linarith
-          \<comment> \<open>Step 2: \<Parallel>g x\<Parallel> \<le> B.\<close>
-          have norm_g'_int_x: \<open>(\<lambda>t. norm (g' t)) integrable_on {a..x}\<close>
-            using integrable_on_subinterval[OF norm_g'_int ac_sub] .
-          have \<open>norm (g x) = norm (integral {a..x} g')\<close>
-            using g_eq[OF that] by simp
-          also have \<open>\<dots> \<le> integral {a..x} (\<lambda>t. norm (g' t))\<close>
-            using integral_norm_bound_integral[OF g'_int_x norm_g'_int_x] by simp
-          also have \<open>\<dots> \<le> integral {a..b} (\<lambda>t. norm (g' t))\<close>
-            using integral_subset_le[OF ac_sub norm_g'_int_x norm_g'_int] by simp
-          also have \<open>\<dots> \<le> B\<close> using B_g' .
-          finally have g_bound: \<open>norm (g x) \<le> B\<close> .
-          \<comment> \<open>Step 3: \<Parallel>gg n x\<Parallel> \<le> B + inverse(n+1) via triangle inequality.\<close>
-          have \<open>norm (gg n x) \<le> norm (g x) + norm (gg n x - g x)\<close>
-            by (metis norm_triangle_sub)
-          also have \<open>\<dots> \<le> B + inverse (real n + 1)\<close>
-            using g_bound gg_inv by linarith
-          finally have gg_norm: \<open>norm (gg n x) \<le> B + inverse (real n + 1)\<close> .
-          \<comment> \<open>Step 4: Apply bilinear bound and monotonicity.\<close>
-          have \<open>norm (bop (ff' n x - f' x) (gg n x))
-                \<le> M * norm (ff' n x - f' x) * norm (gg n x)\<close>
-            using M by simp
-          also have \<open>\<dots> \<le> M * norm (ff' n x - f' x) * (B + inverse (real n + 1))\<close>
-            using gg_norm \<open>M > 0\<close>
-            by (intro mult_left_mono mult_nonneg_nonneg) auto
-          also have \<open>\<dots> = M * (B + inverse (real n + 1)) * norm (ff' n x - f' x)\<close>
-            by (simp add: mult.commute mult.left_commute)
-          finally show ?thesis .
-        qed
-        have I1: \<open>norm (integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (gg n x)))
-                  \<le> M * (B + inverse (real n + 1)) * inverse (real n + 1)\<close>
-        proof -
-          \<comment> \<open>Rewrite using bilinearity: bop (ff' n x - f' x) (gg n x).\<close>
-          have diff_eq: \<open>bop (ff' n x) (gg n x) - bop (f' x) (gg n x)
-                         = bop (ff' n x - f' x) (gg n x)\<close> for x
-            using bounded_bilinear.diff_left[OF bb] by simp
-          \<comment> \<open>Integrability of the integrand.\<close>
-          have int1: \<open>(\<lambda>x. bop (ff' n x - f' x) (gg n x)) integrable_on {a..b}\<close>
-            using Henstock_Kurzweil_Integration.integrable_diff[OF ffgg'_int f'gg_int]
-            by (simp add: diff_eq[symmetric])
-          \<comment> \<open>Integrability of the bounding function.\<close>
-          have bound_int: \<open>(\<lambda>x. M * (B + inverse (real n + 1)) * norm (ff' n x - f' x))
-                           integrable_on {a..b}\<close>
-            using integrable_on_cmult_left[OF norm_ff'_diff_int,
-                    of \<open>M * (B + inverse (real n + 1))\<close>]
-            by (simp add: norm_minus_commute mult.assoc)
-          \<comment> \<open>First leg: norm of integral \<le> integral of pointwise bound.\<close>
-          have \<open>norm (integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (gg n x)))
-                = norm (integral {a..b} (\<lambda>x. bop (ff' n x - f' x) (gg n x)))\<close>
-            by (simp add: diff_eq)
-          also have \<open>\<dots> \<le> integral {a..b} (\<lambda>x. M * (B + inverse (real n + 1)) * norm (ff' n x - f' x))\<close>
-            using Henstock_Kurzweil_Integration.integral_norm_bound_integral bound_int int1 pw2
-            by blast
-          \<comment> \<open>Second leg: factor out constant and use ff' L1 bound.\<close>
-          also have \<open>\<dots> = M * (B + inverse (real n + 1)) *
-                          integral {a..b} (\<lambda>x. norm (ff' n x - f' x))\<close>
-            using integral_cmul[of \<open>{a..b}\<close>
-                  \<open>M * (B + inverse (real n + 1))\<close> \<open>\<lambda>x. norm (ff' n x - f' x)\<close>]
-            by (simp add: mult.assoc scaleR_conv_of_real norm_minus_commute)
-          also have \<open>\<dots> \<le> M * (B + inverse (real n + 1)) * inverse (real n + 1)\<close>
-          proof (intro mult_left_mono)
-            have nn: \<open>integral {a..b} (\<lambda>x. norm (f' x - ff' n x)) \<ge> 0\<close>
-              using integral_nonneg[OF norm_ff'_diff_int] by simp
-            have \<open>norm (integral {a..b} (\<lambda>x. norm (f' x - ff' n x))) < inverse (real n + 1)\<close>
-              using ff' by simp
-            then have L1: \<open>integral {a..b} (\<lambda>x. norm (f' x - ff' n x)) < inverse (real n + 1)\<close>
-              using nn by simp
-            then show \<open>integral {a..b} (\<lambda>x. norm (ff' n x - f' x)) \<le> inverse (real n + 1)\<close>
-              by (simp add: norm_minus_commute)
-            show \<open>0 \<le> M * (B + inverse (real n + 1))\<close>
-              using \<open>M > 0\<close> \<open>B > 0\<close> by (intro mult_nonneg_nonneg) auto
-          qed
-          finally show ?thesis .
-        qed
-         have I2: \<open>norm (integral {a..b} (\<lambda>x. bop (f' x) (gg n x) - bop (f' x) (g x)))
-                   \<le> M * B * inverse (real n + 1)\<close>
-        proof -
-          \<comment> \<open>Rewrite using bilinearity: bop f' (gg n - g) = bop f' (gg n) - bop f' g.\<close>
-          have diff_eq: \<open>bop (f' x) (gg n x) - bop (f' x) (g x) = bop (f' x) (gg n x - g x)\<close> for x
-            using bounded_bilinear.diff_right[OF bb] by simp
-          \<comment> \<open>Re-derive FTC bound: \<Parallel>gg n x - g x\<Parallel> \<le> \<integral>{a..b} \<Parallel>g' - gg' n\<Parallel>.\<close>
-          have gg'n_int: \<open>gg' n integrable_on {a..b}\<close>
-            using gg'_cont_ab integrable_continuous_real by blast
-          have gg_bound: \<open>norm (gg n x - g x) \<le> integral {a..b} (\<lambda>t. norm (g' t - gg' n t))\<close>
-            if xab: \<open>x \<in> {a..b}\<close> for x
+          have pw1: \<open>norm (bop (ff n x - f x) (g' x)) \<le> M * inverse (real n + 1) * norm (g' x)\<close>
+            if \<open>x \<in> {a..b}\<close> for x
           proof -
-            have ac_sub: \<open>{a..x} \<subseteq> {a..b}\<close> using xab by auto
+            have ac_sub: \<open>{a..x} \<subseteq> {a..b}\<close> using that by auto
+            have ff'n_int: \<open>ff' n integrable_on {a..b}\<close>
+              using ff'_cont_ab integrable_continuous_real by blast
+            have ff'n_int_x: \<open>ff' n integrable_on {a..x}\<close>
+              using integrable_on_subinterval[OF ff'n_int ac_sub] .
+            have f'_int_x: \<open>f' integrable_on {a..x}\<close>
+              using integrable_on_subinterval[OF f'_int ac_sub] .
+            have diff_int_x: \<open>(\<lambda>t. ff' n t - f' t) integrable_on {a..x}\<close>
+              using integrable_diff[OF ff'n_int_x f'_int_x] .
+            have norm_diff_int_x: \<open>(\<lambda>t. norm (f' t - ff' n t)) integrable_on {a..x}\<close>
+              using integrable_on_subinterval[OF norm_ff'_diff_int ac_sub] .
+                \<comment> \<open>FTC bound: \<Parallel>ff n x - f x\<Parallel> \<le> \<integral>{a..b} \<Parallel>f' - ff' n\<Parallel>.\<close>
+            have \<open>norm (ff n x - f x) = norm (integral {a..x} (ff' n) - integral {a..x} f')\<close>
+              unfolding ff_def using f'int_eq[OF that] by simp
+            also have \<open>\<dots> = norm (integral {a..x} (\<lambda>t. ff' n t - f' t))\<close>
+              using integral_diff[OF ff'n_int_x f'_int_x] by simp
+            also have \<open>\<dots> \<le> integral {a..x} (\<lambda>t. norm (ff' n t - f' t))\<close>
+              using integral_norm_bound_integral[OF diff_int_x norm_diff_int_x]
+              by (simp add: norm_minus_commute)
+            also have \<open>\<dots> = integral {a..x} (\<lambda>t. norm (f' t - ff' n t))\<close>
+              by (simp add: norm_minus_commute)
+            also have \<open>\<dots> \<le> integral {a..b} (\<lambda>t. norm (f' t - ff' n t))\<close>
+              using integral_subset_le[OF ac_sub norm_diff_int_x norm_ff'_diff_int] by simp
+            finally have ff_bound: \<open>norm (ff n x - f x)
+                                  \<le> integral {a..b} (\<lambda>t. norm (f' t - ff' n t))\<close> .
+            \<comment> \<open>The L1 bound gives < inverse(n+1).\<close>
+            have nn: \<open>integral {a..b} (\<lambda>t. norm (f' t - ff' n t)) \<ge> 0\<close>
+              using integral_nonneg[OF norm_ff'_diff_int] by simp
+            have \<open>norm (integral {a..b} (\<lambda>t. norm (f' t - ff' n t))) < inverse (real n + 1)\<close>
+              using ff' by simp
+            then have L1: \<open>integral {a..b} (\<lambda>t. norm (f' t - ff' n t)) < inverse (real n + 1)\<close>
+              using nn by simp
+            have ff_inv: \<open>norm (ff n x - f x) \<le> inverse (real n + 1)\<close>
+              using ff_bound L1 by linarith
+            then show ?thesis
+              \<comment> \<open>Apply bilinear bound and monotonicity.\<close>
+              by (meson M \<open>0 < M\<close> order.trans mult_left_mono mult_right_mono less_eq_real_def norm_ge_zero)
+          qed
+          have pw2: \<open>norm (bop (ff' n x - f' x) (gg n x))
+                   \<le> M * (B + inverse (real n + 1)) * norm (ff' n x - f' x)\<close>
+            if \<open>x \<in> {a..b}\<close> for x
+          proof -
+            have ac_sub: \<open>{a..x} \<subseteq> {a..b}\<close> using that by auto
+                \<comment> \<open>Step 1: \<Parallel>gg n x - g x\<Parallel> \<le> inverse(n+1).\<close>
+            have gg'n_int: \<open>gg' n integrable_on {a..b}\<close>
+              using gg'_cont_ab integrable_continuous_real by blast
             have gg'n_int_x: \<open>gg' n integrable_on {a..x}\<close>
               using integrable_on_subinterval[OF gg'n_int ac_sub] .
             have g'_int_x: \<open>g' integrable_on {a..x}\<close>
@@ -3417,7 +3141,7 @@ proof -
             have norm_diff_int_x: \<open>(\<lambda>t. norm (g' t - gg' n t)) integrable_on {a..x}\<close>
               using integrable_on_subinterval[OF norm_gg'_diff_int ac_sub] .
             have \<open>norm (gg n x - g x) = norm (integral {a..x} (gg' n) - integral {a..x} g')\<close>
-              unfolding gg_def using g_eq[OF xab] by simp
+              unfolding gg_def using g'int_eq[OF that] by simp
             also have \<open>\<dots> = norm (integral {a..x} (\<lambda>t. gg' n t - g' t))\<close>
               using integral_diff[OF gg'n_int_x g'_int_x] by simp
             also have \<open>\<dots> \<le> integral {a..x} (\<lambda>t. norm (gg' n t - g' t))\<close>
@@ -3427,76 +3151,174 @@ proof -
               by (simp add: norm_minus_commute)
             also have \<open>\<dots> \<le> integral {a..b} (\<lambda>t. norm (g' t - gg' n t))\<close>
               using integral_subset_le[OF ac_sub norm_diff_int_x norm_gg'_diff_int] by simp
+            finally have gg_bound: \<open>norm (gg n x - g x)
+                                  \<le> integral {a..b} (\<lambda>t. norm (g' t - gg' n t))\<close> .
+            have nn: \<open>integral {a..b} (\<lambda>t. norm (g' t - gg' n t)) \<ge> 0\<close>
+              using integral_nonneg[OF norm_gg'_diff_int] by simp
+            have \<open>norm (integral {a..b} (\<lambda>t. norm (g' t - gg' n t))) < inverse (real n + 1)\<close>
+              using gg' by simp
+            then have L1: \<open>integral {a..b} (\<lambda>t. norm (g' t - gg' n t)) < inverse (real n + 1)\<close>
+              using nn by simp
+            have gg_inv: \<open>norm (gg n x - g x) \<le> inverse (real n + 1)\<close>
+              using gg_bound L1 by linarith
+                \<comment> \<open>Step 2: \<Parallel>g x\<Parallel> \<le> B.\<close>
+            have norm_g'_int_x: \<open>(\<lambda>t. norm (g' t)) integrable_on {a..x}\<close>
+              using integrable_on_subinterval[OF norm_g'_int ac_sub] .
+            have \<open>norm (g x) = norm (integral {a..x} g')\<close>
+              using g'int_eq[OF that] by simp
+            also have \<open>\<dots> \<le> integral {a..x} (\<lambda>t. norm (g' t))\<close>
+              using integral_norm_bound_integral[OF g'_int_x norm_g'_int_x] by simp
+            also have \<open>\<dots> \<le> integral {a..b} (\<lambda>t. norm (g' t))\<close>
+              using integral_subset_le[OF ac_sub norm_g'_int_x norm_g'_int] by simp
+            also have \<open>\<dots> \<le> B\<close> using B_g' .
+            finally have g_bound: \<open>norm (g x) \<le> B\<close> .
+                \<comment> \<open>Step 3: triangle inequality.\<close>
+            have \<open>norm (gg n x) \<le> norm (g x) + norm (gg n x - g x)\<close>
+              by (metis norm_triangle_sub)
+            also have \<open>\<dots> \<le> B + inverse (real n + 1)\<close>
+              using g_bound gg_inv by linarith
+            finally have gg_norm: \<open>norm (gg n x) \<le> B + inverse (real n + 1)\<close> .
+                \<comment> \<open>Step 4: Apply bilinear bound and monotonicity.\<close>
+            have \<open>norm (bop (ff' n x - f' x) (gg n x)) \<le> M * norm (ff' n x - f' x) * norm (gg n x)\<close>
+              using M by simp
+            also have \<open>\<dots> \<le> M * norm (ff' n x - f' x) * (B + inverse (real n + 1))\<close>
+              using gg_norm \<open>M > 0\<close> by (intro mult_left_mono mult_nonneg_nonneg) auto
+            also have \<open>\<dots> = M * (B + inverse (real n + 1)) * norm (ff' n x - f' x)\<close>
+              by (simp add: mult.commute mult.left_commute)
             finally show ?thesis .
           qed
-          \<comment> \<open>The L1 approximation bound: \<integral> \<Parallel>g' - gg' n\<Parallel> < inverse(n+1).\<close>
-          have L1_bound: \<open>integral {a..b} (\<lambda>t. norm (g' t - gg' n t)) < inverse (real n + 1)\<close>
-              using integral_nonneg[OF norm_gg'_diff_int] gg' by simp
-          \<comment> \<open>Combine: \<Parallel>gg n x - g x\<Parallel> \<le> inverse(n+1) for x \<in> {a..b}.\<close>
-          have gg_inv_bound: \<open>norm (gg n x - g x) \<le> inverse (real n + 1)\<close>
-            if \<open>x \<in> {a..b}\<close> for x
-            using gg_bound[OF that] L1_bound by linarith
-          \<comment> \<open>Integrability of the bounding function.\<close>
-          have bound_int: \<open>(\<lambda>x. M * inverse (real n + 1) * norm (f' x)) integrable_on {a..b}\<close>
-            using integrable_on_mult_right[OF norm_f'_int] .
-          \<comment> \<open>First leg: norm of integral \<le> integral of pointwise bound.\<close>
-          have \<open>norm (integral {a..b} (\<lambda>x. bop (f' x) (gg n x) - bop (f' x) (g x)))
-                \<le> integral {a..b} (\<lambda>x. M * inverse (real n + 1) * norm (f' x))\<close>
-          proof (rule integral_norm_bound_integral[OF _ bound_int])
-            show \<open>(\<lambda>x. bop (f' x) (gg n x) - bop (f' x) (g x)) integrable_on {a..b}\<close>
-              using Henstock_Kurzweil_Integration.integrable_diff[OF f'gg_int fg'_int] .
-          next
-            fix x assume xab: \<open>x \<in> {a..b}\<close>
-            have \<open>norm (bop (f' x) (gg n x) - bop (f' x) (g x))
-                  = norm (bop (f' x) (gg n x - g x))\<close>
+          have I1: \<open>norm (integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (gg n x)))
+                  \<le> M * (B + inverse (real n + 1)) * inverse (real n + 1)\<close>
+          proof -
+            \<comment> \<open>Rewrite using bilinearity: bop (ff' n x - f' x) (gg n x).\<close>
+            have diff_eq: \<open>bop (ff' n x) (gg n x) - bop (f' x) (gg n x)
+                         = bop (ff' n x - f' x) (gg n x)\<close> for x
+              using bounded_bilinear.diff_left[OF \<open>bounded_bilinear bop\<close>] by simp
+                \<comment> \<open>Integrability of the integrand.\<close>
+            have int1: \<open>(\<lambda>x. bop (ff' n x - f' x) (gg n x)) integrable_on {a..b}\<close>
+              using Henstock_Kurzweil_Integration.integrable_diff[OF ffgg'_int f'gg_int]
+              by (simp add: diff_eq[symmetric])
+                \<comment> \<open>Integrability of the bounding function.\<close>
+            have bound_int: \<open>(\<lambda>x. M * (B + inverse (real n + 1)) * norm (ff' n x - f' x))
+                           integrable_on {a..b}\<close>
+              by (simp add: integrable_on_mult_right norm_ff'_diff_int norm_minus_commute)
+                \<comment> \<open>First leg: norm of integral \<le> integral of pointwise bound.\<close>
+            have \<open>norm (integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (gg n x)))
+                = norm (integral {a..b} (\<lambda>x. bop (ff' n x - f' x) (gg n x)))\<close>
               by (simp add: diff_eq)
-            also have \<open>\<dots> \<le> M * norm (f' x) * norm (gg n x - g x)\<close>
-              using M by simp
-            also have \<open>\<dots> \<le> M * norm (f' x) * inverse (real n + 1)\<close>
-              using gg_inv_bound[OF xab] \<open>M > 0\<close>
-              by (intro mult_left_mono mult_nonneg_nonneg) auto
-            also have \<open>\<dots> = M * inverse (real n + 1) * norm (f' x)\<close>
-              by (simp add: mult.commute mult.left_commute)
-            finally show \<open>norm (bop (f' x) (gg n x) - bop (f' x) (g x))
-                  \<le> M * inverse (real n + 1) * norm (f' x)\<close> .
+            also have \<open>\<dots> \<le> integral {a..b} (\<lambda>x. M * (B + inverse (real n + 1)) * norm (ff' n x - f' x))\<close>
+              using Henstock_Kurzweil_Integration.integral_norm_bound_integral bound_int int1 pw2
+              by blast
+                \<comment> \<open>Second leg: factor out constant and use ff' L1 bound.\<close>
+            also have \<open>\<dots> = M * (B + inverse (real n + 1)) * integral {a..b} (\<lambda>x. norm (ff' n x - f' x))\<close>
+              by simp
+            also have \<open>\<dots> \<le> M * (B + inverse (real n + 1)) * inverse (real n + 1)\<close>
+            proof (intro mult_left_mono)
+              show \<open>integral {a..b} (\<lambda>x. norm (ff' n x - f' x)) \<le> inverse (real n + 1)\<close>
+                using ff'[of n] by (auto simp add: norm_minus_commute)
+            qed (use \<open>0 < B\<close> \<open>0 < M\<close> in auto)
+            finally show ?thesis .
           qed
-            \<comment> \<open>Second leg: factor out constant and use B bound.\<close>
-          also have \<open>\<dots> = M * inverse (real n + 1) * integral {a..b} (\<lambda>x. norm (f' x))\<close>
-            using integral_cmul[of \<open>{a..b}\<close> \<open>M * inverse (real n + 1)\<close> \<open>\<lambda>x. norm (f' x)\<close>]
-            by (simp add: mult.assoc scaleR_conv_of_real)
-          also have \<open>\<dots> \<le> M * inverse (real n + 1) * B\<close>
-            using B_f' \<open>M > 0\<close>
-            by (intro mult_left_mono) auto
-          also have \<open>\<dots> = M * B * inverse (real n + 1)\<close>
-            by (simp add: mult.commute mult.left_commute)
-          finally show ?thesis .
-        qed
-        have step1: \<open>integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (g x))
+          have I2: \<open>norm (integral {a..b} (\<lambda>x. bop (f' x) (gg n x) - bop (f' x) (g x)))
+                   \<le> M * B * inverse (real n + 1)\<close>
+          proof -
+            \<comment> \<open>Rewrite using bilinearity: bop f' (gg n - g) = bop f' (gg n) - bop f' g.\<close>
+            have diff_eq: \<open>bop (f' x) (gg n x) - bop (f' x) (g x) = bop (f' x) (gg n x - g x)\<close> for x
+              using bounded_bilinear.diff_right[OF \<open>bounded_bilinear bop\<close>] by simp
+                \<comment> \<open>Re-derive FTC bound: \<Parallel>gg n x - g x\<Parallel> \<le> \<integral>{a..b} \<Parallel>g' - gg' n\<Parallel>.\<close>
+            have gg'n_int: \<open>gg' n integrable_on {a..b}\<close>
+              using gg'_cont_ab integrable_continuous_real by blast
+            have gg_bound: \<open>norm (gg n x - g x) \<le> integral {a..b} (\<lambda>t. norm (g' t - gg' n t))\<close>
+              if xab: \<open>x \<in> {a..b}\<close> for x
+            proof -
+              have ac_sub: \<open>{a..x} \<subseteq> {a..b}\<close> using xab by auto
+              have gg'n_int_x: \<open>gg' n integrable_on {a..x}\<close>
+                using integrable_on_subinterval[OF gg'n_int ac_sub] .
+              have g'_int_x: \<open>g' integrable_on {a..x}\<close>
+                using integrable_on_subinterval[OF g'_int ac_sub] .
+              have diff_int_x: \<open>(\<lambda>t. gg' n t - g' t) integrable_on {a..x}\<close>
+                using integrable_diff[OF gg'n_int_x g'_int_x] .
+              have norm_diff_int_x: \<open>(\<lambda>t. norm (g' t - gg' n t)) integrable_on {a..x}\<close>
+                using integrable_on_subinterval[OF norm_gg'_diff_int ac_sub] .
+              have \<open>norm (gg n x - g x) = norm (integral {a..x} (gg' n) - integral {a..x} g')\<close>
+                unfolding gg_def using g'int_eq[OF xab] by simp
+              also have \<open>\<dots> = norm (integral {a..x} (\<lambda>t. gg' n t - g' t))\<close>
+                using integral_diff[OF gg'n_int_x g'_int_x] by simp
+              also have \<open>\<dots> \<le> integral {a..x} (\<lambda>t. norm (gg' n t - g' t))\<close>
+                using integral_norm_bound_integral[OF diff_int_x norm_diff_int_x]
+                by (simp add: norm_minus_commute)
+              also have \<open>\<dots> = integral {a..x} (\<lambda>t. norm (g' t - gg' n t))\<close>
+                by (simp add: norm_minus_commute)
+              also have \<open>\<dots> \<le> integral {a..b} (\<lambda>t. norm (g' t - gg' n t))\<close>
+                using integral_subset_le[OF ac_sub norm_diff_int_x norm_gg'_diff_int] by simp
+              finally show ?thesis .
+            qed
+              \<comment> \<open>The L1 approximation bound: \<integral> \<Parallel>g' - gg' n\<Parallel> < inverse(n+1).\<close>
+            have L1_bound: \<open>integral {a..b} (\<lambda>t. norm (g' t - gg' n t)) < inverse (real n + 1)\<close>
+              using integral_nonneg[OF norm_gg'_diff_int] gg' by simp
+                \<comment> \<open>Combine: \<Parallel>gg n x - g x\<Parallel> \<le> inverse(n+1) for x \<in> {a..b}.\<close>
+            have gg_inv_bound: \<open>norm (gg n x - g x) \<le> inverse (real n + 1)\<close>
+              if \<open>x \<in> {a..b}\<close> for x
+              using gg_bound[OF that] L1_bound by linarith
+                \<comment> \<open>Integrability of the bounding function.\<close>
+            have bound_int: \<open>(\<lambda>x. M * inverse (real n + 1) * norm (f' x)) integrable_on {a..b}\<close>
+              using integrable_on_mult_right[OF norm_f'_int] .
+                \<comment> \<open>First leg: norm of integral \<le> integral of pointwise bound.\<close>
+            have \<open>norm (integral {a..b} (\<lambda>x. bop (f' x) (gg n x) - bop (f' x) (g x)))
+                \<le> integral {a..b} (\<lambda>x. M * inverse (real n + 1) * norm (f' x))\<close>
+            proof (rule integral_norm_bound_integral[OF _ bound_int])
+              show \<open>(\<lambda>x. bop (f' x) (gg n x) - bop (f' x) (g x)) integrable_on {a..b}\<close>
+                using Henstock_Kurzweil_Integration.integrable_diff[OF f'gg_int fg'_int] .
+            next
+              fix x assume xab: \<open>x \<in> {a..b}\<close>
+              have \<open>norm (bop (f' x) (gg n x) - bop (f' x) (g x)) = norm (bop (f' x) (gg n x - g x))\<close>
+                by (simp add: diff_eq)
+              also have \<open>\<dots> \<le> M * norm (f' x) * norm (gg n x - g x)\<close>
+                using M by simp
+              also have \<open>\<dots> \<le> M * norm (f' x) * inverse (real n + 1)\<close>
+                using gg_inv_bound[OF xab] \<open>M > 0\<close>
+                by (intro mult_left_mono mult_nonneg_nonneg) auto
+              also have \<open>\<dots> = M * inverse (real n + 1) * norm (f' x)\<close>
+                by (simp add: mult.commute mult.left_commute)
+              finally show \<open>norm (bop (f' x) (gg n x) - bop (f' x) (g x))
+                  \<le> M * inverse (real n + 1) * norm (f' x)\<close> .
+            qed
+              \<comment> \<open>Second leg: factor out constant and use B bound.\<close>
+            also have \<open>\<dots> = M * inverse (real n + 1) * integral {a..b} (\<lambda>x. norm (f' x))\<close>
+              using integral_cmul[of \<open>{a..b}\<close> \<open>M * inverse (real n + 1)\<close> \<open>\<lambda>x. norm (f' x)\<close>]
+              by (simp add: mult.assoc scaleR_conv_of_real)
+            also have \<open>\<dots> \<le> M * inverse (real n + 1) * B\<close>
+              using B_f' \<open>M > 0\<close> by (intro mult_left_mono) auto
+            also have \<open>\<dots> = M * B * inverse (real n + 1)\<close>
+              by (simp add: mult.commute mult.left_commute)
+            finally show ?thesis .
+          qed
+          have step1: \<open>integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (g x))
                = integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (gg n x)) +
                  integral {a..b} (\<lambda>x. bop (f' x) (gg n x) - bop (f' x) (g x))\<close>
-          using split_int by auto
-        have \<open>norm (integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (g x)))
+            using split_int by auto
+          have \<open>norm (integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (g x)))
                \<le> norm (integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (gg n x))) +
                  norm (integral {a..b} (\<lambda>x. bop (f' x) (gg n x) - bop (f' x) (g x)))\<close>
-          by (subst step1, rule norm_triangle_ineq)
-        also have \<open>\<dots> \<le> M * (B + inverse (real n + 1)) * inverse (real n + 1) +
+            by (subst step1, rule norm_triangle_ineq)
+          also have \<open>\<dots> \<le> M * (B + inverse (real n + 1)) * inverse (real n + 1) +
                          M * B * inverse (real n + 1)\<close>
-          by (intro add_mono I1 I2)
-        also have \<open>\<dots> = \<phi> n\<close>
-          unfolding \<phi>_def by (simp add: algebra_simps power2_eq_square)
-        finally show ?thesis .
+            by (intro add_mono I1 I2)
+          also have \<open>\<dots> = \<phi> n\<close>
+            unfolding \<phi>_def by (simp add: algebra_simps power2_eq_square)
+          finally show ?thesis .
+        qed
+        then show "norm (integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x)) - integral {a..b} (\<lambda>x. bop (f' x) (g x))) \<le> \<phi> n"
+          by (simp add: eq)
       qed
-      then show "norm (integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x)) - integral {a..b} (\<lambda>x. bop (f' x) (g x))) \<le> \<phi> n"
-        by (simp add: eq)
+      show "\<phi> \<longlonglongrightarrow> 0"
+        unfolding \<phi>_def by real_asymp
     qed
-    show "\<phi> \<longlonglongrightarrow> 0"
-      unfolding \<phi>_def by real_asymp
+      \<comment> \<open>Combine via tendsto_add and tendsto_diff.\<close>
+    show ?thesis
+      unfolding S_def
+      using tendsto_diff[OF tendsto_add[OF int1 int2] tendsto_diff[OF bop_b bop_a]] .
   qed
-    \<comment> \<open>Combine via tendsto_add and tendsto_diff.\<close>
-  show ?thesis
-    unfolding S_def
-    using tendsto_diff[OF tendsto_add[OF int1 int2] tendsto_diff[OF bop_b bop_a]] .
-qed
   ultimately show "integral {a..b} (\<lambda>x. bop (f x) (g' x)) + integral {a..b} (\<lambda>x. bop (f' x) (g x))
        = bop (f b) (g b) - bop (f a) (g a)"
     using LIMSEQ_unique eq_iff_diff_eq_0 by blast
@@ -3601,10 +3423,10 @@ next
       proof -
         fix c d :: real assume cd: \<open>c \<le> d\<close> and sub: \<open>{c..d} \<subseteq> {a..b}\<close>
         from sub cd have ac: \<open>a \<le> c\<close> and db: \<open>d \<le> b\<close>
-          by (auto simp: atLeastatMost_subset_iff)
+          by auto
         have fint_ad: \<open>f integrable_on {a..d}\<close>
           using integrable_subinterval_real[OF fint[unfolded box_real]] ac cd db
-          by (auto simp: atLeastatMost_subset_iff)
+          by auto
         have eq: \<open>integral {a..c} f + integral {c..d} f = integral {a..d} f\<close>
           using Henstock_Kurzweil_Integration.integral_combine[OF ac cd fint_ad] by simp
         show \<open>integral {c..d} f = integral {a..d} f - integral {a..c} f\<close>
@@ -3709,8 +3531,7 @@ proof (intro strip)
                        \<Longrightarrow> norm (integral T f) < \<epsilon>"
     using absolutely_continuous_integral assms(1) by blast
   have "norm (\<Sum>k\<in>d. integral k f) < \<epsilon>"
-    if "d division_of T" "T \<subseteq> S" "sum content d < \<delta>"
-    for d T
+    if "d division_of T" "T \<subseteq> S" "sum content d < \<delta>" for d T
   proof -
     have f_int: "f integrable_on T"
       using integrable_on_subdivision[OF that(1)] set_lebesgue_integral_eq_integral(1)[OF assms(1)] that(2) by auto
@@ -3764,17 +3585,7 @@ proof -
       using sc unfolding absolutely_setcontinuous_on_def by meson
     show \<open>\<exists>\<delta>>0. \<forall>d T. d division_of T \<and> T \<subseteq> {a..b} \<and> sum content d < \<delta> \<longrightarrow>
                (\<Sum>k\<in>d. norm (integral {a..Sup k} f - integral {a..Inf k} f)) < \<epsilon>\<close>
-    proof (intro exI conjI allI impI)
-      show \<open>0 < \<delta>\<close> by fact
-    next
-      fix d T assume \<open>d division_of T \<and> T \<subseteq> {a..b} \<and> sum content d < \<delta>\<close>
-      then have dt: \<open>d division_of T\<close> \<open>T \<subseteq> {a..b}\<close> \<open>sum content d < \<delta>\<close> by auto
-      have \<open>(\<Sum>k\<in>d. norm (integral {a..Sup k} f - integral {a..Inf k} f))
-          = (\<Sum>k\<in>d. norm (integral k f))\<close>
-        using dt key by auto
-      also have \<open>\<dots> < \<epsilon>\<close> using \<delta> dt by auto
-      finally show \<open>(\<Sum>k\<in>d. norm (integral {a..Sup k} f - integral {a..Inf k} f)) < \<epsilon>\<close> .
-    qed
+      using \<open>0 < \<delta>\<close>  \<delta> key by auto
   qed
 qed
 
@@ -3790,9 +3601,6 @@ proof (rule absolutely_continuous_on_eq)
     by (intro absolutely_continuous_on_sub absolutely_continuous_on_const
               absolutely_continuous_indefinite_integral_right assms)
 qed
-
-thm Equivalence_Measurable_On_Borel.Austin_Lemma
-(*Belongs after Equivalence_Measurable_On_Borel.Austin_Lemma?*)
 
 theorem has_vector_derivative_indefinite_integral:
   fixes f :: \<open>real \<Rightarrow> 'a::euclidean_space\<close>
