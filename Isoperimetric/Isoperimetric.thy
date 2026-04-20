@@ -2249,7 +2249,71 @@ lemma has_integral_area_under_curve:
     and "\<And>x. x \<in> {a..b} \<Longrightarrow> f x \<ge> 0"
   shows "measure lebesgue {z :: complex. a \<le> Re z \<and> Re z \<le> b \<and> 0 \<le> Im z \<and> Im z \<le> f (Re z)} =
          integral {a..b} f"
-  sorry
+proof -
+  \<comment> \<open>Define the subgraph set in \<real>²\<close>
+  define S' :: "(real \<times> real) set" where
+    "S' \<equiv> {(x, y). a \<le> x \<and> x \<le> b \<and> 0 \<le> y \<and> y \<le> f x}"
+  define \<phi> :: "real \<times> real \<Rightarrow> complex" where "\<phi> \<equiv> (\<lambda>(x, y). Complex x y)"
+  have S_eq: "{z :: complex. a \<le> Re z \<and> Re z \<le> b \<and> 0 \<le> Im z \<and> Im z \<le> f (Re z)} = \<phi> ` S'"
+    unfolding S'_def \<phi>_def by (fastforce simp: image_iff complex.expand)
+  \<comment> \<open>Show \<phi> is linear\<close>
+  have lin_\<phi>: "linear \<phi>"
+    unfolding \<phi>_def by (intro linearI) (auto simp: plus_complex.ctr scaleR_complex.ctr)
+  \<comment> \<open>Show |det(matrix \<phi>)| = 1\<close>
+  have det_\<phi>: "\<bar>det (matrix \<phi>)\<bar> = 1"
+  proof -
+    have "norm (\<phi> v) = norm v" for v
+      unfolding \<phi>_def by (cases v) (simp add: norm_complex_def norm_prod_def)
+    then have "orthogonal_matrix (matrix \<phi>)"
+      using lin_\<phi> unfolding orthogonal_transformation orthogonal_transformation_matrix
+      by auto
+    then show ?thesis by (simp add: orthogonal_matrix_def det_orthogonal_matrix)
+  qed
+  \<comment> \<open>Show S' is compact hence lmeasurable\<close>
+  have "compact S'"
+  proof -
+    have bdd: "bounded (f ` {a..b})"
+      using compact_continuous_image[OF assms(2) compact_Icc] compact_imp_bounded by blast
+    then obtain M where M: "\<And>x. x \<in> {a..b} \<Longrightarrow> f x \<le> M"
+      by (meson bounded_iff imageI)
+    have "S' \<subseteq> {a..b} \<times> {0..M}"
+      unfolding S'_def using M assms(3) by (auto simp: le_max_iff_disj)
+    moreover have "closed S'"
+    proof -
+      have "closed {(x, y). a \<le> x \<and> x \<le> b \<and> 0 \<le> y \<and> (y::real) \<le> f x}"
+      proof (intro closed_Collect_conj closed_Collect_le continuous_on_fst continuous_on_snd
+                   continuous_on_const continuous_on_compose2[OF assms(2)])
+        show "continuous_on UNIV fst" by (rule continuous_on_fst)
+      next
+        show "fst ` UNIV \<subseteq> {a..b}" sorry
+      qed sorry
+      then show ?thesis unfolding S'_def by auto
+    qed
+    ultimately show ?thesis
+      by (meson bounded_subset compact_Times compact_Icc compact_eq_bounded_closed)
+  qed
+  then have S'_meas: "S' \<in> lmeasurable" by (rule lmeasurable_compact)
+  \<comment> \<open>Convert measure to integral via change of variables\<close>
+  have S_meas: "\<phi> ` S' \<in> lmeasurable"
+    using measurable_linear_image[OF lin_\<phi> S'_meas] .
+  have meas_eq: "measure lebesgue (\<phi> ` S') = measure lebesgue S'"
+    using measure_linear_image[OF lin_\<phi> S'_meas] det_\<phi> by simp
+  \<comment> \<open>Compute measure of S' via Fubini\<close>
+  have "measure lebesgue S' = integral S' (\<lambda>p. 1 :: real)"
+    using lmeasure_integral[OF S'_meas] .
+  also have "\<dots> = integral {a..b} (\<lambda>x. integral {0..f x} (\<lambda>y. 1 :: real))"
+  proof -
+    sorry
+  qed
+  also have "\<dots> = integral {a..b} f"
+  proof (rule integral_cong)
+    fix x assume "x \<in> {a..b}"
+    then have "f x \<ge> 0" using assms(3) by auto
+    then show "integral {0..f x} (\<lambda>y. 1 :: real) = f x"
+      by (simp add: integral_const_real)
+  qed
+  finally show ?thesis unfolding S_eq meas_eq .
+qed
 
 lemma area_below_arclet:
   fixes g :: "real \<Rightarrow> complex" and g' :: "real \<Rightarrow> complex"
