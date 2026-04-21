@@ -3228,8 +3228,7 @@ next
 qed
 
 text \<open>If f is absolutely continuous on [a,b] and has vector derivative f'(x) a.e.,
-  then f' is absolutely integrable on [a,b].
-  HOL Light: @{text ABSOLUTELY_INTEGRABLE_ABSOLUTELY_CONTINUOUS_DERIVATIVE}.\<close>
+  then f' is absolutely integrable on [a,b].\<close>
 
 lemma absolutely_integrable_absolutely_continuous_derivative:
   fixes f :: \<open>real \<Rightarrow> 'a::euclidean_space\<close> and f' :: \<open>real \<Rightarrow> 'a\<close>
@@ -3485,6 +3484,14 @@ proof -
         \<open>\<And>x'. \<lbrakk>x' \<in> {-b..-a}; -x < x'; x' < -x + d2\<rbrakk>
           \<Longrightarrow> norm (integral {-x..x'} (\<lambda>x. f (-x)) - (x'+x) *\<^sub>R f x) / norm (x' + x) < e\<close>
         using K2[OF xK2 \<open>0 < e\<close>] xK2 by force
+      have d2': \<open>norm (integral {y'..x} f - (x - y') *\<^sub>R f x) / \<bar>x - y'\<bar> < e\<close>
+        if \<open>y' \<in> {a..b}\<close> \<open>y' < x\<close> \<open>x - y' < d2\<close> for y'
+      proof -
+        have \<open>norm (integral {-x..-y'} (\<lambda>t. f(-t)) - (-y'+x) *\<^sub>R f x) / norm (-y'+x) < e\<close>
+          using d2[of \<open>-y'\<close>] that by auto
+        then show ?thesis
+          using that by (simp add: integral_reflect_real real_norm_def)
+      qed
       show ?thesis
       proof (intro exI conjI strip)
         show "0 < min d1 d2"
@@ -3492,50 +3499,59 @@ proof -
       next
         fix y :: real
         assume "y \<in> {a..b}" and y: "\<bar>y - x\<bar> < min d1 d2"
-        consider "x<y" | "x=y" | "x>y"
-          by linarith
-        then show "norm (integral {a..y} f - integral {a..x} f - (y - x) *\<^sub>R f x) \<le> e * \<bar>y - x\<bar>"
-        proof cases
-          case 1
-          have ax: \<open>a \<le> x\<close> and xy: \<open>x \<le> y\<close> and yb: \<open>y \<le> b\<close>
-            using 1 x \<open>y \<in> {a..b}\<close> by (auto simp: K_def)
-          have fint_ay: \<open>f integrable_on {a..y}\<close>
-            using integrable_on_subinterval[OF assms] ax yb by auto
-          have eq: \<open>integral {a..x} f + integral {x..y} f = integral {a..y} f\<close>
-            using Henstock_Kurzweil_Integration.integral_combine[OF ax xy fint_ay] .
-          have goal_eq: \<open>integral {a..y} f - integral {a..x} f - (y - x) *\<^sub>R f x
-                 = integral {x..y} f - (y - x) *\<^sub>R f x\<close>
-            using eq by (simp add: algebra_simps)
-          have \<open>norm (integral {x..y} f - (y - x) *\<^sub>R f x) / norm (y - x) < e\<close>
-            using d1[of y] \<open>y \<in> {a..b}\<close> 1 y by auto
-          then have \<open>norm (integral {x..y} f - (y - x) *\<^sub>R f x) < e * (y - x)\<close>
-            using 1 by (simp add: divide_simps)
+
+        have step: \<open>norm (integral {a..y} f - integral {a..x} f - (y - x) *\<^sub>R f x) \<le> e * \<bar>y - x\<bar>\<close>
+          if local_bound: \<open>norm (integral {p..q} f - (q - p) *\<^sub>R f x) / (q - p) < e\<close>
+             and ord: \<open>a \<le> p\<close> \<open>p < q\<close> \<open>q \<le> b\<close>
+             and pq_eq: \<open>{p..q} = {min x y..max x y}\<close>
+          for p q
+        proof -
+          have fint: \<open>f integrable_on {a..q}\<close>
+            using integrable_on_subinterval[OF assms] ord by auto
+          have eq: \<open>integral {a..p} f + integral {p..q} f = integral {a..q} f\<close>
+            by (rule Henstock_Kurzweil_Integration.integral_combine) (use ord fint in linarith)+
+          have qp: \<open>q - p = \<bar>y - x\<bar>\<close>
+            using pq_eq ord by (auto simp: min_def max_def split: if_splits)
+          have goal_eq: \<open>norm (integral {a..y} f - integral {a..x} f - (y - x) *\<^sub>R f x)
+                 = norm (integral {p..q} f - (q - p) *\<^sub>R f x)\<close>
+          proof -
+            have \<open>integral {a..y} f - integral {a..x} f - (y - x) *\<^sub>R f x
+                   = integral {p..q} f - (q - p) *\<^sub>R f x
+                 \<or> integral {a..y} f - integral {a..x} f - (y - x) *\<^sub>R f x
+                   = -(integral {p..q} f - (q - p) *\<^sub>R f x)\<close>
+              using eq pq_eq by (auto simp: algebra_simps min_def max_def split: if_splits)
+            then show ?thesis
+              by (metis norm_minus_cancel)
+          qed
+          have \<open>norm (integral {p..q} f - (q - p) *\<^sub>R f x) < e * (q - p)\<close>
+            using local_bound ord by (simp add: divide_simps)
           then show ?thesis
-            using goal_eq 1 by (simp add: real_norm_def)
+            using goal_eq qp by simp
+        qed
+        show "norm (integral {a..y} f - integral {a..x} f - (y - x) *\<^sub>R f x) \<le> e * \<bar>y - x\<bar>"
+        proof (cases \<open>x = y\<close>)
+          case True then show ?thesis by simp
         next
-          case 2 then show ?thesis by simp
-        next
-          case 3
-          have ay: \<open>a \<le> y\<close> and yx: \<open>y \<le> x\<close> and xb: \<open>x \<le> b\<close>
-            using 3 x \<open>y \<in> {a..b}\<close> by (auto simp: K_def)
-          have fint_ax: \<open>f integrable_on {a..x}\<close>
-            using integrable_on_subinterval[OF assms] ay xb by auto
-          have eq: \<open>integral {a..y} f + integral {y..x} f = integral {a..x} f\<close>
-            using Henstock_Kurzweil_Integration.integral_combine[OF ay yx fint_ax] .
-          have goal_eq: \<open>integral {a..y} f - integral {a..x} f - (y - x) *\<^sub>R f x
-                 = -(integral {y..x} f - (x - y) *\<^sub>R f x)\<close>
-            using eq by (simp add: algebra_simps)
-          have reflect_eq: \<open>integral {-x..-y} (\<lambda>t. f(-t)) = integral {y..x} f\<close>
-            by (simp add: integral_reflect_real)
-          have \<open>norm (integral {-x..-y} (\<lambda>t. f(-t)) - (-y + x) *\<^sub>R f x) / norm (-y + x) < e\<close>
-            using d2[of \<open>-y\<close>] \<open>y \<in> {a..b}\<close> 3 y by auto
-          then have \<open>norm (integral {y..x} f - (x - y) *\<^sub>R f x) / (x - y) < e\<close>
-            using reflect_eq 3 by simp
-          then have \<open>norm (integral {y..x} f - (x - y) *\<^sub>R f x) < e * (x - y)\<close>
-            using 3 by (simp add: divide_simps)
+          case False
+          define p q where \<open>p \<equiv> min x y\<close> and \<open>q \<equiv> max x y\<close>
+          have pq: \<open>p < q\<close> \<open>{p..q} = {min x y..max x y}\<close>
+            using False by (auto simp: p_def q_def)
+          have ord: \<open>a \<le> p\<close> \<open>q \<le> b\<close>
+            using x \<open>y \<in> {a..b}\<close> by (auto simp: p_def q_def K_def)
+          have bd: \<open>norm (integral {p..q} f - (q - p) *\<^sub>R f x) / (q - p) < e\<close>
+          proof (cases \<open>x < y\<close>)
+            case True
+            then show ?thesis
+              using d1[of y] \<open>y \<in> {a..b}\<close> y by (auto simp: p_def q_def real_norm_def)
+          next
+            case False
+            then have \<open>y < x\<close> using \<open>x \<noteq> y\<close> by linarith
+            then show ?thesis
+              using d2'[of y] \<open>y \<in> {a..b}\<close> y by (auto simp: p_def q_def real_norm_def)
+          qed
           then show ?thesis
-            using goal_eq 3 by (simp add: norm_minus_cancel norm_minus_commute)
-        qed    
+            using step[of p q] pq ord by auto
+        qed
       qed
     qed
     ultimately show "((\<lambda>u. integral {a..u} f) has_vector_derivative f x) (at x within {a..b})"
