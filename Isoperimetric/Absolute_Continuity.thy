@@ -2645,6 +2645,33 @@ proof -
   then show ?thesis using bound by linarith
 qed
 
+lemma bilinear_integral_bound:
+  fixes bop :: \<open>'a::euclidean_space \<Rightarrow> 'b::euclidean_space \<Rightarrow> 'c::euclidean_space\<close>
+  assumes bop_bound: \<open>\<And>u v. norm (bop u v) \<le> M * norm u * norm v\<close>
+    and u_bound: \<open>\<And>x. x \<in> {a..b} \<Longrightarrow> norm (u x) \<le> C\<close>
+    and v_int: \<open>(\<lambda>x. norm (v x)) integrable_on {a..b}\<close>
+    and bop_int: \<open>(\<lambda>x. bop (u x) (v x)) integrable_on {a..b}\<close>
+    and \<open>M \<ge> 0\<close> \<open>C \<ge> 0\<close>
+  shows \<open>norm (integral {a..b} (\<lambda>x. bop (u x) (v x))) \<le> M * C * integral {a..b} (\<lambda>x. norm (v x))\<close>
+proof -
+  have bound_int: \<open>(\<lambda>x. M * C * norm (v x)) integrable_on {a..b}\<close>
+    using integrable_cmul[OF v_int, of \<open>M * C\<close>] by (simp add: scaleR_conv_of_real mult.assoc)
+  have \<open>norm (integral {a..b} (\<lambda>x. bop (u x) (v x)))
+        \<le> integral {a..b} (\<lambda>x. M * C * norm (v x))\<close>
+  proof (rule integral_norm_bound_integral[OF bop_int bound_int])
+    fix x assume \<open>x \<in> {a..b}\<close>
+    have \<open>norm (bop (u x) (v x)) \<le> M * norm (u x) * norm (v x)\<close>
+      using bop_bound by blast
+    also have \<open>\<dots> \<le> M * C * norm (v x)\<close>
+      using u_bound[OF \<open>x \<in> {a..b}\<close>] \<open>M \<ge> 0\<close>
+      by (intro mult_right_mono mult_left_mono) auto
+    finally show \<open>norm (bop (u x) (v x)) \<le> M * C * norm (v x)\<close> .
+  qed
+  also have \<open>\<dots> = M * C * integral {a..b} (\<lambda>x. norm (v x))\<close>
+    by simp
+  finally show ?thesis .
+qed
+
 
 theorem absolute_integration_by_parts:
   fixes bop :: \<open>'a::euclidean_space \<Rightarrow> 'b::euclidean_space \<Rightarrow> 'c::euclidean_space\<close>
@@ -2872,11 +2899,6 @@ proof -
       have sup_bound: \<open>norm (ff n x - f x) \<le> (SUP x\<in>{a..b}. norm (ff n x - f x))\<close>
         if \<open>x \<in> {a..b}\<close> for n x
         using cSUP_upper[OF that bdd_ff] .
-          \<comment> \<open>Integrability of scaled norm functions.\<close>
-      have sc_gg'_int: \<open>(\<lambda>x. c * norm (g' x - gg' n x)) integrable_on {a..b}\<close> for c :: real and n
-        using integrable_cmul[OF norm_gg'_diff_int, of c n] by (simp add: scaleR_conv_of_real)
-      have sc_g'_int: \<open>(\<lambda>x. c * norm (g' x)) integrable_on {a..b}\<close> for c :: real
-        using integrable_cmul[OF norm_g'_int, of c] by (simp add: scaleR_conv_of_real)
           \<comment> \<open>Term 1: \<integral> bop(ff n - f)(gg' n - g') \<rightarrow> 0.\<close>
       have I1: \<open>(\<lambda>n. integral {a..b} (\<lambda>x. bop (ff n x - f x) (gg' n x - g' x))) \<longlonglongrightarrow> 0\<close>
       proof -
@@ -2889,32 +2911,15 @@ proof -
                  \<le> M * ((SUP x\<in>{a..b}. norm (ff n x - f x)) * integral {a..b} (\<lambda>x. norm (g' x - gg' n x)))\<close>
           proof (intro always_eventually allI)
             fix n
-            have sup_int: \<open>(\<lambda>x. M * (SUP x\<in>{a..b}. norm (ff n x - f x)) * norm (gg' n x - g' x))
-                    integrable_on {a..b}\<close>
-              using sc_gg'_int integrable_on_cmult_left
-              by (simp add: norm_minus_commute)
-            have \<open>norm (integral {a..b} (\<lambda>x. bop (ff n x - f x) (gg' n x - g' x))) \<le>
-                integral {a..b} (\<lambda>x. M * (SUP x\<in>{a..b}. norm (ff n x - f x)) * norm (gg' n x - g' x))\<close>
-            proof (rule integral_norm_bound_integral[OF t1_int sup_int])
-              fix x assume xab: \<open>x \<in> {a..b}\<close>
-              have \<open>norm (bop (ff n x - f x) (gg' n x - g' x)) \<le>
-                      M * norm (ff n x - f x) * norm (gg' n x - g' x)\<close>
-                using M by blast
-              also have \<open>\<dots> \<le> M * (SUP x\<in>{a..b}. norm (ff n x - f x)) * norm (gg' n x - g' x)\<close>
-                using sup_bound[OF xab, of n] \<open>M > 0\<close>
-                by (intro mult_right_mono mult_left_mono) auto
-              finally show \<open>norm (bop (ff n x - f x) (gg' n x - g' x)) \<le>
-                      M * (SUP x\<in>{a..b}. norm (ff n x - f x)) * norm (gg' n x - g' x)\<close> .
-            qed
-            also have \<open>\<dots> = M * (SUP x\<in>{a..b}. norm (ff n x - f x)) *
-                  integral {a..b} (\<lambda>x. norm (gg' n x - g' x))\<close>
-              using integral_cmul by (simp add: mult.assoc scaleR_conv_of_real)
-            also have \<open>\<dots> = M * ((SUP x\<in>{a..b}. norm (ff n x - f x)) *
+            have \<open>norm (integral {a..b} (\<lambda>x. bop (ff n x - f x) (gg' n x - g' x)))
+                  \<le> M * (SUP x\<in>{a..b}. norm (ff n x - f x)) * integral {a..b} (\<lambda>x. norm (gg' n x - g' x))\<close>
+              using bilinear_integral_bound[OF M sup_bound _ t1_int]
+                norm_gg'_diff_int[of n] \<open>M > 0\<close> cSUP_upper[OF _ bdd_ff] ab
+              by (auto simp: norm_minus_commute intro: order.trans[OF norm_ge_zero])
+            then show \<open>norm (integral {a..b} (\<lambda>x. bop (ff n x - f x) (gg' n x - g' x))) \<le>
+                  M * ((SUP x\<in>{a..b}. norm (ff n x - f x)) *
                   integral {a..b} (\<lambda>x. norm (g' x - gg' n x)))\<close>
               by (simp add: norm_minus_commute mult.assoc)
-            finally show \<open>norm (integral {a..b} (\<lambda>x. bop (ff n x - f x) (gg' n x - g' x))) \<le>
-                  M * ((SUP x\<in>{a..b}. norm (ff n x - f x)) *
-                  integral {a..b} (\<lambda>x. norm (g' x - gg' n x)))\<close> .
           qed
         qed
       qed
@@ -2926,26 +2931,10 @@ proof -
                 M * (SUP x\<in>{a..b}. norm (ff n x - f x)) * integral {a..b} (\<lambda>x. norm (g' x))\<close>
           proof (intro always_eventually allI)
             fix n
-            have sup_int: \<open>(\<lambda>x. M * (SUP x\<in>{a..b}. norm (ff n x - f x)) * norm (g' x)) integrable_on {a..b}\<close>
-              using integrable_on_cmult_left[OF norm_g'_int, of \<open>M * (SUP x\<in>{a..b}. norm (ff n x - f x))\<close>]
-              by (simp add: mult.assoc)
-            have \<open>norm (integral {a..b} (\<lambda>x. bop (ff n x - f x) (g' x))) \<le>
-                  integral {a..b} (\<lambda>x. M * (SUP x\<in>{a..b}. norm (ff n x - f x)) * norm (g' x))\<close>
-            proof (rule integral_norm_bound_integral[OF t2_int sup_int])
-              fix x assume \<open>x \<in> {a..b}\<close>
-              have \<open>norm (bop (ff n x - f x) (g' x)) \<le> M * norm (ff n x - f x) * norm (g' x)\<close>
-                using M by simp
-              also have \<open>\<dots> \<le> M * (SUP x\<in>{a..b}. norm (ff n x - f x)) * norm (g' x)\<close>
-                using sup_bound[OF \<open>x \<in> {a..b}\<close>, of n] \<open>M > 0\<close>
-                by (intro mult_right_mono mult_left_mono) auto
-              finally show \<open>norm (bop (ff n x - f x) (g' x)) \<le>
-                    M * (SUP x\<in>{a..b}. norm (ff n x - f x)) * norm (g' x)\<close> .
-            qed
-            also have \<open>\<dots> = M * (SUP x\<in>{a..b}. norm (ff n x - f x)) * integral {a..b} (\<lambda>x. norm (g' x))\<close>
-              using integral_cmul[of \<open>{a..b}\<close> \<open>M * (SUP x\<in>{a..b}. norm (ff n x - f x))\<close> \<open>\<lambda>x. norm (g' x)\<close>]
-              by (simp add: mult.assoc scaleR_conv_of_real)
-            finally show \<open>norm (integral {a..b} (\<lambda>x. bop (ff n x - f x) (g' x))) \<le>
-                  M * (SUP x\<in>{a..b}. norm (ff n x - f x)) * integral {a..b} (\<lambda>x. norm (g' x))\<close> .
+            show \<open>norm (integral {a..b} (\<lambda>x. bop (ff n x - f x) (g' x))) \<le>
+                  M * (SUP x\<in>{a..b}. norm (ff n x - f x)) * integral {a..b} (\<lambda>x. norm (g' x))\<close>
+              using bilinear_integral_bound[OF M sup_bound norm_g'_int t2_int]
+                \<open>M > 0\<close> cSUP_upper[OF _ bdd_ff] ab by (auto intro: order.trans[OF norm_ge_zero])
           qed
         next
           show \<open>(\<lambda>n. M * (SUP x\<in>{a..b}. norm (ff n x - f x)) * integral {a..b} (\<lambda>x. norm (g' x))) \<longlonglongrightarrow> 0\<close>
@@ -2958,28 +2947,14 @@ proof -
                 M * M_f * integral {a..b} (\<lambda>x. norm (g' x - gg' n x))\<close>
           proof (intro always_eventually allI)
             fix n
-            have sup_int: \<open>(\<lambda>x. M * M_f * norm (gg' n x - g' x)) integrable_on {a..b}\<close>
-              using integrable_on_cmult_left[OF norm_gg'_diff_int, of \<open>M * M_f\<close>]
-              by (simp add: mult.assoc norm_minus_commute)
-            have \<open>norm (integral {a..b} (\<lambda>x. bop (f x) (gg' n x - g' x))) \<le>
-                  integral {a..b} (\<lambda>x. M * M_f * norm (gg' n x - g' x))\<close>
-            proof (rule integral_norm_bound_integral[OF t3_int sup_int])
-              fix x assume \<open>x \<in> {a..b}\<close>
-              have \<open>norm (bop (f x) (gg' n x - g' x)) \<le> M * norm (f x) * norm (gg' n x - g' x)\<close>
-                using M by simp
-              also have \<open>\<dots> \<le> M * M_f * norm (gg' n x - g' x)\<close>
-                using M_f[OF \<open>x \<in> {a..b}\<close>] \<open>M > 0\<close>
-                by (intro mult_right_mono mult_left_mono) auto
-              finally show \<open>norm (bop (f x) (gg' n x - g' x)) \<le>
-                    M * M_f * norm (gg' n x - g' x)\<close> .
-            qed
-            also have \<open>\<dots> = M * M_f * integral {a..b} (\<lambda>x. norm (gg' n x - g' x))\<close>
-              using integral_cmul[of \<open>{a..b}\<close> \<open>M * M_f\<close> \<open>\<lambda>x. norm (gg' n x - g' x)\<close>]
-              by (simp add: mult.assoc scaleR_conv_of_real)
-            also have \<open>\<dots> = M * M_f * integral {a..b} (\<lambda>x. norm (g' x - gg' n x))\<close>
+            have \<open>norm (integral {a..b} (\<lambda>x. bop (f x) (gg' n x - g' x)))
+                  \<le> M * M_f * integral {a..b} (\<lambda>x. norm (gg' n x - g' x))\<close>
+              using bilinear_integral_bound[OF M M_f _ t3_int]
+                norm_gg'_diff_int[of n] \<open>M > 0\<close> \<open>M_f > 0\<close>
               by (simp add: norm_minus_commute)
-            finally show \<open>norm (integral {a..b} (\<lambda>x. bop (f x) (gg' n x - g' x))) \<le>
-                  M * M_f * integral {a..b} (\<lambda>x. norm (g' x - gg' n x))\<close> .
+            then show \<open>norm (integral {a..b} (\<lambda>x. bop (f x) (gg' n x - g' x))) \<le>
+                  M * M_f * integral {a..b} (\<lambda>x. norm (g' x - gg' n x))\<close>
+              by (simp add: norm_minus_commute)
           qed
         next
           show \<open>(\<lambda>n. M * M_f * integral {a..b} (\<lambda>x. norm (g' x - gg' n x))) \<longlonglongrightarrow> 0\<close>
@@ -3132,40 +3107,22 @@ proof -
         have I2: \<open>norm (integral {a..b} (\<lambda>x. bop (f' x) (gg n x) - bop (f' x) (g x)))
                    \<le> M * B * inverse (real n + 1)\<close>
         proof -
-          \<comment> \<open>Rewrite using bilinearity: bop f' (gg n - g) = bop f' (gg n) - bop f' g.\<close>
           have diff_eq: \<open>bop (f' x) (gg n x) - bop (f' x) (g x) = bop (f' x) (gg n x - g x)\<close> for x
             using bounded_bilinear.diff_right[OF \<open>bounded_bilinear bop\<close>] by simp
-              \<comment> \<open>FTC bound via L1_inv_bound lemma.\<close>
           have gg_inv_bound: \<open>norm (gg n x - g x) \<le> inverse (real n + 1)\<close>
             if \<open>x \<in> {a..b}\<close> for x
             unfolding gg_def using L1_inv_bound[OF that gg'_approx g'abs g'int gg'_cont_ab] .
-              \<comment> \<open>Integrability of the bounding function.\<close>
-          have bound_int: \<open>(\<lambda>x. M * inverse (real n + 1) * norm (f' x)) integrable_on {a..b}\<close>
-            using integrable_on_mult_right[OF norm_f'_int] .
-              \<comment> \<open>First leg: norm of integral \<le> integral of pointwise bound.\<close>
+          have M_swap: \<open>norm ((\<lambda>x y. bop y x) u v) \<le> M * norm u * norm v\<close> for u v
+            using M[of v u] by (simp add: mult.commute mult.left_commute)
+          have bop_int: \<open>(\<lambda>x. (\<lambda>u v. bop v u) (gg n x - g x) (f' x)) integrable_on {a..b}\<close>
+            using Henstock_Kurzweil_Integration.integrable_diff[OF f'gg_int fg'_int]
+            by (simp add: diff_eq)
           have \<open>norm (integral {a..b} (\<lambda>x. bop (f' x) (gg n x) - bop (f' x) (g x)))
-                \<le> integral {a..b} (\<lambda>x. M * inverse (real n + 1) * norm (f' x))\<close>
-          proof (rule integral_norm_bound_integral[OF _ bound_int])
-            show \<open>(\<lambda>x. bop (f' x) (gg n x) - bop (f' x) (g x)) integrable_on {a..b}\<close>
-              using Henstock_Kurzweil_Integration.integrable_diff[OF f'gg_int fg'_int] .
-          next
-            fix x assume xab: \<open>x \<in> {a..b}\<close>
-            have \<open>norm (bop (f' x) (gg n x) - bop (f' x) (g x)) = norm (bop (f' x) (gg n x - g x))\<close>
-              by (simp add: diff_eq)
-            also have \<open>\<dots> \<le> M * norm (f' x) * norm (gg n x - g x)\<close>
-              using M by simp
-            also have \<open>\<dots> \<le> M * norm (f' x) * inverse (real n + 1)\<close>
-              using gg_inv_bound[OF xab] \<open>M > 0\<close>
-              by (intro mult_left_mono mult_nonneg_nonneg) auto
-            also have \<open>\<dots> = M * inverse (real n + 1) * norm (f' x)\<close>
-              by (simp add: mult.commute mult.left_commute)
-            finally show \<open>norm (bop (f' x) (gg n x) - bop (f' x) (g x))
-                  \<le> M * inverse (real n + 1) * norm (f' x)\<close> .
-          qed
-            \<comment> \<open>Second leg: factor out constant and use B bound.\<close>
-          also have \<open>\<dots> = M * inverse (real n + 1) * integral {a..b} (\<lambda>x. norm (f' x))\<close>
-            using integral_cmul[of \<open>{a..b}\<close> \<open>M * inverse (real n + 1)\<close> \<open>\<lambda>x. norm (f' x)\<close>]
-            by (simp add: mult.assoc scaleR_conv_of_real)
+                = norm (integral {a..b} (\<lambda>x. (\<lambda>u v. bop v u) (gg n x - g x) (f' x)))\<close>
+            by (simp add: diff_eq)
+          also have \<open>\<dots> \<le> M * inverse (real n + 1) * integral {a..b} (\<lambda>x. norm (f' x))\<close>
+            using bilinear_integral_bound[OF M_swap gg_inv_bound norm_f'_int bop_int] \<open>M > 0\<close>
+            by auto
           also have \<open>\<dots> \<le> M * inverse (real n + 1) * B\<close>
             using B_f' \<open>M > 0\<close> by (intro mult_left_mono) auto
           also have \<open>\<dots> = M * B * inverse (real n + 1)\<close>
