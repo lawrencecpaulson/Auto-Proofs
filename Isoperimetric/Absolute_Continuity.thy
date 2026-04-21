@@ -907,6 +907,18 @@ qed
 
 subsection \<open>Bilinear and product\<close>
 
+lemma ac_on_bounded_image:
+  assumes \<open>absolutely_continuous_on S f\<close> \<open>is_interval S\<close> \<open>bounded S\<close>
+  obtains B where \<open>B > 0\<close> \<open>\<And>x. x \<in> S \<Longrightarrow> norm (f x) < B\<close>
+proof -
+  have \<open>bounded (f ` S)\<close>
+    by (intro has_bounded_variation_on_imp_bounded[OF _ assms(2)]
+             absolutely_continuous_on_imp_has_bounded_variation_on[OF assms(1,3)])
+  then obtain B where \<open>B > 0\<close> \<open>\<And>x. x \<in> S \<Longrightarrow> norm (f x) < B\<close>
+    unfolding bounded_pos_less by (fastforce simp: image_iff)
+  then show ?thesis using that by blast
+qed
+
 lemma absolutely_continuous_on_bilinear:
   fixes h :: \<open>'a::euclidean_space \<Rightarrow> 'b::euclidean_space \<Rightarrow> 'c::euclidean_space\<close>
     and f :: \<open>real \<Rightarrow> 'a\<close> and g :: \<open>real \<Rightarrow> 'b\<close>
@@ -916,18 +928,10 @@ lemma absolutely_continuous_on_bilinear:
     and S: \<open>is_interval S\<close> \<open>bounded S\<close>
   shows \<open>absolutely_continuous_on S (\<lambda>x. h (f x) (g x))\<close>
 proof -
-  have bv_f: \<open>has_bounded_variation_on f S\<close>
-    using absolutely_continuous_on_imp_has_bounded_variation_on[OF f S(2)] .
-  have bv_g: \<open>has_bounded_variation_on g S\<close>
-    using absolutely_continuous_on_imp_has_bounded_variation_on[OF g S(2)] .
-  have bd_f: \<open>bounded (f ` S)\<close>
-    using has_bounded_variation_on_imp_bounded[OF bv_f S(1)] .
-  have bd_g: \<open>bounded (g ` S)\<close>
-    using has_bounded_variation_on_imp_bounded[OF bv_g S(1)] .
-  obtain B1 where \<open>B1 > 0\<close> \<open>\<And>x. x \<in> S \<Longrightarrow> norm (f x) < B1\<close>
-    using bd_f[unfolded bounded_pos_less] by (fastforce simp: image_iff)
-  obtain B2 where \<open>B2 > 0\<close> \<open>\<And>x. x \<in> S \<Longrightarrow> norm (g x) < B2\<close>
-    using bd_g[unfolded bounded_pos_less] by (fastforce simp: image_iff)
+  obtain B1 where \<open>B1 > 0\<close> and f_bound: \<open>\<And>x. x \<in> S \<Longrightarrow> norm (f x) < B1\<close>
+    using ac_on_bounded_image[OF f S] by blast
+  obtain B2 where \<open>B2 > 0\<close> and g_bound: \<open>\<And>x. x \<in> S \<Longrightarrow> norm (g x) < B2\<close>
+    using ac_on_bounded_image[OF g S] by blast
   obtain K where \<open>K > 0\<close> and K: \<open>\<And>x y. norm (h x y) \<le> K * norm x * norm y\<close>
     using bilinear_bounded_pos[OF assms(1)] by auto
   note bl = bilinear_ladd[OF assms(1)] bilinear_radd[OF assms(1)]
@@ -981,32 +985,16 @@ proof -
       proof (intro sum_mono add_mono mult_left_mono mult_right_mono)
         fix k assume kd: \<open>k \<in> d\<close>
         show \<open>norm (g (Sup k)) \<le> B2\<close>
-          using \<open>\<And>x. x \<in> S \<Longrightarrow> norm (g x) < B2\<close> mem_s(1)[OF kd] by (simp add: less_imp_le)
+          using g_bound[OF mem_s(1)[OF kd]] by linarith
         show \<open>norm (f (Inf k)) \<le> B1\<close>
-          using \<open>\<And>x. x \<in> S \<Longrightarrow> norm (f x) < B1\<close> mem_s(2)[OF kd] by (simp add: less_imp_le)
-        show \<open>0 \<le> K * norm (f (Sup k) - f (Inf k))\<close>
-          using \<open>K > 0\<close> by (simp add: mult_nonneg_nonneg)
-        show \<open>0 \<le> norm (g (Sup k) - g (Inf k))\<close> by simp
-        show \<open>0 \<le> K\<close> using \<open>K > 0\<close> by simp
-      qed
+          using f_bound[OF mem_s(2)[OF kd]] by linarith
+      qed (use \<open>K > 0\<close> in auto)
       also have \<open>\<dots> = K * B2 * (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) +
                       K * B1 * (\<Sum>k\<in>d. norm (g (Sup k) - g (Inf k)))\<close>
         by (simp add: sum.distrib sum_distrib_left algebra_simps)
-      also have \<open>\<dots> < \<epsilon>/2 + \<epsilon>/2\<close>
-      proof -
-        have KB2: \<open>K * B2 > 0\<close> using \<open>K > 0\<close> \<open>B2 > 0\<close> by simp
-        have KB1: \<open>K * B1 > 0\<close> using \<open>K > 0\<close> \<open>B1 > 0\<close> by simp
-        have f_bound: \<open>(\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) < \<epsilon>/2 / B2 / K\<close>
-          using \<delta>1[OF div sub meas(1)] .
-        have g_bound: \<open>(\<Sum>k\<in>d. norm (g (Sup k) - g (Inf k))) < \<epsilon>/2 / B1 / K\<close>
-          using \<delta>2[OF div sub meas(2)] .
-        have A: \<open>K * B2 * (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) < \<epsilon>/2\<close>
-          by (metis (lifting) \<open>0 < B2\<close> \<open>0 < K\<close> f_bound mult.assoc mult.commute pos_less_divide_eq)
-        have B: \<open>K * B1 * (\<Sum>k\<in>d. norm (g (Sup k) - g (Inf k))) < \<epsilon>/2\<close>
-          by (metis (lifting) \<open>0 < B1\<close> \<open>0 < K\<close> g_bound mult.assoc mult.commute pos_less_divide_eq)
-        from A B show ?thesis by linarith
-      qed
-      also have \<open>\<dots> = \<epsilon>\<close> by simp
+      also have \<open>\<dots> < \<epsilon>\<close>
+        using \<delta>1[OF div sub meas(1)] \<delta>2[OF div sub meas(2)] \<open>K > 0\<close> \<open>B1 > 0\<close> \<open>B2 > 0\<close>
+        by (simp add: field_simps)
       finally show \<open>(\<Sum>k\<in>d. norm (h (f (Sup k)) (g (Sup k)) - h (f (Inf k)) (g (Inf k)))) < \<epsilon>\<close> .
     qed
   qed
