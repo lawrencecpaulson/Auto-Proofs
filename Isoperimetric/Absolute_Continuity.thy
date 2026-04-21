@@ -183,7 +183,7 @@ proof -
             then show ?thesis
               using operative.box_empty_imp[OF assms(1)] k1_uv by auto
           qed
-          \<comment> \<open>Reindex via SUM_IMAGE_NONZERO\<close>
+          \<comment> \<open>Reindex via @{text SUM_IMAGE_NONZERO}\<close>
           have fin_A: \<open>finite {k \<in> d. k \<inter> {u..v} \<noteq> {}}\<close> using fin_d by auto
           have reindex: \<open>sum (\<lambda>k. norm (f k)) ((\<lambda>k. k \<inter> {u..v}) ` {k \<in> d. k \<inter> {u..v} \<noteq> {}})
               = sum ((\<lambda>k. norm (f k)) \<circ> (\<lambda>k. k \<inter> {u..v})) {k \<in> d. k \<inter> {u..v} \<noteq> {}}\<close>
@@ -1148,7 +1148,7 @@ proof (cases \<open>a<b\<close>)
               have cont: \<open>content k = Sup k - Inf k\<close>
                 using ce content_real k_eq sup_k inf_k by auto
               have x_ab: \<open>x \<in> {a..b} - S\<close> using xk_props mem by auto
-              \<comment> \<open>From ball-fineness: Sup k and Inf k are within d x of x\<close>
+              \<comment> \<open>From ball-fineness: @{term \<open>Sup k\<close>} and @{term \<open>Inf k\<close>} are within @{term \<open>d x\<close>} of @{term x}\<close>
               have k_ball: \<open>k \<subseteq> ball x (d x)\<close>
                 using ball_fine mem unfolding fine_def by auto
               have sup_in: \<open>Sup k \<in> k\<close> using ce by (auto simp: k_eq)
@@ -1159,7 +1159,7 @@ proof (cases \<open>a<b\<close>)
                 using k_ball sup_in by (auto simp: dist_real_def)
               have inf_near: \<open>\<bar>Inf k - x\<bar> < d x\<close>
                 using k_ball inf_in by (auto simp: dist_real_def)
-              \<comment> \<open>Apply derivative bound D at Sup k and Inf k\<close>
+              \<comment> \<open>Apply derivative bound @{term D} at @{term \<open>Sup k\<close>} and @{term \<open>Inf k\<close>}\<close>
               have bnd_sup: \<open>norm (f (Sup k) - f x - (Sup k - x) *\<^sub>R g x)
                             \<le> \<epsilon>/2 / (b-a) * \<bar>Sup k - x\<bar>\<close>
                 using D x_ab sup_near sup_ab by auto
@@ -1217,7 +1217,7 @@ proof (cases \<open>a<b\<close>)
           have \<open>norm ((\<Sum>(x,k)\<in>\<D>. content k *\<^sub>R g x) - (f b - f a))
               = norm (\<Sum>(x,k)\<in>\<D>. content k *\<^sub>R g x - (f (Sup k) - f (Inf k)))\<close>
             by (smt (verit) "*" split_def sum.cong sum_subtractf)
-          \<comment> \<open>Split into S and non-S parts\<close>
+          \<comment> \<open>Split into @{term S} and non-@{term S} parts\<close>
           also have \<open>\<dots> = norm ((\<Sum>(x,k)\<in>\<D>S. content k *\<^sub>R g x - (f (Sup k) - f (Inf k)))
                             + (\<Sum>(x,k)\<in>\<D>N. content k *\<^sub>R g x - (f (Sup k) - f (Inf k))))\<close>
             by (simp add: sum.union_disjoint[OF fin_S fin_N disj, symmetric] union)
@@ -1474,7 +1474,7 @@ proof (intro allI impI)
             then show ?thesis using *[OF endpts(1)] by simp
           qed
         qed
-        \<comment> \<open>Lift pointwise convergence to sum convergence over finite d\<close>
+        \<comment> \<open>Lift pointwise convergence to sum convergence over finite @{term d}\<close>
         show \<open>\<sigma> \<longlonglongrightarrow> L\<close>
           unfolding \<sigma>_def L_def using summand_conv by (rule tendsto_sum)
       qed
@@ -1491,7 +1491,7 @@ proof (intro allI impI)
         have d'_eq: \<open>d' = ?shrink ` ?S\<close> 
           unfolding d'_def ..
         have fin_S: \<open>finite ?S\<close> using fin_d by auto
-            \<comment> \<open>Key properties of each @{term \<open>k \<in> S\<close>}\<close>
+            \<comment> \<open>Key properties of each $k$ in @{term \<open>{k \<in> d. content k \<noteq> 0}\<close>}\<close>
         have k_props: \<open>Inf k < Sup k\<close> \<open>k = {Inf k .. Sup k}\<close> \<open>k \<subseteq> S\<close>
           \<open>?shrink k \<subseteq> k\<close> \<open>?shrink k \<noteq> {}\<close>
           if \<open>k \<in> ?S\<close> for k
@@ -1517,8 +1517,8 @@ proof (intro allI impI)
           then show \<open>?shrink k \<noteq> {}\<close>
             by auto
         qed
-          \<comment> \<open>Key properties of each k \<in> ?S\<close>
-          \<comment> \<open>Claim 1: d' is a division of \<Union>d'\<close>
+          \<comment> \<open>Key properties of each $k$ in @{term \<open>{k \<in> d. content k \<noteq> 0}\<close>}\<close>
+          \<comment> \<open>Claim 1: @{term d'} is a division of @{term \<open>\<Union>d'\<close>}\<close>
         have \<open>d' division_of \<Union>d'\<close>
           unfolding division_of_def
         proof (intro conjI ballI impI)
@@ -1545,7 +1545,7 @@ proof (intro allI impI)
             using interior_mono[OF k_props(4)[OF k2S]] K2eq by auto
           ultimately show \<open>interior K1 \<inter> interior K2 = {}\<close> by auto
         qed (auto simp: d'_def fin_d Sup_upper)
-          \<comment> \<open>Claim 2: \<Union>d' \<subseteq> interior S\<close>
+          \<comment> \<open>Claim 2: @{term \<open>\<Union>d' \<subseteq> interior S\<close>}\<close>
         moreover have \<open>\<Union>d' \<subseteq> interior S\<close>
         proof
           fix x assume \<open>x \<in> \<Union>d'\<close>
@@ -1569,7 +1569,7 @@ proof (intro allI impI)
             by (rule interior_mono[OF k_props(3)[OF kS]])
           finally show \<open>x \<in> interior S\<close> .
         qed
-          \<comment> \<open>Claim 3: total content of d' < r\<close>
+          \<comment> \<open>Claim 3: total content of @{term d'} $< r$\<close>
         moreover have \<open>(\<Sum>k\<in>d'. content k) < r\<close>
         proof -
           have \<open>(\<Sum>k\<in>d'. content k) \<le> (\<Sum>k\<in>?S. content (?shrink k))\<close>
@@ -1582,10 +1582,10 @@ proof (intro allI impI)
           also have \<open>\<dots> < r\<close> using content_small .
           finally show ?thesis .
         qed
-          \<comment> \<open>Conclude with r_int'\<close>
+          \<comment> \<open>Conclude with @{text r_int'}\<close>
         ultimately have r_int'_d': \<open>(\<Sum>k\<in>d'. norm (f (Sup k) - f (Inf k))) < \<epsilon>/2\<close>
           using r_int by blast
-        \<comment> \<open>Injectivity of shrink on ?S\<close>
+        \<comment> \<open>Injectivity of shrink on @{term \<open>{k \<in> d. content k \<noteq> 0}\<close>}\<close>
         have inj_shrink: \<open>inj_on ?shrink ?S\<close>
         proof (rule inj_onI)
           fix k1 k2
@@ -1645,7 +1645,7 @@ proof (intro allI impI)
           show \<open>Sup (?shrink k) = Sup k - (Sup k - Inf k) / 2^n\<close>
             unfolding box_real using cSup_atLeastAtMost[OF ne] .
         qed
-        \<comment> \<open>Rewrite the d'-sum as a sum over ?S\<close>
+        \<comment> \<open>Rewrite the @{term d'}-sum as a sum over @{term \<open>{k \<in> d. content k \<noteq> 0}\<close>}\<close>
         have d'_sum: \<open>(\<Sum>K\<in>d'. norm (f (Sup K) - f (Inf K))) =
           (\<Sum>k\<in>?S. norm (f (Sup k - (Sup k - Inf k) / 2^n) - f (Inf k + (Sup k - Inf k) / 2^n)))\<close>
         proof -
@@ -1675,12 +1675,12 @@ proof (intro allI impI)
               f (Inf k + (Sup k - Inf k) / 2^n)) = 0\<close> by simp
           qed
         qed
-        \<comment> \<open>Conclude: \<sigma> n < \<epsilon>/2, hence \<sigma> n \<le> \<epsilon>/2\<close>
+        \<comment> \<open>Conclude: @{term \<open>\<sigma> n < \<epsilon>/2\<close>}, hence @{term \<open>\<sigma> n \<le> \<epsilon>/2\<close>}\<close>
         have \<open>\<sigma> n = (\<Sum>k\<in>d'. norm (f (Sup k) - f (Inf k)))\<close>
           unfolding \<sigma>_def using zero_summands d'_sum by auto
         then show \<open>\<sigma> n \<le> \<epsilon>/2\<close> using r_int'_d' by linarith
       qed
-      \<comment> \<open>Conclude: L \<le> \<epsilon>/2 < \<epsilon>\<close>
+      \<comment> \<open>Conclude: @{term \<open>L \<le> \<epsilon>/2\<close>} $< \varepsilon$\<close>
       have \<open>L \<le> \<epsilon>/2\<close>
         by (rule tendsto_le[OF sequentially_bot tendsto_const conv bound])
       then show ?thesis unfolding L_def using \<open>\<epsilon> > 0\<close> by linarith
@@ -2266,7 +2266,7 @@ proof -
     then show thesis
       by (intro that [of h]) auto
   qed
-  text \<open>Show that h is absolutely integrable on S.\<close>
+  text \<open>Show that @{term h} is absolutely integrable on @{term S}.\<close>
   have h_zero: \<open>h x = 0\<close> if \<open>x \<notin> cbox c d\<close> for x
     by (metis DiffI Diff_partition UNIV_I UnCI box_subset_cbox cd_sub h_eq that)
   have h_abs_cbox: \<open>h absolutely_integrable_on cbox c d\<close>
@@ -2680,8 +2680,8 @@ proof -
 qed
 
 \<comment> \<open>Bundle of L1-approximation facts for an absolutely integrable function.
-    Given h' abs.\ integrable with indefinite integral h, obtain a continuous
-    approximation sequence hh' (with indefinite integrals hh) satisfying all the
+    Given @{term h'} abs.\ integrable with indefinite integral @{term h}, obtain a continuous
+    approximation sequence @{term hh'} (with indefinite integrals @{term hh}) satisfying all the
     convergence and integrability properties needed for integration by parts.\<close>
 lemma L1_approx_setup:
   fixes h' :: \<open>real \<Rightarrow> 'a::euclidean_space\<close> and h :: \<open>real \<Rightarrow> 'a\<close>
@@ -2799,7 +2799,7 @@ proof -
     using absolutely_integrable_bounded_measurable_product[OF \<open>bilinear bop\<close> f_meas ab_sets f_bounded g'abs] .
   show "(\<lambda>x. bop (f' x) (g x)) absolutely_integrable_on {a..b}"
     using absolutely_integrable_bounded_measurable_product[OF bop_swap g_meas ab_sets g_bounded f'abs] .
-\<comment> \<open>Obtain continuous L1 approximation sequences for f' and g'.\<close>
+\<comment> \<open>Obtain continuous L1 approximation sequences for @{term f'} and @{term g'}.\<close>
   obtain ff' ff where
     ff'_absint: \<open>\<And>n. ff' n absolutely_integrable_on {a..b}\<close> and
     ff'_cont_ab: \<open>\<And>n. continuous_on {a..b} (ff' n)\<close> and
@@ -2869,18 +2869,18 @@ proof -
     using Lim_bilinear[OF ff_b gg_b \<open>bounded_bilinear bop\<close>] .
   have bop_a: \<open>(\<lambda>n. bop (ff n a) (gg n a)) \<longlonglongrightarrow> bop (f a) (g a)\<close>
     using Lim_bilinear[OF ff_a gg_a \<open>bounded_bilinear bop\<close>] .
-      \<comment> \<open>Obtain B bounding integral norms of |f'| and |g'|.\<close>
+      \<comment> \<open>Obtain @{term B} bounding integral norms of $|f'|$ and $|g'|$.\<close>
   obtain B where \<open>B > 0\<close> and B_f': \<open>integral {a..b} (\<lambda>x. norm (f' x)) \<le> B\<close>
     and B_g': \<open>integral {a..b} (\<lambda>x. norm (g' x)) \<le> B\<close>
     by (smt (verit, best) gt_ex)
-      \<comment> \<open>Bound on sup norm of f on {a..b}.\<close>
+      \<comment> \<open>Bound on sup norm of @{term f} on @{term \<open>{a..b}\<close>}.\<close>
   obtain M_f where \<open>M_f > 0\<close> and M_f: \<open>\<And>x. x \<in> {a..b} \<Longrightarrow> norm (f x) \<le> M_f\<close>
     using bounded_normE[OF f_bounded] by (metis image_eqI)
 
   obtain M where "M>0" and M: "norm (bop x y) \<le> M * norm x * norm y" for x y
     using assms(1) bilinear_bounded_pos by blast
   define \<phi> where "\<phi> \<equiv> \<lambda>n. 2 * M * B * inverse(real n + 1) + M * inverse(real n + 1)^2"
-    \<comment> \<open>Integral convergence: int1.\<close> (*Could this be done better following int2?*)
+    \<comment> \<open>Integral convergence: int1.\<close> \<comment> \<open>Could this be done better following int2?\<close>
   have int1: \<open>(\<lambda>n. integral {a..b} (\<lambda>x. bop (ff n x) (gg' n x))) \<longlonglongrightarrow>
                integral {a..b} (\<lambda>x. bop (f x) (g' x))\<close>
   proof (rule LIM_zero_iff[THEN iffD1])
@@ -2895,7 +2895,7 @@ proof -
         [OF bop_absint_cont2[OF f_cont g'abs]] .
     have ffgg'_int: \<open>(\<lambda>x. bop (ff n x) (gg' n x)) integrable_on {a..b}\<close> for n
       by (simp add: bop_absint_cont2 ff_cont gg'_absint set_lebesgue_integral_eq_integral(1))
-        \<comment> \<open>Now show the integral of the decomposed sum \<rightarrow> 0.\<close>
+        \<comment> \<open>Now show the integral of the decomposed sum $\to 0$.\<close>
     have eq: \<open>integral {a..b} (\<lambda>x. bop (ff n x) (gg' n x)) - integral {a..b} (\<lambda>x. bop (f x) (g' x))
                 = integral {a..b} (\<lambda>x. bop (ff n x) (gg' n x) - bop (f x) (g' x))\<close> for n
       by (simp add: Henstock_Kurzweil_Integration.integral_diff ffgg'_int fg'_int)
@@ -2910,13 +2910,13 @@ proof -
     show "(\<lambda>n. integral {a..b} (\<lambda>x. bop (ff n x) (gg' n x)) -
                  integral {a..b} (\<lambda>x. bop (f x) (g' x))) \<longlonglongrightarrow> 0"
     proof -
-      \<comment> \<open>bdd_above for the uniform-convergence sup.\<close>
+      \<comment> \<open>@{term bdd_above} for the uniform-convergence sup.\<close>
       have bdd_ff: \<open>bdd_above ((\<lambda>x. norm (ff n x - f x)) ` {a..b})\<close> for n
         by (meson bdd_above.I2 ff_inv_bound)
       have sup_bound: \<open>norm (ff n x - f x) \<le> (SUP x\<in>{a..b}. norm (ff n x - f x))\<close>
         if \<open>x \<in> {a..b}\<close> for n x
         using cSUP_upper[OF that bdd_ff] .
-          \<comment> \<open>Term 1: \<integral> bop(ff n - f)(gg' n - g') \<rightarrow> 0.\<close>
+          \<comment> \<open>Term 1: $\int \mathrm{bop}(ff\,n - f)(gg'\,n - g') \to 0$.\<close>
       have I1: \<open>(\<lambda>n. integral {a..b} (\<lambda>x. bop (ff n x - f x) (gg' n x - g' x))) \<longlonglongrightarrow> 0\<close>
       proof -
         have lim_bound: \<open>(\<lambda>n. M * ((SUP x\<in>{a..b}. norm (ff n x - f x)) *
@@ -3059,7 +3059,7 @@ proof -
           using bounded_bilinear.diff_left[OF \<open>bounded_bilinear bop\<close>] by simp
         have diff_right: \<open>bop (f' x) (gg n x) - bop (f' x) (g x) = bop (f' x) (gg n x - g x)\<close> for x
           using bounded_bilinear.diff_right[OF \<open>bounded_bilinear bop\<close>] by simp
-            \<comment> \<open>I1: \<Parallel>\<integral> bop(ff' n - f', gg n)\<Parallel> \<le> M * (B + 1/(n+1)) * 1/(n+1).\<close>
+            \<comment> \<open>I1: $\lVert\int \mathrm{bop}(ff'\,n - f',\, gg\,n)\rVert \le M \cdot (B + 1/(n{+}1)) \cdot 1/(n{+}1)$.\<close>
         have I1: \<open>norm (integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (gg n x)))
                   \<le> M * (B + inverse (real n + 1)) * inverse (real n + 1)\<close>
         proof -
@@ -3077,7 +3077,7 @@ proof -
             by (intro mult_left_mono) (auto simp: norm_minus_commute)
           finally show ?thesis .
         qed
-            \<comment> \<open>I2: \<Parallel>\<integral> bop(f', gg n - g)\<Parallel> \<le> M * B * 1/(n+1).\<close>
+            \<comment> \<open>I2: $\lVert\int \mathrm{bop}(f',\, gg\,n - g)\rVert \le M \cdot B \cdot 1/(n{+}1)$.\<close>
         have I2: \<open>norm (integral {a..b} (\<lambda>x. bop (f' x) (gg n x) - bop (f' x) (g x)))
                    \<le> M * B * inverse (real n + 1)\<close>
         proof -
@@ -3257,8 +3257,8 @@ next
   qed
 qed
 
-text \<open>If f is absolutely continuous on [a,b] and has vector derivative f'(x) a.e.,
-  then f' is absolutely integrable on [a,b].\<close>
+text \<open>If @{term f} is absolutely continuous on $[a,b]$ and has vector derivative $f'(x)$ a.e.,
+  then @{term f'} is absolutely integrable on $[a,b]$.\<close>
 
 lemma absolutely_integrable_absolutely_continuous_derivative:
   fixes f :: \<open>real \<Rightarrow> 'a::euclidean_space\<close> and f' :: \<open>real \<Rightarrow> 'a\<close>
@@ -3273,17 +3273,17 @@ proof (cases \<open>a \<le> b\<close>)
     have \<open>f' integrable_on {a..b} \<and>
          has_bounded_variation_on (\<lambda>t. integral {a..t} f') {a..b}\<close>
     proof (intro conjI)
-      \<comment> \<open>Part 1: f' is integrable (via FTC for absolutely continuous functions)\<close>
+      \<comment> \<open>Part 1: @{term f'} is integrable (via FTC for absolutely continuous functions)\<close>
       have ftc: \<open>(f' has_integral (f b - f a)) {a..b}\<close>
         by (rule fundamental_theorem_of_calculus_absolutely_continuous
                 [OF neg ab ac deriv])
       then show \<open>f' integrable_on {a..b}\<close>
         by (auto simp: integrable_on_def)
     next
-      \<comment> \<open>Part 2: the indefinite integral of f' has bounded variation\<close>
+      \<comment> \<open>Part 2: the indefinite integral of @{term f'} has bounded variation\<close>
       show \<open>has_bounded_variation_on (\<lambda>t. integral {a..t} f') {a..b}\<close>
       proof -
-        \<comment> \<open>On [a,c] for c \<in> [a,b], FTC gives integral {a..c} f' = f c - f a\<close>
+        \<comment> \<open>On $[a,c]$ for $c \in [a,b]$, FTC gives @{term \<open>integral {a..c} f' = f c - f a\<close>}\<close>
         have eq: \<open>integral {a..c} f' = f c - f a\<close> if \<open>c \<in> {a..b}\<close> for c
         proof -
           from that have ac_le: \<open>a \<le> c\<close> and cb: \<open>c \<le> b\<close> by auto
@@ -3305,7 +3305,7 @@ proof (cases \<open>a \<le> b\<close>)
           then show ?thesis
             by (rule integral_unique)
         qed
-        \<comment> \<open>So (\<lambda>t. integral {a..t} f') agrees with (\<lambda>t. f T - f a) on [a,b]\<close>
+        \<comment> \<open>So @{term \<open>\<lambda>t. integral {a..t} f'\<close>} agrees with @{term \<open>\<lambda>t. f t - f a\<close>} on $[a,b]$\<close>
         have \<open>absolutely_continuous_on {a..b} (\<lambda>t. f t - f a)\<close>
           by (intro absolutely_continuous_on_sub ac absolutely_continuous_on_const)
         then show ?thesis
@@ -3769,7 +3769,7 @@ proof -
   \<comment> \<open>The negligible set for the derivative.\<close>
   have neg_st: \<open>negligible (S \<union> T)\<close>
     using negs negt negligible_Un by blast
-  \<comment> \<open>The derivative of bop(f,g) at each point outside S \<union> T.\<close>
+  \<comment> \<open>The derivative of @{term \<open>bop (f x) (g x)\<close>} at each point outside @{term \<open>S \<union> T\<close>}.\<close>
   have fg_deriv: \<open>((\<lambda>x. bop (f x) (g x)) has_vector_derivative bop (f x) (g' x) + bop (f' x) (g x)) (at x within {a..b})\<close>
     if \<open>x \<in> {a..b} - (S \<union> T)\<close> for x
   proof -
@@ -3812,7 +3812,7 @@ lemma absolute_real_integration_by_parts_sum:
     and fgsum_int: "\<And>x. x \<in> {a..b} \<Longrightarrow>
       ((\<lambda>x. f x * g' x + f' x * g x) has_integral (f x * g x - f a * g a)) {a..x}"
 proof -
-  \<comment> \<open>Apply IBP with shifted antiderivatives F x = f x - f a, G x = g x - g a.\<close>
+  \<comment> \<open>Apply IBP with shifted antiderivatives @{term \<open>F x = f x - f a\<close>}, @{term \<open>G x = g x - g a\<close>}.\<close>
   define F where "F \<equiv> \<lambda>x. f x - f a"
   define G where "G \<equiv> \<lambda>x. g x - g a"
   have F_int: "\<And>x. x \<in> {a..b} \<Longrightarrow> (f' has_integral F x) {a..x}"
@@ -3820,7 +3820,7 @@ proof -
   have G_int: "\<And>x. x \<in> {a..b} \<Longrightarrow> (g' has_integral G x) {a..x}"
     unfolding G_def using g'int by simp
   note ibp = absolute_real_integration_by_parts[OF ab f'abs g'abs F_int G_int]
-  \<comment> \<open>IBP gives us three facts about F and G.\<close>
+  \<comment> \<open>IBP gives us three facts about @{term F} and @{term G}.\<close>
   have Fg'_abs: "(\<lambda>x. F x * g' x) absolutely_integrable_on {a..b}" using ibp(1) .
   have f'G_abs: "(\<lambda>x. f' x * G x) absolutely_integrable_on {a..b}" using ibp(2) .
   have ibp_eq: "integral {a..b} (\<lambda>x. F x * g' x) + integral {a..b} (\<lambda>x. f' x * G x) = F b * G b - F a * G a"
@@ -3850,13 +3850,13 @@ proof -
     using cg'_abs absolutely_integrable_on_def by metis
   have f'c_norm: "(\<lambda>x. norm (f' x * g a)) integrable_on {a..b}"
     using f'c_abs absolutely_integrable_on_def by metis
-  \<comment> \<open>The decomposition: f x * g' x + f' x * g x = F x * g' x + f a * g' x + f' x * G x + f' x * g a.\<close>
+  \<comment> \<open>The decomposition: $f\,x \cdot g'\,x + f'\,x \cdot g\,x = F\,x \cdot g'\,x + f\,a \cdot g'\,x + f'\,x \cdot G\,x + f'\,x \cdot g\,a$.\<close>
   have decomp: "\<And>x. f x * g' x + f' x * g x = F x * g' x + f a * g' x + (f' x * G x + f' x * g a)"
     unfolding F_def G_def by (simp add: algebra_simps)
   \<comment> \<open>Sum is integrable.\<close>
   have sum_int: "(\<lambda>x. f x * g' x + f' x * g x) integrable_on {a..b}"
     unfolding decomp using integrable_add[OF integrable_add[OF Fg'_int cg'_int] integrable_add[OF f'G_int f'c_int]] .
-  \<comment> \<open>Norm bound: |f x * g' x + f' x * g x| \<le> |F x * g' x| + |f a * g' x| + |f' x * G x| + |f' x * g a|.\<close>
+  \<comment> \<open>Norm bound: $|f\,x \cdot g'\,x + f'\,x \cdot g\,x| \le |F\,x \cdot g'\,x| + |f\,a \cdot g'\,x| + |f'\,x \cdot G\,x| + |f'\,x \cdot g\,a|$.\<close>
   have bound_int: "(\<lambda>x. norm (F x * g' x) + norm (f a * g' x) + (norm (f' x * G x) + norm (f' x * g a))) integrable_on {a..b}"
     using integrable_add[OF integrable_add[OF Fg'_norm cg'_norm] integrable_add[OF f'G_norm f'c_norm]] .
   have norm_bound: "\<And>x. x \<in> {a..b} \<Longrightarrow> norm (f x * g' x + f' x * g x) \<le>
@@ -3864,7 +3864,7 @@ proof -
     unfolding decomp by (intro order_trans[OF norm_triangle_ineq] add_mono order_trans[OF norm_triangle_ineq] order_refl)+
   show fgsum_abs: "(\<lambda>x. f x * g' x + f' x * g x) absolutely_integrable_on {a..b}"
     by (rule absolutely_integrable_integrable_bound[OF norm_bound sum_int bound_int])
-  \<comment> \<open>Goal 2: has_integral on {a..x} for each x \<in> {a..b}.\<close>
+  \<comment> \<open>Goal 2: @{text has_integral} on @{term \<open>{a..x}\<close>} for each @{term \<open>x \<in> {a..b}\<close>}.\<close>
   show "\<And>x. x \<in> {a..b} \<Longrightarrow>
     ((\<lambda>x. f x * g' x + f' x * g x) has_integral (f x * g x - f a * g a)) {a..x}"
   proof -
@@ -3876,28 +3876,28 @@ proof -
       using absolutely_integrable_on_subinterval[OF f'abs sub] .
     have g'abs_sub: "g' absolutely_integrable_on {a..x}"
       using absolutely_integrable_on_subinterval[OF g'abs sub] .
-    \<comment> \<open>has_integral results on {a..x}.\<close>
+    \<comment> \<open>@{text has_integral} results on @{term \<open>{a..x}\<close>}.\<close>
     have F_int_sub: "\<And>y. y \<in> {a..x} \<Longrightarrow> (f' has_integral F y) {a..y}"
       using F_int sub by auto
     have G_int_sub: "\<And>y. y \<in> {a..x} \<Longrightarrow> (g' has_integral G y) {a..y}"
       using G_int sub by auto
-    \<comment> \<open>Apply IBP on {a..x}.\<close>
+    \<comment> \<open>Apply IBP on @{term \<open>{a..x}\<close>}.\<close>
     note ibp_sub = absolute_real_integration_by_parts[OF ax f'abs_sub g'abs_sub F_int_sub G_int_sub]
-    \<comment> \<open>From IBP: integral of F * g' + f' * G on {a..x} = F x * G x - F a * G a = F x * G x.\<close>
+    \<comment> \<open>From IBP: integral of $F \cdot g' + f' \cdot G$ on @{term \<open>{a..x}\<close>} equals @{term \<open>F x * G x - F a * G a\<close>} $=$ @{term \<open>F x * G x\<close>}.\<close>
     have Fg'_int_sub: "(\<lambda>t. F t * g' t) integrable_on {a..x}"
       using ibp_sub(1) set_lebesgue_integral_eq_integral by blast
     have f'G_int_sub: "(\<lambda>t. f' t * G t) integrable_on {a..x}"
       using ibp_sub(2) set_lebesgue_integral_eq_integral by blast
     have ibp_eq_sub: "integral {a..x} (\<lambda>t. F t * g' t) + integral {a..x} (\<lambda>t. f' t * G t) = F x * G x - F a * G a"
       using ibp_sub(3) .
-    \<comment> \<open>F a = 0 and G a = 0.\<close>
+    \<comment> \<open>@{term \<open>F a = 0\<close>} and @{term \<open>G a = 0\<close>}.\<close>
     have Fa: "F a = 0" unfolding F_def by simp
     have Ga: "G a = 0" unfolding G_def by simp
-    \<comment> \<open>Combine: has_integral of F * g' + f' * G on {a..x} gives F x * G x.\<close>
+    \<comment> \<open>Combine: @{text has_integral} of $F \cdot g' + f' \cdot G$ on @{term \<open>{a..x}\<close>} gives @{term \<open>F x * G x\<close>}.\<close>
     have hi_FG: "((\<lambda>t. F t * g' t + f' t * G t) has_integral (F x * G x)) {a..x}"
       using has_integral_add[OF integrable_integral[OF Fg'_int_sub] integrable_integral[OF f'G_int_sub]]
         ibp_eq_sub Fa Ga by simp
-    \<comment> \<open>has_integral for constant-multiple terms.\<close>
+    \<comment> \<open>@{text has_integral} for constant-multiple terms.\<close>
     have hi_cg: "((\<lambda>t. f a * g' t) has_integral (f a * (g x - g a))) {a..x}"
       using has_integral_mult_right[OF g'int[OF xab]] unfolding G_def by simp
     have hi_fc: "((\<lambda>t. f' t * g a) has_integral ((f x - f a) * g a)) {a..x}"
