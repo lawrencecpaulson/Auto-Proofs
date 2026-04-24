@@ -144,6 +144,65 @@ next
         unfolding sum_eq sum_negf[symmetric] by (simp add: case_prod_unfold)
       have "norm (\<Sum>(x,k)\<in>p. f (\<Squnion> k) - f (\<Sqinter> k)) = ?t"
         by (subst neg_eq[symmetric], subst norm_minus_cancel[symmetric]) (rule refl)
+      also have "\<dots> \<le> (\<Sum>(x,k)\<in>?S'. \<epsilon> / 2 ^ (3 + n x))"
+      proof (rule sum_norm_le)
+        fix z assume z_in: "z \<in> ?S'"
+        obtain x k where z_eq: "z = (x, k)" and xk_in: "(x, k) \<in> p"
+          and x_img: "x \<in> \<sigma> ` T" and k_nz: "Henstock_Kurzweil_Integration.content k \<noteq> 0"
+          using z_in by (cases z) auto
+        from tagged_partial_division_ofD(4)[OF p_div xk_in]
+        obtain u v where k_eq: "k = cbox u v" by auto
+        from tagged_partial_division_ofD(2)[OF p_div xk_in]
+        have x_in_k: "x \<in> k" .
+        then have uv: "u \<le> v" using k_eq by (auto simp: mem_box)
+        from k_nz have "u < v"
+          using k_eq uv by (auto simp: content_cbox_if Basis_real_def)
+        have sup_k: "\<Squnion> k = v" and inf_k: "\<Sqinter> k = u"
+          using k_eq uv by (simp_all add: Sup_atLeastAtMost Inf_atLeastAtMost)
+        \<comment> \<open>x is in {a..b} and in \<sigma> ` T\<close>
+        have k_sub: "k \<subseteq> cbox a b"
+          using tagged_partial_division_ofD(3)[OF p_div xk_in] .
+        have x_ab: "x \<in> {a..b}" using x_in_k k_sub by auto
+        \<comment> \<open>u and v are in {a..b}\<close>
+        have u_ab: "u \<in> {a..b}" and v_ab: "v \<in> {a..b}"
+          using k_sub k_eq \<open>u \<le> v\<close> by auto
+        \<comment> \<open>From fineness: k \<subseteq> ball x (d x), so u and v are within d x of x\<close>
+        have k_ball: "k \<subseteq> ball x (d x)"
+          using fineD[OF p_fine xk_in] .
+        have "u \<in> ball x (d x)" and "v \<in> ball x (d x)"
+          using k_ball k_eq \<open>u \<le> v\<close> by auto
+        then have du: "\<bar>u - x\<bar> < d x" and dv: "\<bar>v - x\<bar> < d x"
+          by (auto simp: mem_ball dist_real_def)
+        \<comment> \<open>Apply the continuity bound d_bound\<close>
+        have bnd_v: "norm (f v - f x) \<le> \<epsilon> / 2 ^ (4 + n x)"
+          using d_bound[OF x_ab x_img, rule_format, of v] dv v_ab by auto
+        have bnd_u: "norm (f u - f x) \<le> \<epsilon> / 2 ^ (4 + n x)"
+          using d_bound[OF x_ab x_img, rule_format, of u] du u_ab by auto
+        \<comment> \<open>Triangle inequality and arithmetic\<close>
+        have bnd_xu: "norm (f x - f u) \<le> \<epsilon> / 2 ^ (4 + n x)"
+          using bnd_u by (subst norm_minus_commute) 
+        have bound: "norm (-(f (\<Squnion> k) - f (\<Sqinter> k))) \<le> \<epsilon> / 2 ^ (3 + n x)"
+        proof -
+          have "norm (-(f (\<Squnion> k) - f (\<Sqinter> k))) = norm (f (\<Squnion> k) - f (\<Sqinter> k))"
+            by (rule norm_minus_cancel)
+          also have "\<dots> = norm (f v - f u)"
+            by (simp add: sup_k inf_k)
+          also have "\<dots> = norm ((f v - f x) + (f x - f u))" by simp
+          also have "\<dots> \<le> norm (f v - f x) + norm (f x - f u)"
+            by (rule norm_triangle_ineq)
+          also have "\<dots> \<le> \<epsilon> / 2 ^ (4 + n x) + \<epsilon> / 2 ^ (4 + n x)"
+            by (intro add_mono bnd_v bnd_xu)
+          also have "\<dots> = \<epsilon> / 2 ^ (3 + n x)"
+          proof -
+            have "(2::real) ^ (4 + n x) = 2 * 2 ^ (3 + n x)" by (simp add: power_add)
+            then show ?thesis by (simp add: field_simps)
+          qed
+          finally show ?thesis .
+        qed
+        show "norm (case z of (x, k) \<Rightarrow> - (f (\<Squnion> k) - f (\<Sqinter> k))) \<le>
+                      (case z of (x, k) \<Rightarrow> \<epsilon> / 2 ^ (3 + n x))"
+          using bound z_eq by simp
+      qed
       also have "\<dots> < \<epsilon>"
         sorry
       finally show ?thesis .
@@ -210,7 +269,7 @@ proof -
     using assms(4) that by blast
   \<comment> \<open>Apply FTC interior strong to ff \<circ> g\<close>
   have ftc: "((\<lambda>x. g' x *\<^sub>R f (g x)) has_integral ((ff \<circ> g) b - (ff \<circ> g) a)) {a..b}"
-  proof (rule fundamental_theorem_of_calculus_interior_strong[where s = k])
+  proof (rule fundamental_theorem_of_calculus_interior_strong[where S = k])
     show "countable k" by fact
     show "a \<le> b" by fact
     show "continuous_on {a..b} (ff \<circ> g)" by fact
