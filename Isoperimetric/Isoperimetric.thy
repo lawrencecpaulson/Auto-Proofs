@@ -308,7 +308,7 @@ qed
 
 text \<open>Cavalieri principle: measure of the subgraph of a nonneg continuous function\<close>
 
-lemma subgraph_measure_eq_integral:
+lemma has_integral_area_under_curve:
   fixes f :: "real \<Rightarrow> real"
   assumes "a \<le> b"
     and "continuous_on {a..b} f"
@@ -2615,76 +2615,6 @@ lemma has_integral_substitution_ac:
   shows "((\<lambda>t. \<phi>' t * f (\<phi> t)) has_integral (integral {\<phi> a..\<phi> b} f)) {a..b}"
   sorry
 
-text \<open>The measure of the subgraph of a continuous non-negative function equals its integral.
-  This is a special case of Fubini's theorem (Cavalieri's principle).
-  In HOL Light this is HAS\_REAL\_INTEGRAL\_AREA\_UNDER\_CURVE.\<close>
-lemma has_integral_area_under_curve:
-  fixes f :: "real \<Rightarrow> real"
-  assumes "a \<le> b"
-    and "continuous_on {a..b} f"
-    and "\<And>x. x \<in> {a..b} \<Longrightarrow> f x \<ge> 0"
-  shows "measure lebesgue {z :: complex. a \<le> Re z \<and> Re z \<le> b \<and> 0 \<le> Im z \<and> Im z \<le> f (Re z)} =
-         integral {a..b} f"
-proof -
-  define S :: "complex set" where
-    "S \<equiv> {z. a \<le> Re z \<and> Re z \<le> b \<and> 0 \<le> Im z \<and> Im z \<le> f (Re z)}"
-  \<comment> \<open>Show S is compact hence lmeasurable\<close>
-  have compact_fimg: "compact (f ` {a..b})"
-    using compact_continuous_image[OF assms(2) compact_Icc] .
-  then have "bounded (f ` {a..b})" by (rule compact_imp_bounded)
-  then obtain M where M_bound: "\<And>y. y \<in> f ` {a..b} \<Longrightarrow> norm y \<le> M"
-    unfolding bounded_iff by auto
-  have M: "\<And>x. x \<in> {a..b} \<Longrightarrow> f x \<le> M"
-  proof -
-    fix x assume "x \<in> {a..b}"
-    then have "norm (f x) \<le> M" using M_bound by auto
-    moreover have "f x \<ge> 0" using assms(3) \<open>x \<in> {a..b}\<close> by auto
-    ultimately show "f x \<le> M" by auto
-  qed
-  have "S \<subseteq> cbox (Complex a 0) (Complex b M)"
-    unfolding S_def using M cbox_complex_eq by fastforce
-  then have bdd: "bounded S"
-    using bounded_subset bounded_cbox by blast
-  have "closed S"
-    unfolding S_def closed_sequential_limits
-  proof (intro allI impI)
-    fix s :: "nat \<Rightarrow> complex" and l :: complex
-    assume H: "(\<forall>n. s n \<in> {z. a \<le> Re z \<and> Re z \<le> b \<and> 0 \<le> Im z \<and> Im z \<le> f (Re z)}) \<and> s \<longlonglongrightarrow> l"
-    then have s_in: "\<And>n. a \<le> Re (s n) \<and> Re (s n) \<le> b \<and> 0 \<le> Im (s n) \<and> Im (s n) \<le> f (Re (s n))"
-      and lim: "s \<longlonglongrightarrow> l" by auto
-    have lim_Re: "(\<lambda>n. Re (s n)) \<longlonglongrightarrow> Re l"
-      using lim tendsto_Re by auto
-    have lim_Im: "(\<lambda>n. Im (s n)) \<longlonglongrightarrow> Im l"
-      using lim tendsto_Im by auto
-    have fl: "a \<le> Re l" "Re l \<le> b"
-      using lim_mono[OF _ tendsto_const lim_Re] s_in
-        lim_mono[OF _ lim_Re tendsto_const] s_in by auto
-    have nn: "0 \<le> Im l"
-      using lim_mono[OF _ tendsto_const lim_Im] s_in by auto
-    have le: "Im l \<le> f (Re l)"
-    proof -
-      have Rel: "Re l \<in> {a..b}" using fl by auto
-      have Re_s_in: "\<And>n. Re (s n) \<in> {a..b}"
-        using s_in by auto
-      have f_lim: "(\<lambda>n. f (Re (s n))) \<longlonglongrightarrow> f (Re l)"
-        by (rule continuous_on_tendsto_compose[OF assms(2) lim_Re])
-           (use Re_s_in Rel in auto)
-      show ?thesis
-        using lim_mono[of 0 "\<lambda>n. Im (s n)" "\<lambda>n. f (Re (s n))" "Im l" "f (Re l)"]
-          lim_Im f_lim s_in by auto
-    qed
-    show "l \<in> {z. a \<le> Re z \<and> Re z \<le> b \<and> 0 \<le> Im z \<and> Im z \<le> f (Re z)}"
-      using fl nn le by auto
-  qed
-  then have "compact S" using bdd compact_eq_bounded_closed by auto
-  then have S_meas: "S \<in> lmeasurable" by (rule lmeasurable_compact)
-  \<comment> \<open>Compute measure of S via Fubini / Cavalieri\<close>
-  \<comment> \<open>The measure of the subgraph equals the integral of the height function\<close>
-  have goal: "measure lebesgue S = integral {a..b} f"
-    using subgraph_measure_eq_integral(2)[OF assms(1) assms(2)] assms(3) S_def by auto
-  then show ?thesis unfolding S_def .
-qed
-
 lemma area_below_arclet:
   fixes g :: "real \<Rightarrow> complex" and g' :: "real \<Rightarrow> complex"
   assumes "u \<le> v"
@@ -3076,6 +3006,129 @@ proof -
       using h(7) ineq_h mono by linarith
     with eq show ?thesis by simp
   qed
+qed
+
+lemma fundamental_theorem_of_calculus_strong:
+  fixes f :: "real \<Rightarrow> 'a::banach" and f' :: "real \<Rightarrow> 'a"
+  assumes "countable s"
+    and "a \<le> b"
+    and "continuous_on {a..b} f"
+    and "\<And>x. x \<in> {a..b} - s \<Longrightarrow>
+      (f has_vector_derivative f' x) (at x within {a..b})"
+  shows "(f' has_integral (f b - f a)) {a..b}"
+  sorry
+
+lemma fundamental_theorem_of_calculus_interior_strong:
+  fixes f :: "real \<Rightarrow> 'a::banach" and f' :: "real \<Rightarrow> 'a"
+  assumes "countable s"
+    and "a \<le> b"
+    and "continuous_on {a..b} f"
+    and "\<And>x. x \<in> {a<..<b} - s \<Longrightarrow>
+      (f has_vector_derivative f' x) (at x)"
+  shows "(f' has_integral (f b - f a)) {a..b}"
+proof -
+  have "(f' has_integral (f b - f a)) {a..b}"
+  proof (rule fundamental_theorem_of_calculus_strong[where s = "insert a (insert b s)"])
+    show "countable (insert a (insert b s))"
+      using assms(1) by auto
+    show "a \<le> b" by fact
+    show "continuous_on {a..b} f" by fact
+    fix x assume "x \<in> {a..b} - insert a (insert b s)"
+    then have x: "x \<in> {a<..<b} - s"
+      by auto
+    then have "(f has_vector_derivative f' x) (at x)"
+      using assms(4) by auto
+    then show "(f has_vector_derivative f' x) (at x within {a..b})"
+      using has_vector_derivative_at_within by blast
+  qed
+  then show ?thesis .
+qed
+
+lemma integral_has_vector_derivative_pointwise:
+  fixes f :: "real \<Rightarrow> 'a::banach"
+  assumes "f integrable_on {a..b}"
+    and "x \<in> {a..b}"
+    and "continuous (at x within {a..b}) f"
+  shows "((\<lambda>u. integral {a..u} f) has_vector_derivative f x) (at x within {a..b})"
+  sorry
+
+lemma has_integral_substitution_strong:
+  fixes f :: "real \<Rightarrow> 'a::euclidean_space" and g g' :: "real \<Rightarrow> real"
+  assumes "countable k"
+    and "f integrable_on {c..d}"
+    and "continuous_on {a..b} g"
+    and "g ` {a..b} \<subseteq> {c..d}"
+    and "\<And>x. x \<in> {a..b} - k \<Longrightarrow>
+      (g has_vector_derivative g' x) (at x within {a..b}) \<and>
+      continuous (at (g x) within {c..d}) f"
+    and "a \<le> b" and "c \<le> d" and "g a \<le> g b"
+  shows "((\<lambda>x. g' x *\<^sub>R f (g x)) has_integral integral {g a..g b} f) {a..b}"
+proof -
+  \<comment> \<open>Define the indefinite integral ff\<close>
+  define ff where "ff \<equiv> \<lambda>x. integral {c..x} f"
+  \<comment> \<open>ff is continuous on {c..d}\<close>
+  have ff_cont: "continuous_on {c..d} ff"
+    unfolding ff_def using indefinite_integral_continuous_1[OF assms(2)] .
+  \<comment> \<open>ff \<circ> g is continuous on {a..b}\<close>
+  have fg_cont: "continuous_on {a..b} (ff \<circ> g)"
+    using continuous_on_compose2[OF ff_cont assms(3) assms(4)] unfolding comp_def .
+  \<comment> \<open>g maps {a..b} into {c..d}\<close>
+  have g_in: "g x \<in> {c..d}" if "x \<in> {a..b}" for x
+    using assms(4) that by blast
+  \<comment> \<open>Apply FTC interior strong to ff \<circ> g\<close>
+  have ftc: "((\<lambda>x. g' x *\<^sub>R f (g x)) has_integral ((ff \<circ> g) b - (ff \<circ> g) a)) {a..b}"
+  proof (rule fundamental_theorem_of_calculus_interior_strong[where s = k])
+    show "countable k" by fact
+    show "a \<le> b" by fact
+    show "continuous_on {a..b} (ff \<circ> g)" by fact
+    fix x assume xk: "x \<in> {a<..<b} - k"
+    then have x_ab: "x \<in> {a..b}" and x_nk: "x \<notin> k" by auto
+    have x_ab_k: "x \<in> {a..b} - k" using x_ab x_nk by auto
+    have gx_cd: "g x \<in> {c..d}" using g_in[OF x_ab] .
+    \<comment> \<open>Get derivative of g and continuity of f at g(x)\<close>
+    have g_deriv: "(g has_vector_derivative g' x) (at x within {a..b})"
+      and f_cont: "continuous (at (g x) within {c..d}) f"
+      using assms(5)[OF x_ab_k] by auto
+    \<comment> \<open>Get derivative of ff at g(x) within {c..d}\<close>
+    have ff_deriv: "(ff has_vector_derivative f (g x)) (at (g x) within {c..d})"
+      unfolding ff_def
+      using integral_has_vector_derivative_pointwise[OF assms(2) gx_cd f_cont] .
+    \<comment> \<open>Weaken to derivative within g ` {a..b}\<close>
+    have ff_deriv': "(ff has_vector_derivative f (g x)) (at (g x) within g ` {a..b})"
+      using has_vector_derivative_within_subset[OF ff_deriv assms(4)] .
+    \<comment> \<open>Apply chain rule\<close>
+    have chain: "((ff \<circ> g) has_vector_derivative g' x *\<^sub>R f (g x)) (at x within {a..b})"
+      using vector_diff_chain_within[OF g_deriv ff_deriv'] .
+    \<comment> \<open>x is in the interior, so at x within {a..b} = at x\<close>
+    have "x \<in> interior {a..b}"
+      using xk by (simp add: interior_atLeastAtMost_real)
+    then have "at x within {a..b} = at x"
+      by (rule at_within_interior)
+    with chain show "((ff \<circ> g) has_vector_derivative g' x *\<^sub>R f (g x)) (at x)"
+      by simp
+  qed
+  \<comment> \<open>Now show (ff \<circ> g) b - (ff \<circ> g) a = integral {g a..g b} f\<close>
+  have "(ff \<circ> g) b - (ff \<circ> g) a = integral {g a..g b} f"
+  proof -
+    have ga_cd: "g a \<in> {c..d}" using g_in[OF _] assms(6) by auto
+    have gb_cd: "g b \<in> {c..d}" using g_in[OF _] assms(6) by auto
+    have c_ga: "c \<le> g a" and ga_d: "g a \<le> d"
+      using ga_cd by auto
+    have c_gb: "c \<le> g b" and gb_d: "g b \<le> d"
+      using gb_cd by auto
+    have "f integrable_on {c..g b}"
+      using integrable_on_subinterval[OF assms(2), of c "g b"] c_gb gb_d by auto
+    then have combine: "integral {c..g a} f + integral {g a..g b} f = integral {c..g b} f"
+      using Henstock_Kurzweil_Integration.integral_combine[OF c_ga assms(8)] by auto
+    have "(ff \<circ> g) b - (ff \<circ> g) a = ff (g b) - ff (g a)"
+      by (simp add: comp_def)
+    also have "\<dots> = integral {c..g b} f - integral {c..g a} f"
+      by (simp add: ff_def)
+    also have "\<dots> = integral {g a..g b} f"
+      using combine by (simp add: algebra_simps)
+    finally show ?thesis .
+  qed
+  with ftc show ?thesis by simp
 qed
 
 end
