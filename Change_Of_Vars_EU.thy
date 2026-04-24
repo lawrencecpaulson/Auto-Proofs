@@ -11,6 +11,8 @@ theory Change_Of_Vars_EU
 
 begin
 
+hide_const (open) Polynomial.content
+
 lemma 
   fixes f :: "'a::euclidean_space \<Rightarrow> 'a"
   assumes "linear f" "S \<in> lmeasurable"
@@ -777,8 +779,153 @@ proof -
     define M where "M \<equiv> (?T - {x \<in> S. f' x u \<bullet> v \<le> b} \<union> ({x \<in> S. f' x u \<bullet> v \<le> b} - ?T))"
     define \<Theta> where "\<Theta> \<equiv> \<lambda>x v. \<forall>\<xi>>0. \<exists>e>0. \<forall>y \<in> S-{x}. norm (x - y) < e \<longrightarrow> \<bar>v \<bullet> (y - x)\<bar> < \<xi> * norm (x - y)"
     have nN: "negligible {x \<in> S. \<exists>v\<noteq>0. \<Theta> x v}"
-      unfolding negligible_eq_zero_density
-      sorry
+      unfolding negligible_eq_zero_density 
+    proof clarsimp
+      fix x v and r e :: "real"
+      assume "x \<in> S" "v \<noteq> 0" "r > 0" "e > 0"
+      and Theta [rule_format]: "\<Theta> x v"
+      moreover have "(norm v * e / 2) / DIM('a) ^ DIM('a) > 0"
+        using  \<open>v \<noteq> 0\<close> \<open>e > 0\<close>
+        by (auto simp add: zero_less_divide_iff zero_less_mult_iff)
+      ultimately obtain d where "d > 0"
+         and dless: "\<And>y. \<lbrakk>y \<in> S - {x}; norm (x - y) < d\<rbrakk> \<Longrightarrow>
+                        \<bar>v \<bullet> (y - x)\<bar> < ((norm v * e / 2) / DIM('a) ^ DIM('a)) * norm (x - y)"
+        by (metis \<Theta>_def)
+      let ?W = "ball x (min d r) \<inter> {y. \<bar>v \<bullet> (y - x)\<bar> < (norm v * e/2 * min d r) / DIM('a) ^ DIM('a)}"
+      have "open {x. \<bar>v \<bullet> (x - a)\<bar> < b}" for a b
+        by (intro open_Collect_less continuous_intros)
+      show "\<exists>d>0. d \<le> r \<and>
+            (\<exists>U. {x' \<in> S. \<exists>v\<noteq>0. \<Theta> x' v} \<inter> ball x d \<subseteq> U \<and>
+                 U \<in> lmeasurable \<and> measure lebesgue U < e * content (ball x d))"
+      proof (intro exI conjI)
+        show "0 < min d r" "min d r \<le> r"
+          using \<open>r > 0\<close> \<open>d > 0\<close> by auto
+        show "{x' \<in> S. \<exists>v. v \<noteq> 0 \<and> \<Theta> x' v} \<inter> ball x (min d r) \<subseteq> ?W"
+          proof (clarsimp simp: dist_norm norm_minus_commute)
+            fix y w
+            assume "y \<in> S" "w \<noteq> 0"
+              and d: "norm (y - x) < d" and r: "norm (y - x) < r"
+            show "\<bar>v \<bullet> (y - x)\<bar> < norm v * e * min d r / (2 * real DIM('a) ^ DIM('a))"
+            proof (cases "y = x")
+              case True
+              with \<open>r > 0\<close> \<open>d > 0\<close> \<open>e > 0\<close> \<open>v \<noteq> 0\<close> show ?thesis
+                by (auto simp: divide_simps)
+            next
+              case False
+              have "\<bar>v \<bullet> (y - x)\<bar> < norm v * e / 2 / real (DIM('a) ^ DIM('a)) * norm (x - y)"
+                by (metis Diff_iff False \<open>y \<in> S\<close> d dless empty_iff insert_iff norm_minus_commute)
+              also have "\<dots> \<le> norm v * e * min d r / (2 * real DIM('a) ^ DIM('a))"
+                using d r \<open>e > 0\<close> by (simp add: divide_simps norm_minus_commute mult_left_mono)
+              finally show ?thesis .
+            qed
+          qed
+          show "?W \<in> lmeasurable"
+            by (simp add: fmeasurable_Int_fmeasurable borel_open)
+          obtain e_k :: 'a where ek: "e_k \<in> Basis"
+            using nonempty_Basis by blast
+          obtain T where T: "orthogonal_transformation T" and v: "v = T (norm v *\<^sub>R e_k)"
+            sorry
+          define b where "b \<equiv> norm v"
+          have "b > 0"
+            using \<open>v \<noteq> 0\<close> by (auto simp: b_def)
+          have eqb: "inv T v = b *\<^sub>R e_k"
+            using T v b_def orthogonal_transformation_bij bij_betw_inv_into_left
+            by (metis UNIV_I orthogonal_transformation_inj inv_f_f)
+          have "inj T" "bij T" and invT: "orthogonal_transformation (inv T)"
+            using T orthogonal_transformation_inj orthogonal_transformation_bij orthogonal_transformation_inv
+            by auto
+          let ?v = "\<Sum>i\<in>Basis. (min d r / DIM('a)) *\<^sub>R i"
+          let ?v' = "\<Sum>i\<in>Basis. (if i = e_k then (e/2 * min d r) / DIM('a) ^ DIM('a) else min d r) *\<^sub>R i"
+          let ?x' = "inv T x"
+          let ?W' = "(ball ?x' (min d r) \<inter> {y. \<bar>(y - ?x') \<bullet> e_k\<bar> < e * min d r / (2 * DIM('a) ^ DIM('a))})"
+          have abs: "x - e \<le> y \<and> y \<le> x + e \<longleftrightarrow> abs(y - x) \<le> e" for x y e::real
+            by auto
+          have "?W = T ` ?W'"
+          proof -
+            have 1: "T ` (ball (inv T x) (min d r)) = ball x (min d r)"
+              by (simp add: T image_orthogonal_transformation_ball orthogonal_transformation_surj surj_f_inv_f)
+            have 2: "{y. \<bar>v \<bullet> (y - x)\<bar> < b * e * min d r / (2 * real DIM('a) ^ DIM('a))} =
+                      T ` {y. \<bar>(y - ?x') \<bullet> e_k\<bar> < e * min d r / (2 * real DIM('a) ^ DIM('a))}"
+            proof -
+              have *: "\<bar>T (b *\<^sub>R e_k) \<bullet> (y - x)\<bar> = b * \<bar>(inv T y - ?x') \<bullet> e_k\<bar>" for y
+              proof -
+                have "\<bar>T (b *\<^sub>R e_k) \<bullet> (y - x)\<bar> = \<bar>(b *\<^sub>R e_k) \<bullet> inv T (y - x)\<bar>"
+                  using T invT by (metis orthogonal_transformation_def eqb v b_def)
+                also have "\<dots> = b * \<bar>e_k \<bullet> inv T (y - x)\<bar>"
+                  using \<open>b > 0\<close> by (simp add: abs_mult)
+                also have "\<dots> = b * \<bar>(inv T y - ?x') \<bullet> e_k\<bar>"
+                  using orthogonal_transformation_linear [OF invT]
+                  by (simp add: linear_diff inner_commute)
+                finally show ?thesis
+                  by simp
+              qed
+              show ?thesis
+                using v b_def [symmetric]
+                using \<open>b > 0\<close> by (simp add: * bij_image_Collect_eq [OF \<open>bij T\<close>] mult_less_cancel_left_pos times_divide_eq_right [symmetric] del: times_divide_eq_right)
+            qed
+            show ?thesis
+              using 1 2 b_def by (simp add: image_Int [OF \<open>inj T\<close>])
+          qed
+          moreover have "?W' \<in> lmeasurable"
+            by (auto intro: fmeasurable_Int_fmeasurable)
+          moreover have "\<bar>eucl.det T\<bar> = 1"
+          proof -
+            note [transfer_rule] = transfer_measure_bij_rules transfer_eucl_bij_rules
+            have "orthogonal_transformation f \<Longrightarrow> \<bar>eucl.det f\<bar> = 1" for f :: "'a \<Rightarrow> 'a"
+              using orthogonal_transformation_det[unfolded orthogonal_transformation_def,
+                where ?'n = "'a basis", untransferred]
+              by (simp add: orthogonal_transformation_def)
+            then show ?thesis using T by blast
+          qed
+          ultimately have "measure lebesgue ?W = measure lebesgue ?W'"
+            using measure_orthogonal_image_eu [OF T] by simp
+          also have "\<dots> \<le> measure lebesgue (cbox (?x' - ?v') (?x' + ?v'))"
+          proof (rule measure_mono_fmeasurable)
+            show "?W' \<subseteq> cbox (?x' - ?v') (?x' + ?v')"
+            proof (intro subsetI)
+              fix y assume "y \<in> ?W'"
+              then have ball: "dist ?x' y < min d r"
+                and ek_bound: "\<bar>(y - ?x') \<bullet> e_k\<bar> < e * min d r / (2 * real DIM('a) ^ DIM('a))"
+                by auto
+              have dist: "norm (y - ?x') < min d r"
+                using ball by (simp add: dist_commute dist_norm)
+              show "y \<in> cbox (?x' - ?v') (?x' + ?v')"
+                sorry \<comment> \<open>component-wise: e_k direction from ek_bound, others from dist via Basis_le_norm\<close>
+            qed
+          qed auto
+          also have "\<dots> \<le> e/2 * measure lebesgue (cbox (?x' - ?v) (?x' + ?v))"
+          proof -
+            have "cbox (?x' - ?v) (?x' + ?v) \<noteq> {}"
+              using \<open>r > 0\<close> \<open>d > 0\<close>
+              by (auto simp: box_ne_empty inner_diff_left inner_add_left inner_sum_left_Basis)
+            with \<open>r > 0\<close> \<open>d > 0\<close> \<open>e > 0\<close> show ?thesis
+              sorry
+          qed
+          also have "\<dots> \<le> e/2 * measure lebesgue (cball ?x' (min d r))"
+          proof (rule mult_left_mono [OF measure_mono_fmeasurable])
+            have *: "norm (?x' - y) \<le> min d r"
+              if y: "\<And>i. i \<in> Basis \<Longrightarrow> \<bar>(?x' - y) \<bullet> i\<bar> \<le> min d r / real DIM('a)" for y
+            proof -
+              have "norm (?x' - y) \<le> (\<Sum>i\<in>Basis. \<bar>(?x' - y) \<bullet> i\<bar>)"
+                by (rule norm_le_l1)
+              also have "\<dots> \<le> real DIM('a) * (min d r / real DIM('a))"
+                by (rule sum_bounded_above) (use y in auto)
+              finally show ?thesis
+                by simp
+            qed
+            show "cbox (?x' - ?v) (?x' + ?v) \<subseteq> cball ?x' (min d r)"
+              apply (clarsimp simp only: mem_box dist_norm mem_cball intro!: *)
+              sorry
+          qed (use \<open>e > 0\<close> in auto)
+          also have "\<dots> < e * content (cball ?x' (min d r))"
+            using \<open>r > 0\<close> \<open>d > 0\<close> \<open>e > 0\<close> by (auto intro: content_cball_pos)
+          also have "\<dots> = e * content (ball x (min d r))"
+            using \<open>r > 0\<close> \<open>d > 0\<close> content_ball_conv_unit_ball[of "min d r" "inv T x"]
+                  content_ball_conv_unit_ball[of "min d r" x]
+            by (simp add: content_cball_conv_ball)
+          finally show "measure lebesgue ?W < e * content (ball x (min d r))" .
+      qed
+    qed
     have *: "(\<And>x. (x \<notin> S) \<Longrightarrow> (x \<in> T \<longleftrightarrow> x \<in> U)) \<Longrightarrow> (T - U) \<union> (U - T) \<subseteq> S" for S T U :: "'a set"
       by blast
     have MN: "M \<subseteq> {x \<in> S. \<exists>v\<noteq>0. \<Theta> x v}"
