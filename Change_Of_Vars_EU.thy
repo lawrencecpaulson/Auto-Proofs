@@ -576,22 +576,22 @@ proof -
     using continuous_on_eq_continuous_within f has_derivative_continuous by blast
   have "{x \<in> S.  f' x u \<bullet> v \<le> b} \<in> sets lebesgue" for b
   proof (rule sets_negligible_symdiff)
-    let ?T = "{x \<in> S. \<forall>e>0. \<exists>d>0. \<exists>A. A u \<bullet> v < b \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>) \<and>
+    let ?T = "{x \<in> S. \<forall>e>0. \<exists>d>0. \<exists>A. linear A \<and> A u \<bullet> v < b \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>) \<and>
                        (\<forall>y \<in> S. norm(y - x) < d \<longrightarrow> norm(f y - f x - A (y - x)) \<le> e * norm(y - x))}"
     let ?U = "S \<inter>
               (\<Inter>e \<in> {e \<in> \<rat>. e > 0}.
-                \<Union>A \<in> {A. A u \<bullet> v < b \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>)}.
+                \<Union>A \<in> {A. linear A \<and> A u \<bullet> v < b \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>)}.
                   \<Union>d \<in> {d \<in> \<rat>. 0 < d}.
                      S \<inter> (\<Inter>y \<in> S. {x \<in> S. norm(y - x) < d \<longrightarrow> norm(f y - f x - A (y - x)) \<le> e * norm(y - x)}))"
     have "?T = ?U"
     proof (intro set_eqI iffI ; clarsimp)
       fix s :: 'a and q :: real and r :: real
       assume "s \<in> S"
-        and "\<forall>e>0. \<exists>d>0. \<exists>A. A u \<bullet> v < b \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>) \<and> (\<forall>y\<in>S. norm (y - s) < d \<longrightarrow> norm (f y - f s - A (y - s)) \<le> e * norm (y - s))"
+        and "\<forall>e>0. \<exists>d>0. \<exists>A. linear A \<and> A u \<bullet> v < b \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>) \<and> (\<forall>y\<in>S. norm (y - s) < d \<longrightarrow> norm (f y - f s - A (y - s)) \<le> e * norm (y - s))"
         and q: "q \<in> \<rat>" "0 < q" and r: "r \<in> \<rat>" "0 < r"
-      show "\<exists>xa. xa u \<bullet> v < b \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. xa i \<bullet> j \<in> \<rat>) \<and> (\<exists>xc. xc \<in> \<rat> \<and> 0 < xc \<and> (\<forall>xd\<in>S. norm (xd - s) < xc \<longrightarrow> norm (f xd - f s - xa (xd - s)) \<le> r * norm (xd - s)))"
+      show "\<exists>xa. linear xa \<and> xa u \<bullet> v < b \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. xa i \<bullet> j \<in> \<rat>) \<and> (\<exists>xc. xc \<in> \<rat> \<and> 0 < xc \<and> (\<forall>xd\<in>S. norm (xd - s) < xc \<longrightarrow> norm (f xd - f s - xa (xd - s)) \<le> r * norm (xd - s)))"
       proof -
-        obtain d A where dpos: "d > 0" and Ab: "A u \<bullet> v < b" and AQ: "\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>"
+        obtain d A where linA: "linear A" and dpos: "d > 0" and Ab: "A u \<bullet> v < b" and AQ: "\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>"
           and norm: "\<forall>y\<in>S. norm (y - s) < d \<longrightarrow> norm (f y - f s - A (y - s)) \<le> r * norm (y - s)"
           using \<open>\<forall>e>0. _\<close> \<open>0 < r\<close> by blast
         obtain xc where xcQ: "xc \<in> \<rat>" and xc_close: "\<bar>xc - d/2\<bar> < d/2"
@@ -599,26 +599,26 @@ proof -
         have "0 < xc" "xc < d"
           using xc_close dpos by linarith+
         then show ?thesis
-          using Ab AQ norm xcQ by (meson order.strict_trans)
+          using linA Ab AQ norm xcQ by (meson order.strict_trans)
       qed
     next
       fix x :: 'a
         and e :: real
       assume "x \<in> S"
-        and "x \<in> (if \<forall>x. (x::real) \<in> \<rat> \<longrightarrow> \<not> 0 < x then UNIV else S \<inter> (\<Inter>x\<in>{e \<in> \<rat>. 0 < e}. \<Union>xa\<in>{A. A u \<bullet> v < b \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>)}. \<Union>xb\<in>{d \<in> \<rat>. 0 < d}. \<Inter>y\<in>S. {xc \<in> S. norm (y - xc) < xb \<longrightarrow> norm (f y - f xc - xa (y - xc)) \<le> x * norm (y - xc)}))"
+        and xif: "x \<in> (if \<forall>x. (x::real) \<in> \<rat> \<longrightarrow> \<not> 0 < x then UNIV else S \<inter> (\<Inter>x\<in>{e \<in> \<rat>. 0 < e}. \<Union>xa\<in>{A. linear A \<and> A u \<bullet> v < b \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>)}. \<Union>xb\<in>{d \<in> \<rat>. 0 < d}. \<Inter>y\<in>S. {xc \<in> S. norm (y - xc) < xb \<longrightarrow> norm (f y - f xc - xa (y - xc)) \<le> x * norm (y - xc)}))"
         and "0 < e"
-      show "\<exists>d>0. \<exists>A. A u \<bullet> v < b \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>) \<and> (\<forall>y\<in>S. norm (y - x) < d \<longrightarrow> norm (f y - f x - A (y - x)) \<le> e * norm (y - x))"
+      show "\<exists>d>0. \<exists>A. linear A \<and> A u \<bullet> v < b \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>) \<and> (\<forall>y\<in>S. norm (y - x) < d \<longrightarrow> norm (f y - f x - A (y - x)) \<le> e * norm (y - x))"
       proof -
         have nif: "\<not> (\<forall>x::real. x \<in> \<rat> \<longrightarrow> \<not> 0 < x)"
           using Rats_1 zero_less_one by blast
         obtain q::real where qQ: "q \<in> \<rat>" and q0: "0 < q" and qe: "q < e"
           using \<open>0 < e\<close> Rats_dense_in_real by blast
-        from \<open>x \<in> (if _ then _ else _)\<close> nif
-        have xmem: "x \<in> S \<inter> (\<Inter>x\<in>{e \<in> \<rat>. 0 < e}. \<Union>xa\<in>{A. A u \<bullet> v < b \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>)}. \<Union>xb\<in>{d \<in> \<rat>. 0 < d}. \<Inter>y\<in>S. {xc \<in> S. norm (y - xc) < xb \<longrightarrow> norm (f y - f xc - xa (y - xc)) \<le> x * norm (y - xc)})"
+        from xif nif
+        have xmem: "x \<in> S \<inter> (\<Inter>x\<in>{e \<in> \<rat>. 0 < e}. \<Union>xa\<in>{A. linear A \<and> A u \<bullet> v < b \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>)}. \<Union>xb\<in>{d \<in> \<rat>. 0 < d}. \<Inter>y\<in>S. {xc \<in> S. norm (y - xc) < xb \<longrightarrow> norm (f y - f xc - xa (y - xc)) \<le> x * norm (y - xc)})"
           by (auto split: if_splits)
-        then have "x \<in> (\<Union>xa\<in>{A. A u \<bullet> v < b \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>)}. \<Union>xb\<in>{d \<in> \<rat>. 0 < d}. \<Inter>y\<in>S. {xc \<in> S. norm (y - xc) < xb \<longrightarrow> norm (f y - f xc - xa (y - xc)) \<le> q * norm (y - xc)})"
+        then have "x \<in> (\<Union>xa\<in>{A. linear A \<and> A u \<bullet> v < b \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>)}. \<Union>xb\<in>{d \<in> \<rat>. 0 < d}. \<Inter>y\<in>S. {xc \<in> S. norm (y - xc) < xb \<longrightarrow> norm (f y - f xc - xa (y - xc)) \<le> q * norm (y - xc)})"
           using qQ q0 by blast
-        then obtain A d where Ab: "A u \<bullet> v < b" and AQ: "\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>"
+        then obtain A d where linA: "linear A" and Ab: "A u \<bullet> v < b" and AQ: "\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>"
           and dQ: "d \<in> \<rat>" and d0: "0 < d"
           and norm: "\<forall>y\<in>S. x \<in> S \<and> (norm (y - x) < d \<longrightarrow> norm (f y - f x - A (y - x)) \<le> q * norm (y - x))"
           by auto
@@ -634,19 +634,102 @@ proof -
         using countable_Collect countable_rat by blast
       have ne: "{e \<in> \<rat>. (0::real) < e} \<noteq> {}"
         using zero_less_one Rats_1 by blast
-      have coA: "countable {A. A u \<bullet> v < b \<and> (\<forall>i j. A i \<bullet> j \<in> \<rat>)}"
+      have coA: "countable {A. linear A \<and> A u \<bullet> v < b \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>)}"
       proof (rule countable_subset)
-        show "countable {A. \<forall>i j. A i \<bullet> j \<in> \<rat>}"
-          sorry
+        show "countable {A :: 'a \<Rightarrow> 'b. linear A \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>)}"
+        proof -
+          \<comment> \<open>A linear function is determined by its values on Basis\<close>
+          have inj: "inj_on (\<lambda>A. restrict A (Basis::'a set))
+                            {A :: 'a \<Rightarrow> 'b. linear A \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>)}"
+          proof (rule inj_onI, clarsimp simp: restrict_ext_iff)
+            fix A B :: "'a \<Rightarrow> 'b"
+            assume "linear A" "linear B" and eq: "\<forall>x\<in>Basis. A x = B x"
+            show "A = B"
+            proof (rule ext)
+              fix x
+              have "A x = A (\<Sum>i\<in>Basis. (x \<bullet> i) *\<^sub>R i)"
+                by (simp add: euclidean_representation)
+              also have "\<dots> = (\<Sum>i\<in>Basis. (x \<bullet> i) *\<^sub>R A i)"
+                using \<open>linear A\<close> by (simp add: linear_sum linear_scale)
+              also have "\<dots> = (\<Sum>i\<in>Basis. (x \<bullet> i) *\<^sub>R B i)"
+                using eq by simp
+              also have "\<dots> = B (\<Sum>i\<in>Basis. (x \<bullet> i) *\<^sub>R i)"
+                using \<open>linear B\<close> by (simp add: linear_sum linear_scale)
+              also have "\<dots> = B x"
+                by (simp add: euclidean_representation)
+              finally show "A x = B x" .
+            qed
+          qed
+          \<comment> \<open>The range of this restriction is contained in a countable set\<close>
+          have "countable {g :: 'a \<Rightarrow> 'b. (\<forall>i. i \<notin> Basis \<longrightarrow> g i = undefined) \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. g i \<bullet> j \<in> \<rat>)}"
+          proof (rule countable_subset)
+            let ?V = "{w :: 'b. \<forall>j\<in>Basis. w \<bullet> j \<in> \<rat>}"
+            have cV: "countable ?V"
+            proof -
+              have "inj_on (\<lambda>w. restrict (\<lambda>j. w \<bullet> j) (Basis :: 'b set)) ?V"
+                by (rule inj_onI) (auto simp: euclidean_eq_iff[symmetric] restrict_ext_iff)
+              moreover have "countable (range (\<lambda>w::'b. restrict (\<lambda>j. w \<bullet> j) (Basis :: 'b set)))"
+                by (intro countable_subset [OF _ countable_PiE [OF finite_Basis]]) (auto simp: PiE_def Pi_def countable_rat)
+              ultimately show ?thesis
+                by (meson countable_image_inj_on countable_subset image_mono top_greatest)
+            qed
+            show "{g :: 'a \<Rightarrow> 'b. (\<forall>i. i \<notin> Basis \<longrightarrow> g i = undefined) \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. g i \<bullet> j \<in> \<rat>)} \<subseteq>
+                  PiE (Basis :: 'a set) (\<lambda>_. ?V)"
+              by (auto simp: PiE_def Pi_def)
+            show "countable (PiE (Basis :: 'a set) (\<lambda>_. ?V))"
+              by (intro countable_PiE finite_Basis) (auto simp: cV)
+          qed
+          moreover have "(\<lambda>A. restrict A (Basis::'a set)) ` 
+                         {A :: 'a \<Rightarrow> 'b. linear A \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>)} \<subseteq>
+                         {g :: 'a \<Rightarrow> 'b. (\<forall>i. i \<notin> Basis \<longrightarrow> g i = undefined) \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. g i \<bullet> j \<in> \<rat>)}"
+            by (auto simp: restrict_def)
+          ultimately show ?thesis
+            using inj countable_image_inj_on countable_subset by blast
+        qed
       qed blast
       have *: "\<lbrakk>U \<noteq> {} \<Longrightarrow> closedin (top_of_set S) (S \<inter> \<Inter> U)\<rbrakk>
                \<Longrightarrow> closedin (top_of_set S) (S \<inter> \<Inter> U)" for U
         by fastforce
       have sets: "S \<inter> (\<Inter>y\<in>S. {x \<in> S. norm (y - x) < d \<longrightarrow> norm (f y - f x - A (y - x)) \<le> e * norm (y - x)})
                   \<in> sets lebesgue" for e A d
-        sorry
+      proof (rule closed_in_Lebesgue_measurable [OF S])
+        show "closedin (top_of_set S)
+                (S \<inter> (\<Inter>y\<in>S. {x \<in> S. norm (y - x) < d \<longrightarrow> norm (f y - f x - A (y - x)) \<le> e * norm (y - x)}))"
+        proof (rule *)
+          assume ne: "(\<Inter>y\<in>S. {x \<in> S. norm (y - x) < d \<longrightarrow> norm (f y - f x - A (y - x)) \<le> e * norm (y - x)}) \<noteq> {}"
+          show "closedin (top_of_set S)
+                  (S \<inter> (\<Inter>y\<in>S. {x \<in> S. norm (y - x) < d \<longrightarrow> norm (f y - f x - A (y - x)) \<le> e * norm (y - x)}))"
+          proof (rule closedin_INT)
+            show "S \<noteq> {} \<Longrightarrow> \<exists>y. y \<in> S"
+              by blast
+            fix y assume "y \<in> S"
+            have "closedin (top_of_set S)
+                    ({x \<in> S. d \<le> norm (y - x)} \<union> {x \<in> S. norm (f y - f x - A (y - x)) \<le> e * norm (y - x)})"
+            proof (intro closedin_Un)
+              show "closedin (top_of_set S) {x \<in> S. d \<le> norm (y - x)}"
+                by (intro continuous_closedin_preimage_constant closed_atLeast
+                         continuous_on_norm continuous_on_diff continuous_on_const continuous_on_id)
+              show "closedin (top_of_set S) {x \<in> S. norm (f y - f x - A (y - x)) \<le> e * norm (y - x)}"
+                by (intro continuous_closedin_preimage_constant closed_atMost
+                         continuous_on_diff continuous_on_norm continuous_on_mult
+                         continuous_on_const contf continuous_on_id continuous_on_inner
+                         continuous_on_compose2 [OF contf])
+            qed
+            moreover have "{x \<in> S. norm (y - x) < d \<longrightarrow> norm (f y - f x - A (y - x)) \<le> e * norm (y - x)}
+                          = {x \<in> S. d \<le> norm (y - x)} \<union> {x \<in> S. norm (f y - f x - A (y - x)) \<le> e * norm (y - x)}"
+              by (auto simp: not_less)
+            ultimately show "closedin (top_of_set S)
+                              (S \<inter> {x \<in> S. norm (y - x) < d \<longrightarrow> norm (f y - f x - A (y - x)) \<le> e * norm (y - x)})"
+              by auto
+          qed
+        qed
+      qed
+      have coD: "countable {d \<in> \<rat>. (0::real) < d}"
+        using countable_Collect countable_rat by blast
       show ?thesis
-        sorry
+        unfolding INT_extend_simps
+        by (intro sets.Int sets.countable_INT' [OF ne coQ]
+                 sets.countable_UN' [OF coA] sets.countable_UN' [OF coD] sets S)
     qed
     ultimately show "?T \<in> sets lebesgue"
       by simp
