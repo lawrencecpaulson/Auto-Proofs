@@ -774,8 +774,23 @@ proof -
     qed
     ultimately show "?T \<in> sets lebesgue"
       by simp
-    show "negligible (sym_diff ?T {x \<in> S. f' x u \<bullet> v \<le> b})"
+    define M where "M \<equiv> (?T - {x \<in> S. f' x u \<bullet> v \<le> b} \<union> ({x \<in> S. f' x u \<bullet> v \<le> b} - ?T))"
+    define \<Theta> where "\<Theta> \<equiv> \<lambda>x v. \<forall>\<xi>>0. \<exists>e>0. \<forall>y \<in> S-{x}. norm (x - y) < e \<longrightarrow> \<bar>v \<bullet> (y - x)\<bar> < \<xi> * norm (x - y)"
+    have nN: "negligible {x \<in> S. \<exists>v\<noteq>0. \<Theta> x v}"
+      unfolding negligible_eq_zero_density
       sorry
+    have *: "(\<And>x. (x \<notin> S) \<Longrightarrow> (x \<in> T \<longleftrightarrow> x \<in> U)) \<Longrightarrow> (T - U) \<union> (U - T) \<subseteq> S" for S T U :: "'a set"
+      by blast
+    have MN: "M \<subseteq> {x \<in> S. \<exists>v\<noteq>0. \<Theta> x v}"
+      unfolding M_def
+    proof (rule *)
+      fix x
+      assume x: "x \<notin> {x \<in> S. \<exists>v\<noteq>0. \<Theta> x v}"
+      show "(x \<in> ?T) \<longleftrightarrow> (x \<in> {x \<in> S. f' x u \<bullet> v \<le> b})"
+        sorry
+    qed
+    show "negligible M"
+      using negligible_subset [OF nN MN] .
   qed
   then show ?thesis
     by (simp add: borel_measurable_vimage_halfspace_component_le sets_restrict_space_iff assms)
