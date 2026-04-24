@@ -566,6 +566,60 @@ qed
 
 subsection\<open>Borel measurable Jacobian determinant\<close>
 
+lemma orthogonal_transformation_exists_eu:
+  fixes a b :: "'a::euclidean_space"
+  assumes "norm a = norm b"
+  obtains T where "orthogonal_transformation T" "T a = b"
+proof -
+  let ?a' = "eucl_to_vec a :: real ^ 'a basis"
+  let ?b' = "eucl_to_vec b :: real ^ 'a basis"
+  have norm_eq: "norm ?a' = norm ?b'"
+    using assms
+    by (metis (mono_tags) eucl_of_vec_to_vec transfer_eucl_norm rel_funD eucl_vec_rel_altdef)
+  then obtain T' :: "real ^ 'a basis \<Rightarrow> real ^ 'a basis"
+    where T': "orthogonal_transformation T'" "T' ?a' = ?b'"
+    using orthogonal_transformation_exists by metis
+  define T where "T = eucl_of_vec \<circ> T' \<circ> eucl_to_vec"
+  have inner_eq: "T v \<bullet> T w = v \<bullet> w" for v w
+  proof -
+    have "T v \<bullet> T w = T' (eucl_to_vec v) \<bullet> T' (eucl_to_vec w)"
+      unfolding T_def comp_def 
+      by (metis (mono_tags) transfer_eucl_vec_inner rel_funD eucl_vec_rel_def)
+    also have "\<dots> = eucl_to_vec v \<bullet> eucl_to_vec w"
+      using T'(1) by (simp add: orthogonal_transformation_def)
+    also have "\<dots> = v \<bullet> w"
+      by (metis (mono_tags) eucl_vec_rel_altdef rel_funD transfer_eucl_vec_inner)
+    finally show ?thesis .
+  qed
+  have "linear T"
+  proof (rule linearI)
+    fix x y :: 'a
+    show "T (x + y) = T x + T y"
+    proof -
+      have "(T (x + y) - (T x + T y)) \<bullet> z = 0" for z
+        unfolding inner_diff_left
+        by (smt (verit) inner_commute inner_eq inner_right_distrib vector_eq)
+      then show ?thesis
+        by (metis all_zero_iff eq_iff_diff_eq_0)
+    qed
+  next
+    fix c :: real and x :: 'a
+    show "T (c *\<^sub>R x) = c *\<^sub>R T x"
+    proof -
+      have "(T (c *\<^sub>R x) - c *\<^sub>R T x) \<bullet> z = 0" for z
+        unfolding inner_diff_left
+        by (smt (verit, best) inner_commute inner_eq inner_right_distrib vector_eq inner_scaleR_left)
+      then show ?thesis
+        by (metis all_zero_iff eq_iff_diff_eq_0)
+    qed
+  qed
+  then have "orthogonal_transformation T"
+    using inner_eq by (simp add: orthogonal_transformation_def)
+  moreover have "T a = b"
+    unfolding T_def comp_def using T'(2) by simp
+  ultimately show thesis
+    using that by blast
+qed
 proposition borel_measurable_partial_derivatives_eu:
   fixes f :: "'a::euclidean_space \<Rightarrow> 'b::euclidean_space"
   assumes S: "S \<in> sets lebesgue"
@@ -790,7 +844,7 @@ proof -
       ultimately obtain d where "d > 0"
          and dless: "\<And>y. \<lbrakk>y \<in> S - {x}; norm (x - y) < d\<rbrakk> \<Longrightarrow>
                         \<bar>v \<bullet> (y - x)\<bar> < ((norm v * e / 2) / DIM('a) ^ DIM('a)) * norm (x - y)"
-        by (metis \<Theta>_def)
+        using Theta[unfolded \<Theta>_def, rule_format] by blast
       let ?W = "ball x (min d r) \<inter> {y. \<bar>v \<bullet> (y - x)\<bar> < (norm v * e/2 * min d r) / DIM('a) ^ DIM('a)}"
       have "open {x. \<bar>v \<bullet> (x - a)\<bar> < b}" for a b
         by (intro open_Collect_less continuous_intros)
@@ -824,7 +878,12 @@ proof -
           obtain e_k :: 'a where ek: "e_k \<in> Basis"
             using nonempty_Basis by blast
           obtain T where T: "orthogonal_transformation T" and v: "v = T (norm v *\<^sub>R e_k)"
-            sorry
+          proof -
+            have "norm (norm v *\<^sub>R e_k) = norm v"
+              using ek by (simp add: norm_Basis)
+            then show thesis
+              using orthogonal_transformation_exists_eu[of "norm v *\<^sub>R e_k" v] that by metis
+          qed
           define b where "b \<equiv> norm v"
           have "b > 0"
             using \<open>v \<noteq> 0\<close> by (auto simp: b_def)
@@ -887,10 +946,15 @@ proof -
               then have ball: "dist ?x' y < min d r"
                 and ek_bound: "\<bar>(y - ?x') \<bullet> e_k\<bar> < e * min d r / (2 * real DIM('a) ^ DIM('a))"
                 by auto
-              have dist: "norm (y - ?x') < min d r"
+              then have dist: "norm (y - ?x') < min d r"
                 using ball by (simp add: dist_commute dist_norm)
               show "y \<in> cbox (?x' - ?v') (?x' + ?v')"
-                sorry \<comment> \<open>component-wise: e_k direction from ek_bound, others from dist via Basis_le_norm\<close>
+                using ek_bound
+                apply (auto simp add: mem_box algebra_simps)
+                apply (metis abs dist inner_diff_left norm_bound_Basis_le norm_minus_commute
+                    order_less_imp_le)
+                apply (smt (verit, ccfv_SIG) Basis_le_norm dist inner_diff_left)
+                done
             qed
           qed auto
           also have "\<dots> \<le> e/2 * measure lebesgue (cbox (?x' - ?v) (?x' + ?v))"
@@ -899,8 +963,51 @@ proof -
               using \<open>r > 0\<close> \<open>d > 0\<close>
               by (auto simp: box_ne_empty inner_diff_left inner_add_left inner_sum_left_Basis)
             with \<open>r > 0\<close> \<open>d > 0\<close> \<open>e > 0\<close> show ?thesis
-              sorry
-          qed
+              \<comment> \<open>The content of the v'-box equals e/2 times the content of the v-box,
+                 by expanding content as a product over Basis and using prod.remove at e_k.\<close>
+            proof -
+              have ne: "cbox (?x' - ?v') (?x' + ?v') \<noteq> {}"
+                using \<open>r > 0\<close> \<open>d > 0\<close> \<open>e > 0\<close>
+                by (auto simp: box_ne_empty inner_diff_left inner_add_left sum_if_inner[OF ek])
+              have c1: "content (cbox (?x' - ?v') (?x' + ?v')) =
+                (\<Prod>i\<in>Basis. (?x' + ?v') \<bullet> i - (?x' - ?v') \<bullet> i)"
+                using ne by (rule content_cbox')
+              have c2: "content (cbox (?x' - ?v) (?x' + ?v)) =
+                (\<Prod>i\<in>Basis. (?x' + ?v) \<bullet> i - (?x' - ?v) \<bullet> i)"
+                using \<open>cbox (?x' - ?v) (?x' + ?v) \<noteq> {}\<close> by (rule content_cbox')
+              have s1: "(?x' + ?v') \<bullet> i - (?x' - ?v') \<bullet> i =
+                2 * (if i = e_k then e / 2 * min d r / real (DIM('a) ^ DIM('a)) else min d r)"
+                if "i \<in> Basis" for i
+                using that by (simp add: inner_diff_left inner_add_left sum_if_inner[OF ek])
+              have s2: "(?x' + ?v) \<bullet> i - (?x' - ?v) \<bullet> i = 2 * (min d r / real DIM('a))"
+                if "i \<in> Basis" for i
+                using that by (simp add: inner_diff_left inner_add_left inner_sum_left_Basis)
+              have lhs: "content (cbox (?x' - ?v') (?x' + ?v')) =
+                (e * min d r / real (DIM('a) ^ DIM('a))) * (\<Prod>i\<in>Basis - {e_k}. 2 * min d r)"
+              proof -
+                have "(\<Prod>i\<in>Basis. (?x' + ?v') \<bullet> i - (?x' - ?v') \<bullet> i) =
+                  (\<Prod>i\<in>Basis. if i = e_k then e * min d r / real (DIM('a) ^ DIM('a))
+                             else 2 * min d r)"
+                  by (rule prod.cong) (use s1 in auto)
+                also have "\<dots> = (e * min d r / real (DIM('a) ^ DIM('a))) *
+                  (\<Prod>i\<in>Basis - {e_k}. 2 * min d r)"
+                  using prod.delta_remove[OF finite_Basis, of e_k
+                    "\<lambda>i. e * min d r / real (DIM('a) ^ DIM('a))" "\<lambda>i. 2 * min d r"] ek
+                  by simp
+                finally show ?thesis using c1 by simp
+              qed
+              have rhs: "content (cbox (?x' - ?v) (?x' + ?v)) =
+                (2 * (min d r / real DIM('a))) ^ DIM('a)"
+              proof -
+                have *: "\<forall>i\<in>Basis. (?x' + ?v) \<bullet> i - (?x' - ?v) \<bullet> i = 2 * (min d r / real DIM('a))"
+                  using s2 by auto
+                show ?thesis
+                  unfolding c2 using * by (simp add: prod_constant)
+              qed
+              show ?thesis
+                using lhs rhs \<open>r > 0\<close> \<open>d > 0\<close> \<open>e > 0\<close>
+                sorry
+            qed
           also have "\<dots> \<le> e/2 * measure lebesgue (cball ?x' (min d r))"
           proof (rule mult_left_mono [OF measure_mono_fmeasurable])
             have *: "norm (?x' - y) \<le> min d r"
@@ -915,6 +1022,7 @@ proof -
             qed
             show "cbox (?x' - ?v) (?x' + ?v) \<subseteq> cball ?x' (min d r)"
               apply (clarsimp simp only: mem_box dist_norm mem_cball intro!: *)
+              apply simp \<comment> \<open>debug\<close>
               sorry
           qed (use \<open>e > 0\<close> in auto)
           also have "\<dots> < e * content (cball ?x' (min d r))"
@@ -1083,61 +1191,6 @@ proof -
       using \<open>i \<in> Basis\<close>
       by (simp add: content_cbox [OF *] prod.distrib prod.If_cases Diff_eq [symmetric] 2)
   qed blast
-qed
-
-lemma orthogonal_transformation_exists_eu:
-  fixes a b :: "'a::euclidean_space"
-  assumes "norm a = norm b"
-  obtains T where "orthogonal_transformation T" "T a = b"
-proof -
-  let ?a' = "eucl_to_vec a :: real ^ 'a basis"
-  let ?b' = "eucl_to_vec b :: real ^ 'a basis"
-  have norm_eq: "norm ?a' = norm ?b'"
-    using assms
-    by (metis (mono_tags) eucl_of_vec_to_vec transfer_eucl_norm rel_funD eucl_vec_rel_altdef)
-  then obtain T' :: "real ^ 'a basis \<Rightarrow> real ^ 'a basis"
-    where T': "orthogonal_transformation T'" "T' ?a' = ?b'"
-    using orthogonal_transformation_exists by metis
-  define T where "T = eucl_of_vec \<circ> T' \<circ> eucl_to_vec"
-  have inner_eq: "T v \<bullet> T w = v \<bullet> w" for v w
-  proof -
-    have "T v \<bullet> T w = T' (eucl_to_vec v) \<bullet> T' (eucl_to_vec w)"
-      unfolding T_def comp_def 
-      by (metis (mono_tags) transfer_eucl_vec_inner rel_funD eucl_vec_rel_def)
-    also have "\<dots> = eucl_to_vec v \<bullet> eucl_to_vec w"
-      using T'(1) by (simp add: orthogonal_transformation_def)
-    also have "\<dots> = v \<bullet> w"
-      by (metis (mono_tags) eucl_vec_rel_altdef rel_funD transfer_eucl_vec_inner)
-    finally show ?thesis .
-  qed
-  have "linear T"
-  proof (rule linearI)
-    fix x y :: 'a
-    show "T (x + y) = T x + T y"
-    proof -
-      have "(T (x + y) - (T x + T y)) \<bullet> z = 0" for z
-        unfolding inner_diff_left
-        by (smt (verit) inner_commute inner_eq inner_right_distrib vector_eq)
-      then show ?thesis
-        by (metis all_zero_iff eq_iff_diff_eq_0)
-    qed
-  next
-    fix c :: real and x :: 'a
-    show "T (c *\<^sub>R x) = c *\<^sub>R T x"
-    proof -
-      have "(T (c *\<^sub>R x) - c *\<^sub>R T x) \<bullet> z = 0" for z
-        unfolding inner_diff_left
-        by (smt (verit, best) inner_commute inner_eq inner_right_distrib vector_eq inner_scaleR_left)
-      then show ?thesis
-        by (metis all_zero_iff eq_iff_diff_eq_0)
-    qed
-  qed
-  then have "orthogonal_transformation T"
-    using inner_eq by (simp add: orthogonal_transformation_def)
-  moreover have "T a = b"
-    unfolding T_def comp_def using T'(2) by simp
-  ultimately show thesis
-    using that by blast
 qed
 
 text\<open>As above, but reorienting the vector (HOL Light's @text{GEOM\_BASIS\_MULTIPLE\_TAC})\<close>
