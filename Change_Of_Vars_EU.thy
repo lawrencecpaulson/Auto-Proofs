@@ -639,12 +639,9 @@ proof -
         show "countable {A :: 'a \<Rightarrow> 'b. linear A \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>)}"
         proof -
           \<comment> \<open>A linear function is determined by its values on Basis\<close>
-          have inj: "inj_on (\<lambda>A. restrict A (Basis::'a set))
-                            {A :: 'a \<Rightarrow> 'b. linear A \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>)}"
-          proof (rule inj_onI, clarsimp simp: restrict_ext_iff)
-            fix A B :: "'a \<Rightarrow> 'b"
+          {             fix A B :: "'a \<Rightarrow> 'b"
             assume "linear A" "linear B" and eq: "\<forall>x\<in>Basis. A x = B x"
-            show "A = B"
+            have "A = B"
             proof (rule ext)
               fix x
               have "A x = A (\<Sum>i\<in>Basis. (x \<bullet> i) *\<^sub>R i)"
@@ -659,23 +656,30 @@ proof -
                 by (simp add: euclidean_representation)
               finally show "A x = B x" .
             qed
-          qed
+          }
+          then have inj: "inj_on (\<lambda>A. restrict A (Basis::'a set))
+                            {A :: 'a \<Rightarrow> 'b. linear A \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>)}"
+            by (smt (verit, ccfv_SIG) inj_onI mem_Collect_eq restrict_apply')
           \<comment> \<open>The range of this restriction is contained in a countable set\<close>
           have "countable {g :: 'a \<Rightarrow> 'b. (\<forall>i. i \<notin> Basis \<longrightarrow> g i = undefined) \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. g i \<bullet> j \<in> \<rat>)}"
           proof (rule countable_subset)
             let ?V = "{w :: 'b. \<forall>j\<in>Basis. w \<bullet> j \<in> \<rat>}"
             have cV: "countable ?V"
             proof -
-              have "inj_on (\<lambda>w. restrict (\<lambda>j. w \<bullet> j) (Basis :: 'b set)) ?V"
-                by (rule inj_onI) (auto simp: euclidean_eq_iff[symmetric] restrict_ext_iff)
-              moreover have "countable (range (\<lambda>w::'b. restrict (\<lambda>j. w \<bullet> j) (Basis :: 'b set)))"
-                by (intro countable_subset [OF _ countable_PiE [OF finite_Basis]]) (auto simp: PiE_def Pi_def countable_rat)
+              have inj: "inj_on (\<lambda>w. restrict (\<lambda>j. w \<bullet> j) (Basis :: 'b set)) ?V"
+                by (metis (mono_tags, lifting) euclidean_eq_iff inj_on_def restrict_apply')
+              moreover have "(\<lambda>w. restrict (\<lambda>j. w \<bullet> j) (Basis :: 'b set)) ` ?V \<subseteq> PiE Basis (\<lambda>_. \<rat>)"
+                by (auto simp: PiE_def Pi_def extensional_def restrict_def)
+              moreover have "countable (PiE (Basis :: 'b set) (\<lambda>_. \<rat>))" 
+                by (intro countable_PiE finite_Basis) (auto simp: countable_rat)
+              moreover have "countable ((\<lambda>w. restrict (\<lambda>j. w \<bullet> j) (Basis :: 'b set)) ` ?V)"
+                using calculation(2,3) countable_subset by blast
               ultimately show ?thesis
-                by (meson countable_image_inj_on countable_subset image_mono top_greatest)
+                using countable_image_inj_on by blast
             qed
             show "{g :: 'a \<Rightarrow> 'b. (\<forall>i. i \<notin> Basis \<longrightarrow> g i = undefined) \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. g i \<bullet> j \<in> \<rat>)} \<subseteq>
                   PiE (Basis :: 'a set) (\<lambda>_. ?V)"
-              by (auto simp: PiE_def Pi_def)
+              by blast
             show "countable (PiE (Basis :: 'a set) (\<lambda>_. ?V))"
               by (intro countable_PiE finite_Basis) (auto simp: cV)
           qed
@@ -684,52 +688,93 @@ proof -
                          {g :: 'a \<Rightarrow> 'b. (\<forall>i. i \<notin> Basis \<longrightarrow> g i = undefined) \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. g i \<bullet> j \<in> \<rat>)}"
             by (auto simp: restrict_def)
           ultimately show ?thesis
-            using inj countable_image_inj_on countable_subset by blast
+            by (metis (no_types, lifting) inj countable_image_inj_on countable_subset)
         qed
       qed blast
       have *: "\<lbrakk>U \<noteq> {} \<Longrightarrow> closedin (top_of_set S) (S \<inter> \<Inter> U)\<rbrakk>
                \<Longrightarrow> closedin (top_of_set S) (S \<inter> \<Inter> U)" for U
         by fastforce
       have sets: "S \<inter> (\<Inter>y\<in>S. {x \<in> S. norm (y - x) < d \<longrightarrow> norm (f y - f x - A (y - x)) \<le> e * norm (y - x)})
-                  \<in> sets lebesgue" for e A d
-      proof (rule closed_in_Lebesgue_measurable [OF S])
+                  \<in> sets lebesgue" if "linear A" for e A d
+      proof (rule lebesgue_closedin [OF _ S])
         show "closedin (top_of_set S)
                 (S \<inter> (\<Inter>y\<in>S. {x \<in> S. norm (y - x) < d \<longrightarrow> norm (f y - f x - A (y - x)) \<le> e * norm (y - x)}))"
         proof (rule *)
-          assume ne: "(\<Inter>y\<in>S. {x \<in> S. norm (y - x) < d \<longrightarrow> norm (f y - f x - A (y - x)) \<le> e * norm (y - x)}) \<noteq> {}"
+          assume ne: "(\<lambda>y. {x \<in> S. norm (y - x) < d \<longrightarrow> norm (f y - f x - A (y - x)) \<le> e * norm (y - x)}) ` S \<noteq> {}"
+          then have Sne: "S \<noteq> {}" by blast
+          have sub: "(\<Inter>y\<in>S. {x \<in> S. norm (y - x) < d \<longrightarrow> norm (f y - f x - A (y - x)) \<le> e * norm (y - x)}) \<subseteq> S"
+            using Sne by (auto intro: INF_lower2)
+          have eq: "S \<inter> (\<Inter>y\<in>S. {x \<in> S. norm (y - x) < d \<longrightarrow> norm (f y - f x - A (y - x)) \<le> e * norm (y - x)})
+                   = (\<Inter>y\<in>S. {x \<in> S. norm (y - x) < d \<longrightarrow> norm (f y - f x - A (y - x)) \<le> e * norm (y - x)})"
+            using sub by (rule Int_absorb1)
           show "closedin (top_of_set S)
                   (S \<inter> (\<Inter>y\<in>S. {x \<in> S. norm (y - x) < d \<longrightarrow> norm (f y - f x - A (y - x)) \<le> e * norm (y - x)}))"
-          proof (rule closedin_INT)
-            show "S \<noteq> {} \<Longrightarrow> \<exists>y. y \<in> S"
-              by blast
+            unfolding eq
+          proof (rule closedin_INT [OF Sne])
             fix y assume "y \<in> S"
             have "closedin (top_of_set S)
                     ({x \<in> S. d \<le> norm (y - x)} \<union> {x \<in> S. norm (f y - f x - A (y - x)) \<le> e * norm (y - x)})"
             proof (intro closedin_Un)
               show "closedin (top_of_set S) {x \<in> S. d \<le> norm (y - x)}"
-                by (intro continuous_closedin_preimage_constant closed_atLeast
-                         continuous_on_norm continuous_on_diff continuous_on_const continuous_on_id)
+              proof -
+                have "continuous_on S (\<lambda>x. norm (y - x))"
+                  by (intro continuous_on_norm continuous_on_diff continuous_on_const continuous_on_id)
+                then have "closedin (top_of_set S) (S \<inter> (\<lambda>x. norm (y - x)) -` {d..})"
+                  by (intro continuous_closedin_preimage closed_atLeast)
+                moreover have "{x \<in> S. d \<le> norm (y - x)} = S \<inter> (\<lambda>x. norm (y - x)) -` {d..}"
+                  by auto
+                ultimately show ?thesis by simp
+              qed
               show "closedin (top_of_set S) {x \<in> S. norm (f y - f x - A (y - x)) \<le> e * norm (y - x)}"
-                by (intro continuous_closedin_preimage_constant closed_atMost
-                         continuous_on_diff continuous_on_norm continuous_on_mult
-                         continuous_on_const contf continuous_on_id continuous_on_inner
-                         continuous_on_compose2 [OF contf])
+              proof -
+                have contA: "continuous_on S A"
+                  using that linear_continuous_on linear_conv_bounded_linear by blast
+                have contAcomp: "continuous_on S (\<lambda>x. A (y - x))"
+                proof -
+                  have "continuous_on UNIV A"
+                    using that linear_continuous_on linear_conv_bounded_linear by blast
+                  moreover have "continuous_on S (\<lambda>x. y - x)"
+                    by (intro continuous_on_diff continuous_on_const continuous_on_id)
+                  ultimately show ?thesis
+                    by (rule continuous_on_compose2) auto
+                qed
+                have "continuous_on S (\<lambda>x. norm (f y - f x - A (y - x)) - e * norm (y - x))"
+                  by (intro continuous_on_diff continuous_on_norm continuous_on_mult
+                           continuous_on_const contf continuous_on_id contAcomp)
+                then have "closedin (top_of_set S) (S \<inter> (\<lambda>x. norm (f y - f x - A (y - x)) - e * norm (y - x)) -` {..0})"
+                  by (intro continuous_closedin_preimage closed_atMost)
+                moreover have "{x \<in> S. norm (f y - f x - A (y - x)) \<le> e * norm (y - x)}
+                              = S \<inter> (\<lambda>x. norm (f y - f x - A (y - x)) - e * norm (y - x)) -` {..0}"
+                  by auto
+                ultimately show ?thesis by simp
+              qed
             qed
             moreover have "{x \<in> S. norm (y - x) < d \<longrightarrow> norm (f y - f x - A (y - x)) \<le> e * norm (y - x)}
                           = {x \<in> S. d \<le> norm (y - x)} \<union> {x \<in> S. norm (f y - f x - A (y - x)) \<le> e * norm (y - x)}"
               by (auto simp: not_less)
             ultimately show "closedin (top_of_set S)
-                              (S \<inter> {x \<in> S. norm (y - x) < d \<longrightarrow> norm (f y - f x - A (y - x)) \<le> e * norm (y - x)})"
-              by auto
+                              {x \<in> S. norm (y - x) < d \<longrightarrow> norm (f y - f x - A (y - x)) \<le> e * norm (y - x)}"
+              by simp
           qed
         qed
       qed
       have coD: "countable {d \<in> \<rat>. (0::real) < d}"
         using countable_Collect countable_rat by blast
       show ?thesis
-        unfolding INT_extend_simps
-        by (intro sets.Int sets.countable_INT' [OF ne coQ]
-                 sets.countable_UN' [OF coA] sets.countable_UN' [OF coD] sets S)
+      proof (cases "S = {}")
+        case True
+        then show ?thesis by auto
+      next
+        case Sne: False
+        show ?thesis
+          unfolding INT_extend_simps if_not_P [OF ne] if_not_P [OF Sne]
+          apply (intro sets.Int sets.countable_INT' [OF coQ ne] image_subsetI
+                       sets.countable_UN' [OF coA] sets.countable_UN' [OF coD])
+          subgoal by (rule S)
+          subgoal for e A d
+            using sets [of A d e] Sne by auto
+          done
+      qed
     qed
     ultimately show "?T \<in> sets lebesgue"
       by simp
