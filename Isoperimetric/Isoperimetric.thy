@@ -460,12 +460,12 @@ proof -
 qed
 
 lemma integral_has_vector_derivative_pointwise:
-  fixes f :: "real \<Rightarrow> 'a::banach"
+  fixes f :: "real \<Rightarrow> 'a::euclidean_space"
   assumes "f integrable_on {a..b}"
     and "x \<in> {a..b}"
     and "continuous (at x within {a..b}) f"
   shows "((\<lambda>u. integral {a..u} f) has_vector_derivative f x) (at x within {a..b})"
-  sorry
+  using integral_has_vector_derivative_continuous_at[where S="{}", simplified] assms by auto
 
 lemma has_integral_substitution_strong:
   fixes f :: "real \<Rightarrow> 'a::euclidean_space" and g g' :: "real \<Rightarrow> real"
@@ -547,7 +547,7 @@ proof -
 qed
 
 text \<open>Composition of Lipschitz with absolutely continuous is absolutely continuous.\<close>
-lemma absolutely_continuous_on_Lipschitz_compose:
+lemma absolutely_continuous_on_Lipschitz_compose: (*NOT NEEDED; IGNORE FOR NOW*)
   fixes g :: "real \<Rightarrow> 'a::euclidean_space" and \<phi> :: "real \<Rightarrow> real"
   assumes ac: "absolutely_continuous_on {a..b} \<phi>"
     and lip: "\<And>x y. x \<in> \<phi> ` {a..b} \<Longrightarrow> y \<in> \<phi> ` {a..b} \<Longrightarrow> norm (g x - g y) \<le> L * \<bar>x - y\<bar>"
