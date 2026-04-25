@@ -279,7 +279,152 @@ next
                 by (auto intro: divide_nonneg_nonneg)
             qed
             show "(\<Sum>x\<in>\<sigma> ` T \<inter> fst ` p. real (card (B x)) / 2 ^ n x) \<le> 4"
-              sorry
+            proof (rule order_trans[where y="(\<Sum>x\<in>\<sigma> ` T \<inter> fst ` p. 2 / 2 ^ n x)"])
+              show "(\<Sum>x\<in>\<sigma> ` T \<inter> fst ` p. real (card (B x)) / 2 ^ n x) \<le>
+                    (\<Sum>x\<in>\<sigma> ` T \<inter> fst ` p. 2 / 2 ^ n x)"
+              proof (rule sum_mono)
+                fix x assume "x \<in> \<sigma> ` T \<inter> fst ` p"
+                show "real (card (B x)) / 2 ^ n x \<le> 2 / 2 ^ n x"
+                proof (rule divide_right_mono)
+                  show "real (card (B x)) \<le> 2"
+                  proof -
+                    have "card (B x) \<le> 2"
+                    proof -
+                      \<comment> \<open>Classify each interval by whether \<Sqinter> k < x (True) or \<Sqinter> k = x (False).\<close>
+                      \<comment> \<open>This is injective: two intervals in the same class have overlapping interiors.\<close>
+                      define h where "h k = (\<Sqinter> k < x)" for k :: "real set"
+                      have disj: "interior k1 \<inter> interior k2 = {}"
+                        if "k1 \<in> B x" "k2 \<in> B x" "k1 \<noteq> k2" for k1 k2
+                      proof -
+                        from that have "(x, k1) \<in> p" "(x, k2) \<in> p"
+                          unfolding B_def by auto
+                        then show ?thesis
+                          using tagged_partial_division_ofD(5)[OF p_div] that(3) by blast
+                      qed
+                      have x_in: "x \<in> k" if "k \<in> B x" for k
+                      proof -
+                        from that have "(x, k) \<in> p" unfolding B_def by auto
+                        then show ?thesis
+                          using tagged_partial_division_ofD(2)[OF p_div] by auto
+                      qed
+                      have is_cbox: "\<exists>u v. k = cbox u v \<and> u < v" if "k \<in> B x" for k
+                      proof -
+                        from that have "(x, k) \<in> p" "Henstock_Kurzweil_Integration.content k \<noteq> 0"
+                          unfolding B_def by auto
+                        from tagged_partial_division_ofD(4)[OF p_div \<open>(x,k) \<in> p\<close>]
+                        obtain u v where "k = cbox u v" by auto
+                        moreover have "u \<le> v"
+                          using x_in[OF that] \<open>k = cbox u v\<close> by (auto simp: mem_box)
+                        moreover have "u \<noteq> v"
+                          using \<open>Henstock_Kurzweil_Integration.content k \<noteq> 0\<close> \<open>k = cbox u v\<close> \<open>u \<le> v\<close>
+                          by (auto simp: content_cbox_if Basis_real_def)
+                        ultimately show ?thesis by auto
+                      qed
+                      have "inj_on h (B x)"
+                      proof (rule inj_onI)
+                        fix k1 k2 assume k1B: "k1 \<in> B x" and k2B: "k2 \<in> B x"
+                          and heq: "h k1 = h k2"
+                        show "k1 = k2"
+                        proof (rule ccontr)
+                          assume neq: "k1 \<noteq> k2"
+                          from is_cbox[OF k1B] obtain u1 v1
+                            where k1: "k1 = cbox u1 v1" "u1 < v1" by auto
+                          from is_cbox[OF k2B] obtain u2 v2
+                            where k2: "k2 = cbox u2 v2" "u2 < v2" by auto
+                          have x1: "u1 \<le> x" "x \<le> v1"
+                            using x_in[OF k1B] k1(1) by (auto simp: mem_box)
+                          have x2: "u2 \<le> x" "x \<le> v2"
+                            using x_in[OF k2B] k2(1) by (auto simp: mem_box)
+                          have int1: "interior k1 = {u1<..<v1}"
+                            using k1(1) by (simp add: interior_cbox box_real)
+                          have int2: "interior k2 = {u2<..<v2}"
+                            using k2(1) by (simp add: interior_cbox box_real)
+                          have disjoint: "{u1<..<v1} \<inter> {u2<..<v2} = {}"
+                            using disj[OF k1B k2B neq] int1 int2 by simp
+                          then have disjoint': "{max u1 u2 <..< min v1 v2} = {}"
+                            by (simp add: Int_greaterThanLessThan)
+                          have inf1: "\<Sqinter> k1 = u1" using k1 x1
+                            by (simp add: Inf_atLeastAtMost)
+                          have inf2: "\<Sqinter> k2 = u2" using k2 x2
+                            by (simp add: Inf_atLeastAtMost)
+                          \<comment> \<open>Both in the same class: show max u1 u2 < min v1 v2, contradicting disjointness.\<close>
+                          show False
+                          proof (cases "h k1")
+                            case True
+                            then have "u1 < x" "u2 < x"
+                              using heq unfolding h_def inf1 inf2 by auto
+                            then have "max u1 u2 < x" by auto
+                            also have "x \<le> min v1 v2" using x1(2) x2(2) by auto
+                            finally have "max u1 u2 < min v1 v2" .
+                            with disjoint' show False by auto
+                          next
+                            case False
+                            then have "\<not> u1 < x" "\<not> u2 < x"
+                              using heq unfolding h_def inf1 inf2 by auto
+                            then have "u1 = x" "u2 = x" using x1(1) x2(1) by auto
+                            then have "max u1 u2 = x" by auto
+                            also have "x < min v1 v2"
+                              using \<open>u1 = x\<close> \<open>u2 = x\<close> k1(2) k2(2) by auto
+                            finally have "max u1 u2 < min v1 v2" .
+                            with disjoint' show False by auto
+                          qed
+                        qed
+                      qed
+                      have "card (B x) = card (h ` B x)"
+                        using card_image[OF \<open>inj_on h (B x)\<close>] by simp
+                      also have "\<dots> \<le> card (UNIV :: bool set)"
+                        by (intro card_mono) auto
+                      also have "\<dots> = 2" by (rule card_UNIV_bool)
+                      finally show ?thesis .
+                    qed
+                    then show ?thesis by auto
+                  qed
+                next
+                  show "(0::real) \<le> 2 ^ n x" by simp
+                qed
+              qed
+            next
+              show "(\<Sum>x\<in>\<sigma> ` T \<inter> fst ` p. 2 / (2::real) ^ n x) \<le> 4"
+              proof -
+                have A_finite: "finite (\<sigma> ` T \<inter> fst ` p)"
+                  using p_finite by (auto intro: finite_Int finite_imageI)
+                have n_inj: "inj_on n (\<sigma> ` T \<inter> fst ` p)"
+                proof -
+                  have "inj_on n (\<sigma> ` T)"
+                    unfolding n_def by (rule inj_on_the_inv_into[OF \<sigma>])
+                  then show ?thesis by (rule inj_on_subset) auto
+                qed
+                have nA_finite: "finite (n ` (\<sigma> ` T \<inter> fst ` p))" using A_finite by auto
+                \<comment> \<open>Directly prove bound on the reindexed sum\<close>
+                have bound: "(\<Sum>i\<in>n ` (\<sigma> ` T \<inter> fst ` p). 2 / (2::real) ^ i) \<le> 4"
+                proof (cases "n ` (\<sigma> ` T \<inter> fst ` p) = {}")
+                  case True then show ?thesis by simp
+                next
+                  case False
+                  have "(\<Sum>i\<in>n ` (\<sigma> ` T \<inter> fst ` p). 2 / (2::real) ^ i) \<le> (\<Sum>i\<le>Max (n ` (\<sigma> ` T \<inter> fst ` p)). 2 / 2 ^ i)"
+                  proof (rule sum_mono2)
+                    show "finite {..Max (n ` (\<sigma> ` T \<inter> fst ` p))}" by simp
+                    show "n ` (\<sigma> ` T \<inter> fst ` p) \<subseteq> {..Max (n ` (\<sigma> ` T \<inter> fst ` p))}"
+                      using nA_finite by (auto intro: Max_ge)
+                  qed simp
+                  also have "\<dots> = 2 * (\<Sum>i\<le>Max (n ` (\<sigma> ` T \<inter> fst ` p)). (1/2) ^ i)"
+                    by (simp add: sum_distrib_left power_divide)
+                  also have "\<dots> = 2 * ((1 - (1/2) ^ Suc (Max (n ` (\<sigma> ` T \<inter> fst ` p)))) / (1 - 1/2))"
+                    using sum_gp0[of "1/2::real" "Max (n ` (\<sigma> ` T \<inter> fst ` p))"] by simp
+                  also have "\<dots> \<le> 2 * (1 / (1 - 1/(2::real)))"
+                    by (intro mult_left_mono divide_right_mono diff_mono) auto
+                  also have "\<dots> = (4::real)" by simp
+                  finally show ?thesis .
+                qed
+                show ?thesis
+                proof -
+                  have "(\<Sum>x\<in>\<sigma> ` T \<inter> fst ` p. 2 / (2::real) ^ n x) = (\<Sum>i\<in>n ` (\<sigma> ` T \<inter> fst ` p). 2 / (2::real) ^ i)"
+                    using sum.reindex[OF n_inj, of "\<lambda>i. 2 / (2::real) ^ i"] by (simp add: o_def)
+                  also have "\<dots> \<le> 4" using bound .
+                  finally show ?thesis .
+                qed
+              qed
+            qed
           qed
         qed
       qed
