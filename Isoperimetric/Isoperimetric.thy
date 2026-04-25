@@ -547,13 +547,77 @@ proof -
 qed
 
 text \<open>Composition of Lipschitz with absolutely continuous is absolutely continuous.\<close>
-lemma absolutely_continuous_on_Lipschitz_compose: (*NOT NEEDED; IGNORE FOR NOW*)
+lemma absolutely_continuous_on_Lipschitz_compose: 
   fixes g :: "real \<Rightarrow> 'a::euclidean_space" and \<phi> :: "real \<Rightarrow> real"
   assumes ac: "absolutely_continuous_on {a..b} \<phi>"
     and lip: "\<And>x y. x \<in> \<phi> ` {a..b} \<Longrightarrow> y \<in> \<phi> ` {a..b} \<Longrightarrow> norm (g x - g y) \<le> L * \<bar>x - y\<bar>"
     and "0 \<le> L"
   shows "absolutely_continuous_on {a..b} (g \<circ> \<phi>)"
-  sorry
+proof -
+  have ac_\<phi>: "absolutely_setcontinuous_on (\<lambda>k. \<phi> (\<Squnion> k) - \<phi> (\<Sqinter> k)) {a..b}"
+    using ac unfolding absolutely_continuous_on_def .
+  show ?thesis unfolding absolutely_continuous_on_def
+    unfolding absolutely_setcontinuous_on_def
+  proof (intro allI impI)
+    fix \<epsilon> :: real assume "0 < \<epsilon>"
+    have pos: "0 < \<epsilon> / (L + 1)" using \<open>0 < \<epsilon>\<close> \<open>0 \<le> L\<close> by (auto intro: divide_pos_pos)
+    then obtain \<delta> where "0 < \<delta>" and \<delta>:
+      "\<And>d T. d division_of T \<Longrightarrow> T \<subseteq> {a..b} \<Longrightarrow>
+        (\<Sum>k\<in>d. Henstock_Kurzweil_Integration.content k) < \<delta> \<Longrightarrow>
+        (\<Sum>k\<in>d. norm (\<phi> (\<Squnion> k) - \<phi> (\<Sqinter> k))) < \<epsilon> / (L + 1)"
+      using ac_\<phi>[unfolded absolutely_setcontinuous_on_def] by meson
+    show "\<exists>\<delta>>0. \<forall>d T. d division_of T \<and> T \<subseteq> {a..b} \<and>
+      (\<Sum>k\<in>d. Henstock_Kurzweil_Integration.content k) < \<delta> \<longrightarrow>
+      (\<Sum>k\<in>d. norm ((g \<circ> \<phi>) (\<Squnion> k) - (g \<circ> \<phi>) (\<Sqinter> k))) < \<epsilon>"
+    proof (intro exI conjI allI impI)
+      show "0 < \<delta>" by fact
+    next
+      fix d :: "real set set" and T
+      assume hyp: "d division_of T \<and> T \<subseteq> {a..b} \<and>
+        (\<Sum>k\<in>d. Henstock_Kurzweil_Integration.content k) < \<delta>"
+      then have divi: "d division_of T" and sub: "T \<subseteq> {a..b}"
+        and cont: "(\<Sum>k\<in>d. Henstock_Kurzweil_Integration.content k) < \<delta>"
+        by auto
+      have K_in: "\<Squnion> K \<in> {a..b}" "\<Sqinter> K \<in> {a..b}" if Kd: "K \<in> d" for K
+      proof -
+        obtain u v where Kuv: "K = cbox u v"
+          using division_ofD(4)[OF divi Kd] by auto
+        have Kne: "K \<noteq> {}" using division_ofD(3)[OF divi Kd] .
+        have ne: "u \<le> v" using Kne Kuv by (auto simp: box_real)
+        have "K \<subseteq> {a..b}" using division_ofD(2)[OF divi Kd] sub by auto
+        then have uv_in: "u \<in> {a..b}" "v \<in> {a..b}" using Kuv ne by (auto simp: box_real)
+        have "\<Squnion> K = v" "\<Sqinter> K = u"
+          unfolding Kuv box_real using ne interval_bounds_real by auto
+        with uv_in show "\<Squnion> K \<in> {a..b}" "\<Sqinter> K \<in> {a..b}" by auto
+      qed
+      have term_bound: "norm ((g \<circ> \<phi>) (\<Squnion> K) - (g \<circ> \<phi>) (\<Sqinter> K)) \<le> L * norm (\<phi> (\<Squnion> K) - \<phi> (\<Sqinter> K))"
+        if "K \<in> d" for K
+      proof -
+        have "norm (g (\<phi> (\<Squnion> K)) - g (\<phi> (\<Sqinter> K))) \<le> L * \<bar>\<phi> (\<Squnion> K) - \<phi> (\<Sqinter> K)\<bar>"
+          using lip K_in[OF that] by auto
+        then show ?thesis by (simp add: comp_def norm_real)
+      qed
+      have "(\<Sum>k\<in>d. norm ((g \<circ> \<phi>) (\<Squnion> k) - (g \<circ> \<phi>) (\<Sqinter> k)))
+        \<le> (\<Sum>k\<in>d. L * norm (\<phi> (\<Squnion> k) - \<phi> (\<Sqinter> k)))"
+        using term_bound by (intro sum_mono)
+      also have "\<dots> = L * (\<Sum>k\<in>d. norm (\<phi> (\<Squnion> k) - \<phi> (\<Sqinter> k)))"
+        by (simp add: sum_distrib_left)
+      also have "\<dots> < \<epsilon>"
+      proof (cases "L = 0")
+        case True then show ?thesis using \<open>0 < \<epsilon>\<close> by simp
+      next
+        case False
+        then have "0 < L" using \<open>0 \<le> L\<close> by linarith
+        have "L * (\<Sum>k\<in>d. norm (\<phi> (\<Squnion> k) - \<phi> (\<Sqinter> k))) < L * (\<epsilon> / (L + 1))"
+          using \<delta>[OF divi sub cont] \<open>0 < L\<close> by (intro mult_strict_left_mono) auto
+        also have "\<dots> \<le> \<epsilon>"
+          using \<open>0 < \<epsilon>\<close> \<open>0 \<le> L\<close> by (simp add: field_simps)
+        finally show ?thesis .
+      qed
+      finally show "(\<Sum>k\<in>d. norm ((g \<circ> \<phi>) (\<Squnion> k) - (g \<circ> \<phi>) (\<Sqinter> k))) < \<epsilon>" .
+    qed
+  qed
+qed
 
 text \<open>1D substitution for absolutely continuous monotone functions.\<close>
 lemma has_integral_substitution_ac:
@@ -565,7 +629,112 @@ lemma has_integral_substitution_ac:
     and "continuous_on {\<phi> a..\<phi> b} f"
     and mono: "\<And>x y. x \<in> {a..b} \<Longrightarrow> y \<in> {a..b} \<Longrightarrow> x \<le> y \<Longrightarrow> \<phi> x \<le> \<phi> y"
   shows "((\<lambda>t. \<phi>' t * f (\<phi> t)) has_integral (integral {\<phi> a..\<phi> b} f)) {a..b}"
-  sorry
+proof -
+  \<comment> \<open>Define the antiderivative\<close>
+  define ff where "ff \<equiv> \<lambda>x. integral {\<phi> a..x} f"
+  \<comment> \<open>f is integrable on {\<phi> a..\<phi> b}\<close>
+  have f_int: "f integrable_on {\<phi> a..\<phi> b}"
+    using integrable_continuous_real assms(6) by blast
+  \<comment> \<open>f is bounded on {\<phi> a..\<phi> b} — needed for Lipschitz property of ff\<close>
+  obtain M where M_pos: "0 \<le> M" and M_bound: "\<And>t. t \<in> {\<phi> a..\<phi> b} \<Longrightarrow> \<bar>f t\<bar> \<le> M"
+    using continuous_on_compact_bound[of "{\<phi> a..\<phi> b}" f, OF _ assms(6)]
+    by (auto simp: norm_real)
+  \<comment> \<open>ff is Lipschitz on {\<phi> a..\<phi> b}\<close>
+  have ff_lip: "norm (ff x - ff y) \<le> M * \<bar>x - y\<bar>"
+    if "x \<in> {\<phi> a..\<phi> b}" "y \<in> {\<phi> a..\<phi> b}" for x y
+  proof -
+    have x_le: "\<phi> a \<le> x" "x \<le> \<phi> b" using that(1) by auto
+    have y_le: "\<phi> a \<le> y" "y \<le> \<phi> b" using that(2) by auto
+    consider "x \<le> y" | "y < x" by linarith
+    then show ?thesis
+    proof cases
+      case 1
+      have f_int_xy: "f integrable_on {x..y}"
+        using integrable_on_subinterval[OF f_int] x_le y_le 1 by auto
+      have "ff y - ff x = integral {x..y} f"
+      proof -
+        have "f integrable_on {\<phi> a..y}"
+          using integrable_on_subinterval[OF f_int] y_le by auto
+        then have "integral {\<phi> a..x} f + integral {x..y} f = integral {\<phi> a..y} f"
+          using Henstock_Kurzweil_Integration.integral_combine[OF x_le(1) 1] by auto
+        then show ?thesis by (simp add: ff_def algebra_simps)
+      qed
+      also have "norm \<dots> \<le> M * (y - x)"
+        using integral_bound[OF 1 continuous_on_subset[OF assms(6)] _]
+              x_le y_le M_bound by (auto simp: norm_real)
+      also have "\<dots> = M * \<bar>x - y\<bar>" using 1 by (simp add: abs_of_nonneg)
+      finally show ?thesis by simp
+    next
+      case 2
+      have f_int_yx: "f integrable_on {y..x}"
+        using integrable_on_subinterval[OF f_int] x_le y_le 2 by auto
+      have "ff x - ff y = integral {y..x} f"
+      proof -
+        have "f integrable_on {\<phi> a..x}"
+          using integrable_on_subinterval[OF f_int] x_le by auto
+        then have "integral {\<phi> a..y} f + integral {y..x} f = integral {\<phi> a..x} f"
+          using Henstock_Kurzweil_Integration.integral_combine[OF y_le(1), of x f] 2 by auto
+        then show ?thesis by (simp add: ff_def algebra_simps)
+      qed
+      also have "norm \<dots> \<le> M * (x - y)"
+        using integral_bound[OF _ continuous_on_subset[OF assms(6)] _]
+              x_le y_le M_bound 2 by (auto simp: norm_real)
+      also have "\<dots> = M * \<bar>x - y\<bar>" using 2 by (simp add: abs_of_nonpos)
+      finally show ?thesis by simp
+    qed
+  qed
+  \<comment> \<open>Monotonicity: \<phi> maps {a..b} into {\<phi> a..\<phi> b}\<close>
+  have \<phi>_range: "\<phi> t \<in> {\<phi> a..\<phi> b}" if "t \<in> {a..b}" for t
+    using mono[of a t] mono[of t b] that assms(1) by auto
+  \<comment> \<open>ff \<circ> \<phi> is AC on {a..b}\<close>
+  have ac_comp: "absolutely_continuous_on {a..b} (ff \<circ> \<phi>)"
+  proof (rule absolutely_continuous_on_Lipschitz_compose[OF assms(3) _ M_pos])
+    fix x y assume "x \<in> \<phi> ` {a..b}" "y \<in> \<phi> ` {a..b}"
+    then obtain s t where "s \<in> {a..b}" "x = \<phi> s" "t \<in> {a..b}" "y = \<phi> t" by auto
+    then have "x \<in> {\<phi> a..\<phi> b}" "y \<in> {\<phi> a..\<phi> b}" using \<phi>_range by auto
+    then show "norm (ff x - ff y) \<le> M * \<bar>x - y\<bar>" using ff_lip by auto
+  qed
+  \<comment> \<open>Chain rule: derivative of ff \<circ> \<phi> at each t \<in> {a..b} - S\<close>
+  have deriv: "((ff \<circ> \<phi>) has_vector_derivative \<phi>' t *\<^sub>R f (\<phi> t))
+    (at t within {a..b})" if "t \<in> {a..b} - S" for t
+  proof -
+    have t_ab: "t \<in> {a..b}" using that by auto
+    \<comment> \<open>Derivative of \<phi> at t within {a..b}\<close>
+    have \<phi>_deriv: "(\<phi> has_vector_derivative \<phi>' t) (at t within {a..b})"
+      using assms(5)[OF that] has_vector_derivative_at_within by blast
+    \<comment> \<open>\<phi> t is in {\<phi> a..\<phi> b}\<close>
+    have \<phi>t_in: "\<phi> t \<in> {\<phi> a..\<phi> b}" using \<phi>_range[OF t_ab] .
+    \<comment> \<open>f is continuous at \<phi> t within {\<phi> a..\<phi> b}\<close>
+    have f_cont: "continuous (at (\<phi> t) within {\<phi> a..\<phi> b}) f"
+      using assms(6) \<phi>t_in continuous_on_eq_continuous_within by blast
+    \<comment> \<open>Derivative of ff at \<phi> t within {\<phi> a..\<phi> b}\<close>
+    have ff_deriv: "(ff has_vector_derivative f (\<phi> t)) (at (\<phi> t) within {\<phi> a..\<phi> b})"
+      unfolding ff_def
+      using integral_has_vector_derivative_pointwise[OF f_int \<phi>t_in f_cont] .
+    \<comment> \<open>Weaken to derivative within \<phi> ` {a..b}\<close>
+    have "\<phi> ` {a..b} \<subseteq> {\<phi> a..\<phi> b}"
+      using \<phi>_range by auto
+    then have ff_deriv': "(ff has_vector_derivative f (\<phi> t)) (at (\<phi> t) within \<phi> ` {a..b})"
+      using has_vector_derivative_within_subset[OF ff_deriv] by blast
+    \<comment> \<open>Apply chain rule\<close>
+    show ?thesis using vector_diff_chain_within[OF \<phi>_deriv ff_deriv'] .
+  qed
+  \<comment> \<open>Apply FTC for absolutely continuous functions\<close>
+  have ftc: "((\<lambda>t. \<phi>' t *\<^sub>R f (\<phi> t)) has_integral ((ff \<circ> \<phi>) b - (ff \<circ> \<phi>) a)) {a..b}"
+    using fundamental_theorem_of_calculus_absolutely_continuous
+      [OF assms(4) assms(1) ac_comp] deriv by auto
+  \<comment> \<open>(ff \<circ> \<phi>) b - (ff \<circ> \<phi>) a = integral {\<phi> a..\<phi> b} f\<close>
+  have "(ff \<circ> \<phi>) b - (ff \<circ> \<phi>) a = integral {\<phi> a..\<phi> b} f"
+  proof -
+    have "(ff \<circ> \<phi>) a = integral {\<phi> a..\<phi> a} f" by (simp add: comp_def ff_def)
+    also have "\<dots> = 0" by simp
+    finally have a_eq: "(ff \<circ> \<phi>) a = 0" .
+    have "(ff \<circ> \<phi>) b = integral {\<phi> a..\<phi> b} f" by (simp add: comp_def ff_def)
+    with a_eq show ?thesis by simp
+  qed
+  \<comment> \<open>Combine: for real-valued functions, scaleR equals multiplication\<close>
+  with ftc show ?thesis by (simp add: real_scaleR_def)
+qed
 
 lemma lborel_distr_complex_pair:
   "distr (lborel :: (real \<times> real) measure) borel (\<lambda>(x,y). Complex x y) = (lborel :: complex measure)"
