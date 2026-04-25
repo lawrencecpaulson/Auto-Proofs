@@ -3569,6 +3569,104 @@ proof -
   qed
 qed
 
+lemma absolutely_continuous_on_reflect:
+  assumes "absolutely_continuous_on {S - b..S - a} f"
+  shows "absolutely_continuous_on {a..b} (f \<circ> (-) S)"
+proof -
+  have asm: "\<And>\<epsilon>. \<epsilon> > 0 \<Longrightarrow> \<exists>\<delta>>0. \<forall>d T. d division_of T \<and> T \<subseteq> {S-b..S-a} \<and>
+      (\<Sum>k\<in>d. Henstock_Kurzweil_Integration.content k) < \<delta> \<longrightarrow>
+      (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) < \<epsilon>"
+    using assms unfolding absolutely_continuous_on_def absolutely_setcontinuous_on_def
+    by auto
+  show ?thesis
+    unfolding absolutely_continuous_on_def absolutely_setcontinuous_on_def
+  proof (intro allI impI)
+    fix \<epsilon> :: real assume "\<epsilon> > 0"
+    from asm[OF this]
+    obtain \<delta> where \<delta>1: "\<delta> > 0"
+      and \<delta>2: "\<forall>d T. d division_of T \<and> T \<subseteq> {S - b..S - a} \<and>
+             (\<Sum>k\<in>d. Henstock_Kurzweil_Integration.content k) < \<delta> \<longrightarrow>
+             (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) < \<epsilon>"
+      by auto
+    have \<delta>: "\<And>d T. d division_of T \<Longrightarrow> T \<subseteq> {S - b..S - a} \<Longrightarrow>
+             (\<Sum>k\<in>d. Henstock_Kurzweil_Integration.content k) < \<delta> \<Longrightarrow>
+             (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) < \<epsilon>"
+      using \<delta>2 by auto
+    show "\<exists>\<delta>>0. \<forall>d T. d division_of T \<and> T \<subseteq> {a..b} \<and>
+          (\<Sum>k\<in>d. Henstock_Kurzweil_Integration.content k) < \<delta> \<longrightarrow>
+          (\<Sum>k\<in>d. norm ((f \<circ> (-) S) (Sup k) - (f \<circ> (-) S) (Inf k))) < \<epsilon>"
+    proof (intro exI conjI allI impI)
+      show "\<delta> > 0" using \<delta>1 .
+      fix d T assume "d division_of T \<and> T \<subseteq> {a..b} \<and>
+          (\<Sum>k\<in>d. Henstock_Kurzweil_Integration.content k) < \<delta>"
+      then have dv: "d division_of T" and sub: "T \<subseteq> {a..b}"
+        and sm: "(\<Sum>k\<in>d. Henstock_Kurzweil_Integration.content k) < \<delta>" by auto
+      have dv': "(`) ((-) S) ` d division_of (-) S ` T"
+        using division_of_reflect[OF dv] .
+      have sub': "(-) S ` T \<subseteq> {S - b..S - a}"
+        using sub by auto
+      have inj: "inj_on ((`) ((-) S)) d"
+      proof (rule inj_onI)
+        fix k1 k2 assume "k1 \<in> d" "k2 \<in> d" "((-) S) ` k1 = ((-) S) ` k2"
+        then have "((-) S) ` (((-) S) ` k1) = ((-) S) ` (((-) S) ` k2)" by simp
+        then show "k1 = k2" by (simp add: image_image)
+      qed
+      have content_eq: "\<And>k. k \<in> d \<Longrightarrow>
+          Henstock_Kurzweil_Integration.content ((-) S ` k) =
+          Henstock_Kurzweil_Integration.content k"
+      proof -
+        fix k assume "k \<in> d"
+        then have "\<exists>c e. k = cbox c e" using division_ofD(4)[OF dv] by auto
+        then obtain c e :: real where ce: "k = cbox c e" by auto
+        have ce2: "c \<le> e" using division_ofD(3)[OF dv \<open>k \<in> d\<close>]
+          unfolding ce by auto
+        have "((-) S) ` cbox c e = cbox (S - e) (S - c)"
+          using ce2 by (auto simp: image_affinity_atLeastAtMost)
+        then show "Henstock_Kurzweil_Integration.content ((-) S ` k) =
+                   Henstock_Kurzweil_Integration.content k"
+          unfolding ce by (simp add: Henstock_Kurzweil_Integration.content_real)
+      qed
+      have sm': "(\<Sum>k\<in>(`) ((-) S) ` d. Henstock_Kurzweil_Integration.content k) < \<delta>"
+      proof -
+        have "(\<Sum>k\<in>(`) ((-) S) ` d. Henstock_Kurzweil_Integration.content k) =
+              (\<Sum>k\<in>d. Henstock_Kurzweil_Integration.content ((-) S ` k))"
+          using sum.reindex[OF inj] by simp
+        also have "\<dots> = (\<Sum>k\<in>d. Henstock_Kurzweil_Integration.content k)"
+          using content_eq by (intro sum.cong) auto
+        finally show ?thesis using sm by simp
+      qed
+      have osc_eq: "(\<Sum>k\<in>d. norm ((f \<circ> (-) S) (Sup k) - (f \<circ> (-) S) (Inf k))) =
+                    (\<Sum>k'\<in>(`) ((-) S) ` d. norm (f (Sup k') - f (Inf k')))"
+      proof -
+        have "(\<Sum>k'\<in>(`) ((-) S) ` d. norm (f (Sup k') - f (Inf k'))) =
+              (\<Sum>k\<in>d. norm (f (Sup ((-) S ` k)) - f (Inf ((-) S ` k))))"
+          using sum.reindex[OF inj] by simp
+        also have "\<dots> = (\<Sum>k\<in>d. norm (f (S - Inf k) - f (S - Sup k)))"
+        proof (intro sum.cong refl)
+          fix k assume "k \<in> d"
+          then have "\<exists>c e. k = cbox c e" using division_ofD(4)[OF dv] by auto
+          then obtain c e :: real where ce: "k = cbox c e" by auto
+          have ce2: "c \<le> e" using division_ofD(3)[OF dv \<open>k \<in> d\<close>]
+            unfolding ce by auto
+          have "Sup ((-) S ` k) = S - Inf k" and "Inf ((-) S ` k) = S - Sup k"
+            unfolding ce using ce2
+            by (auto simp: image_affinity_atLeastAtMost cSup_atLeastAtMost cInf_atLeastAtMost)
+          then show "norm (f (Sup ((-) S ` k)) - f (Inf ((-) S ` k))) =
+                     norm (f (S - Inf k) - f (S - Sup k))"
+            by simp
+        qed
+        also have "\<dots> = (\<Sum>k\<in>d. norm ((f \<circ> (-) S) (Inf k) - (f \<circ> (-) S) (Sup k)))"
+          by (simp add: o_def)
+        also have "\<dots> = (\<Sum>k\<in>d. norm ((f \<circ> (-) S) (Sup k) - (f \<circ> (-) S) (Inf k)))"
+          by (intro sum.cong refl) (simp add: norm_minus_commute)
+        finally show ?thesis by simp
+      qed
+      show "(\<Sum>k\<in>d. norm ((f \<circ> (-) S) (Sup k) - (f \<circ> (-) S) (Inf k))) < \<epsilon>"
+        unfolding osc_eq using \<delta>[OF dv' sub' sm'] .
+    qed
+  qed
+qed
+
 lemma area_above_arclet:
   fixes g :: "real \<Rightarrow> complex" and g' :: "real \<Rightarrow> complex"
   assumes "u \<le> v"
@@ -3578,11 +3676,186 @@ lemma area_above_arclet:
     and "inj_on g {u..v}"
     and "\<And>x y. x \<in> g ` {u..v} \<Longrightarrow> y \<in> g ` {u..v} \<Longrightarrow> Re x = Re y \<Longrightarrow> x = y"
     and "negligible S"
-    and "\<And>t. t \<in> {u..v} - S \<Longrightarrow> (g has_vector_derivative g' t) (at t)"
+    and vder_g: "\<And>t. t \<in> {u..v} - S \<Longrightarrow> (g has_vector_derivative g' t) (at t)"
   shows "(\<lambda>t. Re (g' t) * Im (g t)) absolutely_integrable_on {u..v}"
     and "integral {u..v} (\<lambda>t. Re (g' t) * Im (g t)) =
       measure lebesgue {z. \<exists>w \<in> g ` {u..v}. Re w = Re z \<and> Im w \<le> Im z \<and> Im z \<le> 0}"
-  sorry
+proof -
+  \<comment> \<open>Symmetry: define h(t) = cnj(g(u+v-t)) and apply area_below_arclet\<close>
+  define \<phi> where "\<phi> \<equiv> \<lambda>t. u + v - t"
+  define h where "h \<equiv> cnj \<circ> g \<circ> \<phi>"
+  define h' where "h' \<equiv> \<lambda>t. - cnj (g' (\<phi> t))"
+  have \<phi>_mem: "\<And>t. t \<in> {u..v} \<Longrightarrow> \<phi> t \<in> {u..v}"
+    using assms(1) unfolding \<phi>_def by auto
+  have \<phi>_image: "\<phi> ` {u..v} = {u..v}"
+    using assms(1) unfolding \<phi>_def by (auto simp: image_iff)
+  have \<phi>\<phi>: "\<And>t. \<phi> (\<phi> t) = t" unfolding \<phi>_def by simp
+  have \<phi>_Sup: "\<And>k. k \<subseteq> {u..v} \<Longrightarrow> k \<noteq> {} \<Longrightarrow> bounded k \<Longrightarrow> \<phi> (Sup k) = Inf (\<phi> ` k)"
+  proof -
+    fix k :: "real set" assume k: "k \<subseteq> {u..v}" "k \<noteq> {}" "bounded k"
+    have bdd: "bdd_above k" "bdd_below k"
+      using k(3) bounded_imp_bdd_above bounded_imp_bdd_below by auto
+    have ne_img: "\<phi> ` k \<noteq> {}" using k(2) by auto
+    have bdd_img: "bdd_below (\<phi> ` k)"
+    proof (rule bdd_belowI[of _ "\<phi> (Sup k)"])
+      fix x assume "x \<in> \<phi> ` k"
+      then obtain t where "t \<in> k" "x = \<phi> t" by auto
+      then show "\<phi> (Sup k) \<le> x" unfolding \<phi>_def using cSup_upper[OF \<open>t \<in> k\<close> bdd(1)] by simp
+    qed
+    show "\<phi> (Sup k) = Inf (\<phi> ` k)"
+    proof (rule antisym)
+      show "\<phi> (Sup k) \<le> Inf (\<phi> ` k)"
+      proof (rule cInf_greatest[OF ne_img])
+        fix x assume "x \<in> \<phi> ` k"
+        then obtain t where "t \<in> k" "x = \<phi> t" by auto
+        then show "\<phi> (Sup k) \<le> x" unfolding \<phi>_def using cSup_upper[OF \<open>t \<in> k\<close> bdd(1)] by simp
+      qed
+      show "Inf (\<phi> ` k) \<le> \<phi> (Sup k)"
+      proof -
+        have "(Inf (\<phi> ` k) \<le> \<phi> (Sup k)) = (\<forall>y > \<phi> (Sup k). \<exists>a \<in> \<phi> ` k. a < y)"
+          using cInf_le_iff[OF ne_img bdd_img] .
+        moreover have "\<forall>y > \<phi> (Sup k). \<exists>a \<in> \<phi> ` k. a < y"
+        proof (intro allI impI)
+          fix y :: real assume "\<phi> (Sup k) < y"
+          then have "u + v - y < Sup k" unfolding \<phi>_def by simp
+          then obtain t where "t \<in> k" "u + v - y < t"
+            using less_cSup_iff[OF k(2) bdd(1)] by auto
+          then have "\<phi> t < y" unfolding \<phi>_def by simp
+          moreover have "\<phi> t \<in> \<phi> ` k" using \<open>t \<in> k\<close> by auto
+          ultimately show "\<exists>a \<in> \<phi> ` k. a < y" by auto
+        qed
+        ultimately show ?thesis by simp
+      qed
+    qed
+  qed
+  have \<phi>_Inf: "\<And>k. k \<subseteq> {u..v} \<Longrightarrow> k \<noteq> {} \<Longrightarrow> bounded k \<Longrightarrow> \<phi> (Inf k) = Sup (\<phi> ` k)"
+  proof -
+    fix k :: "real set" assume k: "k \<subseteq> {u..v}" "k \<noteq> {}" "bounded k"
+    have k': "\<phi> ` k \<subseteq> {u..v}" using k(1) \<phi>_mem by auto
+    have ne': "\<phi> ` k \<noteq> {}" using k(2) by auto
+    have bdd': "bounded (\<phi> ` k)"
+      using bounded_subset[OF bounded_closed_interval k'] by auto
+    have "\<phi> (Sup (\<phi> ` k)) = Inf (\<phi> ` (\<phi> ` k))"
+      using \<phi>_Sup[OF k' ne' bdd'] .
+    also have "\<phi> ` (\<phi> ` k) = k" using \<phi>\<phi> by (simp add: image_image)
+    finally have eq: "\<phi> (Sup (\<phi> ` k)) = Inf k" .
+    then have "\<phi> (\<phi> (Sup (\<phi> ` k))) = \<phi> (Inf k)" by simp
+    then show "\<phi> (Inf k) = Sup (\<phi> ` k)" using \<phi>\<phi> by simp
+  qed
+  \<comment> \<open>1. u \<le> v\<close>
+  note uv = assms(1)
+  \<comment> \<open>2. Re (h u) \<le> Re (h v)\<close>
+  have Re_h: "Re (h u) \<le> Re (h v)"
+    using assms(2) unfolding h_def \<phi>_def by simp
+  \<comment> \<open>3. Absolutely continuous: h is AC because g is AC and time-reversal preserves AC\<close>
+  have acont_h: "absolutely_continuous_on {u..v} h"
+  proof -
+    have "absolutely_continuous_on {u..v} (g \<circ> (-) (u + v))"
+      using absolutely_continuous_on_reflect[of "u + v" v u g] assms(3)
+      by (simp add: algebra_simps)
+    then have ac_g\<phi>: "absolutely_continuous_on {u..v} (g \<circ> \<phi>)"
+      unfolding \<phi>_def by simp
+    show ?thesis
+      unfolding h_def
+      using absolutely_continuous_on_compose_linear[OF ac_g\<phi> linear_cnj] by (simp add: o_assoc)
+  qed
+  \<comment> \<open>4. Image in upper half-plane\<close>
+  have Im_h: "h ` {u..v} \<subseteq> {z. Im z \<ge> 0}"
+  proof (rule subsetI)
+    fix z assume "z \<in> h ` {u..v}"
+    then obtain t where t: "t \<in> {u..v}" "z = h t" by auto
+    then have "\<phi> t \<in> {u..v}" using \<phi>_mem by auto
+    then have "g (\<phi> t) \<in> g ` {u..v}" by auto
+    then have "Im (g (\<phi> t)) \<le> 0" using assms(4) by auto
+    then show "z \<in> {z. Im z \<ge> 0}" using t(2) unfolding h_def by (simp add: o_def)
+  qed
+  \<comment> \<open>5. Injectivity of h\<close>
+  have inj_h: "inj_on h {u..v}"
+  proof (rule inj_onI)
+    fix x y assume xy: "x \<in> {u..v}" "y \<in> {u..v}" "h x = h y"
+    from xy(3) have "cnj (g (\<phi> x)) = cnj (g (\<phi> y))" unfolding h_def by (simp add: o_def)
+    then have "g (\<phi> x) = g (\<phi> y)" by (simp add: complex_cnj_cancel_iff)
+    moreover have "\<phi> x \<in> {u..v}" "\<phi> y \<in> {u..v}" using xy(1,2) \<phi>_mem by auto
+    ultimately have "\<phi> x = \<phi> y" using assms(5) by (auto simp: inj_on_def)
+    then show "x = y" unfolding \<phi>_def by simp
+  qed
+  \<comment> \<open>6. Re-injectivity on h image\<close>
+  have inj_Re_h: "inj_on Re (h ` {u..v})"
+  proof (rule inj_onI)
+    fix x y assume xy: "x \<in> h ` {u..v}" "y \<in> h ` {u..v}" "Re x = Re y"
+    from xy obtain s t where st: "s \<in> {u..v}" "t \<in> {u..v}" "x = h s" "y = h t" by auto
+    then have "Re (g (\<phi> s)) = Re (g (\<phi> t))" using xy(3) unfolding h_def by (simp add: o_def cnj.sel)
+    moreover have "g (\<phi> s) \<in> g ` {u..v}" "g (\<phi> t) \<in> g ` {u..v}"
+      using \<phi>_mem st(1,2) by auto
+    ultimately have "g (\<phi> s) = g (\<phi> t)" using assms(6) by auto
+    then show "x = y" using st(3,4) unfolding h_def by (simp add: o_def)
+  qed
+  \<comment> \<open>7. Negligible set and derivative of h\<close>
+  define S' where "S' \<equiv> \<phi> ` S"
+  have neg_S': "negligible S'"
+  proof -
+    have "negligible (uminus ` S)" using assms(7) negligible_linear_image[OF linear_uminus] by auto
+    then have "negligible ((+) (u + v) ` (uminus ` S))" using negligible_translation by auto
+    moreover have "S' = (+) (u + v) ` (uminus ` S)"
+      unfolding S'_def \<phi>_def image_image by (simp add: algebra_simps)
+    ultimately show ?thesis by simp
+  qed
+  note der_g = vder_g [unfolded has_vector_derivative_def]
+  have deriv_h: "\<And>t. t \<in> {u..v} - S' \<Longrightarrow> (h has_vector_derivative h' t) (at t)"
+    unfolding has_vector_derivative_def h_def h'_def \<phi>_def S'_def
+    by (rule der_g derivative_eq_intros | force | simp)+
+  \<comment> \<open>8. Apply area_below_arclet to h\<close>
+  have below_1: "(\<lambda>t. Re (h' t) * Im (h t)) absolutely_integrable_on {u..v}"
+    and below_2: "integral {u..v} (\<lambda>t. Re (h' t) * Im (h t)) =
+      measure lebesgue {z. \<exists>w \<in> h ` {u..v}. Re w = Re z \<and> 0 \<le> Im z \<and> Im z \<le> Im w}"
+    using area_below_arclet[OF assms(1) Re_h acont_h Im_h inj_h inj_Re_h neg_S' deriv_h]
+    by auto
+  \<comment> \<open>9. Transfer: integrand of h equals integrand of g (after substitution)\<close>
+  have integrand_eq: "\<And>t. Re (h' t) * Im (h t) = Re (g' (\<phi> t)) * Im (g (\<phi> t))"
+    unfolding h_def h'_def by (simp add: o_def cnj.sel)
+  \<comment> \<open>10. Transfer: integral via substitution t \<mapsto> \<phi> t\<close>
+  have integral_eq: "integral {u..v} (\<lambda>t. Re (g' (\<phi> t)) * Im (g (\<phi> t))) =
+                     integral {u..v} (\<lambda>t. Re (g' t) * Im (g t))"
+  proof -
+    define f where "f \<equiv> \<lambda>t. Re (g' t) * Im (g t)"
+    have f_comp: "\<And>t. f (\<phi> t) = Re (g' (\<phi> t)) * Im (g (\<phi> t))"
+      unfolding f_def by simp
+    \<comment> \<open>Step 1: integral {-v..-u} (f \<circ> (+) (u+v)) = integral {u..v} f\<close>
+    have step1: "integral {-v..-u} (f \<circ> (+) (u+v)) = integral {u..v} f"
+      using integral_shift_Icc_real[of "-v" "-u" f "u+v"] by (simp add: algebra_simps)
+    \<comment> \<open>Step 2: integral {u..v} (f \<circ> \<phi>) = integral (uminus ` {u..v}) (f \<circ> (+) (u+v))\<close>
+    \<comment> \<open>Because (f \<circ> (+) (u+v)) \<circ> uminus = f \<circ> \<phi> and uminus ` {u..v} = {-v..-u}\<close>
+    have comp_eq: "(f \<circ> (+) (u + v)) \<circ> uminus = f \<circ> \<phi>"
+      unfolding \<phi>_def comp_def by (simp add: algebra_simps)
+    have img_eq: "uminus ` {u..v} = {-v..-u :: real}"
+      by auto
+    have ai: "(f \<circ> \<phi>) absolutely_integrable_on {u..v}"
+      using below_1 f_def integrand_eq set_integrable_cong by fastforce
+    have step2: "integral (uminus ` {u..v}) (f \<circ> (+) (u + v)) =
+                 \<bar>Determinants.det (matrix uminus)\<bar> *\<^sub>R integral {u..v} ((f \<circ> (+) (u + v)) \<circ> uminus)"
+      using integral_change_of_variables_linear[OF linear_uminus, of "f \<circ> (+) (u+v)"]
+            ai unfolding comp_eq by auto
+    have det_uminus: "\<bar>Determinants.det (matrix uminus)\<bar> = (1::real)"
+      by (simp add: matrix_uminus det_neg Determinants.det_def)
+    have "integral {u..v} (f \<circ> \<phi>) = integral (uminus ` {u..v}) (f \<circ> (+) (u + v))"
+      using step2 det_uminus unfolding comp_eq by simp
+    also have "\<dots> = integral {-v..-u} (f \<circ> (+) (u + v))"
+      unfolding img_eq ..
+    also have "\<dots> = integral {u..v} f"
+      using step1 .
+    finally show ?thesis unfolding f_def by simp
+  qed
+  \<comment> \<open>11. Transfer: measure set via conjugation\<close>
+  have measure_eq: "measure lebesgue {z. \<exists>w \<in> h ` {u..v}. Re w = Re z \<and> 0 \<le> Im z \<and> Im z \<le> Im w} =
+                    measure lebesgue {z. \<exists>w \<in> g ` {u..v}. Re w = Re z \<and> Im w \<le> Im z \<and> Im z \<le> 0}"
+    sorry
+  \<comment> \<open>Conclude\<close>
+  show "(\<lambda>t. Re (g' t) * Im (g t)) absolutely_integrable_on {u..v}"
+    sorry
+  show "integral {u..v} (\<lambda>t. Re (g' t) * Im (g t)) =
+      measure lebesgue {z. \<exists>w \<in> g ` {u..v}. Re w = Re z \<and> Im w \<le> Im z \<and> Im z \<le> 0}"
+    using below_2 integrand_eq integral_eq measure_eq by (simp add: o_def)
+qed
 
 theorem Green_area_theorem:
   fixes g :: "real \<Rightarrow> complex" and g' :: "real \<Rightarrow> complex"
