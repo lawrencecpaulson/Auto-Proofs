@@ -961,54 +961,11 @@ proof -
           also have "\<dots> \<le> e/2 * measure lebesgue (cbox (?x' - ?v) (?x' + ?v))"
           proof -
             have "cbox (?x' - ?v) (?x' + ?v) \<noteq> {}"
-              using \<open>r > 0\<close> \<open>d > 0\<close>
-              by (auto simp: box_ne_empty inner_diff_left inner_add_left inner_sum_left_Basis)
-            with \<open>r > 0\<close> \<open>d > 0\<close> \<open>e > 0\<close> show ?thesis
-              \<comment> \<open>The content of the v'-box equals e/2 times the content of the v-box,
-                 by expanding content as a product over Basis and using prod.remove at e_k.\<close>
-            proof -
-              have ne: "cbox (?x' - ?v') (?x' + ?v') \<noteq> {}"
-                using \<open>r > 0\<close> \<open>d > 0\<close> \<open>e > 0\<close>
-                by (auto simp: box_ne_empty inner_diff_left inner_add_left sum_if_inner[OF ek])
-              have c1: "content (cbox (?x' - ?v') (?x' + ?v')) =
-                (\<Prod>i\<in>Basis. (?x' + ?v') \<bullet> i - (?x' - ?v') \<bullet> i)"
-                using ne by (rule content_cbox')
-              have c2: "content (cbox (?x' - ?v) (?x' + ?v)) =
-                (\<Prod>i\<in>Basis. (?x' + ?v) \<bullet> i - (?x' - ?v) \<bullet> i)"
-                using \<open>cbox (?x' - ?v) (?x' + ?v) \<noteq> {}\<close> by (rule content_cbox')
-              have s1: "(?x' + ?v') \<bullet> i - (?x' - ?v') \<bullet> i =
-                2 * (if i = e_k then e / 2 * min d r / real (DIM('a) ^ DIM('a)) else min d r)"
-                if "i \<in> Basis" for i
-                using that by (simp add: inner_diff_left inner_add_left sum_if_inner[OF ek])
-              have s2: "(?x' + ?v) \<bullet> i - (?x' - ?v) \<bullet> i = 2 * (min d r / real DIM('a))"
-                if "i \<in> Basis" for i
-                using that by (simp add: inner_diff_left inner_add_left inner_sum_left_Basis)
-              have lhs: "content (cbox (?x' - ?v') (?x' + ?v')) =
-                (e * min d r / real (DIM('a) ^ DIM('a))) * (\<Prod>i\<in>Basis - {e_k}. 2 * min d r)"
-              proof -
-                have "(\<Prod>i\<in>Basis. (?x' + ?v') \<bullet> i - (?x' - ?v') \<bullet> i) =
-                  (\<Prod>i\<in>Basis. if i = e_k then e * min d r / real (DIM('a) ^ DIM('a))
-                             else 2 * min d r)"
-                  by (rule prod.cong) (use s1 in auto)
-                also have "\<dots> = (e * min d r / real (DIM('a) ^ DIM('a))) *
-                  (\<Prod>i\<in>Basis - {e_k}. 2 * min d r)"
-                  using prod.delta_remove[OF finite_Basis, of e_k
-                    "\<lambda>i. e * min d r / real (DIM('a) ^ DIM('a))" "\<lambda>i. 2 * min d r"] ek
-                  by simp
-                finally show ?thesis using c1 by simp
-              qed
-              have rhs: "content (cbox (?x' - ?v) (?x' + ?v)) =
-                (2 * (min d r / real DIM('a))) ^ DIM('a)"
-              proof -
-                have *: "\<forall>i\<in>Basis. (?x' + ?v) \<bullet> i - (?x' - ?v) \<bullet> i = 2 * (min d r / real DIM('a))"
-                  using s2 by auto
-                show ?thesis
-                  unfolding c2 using * by (simp add: prod_constant)
-              qed
-              show ?thesis
-                using lhs rhs \<open>r > 0\<close> \<open>d > 0\<close> \<open>e > 0\<close>
-                sorry
-            qed
+              using \<open>r > 0\<close> \<open>d > 0\<close> by (auto simp: box_ne_empty algebra_simps divide_less_0_iff)
+            with \<open>r > 0\<close> \<open>d > 0\<close> \<open>e > 0\<close> ek show ?thesis
+              apply (simp add: content_cbox_if mem_box prod_nonneg algebra_simps)
+              apply (simp add: abs if_distrib prod.delta_remove field_simps power_diff split: if_split_asm)
+              done
           qed
           also have "\<dots> \<le> e/2 * measure lebesgue (cball ?x' (min d r))"
           proof (rule mult_left_mono [OF measure_mono_fmeasurable])
