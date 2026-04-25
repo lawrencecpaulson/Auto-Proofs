@@ -15,7 +15,7 @@ hide_const (open) Polynomial.content
 
 lemma 
   fixes f :: "'a::euclidean_space \<Rightarrow> 'a"
-  assumes "linear f" "S \<in> lmeasurable"
+  assumes "linear f" "S \<in> lmeasurable"            
   shows measurable_linear_image_eu: "f ` S \<in> lmeasurable"
     and measure_linear_image_eu: "measure lebesgue (f ` S) = \<bar>eucl.det f\<bar> * measure lebesgue S"
 proof -
@@ -1024,8 +1024,8 @@ proof -
             qed
             show "cbox (?x' - ?v) (?x' + ?v) \<subseteq> cball ?x' (min d r)"
               apply (clarsimp simp only: mem_box dist_norm mem_cball intro!: *)
-              apply simp \<comment> \<open>debug\<close>
-              sorry
+              apply (simp add: abs_diff_le_iff algebra_simps)
+              done
           qed (use \<open>e > 0\<close> in auto)
           also have "\<dots> < e * content (cball ?x' (min d r))"
             using \<open>r > 0\<close> \<open>d > 0\<close> \<open>e > 0\<close> by (auto intro: content_cball_pos)
