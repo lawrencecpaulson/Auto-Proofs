@@ -15,7 +15,7 @@ hide_const (open) Polynomial.content
 
 lemma 
   fixes f :: "'a::euclidean_space \<Rightarrow> 'a"
-  assumes "linear f" "S \<in> lmeasurable"            
+  assumes "linear f" "S \<in> lmeasurable"
   shows measurable_linear_image_eu: "f ` S \<in> lmeasurable"
     and measure_linear_image_eu: "measure lebesgue (f ` S) = \<bar>eucl.det f\<bar> * measure lebesgue S"
 proof -
@@ -620,7 +620,6 @@ proof -
   ultimately show thesis
     using that by blast
 qed
-
 proposition borel_measurable_partial_derivatives_eu:
   fixes f :: "'a::euclidean_space \<Rightarrow> 'b::euclidean_space"
   assumes S: "S \<in> sets lebesgue"
@@ -1007,224 +1006,310 @@ proof -
           using x that by force
         show ?thesis
         proof (rule iffI; clarsimp)
-          assume b: "\<forall>e>0. \<exists>d>0. \<exists>A. linear A \<and> A u \<bullet> v < b \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>) \<and>
+          assume b: "\<forall>e>0. \<exists>d>0. \<exists>A. linear A \<and> A u \<bullet> v < b \<and> (\<forall>i j. A i \<bullet> j \<in> \<rat>) \<and>
                                     (\<forall>y\<in>S. norm (y - x) < d \<longrightarrow> norm (f y - f x - A (y - x)) \<le> e * norm (y - x))"
                      (is "\<forall>e>0. \<exists>d>0. \<exists>A. ?\<Phi> e d A")
           then have "\<forall>k. \<exists>d>0. \<exists>A. ?\<Phi> (1 / Suc k) d A"
             by (metis (no_types, opaque_lifting) less_Suc_eq_0_disj of_nat_0_less_iff zero_less_divide_1_iff)
           then obtain \<delta> A where \<delta>: "\<And>k. \<delta> k > 0"
-                           and linA: "\<And>k. linear (A k)"
                            and Ab: "\<And>k. A k u \<bullet> v < b"
                            and A: "\<And>k y. \<lbrakk>y \<in> S; norm (y - x) < \<delta> k\<rbrakk> \<Longrightarrow>
                                           norm (f y - f x - A k (y - x)) \<le> 1/(Suc k) * norm (y - x)"
+                           and linA: "\<And>k. linear (A k)"
             by metis
-          \<comment> \<open>Show the Cauchy set for the sequence of linear approximations is all of 'a\<close>
-          let ?CA = "{x. Cauchy (\<lambda>n. A n x)}"
-          have "subspace ?CA"
-          proof (unfold subspace_def, intro conjI ballI allI)
-            show "0 \<in> ?CA"
+          have "\<forall>i j. \<exists>a. (\<lambda>n. A n i \<bullet> j) \<longlonglongrightarrow> a"
+          proof (intro allI)
+            fix i j
+            let ?CA = "{x. Cauchy (\<lambda>n. A n x)}"
+            have "\<exists>l. (\<lambda>n. A n 0) \<longlonglongrightarrow> l"
+              using A True \<delta> by fastforce
+            moreover have "\<exists>l. (\<lambda>n. A n (x + y)) \<longlonglongrightarrow> l" 
+              if "(\<lambda>n. A n x) \<longlonglongrightarrow> l" and "(\<lambda>n. A n y) \<longlonglongrightarrow> l'"
+              for x :: 'a and l :: 'b and y :: 'a and l' :: 'b
+              using that linA tendsto_add tendsto_add Real_Vector_Spaces.linear_iff
+              sorry
+            moreover have "\<exists>l. (\<lambda>n. A n (c *\<^sub>R x)) \<longlonglongrightarrow> l"
+              if "(\<lambda>n. A n x) \<longlonglongrightarrow> l"
+              for c :: real and x :: 'a and l :: 'b
+              using that sorry
+            ultimately have "subspace ?CA"
+              by (auto simp: subspace_def convergent_eq_Cauchy [symmetric])
+            then have CA_eq: "?CA = span ?CA"
+              by (metis span_eq_iff)
+            also have "\<dots> = UNIV"
             proof -
-              have "A n 0 = 0" for n using linear_0[OF linA] by simp
-              then have "(\<lambda>n. A n 0) \<longlonglongrightarrow> 0" by simp
-              then show ?thesis using convergent_eq_Cauchy convergent_def by auto
-            qed
-          next
-            fix w1 w2 assume hw1: "w1 \<in> ?CA" and hw2: "w2 \<in> ?CA"
-            then obtain l1 l2 where "(\<lambda>n. A n w1) \<longlonglongrightarrow> l1" "(\<lambda>n. A n w2) \<longlonglongrightarrow> l2"
-              using Cauchy_convergent_iff convergent_def by blast
-            then have "(\<lambda>n. A n w1 + A n w2) \<longlonglongrightarrow> l1 + l2"
-              by (intro tendsto_intros)
-            moreover have "A n (w1 + w2) = A n w1 + A n w2" for n
-              using linA[of n] by (simp add: linear_add)
-            ultimately have "(\<lambda>n. A n (w1 + w2)) \<longlonglongrightarrow> l1 + l2" by simp
-            then show "w1 + w2 \<in> ?CA"
-              using Cauchy_convergent_iff convergent_def by blast
-          next
-            fix c and w1 assume hw1: "w1 \<in> ?CA"
-            then obtain l1 where "(\<lambda>n. A n w1) \<longlonglongrightarrow> l1"
-              using Cauchy_convergent_iff convergent_def by blast
-            then have "(\<lambda>n. c *\<^sub>R A n w1) \<longlonglongrightarrow> c *\<^sub>R l1"
-              by (intro tendsto_intros)
-            moreover have "A n (c *\<^sub>R w1) = c *\<^sub>R A n w1" for n
-              using linA[of n] by (simp add: linear_cmul)
-            ultimately have "(\<lambda>n. A n (c *\<^sub>R w1)) \<longlonglongrightarrow> c *\<^sub>R l1" by simp
-            then show "c *\<^sub>R w1 \<in> ?CA"
-              using Cauchy_convergent_iff convergent_def by blast
-          qed
-          also have "\<dots> = UNIV"
-          proof -
-            have "dim ?CA \<le> DIM('a)"
-              using dim_subset_UNIV[of ?CA] by auto
-            moreover have "False" if less: "dim ?CA < DIM('a)"
-            proof -
-              obtain d where "d \<noteq> 0" and d: "\<And>y. y \<in> span ?CA \<Longrightarrow> orthogonal d y"
-                using less by (force intro: orthogonal_to_subspace_exists [of ?CA])
-              with x [OF \<open>d \<noteq> 0\<close>] obtain \<xi> where "\<xi> > 0"
-                and \<xi>: "\<And>e. e > 0 \<Longrightarrow> \<exists>y \<in> S - {x}. norm (x - y) < e \<and> \<xi> * norm (x - y) \<le> \<bar>d \<bullet> (y - x)\<bar>"
-                by (fastforce simp: not_le Bex_def)
-              obtain \<gamma> z where \<gamma>Sx: "\<And>i. \<gamma> i \<in> S - {x}"
-                         and \<gamma>le:   "\<And>i. \<xi> * norm(\<gamma> i - x) \<le> \<bar>d \<bullet> (\<gamma> i - x)\<bar>"
-                         and \<gamma>x:    "\<gamma> \<longlonglongrightarrow> x"
-                         and z:     "(\<lambda>n. (\<gamma> n - x) /\<^sub>R norm (\<gamma> n - x)) \<longlonglongrightarrow> z"
+              have "dim ?CA \<le> DIM('a)"
+                using dim_subset_UNIV[of ?CA] by auto
+              moreover have "False" if less: "dim ?CA < DIM('a)"
               proof -
-                have "\<exists>\<gamma>. (\<forall>i. (\<gamma> i \<in> S - {x} \<and>
-                                \<xi> * norm(\<gamma> i - x) \<le> \<bar>d \<bullet> (\<gamma> i - x)\<bar> \<and> norm(\<gamma> i - x) < 1/Suc i) \<and>
-                               norm(\<gamma>(Suc i) - x) < norm(\<gamma> i - x))"
-                proof (rule dependent_nat_choice)
-                  show "\<exists>y. y \<in> S - {x} \<and> \<xi> * norm (y - x) \<le> \<bar>d \<bullet> (y - x)\<bar> \<and> norm (y - x) < 1 / Suc 0"
-                    using \<xi> [of 1] by (auto simp: dist_norm norm_minus_commute)
-                next
-                  fix y i
-                  assume "y \<in> S - {x} \<and> \<xi> * norm (y - x) \<le> \<bar>d \<bullet> (y - x)\<bar> \<and> norm (y - x) < 1/Suc i"
-                  then have "min (norm(y - x)) (1/((Suc i) + 1)) > 0"
-                    by auto
-                  then obtain y' where "y' \<in> S - {x}" and y': "norm (x - y') < min (norm (y - x)) (1/((Suc i) + 1))"
-                                       "\<xi> * norm (x - y') \<le> \<bar>d \<bullet> (y' - x)\<bar>"
-                    using \<xi> by metis
-                  with \<xi> show "\<exists>y'. (y' \<in> S - {x} \<and> \<xi> * norm (y' - x) \<le> \<bar>d \<bullet> (y' - x)\<bar> \<and>
-                            norm (y' - x) < 1/(Suc (Suc i))) \<and> norm (y' - x) < norm (y - x)"
-                    by (auto simp: dist_norm norm_minus_commute)
-                qed
-                then obtain \<gamma> where
-                      \<gamma>Sx: "\<And>i. \<gamma> i \<in> S - {x}"
-                      and \<gamma>le: "\<And>i. \<xi> * norm(\<gamma> i - x) \<le> \<bar>d \<bullet> (\<gamma> i - x)\<bar>"
-                      and \<gamma>conv: "\<And>i. norm(\<gamma> i - x) < 1/(Suc i)"
-                  by blast
-                let ?f = "\<lambda>i. (\<gamma> i - x) /\<^sub>R norm (\<gamma> i - x)"
-                have "?f i \<in> sphere 0 1" for i
-                  using \<gamma>Sx by auto
-                then obtain l \<rho> where "l \<in> sphere 0 1" "strict_mono \<rho>" and l: "(?f \<circ> \<rho>) \<longlonglongrightarrow> l"
-                  using compact_sphere [of "0::'a" 1]  unfolding compact_def by meson
-                show thesis
-                proof
-                  show "(\<gamma> \<circ> \<rho>) i \<in> S - {x}" "\<xi> * norm ((\<gamma> \<circ> \<rho>) i - x) \<le> \<bar>d \<bullet> ((\<gamma> \<circ> \<rho>) i - x)\<bar>" for i
-                    using \<gamma>Sx \<gamma>le by auto
-                  have "\<gamma> \<longlonglongrightarrow> x"
-                  proof (clarsimp simp add: LIMSEQ_def dist_norm)
-                    fix r :: "real"
-                    assume "r > 0"
-                    with real_arch_invD obtain no where "no \<noteq> 0" "real no > 1/r"
-                      by (metis divide_less_0_1_iff not_less_iff_gr_or_eq of_nat_0_eq_iff reals_Archimedean2)
-                    with \<gamma>conv show "\<exists>no. \<forall>n\<ge>no. norm (\<gamma> n - x) < r"
-                      by (metis \<open>r > 0\<close> add.commute divide_inverse inverse_inverse_eq inverse_less_imp_less less_trans mult.left_neutral nat_le_real_less of_nat_Suc)
+                obtain d where "d \<noteq> 0" and d: "\<And>y. y \<in> span ?CA \<Longrightarrow> orthogonal d y"
+                  using less by (force intro: orthogonal_to_subspace_exists [of ?CA])
+                with x [OF \<open>d \<noteq> 0\<close>] obtain \<xi> where "\<xi> > 0"
+                  and \<xi>: "\<And>e. e > 0 \<Longrightarrow> \<exists>y \<in> S - {x}. norm (x - y) < e \<and> \<xi> * norm (x - y) \<le> \<bar>d \<bullet> (y - x)\<bar>"
+                  by (metis \<Theta>_def linorder_not_less)
+                obtain \<gamma> z where \<gamma>Sx: "\<And>i. \<gamma> i \<in> S - {x}"
+                           and \<gamma>le:   "\<And>i. \<xi> * norm(\<gamma> i - x) \<le> \<bar>d \<bullet> (\<gamma> i - x)\<bar>"
+                           and \<gamma>x:    "\<gamma> \<longlonglongrightarrow> x"
+                           and z:     "(\<lambda>n. (\<gamma> n - x) /\<^sub>R norm (\<gamma> n - x)) \<longlonglongrightarrow> z"
+                proof -
+                  have "\<exists>\<gamma>. (\<forall>i. (\<gamma> i \<in> S - {x} \<and>
+                                  \<xi> * norm(\<gamma> i - x) \<le> \<bar>d \<bullet> (\<gamma> i - x)\<bar> \<and> norm(\<gamma> i - x) < 1/Suc i) \<and>
+                                 norm(\<gamma>(Suc i) - x) < norm(\<gamma> i - x))"
+                  proof (rule dependent_nat_choice)
+                    show "\<exists>y. y \<in> S - {x} \<and> \<xi> * norm (y - x) \<le> \<bar>d \<bullet> (y - x)\<bar> \<and> norm (y - x) < 1 / Suc 0"
+                      using \<xi> [of 1] by (auto simp: dist_norm norm_minus_commute)
+                  next
+                    fix y i
+                    assume "y \<in> S - {x} \<and> \<xi> * norm (y - x) \<le> \<bar>d \<bullet> (y - x)\<bar> \<and> norm (y - x) < 1/Suc i"
+                    then have "min (norm(y - x)) (1/((Suc i) + 1)) > 0"
+                      by auto
+                    then obtain y' where "y' \<in> S - {x}" and y': "norm (x - y') < min (norm (y - x)) (1/((Suc i) + 1))"
+                                         "\<xi> * norm (x - y') \<le> \<bar>d \<bullet> (y' - x)\<bar>"
+                      using \<xi> by metis
+                    with \<xi> show "\<exists>y'. (y' \<in> S - {x} \<and> \<xi> * norm (y' - x) \<le> \<bar>d \<bullet> (y' - x)\<bar> \<and>
+                              norm (y' - x) < 1/(Suc (Suc i))) \<and> norm (y' - x) < norm (y - x)"
+                      by (auto simp: dist_norm norm_minus_commute)
                   qed
-                  with \<open>strict_mono \<rho>\<close> show "(\<gamma> \<circ> \<rho>) \<longlonglongrightarrow> x"
-                    by (metis LIMSEQ_subseq_LIMSEQ)
-                  show "(\<lambda>n. ((\<gamma> \<circ> \<rho>) n - x) /\<^sub>R norm ((\<gamma> \<circ> \<rho>) n - x)) \<longlonglongrightarrow> l"
-                    using l by (auto simp: o_def)
-                qed
-              qed
-              have "isCont (\<lambda>x. (\<bar>d \<bullet> x\<bar> - \<xi>)) z"
-                by (intro continuous_intros)
-              from isCont_tendsto_compose [OF this z]
-              have lim: "(\<lambda>y. \<bar>d \<bullet> ((\<gamma> y - x) /\<^sub>R norm (\<gamma> y - x))\<bar> - \<xi>) \<longlonglongrightarrow> \<bar>d \<bullet> z\<bar> - \<xi>"
-                by auto
-              moreover have "\<forall>\<^sub>F i in sequentially. 0 \<le> \<bar>d \<bullet> ((\<gamma> i - x) /\<^sub>R norm (\<gamma> i - x))\<bar> - \<xi>"
-              proof (rule eventuallyI)
-                fix n
-                show "0 \<le> \<bar>d \<bullet> ((\<gamma> n - x) /\<^sub>R norm (\<gamma> n - x))\<bar> - \<xi>"
-                  using \<gamma>le [of n] \<gamma>Sx by (auto simp: abs_mult divide_simps)
-              qed
-              ultimately have "\<xi> \<le> \<bar>d \<bullet> z\<bar>"
-                using tendsto_lowerbound [where a=0] by fastforce
-              have "Cauchy (\<lambda>n. (A n) z)"
-              proof (clarsimp simp add: Cauchy_def)
-                fix \<epsilon> :: "real"
-                assume "0 < \<epsilon>"
-                then obtain N::nat where "N > 0" and N: "\<epsilon>/2 > 1/N"
-                  by (metis half_gt_zero inverse_eq_divide neq0_conv real_arch_inverse)
-                show "\<exists>M. \<forall>m\<ge>M. \<forall>n\<ge>M. dist (A m z) (A n z) < \<epsilon>"
-                proof (intro exI allI impI)
-                  fix i j
-                  assume ij: "N \<le> i" "N \<le> j"
-                  let ?V = "\<lambda>i k. A i ((\<gamma> k - x) /\<^sub>R norm (\<gamma> k - x))"
-                  have "\<forall>\<^sub>F k in sequentially. dist (\<gamma> k) x < min (\<delta> i) (\<delta> j)"
-                    using \<gamma>x [unfolded tendsto_iff] by (meson min_less_iff_conj \<delta>)
-                  then have even: "\<forall>\<^sub>F k in sequentially. norm (?V i k - ?V j k) - 2 / N \<le> 0"
-                  proof (rule eventually_mono, clarsimp)
-                    fix p
-                    assume p: "dist (\<gamma> p) x < \<delta> i" "dist (\<gamma> p) x < \<delta> j"
-                    let ?C = "\<lambda>k. f (\<gamma> p) - f x - A k (\<gamma> p - x)"
-                    have "norm ((A i - A j) (\<gamma> p - x)) = norm (?C j - ?C i)"
-                      by (simp add: algebra_simps)
-                    also have "\<dots> \<le> norm (?C j) + norm (?C i)"
-                      using norm_triangle_ineq4 by blast
-                    also have "\<dots> \<le> 1/(Suc j) * norm (\<gamma> p - x) + 1/(Suc i) * norm (\<gamma> p - x)"
-                      by (metis A Diff_iff \<gamma>Sx dist_norm p add_mono)
-                    also have "\<dots> \<le> 1/N * norm (\<gamma> p - x) + 1/N * norm (\<gamma> p - x)"
-                      using ij \<open>N > 0\<close> by (intro add_mono mult_right_mono) (auto simp: field_simps)
-                    also have "\<dots> = 2 / N * norm (\<gamma> p - x)"
-                      by simp
-                    finally have no_le: "norm ((A i - A j) (\<gamma> p - x)) \<le> 2 / N * norm (\<gamma> p - x)" .
-                    have linAij: "linear (A i - A j)"
-                      by (intro module_hom_sub linA)
-                    have "norm (?V i p - ?V j p) =
-                          norm ((A i - A j) ((\<gamma> p - x) /\<^sub>R norm (\<gamma> p - x)))"
-                      by (simp add: algebra_simps)
-                    also have "\<dots> = norm ((A i - A j) (\<gamma> p - x)) / norm (\<gamma> p - x)"
-                      using linear_cmul[OF linAij]
-                      by (simp add: divide_inverse)
-                    also have "\<dots> \<le> 2 / N"
-                      using no_le by (auto simp: field_split_simps)
-                    finally show "norm (?V i p - ?V j p) \<le> 2 / N" .
+                  then obtain \<gamma> where
+                        \<gamma>Sx: "\<And>i. \<gamma> i \<in> S - {x}"
+                        and \<gamma>le: "\<And>i. \<xi> * norm(\<gamma> i - x) \<le> \<bar>d \<bullet> (\<gamma> i - x)\<bar>"
+                        and \<gamma>conv: "\<And>i. norm(\<gamma> i - x) < 1/(Suc i)"
+                    by blast
+                  let ?f = "\<lambda>i. (\<gamma> i - x) /\<^sub>R norm (\<gamma> i - x)"
+                  have "?f i \<in> sphere 0 1" for i
+                    using \<gamma>Sx by auto
+                  then obtain l \<rho> where "l \<in> sphere 0 1" "strict_mono \<rho>" and l: "(?f \<circ> \<rho>) \<longlonglongrightarrow> l"
+                    using compact_sphere [of "0" 1]  unfolding compact_def by meson
+                  show thesis
+                  proof
+                    show "(\<gamma> \<circ> \<rho>) i \<in> S - {x}" "\<xi> * norm ((\<gamma> \<circ> \<rho>) i - x) \<le> \<bar>d \<bullet> ((\<gamma> \<circ> \<rho>) i - x)\<bar>" for i
+                      using \<gamma>Sx \<gamma>le by auto
+                    have "\<gamma> \<longlonglongrightarrow> x"
+                    proof (clarsimp simp add: LIMSEQ_def dist_norm)
+                      fix r :: "real"
+                      assume "r > 0"
+                      with real_arch_invD obtain no where "no \<noteq> 0" "real no > 1/r"
+                        by (metis divide_less_0_1_iff not_less_iff_gr_or_eq of_nat_0_eq_iff reals_Archimedean2)
+                      with \<gamma>conv show "\<exists>no. \<forall>n\<ge>no. norm (\<gamma> n - x) < r"
+                        by (metis \<open>r > 0\<close> add.commute divide_inverse inverse_inverse_eq inverse_less_imp_less less_trans mult.left_neutral nat_le_real_less of_nat_Suc)
+                    qed
+                    with \<open>strict_mono \<rho>\<close> show "(\<gamma> \<circ> \<rho>) \<longlonglongrightarrow> x"
+                      by (metis LIMSEQ_subseq_LIMSEQ)
+                    show "(\<lambda>n. ((\<gamma> \<circ> \<rho>) n - x) /\<^sub>R norm ((\<gamma> \<circ> \<rho>) n - x)) \<longlonglongrightarrow> l"
+                      using l by (auto simp: o_def)
                   qed
-                  have blA: "bounded_linear (A i)" "bounded_linear (A j)"
-                    using linA linear_conv_bounded_linear by auto
-                  have "isCont (\<lambda>w. (norm(A i w - A j w) - 2 / N)) z"
-                    by (intro continuous_intros bounded_linear.continuous blA)
-                  from isCont_tendsto_compose [OF this z]
-                  have lim: "(\<lambda>w. norm (A i ((\<gamma> w - x) /\<^sub>R norm (\<gamma> w - x)) -
-                                  A j ((\<gamma> w - x) /\<^sub>R norm (\<gamma> w - x))) - 2 / N)
-                             \<longlonglongrightarrow> norm (A i z - A j z) - 2 / N"
-                    by auto
-                  have "dist (A i z) (A j z) \<le> 2 / N"
-                    using tendsto_upperbound [OF lim even] by (auto simp: dist_norm)
-                  with N show "dist (A i z) (A j z) < \<epsilon>"
-                    by linarith
                 qed
+                have "isCont (\<lambda>x. (\<bar>d \<bullet> x\<bar> - \<xi>)) z"
+                  by (intro continuous_intros)
+                from isCont_tendsto_compose [OF this z]
+                have lim: "(\<lambda>y. \<bar>d \<bullet> ((\<gamma> y - x) /\<^sub>R norm (\<gamma> y - x))\<bar> - \<xi>) \<longlonglongrightarrow> \<bar>d \<bullet> z\<bar> - \<xi>"
+                  by auto
+                moreover have "\<forall>\<^sub>F i in sequentially. 0 \<le> \<bar>d \<bullet> ((\<gamma> i - x) /\<^sub>R norm (\<gamma> i - x))\<bar> - \<xi>"
+                proof (rule eventuallyI)
+                  fix n
+                  show "0 \<le> \<bar>d \<bullet> ((\<gamma> n - x) /\<^sub>R norm (\<gamma> n - x))\<bar> - \<xi>"
+                    using \<gamma>le [of n] \<gamma>Sx by (auto simp: abs_mult divide_simps)
+                qed
+                ultimately have "\<xi> \<le> \<bar>d \<bullet> z\<bar>"
+                  using tendsto_lowerbound [where a=0] by fastforce
+                have "Cauchy (\<lambda>n. A n z)"
+                proof (clarsimp simp add: Cauchy_def)
+                  fix \<epsilon> :: "real"
+                  assume "0 < \<epsilon>"
+                  then obtain N::nat where "N > 0" and N: "\<epsilon>/2 > 1/N"
+                    by (metis half_gt_zero inverse_eq_divide neq0_conv real_arch_inverse)
+                  show "\<exists>M. \<forall>m\<ge>M. \<forall>n\<ge>M. dist (A m z) (A n z) < \<epsilon>"
+                  proof (intro exI allI impI)
+                    fix i j
+                    assume ij: "N \<le> i" "N \<le> j"
+                    let ?V = "\<lambda>i k. A i ((\<gamma> k - x) /\<^sub>R norm (\<gamma> k - x))"
+                    have "\<forall>\<^sub>F k in sequentially. dist (\<gamma> k) x < min (\<delta> i) (\<delta> j)"
+                      using \<gamma>x [unfolded tendsto_iff] by (meson min_less_iff_conj \<delta>)
+                    then have even: "\<forall>\<^sub>F k in sequentially. norm (?V i k - ?V j k) - 2 / N \<le> 0"
+                    proof (rule eventually_mono, clarsimp)
+                      fix p
+                      assume p: "dist (\<gamma> p) x < \<delta> i" "dist (\<gamma> p) x < \<delta> j"
+                      let ?C = "\<lambda>k. f (\<gamma> p) - f x - A k (\<gamma> p - x)"
+                      have "norm ((A i - A j) (\<gamma> p - x)) = norm (?C j - ?C i)"
+                        by (simp add: algebra_simps)
+                      also have "\<dots> \<le> norm (?C j) + norm (?C i)"
+                        using norm_triangle_ineq4 by blast
+                      also have "\<dots> \<le> 1/(Suc j) * norm (\<gamma> p - x) + 1/(Suc i) * norm (\<gamma> p - x)"
+                        by (metis A Diff_iff \<gamma>Sx dist_norm p add_mono)
+                      also have "\<dots> \<le> 1/N * norm (\<gamma> p - x) + 1/N * norm (\<gamma> p - x)"
+                        using ij \<open>N > 0\<close> by (intro add_mono mult_right_mono) (auto simp: field_simps)
+                      also have "\<dots> = 2 / N * norm (\<gamma> p - x)"
+                        by simp
+                      finally have no_le: "norm ((A i - A j) (\<gamma> p - x)) \<le> 2 / N * norm (\<gamma> p - x)" .
+                      have "norm (?V i p - ?V j p) =
+                            norm ((A i - A j) ((\<gamma> p - x) /\<^sub>R norm (\<gamma> p - x)))"
+                        by (simp add: algebra_simps)
+                      also have "\<dots> = norm ((A i - A j) (\<gamma> p - x)) / norm (\<gamma> p - x)"
+                        using linA[of i] linA[of j] norm_scaleR real_norm_def divide_inverse norm_inverse
+                        by (smt (verit, del_insts) Real_Vector_Spaces.linear_iff abs_norm_cancel fun_diff_def
+                            mult.commute scaleR_right_diff_distrib)
+                      also have "\<dots> \<le> 2 / N"
+                        using no_le by (auto simp: field_split_simps)
+                      finally show "norm (?V i p - ?V j p) \<le> 2 / N" .
+                    qed
+                    have "isCont (\<lambda>w. (norm(A i w - A j w) - 2 / N)) z"
+                      by (simp add: continuous_intros linA linear_continuous_within linear_linear)
+                    from isCont_tendsto_compose [OF this z]
+                    have lim: "(\<lambda>w. norm (A i ((\<gamma> w - x) /\<^sub>R norm (\<gamma> w - x)) -
+                                    A j ((\<gamma> w - x) /\<^sub>R norm (\<gamma> w - x))) - 2 / N)
+                               \<longlonglongrightarrow> norm (A i z - A j z) - 2 / N"
+                      by auto
+                    have "dist (A i z) (A j z) \<le> 2 / N"
+                      using tendsto_upperbound [OF lim even] by (auto simp: dist_norm)
+                    with N show "dist (A i z) (A j z) < \<epsilon>"
+                      by linarith
+                  qed
+                qed
+                then have "d \<bullet> z = 0"
+                  using CA_eq d orthogonal_def by auto
+                then show False
+                  using \<open>0 < \<xi>\<close> \<open>\<xi> \<le> \<bar>d \<bullet> z\<bar>\<close> by auto
               qed
-              then have "d \<bullet> z = 0"
-                using CA_eq d orthogonal_def by auto
-              then show False
-                using \<open>0 < \<xi>\<close> \<open>\<xi> \<le> \<bar>d \<bullet> z\<bar>\<close> by auto
+              ultimately show ?thesis
+                using dim_eq_full by fastforce
             qed
-            ultimately show ?thesis
-              using dim_eq_full by fastforce
+            finally have "?CA = UNIV" .
+           then have "Cauchy (\<lambda>n. A n i)"
+              by auto
+            then obtain L where "(\<lambda>n. A n i) \<longlonglongrightarrow> L"
+              by (auto simp: Cauchy_convergent_iff convergent_def)
+            then have "(\<lambda>n. A n i \<bullet> j) \<longlonglongrightarrow> L \<bullet> j"
+              by (intro tendsto_intros)
+            then show "\<exists>a. (\<lambda>n. A n i \<bullet> j) \<longlonglongrightarrow> a"
+              by blast
           qed
-          finally have CA_UNIV: "?CA = UNIV" .
-          \<comment> \<open>Extract the pointwise limit B as a linear function\<close>
-          have conv_pw: "\<forall>w. \<exists>L. (\<lambda>n. A n w) \<longlonglongrightarrow> L"
-            using CA_UNIV by (auto simp: Cauchy_convergent_iff convergent_def)
-          then obtain B where B_pw: "\<And>w. (\<lambda>n. A n w) \<longlonglongrightarrow> B w"
-            by metis
-          have B_inner: "(\<lambda>n. A n i \<bullet> j) \<longlonglongrightarrow> B i \<bullet> j" for i j
-            by (intro tendsto_intros B_pw)
-          have linB: "linear B"
-          proof (rule linearI)
-            fix w1 w2 and c :: real
-            have "(\<lambda>n. A n (w1 + w2)) \<longlonglongrightarrow> B (w1 + w2)"
-              by (rule B_pw)
-            moreover have "(\<lambda>n. A n (w1 + w2)) \<longlonglongrightarrow> B w1 + B w2"
-            proof -
-              have "(\<lambda>n. A n w1 + A n w2) \<longlonglongrightarrow> B w1 + B w2"
-                by (intro tendsto_intros B_pw)
-              moreover have "A n (w1 + w2) = A n w1 + A n w2" for n
-                using linA[of n] by (simp add: linear_add)
-              ultimately show ?thesis by simp
+          then obtain B where B: "\<And>i j. (\<lambda>n. A n i \<bullet> j) \<longlonglongrightarrow> B i \<bullet> j" and "linear B"
+            by (auto simp: lambda_skolem)
+          have lin_df: "linear (f' x)"
+               and lim_df: "((\<lambda>y. (1 / norm (y - x)) *\<^sub>R (f y - (f x + f' x (y - x)))) \<longlongrightarrow> 0) (at x within S)"
+            using \<open>x \<in> S\<close> assms by (auto simp: has_derivative_within linear_linear)
+          moreover
+          interpret linear "f' x" by fact
+          have "(f' x - B) w = 0" for w
+          proof (rule lemma_partial_derivatives [of "f' x - B"])
+            show "linear (f' x - B)"
+              by (simp add: \<open>linear B\<close> fun_diff_def linear_axioms linear_compose_sub)
+            have "((\<lambda>y. ((f x + f' x (y - x)) - f y) /\<^sub>R norm (y - x)) \<longlongrightarrow> 0) (at x within S)"
+              using tendsto_minus [OF lim_df] by (simp add: field_split_simps)
+            then show "((\<lambda>y. (f' x - B) (y - x) /\<^sub>R norm (y - x)) \<longlongrightarrow> 0) (at x within S)"
+            proof (rule Lim_transform)
+              have "((\<lambda>y. ((f y + B x - (f x + B y)) /\<^sub>R norm (y - x))) \<longlongrightarrow> 0) (at x within S)"
+              proof (clarsimp simp add: Lim_within dist_norm)
+                fix e :: "real"
+                assume "e > 0"
+                then obtain q::nat where "q \<noteq> 0" and qe2: "1/q < e/2"
+                  by (metis divide_pos_pos inverse_eq_divide real_arch_inverse zero_less_numeral)
+                let ?g = "\<lambda>p. sum (\<lambda>i. sum (\<lambda>j. abs((A p - B) i \<bullet> j)) (Basis :: 'b set)) (Basis :: 'a set)"
+                have blAB: "bounded_linear (A k - B)" for k
+                  using linA \<open>linear B\<close> by (simp add: linear_conv_bounded_linear fun_diff_def bounded_linear_sub)
+                have "(\<lambda>k. onorm (A k - B)) \<longlonglongrightarrow> 0"
+                proof (rule Lim_null_comparison)
+                  show "\<forall>\<^sub>F k in sequentially. norm (onorm (A k - B)) \<le> ?g k"
+                  proof (rule eventually_sequentiallyI)
+                    fix k :: "nat"
+                    assume "0 \<le> k"
+                    have "0 \<le> onorm (A k - B)"
+                      using blAB by (rule onorm_pos_le)
+                    moreover have "onorm (A k - B) \<le> (\<Sum>i\<in>(Basis :: 'a set). \<Sum>j\<in>(Basis :: 'b set). \<bar>(A k - B) i \<bullet> j\<bar>)"
+                    proof (rule onorm_componentwise_le [OF blAB])
+                      show "(\<Sum>i\<in>Basis. norm ((A k - B) i)) \<le> (\<Sum>i\<in>(Basis :: 'a set). \<Sum>j\<in>(Basis :: 'b set). \<bar>(A k - B) i \<bullet> j\<bar>)"
+                        by (rule sum_mono [OF norm_le_l1])
+                    qed
+                    ultimately show "norm (onorm (A k - B)) \<le> (\<Sum>i\<in>(Basis :: 'a set). \<Sum>j\<in>(Basis :: 'b set). \<bar>(A k - B) i \<bullet> j\<bar>)"
+                      by simp
+                  qed
+                next
+                  show "?g \<longlonglongrightarrow> 0"
+                  proof (rule tendsto_null_sum)
+                    fix i :: 'a
+                    assume "i \<in> Basis"
+                    show "(\<lambda>p. \<Sum>j\<in>(Basis :: 'b set). \<bar>(A p - B) i \<bullet> j\<bar>) \<longlonglongrightarrow> 0"
+                    proof (rule tendsto_null_sum)
+                      fix j :: 'b
+                      assume "j \<in> Basis"
+                      have "(\<lambda>n. A n i \<bullet> j - B i \<bullet> j) \<longlonglongrightarrow> 0"
+                        using B Lim_null by fastforce
+                      moreover have "(A p - B) i \<bullet> j = A p i \<bullet> j - B i \<bullet> j" for p
+                        by (simp add: inner_diff_left)
+                      ultimately show "(\<lambda>p. \<bar>(A p - B) i \<bullet> j\<bar>) \<longlonglongrightarrow> 0"
+                        using tendsto_rabs_zero_iff by force
+                    qed
+                  qed
+                qed
+                with \<open>e > 0\<close> obtain p where "\<And>n. n \<ge> p \<Longrightarrow> \<bar>onorm (A n - B)\<bar> < e/2"
+                  unfolding lim_sequentially by (metis diff_zero dist_real_def divide_pos_pos zero_less_numeral)
+                then have pqe2: "\<bar>onorm (A (p + q) - B)\<bar> < e/2"
+                  using le_add1 by blast
+                show "\<exists>d>0. \<forall>y\<in>S. y \<noteq> x \<and> norm (y - x) < d \<longrightarrow>
+                           inverse (norm (y - x)) * norm (f y + B x - (f x + B y)) < e"
+                proof (intro exI, safe)
+                  show "0 < \<delta>(p + q)"
+                    by (simp add: \<delta>)
+                next
+                  fix y
+                  assume y: "y \<in> S" "norm (y - x) < \<delta>(p + q)" and "y \<noteq> x"
+                  have *: "\<lbrakk>norm(b - c) < e - d; norm(y - x - b) \<le> d\<rbrakk> \<Longrightarrow> norm(y - x - c) < e"
+                    for b c d e x and y:: "'b"
+                    using norm_triangle_ineq2 [of "y - x - c" "y - x - b"] by simp
+                  have "norm (f y - f x - B (y - x)) < e * norm (y - x)"
+                  proof (rule *)
+                    show "norm (f y - f x - A (p + q) (y - x)) \<le> norm (y - x) / (Suc (p + q))"
+                      using A [OF y] by simp
+                    have "norm (A (p + q) (y - x) - B (y - x)) \<le> onorm (A (p + q) - B) * norm(y - x)"
+                    proof -
+                      have "A (p + q) (y - x) - B (y - x) = (A (p + q) - B) (y - x)"
+                        by simp
+                      then show ?thesis
+                        using onorm [OF blAB] by simp
+                    qed
+                    also have "\<dots> < (e/2) * norm (y - x)"
+                      using \<open>y \<noteq> x\<close> pqe2 by auto
+                    also have "\<dots> \<le> (e - 1 / (Suc (p + q))) * norm (y - x)"
+                    proof (rule mult_right_mono)
+                      have "1 / Suc (p + q) \<le> 1 / q"
+                        using \<open>q \<noteq> 0\<close> by (auto simp: field_split_simps)
+                      also have "\<dots> < e/2"
+                        using qe2 by auto
+                      finally show "e / 2 \<le> e - 1 / real (Suc (p + q))"
+                        by linarith
+                    qed auto
+                    finally show "norm (A (p + q) (y - x) - B (y - x)) < e * norm (y - x) - norm (y - x) / real (Suc (p + q))"
+                      by (simp add: algebra_simps)
+                  qed
+                  then show "inverse (norm (y - x)) * norm (f y + B x - (f x + B y)) < e"
+                    using \<open>y \<noteq> x\<close> linear_diff [OF \<open>linear B\<close>]
+                    by (simp add: field_split_simps algebra_simps)
+                qed
+              qed
+              then show "((\<lambda>y. (f' x - B) (y - x) /\<^sub>R
+                           norm (y - x) - (f x + f' x (y - x) - f y) /\<^sub>R norm (y - x)) \<longlongrightarrow> 0)
+                          (at x within S)"
+                by (simp add: algebra_simps diff linear_diff [OF \<open>linear B\<close>] lin_df)
             qed
-            ultimately show "B (w1 + w2) = B w1 + B w2"
-              by (rule LIMSEQ_unique)
-            have "(\<lambda>n. A n (c *\<^sub>R w1)) \<longlonglongrightarrow> B (c *\<^sub>R w1)"
-              by (rule B_pw)
-            moreover have "(\<lambda>n. A n (c *\<^sub>R w1)) \<longlonglongrightarrow> c *\<^sub>R B w1"
-            proof -
-              have "(\<lambda>n. c *\<^sub>R A n w1) \<longlonglongrightarrow> c *\<^sub>R B w1"
-                by (intro tendsto_intros B_pw)
-              moreover have "A n (c *\<^sub>R w1) = c *\<^sub>R A n w1" for n
-      
+            show "\<And>v. v \<noteq> 0 \<Longrightarrow>
+         \<exists>k>0. \<forall>e>0. \<exists>xa\<in>S - {x}.
+                        norm (x - xa) < e \<and>
+                        k * norm (x - xa) \<le> \<bar>v \<bullet> (xa - x)\<bar>"
+              using x by (metis \<Theta>_def linorder_not_le)
+          qed 
+          ultimately have "f' x = B"
+            by (force simp: algebra_simps)
+
+          show "f' x u \<bullet> v \<le> b"
+          proof (rule tendsto_upperbound [of "\<lambda>i. (A i u \<bullet> v)" _ sequentially])
+            show "(\<lambda>i. A i u \<bullet> v) \<longlonglongrightarrow> f' x u \<bullet> v"
+              by (simp add: B \<open>f' x = B\<close>)
+            show "\<forall>\<^sub>F i in sequentially. A i u \<bullet> v \<le> b"
+              by (simp add: Ab less_eq_real_def)
+          qed auto
         next
           fix e :: "real"
-          assume "x \<in> S" and b: "matrix (f' x) $ m $ n \<le> b" and "e > 0"
+          assume "x \<in> S" and b: "f' x u \<bullet> v \<le> b" and "e > 0"
           then obtain d where "d>0"
             and d: "\<And>y. y\<in>S \<Longrightarrow> 0 < dist y x \<and> dist y x < d \<longrightarrow> norm (f y - f x - f' x (y - x)) / (norm (y - x))
                   < e/2"
@@ -1232,7 +1317,7 @@ proof -
             by (simp add: Deriv.has_derivative_at_within Lim_within)
               (auto simp add: field_simps dest: spec [of _ "e/2"])
           let ?A = "matrix(f' x) - (\<chi> i j. if i = m \<and> j = n then e / 4 else 0)"
-          obtain B where BRats: "\<And>i j. B$i$j \<in> \<rat>" and Bo_e6: "onorm((*v) (?A - B)) < e/6"
+          obtain B where BRats: "\<And>i j. B i \<bullet> j \<in> \<rat>" and Bo_e6: "onorm((*v) (?A - B)) < e/6"
             using matrix_rational_approximation \<open>e > 0\<close>
             by (metis zero_less_divide_iff zero_less_numeral)
           show "\<exists>d>0. \<exists>A. A u \<bullet> v < b \<and> (\<forall>i j. A i \<bullet> j \<in> \<rat>) \<and>
@@ -1240,14 +1325,14 @@ proof -
           proof (intro exI conjI ballI allI impI)
             show "d>0"
               by (rule \<open>d>0\<close>)
-            show "B $ m $ n < b"
+            show "B u \<bullet> v < b"
             proof -
-              have "\<bar>matrix ((*v) (?A - B)) $ m $ n\<bar> \<le> onorm ((*v) (?A - B))"
+              have "\<bar>matrix ((*v) (?A - B)) u \<bullet> v\<bar> \<le> onorm ((*v) (?A - B))"
                 using component_le_onorm [OF matrix_vector_mul_linear, of _ m n] by metis
               then show ?thesis
                 using b Bo_e6 by simp
             qed
-            show "B $ i $ j \<in> \<rat>" for i j
+            show "B i \<bullet> j \<in> \<rat>" for i j
               using BRats by auto
             show "norm (f y - f x - B *v (y - x)) \<le> e * norm (y - x)"
               if "y \<in> S" and y: "norm (y - x) < d" for y
@@ -1264,7 +1349,7 @@ proof -
                   using norm_triangle_le [of y "x-y" "e/2"] \<open>e > 0\<close> by simp
                 have "linear (f' x)"
                   using True f has_derivative_linear by blast
-                then have "norm (f' x (y - x) - B *v (y - x)) = norm ((matrix (f' x) - B) *v (y - x))"
+                then have "norm (f' x (y - x) - B *v (y - x)) = norm ((f' x - B) *v (y - x))"
                   by (simp add: matrix_vector_mult_diff_rdistrib)
                 also have "\<dots> \<le> (e * norm (y - x)) / 2"
                 proof (rule split246)
@@ -1275,7 +1360,7 @@ proof -
                   finally have "norm ((?A - B) *v (y - x)) / norm (y - x) < e / 6" .
                   then show "norm ((?A - B) *v (y - x)) \<le> e * norm (y - x) / 6"
                     by (simp add: field_split_simps False)
-                  have "norm ((matrix (f' x) - B) *v (y - x) - ((?A - B) *v (y - x))) = norm ((\<chi> i j. if i = m \<and> j = n then e / 4 else 0) *v (y - x))"
+                  have "norm ((f' x - B) *v (y - x) - ((?A - B) *v (y - x))) = norm ((\<chi> i j. if i = m \<and> j = n then e / 4 else 0) *v (y - x))"
                     by (simp add: algebra_simps)
                   also have "\<dots> = norm((e/4) *\<^sub>R (y - x)$n *\<^sub>R axis m (1::real))"
                   proof -
@@ -1299,7 +1384,7 @@ proof -
                     with \<open>e > 0\<close> show ?thesis
                       by (simp add: norm_mult abs_mult)
                   qed
-                  finally show "norm ((matrix (f' x) - B) *v (y - x) - ((?A - B) *v (y - x))) \<le> e * norm (y - x) / 4" .
+                  finally show "norm ((f' x - B) *v (y - x) - ((?A - B) *v (y - x))) \<le> e * norm (y - x) / 4" .
                   show "0 < e * norm (y - x)"
                     by (simp add: False \<open>e > 0\<close>)
                 qed
@@ -1312,7 +1397,7 @@ proof -
         qed
       qed auto
     qed
-    show "negligible M"
+        show "negligible M"
       using negligible_subset [OF nN MN] .
   qed
   then show ?thesis
