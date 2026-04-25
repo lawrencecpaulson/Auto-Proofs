@@ -1029,12 +1029,13 @@ proof -
             moreover have "\<exists>l. (\<lambda>n. A n (x + y)) \<longlonglongrightarrow> l" 
               if "(\<lambda>n. A n x) \<longlonglongrightarrow> l" and "(\<lambda>n. A n y) \<longlonglongrightarrow> l'"
               for x :: 'a and l :: 'b and y :: 'a and l' :: 'b
-              using that linA tendsto_add tendsto_add Real_Vector_Spaces.linear_iff
-              sorry
+              using that linA   
+              by (intro exI [where x="l+l'"]) (simp add: Real_Vector_Spaces.linear_iff tendsto_add)
             moreover have "\<exists>l. (\<lambda>n. A n (c *\<^sub>R x)) \<longlonglongrightarrow> l"
               if "(\<lambda>n. A n x) \<longlonglongrightarrow> l"
               for c :: real and x :: 'a and l :: 'b
-              using that sorry
+              using that linA
+              by (intro exI [where x="c *\<^sub>R l"]) (simp add: Real_Vector_Spaces.linear_iff tendsto_scaleR)
             ultimately have "subspace ?CA"
               by (auto simp: subspace_def convergent_eq_Cauchy [symmetric])
             then have CA_eq: "?CA = span ?CA"
@@ -1398,8 +1399,9 @@ proof -
           obtain B where linB: "linear B"
                      and BRats: "\<And>i j. i \<in> Basis \<Longrightarrow> j \<in> Basis \<Longrightarrow> B i \<bullet> j \<in> \<rat>"
                      and Bo_e6: "onorm (?A - B) < e/6"
-            sorry 
-              \<comment> \<open>EU version of matrix_rational_approximation; needs separate lemma\<close>          show "\<exists>d>0. \<exists>A. linear A \<and> A u \<bullet> v < b \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>) \<and>
+            sorry
+          \<comment> \<open>EU version of matrix_rational_approximation; needs separate lemma\<close>
+          show "\<exists>d>0. \<exists>A. linear A \<and> A u \<bullet> v < b \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>) \<and>
                 (\<forall>y\<in>S. norm (y - x) < d \<longrightarrow> norm (f y - f x - A (y - x)) \<le> e * norm (y - x))"
           proof (intro exI conjI ballI impI)
             show "d>0"
@@ -1409,23 +1411,30 @@ proof -
             show "B u \<bullet> v < b"
             proof -
               have "\<bar>(?A - B) u \<bullet> v\<bar> \<le> onorm (?A - B) * norm u * norm v"
-                sorry \<comment> \<open>by onorm bound and Cauchy–Schwarz\<close>
+              proof -
+                have bl: "bounded_linear (?A - B)"
+                  using linA' linB
+                  by (metis (no_types, lifting) ext linear_compose_sub linear_linear minus_apply)
+                have "\<bar>(?A - B) u \<bullet> v\<bar> \<le> norm ((?A - B) u) * norm v"
+                  by (rule Cauchy_Schwarz_ineq2)
+                also have "\<dots> \<le> onorm (?A - B) * norm u * norm v"
+                  using onorm [OF bl, of u] by (intro mult_right_mono) auto
+                finally show ?thesis .
+              qed
               also have "\<dots> < e/6 * norm u * norm v"
-                using Bo_e6 apply (intro mult_strict_right_mono)
-                apply blast
-                using Puv \<open>0 < e\<close> linP linear_0 apply force
-                using Puv \<open>0 < e\<close> linP linear_0 apply fastforce 
-                done
+                using Bo_e6 by simp
 
               finally have *: "\<bar>(?A - B) u \<bullet> v\<bar> < e/6 * norm u * norm v" .
               have "B u \<bullet> v \<le> ?A u \<bullet> v + e/6 * norm u * norm v"
-                sorry \<comment> \<open>from * and triangle inequality on inner product\<close>
+                by (smt (verit) "*" fun_diff_def inner_diff_left)
               also have "?A u \<bullet> v = f' x u \<bullet> v - P u \<bullet> v"
                 by (simp add: inner_diff_left)
               also have "\<dots> = f' x u \<bullet> v - e/4"
                 by (simp add: Puv)
-              finally show "B u \<bullet> v < b"
-                using b \<open>e > 0\<close> sorry \<comment> \<open>arithmetic: \<le> (f' x u \<bullet> v - e/4) + e/6*\<Parallel>u\<Parallel>*\<Parallel>v\<Parallel> < b when \<Parallel>u\<Parallel>*\<Parallel>v\<Parallel> \<le> 1\<close>
+              finally have "B u \<bullet> v \<le> f' x u \<bullet> v - e / 12"
+                by simp
+              then show "B u \<bullet> v < b"
+                using b \<open>e > 0\<close> by linarith
             qed
             show "B i \<bullet> j \<in> \<rat>" if "i \<in> Basis" "j \<in> Basis" for i j
               using BRats that by auto
@@ -3159,24 +3168,5 @@ lemma measure_differentiable_image_eq:
   shows "measure lebesgue (f ` S) = integral S (\<lambda>x. \<bar>eucl.det (f' x)\<bar>)"
   using measurable_differentiable_image_eq [OF S der_f inj]
         assms has_measure_differentiable_image by blast
-
-lemma has_absolute_integral_reflect_real:
-  fixes f :: "real \<Rightarrow> real"
-  assumes "uminus ` A \<subseteq> B" "uminus ` B \<subseteq> A" "A \<in> sets lebesgue"
-  shows "(\<lambda>x. f (-x)) absolutely_integrable_on A \<and> integral A (\<lambda>x. f (-x)) = b \<longleftrightarrow>
-         f absolutely_integrable_on B \<and> integral B f = b"
-proof -
-  have bij: "bij_betw uminus A B"
-    by (rule bij_betwI[of _ _ _ uminus]) (use assms in auto)
-  have "((\<lambda>x. \<bar>-1\<bar> * f (-x)) absolutely_integrable_on A \<and>
-          integral A (\<lambda>x. \<bar>-1\<bar> * f (-x)) = b) \<longleftrightarrow>
-        (f absolutely_integrable_on uminus ` A \<and>
-          integral (uminus ` A) f = b)" using assms
-    by (intro has_absolute_integral_change_of_variables_1') (auto intro!: derivative_eq_intros)
-  also have "uminus ` A = B"
-    using bij by (simp add: bij_betw_def)
-  finally show ?thesis
-    by simp
-qed
 
 end
