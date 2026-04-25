@@ -204,7 +204,85 @@ next
           using bound z_eq by simp
       qed
       also have "\<dots> < \<epsilon>"
-        sorry
+      proof -
+        \<comment> \<open>Abbreviations\<close>
+        let ?tags = "fst ` ?S'"
+        have S'_finite: "finite ?S'"
+          using finite_sub[of "\<lambda>x k. x \<in> \<sigma> ` T \<and> Henstock_Kurzweil_Integration.content k \<noteq> 0"] by auto
+        have tags_finite: "finite ?tags" using S'_finite by blast
+
+        \<comment> \<open>Group the sum by first component (the tag) via Sigma decomposition\<close>
+        define B where "B x \<equiv> {k. (x,k) \<in> ?S'}" for x
+        have B_finite: "finite (B x)" for x
+        proof -
+          have "B x \<subseteq> snd ` ?S'" unfolding B_def by (force intro: image_eqI)
+          then show ?thesis using finite_subset S'_finite by blast
+        qed
+        have S'_Sigma: "?S' = (SIGMA x:?tags. B x)"
+          unfolding B_def by force
+        have sum_grouped: "(\<Sum>(x,k)\<in>?S'. \<epsilon> / 2 ^ (3 + n x)) =
+              (\<Sum>x\<in>?tags. (\<Sum>k\<in>B x. \<epsilon> / 2 ^ (3 + n x)))"
+        proof -
+          have "(\<Sum>(x,k)\<in>?S'. \<epsilon> / 2 ^ (3 + n x)) =
+                (\<Sum>(x,k)\<in>(SIGMA x:?tags. B x). \<epsilon> / 2 ^ (3 + n x))"
+            using S'_Sigma by presburger
+          also have "\<dots> = (\<Sum>x\<in>?tags. (\<Sum>k\<in>B x. \<epsilon> / 2 ^ (3 + n x)))"
+            by (metis (no_types, lifting) ext B_finite sum.Sigma tags_finite)
+          finally show ?thesis .
+        qed
+        \<comment> \<open>Inner sum: constant in k, so equals card(B x) * (\<epsilon> / 2^(3+n x))\<close>
+        have inner: "(\<Sum>k\<in>B x. \<epsilon> / 2 ^ (3 + n x)) = real (card (B x)) * (\<epsilon> / 2 ^ (3 + n x))" for x
+          by (simp add: sum_constant)
+        \<comment> \<open>Rewrite \<epsilon>/2^(3+n x) = (\<epsilon>/8) * (1/2^(n x))\<close>
+        have power_split: "\<epsilon> / 2 ^ (3 + n x) = (\<epsilon> / 8) * (1 / 2 ^ n x)" for x :: real
+          by (simp add: power_add field_simps)
+        \<comment> \<open>Combine: total sum = (\<epsilon>/8) * \<Sum>x\<in>tags. card(B x) / 2^(n x)\<close>
+        have sum_rw: "(\<Sum>(x,k)\<in>?S'. \<epsilon> / 2 ^ (3 + n x)) =
+              (\<epsilon> / 8) * (\<Sum>x\<in>?tags. real (card (B x)) / 2 ^ n x)"
+        proof -
+          have "(\<Sum>(x,k)\<in>?S'. \<epsilon> / 2 ^ (3 + n x)) =
+                (\<Sum>x\<in>?tags. real (card (B x)) * (\<epsilon> / 2 ^ (3 + n x)))"
+            using sum_grouped inner by simp
+          also have "\<dots> = (\<Sum>x\<in>?tags. real (card (B x)) * ((\<epsilon> / 8) * (1 / 2 ^ n x)))"
+            by (simp only: power_split)
+          also have "\<dots> = (\<epsilon> / 8) * (\<Sum>x\<in>?tags. real (card (B x)) / 2 ^ n x)"
+            by (simp add: sum_distrib_left field_simps)
+          finally show ?thesis .
+        qed
+
+        \<comment> \<open>Reduce to: if grouped sum \<le> 4 then total < \<epsilon>\<close>
+        have reduce: "(\<Sum>x\<in>?tags. real (card (B x)) / 2 ^ n x) \<le> 4 \<Longrightarrow>
+              (\<Sum>(x,k)\<in>?S'. \<epsilon> / 2 ^ (3 + n x)) < \<epsilon>"
+        proof (rule order_le_less_trans[of _ "\<epsilon> / 2"])
+          assume bound: "(\<Sum>x\<in>?tags. real (card (B x)) / 2 ^ n x) \<le> 4"
+          have "(\<Sum>(x,k)\<in>?S'. \<epsilon> / 2 ^ (3 + n x)) = (\<epsilon> / 8) * (\<Sum>x\<in>?tags. real (card (B x)) / 2 ^ n x)"
+            by (rule sum_rw)
+          also have "\<dots> \<le> (\<epsilon> / 8) * 4"
+            using \<open>0 < \<epsilon>\<close> bound by (intro mult_left_mono) auto
+          also have "\<dots> = \<epsilon> / 2" by simp
+          finally show "(\<Sum>(x,k)\<in>?S'. \<epsilon> / 2 ^ (3 + n x)) \<le> \<epsilon> / 2" .
+        next
+          show "\<epsilon> / 2 < \<epsilon>" using \<open>0 < \<epsilon>\<close> by simp
+        qed
+        show ?thesis
+        proof (rule reduce)
+          show "(\<Sum>x\<in>?tags. real (card (B x)) / 2 ^ n x) \<le> 4"
+          proof (rule order_trans[where y="(\<Sum>x\<in>\<sigma> ` T \<inter> fst ` p. real (card (B x)) / 2 ^ n x)"])
+            show "(\<Sum>x\<in>?tags. real (card (B x)) / 2 ^ n x) \<le>
+                  (\<Sum>x\<in>\<sigma> ` T \<inter> fst ` p. real (card (B x)) / 2 ^ n x)"
+            proof (rule sum_mono2)
+              show "finite (\<sigma> ` T \<inter> fst ` p)"
+                using p_finite by (auto intro: finite_Int finite_imageI)
+              show "?tags \<subseteq> \<sigma> ` T \<inter> fst ` p"
+                by force
+              show "\<And>i. i \<in> \<sigma> ` T \<inter> fst ` p - ?tags \<Longrightarrow> 0 \<le> real (card (B i)) / 2 ^ n i"
+                by (auto intro: divide_nonneg_nonneg)
+            qed
+            show "(\<Sum>x\<in>\<sigma> ` T \<inter> fst ` p. real (card (B x)) / 2 ^ n x) \<le> 4"
+              sorry
+          qed
+        qed
+      qed
       finally show ?thesis .
     qed
   qed
