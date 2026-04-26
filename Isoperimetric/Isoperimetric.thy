@@ -3,6 +3,14 @@ theory Isoperimetric
     "HOL-ex.Sketch_and_Explore" Isar_Explore
 begin
 
+(*The forthcoming version*)
+lemma integral_change_of_variables_linear:
+  fixes f :: "'a::euclidean_space \<Rightarrow> 'b::euclidean_space" and g :: "'a \<Rightarrow> 'a"
+  assumes "linear g"
+      and "f absolutely_integrable_on (g ` S) \<or> (f \<circ> g) absolutely_integrable_on S"
+    shows "integral (g ` S) f = \<bar>eucl.det g\<bar> *\<^sub>R integral S (f \<circ> g)"
+  sorry
+
 lemma fundamental_theorem_of_calculus_strong:
   fixes f :: "real \<Rightarrow> 'a::banach" and f' :: "real \<Rightarrow> 'a"
   assumes "countable S"
@@ -3831,27 +3839,162 @@ proof -
       by auto
     have ai: "(f \<circ> \<phi>) absolutely_integrable_on {u..v}"
       using below_1 f_def integrand_eq set_integrable_cong by fastforce
-    have step2: "integral (uminus ` {u..v}) (f \<circ> (+) (u + v)) =
-                 \<bar>Determinants.det (matrix uminus)\<bar> *\<^sub>R integral {u..v} ((f \<circ> (+) (u + v)) \<circ> uminus)"
-      using integral_change_of_variables_linear[OF linear_uminus, of "f \<circ> (+) (u+v)"]
-            ai unfolding comp_eq by auto
-    have det_uminus: "\<bar>Determinants.det (matrix uminus)\<bar> = (1::real)"
-      by (simp add: matrix_uminus det_neg Determinants.det_def)
     have "integral {u..v} (f \<circ> \<phi>) = integral (uminus ` {u..v}) (f \<circ> (+) (u + v))"
-      using step2 det_uminus unfolding comp_eq by simp
+      using ai by (subst Isoperimetric.integral_change_of_variables_linear[OF linear_uminus])
+            (auto simp: comp_eq)
     also have "\<dots> = integral {-v..-u} (f \<circ> (+) (u + v))"
       unfolding img_eq ..
     also have "\<dots> = integral {u..v} f"
       using step1 .
-    finally show ?thesis unfolding f_def by simp
+    finally show ?thesis 
+      by (simp add: f_def comp_def)
   qed
   \<comment> \<open>11. Transfer: measure set via conjugation\<close>
   have measure_eq: "measure lebesgue {z. \<exists>w \<in> h ` {u..v}. Re w = Re z \<and> 0 \<le> Im z \<and> Im z \<le> Im w} =
                     measure lebesgue {z. \<exists>w \<in> g ` {u..v}. Re w = Re z \<and> Im w \<le> Im z \<and> Im z \<le> 0}"
-    sorry
+  proof -
+    have h_image: "h ` {u..v} = cnj ` (g ` {u..v})"
+    proof -
+      have "(cnj \<circ> g \<circ> \<phi>) ` {u..v} = cnj ` (g ` (\<phi> ` {u..v}))"
+        by (simp add: image_comp)
+      then show ?thesis unfolding h_def using \<phi>_image by simp
+    qed
+    define A where "A \<equiv> {z. \<exists>w \<in> h ` {u..v}. Re w = Re z \<and> 0 \<le> Im z \<and> Im z \<le> Im w}"
+    define B where "B \<equiv> {z. \<exists>w \<in> g ` {u..v}. Re w = Re z \<and> Im w \<le> Im z \<and> Im z \<le> 0}"
+    have AB: "A = cnj ` B"
+    proof (rule set_eqI)
+      fix z :: complex
+      show "z \<in> A \<longleftrightarrow> z \<in> cnj ` B"
+      proof
+        assume "z \<in> A"
+        then obtain w' where w': "w' \<in> g ` {u..v}" "Re (cnj w') = Re z" 
+          "0 \<le> Im z" "Im z \<le> Im (cnj w')"
+          unfolding A_def h_image by auto
+        then have "cnj z \<in> B"
+          unfolding B_def by (auto simp: cnj.sel)
+        then show "z \<in> cnj ` B" by (metis complex_cnj_cnj imageI)
+      next
+        assume "z \<in> cnj ` B"
+        then obtain z' where z': "z' \<in> B" "z = cnj z'" by auto
+        then obtain w where w: "w \<in> g ` {u..v}" "Re w = Re z'" "Im w \<le> Im z'" "Im z' \<le> 0"
+          unfolding B_def by auto
+        have "cnj w \<in> cnj ` (g ` {u..v})" using w(1) by auto
+        moreover have "Re (cnj w) = Re z" using w(2) z'(2) by simp
+        moreover have "0 \<le> Im z" using w(4) z'(2) by simp
+        moreover have "Im z \<le> Im (cnj w)" using w(3) z'(2) by simp
+        ultimately show "z \<in> A" unfolding A_def h_image by auto
+      qed
+    qed
+    have det_cnj: "\<bar>eucl.det cnj\<bar> = 1"
+      by (simp add: det_complex)
+    have cont_g_uv: "continuous_on {u..v} g"
+      using assms(3) absolutely_continuous_on_imp_continuous is_interval_cc by blast
+    have B_meas: "B \<in> lmeasurable"
+    proof -
+      have "compact B"
+      proof -
+        \<comment> \<open>B is the continuous image of the compact set {u..v} \<times> {0..1}\<close>
+        define \<psi> where "\<psi> \<equiv> \<lambda>(t::real, s::real). Complex (Re (g t)) ((1 - s) * Im (g t))"
+        have cont_\<psi>: "continuous_on ({u..v} \<times> {0..1}) \<psi>"
+          unfolding \<psi>_def split_def
+          by (intro continuous_intros continuous_on_compose2[OF continuous_on_Re[OF cont_g_uv]]
+                continuous_on_compose2[OF continuous_on_Im[OF cont_g_uv]] continuous_on_fst) auto
+        have img: "\<psi> ` ({u..v} \<times> {0..1}) = B"
+        proof (rule set_eqI)
+          fix z :: complex
+          show "z \<in> \<psi> ` ({u..v} \<times> {0..1}) \<longleftrightarrow> z \<in> B"
+          proof
+            assume "z \<in> \<psi> ` ({u..v} \<times> {0..1})"
+            then obtain t s where ts: "t \<in> {u..v}" "s \<in> {0..1}" 
+              "z = Complex (Re (g t)) ((1 - s) * Im (g t))"
+              unfolding \<psi>_def by auto
+            have Im_le: "Im (g t) \<le> 0"
+              using assms(4) ts(1) by (auto simp: image_subset_iff)
+            have "g t \<in> g ` {u..v}" using ts(1) by auto
+            moreover have "Re (g t) = Re z" using ts(3) by simp
+            moreover have "Im (g t) \<le> Im z"
+            proof -
+              have "0 \<le> 1 - s" "1 - s \<le> 1" using ts(2) by auto
+              then have "1 * Im (g t) \<le> (1 - s) * Im (g t)"
+                using Im_le by (intro mult_right_mono_neg) auto
+              then show ?thesis using ts(3) by simp
+            qed
+            moreover have "Im z \<le> 0"
+            proof -
+              have "0 \<le> 1 - s" using ts(2) by auto
+              then show ?thesis using ts(3) Im_le mult_nonneg_nonpos[of "1-s" "Im (g t)"]
+                by simp
+            qed
+            ultimately show "z \<in> B" unfolding B_def by auto
+          next
+            assume "z \<in> B"
+            then obtain w t where wt: "t \<in> {u..v}" "w = g t" "Re w = Re z" 
+              "Im w \<le> Im z" "Im z \<le> 0"
+              unfolding B_def by auto
+            show "z \<in> \<psi> ` ({u..v} \<times> {0..1})"
+            proof (cases "Im (g t) = 0")
+              case True
+              then have "Im z = 0" using wt(2) wt(4) wt(5) by auto
+              have "z = \<psi> (t, 0)" unfolding \<psi>_def using wt(2,3) True \<open>Im z = 0\<close>
+                by (simp add: complex_eq_iff)
+              then show ?thesis using wt(1) by auto
+            next
+              case False
+              have "Im (g t) \<le> 0" using assms(4) wt(1) by (auto simp: image_subset_iff)
+              then have neg: "Im (g t) < 0" using False by linarith
+              define s where "s \<equiv> 1 - Im z / Im (g t)"
+              have "s \<in> {0..1}" 
+              proof -
+                have "Im (g t) \<le> Im z" using wt(2,4) by simp
+                then have "Im z / Im (g t) \<le> 1" using neg by (simp add: field_simps)
+                moreover have "0 \<le> Im z / Im (g t)" using wt(5) neg
+                  by (simp add: field_simps)
+                ultimately show ?thesis unfolding s_def by simp
+              qed
+              moreover have "z = \<psi> (t, s)" unfolding \<psi>_def s_def
+                using wt(2,3) False by (simp add: complex_eq_iff field_simps)
+              ultimately show ?thesis using wt(1) by auto
+            qed
+          qed
+        qed
+        have "compact ({u..v} \<times> {0..1::real})"
+          by (intro compact_Times compact_Icc)
+        then show "compact B"
+          using img compact_continuous_image[OF cont_\<psi>] by simp
+      qed
+      then show ?thesis using lmeasurable_compact by blast
+    qed
+    show ?thesis
+      unfolding A_def[symmetric] B_def[symmetric]
+      using AB Euclidean_Space_Transfer.measure_linear_image[OF linear_cnj B_meas] det_cnj
+      by simp
+  qed
   \<comment> \<open>Conclude\<close>
   show "(\<lambda>t. Re (g' t) * Im (g t)) absolutely_integrable_on {u..v}"
-    sorry
+  proof -
+    have gp_ai: "g' absolutely_integrable_on {u..v}"
+      using absolutely_integrable_absolutely_continuous_derivative[OF assms(3) assms(7)]
+        assms(8) has_vector_derivative_at_within by blast
+    have Re_gp_ai: "(\<lambda>t. Re (g' t)) absolutely_integrable_on {u..v}"
+    proof -
+      have "(\<lambda>t. g' t \<bullet> 1) absolutely_integrable_on {u..v}"
+        by (rule absolutely_integrable_component[OF gp_ai])
+      then show ?thesis by (simp add: complex_inner_1_right)
+    qed
+    have cont_g_uv: "continuous_on {u..v} g"
+      using assms(3) absolutely_continuous_on_imp_continuous is_interval_cc by blast
+    have Im_g_cont: "continuous_on {u..v} (\<lambda>t. Im (g t))"
+      by (intro continuous_intros cont_g_uv)
+    have Im_g_bdd: "bounded ((\<lambda>t. Im (g t)) ` {u..v})"
+      by (intro compact_imp_bounded compact_continuous_image[OF Im_g_cont compact_Icc])
+    have Im_g_meas: "(\<lambda>t. Im (g t)) \<in> borel_measurable (lebesgue_on {u..v})"
+      using continuous_imp_measurable_on_sets_lebesgue[OF Im_g_cont]
+        atLeastAtMost_borel lborelD
+      by (metis sets_completionI_sets)
+    show ?thesis
+      using absolutely_integrable_bounded_measurable_product_real [OF Im_g_meas _ Im_g_bdd Re_gp_ai]
+      by (simp add: mult.commute)
+  qed
   show "integral {u..v} (\<lambda>t. Re (g' t) * Im (g t)) =
       measure lebesgue {z. \<exists>w \<in> g ` {u..v}. Re w = Re z \<and> Im w \<le> Im z \<and> Im z \<le> 0}"
     using below_2 integrand_eq integral_eq measure_eq by (simp add: o_def)

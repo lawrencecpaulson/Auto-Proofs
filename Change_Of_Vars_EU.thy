@@ -566,6 +566,54 @@ qed
 
 subsection\<open>Borel measurable Jacobian determinant\<close>
 
+proposition linear_rational_approximation:
+  fixes A :: "real^'n^'m"
+  assumes "e > 0"
+  obtains B where "\<And>i j. B$i$j \<in> \<rat>" "onorm(\<lambda>x. (A - B) *v x) < e"
+proof -
+  have "\<forall>i j. \<exists>q \<in> \<rat>. \<bar>q - A $ i $ j\<bar> < e / (2 * CARD('m) * CARD('n))"
+    using assms by (force intro: rational_approximation [of "e / (2 * CARD('m) * CARD('n))"])
+  then obtain B where B: "\<And>i j. B$i$j \<in> \<rat>" and Bclo: "\<And>i j. \<bar>B$i$j - A $ i $ j\<bar> < e / (2 * CARD('m) * CARD('n))"
+    by (auto simp: lambda_skolem Bex_def)
+  show ?thesis
+  proof
+    have "onorm ((*v) (A - B)) \<le> real CARD('m) * real CARD('n) *
+    (e / (2 * real CARD('m) * real CARD('n)))"
+      apply (rule onorm_le_matrix_component)
+      using Bclo by (simp add: abs_minus_commute less_imp_le)
+    also have "\<dots> < e"
+      using \<open>0 < e\<close> by (simp add: field_split_simps)
+    finally show "onorm ((*v) (A - B)) < e" .
+  qed (use B in auto)
+qed
+
+proposition linear_rational_approximation_eu:
+  fixes f :: "'a::euclidean_space \<Rightarrow> 'b::euclidean_space"
+  assumes "linear f" "e > 0"
+  obtains g where "linear g"
+    "\<And>i j. i \<in> Basis \<Longrightarrow> j \<in> Basis \<Longrightarrow> g i \<bullet> j \<in> \<rat>"
+    "onorm (f - g) < e"
+proof -
+  have "\<forall>i j. \<exists>q \<in> \<rat>. \<bar>q - f i \<bullet> j\<bar> < e / (2 * DIM('a) * DIM('b))"
+    using assms
+    by (force intro: rational_approximation [of "e / (2 * DIM('a) * DIM('b))"])
+  then obtain g::"'a\<Rightarrow>'b" where "linear g" and g: "\<And>i j. g i \<bullet> j \<in> \<rat>" 
+    and Bclo: "\<And>i j. \<bar>g i \<bullet> j - f i \<bullet> j\<bar> < e / (2 * DIM('a) * DIM('b))"
+    by (auto simp: lambda_skolem Bex_def)
+  show ?thesis
+  proof
+    have "onorm ((f - g)) \<le> real DIM('a) * real DIM('b) *
+    (e / (2 * real DIM('a) * real DIM('b)))"
+      apply (rule onorm_le_matrix_component)
+      using Bclo by (simp add: abs_minus_commute less_imp_le)
+    also have "\<dots> < e"
+      using \<open>0 < e\<close> by (simp add: field_split_simps)
+    finally show "onorm ((f - g)) < e" .
+  qed (use B in auto)
+qed
+  sorry
+
+
 lemma orthogonal_transformation_exists_eu:
   fixes a b :: "'a::euclidean_space"
   assumes "norm a = norm b"
