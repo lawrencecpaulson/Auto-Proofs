@@ -566,27 +566,6 @@ qed
 
 subsection\<open>Borel measurable Jacobian determinant\<close>
 
-proposition linear_rational_approximation:
-  fixes A :: "real^'n^'m"
-  assumes "e > 0"
-  obtains B where "\<And>i j. B$i$j \<in> \<rat>" "onorm(\<lambda>x. (A - B) *v x) < e"
-proof -
-  have "\<forall>i j. \<exists>q \<in> \<rat>. \<bar>q - A $ i $ j\<bar> < e / (2 * CARD('m) * CARD('n))"
-    using assms by (force intro: rational_approximation [of "e / (2 * CARD('m) * CARD('n))"])
-  then obtain B where B: "\<And>i j. B$i$j \<in> \<rat>" and Bclo: "\<And>i j. \<bar>B$i$j - A $ i $ j\<bar> < e / (2 * CARD('m) * CARD('n))"
-    by (auto simp: lambda_skolem Bex_def)
-  show ?thesis
-  proof
-    have "onorm ((*v) (A - B)) \<le> real CARD('m) * real CARD('n) *
-    (e / (2 * real CARD('m) * real CARD('n)))"
-      apply (rule onorm_le_matrix_component)
-      using Bclo by (simp add: abs_minus_commute less_imp_le)
-    also have "\<dots> < e"
-      using \<open>0 < e\<close> by (simp add: field_split_simps)
-    finally show "onorm ((*v) (A - B)) < e" .
-  qed (use B in auto)
-qed
-
 proposition linear_rational_approximation_eu:
   fixes f :: "'a::euclidean_space \<Rightarrow> 'b::euclidean_space"
   assumes "linear f" "e > 0"
@@ -594,24 +573,63 @@ proposition linear_rational_approximation_eu:
     "\<And>i j. i \<in> Basis \<Longrightarrow> j \<in> Basis \<Longrightarrow> g i \<bullet> j \<in> \<rat>"
     "onorm (f - g) < e"
 proof -
-  have "\<forall>i j. \<exists>q \<in> \<rat>. \<bar>q - f i \<bullet> j\<bar> < e / (2 * DIM('a) * DIM('b))"
-    using assms
-    by (force intro: rational_approximation [of "e / (2 * DIM('a) * DIM('b))"])
-  then obtain g::"'a\<Rightarrow>'b" where "linear g" and g: "\<And>i j. g i \<bullet> j \<in> \<rat>" 
-    and Bclo: "\<And>i j. \<bar>g i \<bullet> j - f i \<bullet> j\<bar> < e / (2 * DIM('a) * DIM('b))"
-    by (auto simp: lambda_skolem Bex_def)
-  show ?thesis
-  proof
-    have "onorm ((f - g)) \<le> real DIM('a) * real DIM('b) *
-    (e / (2 * real DIM('a) * real DIM('b)))"
-      apply (rule onorm_le_matrix_component)
-      using Bclo by (simp add: abs_minus_commute less_imp_le)
-    also have "\<dots> < e"
-      using \<open>0 < e\<close> by (simp add: field_split_simps)
-    finally show "onorm ((f - g)) < e" .
-  qed (use B in auto)
+  define d where "d = e / (2 * DIM('a) * DIM('b))"
+  have "d > 0" using assms by (simp add: d_def)
+  have "\<forall>i \<in> Basis. \<forall>j \<in> Basis. \<exists>q \<in> \<rat>. \<bar>q - f i \<bullet> j\<bar> < d"
+    using \<open>d > 0\<close> by (force intro: rational_approximation)
+  then obtain q where qrat: "\<And>i j. i \<in> Basis \<Longrightarrow> j \<in> Basis \<Longrightarrow> q i j \<in> \<rat>"
+    and qclo: "\<And>i j. i \<in> Basis \<Longrightarrow> j \<in> Basis \<Longrightarrow> \<bar>q i j - f i \<bullet> j\<bar> < d"
+    by (metis (mono_tags))
+  define G where "G = blinfun_of_matrix (\<lambda>i j. q j i)"
+  define g where "g = blinfun_apply G"
+  have lin_g: "linear g"
+    unfolding g_def using blinfun.bounded_linear_right linear_conv_bounded_linear by blast
+  have g_eq: "\<And>x. g x = (\<Sum>i\<in>Basis. (\<Sum>j\<in>Basis. (x \<bullet> j * q j i)) *\<^sub>R i)"
+    unfolding g_def G_def blinfun_of_matrix_apply
+    by (simp add: scale_sum_left[symmetric])
+  have g_basis: "\<And>k m. k \<in> Basis \<Longrightarrow> m \<in> Basis \<Longrightarrow> g k \<bullet> m = q k m"
+  proof -
+    fix k :: 'a and m :: 'b assume km: "k \<in> Basis" "m \<in> Basis"
+    have "g k \<bullet> m = (\<Sum>i\<in>Basis. (\<Sum>j\<in>Basis. (k \<bullet> j * q j i)) *\<^sub>R i) \<bullet> m"
+      by (simp add: g_eq)
+    also have "\<dots> = (\<Sum>j\<in>Basis. k \<bullet> j * q j m)"
+      using km by (simp add: inner_sum_left_Basis)
+    also have "\<dots> = q k m"
+    proof -
+      have "(\<Sum>j\<in>Basis. k \<bullet> j * q j m) = (\<Sum>j\<in>Basis. if k = j then q j m else 0)"
+        by (intro sum.cong) (auto simp: km inner_Basis)
+      also have "\<dots> = q k m"
+        using km by (simp add: sum.delta')
+      finally show ?thesis .
+    qed
+    finally show "g k \<bullet> m = q k m" .
+  qed
+  show thesis
+  proof (rule that[OF lin_g])
+    show "\<And>i j. i \<in> Basis \<Longrightarrow> j \<in> Basis \<Longrightarrow> g i \<bullet> j \<in> \<rat>"
+      using g_basis qrat by simp
+  next
+    have bl_fg: "bounded_linear (\<lambda>x. f x - g x)"
+      using assms(1) lin_g linear_conv_bounded_linear by (intro bounded_linear_sub) blast+
+    have "onorm (f - g) \<le> (\<Sum>i\<in>Basis. norm ((f - g) i))"
+      using onorm_componentwise[OF bl_fg] by (simp add: fun_diff_def)
+    also have "\<dots> \<le> (\<Sum>i\<in>(Basis::'a set). (\<Sum>j\<in>(Basis::'b set). \<bar>(f - g) i \<bullet> j\<bar>))"
+      by (intro sum_mono norm_le_l1)
+    also have "\<dots> = (\<Sum>i\<in>(Basis::'a set). (\<Sum>j\<in>(Basis::'b set). \<bar>f i \<bullet> j - g i \<bullet> j\<bar>))"
+      by (simp add: inner_diff_left)
+    also have "\<dots> = (\<Sum>i\<in>(Basis::'a set). (\<Sum>j\<in>(Basis::'b set). \<bar>f i \<bullet> j - q i j\<bar>))"
+      by (simp add: g_basis)
+    also have "\<dots> < (\<Sum>i\<in>(Basis::'a set). (\<Sum>j\<in>(Basis::'b set). d))"
+      by (intro sum_strict_mono finite_Basis) (use qclo abs_minus_commute in force)+
+    also have "\<dots> = DIM('a) * DIM('b) * d"
+      by simp
+    also have "\<dots> = e / 2"
+      unfolding d_def by simp
+    also have "\<dots> < e" using assms by simp
+    finally show "onorm (f - g) < e" .
+  qed
 qed
-  sorry
+
 
 
 lemma orthogonal_transformation_exists_eu:
@@ -1447,7 +1465,8 @@ proof -
           obtain B where linB: "linear B"
                      and BRats: "\<And>i j. i \<in> Basis \<Longrightarrow> j \<in> Basis \<Longrightarrow> B i \<bullet> j \<in> \<rat>"
                      and Bo_e6: "onorm (?A - B) < e/6"
-            sorry
+            by (metis \<open>0 < e\<close> divide_pos_pos linA' linear_rational_approximation_eu
+                zero_less_numeral)
           \<comment> \<open>EU version of matrix_rational_approximation; needs separate lemma\<close>
           show "\<exists>d>0. \<exists>A. linear A \<and> A u \<bullet> v < b \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>) \<and>
                 (\<forall>y\<in>S. norm (y - x) < d \<longrightarrow> norm (f y - f x - A (y - x)) \<le> e * norm (y - x))"
