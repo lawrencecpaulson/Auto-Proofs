@@ -566,7 +566,7 @@ qed
 
 subsection\<open>Borel measurable Jacobian determinant\<close>
 
-proposition linear_rational_approximation_eu:
+proposition linear_rational_approximation:
   fixes f :: "'a::euclidean_space \<Rightarrow> 'b::euclidean_space"
   assumes "linear f" "e > 0"
   obtains g where "linear g"
@@ -1465,9 +1465,8 @@ proof -
           obtain B where linB: "linear B"
                      and BRats: "\<And>i j. i \<in> Basis \<Longrightarrow> j \<in> Basis \<Longrightarrow> B i \<bullet> j \<in> \<rat>"
                      and Bo_e6: "onorm (?A - B) < e/6"
-            by (metis \<open>0 < e\<close> divide_pos_pos linA' linear_rational_approximation_eu
+            by (metis \<open>0 < e\<close> divide_pos_pos linA' linear_rational_approximation
                 zero_less_numeral)
-          \<comment> \<open>EU version of matrix_rational_approximation; needs separate lemma\<close>
           show "\<exists>d>0. \<exists>A. linear A \<and> A u \<bullet> v < b \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>) \<and>
                 (\<forall>y\<in>S. norm (y - x) < d \<longrightarrow> norm (f y - f x - A (y - x)) \<le> e * norm (y - x))"
           proof (intro exI conjI ballI impI)
