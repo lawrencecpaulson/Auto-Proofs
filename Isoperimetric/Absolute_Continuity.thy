@@ -34,8 +34,8 @@ section \<open>Absolute set-continuity\<close>
 definition absolutely_setcontinuous_on ::
   "('a::euclidean_space set \<Rightarrow> 'b::euclidean_space) \<Rightarrow> 'a set \<Rightarrow> bool" where
   "absolutely_setcontinuous_on f S \<equiv>
-    (\<forall>\<epsilon>>0. \<exists>\<delta>>0. \<forall>d T. d division_of T \<and> T \<subseteq> S \<and>
-      (\<Sum>k\<in>d. content k) < \<delta> \<longrightarrow> (\<Sum>k\<in>d. norm (f k)) < \<epsilon>)"
+    (\<forall>\<epsilon>>0. \<exists>\<delta>>0. \<forall>d T. d division_of T \<and> T \<subseteq> S \<and> (\<Sum>k\<in>d. content k) < \<delta> 
+     \<longrightarrow> (\<Sum>k\<in>d. norm (f k)) < \<epsilon>)"
 
 lemma absolutely_setcontinuous_on_subset:
   assumes \<open>absolutely_setcontinuous_on f S\<close> \<open>T \<subseteq> S\<close>
@@ -90,9 +90,6 @@ proof -
       \<comment> \<open>Triangle inequality\<close>
       have step_eq: "norm (f k) = norm (sum f {cbox c' d' \<inter> l |l. l \<in> D \<and> cbox c' d' \<inter> l \<noteq> {}})"
         by (metis f_split k_eq)
-      have step_tri: "norm (sum f {cbox c' d' \<inter> l |l. l \<in> D \<and> cbox c' d' \<inter> l \<noteq> {}})
-                     \<le> (\<Sum>j\<in>{cbox c' d' \<inter> l |l. l \<in> D \<and> cbox c' d' \<inter> l \<noteq> {}}. norm (f j))"
-        by (rule norm_sum)
       \<comment> \<open>Extend the sum from the image to all of @{term D}\<close>
       have step_ext: "(\<Sum>j\<in>{cbox c' d' \<inter> l |l. l \<in> D \<and> cbox c' d' \<inter> l \<noteq> {}}. norm (f j))
                      \<le> (\<Sum>l\<in>D. norm (f (k \<inter> l)))"
@@ -109,7 +106,8 @@ proof -
         finally show ?thesis .
       qed
       show "norm (f k) \<le> (\<Sum>l\<in>D. norm (f (k \<inter> l)))"
-        using step_eq step_tri step_ext by linarith
+        using step_eq norm_sum step_ext
+        by (metis (mono_tags, lifting) order_trans)
     qed
     \<comment> \<open>Second inequality: swap sums and bound each inner sum by 1\<close>
     also have "(\<Sum>k\<in>d. \<Sum>l\<in>D. norm (f (k \<inter> l))) = (\<Sum>l\<in>D. \<Sum>k\<in>d. norm (f (k \<inter> l)))"
@@ -157,8 +155,7 @@ proof -
           qed
           then show ?thesis using content_bound by linarith
         qed
-        ultimately
-        have \<open>(\<Sum>k\<in>d'. norm (f k)) < 1\<close>
+        ultimately have less1: \<open>(\<Sum>k\<in>d'. norm (f k)) < 1\<close>
           using r_bound by presburger
         show "(\<Sum>k\<in>d. norm (f (k \<inter> l))) \<le> 1"
         proof -
@@ -193,7 +190,7 @@ proof -
             by (auto intro!: sum.mono_neutral_right simp: luv f_empty fin_d)
           also have \<open>\<dots> = (\<Sum>k\<in>d'. norm (f k))\<close>
             using reindex unfolding d'_def comp_def by auto
-          also have \<open>\<dots> < 1\<close> using \<open>(\<Sum>k\<in>d'. norm (f k)) < 1\<close> .
+          also have \<open>\<dots> < 1\<close> using less1 .
           finally show ?thesis by simp
         qed
       qed
@@ -471,8 +468,7 @@ proof (rule continuous_on_iff[THEN iffD2], intro ballI allI impI)
         and loy: "lo \<le> y" and hiy: "y \<le> hi"
         by (auto simp: min_def max_def)
       have sub: "{lo..hi} \<subseteq> S"
-        by (metis assms(2) box_real(2) hi_def interval_subset_is_interval lo_def max_def min_def xs
-            ys)
+        by (metis assms(2) box_real(2) hi_def interval_subset_is_interval lo_def max_def min_def xs ys)
       have ne: "cbox lo hi \<noteq> {}" using lohi by auto
       have div: "{cbox lo hi} division_of cbox lo hi"
         by (rule division_of_self[OF ne])
@@ -532,235 +528,228 @@ lemma operative_absolutely_setcontinuous_on:
   fixes g :: \<open>'a::euclidean_space set \<Rightarrow> 'b::euclidean_space\<close>
   assumes \<open>operative (+) 0 g\<close>
   shows \<open>operative (\<and>) True (absolutely_setcontinuous_on g)\<close>
-proof -
+proof (intro operative.intro comm_monoid_set_and operative_axioms.intro iffI)
   note null = operative.box_empty_imp[OF assms]
   note split = operative.Basis_imp[OF assms, symmetric]
-  show ?thesis
-  proof (intro operative.intro comm_monoid_set_and operative_axioms.intro iffI)
-    show \<open>absolutely_setcontinuous_on g (cbox a b)\<close> if \<open>box a b = {}\<close> for a b
-    proof -
-      have \<open>g k = 0\<close> if kd: \<open>k \<in> d\<close> and div: \<open>d division_of T\<close> and sub: \<open>T \<subseteq> cbox a b\<close> for k d T
-        by (metis \<open>box a b = {}\<close> division_ofD(2,4) negligible_interval(1) negligible_subset null sub
-            that)
-      then show ?thesis using that
-        unfolding absolutely_setcontinuous_on_def
-        by (intro iffI TrueI allI impI exI[of _ 1]) (auto simp: division_ofD(1))
-    qed
-  next
-    fix a b c and k::'a
-    assume \<open>k \<in> Basis\<close>
-    assume ac: \<open>absolutely_setcontinuous_on g (cbox a b \<inter> {x. x \<bullet> k \<le> c}) \<and>
-                absolutely_setcontinuous_on g (cbox a b \<inter> {x. c \<le> x \<bullet> k})\<close>
-    show \<open>absolutely_setcontinuous_on g (cbox a b)\<close>
+  show \<open>absolutely_setcontinuous_on g (cbox a b)\<close> if \<open>box a b = {}\<close> for a b
+  proof -
+    have \<open>g k = 0\<close> if \<open>k \<in> d\<close> and \<open>d division_of T\<close> and \<open>T \<subseteq> cbox a b\<close> for k d T
+      by (metis \<open>box a b = {}\<close> cbox_division_memE negligible_interval(1) negligible_subset null
+          that)
+    then show ?thesis using that
       unfolding absolutely_setcontinuous_on_def
-    proof (intro allI impI)
-      fix e :: real assume \<open>e > 0\<close>
-      then have e2: \<open>e / 2 > 0\<close> by simp
-      from ac[unfolded absolutely_setcontinuous_on_def] e2
-      obtain r1 where r1: \<open>r1 > 0\<close>
-        and L: \<open>\<And>d T. d division_of T \<Longrightarrow> T \<subseteq> cbox a b \<inter> {x. x \<bullet> k \<le> c} \<Longrightarrow>
+      by (intro iffI TrueI allI impI exI[of _ 1]) (auto simp: division_ofD(1))
+  qed
+
+  fix a b c and k::'a
+  assume \<open>k \<in> Basis\<close>
+  assume ac: \<open>absolutely_setcontinuous_on g (cbox a b \<inter> {x. x \<bullet> k \<le> c}) \<and>
+                absolutely_setcontinuous_on g (cbox a b \<inter> {x. c \<le> x \<bullet> k})\<close>
+  show \<open>absolutely_setcontinuous_on g (cbox a b)\<close>
+    unfolding absolutely_setcontinuous_on_def
+  proof (intro allI impI)
+    fix e :: real assume \<open>e > 0\<close>
+    then have e2: \<open>e / 2 > 0\<close> by simp
+    from ac[unfolded absolutely_setcontinuous_on_def] e2
+    obtain r1 where r1: \<open>r1 > 0\<close>
+      and L: \<open>\<And>d T. d division_of T \<Longrightarrow> T \<subseteq> cbox a b \<inter> {x. x \<bullet> k \<le> c} \<Longrightarrow>
           (\<Sum>k\<in>d. content k) < r1 \<Longrightarrow> (\<Sum>k\<in>d. norm (g k)) < e / 2\<close>
-        by metis
-      from ac[unfolded absolutely_setcontinuous_on_def] e2
-      obtain r2 where r2: \<open>r2 > 0\<close>
-        and R: \<open>\<And>d T. d division_of T \<Longrightarrow> T \<subseteq> cbox a b \<inter> {x. c \<le> x \<bullet> k} \<Longrightarrow>
+      by metis
+    from ac[unfolded absolutely_setcontinuous_on_def] e2
+    obtain r2 where r2: \<open>r2 > 0\<close>
+      and R: \<open>\<And>d T. d division_of T \<Longrightarrow> T \<subseteq> cbox a b \<inter> {x. c \<le> x \<bullet> k} \<Longrightarrow>
           (\<Sum>k\<in>d. content k) < r2 \<Longrightarrow> (\<Sum>k\<in>d. norm (g k)) < e / 2\<close>
-        by metis
-      show \<open>\<exists>\<delta>>0. \<forall>d T. d division_of T \<and> T \<subseteq> cbox a b \<and>
+      by metis
+    show \<open>\<exists>\<delta>>0. \<forall>d T. d division_of T \<and> T \<subseteq> cbox a b \<and>
         (\<Sum>k\<in>d. content k) < \<delta> \<longrightarrow> (\<Sum>k\<in>d. norm (g k)) < e\<close>
-      proof (intro exI[of _ \<open>min r1 r2\<close>] conjI allI impI)
-        show \<open>min r1 r2 > 0\<close> using r1 r2 by simp
-      next
-        fix d T
-        assume H: \<open>d division_of T \<and> T \<subseteq> cbox a b \<and> (\<Sum>k\<in>d. content k) < min r1 r2\<close>
-        then have div: \<open>d division_of T\<close> and sub: \<open>T \<subseteq> cbox a b\<close>
-          and content_bound: \<open>(\<Sum>k\<in>d. content k) < r1\<close> \<open>(\<Sum>k\<in>d. content k) < r2\<close>
-          by auto
-        define dL where \<open>dL = (\<lambda>l. l \<inter> {x. x \<bullet> k \<le> c}) ` {l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}}\<close>
-        define dR where \<open>dR = (\<lambda>l. l \<inter> {x. c \<le> x \<bullet> k}) ` {l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}\<close>
-        have fin_d: \<open>finite d\<close> using division_of_finite[OF div] .
-        have g_empty: \<open>g {} = 0\<close> using operative.empty[OF assms] .
-        \<comment> \<open>Step 1: split axiom + triangle inequality\<close>
-        have step1: \<open>(\<Sum>K\<in>d. norm (g K))
-            \<le> (\<Sum>K\<in>d. norm (g (K \<inter> {x. x \<bullet> k \<le> c}))) + (\<Sum>K\<in>d. norm (g (K \<inter> {x. c \<le> x \<bullet> k})))\<close>
-        proof -
-          have \<open>(\<Sum>K\<in>d. norm (g K))
+    proof (intro exI[of _ \<open>min r1 r2\<close>] conjI allI impI)
+      show \<open>min r1 r2 > 0\<close> using r1 r2 by simp
+    next
+      fix d T
+      assume H: \<open>d division_of T \<and> T \<subseteq> cbox a b \<and> (\<Sum>k\<in>d. content k) < min r1 r2\<close>
+      then have div: \<open>d division_of T\<close> and sub: \<open>T \<subseteq> cbox a b\<close>
+        and content_bound: \<open>(\<Sum>k\<in>d. content k) < r1\<close> \<open>(\<Sum>k\<in>d. content k) < r2\<close>
+        by auto
+      define dL where \<open>dL = (\<lambda>l. l \<inter> {x. x \<bullet> k \<le> c}) ` {l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}}\<close>
+      define dR where \<open>dR = (\<lambda>l. l \<inter> {x. c \<le> x \<bullet> k}) ` {l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}\<close>
+      have fin_d: \<open>finite d\<close> using division_of_finite[OF div] .
+      have g_empty: \<open>g {} = 0\<close> using operative.empty[OF assms] .
+          \<comment> \<open>Step 1: split axiom + triangle inequality\<close>
+      have \<open>(\<Sum>K\<in>d. norm (g K))
               \<le> (\<Sum>K\<in>d. norm (g (K \<inter> {x. x \<bullet> k \<le> c})) + norm (g (K \<inter> {x. c \<le> x \<bullet> k})))\<close>
-          proof (rule sum_mono)
-            fix K assume Kd: \<open>K \<in> d\<close>
-            then obtain aK bK where K_eq: \<open>K = cbox aK bK\<close> using division_ofD(4)[OF div] by blast
-            have \<open>g K = g (K \<inter> {x. x \<bullet> k \<le> c}) + g (K \<inter> {x. c \<le> x \<bullet> k})\<close>
-              using local.split[OF \<open>k \<in> Basis\<close>, of aK bK c] K_eq by simp
-            then show \<open>norm (g K) \<le> norm (g (K \<inter> {x. x \<bullet> k \<le> c})) + norm (g (K \<inter> {x. c \<le> x \<bullet> k}))\<close>
-              by (metis norm_triangle_ineq)
-          qed
-          also have \<open>\<dots> = (\<Sum>K\<in>d. norm (g (K \<inter> {x. x \<bullet> k \<le> c}))) + (\<Sum>K\<in>d. norm (g (K \<inter> {x. c \<le> x \<bullet> k})))\<close>
-            by (rule sum.distrib)
-          finally show ?thesis .
-        qed
-        \<comment> \<open>Step 2: drop zero terms (where intersection is empty, @{term \<open>g {} = 0\<close>})\<close>
-        have step2L: \<open>(\<Sum>K\<in>d. norm (g (K \<inter> {x. x \<bullet> k \<le> c})))
-            = (\<Sum>K\<in>{l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}}. norm (g (K \<inter> {x. x \<bullet> k \<le> c})))\<close>
-          by (rule sum.mono_neutral_right) (auto simp: fin_d g_empty)
-        have step2R: \<open>(\<Sum>K\<in>d. norm (g (K \<inter> {x. c \<le> x \<bullet> k})))
-            = (\<Sum>K\<in>{l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}. norm (g (K \<inter> {x. c \<le> x \<bullet> k})))\<close>
-          by (rule sum.mono_neutral_right) (auto simp: fin_d g_empty)
-        have collision_L: \<open>norm (g (K1 \<inter> {x. x \<bullet> k \<le> c})) = 0\<close>
-          if K1d: \<open>K1 \<in> d\<close> and K2d: \<open>K2 \<in> d\<close> and neq: \<open>K1 \<noteq> K2\<close>
-            and coll: \<open>K1 \<inter> {x. x \<bullet> k \<le> c} = K2 \<inter> {x. x \<bullet> k \<le> c}\<close>
-          for K1 K2
-        proof -
-          obtain a1 b1 where K1_eq: \<open>K1 = cbox a1 b1\<close> using division_ofD(4)[OF div K1d] by blast
-          have eq: \<open>K1 \<inter> {x. x \<bullet> k \<le> c} = cbox a1 (\<Sum>i\<in>Basis. (if i = k then min (b1 \<bullet> k) c else b1 \<bullet> i) *\<^sub>R i)\<close>
-            using interval_split(1)[OF \<open>k \<in> Basis\<close>] K1_eq by simp
-          have \<open>interior (K1 \<inter> {x. x \<bullet> k \<le> c}) \<subseteq> interior K1 \<inter> interior K2\<close>
-            using coll by (metis inf.cobounded1 interior_mono le_inf_iff)
-          also have \<open>\<dots> = {}\<close> using division_ofD(5)[OF div K1d K2d neq] .
-          finally have \<open>box a1 (\<Sum>i\<in>Basis. (if i = k then min (b1 \<bullet> k) c else b1 \<bullet> i) *\<^sub>R i) = {}\<close>
-            using eq interior_cbox by auto
-          then show ?thesis using null eq by auto
-        qed
-        have collision_R: \<open>norm (g (K1 \<inter> {x. c \<le> x \<bullet> k})) = 0\<close>
-          if K1d: \<open>K1 \<in> d\<close> and K2d: \<open>K2 \<in> d\<close> and neq: \<open>K1 \<noteq> K2\<close>
-            and coll: \<open>K1 \<inter> {x. c \<le> x \<bullet> k} = K2 \<inter> {x. c \<le> x \<bullet> k}\<close>
-          for K1 K2
-        proof -
-          obtain a1 b1 where K1_eq: \<open>K1 = cbox a1 b1\<close> using division_ofD(4)[OF div K1d] by blast
-          have eq: \<open>K1 \<inter> {x. c \<le> x \<bullet> k} = cbox (\<Sum>i\<in>Basis. (if i = k then max (a1 \<bullet> k) c else a1 \<bullet> i) *\<^sub>R i) b1\<close>
-            using interval_split(2)[OF \<open>k \<in> Basis\<close>] K1_eq by simp
-          have \<open>interior (K1 \<inter> {x. c \<le> x \<bullet> k}) \<subseteq> interior K1 \<inter> interior K2\<close>
-            using coll by (metis inf.cobounded1 interior_mono le_inf_iff)
-          also have \<open>\<dots> = {}\<close> using division_ofD(5)[OF div K1d K2d neq] .
-          finally have \<open>box (\<Sum>i\<in>Basis. (if i = k then max (a1 \<bullet> k) c else a1 \<bullet> i) *\<^sub>R i) b1 = {}\<close>
-            using eq interior_cbox by auto
-          then show ?thesis using null eq by auto
-        qed
-        have fin_filt: \<open>finite {l \<in> d. l \<inter> S \<noteq> {}}\<close> for S :: \<open>'a set\<close>
-          using fin_d by auto
-        have reindexL: \<open>(\<Sum>K\<in>dL. norm (g K))
-            = (\<Sum>K\<in>{l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}}. norm (g (K \<inter> {x. x \<bullet> k \<le> c})))\<close>
-          unfolding dL_def
-          using collision_L 
-          by (subst sum.reindex_nontrivial[OF fin_filt]) (auto simp: o_def) 
-        have reindexR: \<open>(\<Sum>K\<in>dR. norm (g K))
-            = (\<Sum>K\<in>{l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}. norm (g (K \<inter> {x. c \<le> x \<bullet> k})))\<close>
-          unfolding dR_def
-          using collision_R
-          by (subst sum.reindex_nontrivial[OF fin_filt]) (auto simp: o_def) 
-        have step3L: \<open>(\<Sum>K\<in>{l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}}. norm (g (K \<inter> {x. x \<bullet> k \<le> c})))
-            = (\<Sum>K\<in>dL. norm (g K))\<close>
-          using reindexL by simp
-        have step3R: \<open>(\<Sum>K\<in>{l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}. norm (g (K \<inter> {x. c \<le> x \<bullet> k})))
-            = (\<Sum>K\<in>dR. norm (g K))\<close>
-          using reindexR by simp
-        have split_ineq: \<open>(\<Sum>k\<in>d. norm (g k)) \<le> (\<Sum>k\<in>dL. norm (g k)) + (\<Sum>k\<in>dR. norm (g k))\<close>
-          using step1 step2L step2R step3L step3R by linarith
-        \<comment> \<open>Step 4: each half is $< \varepsilon/2$\<close>
-        have divL: \<open>dL division_of (T \<inter> {x. x \<bullet> k \<le> c})\<close>
-          unfolding dL_def division_of_def
-        proof (intro conjI ballI allI impI)
-          show \<open>finite ((\<lambda>l. l \<inter> {x. x \<bullet> k \<le> c}) ` {l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}})\<close>
-            using fin_d by auto
-        next
-          fix K assume \<open>K \<in> (\<lambda>l. l \<inter> {x. x \<bullet> k \<le> c}) ` {l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}}\<close>
-          then obtain l  al bl where ld: \<open>l \<in> d\<close> and lne: \<open>l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}\<close> and Keq: \<open>K = l \<inter> {x. x \<bullet> k \<le> c}\<close>
-            and leq: \<open>l = cbox al bl\<close> using division_ofD(4)[OF div] by blast
-          show \<open>K \<subseteq> T \<inter> {x. x \<bullet> k \<le> c}\<close> using Keq division_ofD(2)[OF div ld] by auto
-          show \<open>K \<noteq> {}\<close> using Keq lne by auto
-          show \<open>\<exists>a b. K = cbox a b\<close> using Keq leq interval_split(1)[OF \<open>k \<in> Basis\<close>] by blast
-        next
-          fix K1 K2
-          assume K1m: \<open>K1 \<in> (\<lambda>l. l \<inter> {x. x \<bullet> k \<le> c}) ` {l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}}\<close>
-            and K2m: \<open>K2 \<in> (\<lambda>l. l \<inter> {x. x \<bullet> k \<le> c}) ` {l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}}\<close>
-            and neq: \<open>K1 \<noteq> K2\<close>
-          obtain l1 where l1d: \<open>l1 \<in> d\<close> and K1eq: \<open>K1 = l1 \<inter> {x. x \<bullet> k \<le> c}\<close> using K1m by auto
-          obtain l2 where l2d: \<open>l2 \<in> d\<close> and K2eq: \<open>K2 = l2 \<inter> {x. x \<bullet> k \<le> c}\<close> using K2m by auto
-          have \<open>l1 \<noteq> l2\<close> using neq K1eq K2eq by auto
-          then have \<open>interior l1 \<inter> interior l2 = {}\<close> using division_ofD(5)[OF div l1d l2d] by auto
-          then show \<open>interior K1 \<inter> interior K2 = {}\<close>
-            using K1eq K2eq by auto
-        next
-          show \<open>\<Union> ((\<lambda>l. l \<inter> {x. x \<bullet> k \<le> c}) ` {l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}}) = T \<inter> {x. x \<bullet> k \<le> c}\<close>
-            using division_ofD(6)[OF div] by auto
-        qed
-        have divR: \<open>dR division_of (T \<inter> {x. c \<le> x \<bullet> k})\<close>
-          unfolding dR_def division_of_def
-        proof (intro conjI ballI allI impI)
-          show \<open>finite ((\<lambda>l. l \<inter> {x. c \<le> x \<bullet> k}) ` {l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}})\<close>
-            using fin_d by auto
-        next
-          fix K assume \<open>K \<in> (\<lambda>l. l \<inter> {x. c \<le> x \<bullet> k}) ` {l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}\<close>
-          then obtain l al bl where ld: \<open>l \<in> d\<close> and lne: \<open>l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}\<close> and Keq: \<open>K = l \<inter> {x. c \<le> x \<bullet> k}\<close>
-            and leq: \<open>l = cbox al bl\<close> using division_ofD(4)[OF div] by blast
-          show \<open>K \<subseteq> T \<inter> {x. c \<le> x \<bullet> k}\<close> using Keq division_ofD(2)[OF div ld] by auto
-          show \<open>K \<noteq> {}\<close> using Keq lne by auto
-          show \<open>\<exists>a b. K = cbox a b\<close> using Keq leq interval_split(2)[OF \<open>k \<in> Basis\<close>] by blast
-        next
-          fix K1 K2
-          assume K1m: \<open>K1 \<in> (\<lambda>l. l \<inter> {x. c \<le> x \<bullet> k}) ` {l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}\<close>
-            and K2m: \<open>K2 \<in> (\<lambda>l. l \<inter> {x. c \<le> x \<bullet> k}) ` {l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}\<close>
-            and neq: \<open>K1 \<noteq> K2\<close>
-          obtain l1 where l1d: \<open>l1 \<in> d\<close> and K1eq: \<open>K1 = l1 \<inter> {x. c \<le> x \<bullet> k}\<close> using K1m by auto
-          obtain l2 where l2d: \<open>l2 \<in> d\<close> and K2eq: \<open>K2 = l2 \<inter> {x. c \<le> x \<bullet> k}\<close> using K2m by auto
-          have \<open>l1 \<noteq> l2\<close> using neq K1eq K2eq by auto
-          then have \<open>interior l1 \<inter> interior l2 = {}\<close> using division_ofD(5)[OF div l1d l2d] by auto
-          then show \<open>interior K1 \<inter> interior K2 = {}\<close>
-            using K1eq K2eq by auto
-        next
-          show \<open>\<Union> ((\<lambda>l. l \<inter> {x. c \<le> x \<bullet> k}) ` {l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}) = T \<inter> {x. c \<le> x \<bullet> k}\<close>
-            using division_ofD(6)[OF div] by auto
-        qed
-        have subL: \<open>T \<inter> {x. x \<bullet> k \<le> c} \<subseteq> cbox a b \<inter> {x. x \<bullet> k \<le> c}\<close> using sub by auto
-        have subR: \<open>T \<inter> {x. c \<le> x \<bullet> k} \<subseteq> cbox a b \<inter> {x. c \<le> x \<bullet> k}\<close> using sub by auto
-        have contentL: \<open>sum content dL < r1\<close>
-        proof -
-          have \<open>sum content dL
-              \<le> sum (content \<circ> (\<lambda>l. l \<inter> {x. x \<bullet> k \<le> c})) {l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}}\<close>
-            unfolding dL_def by (rule sum_image_le) (auto simp: fin_d content_pos_le)
-          also have \<open>\<dots> \<le> sum content {l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}}\<close>
-          proof (rule sum_mono)
-            fix l assume \<open>l \<in> {l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}}\<close>
-            then have ld: \<open>l \<in> d\<close> by auto
-            obtain al bl where leq: \<open>l = cbox al bl\<close> using division_ofD(4)[OF div ld] by blast
-            have \<open>l \<inter> {x. x \<bullet> k \<le> c} = cbox al (\<Sum>i\<in>Basis. (if i = k then min (bl \<bullet> k) c else bl \<bullet> i) *\<^sub>R i)\<close>
-              using interval_split(1)[OF \<open>k \<in> Basis\<close>] leq by simp
-            then show \<open>(content \<circ> (\<lambda>l. l \<inter> {x. x \<bullet> k \<le> c})) l \<le> content l\<close>
-              using content_subset leq
-              by (metis (lifting) comp_apply inf_le1)
-          qed
-          also have \<open>\<dots> \<le> sum content d\<close>
-            by (rule sum_mono2) (auto simp: fin_d content_pos_le)
-          also have \<open>\<dots> < r1\<close> using content_bound by simp
-          finally show ?thesis .
-        qed
-        have contentR: \<open>sum content dR < r2\<close>
-        proof -
-          have \<open>sum content dR
-              \<le> sum (content \<circ> (\<lambda>l. l \<inter> {x. c \<le> x \<bullet> k})) {l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}\<close>
-            unfolding dR_def by (rule sum_image_le) (auto simp: fin_d content_pos_le)
-          also have \<open>\<dots> \<le> sum content {l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}\<close>
-          proof (rule sum_mono)
-            fix l assume \<open>l \<in> {l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}\<close>
-            then have ld: \<open>l \<in> d\<close> by auto
-            obtain al bl where leq: \<open>l = cbox al bl\<close> using division_ofD(4)[OF div ld] by blast
-            have \<open>l \<inter> {x. c \<le> x \<bullet> k} = cbox (\<Sum>i\<in>Basis. (if i = k then max (al \<bullet> k) c else al \<bullet> i) *\<^sub>R i) bl\<close>
-              using interval_split(2)[OF \<open>k \<in> Basis\<close>] leq by simp
-            then show \<open>(content \<circ> (\<lambda>l. l \<inter> {x. c \<le> x \<bullet> k})) l \<le> content l\<close>
-              using content_subset leq by (metis (lifting) comp_apply inf_le1)
-          qed
-          also have \<open>\<dots> \<le> sum content d\<close>
-            by (rule sum_mono2) (auto simp: fin_d content_pos_le)
-          also have \<open>\<dots> < r2\<close> using content_bound by simp
-          finally show ?thesis .
-        qed
-        have halves: \<open>(\<Sum>k\<in>dL. norm (g k)) + (\<Sum>k\<in>dR. norm (g k)) < e\<close>
-          using L[OF divL subL contentL] R[OF divR subR contentR] by linarith
-        show \<open>(\<Sum>k\<in>d. norm (g k)) < e\<close>
-          using split_ineq halves by linarith
+      proof (rule sum_mono)
+        fix K assume Kd: \<open>K \<in> d\<close>
+        then obtain aK bK where K_eq: \<open>K = cbox aK bK\<close> using division_ofD(4)[OF div] by blast
+        have \<open>g K = g (K \<inter> {x. x \<bullet> k \<le> c}) + g (K \<inter> {x. c \<le> x \<bullet> k})\<close>
+          using local.split[OF \<open>k \<in> Basis\<close>, of aK bK c] K_eq by simp
+        then show \<open>norm (g K) \<le> norm (g (K \<inter> {x. x \<bullet> k \<le> c})) + norm (g (K \<inter> {x. c \<le> x \<bullet> k}))\<close>
+          by (metis norm_triangle_ineq)
       qed
+      then have step1: \<open>(\<Sum>K\<in>d. norm (g K))
+            \<le> (\<Sum>K\<in>d. norm (g (K \<inter> {x. x \<bullet> k \<le> c}))) + (\<Sum>K\<in>d. norm (g (K \<inter> {x. c \<le> x \<bullet> k})))\<close>
+        by (metis (no_types, lifting) sum.distrib sum.cong)
+        \<comment> \<open>Step 2: drop zero terms (where intersection is empty, @{term \<open>g {} = 0\<close>})\<close>
+      have step2L: \<open>(\<Sum>K\<in>d. norm (g (K \<inter> {x. x \<bullet> k \<le> c})))
+            = (\<Sum>K\<in>{l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}}. norm (g (K \<inter> {x. x \<bullet> k \<le> c})))\<close>
+        by (rule sum.mono_neutral_right) (auto simp: fin_d g_empty)
+      have step2R: \<open>(\<Sum>K\<in>d. norm (g (K \<inter> {x. c \<le> x \<bullet> k})))
+            = (\<Sum>K\<in>{l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}. norm (g (K \<inter> {x. c \<le> x \<bullet> k})))\<close>
+        by (rule sum.mono_neutral_right) (auto simp: fin_d g_empty)
+      have collision_L: \<open>norm (g (K1 \<inter> {x. x \<bullet> k \<le> c})) = 0\<close>
+        if K1d: \<open>K1 \<in> d\<close> and K2d: \<open>K2 \<in> d\<close> and neq: \<open>K1 \<noteq> K2\<close>
+          and coll: \<open>K1 \<inter> {x. x \<bullet> k \<le> c} = K2 \<inter> {x. x \<bullet> k \<le> c}\<close>
+        for K1 K2
+      proof -
+        obtain a1 b1 where K1_eq: \<open>K1 = cbox a1 b1\<close> using division_ofD(4)[OF div K1d] by blast
+        have eq: \<open>K1 \<inter> {x. x \<bullet> k \<le> c} = cbox a1 (\<Sum>i\<in>Basis. (if i = k then min (b1 \<bullet> k) c else b1 \<bullet> i) *\<^sub>R i)\<close>
+          using interval_split(1)[OF \<open>k \<in> Basis\<close>] K1_eq by simp
+        have \<open>interior (K1 \<inter> {x. x \<bullet> k \<le> c}) \<subseteq> interior K1 \<inter> interior K2\<close>
+          using coll by (metis inf.cobounded1 interior_mono le_inf_iff)
+        also have \<open>\<dots> = {}\<close> using division_ofD(5)[OF div K1d K2d neq] .
+        finally have \<open>box a1 (\<Sum>i\<in>Basis. (if i = k then min (b1 \<bullet> k) c else b1 \<bullet> i) *\<^sub>R i) = {}\<close>
+          using eq interior_cbox by auto
+        then show ?thesis using null eq by auto
+      qed
+      have collision_R: \<open>norm (g (K1 \<inter> {x. c \<le> x \<bullet> k})) = 0\<close>
+        if K1d: \<open>K1 \<in> d\<close> and K2d: \<open>K2 \<in> d\<close> and neq: \<open>K1 \<noteq> K2\<close>
+          and coll: \<open>K1 \<inter> {x. c \<le> x \<bullet> k} = K2 \<inter> {x. c \<le> x \<bullet> k}\<close>
+        for K1 K2
+      proof -
+        obtain a1 b1 where K1_eq: \<open>K1 = cbox a1 b1\<close> using division_ofD(4)[OF div K1d] by blast
+        have eq: \<open>K1 \<inter> {x. c \<le> x \<bullet> k} = cbox (\<Sum>i\<in>Basis. (if i = k then max (a1 \<bullet> k) c else a1 \<bullet> i) *\<^sub>R i) b1\<close>
+          using interval_split(2)[OF \<open>k \<in> Basis\<close>] K1_eq by simp
+        have \<open>interior (K1 \<inter> {x. c \<le> x \<bullet> k}) \<subseteq> interior K1 \<inter> interior K2\<close>
+          using coll by (metis inf.cobounded1 interior_mono le_inf_iff)
+        also have \<open>\<dots> = {}\<close> using division_ofD(5)[OF div K1d K2d neq] .
+        finally have \<open>box (\<Sum>i\<in>Basis. (if i = k then max (a1 \<bullet> k) c else a1 \<bullet> i) *\<^sub>R i) b1 = {}\<close>
+          using eq interior_cbox by auto
+        then show ?thesis using null eq by auto
+      qed
+      have fin_filt: \<open>finite {l \<in> d. l \<inter> S \<noteq> {}}\<close> for S :: \<open>'a set\<close>
+        using fin_d by auto
+      have reindexL: \<open>(\<Sum>K\<in>dL. norm (g K))
+            = (\<Sum>K\<in>{l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}}. norm (g (K \<inter> {x. x \<bullet> k \<le> c})))\<close>
+        unfolding dL_def
+        using collision_L 
+        by (subst sum.reindex_nontrivial[OF fin_filt]) (auto simp: o_def) 
+      have reindexR: \<open>(\<Sum>K\<in>dR. norm (g K))
+            = (\<Sum>K\<in>{l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}. norm (g (K \<inter> {x. c \<le> x \<bullet> k})))\<close>
+        unfolding dR_def
+        using collision_R
+        by (subst sum.reindex_nontrivial[OF fin_filt]) (auto simp: o_def) 
+      have step3L: \<open>(\<Sum>K\<in>{l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}}. norm (g (K \<inter> {x. x \<bullet> k \<le> c})))
+            = (\<Sum>K\<in>dL. norm (g K))\<close>
+        using reindexL by simp
+      have step3R: \<open>(\<Sum>K\<in>{l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}. norm (g (K \<inter> {x. c \<le> x \<bullet> k})))
+            = (\<Sum>K\<in>dR. norm (g K))\<close>
+        using reindexR by simp
+      have split_ineq: \<open>(\<Sum>k\<in>d. norm (g k)) \<le> (\<Sum>k\<in>dL. norm (g k)) + (\<Sum>k\<in>dR. norm (g k))\<close>
+        using step1 step2L step2R step3L step3R by linarith
+          \<comment> \<open>Step 4: each half is $< \varepsilon/2$\<close>
+      have divL: \<open>dL division_of (T \<inter> {x. x \<bullet> k \<le> c})\<close>
+        unfolding dL_def division_of_def
+      proof (intro conjI ballI allI impI)
+        show \<open>finite ((\<lambda>l. l \<inter> {x. x \<bullet> k \<le> c}) ` {l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}})\<close>
+          using fin_d by auto
+      next
+        fix K assume \<open>K \<in> (\<lambda>l. l \<inter> {x. x \<bullet> k \<le> c}) ` {l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}}\<close>
+        then obtain l  al bl where ld: \<open>l \<in> d\<close> and lne: \<open>l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}\<close> and Keq: \<open>K = l \<inter> {x. x \<bullet> k \<le> c}\<close>
+          and leq: \<open>l = cbox al bl\<close> using division_ofD(4)[OF div] by blast
+        show \<open>K \<subseteq> T \<inter> {x. x \<bullet> k \<le> c}\<close> using Keq division_ofD(2)[OF div ld] by auto
+        show \<open>K \<noteq> {}\<close> using Keq lne by auto
+        show \<open>\<exists>a b. K = cbox a b\<close> using Keq leq interval_split(1)[OF \<open>k \<in> Basis\<close>] by blast
+      next
+        fix K1 K2
+        assume K1m: \<open>K1 \<in> (\<lambda>l. l \<inter> {x. x \<bullet> k \<le> c}) ` {l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}}\<close>
+          and K2m: \<open>K2 \<in> (\<lambda>l. l \<inter> {x. x \<bullet> k \<le> c}) ` {l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}}\<close>
+          and neq: \<open>K1 \<noteq> K2\<close>
+        obtain l1 where l1d: \<open>l1 \<in> d\<close> and K1eq: \<open>K1 = l1 \<inter> {x. x \<bullet> k \<le> c}\<close> using K1m by auto
+        obtain l2 where l2d: \<open>l2 \<in> d\<close> and K2eq: \<open>K2 = l2 \<inter> {x. x \<bullet> k \<le> c}\<close> using K2m by auto
+        have \<open>l1 \<noteq> l2\<close> using neq K1eq K2eq by auto
+        then have \<open>interior l1 \<inter> interior l2 = {}\<close> using division_ofD(5)[OF div l1d l2d] by auto
+        then show \<open>interior K1 \<inter> interior K2 = {}\<close>
+          using K1eq K2eq by auto
+      next
+        show \<open>\<Union> ((\<lambda>l. l \<inter> {x. x \<bullet> k \<le> c}) ` {l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}}) = T \<inter> {x. x \<bullet> k \<le> c}\<close>
+          using division_ofD(6)[OF div] by auto
+      qed
+      have divR: \<open>dR division_of (T \<inter> {x. c \<le> x \<bullet> k})\<close>
+        unfolding dR_def division_of_def
+      proof (intro conjI ballI allI impI)
+        show \<open>finite ((\<lambda>l. l \<inter> {x. c \<le> x \<bullet> k}) ` {l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}})\<close>
+          using fin_d by auto
+      next
+        fix K assume \<open>K \<in> (\<lambda>l. l \<inter> {x. c \<le> x \<bullet> k}) ` {l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}\<close>
+        then obtain l al bl where ld: \<open>l \<in> d\<close> and lne: \<open>l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}\<close> and Keq: \<open>K = l \<inter> {x. c \<le> x \<bullet> k}\<close>
+          and leq: \<open>l = cbox al bl\<close> using division_ofD(4)[OF div] by blast
+        show \<open>K \<subseteq> T \<inter> {x. c \<le> x \<bullet> k}\<close> using Keq division_ofD(2)[OF div ld] by auto
+        show \<open>K \<noteq> {}\<close> using Keq lne by auto
+        show \<open>\<exists>a b. K = cbox a b\<close> using Keq leq interval_split(2)[OF \<open>k \<in> Basis\<close>] by blast
+      next
+        fix K1 K2
+        assume K1m: \<open>K1 \<in> (\<lambda>l. l \<inter> {x. c \<le> x \<bullet> k}) ` {l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}\<close>
+          and K2m: \<open>K2 \<in> (\<lambda>l. l \<inter> {x. c \<le> x \<bullet> k}) ` {l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}\<close>
+          and neq: \<open>K1 \<noteq> K2\<close>
+        obtain l1 where l1d: \<open>l1 \<in> d\<close> and K1eq: \<open>K1 = l1 \<inter> {x. c \<le> x \<bullet> k}\<close> using K1m by auto
+        obtain l2 where l2d: \<open>l2 \<in> d\<close> and K2eq: \<open>K2 = l2 \<inter> {x. c \<le> x \<bullet> k}\<close> using K2m by auto
+        have \<open>l1 \<noteq> l2\<close> using neq K1eq K2eq by auto
+        then have \<open>interior l1 \<inter> interior l2 = {}\<close> using division_ofD(5)[OF div l1d l2d] by auto
+        then show \<open>interior K1 \<inter> interior K2 = {}\<close>
+          using K1eq K2eq by auto
+      next
+        show \<open>\<Union> ((\<lambda>l. l \<inter> {x. c \<le> x \<bullet> k}) ` {l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}) = T \<inter> {x. c \<le> x \<bullet> k}\<close>
+          using division_ofD(6)[OF div] by auto
+      qed
+      have subL: \<open>T \<inter> {x. x \<bullet> k \<le> c} \<subseteq> cbox a b \<inter> {x. x \<bullet> k \<le> c}\<close> using sub by auto
+      have subR: \<open>T \<inter> {x. c \<le> x \<bullet> k} \<subseteq> cbox a b \<inter> {x. c \<le> x \<bullet> k}\<close> using sub by auto
+      have contentL: \<open>sum content dL < r1\<close>
+      proof -
+        have \<open>sum content dL
+              \<le> sum (content \<circ> (\<lambda>l. l \<inter> {x. x \<bullet> k \<le> c})) {l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}}\<close>
+          unfolding dL_def by (rule sum_image_le) (auto simp: fin_d content_pos_le)
+        also have \<open>\<dots> \<le> sum content {l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}}\<close>
+        proof (rule sum_mono)
+          fix l assume \<open>l \<in> {l \<in> d. l \<inter> {x. x \<bullet> k \<le> c} \<noteq> {}}\<close>
+          then have ld: \<open>l \<in> d\<close> by auto
+          obtain al bl where leq: \<open>l = cbox al bl\<close> using division_ofD(4)[OF div ld] by blast
+          have \<open>l \<inter> {x. x \<bullet> k \<le> c} = cbox al (\<Sum>i\<in>Basis. (if i = k then min (bl \<bullet> k) c else bl \<bullet> i) *\<^sub>R i)\<close>
+            using interval_split(1)[OF \<open>k \<in> Basis\<close>] leq by simp
+          then show \<open>(content \<circ> (\<lambda>l. l \<inter> {x. x \<bullet> k \<le> c})) l \<le> content l\<close>
+            using content_subset leq
+            by (metis (lifting) comp_apply inf_le1)
+        qed
+        also have \<open>\<dots> \<le> sum content d\<close>
+          by (rule sum_mono2) (auto simp: fin_d content_pos_le)
+        also have \<open>\<dots> < r1\<close> using content_bound by simp
+        finally show ?thesis .
+      qed
+      have contentR: \<open>sum content dR < r2\<close>
+      proof -
+        have \<open>sum content dR
+              \<le> sum (content \<circ> (\<lambda>l. l \<inter> {x. c \<le> x \<bullet> k})) {l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}\<close>
+          unfolding dR_def by (rule sum_image_le) (auto simp: fin_d content_pos_le)
+        also have \<open>\<dots> \<le> sum content {l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}\<close>
+        proof (rule sum_mono)
+          fix l assume \<open>l \<in> {l \<in> d. l \<inter> {x. c \<le> x \<bullet> k} \<noteq> {}}\<close>
+          then have ld: \<open>l \<in> d\<close> by auto
+          obtain al bl where leq: \<open>l = cbox al bl\<close> using division_ofD(4)[OF div ld] by blast
+          have \<open>l \<inter> {x. c \<le> x \<bullet> k} = cbox (\<Sum>i\<in>Basis. (if i = k then max (al \<bullet> k) c else al \<bullet> i) *\<^sub>R i) bl\<close>
+            using interval_split(2)[OF \<open>k \<in> Basis\<close>] leq by simp
+          then show \<open>(content \<circ> (\<lambda>l. l \<inter> {x. c \<le> x \<bullet> k})) l \<le> content l\<close>
+            using content_subset leq by (metis (lifting) comp_apply inf_le1)
+        qed
+        also have \<open>\<dots> \<le> sum content d\<close>
+          by (rule sum_mono2) (auto simp: fin_d content_pos_le)
+        also have \<open>\<dots> < r2\<close> using content_bound by simp
+        finally show ?thesis .
+      qed
+      have halves: \<open>(\<Sum>k\<in>dL. norm (g k)) + (\<Sum>k\<in>dR. norm (g k)) < e\<close>
+        using L[OF divL subL contentL] R[OF divR subR contentR] by linarith
+      show \<open>(\<Sum>k\<in>d. norm (g k)) < e\<close>
+        using split_ineq halves by linarith
     qed
-  qed (use absolutely_setcontinuous_on_subset in fastforce)+
-qed
+  qed
+qed (use absolutely_setcontinuous_on_subset in fastforce)+
 
 lemma operative_absolutely_continuous_on:
   fixes f :: \<open>real \<Rightarrow> 'a::euclidean_space\<close>
@@ -1070,13 +1059,11 @@ proof (cases \<open>a<b\<close>)
           by (intro exI[of _ 1]) auto
       next
         case True
-        then have hvd: \<open>(f has_vector_derivative f' x) (at x within {a..b})\<close>
-          using deriv by blast
-        then have hd: \<open>(f has_derivative (\<lambda>h. h *\<^sub>R f' x)) (at x within {a..b})\<close>
-          by (simp add: has_vector_derivative_def)
-        have \<open>0 < \<epsilon>/2 / (b-a)\<close>
+        then have \<open>(f has_derivative (\<lambda>h. h *\<^sub>R f' x)) (at x within {a..b})\<close>
+          using deriv has_vector_derivative_def by blast
+        moreover have \<open>0 < \<epsilon>/2 / (b-a)\<close>
           using \<open>0 < \<epsilon>\<close> \<open>a < b\<close> by simp
-        with hd obtain d where \<open>d > 0\<close>
+        ultimately obtain d where \<open>d > 0\<close>
           and d: \<open>\<And>y. y \<in> {a..b} \<Longrightarrow> norm (y - x) < d \<Longrightarrow>
                        norm (f y - f x - (y - x) *\<^sub>R f' x) \<le> \<epsilon>/2 / (b-a) * norm (y - x)\<close>
           unfolding has_derivative_within_alt by blast
@@ -1097,25 +1084,23 @@ proof (cases \<open>a<b\<close>)
           by (simp add: \<gamma>_def \<open>gauge g1\<close> dpos gauge_Int gauge_ball_dependent)
       next
         fix \<D> :: "(real \<times> real set) set"
-        assume "\<D> tagged_division_of {a..b} \<and> \<gamma> fine \<D>"
+        assume \<D>: "\<D> tagged_division_of {a..b} \<and> \<gamma> fine \<D>"
         then have *: \<open>(\<Sum>(x, K)\<in>\<D>. f (Sup K) - f (Inf K)) = f b - f a\<close>
           by (simp add: additive_tagged_division_1 assms)
         show "norm ((\<Sum>(x, k)\<in>\<D>. content k *\<^sub>R g x) - (f b - f a)) < \<epsilon>"
         proof -
-          have td: \<open>\<D> tagged_division_of {a..b}\<close> and fine: \<open>\<gamma> fine \<D>\<close>
-            using \<open>\<D> tagged_division_of {a..b} \<and> \<gamma> fine \<D>\<close> by auto
           have tpd: \<open>\<D> tagged_partial_division_of cbox a b\<close>
-            using td tagged_division_of_def by auto
+            using \<D> tagged_division_of_def by auto
           have g1_fine: \<open>g1 fine \<D>\<close>
-            using fine unfolding \<gamma>_def by (auto simp: fine_Int)
+            using \<D> unfolding \<gamma>_def by (auto simp: fine_Int)
           have ball_fine: \<open>(\<lambda>x. ball x (d x)) fine \<D>\<close>
-            using fine unfolding \<gamma>_def by (auto simp: fine_Int)
+            using \<D> unfolding \<gamma>_def by (auto simp: fine_Int)
           have \<D>_split: \<open>\<D> = {(x,k) \<in> \<D>. x \<in> S} \<union> {(x,k) \<in> \<D>. x \<notin> S}\<close>
             by auto
           define \<D>S where \<open>\<D>S \<equiv> {(x,k) \<in> \<D>. x \<in> S}\<close>
           define \<D>N where \<open>\<D>N \<equiv> {(x,k) \<in> \<D>. x \<notin> S}\<close>
           have sum_len: \<open>(\<Sum>(x, K)\<in>\<D>. Sup K - Inf K) = b - a\<close>
-            using additive_tagged_division_1[OF \<open>a \<le> b\<close> td] .
+            using additive_tagged_division_1[OF \<open>a \<le> b\<close>] \<D> by force
           \<comment> \<open>S-component: $< \varepsilon/2$\<close>
           have S_bound: \<open>norm (\<Sum>(x,k)\<in>\<D>S. f (Sup k) - f (Inf k)) < \<epsilon>/2\<close>
           proof (rule g1)
@@ -1136,13 +1121,10 @@ proof (cases \<open>a<b\<close>)
               fix xk assume xk_in: \<open>xk \<in> \<D>N\<close>
               obtain x k where xk: \<open>xk = (x, k)\<close> and mem: \<open>(x, k) \<in> \<D>\<close> \<open>x \<notin> S\<close>
                 using \<D>N_def xk_in by blast
-              from td mem have xk_props: \<open>x \<in> k\<close> \<open>k \<subseteq> {a..b}\<close>
-                by (auto dest: tagged_division_ofD)
-              from td mem obtain c e where k_int: \<open>k = cbox c e\<close>
-                using tagged_division_ofD(4) by blast
-              with xk_props have ce: \<open>c \<le> e\<close> \<open>c \<le> x\<close> \<open>x \<le> e\<close>
+              from \<D> mem obtain c e where k_eq: \<open>k = {c..e}\<close> and xk_props: \<open>x \<in> k\<close> \<open>k \<subseteq> {a..b}\<close>
+                by (metis box_real(2) tagged_division_ofD(2-4))
+              with xk_props have ce: \<open>c \<le> e\<close> \<open>c \<le> x\<close> \<open>x \<le> e\<close> 
                 by auto
-              have k_eq: \<open>k = {c..e}\<close> using k_int by auto
               have sup_k: \<open>Sup k = e\<close> and inf_k: \<open>Inf k = c\<close>
                 using ce by (auto simp: k_eq)
               have cont: \<open>content k = Sup k - Inf k\<close>
@@ -1188,12 +1170,12 @@ proof (cases \<open>a<b\<close>)
             have step2: \<open>(\<Sum>(x,k)\<in>\<D>N. \<epsilon>/2 / (b-a) * (Sup k - Inf k))
                         \<le> (\<Sum>(x,k)\<in>\<D>.  \<epsilon>/2 / (b-a) * (Sup k - Inf k))\<close>
             proof (rule sum_mono2)
-              show \<open>finite \<D>\<close> using tagged_division_of_finite[OF td] .
+              show \<open>finite \<D>\<close> using tagged_division_of_finite \<D> by metis
               show \<open>\<D>N \<subseteq> \<D>\<close> unfolding \<D>N_def by auto
               fix xk assume \<open>xk \<in> \<D> - \<D>N\<close>
               then obtain x k where \<open>xk = (x,k)\<close> \<open>(x,k) \<in> \<D>\<close> by (cases xk) auto
               then obtain c e where \<open>k = cbox c e\<close> \<open>c \<le> e\<close>
-                using tagged_division_ofD(4,2) td
+                using tagged_division_ofD(4,2) \<D>
                 by (smt (verit) atLeastAtMost_iff box_real(2) subset_iff)
               then have \<open>Sup k \<ge> Inf k\<close> by simp
               then show \<open>0 \<le> (case xk of (x,k) \<Rightarrow> \<epsilon>/2 / (b-a) * (Sup k - Inf k))\<close>
@@ -1208,7 +1190,7 @@ proof (cases \<open>a<b\<close>)
             finally show ?thesis .
           qed
           \<comment> \<open>Combine the two halves\<close>
-          have fin\<D>: \<open>finite \<D>\<close> using tagged_division_of_finite[OF td] .
+          have fin\<D>: \<open>finite \<D>\<close> using tagged_division_of_finite \<D> by metis
           have disj: \<open>\<D>S \<inter> \<D>N = {}\<close> unfolding \<D>S_def \<D>N_def by auto
           have union: \<open>\<D> = \<D>S \<union> \<D>N\<close> unfolding \<D>S_def \<D>N_def using \<D>_split by auto
           have fin_S: \<open>finite \<D>S\<close> and fin_N: \<open>finite \<D>N\<close>
@@ -1247,11 +1229,7 @@ proof (cases \<open>a<b\<close>)
       qed
     qed
   qed (auto simp: g_def)
-next
-  case False
-  then show ?thesis
-    using \<open>a \<le> b\<close> by force
-qed
+qed (use \<open>a \<le> b\<close> in auto)
 
 lemma negligible_content_gauge:
   fixes a b :: real
@@ -1271,16 +1249,14 @@ proof -
   show ?thesis
   proof (intro exI conjI allI impI)
     show \<open>gauge \<gamma>\<close> by fact
-    fix p assume asm: \<open>p tagged_partial_division_of cbox a b \<and> \<gamma> fine p \<and> fst ` p \<subseteq> S\<close>
-    then have pd: \<open>p tagged_partial_division_of cbox a b\<close> and fine: \<open>\<gamma> fine p\<close> 
-      and tags: \<open>fst ` p \<subseteq> S\<close> by auto
+    fix p assume p: \<open>p tagged_partial_division_of cbox a b \<and> \<gamma> fine p \<and> fst ` p \<subseteq> S\<close>
     have eq: \<open>content k *\<^sub>R indicat_real S x - integral k (indicat_real S) = content k\<close>
       if \<open>(x, k) \<in> p\<close> for x k
     proof -
-      from that tags have \<open>x \<in> S\<close> by force
+      from p that have \<open>x \<in> S\<close> by force
       then have \<open>indicat_real S x = 1\<close> by (simp add: indicator_def)
       moreover have \<open>integral k (indicat_real S) = 0\<close>
-        by (metis assms(1) integral_unique negligible_def pd tagged_partial_division_ofD(4)
+        by (metis assms(1) integral_unique negligible_def p tagged_partial_division_ofD(4)
             that)
       ultimately show ?thesis by simp
     qed
@@ -1288,7 +1264,7 @@ proof -
       using eq content_pos_le
       by (intro sum.cong[OF refl]) fastforce
     then show \<open>(\<Sum>(x,k)\<in>p. content k) < \<delta>\<close>
-      using \<gamma>[OF pd fine] by presburger
+      using \<gamma> p by presburger
   qed
 qed
 
@@ -1345,10 +1321,9 @@ proof -
       using \<delta>[OF div sub content_bound] .
     then have \<open>(\<Sum>(x,k)\<in>p. norm (F k)) < \<epsilon>\<close>
       using sum.reindex[OF inj, of \<open>\<lambda>k. norm (F k)\<close>] by (simp add: o_def case_prod_unfold)
-    moreover have \<open>norm (\<Sum>(x,k)\<in>p. F k) \<le> (\<Sum>(x,k)\<in>p. norm (F k))\<close>
-      by (simp add: case_prod_unfold sum_norm_le)
-    ultimately show \<open>norm (\<Sum>(x,k)\<in>p. f (Sup k) - f (Inf k)) < \<epsilon>\<close>
-      unfolding F_def by linarith
+    then show \<open>norm (\<Sum>(x,k)\<in>p. f (Sup k) - f (Inf k)) < \<epsilon>\<close>
+      unfolding F_def
+      by (smt (verit) case_prod_unfold sum_norm_le)
   qed
 qed
 
@@ -1356,19 +1331,16 @@ theorem fundamental_theorem_of_calculus_absolutely_continuous:
   fixes f :: "real \<Rightarrow> 'a::euclidean_space"
   assumes "negligible S" "a \<le> b"
     "absolutely_continuous_on {a..b} f"
-    "\<And>x. x \<in> {a..b} - S \<Longrightarrow> (f has_vector_derivative f' x) (at x within {a..b})"
+    and fvd: "\<And>x. x \<in> {a..b} - S \<Longrightarrow> (f has_vector_derivative f' x) (at x within {a..b})"
   shows "(f' has_integral (f b - f a)) {a..b}"
-proof (rule fundamental_theorem_of_calculus_Bartle)
-  show \<open>negligible S\<close> \<open>a \<le> b\<close> by fact+
-  show \<open>\<And>x. x \<in> {a..b} - S \<Longrightarrow> (f has_vector_derivative f' x) (at x within {a..b})\<close>
-    using assms(4) .
+proof (intro fundamental_theorem_of_calculus_Bartle)
   fix \<epsilon> :: real assume \<open>\<epsilon> > 0\<close>
   \<comment> \<open>Need: @{term absolutely_continuous_on} implies the Henstock–Sacks condition\<close>
   show \<open>\<exists>g. gauge g \<and>
         (\<forall>p. p tagged_partial_division_of cbox a b \<and> g fine p \<and> fst ` p \<subseteq> S \<longrightarrow>
           norm (\<Sum>(x,k)\<in>p. f (Sup k) - f (Inf k)) < \<epsilon>)\<close>
     using \<open>0 < \<epsilon>\<close> absolutely_continuous_on_imp_Henstock_Sacks assms(1,3) by fastforce
-qed
+qed (use assms in auto)
 
 subsection \<open>Closure and interior\<close>
 
@@ -1417,14 +1389,12 @@ proof (intro allI impI)
           f (Inf K + (Sup K - Inf K) / 2^n))) \<longlonglongrightarrow> norm (f (Sup K) - f (Inf K))\<close>
           if \<open>K \<in> d\<close> for K
         proof (intro tendsto_norm tendsto_diff)
-          note Kd = that
-          have Ks: \<open>K \<subseteq> S\<close> using division_ofD(2)[OF dt Kd] ts by auto
-          obtain a b where Kab: \<open>K = cbox a b\<close> using division_ofD(4)[OF dt Kd] by auto
-          have ab: \<open>a \<le> b\<close> using division_ofD(3)[OF dt Kd] Kab by auto
-          have InfK: \<open>Inf K = a\<close> and SupK: \<open>Sup K = b\<close>
-            using Kab ab by auto
-          have endpts: \<open>Inf K \<in> S\<close> \<open>Sup K \<in> S\<close>
-            using Ks InfK SupK ab Kab by auto
+          obtain a b where Kab: \<open>K = cbox a b\<close> and \<open>K \<subseteq> S\<close> \<open>a \<le> b\<close>
+            using division_ofD dt \<open>K \<in> d\<close>
+            by (metis H atLeastatMost_empty_iff2 box_real(2) subset_trans)
+          then obtain InfK: \<open>Inf K = a\<close> and SupK: \<open>Sup K = b\<close> 
+                  and endpts: \<open>Inf K \<in> S\<close> \<open>Sup K \<in> S\<close>
+            using in_mono by fastforce
           have mid_in_K: \<open>x \<in> K\<close> if \<open>Inf K \<le> x\<close> \<open>x \<le> Sup K\<close> for x
             using that InfK SupK Kab by auto
           have *: \<open>(\<lambda>n. f (x + y / 2^n)) \<longlonglongrightarrow> f x\<close> if \<open>x \<in> S\<close> \<open>\<forall>n. x + y / 2^n \<in> S\<close> for x y
@@ -1444,16 +1414,16 @@ proof (intro allI impI)
             proof
               fix n :: nat
               have \<open>(Sup K - Inf K) * 1 \<le> (Sup K - Inf K) * 2^n\<close>
-                using ab InfK SupK by (intro mult_left_mono) auto
+                using \<open>a \<le> b\<close> InfK SupK by (intro mult_left_mono) auto
               then have \<open>Inf K \<le> Sup K + (Inf K - Sup K) / 2^n\<close>
                 by (simp add: field_simps)
               moreover 
               have \<open>(Inf K - Sup K) / 2^n \<le> 0\<close>
-                using ab InfK SupK by (intro divide_nonpos_nonneg) auto
+                using \<open>a \<le> b\<close> InfK SupK by (intro divide_nonpos_nonneg) auto
               then have \<open>Sup K + (Inf K - Sup K) / 2^n \<le> Sup K\<close>
                 by linarith
               ultimately show \<open>Sup K + (Inf K - Sup K) / 2^n \<in> S\<close>
-                using mid_in_K Ks by auto
+                using mid_in_K \<open>K \<subseteq> S\<close> by auto
             qed
             then show ?thesis using *[OF endpts(2)] by (simp add: eq)
           qed
@@ -1464,12 +1434,12 @@ proof (intro allI impI)
             proof
               fix n :: nat
               have \<open>Inf K \<le> Inf K + (Sup K - Inf K) / 2^n\<close>
-                by (simp add: InfK SupK ab)
+                by (simp add: InfK SupK \<open>a \<le> b\<close>)
               moreover have \<open>Inf K + (Sup K - Inf K) / 2^n \<le> Sup K\<close>
-                by (metis InfK SupK ab dual_order.refl mult_1 one_le_numeral 
+                by (metis InfK SupK \<open>a \<le> b\<close> dual_order.refl mult_1 one_le_numeral 
                           one_le_power power_0 scaling_mono zero_le_power)
               ultimately show \<open>Inf K + (Sup K - Inf K) / 2^n \<in> S\<close>
-                using mid_in_K Ks by auto
+                using mid_in_K \<open>K \<subseteq> S\<close> by auto
             qed
             then show ?thesis using *[OF endpts(1)] by simp
           qed
@@ -1788,17 +1758,8 @@ lemma absolutely_setcontinuous_on_alt:
     (\<forall>\<epsilon>>0. \<exists>\<delta>>0. \<forall>d T. d division_of T \<and> T \<subseteq> S \<and>
       (\<Sum>k\<in>d. content k) < \<delta> \<longrightarrow> norm (\<Sum>k\<in>d. f k) < \<epsilon>)\<close>  (is \<open>?L = ?R\<close>)
 proof
-  assume L: \<open>?L\<close>
-  show \<open>?R\<close>
-  proof (intro allI impI)
-    fix \<epsilon> :: real
-    assume \<open>0 < \<epsilon>\<close>
-    with L obtain \<delta> where \<open>0 < \<delta>\<close> and
-      \<delta>: \<open>\<And>d T. d division_of T \<Longrightarrow> T \<subseteq> S \<Longrightarrow> sum content d < \<delta> \<Longrightarrow> (\<Sum>k\<in>d. norm (f k)) < \<epsilon>\<close>
-      unfolding absolutely_setcontinuous_on_def by meson
-    show \<open>\<exists>\<delta>>0. \<forall>d T. d division_of T \<and> T \<subseteq> S \<and> (\<Sum>k\<in>d. content k) < \<delta> \<longrightarrow> norm (\<Sum>k\<in>d. f k) < \<epsilon>\<close>
-      by (meson \<delta> \<open>0 < \<delta>\<close> norm_sum order.strict_trans1)
-  qed
+  show \<open>?L \<Longrightarrow> ?R\<close>
+    by (meson absolutely_setcontinuous_on_def norm_sum order_le_less_trans)
 next
   assume R: \<open>?R\<close>
   show \<open>?L\<close>
@@ -1820,32 +1781,21 @@ next
           show \<open>0 < r\<close> by fact
         next
           fix d T
-          assume asm: \<open>d division_of T \<and> T \<subseteq> S \<and> sum content d < r\<close>
-          have fin: \<open>finite d\<close> using asm division_of_finite by blast
+          assume dt: \<open>d division_of T \<and> T \<subseteq> S \<and> sum content d < r\<close>
+          have fin: \<open>finite d\<close> using dt division_of_finite by blast
           define d_pos where \<open>d_pos = {k \<in> d. 0 \<le> f k \<bullet> b}\<close>
           define d_neg where \<open>d_neg = {k \<in> d. f k \<bullet> b < 0}\<close>
-          have d_split: \<open>d = d_pos \<union> d_neg\<close>
-            unfolding d_pos_def d_neg_def by auto
-          have d_disj: \<open>d_pos \<inter> d_neg = {}\<close>
-            unfolding d_pos_def d_neg_def by auto
-          have fin_pos: \<open>finite d_pos\<close> and fin_neg: \<open>finite d_neg\<close>
+          have d_split: \<open>d = d_pos \<union> d_neg\<close> and d_disj: \<open>d_pos \<inter> d_neg = {}\<close> 
+             and fin_pos: \<open>finite d_pos\<close> and fin_neg: \<open>finite d_neg\<close> and d_pos_sub: \<open>d_pos \<subseteq> d\<close> and d_neg_sub: \<open>d_neg \<subseteq> d\<close>
             using fin unfolding d_pos_def d_neg_def by auto
-          have d_pos_sub: \<open>d_pos \<subseteq> d\<close> and d_neg_sub: \<open>d_neg \<subseteq> d\<close>
-            unfolding d_pos_def d_neg_def by auto
-          have div_d: \<open>d division_of \<Union>d\<close>
-            using asm division_of_union_self by blast
-          have div_pos: \<open>d_pos division_of \<Union>d_pos\<close>
-            using division_of_subset[OF div_d d_pos_sub] .
-          have div_neg: \<open>d_neg division_of \<Union>d_neg\<close>
-            using division_of_subset[OF div_d d_neg_sub] .
-          have union_pos_sub: \<open>\<Union>d_pos \<subseteq> S\<close>
-            using asm d_pos_sub by blast
-          have union_neg_sub: \<open>\<Union>d_neg \<subseteq> S\<close>
-            using asm d_split by blast
+          obtain div_pos: \<open>d_pos division_of \<Union>d_pos\<close> and div_neg: \<open>d_neg division_of \<Union>d_neg\<close>
+            by (meson d_neg_sub d_pos_sub division_of_subset division_of_union_self dt)
+          have union_pos_sub: \<open>\<Union>d_pos \<subseteq> S\<close> and union_neg_sub: \<open>\<Union>d_neg \<subseteq> S\<close>
+            using dt d_pos_sub d_split by blast+
           have content_pos: \<open>sum content d_pos < r\<close>
-            by (meson asm content_pos_le d_pos_sub fin order_le_less_trans sum_mono2)
+            by (meson dt content_pos_le d_pos_sub fin order_le_less_trans sum_mono2)
           have content_neg: \<open>sum content d_neg < r\<close>
-            by (meson asm content_pos_le d_neg_sub fin order_le_less_trans sum_mono2)
+            by (meson dt content_pos_le d_neg_sub fin order_le_less_trans sum_mono2)
           have norm_pos: \<open>norm (sum f d_pos) < \<epsilon>/2\<close>
             using r[OF div_pos union_pos_sub content_pos] .
           have norm_neg: \<open>norm (sum f d_neg) < \<epsilon>/2\<close>
@@ -2058,7 +2008,7 @@ proof -
     have meas: "g n \<in> borel_measurable (lebesgue_on S)"
       using continuous_imp_measurable_on_sets_lebesgue[OF continuous_on_subset[OF g_cont subset_UNIV] S_sets] .
     have "integrable (lebesgue_on S) (norm \<circ> g n)"
-      using  finite_measure.integrable_const_bound[OF finite_measure_lebesgue_on[OF assms(1)]] g_bound
+      using finite_measure.integrable_const_bound[OF finite_measure_lebesgue_on[OF assms(1)]] g_bound
       by (metis (no_types, lifting) ext comp_apply eventuallyI integrable_norm_iff meas)
     then show ?thesis
       using meas S_sets absolutely_integrable_measurable by blast
@@ -2135,10 +2085,10 @@ theorem absolutely_integrable_approximate_continuous:
 proof -
   text \<open>Claim 1: absolute integrability on intersections and differences with boxes.\<close>
   have f_int_inter: \<open>f absolutely_integrable_on (S \<inter> cbox u v)\<close> for u v
-    by (meson assms(1,2) fmeasurableD fmeasurable_cbox inf.cobounded1 set_integrable_subset
+    by (meson assms fmeasurableD fmeasurable_cbox inf.cobounded1 set_integrable_subset
         sets.Int sets_completionI_sets)
   have f_int_diff: \<open>f absolutely_integrable_on (S - cbox u v)\<close> for u v
-    by (meson Diff_subset assms(1,2) fmeasurableD lmeasurable_cbox set_integrable_subset
+    by (meson Diff_subset assms fmeasurableD lmeasurable_cbox set_integrable_subset
         sets.Diff)
   text \<open>Claim 2: approximation of the norm integral by boxes.\<close>
   have norm_int: \<open>(\<lambda>x. norm (f x)) integrable_on S\<close>
@@ -2557,9 +2507,7 @@ proof -
       have ne: \<open>{a..b} \<noteq> {}\<close> using ab by auto
       have bound: \<open>norm (hh n x - h x) \<le> integral {a..b} (\<lambda>t. norm (h' t - hh' n t))\<close>
         if \<open>x \<in> {a..b}\<close> for x
-        unfolding hh_def
-        using L1_bound[where hh'=\<open>hh' n\<close> and h'=h' and h=h,
-              OF that hh'n_int h'_int norm_diff_int h'int_eq[OF that]] .
+        unfolding hh_def using L1_bound h'_int h'int_eq hh'n_int norm_diff_int that by blast
       have bdd: \<open>bdd_above ((\<lambda>x. norm (hh n x - h x)) ` {a..b})\<close>
         by (meson bdd_above.I2 bound)
       have sup_bound: \<open>(SUP x\<in>{a..b}. norm (hh n x - h x)) \<le> integral {a..b} (\<lambda>t. norm (h' t - hh' n t))\<close>
@@ -2594,9 +2542,7 @@ proof -
   have f'int_eq: "f x = integral {a..x} f'" if "x \<in> {a..b}" for x
     using integral_unique[OF f'_has[OF that]] by simp
   have bound: \<open>norm (ff n c - f c) \<le> integral {a..b} (\<lambda>x. norm (f' x - ff' n x))\<close> for n
-    unfolding ff_def
-    using L1_bound[where hh'=\<open>ff' n\<close> and h'=f' and h=f,
-          OF c_ab ff'n_int f'_int norm_diff_int f'int_eq[OF c_ab]] .
+    unfolding ff_def using L1_bound c_ab f'_int f'int_eq ff'n_int norm_diff_int by blast
   show ?thesis
     using Lim_null_comparison[OF _ ff'_L1, of "(\<lambda>n. ff n c - f c)"] 
     using bound eventually_sequentially by (auto simp: LIM_zero_iff)
@@ -2623,8 +2569,7 @@ proof -
     using integral_unique[OF f'_has[OF x_ab]] by simp
   have bound: \<open>norm (ff x - f x) \<le> integral {a..b} (\<lambda>t. norm (f' t - ff' n t))\<close>
     unfolding ff_def
-    using L1_bound[where hh'=\<open>ff' n\<close> and h'=f' and h=f,
-          OF x_ab ff'n_int f'_int norm_diff_int f'int_eq] .
+    using L1_bound f'_int f'int_eq ff'n_int norm_diff_int x_ab by blast
   have \<open>integral {a..b} (\<lambda>t. norm (f' t - ff' n t)) < inverse (real n + 1)\<close>
     using integral_nonneg[OF norm_diff_int] ff'[of n] by simp
   then show ?thesis using bound by linarith
@@ -2638,7 +2583,6 @@ lemma integral_antiderivative_bound:
   shows \<open>norm (h x) \<le> B\<close>
 proof -
   have sub: \<open>{a..x} \<subseteq> {a..b}\<close> using x_ab by auto
-
   have h'_sub: \<open>h' integrable_on {a..x}\<close>
     using h'_int sub by (rule integrable_subinterval_real)
   have nh'_sub: \<open>(\<lambda>t. norm (h' t)) integrable_on {a..x}\<close>
@@ -2710,35 +2654,35 @@ proof -
          bounded (range (hh' n)) \<and>
          norm (integral {a..b} (\<lambda>x. norm (h' x - hh' n x))) < inverse (real n + 1)\<close>
     unfolding choice_iff by blast
-  have hh'_absint: \<open>hh' n absolutely_integrable_on {a..b}\<close> for n
-    using hh'_props by blast
-  have hh'_cont: \<open>continuous_on {a..b} (hh' n)\<close> for n
-    using hh'_props continuous_on_subset by blast
-  have hh'_approx: \<open>norm (integral {a..b} (\<lambda>x. norm (h' x - hh' n x))) < inverse (real n + 1)\<close> for n
-    using hh'_props by blast
   define hh where \<open>hh \<equiv> \<lambda>n x. integral {a..x} (hh' n)\<close>
-  have hh_cont: \<open>continuous_on {a..b} (hh n)\<close> for n
-    unfolding hh_def using hh'_props indefinite_integral_continuous_1
-      set_lebesgue_integral_eq_integral(1) by blast
-  have hh'_L1: \<open>(\<lambda>n. integral {a..b} (\<lambda>x. norm (h' x - hh' n x))) \<longlonglongrightarrow> 0\<close>
-    by (metis (lifting) LIMSEQ_norm_0 Num.of_nat_simps(3) add.commute hh'_approx inverse_eq_divide)
-  have hh_ptwise: \<open>(\<lambda>n. hh n c) \<longlonglongrightarrow> h c\<close> if \<open>c \<in> {a..b}\<close> for c
-    unfolding hh_def using h'abs h'int hh'_props pointwise that by blast
-  have hh'_conj: \<open>hh' n absolutely_integrable_on {a..b} \<and>
+  show thesis
+  proof
+    show hh'_absint: \<open>hh' n absolutely_integrable_on {a..b}\<close> for n
+      using hh'_props by blast
+    show hh'_cont: \<open>continuous_on {a..b} (hh' n)\<close> for n
+      using hh'_props continuous_on_subset by blast
+    show hh'_approx: \<open>norm (integral {a..b} (\<lambda>x. norm (h' x - hh' n x))) < inverse (real n + 1)\<close> for n
+      using hh'_props by blast
+    show \<open>continuous_on {a..b} (hh n)\<close> for n
+      unfolding hh_def using hh'_props indefinite_integral_continuous_1
+        set_lebesgue_integral_eq_integral(1) by blast
+    show \<open>(\<lambda>n. integral {a..b} (\<lambda>x. norm (h' x - hh' n x))) \<longlonglongrightarrow> 0\<close>
+      by (metis (lifting) LIMSEQ_norm_0 Num.of_nat_simps(3) add.commute hh'_approx inverse_eq_divide)
+    show \<open>(\<lambda>n. hh n c) \<longlonglongrightarrow> h c\<close> if \<open>c \<in> {a..b}\<close> for c
+      unfolding hh_def using h'abs h'int hh'_props pointwise that by blast
+    have hh'_conj: \<open>hh' n absolutely_integrable_on {a..b} \<and>
         norm (integral {a..b} (\<lambda>x. norm (h' x - hh' n x))) < inverse (real n + 1)\<close> for n
-    using hh'_absint hh'_approx by blast
-  have hh_uniform: \<open>(\<lambda>n. SUP x\<in>{a..b}. norm (hh n x - h x)) \<longlonglongrightarrow> 0\<close>
-    unfolding hh_def using uniform_from_L1[OF ab hh'_conj h'abs h'int hh'_cont] .
-  have norm_diff_int: \<open>(\<lambda>x. norm (h' x - hh' n x)) integrable_on {a..b}\<close> for n
-    by (metis absolutely_integrable_on_def h'abs hh'_props set_integral_diff(1))
-  have hh_deriv: \<open>(hh n has_vector_derivative hh' n x) (at x)\<close> if \<open>x \<in> {a<..<b}\<close> for n x
-    using integral_has_vector_derivative[OF hh'_cont] that
-    using at_within_Icc_at hh_def less_eq_real_def by fastforce
-  have hh_inv_bound: \<open>norm (hh n x - h x) \<le> inverse (real n + 1)\<close> if \<open>x \<in> {a..b}\<close> for n x
-    unfolding hh_def using L1_inv_bound[OF that hh'_conj h'abs h'int hh'_cont] .
-  show ?thesis
-    using that[OF hh'_absint hh'_cont hh_cont hh'_approx hh'_L1 hh_ptwise
-               hh_uniform norm_diff_int hh_deriv hh_inv_bound] .
+      using hh'_absint hh'_approx by blast
+    show \<open>(\<lambda>n. SUP x\<in>{a..b}. norm (hh n x - h x)) \<longlonglongrightarrow> 0\<close>
+      unfolding hh_def using uniform_from_L1[OF ab hh'_conj h'abs h'int hh'_cont] .
+    show \<open>(\<lambda>x. norm (h' x - hh' n x)) integrable_on {a..b}\<close> for n
+      by (metis absolutely_integrable_on_def h'abs hh'_props set_integral_diff(1))
+    show \<open>(hh n has_vector_derivative hh' n x) (at x)\<close> if \<open>x \<in> {a<..<b}\<close> for n x
+      using integral_has_vector_derivative[OF hh'_cont] that
+      using at_within_Icc_at hh_def less_eq_real_def by fastforce
+    show \<open>norm (hh n x - h x) \<le> inverse (real n + 1)\<close> if \<open>x \<in> {a..b}\<close> for n x
+      unfolding hh_def using L1_inv_bound[OF that hh'_conj h'abs h'int hh'_cont] .
+  qed
 qed
 
 lemma ibp_fun_setup:
@@ -3051,7 +2995,6 @@ proof -
             Henstock_Kurzweil_Integration.integrable_diff ffgg'_int f'gg_int fg'_int)
       have "norm (integral {a..b} (\<lambda>x. bop (ff' n x) (gg n x) - bop (f' x) (g x))) \<le> \<phi> n"
       proof -
-
         have M_swap: \<open>norm ((\<lambda>x y. bop y x) u v) \<le> M * norm u * norm v\<close> for u v
           using M[of v u] by (simp add: mult.commute mult.left_commute)
         have diff_left: \<open>bop (ff' n x) (gg n x) - bop (f' x) (gg n x)
@@ -3153,8 +3096,7 @@ proof (cases \<open>f integrable_on cbox a b\<close>)
   then show ?thesis
     by (auto simp: absolutely_integrable_on_def)
 next
-  case True
-  note fint = this
+  case fint: True
   show ?thesis
   proof (intro iffI conjI)
     assume abs: \<open>f absolutely_integrable_on cbox a b\<close>
@@ -3194,7 +3136,7 @@ next
             using eq ke by (simp add: box_real algebra_simps)
         qed
         have step2: \<open>\<And>k. k \<in> d \<Longrightarrow> norm (integral k f) \<le> integral k (\<lambda>x. norm (f x))\<close>
-          by (smt (verit, ccfv_SIG) integral_norm_bound_integral True
+          by (smt (verit, ccfv_SIG) integral_norm_bound_integral fint
               division_ofD(2,4) dt elementary_interval integrable_on_subdivision nint)
         have nf_int_t: \<open>(\<lambda>x. norm (f x)) integrable_on T\<close>
           using integrable_on_subdivision[OF div nint sub] .
@@ -3274,10 +3216,8 @@ proof (cases \<open>a \<le> b\<close>)
          has_bounded_variation_on (\<lambda>t. integral {a..t} f') {a..b}\<close>
     proof (intro conjI)
       \<comment> \<open>Part 1: @{term f'} is integrable (via FTC for absolutely continuous functions)\<close>
-      have ftc: \<open>(f' has_integral (f b - f a)) {a..b}\<close>
-        by (rule fundamental_theorem_of_calculus_absolutely_continuous
-                [OF neg ab ac deriv])
-      then show \<open>f' integrable_on {a..b}\<close>
+      show \<open>f' integrable_on {a..b}\<close>
+        using fundamental_theorem_of_calculus_absolutely_continuous [OF neg ab ac deriv]
         by (auto simp: integrable_on_def)
     next
       \<comment> \<open>Part 2: the indefinite integral of @{term f'} has bounded variation\<close>
@@ -3314,8 +3254,7 @@ proof (cases \<open>a \<le> b\<close>)
       qed
     qed
     then show ?thesis
-      by (subst absolutely_integrable_bounded_variation_eq
-            [where a=a and b=b, unfolded box_real])
+      using Bounded_Variation.absolutely_integrable_bounded_variation_eq by blast
   qed
 qed auto
 
@@ -3341,10 +3280,8 @@ proof (intro strip)
       using integral_combine_division_topdown[OF _ that(1)] by auto
     have meas: "T \<in> lmeasurable"
       using lmeasurable_division that(1) by auto
-    have "sum content d = measure lebesgue T"
-      by (metis lebesgue_measure_eq_content that(1))
     then have "measure lebesgue T < \<delta>"
-      using that(3) by auto
+      using that by (metis lebesgue_measure_eq_content)
     then show ?thesis
       using d[OF that(2) meas] eq by auto
   qed
@@ -3363,7 +3300,7 @@ proof -
     if \<open>k \<in> d\<close> \<open>d division_of T\<close> \<open>T \<subseteq> {a..b}\<close> for k d T
   proof -
     obtain c e where ke: \<open>k = cbox c e\<close> and \<open>k \<subseteq> T\<close>
-      using division_ofD(4,2)  \<open>k \<in> d\<close> \<open>d division_of T\<close> by meson
+      using division_ofD(4,2) \<open>k \<in> d\<close> \<open>d division_of T\<close> by meson
     have \<open>k \<noteq> {}\<close> using that(1,2) division_ofD(3) by blast
     then have \<open>c \<le> e\<close> using ke by auto
     have \<open>c \<in> {a..b}\<close> \<open>e \<in> {a..b}\<close>
@@ -3428,8 +3365,8 @@ proof -
         \<exists>d>0. \<forall>h. 0 < h \<and> h < d \<longrightarrow> norm (integral (cbox x (x + h *\<^sub>R One)) g /\<^sub>R h ^ DIM(real) - g x) < e\<close>
       show \<open>\<exists>k. negligible k \<and>
         (\<forall>x\<in>{u..v} - k. \<forall>e>0.
-          \<exists>d>0. \<forall>x'\<in>{u..v}.
-            x < x' \<and> x' < x + d \<longrightarrow> norm (integral {x..x'} f - (x' - x) *\<^sub>R f x) / norm (x' - x) < e)\<close>
+          \<exists>d>0. \<forall>y\<in>{u..v}.
+            x < y \<and> y < x + d \<longrightarrow> norm (integral {x..y} f - (y - x) *\<^sub>R f x) / norm (y - x) < e)\<close>
       proof (intro exI[of _ N] conjI strip)
         show \<open>negligible N\<close>
           by (rule negN)
@@ -3516,12 +3453,7 @@ proof -
         using K2[OF xK2 \<open>0 < e\<close>] xK2 by force
       have d2': \<open>norm (integral {y'..x} f - (x - y') *\<^sub>R f x) / \<bar>x - y'\<bar> < e\<close>
         if \<open>y' \<in> {a..b}\<close> \<open>y' < x\<close> \<open>x - y' < d2\<close> for y'
-      proof -
-        have \<open>norm (integral {-x..-y'} (\<lambda>t. f(-t)) - (-y'+x) *\<^sub>R f x) / norm (-y'+x) < e\<close>
-          using d2[of \<open>-y'\<close>] that by auto
-        then show ?thesis
-          using that by (simp add: integral_reflect_real real_norm_def)
-      qed
+        using d2[of \<open>-y'\<close>] that by (simp add: integral_reflect_real real_norm_def)
       show ?thesis
       proof (intro exI conjI strip)
         show "0 < min d1 d2"
@@ -3567,9 +3499,8 @@ proof -
               using d1[of y] \<open>y \<in> {a..b}\<close> y by (auto simp: p_def q_def real_norm_def)
           next
             case False
-            then have \<open>y < x\<close> using \<open>x \<noteq> y\<close> by linarith
             then show ?thesis
-              using d2'[of y] \<open>y \<in> {a..b}\<close> y by (auto simp: p_def q_def real_norm_def)
+              using \<open>x \<noteq> y\<close> d2'[of y] \<open>y \<in> {a..b}\<close> y by (auto simp: p_def q_def real_norm_def)
           qed
           then show ?thesis
             using step[of p q] pq ord by auto
@@ -3590,8 +3521,7 @@ lemma absolute_integral_absolutely_continuous_derivative_eq:
           (\<forall>x \<in> {a..b}. (f' has_integral (f x - f a)) {a..x}))
      \<longleftrightarrow> (absolutely_continuous_on {a..b} f \<and>
           (\<exists>S. negligible S \<and>
-               (\<forall>x \<in> {a..b} - S.
-                  (f has_vector_derivative f' x) (at x within {a..b}))))\<close>
+               (\<forall>x \<in> {a..b} - S. (f has_vector_derivative f' x) (at x within {a..b}))))\<close>
     (is \<open>?L \<longleftrightarrow> ?R\<close>)
 proof
   assume L: ?L
@@ -3786,7 +3716,7 @@ proof -
   show \<open>(\<lambda>x. bop (f x) (g' x) + bop (f' x) (g x)) absolutely_integrable_on {a..b}\<close>
     using main by blast
   show \<open>((\<lambda>x. bop (f x) (g' x) + bop (f' x) (g x))
-    has_integral (bop (f x) (g x) - bop (f a) (g a))) {a..x}\<close>
+        has_integral (bop (f x) (g x) - bop (f a) (g a))) {a..x}\<close>
     if \<open>x \<in> {a..b}\<close> for x
     using main that by auto
 qed
@@ -3798,8 +3728,7 @@ text \<open>Helper: the indefinite integral of an absolutely integrable function
 lemmas indefinite_integral_absolutely_continuous = absolutely_continuous_indefinite_integral_right
 
 
-text \<open>The real-valued shifted version:
-  HOL Light's @{text ABSOLUTE_REAL_INTEGRATION_BY_PARTS_SUM}.\<close>
+text \<open>The real-valued shifted version\<close>
 
 lemma absolute_real_integration_by_parts_sum:
   fixes f g f' g' :: "real \<Rightarrow> real"
