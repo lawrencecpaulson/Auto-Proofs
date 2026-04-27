@@ -1027,7 +1027,7 @@ text \<open>
 \<close>
 
 theorem fundamental_theorem_of_calculus_Bartle:
-  fixes f :: \<open>real \<Rightarrow> 'a::euclidean_space\<close> and f' :: \<open>real \<Rightarrow> 'a\<close>
+  fixes f :: \<open>real \<Rightarrow> 'a::banach\<close> and f' :: \<open>real \<Rightarrow> 'a\<close>
   assumes neg: \<open>negligible S\<close>
     and \<open>a \<le> b\<close>
     and deriv: \<open>\<And>x. x \<in> {a..b} - S \<Longrightarrow> (f has_vector_derivative f' x) (at x within {a..b})\<close>

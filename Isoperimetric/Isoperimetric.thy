@@ -1450,6 +1450,8 @@ proof -
     by (simp add: negligible_iff_null_sets)
 qed
 
+section \<open>Start of the actual isoperimetric inequality\<close>
+
 text \<open>
   Formalisation of the isoperimetric inequality, following John Harrison's
   HOL Light proof in @{text "100/isoperimetric.ml"}.
@@ -1475,7 +1477,7 @@ text \<open>
   \<^item> @{text Green}: Green's theorem for type I/II regions, line integrals
 \<close>
 
-section \<open>Convex curve lemmas\<close>
+subsection \<open>Convex curve lemmas\<close>
 
 text \<open>Switching between views of a convex simple closed curve.\<close>
 
@@ -4000,20 +4002,188 @@ proof -
     using below_2 integrand_eq integral_eq measure_eq by (simp add: o_def)
 qed
 
-theorem Green_area_theorem:
+
+definition Green_concl :: "(real \<Rightarrow> complex) \<Rightarrow> (real \<Rightarrow> complex) \<Rightarrow> bool" where
+  "Green_concl g g' \<equiv> (\<lambda>t. Re (g' t) * Im (g t)) absolutely_integrable_on {0..1}
+    \<and> \<bar>integral {0..1} (\<lambda>t. Re (g' t) * Im (g t))\<bar> = measure lebesgue (inside (path_image g))"
+
+(*FIXME move these elsewhere*)
+lemma diameter_translation:
+  fixes a :: "'a::real_normed_vector"
+  shows "diameter ((+) a ` S) = diameter S"
+proof (cases "S = {}")
+  case False
+  then show ?thesis
+    by (simp add: diameter_def image_comp split_def flip: image_paired_Times)
+qed (simp add: diameter_def)
+
+lemma bounded_translation_eq [simp]:
+  fixes a :: "'a :: real_normed_vector"
+  shows "bounded ((+) a ` S) \<longleftrightarrow> bounded S"
+  by (metis bounded_iff bounded_translation imageI norm_add_leD)
+
+lemma inside_translation:
+  fixes a :: "'a :: real_normed_vector"
+  shows "inside ((+) a ` S) = (+) a ` inside S"
+proof (rule set_eqI)
+  fix x :: 'a
+  define y where "y \<equiv> x - a"
+  then have xy: "x = a + y" by simp
+  have homeo: "homeomorphism (- S) ((+) a ` (- S)) ((+) a) ((+) (- a))"
+    using homeomorphism_symD homeomorphism_translation by blast
+  have "connected_component_set (- ((+) a ` S)) x =
+        (+) a ` connected_component_set (- S) y"
+    using connected_component_set_homeomorphism[OF homeo]
+    by (metis ComplD ComplI connected_component_eq_empty imageI image_is_empty translation_Compl
+        xy)
+  with xy show "(x \<in> inside ((+) a ` S)) = (x \<in> (+) a ` inside S)"
+    by (auto simp: inside_def)
+qed
+
+locale Green =
   fixes g :: "real \<Rightarrow> complex" and g' :: "real \<Rightarrow> complex"
+    and U :: "real set"
     and a b :: "complex"
-  assumes "simple_path g" "pathstart g = a" "pathfinish g = a"
-    and "b \<in> path_image g" "Re a < Re b" "Im a = Im b"
-    and "dist a b = diameter (path_image g)"
-    and "convex (inside (path_image g))"
-    and "absolutely_continuous_on {0..1} g"
-    and "negligible U"
-    and "\<And>t. t \<in> {0..1} - U \<Longrightarrow> (g has_vector_derivative g' t) (at t)"
-  shows "(\<lambda>t. Re (g' t) * Im (g t)) absolutely_integrable_on {0..1}"
+  assumes g: "simple_path g" "pathstart g = a" "pathfinish g = a"
+    and b: "b \<in> path_image g" "Re a < Re b" "Im a = Im b"
+    and dab: "dist a b = diameter (path_image g)"
+    and conv: "convex (inside (path_image g))"
+    and cont: "absolutely_continuous_on {0..1} g"
+    and U: "negligible U"
+    and vder: "\<And>t. t \<in> {0..1} - U \<Longrightarrow> (g has_vector_derivative g' t) (at t)"
+
+begin
+
+lemma Green_area_zero:
+  assumes "a = 0"
+  shows "Green_concl g g'"
+  unfolding Green_concl_def
+  sorry
+
+lemma Green_invariant:
+  assumes "\<And>g g' U b. Green g g' U 0 b \<Longrightarrow> Green_concl g g'"
+  shows "Green_concl g g'"
+proof -
+  have *: "Green_concl ((\<lambda>x. -a+x) \<circ> g) g'"
+  proof (intro assms)
+    show "Green ((+) (- a) \<circ> g) g' U 0 (-a+b)"
+    proof
+      show "simple_path ((+) (- a) \<circ> g)"
+        by (simp add: g simple_path_translation_eq)
+      show "pathstart ((+) (- a) \<circ> g) = 0"
+        by (simp add: g pathstart_compose)
+      show "pathfinish ((+) (- a) \<circ> g) = 0"
+        by (simp add: g pathfinish_compose)
+      show "- a + b \<in> path_image ((+) (- a) \<circ> g)"
+        by (simp add: b path_image_translation)
+       show "dist 0 (- a + b) = diameter (path_image ((+) (- a) \<circ> g))"
+         by (metis add.commute dab diameter_translation dist_0_norm dist_commute dist_norm path_image_compose pth_2)
+      show "convex (inside (path_image ((+) (- a) \<circ> g)))"
+        by (metis path_image_translation inside_translation convex_translation_eq conv)
+      show "absolutely_continuous_on {0..1} ((+) (- a) \<circ> g)"
+        by (metis (no_types, lifting) ext absolutely_continuous_on_add absolutely_continuous_on_const cont o_apply)
+    next
+      fix t
+      assume "t \<in> {0..1} - U"
+      then show "((+) (- a) \<circ> g has_vector_derivative g' t) (at t)"
+        using has_vector_derivative_shift vder by blast
+    qed (use b U in auto)
+  qed
+  show ?thesis
+    unfolding Green_concl_def
+  proof (intro conjI)
+    show "(\<lambda>t. Re (g' t) * Im (g t)) absolutely_integrable_on {0..1}"
+    proof -
+      have ai_translated: "(\<lambda>t. Re (g' t) * Im (((+) (- a) \<circ> g) t)) absolutely_integrable_on {0..1}"
+        using * unfolding Green_concl_def by auto
+      have gp_ai: "g' absolutely_integrable_on {0..1}"
+        using absolutely_integrable_absolutely_continuous_derivative[OF cont U]
+          vder has_vector_derivative_at_within by blast
+      have Re_gp_ai: "(\<lambda>t. Re (g' t)) absolutely_integrable_on {0..1}"
+      proof -
+        have "(\<lambda>t. g' t \<bullet> 1) absolutely_integrable_on {0..1}"
+          by (rule absolutely_integrable_component[OF gp_ai])
+        then show ?thesis by (simp add: complex_inner_1_right)
+      qed
+      have Ima_ai: "(\<lambda>t. Im a * Re (g' t)) absolutely_integrable_on {0..1}"
+        using absolutely_integrable_scaleR_left[OF Re_gp_ai, of "Im a"]
+        by (simp add: scaleR_conv_of_real)
+      show ?thesis
+      proof (rule absolutely_integrable_integrable_bound
+          [where g = "\<lambda>t. \<bar>Re (g' t) * Im (((+) (- a) \<circ> g) t)\<bar> + \<bar>Im a * Re (g' t)\<bar>"])
+        fix t :: real assume "t \<in> {0..1}"
+        show "norm (Re (g' t) * Im (g t)) \<le> \<bar>Re (g' t) * Im (((+) (- a) \<circ> g) t)\<bar> + \<bar>Im a * Re (g' t)\<bar>"
+          by (simp add: o_def plus_complex.sel uminus_complex.sel real_norm_def algebra_simps)
+      next
+        have "(\<lambda>t. (Im (g t) - Im a) * Re (g' t) + Im a * Re (g' t)) integrable_on {0..1}"
+        proof (rule integrable_add)
+          show "(\<lambda>t. (Im (g t) - Im a) * Re (g' t)) integrable_on {0..1}"
+            using ai_translated unfolding absolutely_integrable_on_def o_def
+            by (simp add: plus_complex.sel uminus_complex.sel algebra_simps)
+        next
+          show "(\<lambda>t. Im a * Re (g' t)) integrable_on {0..1}"
+            using Ima_ai unfolding absolutely_integrable_on_def by auto
+        qed
+        then show "(\<lambda>t. Re (g' t) * Im (g t)) integrable_on {0..1}"
+          by (simp add: algebra_simps)
+      next
+        show "(\<lambda>t. \<bar>Re (g' t) * Im (((+) (- a) \<circ> g) t)\<bar> + \<bar>Im a * Re (g' t)\<bar>) integrable_on {0..1}"
+        proof (rule integrable_add)
+          show "(\<lambda>t. \<bar>Re (g' t) * Im (((+) (- a) \<circ> g) t)\<bar>) integrable_on {0..1}"
+            using ai_translated unfolding absolutely_integrable_on_def o_def by auto
+        next
+          show "(\<lambda>t. \<bar>Im a * Re (g' t)\<bar>) integrable_on {0..1}"
+            using Ima_ai unfolding absolutely_integrable_on_def by auto
+        qed
+      qed
+    qed
+  next
+    show "\<bar>integral {0..1} (\<lambda>t. Re (g' t) * Im (g t))\<bar> = Sigma_Algebra.measure lebesgue (inside (path_image g))"
+    proof -
+      have meas_eq: "measure lebesgue (inside (path_image ((+) (- a) \<circ> g)))
+                   = measure lebesgue (inside (path_image g))"
+        by (metis path_image_translation inside_translation measure_translation)
+      have int_g': "(g' has_integral 0) {0..1}"
+      proof -
+        have "(g' has_integral (g 1 - g 0)) {0..1}"
+          using fundamental_theorem_of_calculus_absolutely_continuous[OF U _ cont, of g']
+          by (metis atLeastAtMost_iff le_numeral_extra(1) vder has_vector_derivative_at_within)
+        then show ?thesis using g by (simp add: pathstart_def pathfinish_def)
+      qed
+      have Re_has_int: "((\<lambda>t. Re (g' t)) has_integral 0) {0..1}"
+        using has_integral_Re[OF int_g'] by simp
+      have Ima_has_int: "((\<lambda>t. Im a * Re (g' t)) has_integral 0) {0..1}"
+        using has_integral_mult_right[OF Re_has_int] by simp
+      have int_extra: "integral {0..1} (\<lambda>t. Im a * Re (g' t)) = 0"
+        using integral_unique[OF Ima_has_int] .
+      have translated_eq: "\<bar>integral {0..1} (\<lambda>t. Re (g' t) * Im (((+) (- a) \<circ> g) t))\<bar>
+                         = measure lebesgue (inside (path_image g))"
+        using * unfolding Green_concl_def using meas_eq by auto
+      have ai_translated: "(\<lambda>t. Re (g' t) * Im (((+) (- a) \<circ> g) t)) integrable_on {0..1}"
+        using * unfolding Green_concl_def absolutely_integrable_on_def by auto
+      have Ima_integrable: "(\<lambda>t. Im a * Re (g' t)) integrable_on {0..1}"
+        using Ima_has_int by (rule has_integral_integrable)
+      have "integral {0..1} (\<lambda>t. Re (g' t) * Im (g t))
+          = integral {0..1} (\<lambda>t. Re (g' t) * Im (((+) (- a) \<circ> g) t) + Im a * Re (g' t))"
+        by (simp add: o_def plus_complex.sel uminus_complex.sel algebra_simps)
+      also have "\<dots> = integral {0..1} (\<lambda>t. Re (g' t) * Im (((+) (- a) \<circ> g) t))
+                    + integral {0..1} (\<lambda>t. Im a * Re (g' t))"
+        using integral_add[OF ai_translated Ima_integrable] .
+      also have "\<dots> = integral {0..1} (\<lambda>t. Re (g' t) * Im (((+) (- a) \<circ> g) t))"
+        unfolding int_extra by simp
+      finally show ?thesis
+        using translated_eq by simp
+    qed
+  qed
+qed
+
+theorem area_theorem:
+  obtains "(\<lambda>t. Re (g' t) * Im (g t)) absolutely_integrable_on {0..1}"
     and "\<bar>integral {0..1} (\<lambda>t. Re (g' t) * Im (g t))\<bar> =
       measure lebesgue (inside (path_image g))"
-  sorry
+  using Green.Green_area_zero Green_concl_def Green_invariant by blast
+
+end
 
 section \<open>Part 3: Isoperimetric theorem for convex curves\<close>
 
