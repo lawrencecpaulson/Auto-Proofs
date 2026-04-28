@@ -1130,21 +1130,314 @@ proof -
   qed
 qed
 
-proposition borel_measurable_partial_derivatives_eu:
+lemma countable_rational_linear_maps:
+  "countable {A :: 'a::euclidean_space \<Rightarrow> 'b::euclidean_space. linear A \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>)}"
+proof -
+  \<comment> \<open>A linear function is determined by its values on Basis\<close>
+  { fix A B :: "'a \<Rightarrow> 'b"
+    assume "linear A" "linear B" and eq: "\<forall>x\<in>Basis. A x = B x"
+    have "A = B"
+    proof (rule ext)
+      fix x
+      have "A x = A (\<Sum>i\<in>Basis. (x \<bullet> i) *\<^sub>R i)"
+        by (simp add: euclidean_representation)
+      also have "\<dots> = (\<Sum>i\<in>Basis. (x \<bullet> i) *\<^sub>R A i)"
+        using \<open>linear A\<close> by (simp add: linear_sum linear_scale)
+      also have "\<dots> = (\<Sum>i\<in>Basis. (x \<bullet> i) *\<^sub>R B i)"
+        using eq by simp
+      also have "\<dots> = B (\<Sum>i\<in>Basis. (x \<bullet> i) *\<^sub>R i)"
+        using \<open>linear B\<close> by (simp add: linear_sum linear_scale)
+      also have "\<dots> = B x"
+        by (simp add: euclidean_representation)
+      finally show "A x = B x" .
+    qed
+  }
+  then have inj: "inj_on (\<lambda>A. restrict A (Basis::'a set))
+                    {A :: 'a \<Rightarrow> 'b. linear A \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>)}"
+    by (smt (verit, ccfv_SIG) inj_onI mem_Collect_eq restrict_apply')
+  \<comment> \<open>The range of this restriction is contained in a countable set\<close>
+  have "countable {g :: 'a \<Rightarrow> 'b. (\<forall>i. i \<notin> Basis \<longrightarrow> g i = undefined) \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. g i \<bullet> j \<in> \<rat>)}"
+  proof (rule countable_subset)
+    let ?V = "{w :: 'b. \<forall>j\<in>Basis. w \<bullet> j \<in> \<rat>}"
+    have cV: "countable ?V"
+    proof -
+      have inj: "inj_on (\<lambda>w. restrict (\<lambda>j. w \<bullet> j) (Basis :: 'b set)) ?V"
+        by (metis (mono_tags, lifting) euclidean_eq_iff inj_on_def restrict_apply')
+      moreover have "(\<lambda>w. restrict (\<lambda>j. w \<bullet> j) (Basis :: 'b set)) ` ?V \<subseteq> PiE Basis (\<lambda>_. \<rat>)"
+        by (auto simp: PiE_def Pi_def extensional_def restrict_def)
+      moreover have "countable (PiE (Basis :: 'b set) (\<lambda>_. \<rat>))"
+        by (intro countable_PiE finite_Basis) (auto simp: countable_rat)
+      moreover have "countable ((\<lambda>w. restrict (\<lambda>j. w \<bullet> j) (Basis :: 'b set)) ` ?V)"
+        using calculation(2,3) countable_subset by blast
+      ultimately show ?thesis
+        using countable_image_inj_on by blast
+    qed
+    show "{g :: 'a \<Rightarrow> 'b. (\<forall>i. i \<notin> Basis \<longrightarrow> g i = undefined) \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. g i \<bullet> j \<in> \<rat>)} \<subseteq>
+          PiE (Basis :: 'a set) (\<lambda>_. ?V)"
+      by blast
+    show "countable (PiE (Basis :: 'a set) (\<lambda>_. ?V))"
+      by (intro countable_PiE finite_Basis) (auto simp: cV)
+  qed
+  moreover have "(\<lambda>A. restrict A (Basis::'a set)) `
+                 {A :: 'a \<Rightarrow> 'b. linear A \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>)} \<subseteq>
+                 {g :: 'a \<Rightarrow> 'b. (\<forall>i. i \<notin> Basis \<longrightarrow> g i = undefined) \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. g i \<bullet> j \<in> \<rat>)}"
+    by (auto simp: restrict_def)
+  ultimately show ?thesis
+    by (metis (no_types, lifting) inj countable_image_inj_on countable_subset)
+qed
+
+lemma negligible_thin_direction:
+  fixes S :: "'a::euclidean_space set"
+  shows "negligible {x \<in> S. \<exists>v. v \<noteq> 0 \<and>
+           (\<forall>\<xi>>0. \<exists>e>0. \<forall>y \<in> S-{x}. norm (x - y) < e \<longrightarrow> \<bar>v \<bullet> (y - x)\<bar> < \<xi> * norm (x - y))}"
+  (is "negligible ?N")
+proof -
+  define \<Theta> where "\<Theta> \<equiv> \<lambda>x v. \<forall>\<xi>>0. \<exists>e>0. \<forall>y \<in> S-{x}. norm (x - y) < e \<longrightarrow> \<bar>v \<bullet> (y - x)\<bar> < \<xi> * norm (x - y)"
+  have "?N = {x \<in> S. \<exists>v\<noteq>0. \<Theta> x v}"
+    by (auto simp: \<Theta>_def)
+  also have "negligible \<dots>"
+    unfolding negligible_eq_zero_density
+  proof clarsimp
+    fix x v and r e :: "real"
+    assume "x \<in> S" "v \<noteq> 0" "r > 0" "e > 0"
+      and Theta [rule_format]: "\<Theta> x v"
+    moreover have "(norm v * e / 2) / DIM('a) ^ DIM('a) > 0"
+      using  \<open>v \<noteq> 0\<close> \<open>e > 0\<close>
+      by (auto simp add: zero_less_divide_iff zero_less_mult_iff)
+    ultimately obtain d where "d > 0"
+       and dless: "\<And>y. \<lbrakk>y \<in> S - {x}; norm (x - y) < d\<rbrakk> \<Longrightarrow>
+                      \<bar>v \<bullet> (y - x)\<bar> < ((norm v * e / 2) / DIM('a) ^ DIM('a)) * norm (x - y)"
+      using Theta[unfolded \<Theta>_def, rule_format] by blast
+    let ?W = "ball x (min d r) \<inter> {y. \<bar>v \<bullet> (y - x)\<bar> < (norm v * e/2 * min d r) / DIM('a) ^ DIM('a)}"
+    have "open {x. \<bar>v \<bullet> (x - a)\<bar> < b}" for a b
+      by (intro open_Collect_less continuous_intros)
+    show "\<exists>d>0. d \<le> r \<and>
+          (\<exists>U. {x' \<in> S. \<exists>v\<noteq>0. \<Theta> x' v} \<inter> ball x d \<subseteq> U \<and>
+               U \<in> lmeasurable \<and> measure lebesgue U < e * content (ball x d))"
+    proof (intro exI conjI)
+      show "0 < min d r" "min d r \<le> r"
+        using \<open>r > 0\<close> \<open>d > 0\<close> by auto
+      show "{x' \<in> S. \<exists>v. v \<noteq> 0 \<and> \<Theta> x' v} \<inter> ball x (min d r) \<subseteq> ?W"
+        proof (clarsimp simp: dist_norm norm_minus_commute)
+          fix y w
+          assume "y \<in> S" "w \<noteq> 0"
+            and d: "norm (y - x) < d" and r: "norm (y - x) < r"
+          show "\<bar>v \<bullet> (y - x)\<bar> < norm v * e * min d r / (2 * real DIM('a) ^ DIM('a))"
+          proof (cases "y = x")
+            case True
+            with \<open>r > 0\<close> \<open>d > 0\<close> \<open>e > 0\<close> \<open>v \<noteq> 0\<close> show ?thesis
+              by (auto simp: divide_simps)
+          next
+            case False
+            have "\<bar>v \<bullet> (y - x)\<bar> < norm v * e / 2 / real (DIM('a) ^ DIM('a)) * norm (x - y)"
+              by (metis Diff_iff False \<open>y \<in> S\<close> d dless empty_iff insert_iff norm_minus_commute)
+            also have "\<dots> \<le> norm v * e * min d r / (2 * real DIM('a) ^ DIM('a))"
+              using d r \<open>e > 0\<close> by (simp add: divide_simps norm_minus_commute mult_left_mono)
+            finally show ?thesis .
+          qed
+        qed
+        show "?W \<in> lmeasurable"
+          by (simp add: fmeasurable_Int_fmeasurable borel_open)
+        obtain e_k :: 'a where ek: "e_k \<in> Basis"
+          using nonempty_Basis by blast
+        obtain T where T: "orthogonal_transformation T" and v: "v = T (norm v *\<^sub>R e_k)"
+        proof -
+          have "norm (norm v *\<^sub>R e_k) = norm v"
+            using ek by (simp add: norm_Basis)
+          then show thesis
+            using orthogonal_transformation_exists_eu[of "norm v *\<^sub>R e_k" v] that by metis
+        qed
+        define b where "b \<equiv> norm v"
+        have "b > 0"
+          using \<open>v \<noteq> 0\<close> by (auto simp: b_def)
+        have eqb: "inv T v = b *\<^sub>R e_k"
+          using T v b_def orthogonal_transformation_bij bij_betw_inv_into_left
+          by (metis UNIV_I orthogonal_transformation_inj inv_f_f)
+        have "inj T" "bij T" and invT: "orthogonal_transformation (inv T)"
+          using T orthogonal_transformation_inj orthogonal_transformation_bij orthogonal_transformation_inv
+          by auto
+        let ?v = "\<Sum>i\<in>Basis. (min d r / DIM('a)) *\<^sub>R i"
+        let ?v' = "\<Sum>i\<in>Basis. (if i = e_k then (e/2 * min d r) / DIM('a) ^ DIM('a) else min d r) *\<^sub>R i"
+        let ?x' = "inv T x"
+        let ?W' = "(ball ?x' (min d r) \<inter> {y. \<bar>(y - ?x') \<bullet> e_k\<bar> < e * min d r / (2 * DIM('a) ^ DIM('a))})"
+        have abs: "x - e \<le> y \<and> y \<le> x + e \<longleftrightarrow> abs(y - x) \<le> e" for x y e::real
+          by auto
+        have "?W = T ` ?W'"
+        proof -
+          have 1: "T ` (ball (inv T x) (min d r)) = ball x (min d r)"
+            by (simp add: T image_orthogonal_transformation_ball orthogonal_transformation_surj surj_f_inv_f)
+          have 2: "{y. \<bar>v \<bullet> (y - x)\<bar> < b * e * min d r / (2 * real DIM('a) ^ DIM('a))} =
+                    T ` {y. \<bar>(y - ?x') \<bullet> e_k\<bar> < e * min d r / (2 * real DIM('a) ^ DIM('a))}"
+          proof -
+            have *: "\<bar>T (b *\<^sub>R e_k) \<bullet> (y - x)\<bar> = b * \<bar>(inv T y - ?x') \<bullet> e_k\<bar>" for y
+            proof -
+              have "\<bar>T (b *\<^sub>R e_k) \<bullet> (y - x)\<bar> = \<bar>(b *\<^sub>R e_k) \<bullet> inv T (y - x)\<bar>"
+                using T invT by (metis orthogonal_transformation_def eqb v b_def)
+              also have "\<dots> = b * \<bar>e_k \<bullet> inv T (y - x)\<bar>"
+                using \<open>b > 0\<close> by (simp add: abs_mult)
+              also have "\<dots> = b * \<bar>(inv T y - ?x') \<bullet> e_k\<bar>"
+                using orthogonal_transformation_linear [OF invT]
+                by (simp add: linear_diff inner_commute)
+              finally show ?thesis
+                by simp
+            qed
+            show ?thesis
+              using v b_def [symmetric]
+              using \<open>b > 0\<close> by (simp add: * bij_image_Collect_eq [OF \<open>bij T\<close>] mult_less_cancel_left_pos times_divide_eq_right [symmetric] del: times_divide_eq_right)
+          qed
+          show ?thesis
+            using 1 2 b_def by (simp add: image_Int [OF \<open>inj T\<close>])
+        qed
+        moreover have "?W' \<in> lmeasurable"
+          by (auto intro: fmeasurable_Int_fmeasurable)
+        moreover have "\<bar>eucl.det T\<bar> = 1"
+        proof -
+          note [transfer_rule] = transfer_measure_bij_rules transfer_eucl_bij_rules
+          have "orthogonal_transformation f \<Longrightarrow> \<bar>eucl.det f\<bar> = 1" for f :: "'a \<Rightarrow> 'a"
+            using orthogonal_transformation_det[unfolded orthogonal_transformation_def,
+              where ?'n = "'a basis", untransferred]
+            by (simp add: orthogonal_transformation_def)
+          then show ?thesis using T by blast
+        qed
+        ultimately have "measure lebesgue ?W = measure lebesgue ?W'"
+          using measure_orthogonal_image_eu [OF T] by simp
+        also have "\<dots> \<le> measure lebesgue (cbox (?x' - ?v') (?x' + ?v'))"
+        proof (rule measure_mono_fmeasurable)
+          show "?W' \<subseteq> cbox (?x' - ?v') (?x' + ?v')"
+          proof (intro subsetI)
+            fix y assume "y \<in> ?W'"
+            then have ball: "dist ?x' y < min d r"
+              and ek_bound: "\<bar>(y - ?x') \<bullet> e_k\<bar> < e * min d r / (2 * real DIM('a) ^ DIM('a))"
+              by auto
+            then have dist: "norm (y - ?x') < min d r"
+              using ball by (simp add: dist_commute dist_norm)
+            show "y \<in> cbox (?x' - ?v') (?x' + ?v')"
+              using ek_bound
+              apply (auto simp add: mem_box algebra_simps)
+              apply (metis abs dist inner_diff_left norm_bound_Basis_le norm_minus_commute
+                  order_less_imp_le)
+              apply (smt (verit, ccfv_SIG) Basis_le_norm dist inner_diff_left)
+              done
+          qed
+        qed auto
+        also have "\<dots> \<le> e/2 * measure lebesgue (cbox (?x' - ?v) (?x' + ?v))"
+        proof -
+          have "cbox (?x' - ?v) (?x' + ?v) \<noteq> {}"
+            using \<open>r > 0\<close> \<open>d > 0\<close> by (auto simp: box_ne_empty algebra_simps divide_less_0_iff)
+          with \<open>r > 0\<close> \<open>d > 0\<close> \<open>e > 0\<close> ek show ?thesis
+            apply (simp add: content_cbox_if mem_box prod_nonneg algebra_simps)
+            apply (simp add: abs if_distrib prod.delta_remove field_simps power_diff split: if_split_asm)
+            done
+        qed
+        also have "\<dots> \<le> e/2 * measure lebesgue (cball ?x' (min d r))"
+        proof (rule mult_left_mono [OF measure_mono_fmeasurable])
+          have *: "norm (?x' - y) \<le> min d r"
+            if y: "\<And>i. i \<in> Basis \<Longrightarrow> \<bar>(?x' - y) \<bullet> i\<bar> \<le> min d r / real DIM('a)" for y
+          proof -
+            have "norm (?x' - y) \<le> (\<Sum>i\<in>Basis. \<bar>(?x' - y) \<bullet> i\<bar>)"
+              by (rule norm_le_l1)
+            also have "\<dots> \<le> real DIM('a) * (min d r / real DIM('a))"
+              by (rule sum_bounded_above) (use y in auto)
+            finally show ?thesis
+              by simp
+          qed
+          show "cbox (?x' - ?v) (?x' + ?v) \<subseteq> cball ?x' (min d r)"
+            apply (clarsimp simp only: mem_box dist_norm mem_cball intro!: *)
+            apply (simp add: abs_diff_le_iff algebra_simps)
+            done
+        qed (use \<open>e > 0\<close> in auto)
+        also have "\<dots> < e * content (cball ?x' (min d r))"
+          using \<open>r > 0\<close> \<open>d > 0\<close> \<open>e > 0\<close> by (auto intro: content_cball_pos)
+        also have "\<dots> = e * content (ball x (min d r))"
+          using \<open>r > 0\<close> \<open>d > 0\<close> content_ball_conv_unit_ball[of "min d r" "inv T x"]
+                content_ball_conv_unit_ball[of "min d r" x]
+          by (simp add: content_cball_conv_ball)
+        finally show "measure lebesgue ?W < e * content (ball x (min d r))" .
+    qed
+  qed
+  finally show ?thesis .
+qed
+
+lemma lebesgue_derivative_bound_set:
+  fixes f :: "'a::euclidean_space \<Rightarrow> 'b::euclidean_space"
+  assumes S: "S \<in> sets lebesgue" and "linear A" and contf: "continuous_on S f"
+  shows "S \<inter> (\<Inter>y\<in>S. {x \<in> S. norm(y - x) < d \<longrightarrow> norm(f y - f x - A(y - x)) \<le> e * norm(y - x)}) \<in> sets lebesgue"
+proof (rule lebesgue_closedin [OF _ S])
+  have *: "\<lbrakk>U \<noteq> {} \<Longrightarrow> closedin (top_of_set S) (S \<inter> \<Inter> U)\<rbrakk>
+           \<Longrightarrow> closedin (top_of_set S) (S \<inter> \<Inter> U)" for U
+    by fastforce
+  show "closedin (top_of_set S) (S \<inter> (\<Inter>y\<in>S. {x \<in> S. norm(y - x) < d \<longrightarrow> norm(f y - f x - A(y - x)) \<le> e * norm(y - x)}))"
+  proof (rule *)
+    let ?C = "\<lambda>y. {x \<in> S. norm(y - x) < d \<longrightarrow> norm(f y - f x - A(y - x)) \<le> e * norm(y - x)}"
+    assume ne: "(\<lambda>y. ?C y) ` S \<noteq> {}"
+    then have Sne: "S \<noteq> {}" by blast
+    have sub: "(\<Inter>y\<in>S. ?C y) \<subseteq> S"
+      using Sne by (auto intro: INF_lower2)
+    have eq: "S \<inter> (\<Inter>y\<in>S. ?C y) = (\<Inter>y\<in>S. ?C y)"
+      using sub by (rule Int_absorb1)
+    show "closedin (top_of_set S) (S \<inter> (\<Inter>y\<in>S. ?C y))"
+      unfolding eq
+    proof (rule closedin_INT [OF Sne])
+      fix y assume "y \<in> S"
+      have "closedin (top_of_set S)
+              ({x \<in> S. d \<le> norm (y - x)} \<union> {x \<in> S. norm (f y - f x - A (y - x)) \<le> e * norm (y - x)})"
+      proof (intro closedin_Un)
+        show "closedin (top_of_set S) {x \<in> S. d \<le> norm (y - x)}"
+        proof -
+          have "continuous_on S (\<lambda>x. norm (y - x))"
+            by (intro continuous_on_norm continuous_on_diff continuous_on_const continuous_on_id)
+          then have "closedin (top_of_set S) (S \<inter> (\<lambda>x. norm (y - x)) -` {d..})"
+            by (intro continuous_closedin_preimage closed_atLeast)
+          moreover have "{x \<in> S. d \<le> norm (y - x)} = S \<inter> (\<lambda>x. norm (y - x)) -` {d..}"
+            by auto
+          ultimately show ?thesis by simp
+        qed
+        show "closedin (top_of_set S) {x \<in> S. norm (f y - f x - A (y - x)) \<le> e * norm (y - x)}"
+        proof -
+          have contAcomp: "continuous_on S (\<lambda>x. A (y - x))"
+          proof -
+            have "continuous_on UNIV A"
+              using \<open>linear A\<close> linear_continuous_on linear_conv_bounded_linear by blast
+            moreover have "continuous_on S (\<lambda>x. y - x)"
+              by (intro continuous_on_diff continuous_on_const continuous_on_id)
+            ultimately show ?thesis
+              by (rule continuous_on_compose2) auto
+          qed
+          have "continuous_on S (\<lambda>x. norm (f y - f x - A (y - x)) - e * norm (y - x))"
+            by (intro continuous_on_diff continuous_on_norm continuous_on_mult
+                     continuous_on_const contf continuous_on_id contAcomp)
+          then have "closedin (top_of_set S) (S \<inter> (\<lambda>x. norm (f y - f x - A (y - x)) - e * norm (y - x)) -` {..0})"
+            by (intro continuous_closedin_preimage closed_atMost)
+          moreover have "{x \<in> S. norm (f y - f x - A (y - x)) \<le> e * norm (y - x)}
+                        = S \<inter> (\<lambda>x. norm (f y - f x - A (y - x)) - e * norm (y - x)) -` {..0}"
+            by auto
+          ultimately show ?thesis by simp
+        qed
+      qed
+      moreover have "?C y
+                    = {x \<in> S. d \<le> norm (y - x)} \<union> {x \<in> S. norm (f y - f x - A (y - x)) \<le> e * norm (y - x)}"
+        by (auto simp: not_less)
+      ultimately show "closedin (top_of_set S) (?C y)"
+        by simp
+    qed
+  qed
+qed
+
+
+lemma lebesgue_halfspace_derivative_le:
   fixes f :: "'a::euclidean_space \<Rightarrow> 'b::euclidean_space"
   assumes S: "S \<in> sets lebesgue"
     and f: "\<And>x. x \<in> S \<Longrightarrow> (f has_derivative f' x) (at x within S)"
-    and uB: "u \<in> Basis" and vB: "v \<in> Basis"
-  shows "(\<lambda>x. f' x u \<bullet> v) \<in> borel_measurable (lebesgue_on S)"
+    and [simp]: "u \<noteq> 0" "v \<noteq> 0" "norm u = 1" "norm v = 1"
+  shows "{x \<in> S. f' x u \<bullet> v \<le> b} \<in> sets lebesgue"
 proof -
   have lin: "linear (f' x)" if "x \<in> S" for x
     using f[OF that] has_derivative_linear by blast
-  have [simp]: "u \<noteq> 0" "v \<noteq> 0" "norm u = 1" "norm v = 1"
-    using uB vB by (auto simp: norm_Basis)
-    have contf: "continuous_on S f"
-      using continuous_on_eq_continuous_within f has_derivative_continuous by blast
-  have "{x \<in> S.  f' x u \<bullet> v \<le> b} \<in> sets lebesgue" for b
+  have contf: "continuous_on S f"
+    using continuous_on_eq_continuous_within f has_derivative_continuous by blast
+  show ?thesis
   proof (rule sets_negligible_symdiff)
+
     let ?C = "\<lambda>e A d y. {x \<in> S. norm(y - x) < d \<longrightarrow> norm(f y - f x - A (y - x)) \<le> e * norm(y - x)}"
     let ?L = "{A. linear A \<and> A u \<bullet> v < b \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>)}"
     let ?E = "{e \<in> \<rat>. (0::real) < e}"
@@ -1204,124 +1497,9 @@ proof -
       have ne: "?E \<noteq> {}"
         using zero_less_one Rats_1 by blast
       have coA: "countable ?L"
-      proof (rule countable_subset)
-        show "countable {A :: 'a \<Rightarrow> 'b. linear A \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>)}"
-        proof -
-          \<comment> \<open>A linear function is determined by its values on Basis\<close>
-          {             fix A B :: "'a \<Rightarrow> 'b"
-            assume "linear A" "linear B" and eq: "\<forall>x\<in>Basis. A x = B x"
-            have "A = B"
-            proof (rule ext)
-              fix x
-              have "A x = A (\<Sum>i\<in>Basis. (x \<bullet> i) *\<^sub>R i)"
-                by (simp add: euclidean_representation)
-              also have "\<dots> = (\<Sum>i\<in>Basis. (x \<bullet> i) *\<^sub>R A i)"
-                using \<open>linear A\<close> by (simp add: linear_sum linear_scale)
-              also have "\<dots> = (\<Sum>i\<in>Basis. (x \<bullet> i) *\<^sub>R B i)"
-                using eq by simp
-              also have "\<dots> = B (\<Sum>i\<in>Basis. (x \<bullet> i) *\<^sub>R i)"
-                using \<open>linear B\<close> by (simp add: linear_sum linear_scale)
-              also have "\<dots> = B x"
-                by (simp add: euclidean_representation)
-              finally show "A x = B x" .
-            qed
-          }
-          then have inj: "inj_on (\<lambda>A. restrict A (Basis::'a set))
-                            {A :: 'a \<Rightarrow> 'b. linear A \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>)}"
-            by (smt (verit, ccfv_SIG) inj_onI mem_Collect_eq restrict_apply')
-          \<comment> \<open>The range of this restriction is contained in a countable set\<close>
-          have "countable {g :: 'a \<Rightarrow> 'b. (\<forall>i. i \<notin> Basis \<longrightarrow> g i = undefined) \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. g i \<bullet> j \<in> \<rat>)}"
-          proof (rule countable_subset)
-            let ?V = "{w :: 'b. \<forall>j\<in>Basis. w \<bullet> j \<in> \<rat>}"
-            have cV: "countable ?V"
-            proof -
-              have inj: "inj_on (\<lambda>w. restrict (\<lambda>j. w \<bullet> j) (Basis :: 'b set)) ?V"
-                by (metis (mono_tags, lifting) euclidean_eq_iff inj_on_def restrict_apply')
-              moreover have "(\<lambda>w. restrict (\<lambda>j. w \<bullet> j) (Basis :: 'b set)) ` ?V \<subseteq> PiE Basis (\<lambda>_. \<rat>)"
-                by (auto simp: PiE_def Pi_def extensional_def restrict_def)
-              moreover have "countable (PiE (Basis :: 'b set) (\<lambda>_. \<rat>))" 
-                by (intro countable_PiE finite_Basis) (auto simp: countable_rat)
-              moreover have "countable ((\<lambda>w. restrict (\<lambda>j. w \<bullet> j) (Basis :: 'b set)) ` ?V)"
-                using calculation(2,3) countable_subset by blast
-              ultimately show ?thesis
-                using countable_image_inj_on by blast
-            qed
-            show "{g :: 'a \<Rightarrow> 'b. (\<forall>i. i \<notin> Basis \<longrightarrow> g i = undefined) \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. g i \<bullet> j \<in> \<rat>)} \<subseteq>
-                  PiE (Basis :: 'a set) (\<lambda>_. ?V)"
-              by blast
-            show "countable (PiE (Basis :: 'a set) (\<lambda>_. ?V))"
-              by (intro countable_PiE finite_Basis) (auto simp: cV)
-          qed
-          moreover have "(\<lambda>A. restrict A (Basis::'a set)) ` 
-                         {A :: 'a \<Rightarrow> 'b. linear A \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>)} \<subseteq>
-                         {g :: 'a \<Rightarrow> 'b. (\<forall>i. i \<notin> Basis \<longrightarrow> g i = undefined) \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. g i \<bullet> j \<in> \<rat>)}"
-            by (auto simp: restrict_def)
-          ultimately show ?thesis
-            by (metis (no_types, lifting) inj countable_image_inj_on countable_subset)
-        qed
-      qed blast
-      have *: "\<lbrakk>U \<noteq> {} \<Longrightarrow> closedin (top_of_set S) (S \<inter> \<Inter> U)\<rbrakk>
-               \<Longrightarrow> closedin (top_of_set S) (S \<inter> \<Inter> U)" for U
-        by fastforce
+        by (rule countable_subset [OF _ countable_rational_linear_maps]) blast
       have sets: "S \<inter> (\<Inter>y\<in>S. ?C e A d y) \<in> sets lebesgue" if "linear A" for e A d
-      proof (rule lebesgue_closedin [OF _ S])
-        show "closedin (top_of_set S) (S \<inter> (\<Inter>y\<in>S. ?C e A d y))"
-        proof (rule *)
-          assume ne: "(\<lambda>y. ?C e A d y) ` S \<noteq> {}"
-          then have Sne: "S \<noteq> {}" by blast
-          have sub: "(\<Inter>y\<in>S. ?C e A d y) \<subseteq> S"
-            using Sne by (auto intro: INF_lower2)
-          have eq: "S \<inter> (\<Inter>y\<in>S. ?C e A d y) = (\<Inter>y\<in>S. ?C e A d y)"
-            using sub by (rule Int_absorb1)
-          show "closedin (top_of_set S) (S \<inter> (\<Inter>y\<in>S. ?C e A d y))"
-            unfolding eq
-          proof (rule closedin_INT [OF Sne])
-            fix y assume "y \<in> S"
-            have "closedin (top_of_set S)
-                    ({x \<in> S. d \<le> norm (y - x)} \<union> {x \<in> S. norm (f y - f x - A (y - x)) \<le> e * norm (y - x)})"
-            proof (intro closedin_Un)
-              show "closedin (top_of_set S) {x \<in> S. d \<le> norm (y - x)}"
-              proof -
-                have "continuous_on S (\<lambda>x. norm (y - x))"
-                  by (intro continuous_on_norm continuous_on_diff continuous_on_const continuous_on_id)
-                then have "closedin (top_of_set S) (S \<inter> (\<lambda>x. norm (y - x)) -` {d..})"
-                  by (intro continuous_closedin_preimage closed_atLeast)
-                moreover have "{x \<in> S. d \<le> norm (y - x)} = S \<inter> (\<lambda>x. norm (y - x)) -` {d..}"
-                  by auto
-                ultimately show ?thesis by simp
-              qed
-              show "closedin (top_of_set S) {x \<in> S. norm (f y - f x - A (y - x)) \<le> e * norm (y - x)}"
-              proof -
-                have contA: "continuous_on S A"
-                  using that linear_continuous_on linear_conv_bounded_linear by blast
-                have contAcomp: "continuous_on S (\<lambda>x. A (y - x))"
-                proof -
-                  have "continuous_on UNIV A"
-                    using that linear_continuous_on linear_conv_bounded_linear by blast
-                  moreover have "continuous_on S (\<lambda>x. y - x)"
-                    by (intro continuous_on_diff continuous_on_const continuous_on_id)
-                  ultimately show ?thesis
-                    by (rule continuous_on_compose2) auto
-                qed
-                have "continuous_on S (\<lambda>x. norm (f y - f x - A (y - x)) - e * norm (y - x))"
-                  by (intro continuous_on_diff continuous_on_norm continuous_on_mult
-                           continuous_on_const contf continuous_on_id contAcomp)
-                then have "closedin (top_of_set S) (S \<inter> (\<lambda>x. norm (f y - f x - A (y - x)) - e * norm (y - x)) -` {..0})"
-                  by (intro continuous_closedin_preimage closed_atMost)
-                moreover have "{x \<in> S. norm (f y - f x - A (y - x)) \<le> e * norm (y - x)}
-                              = S \<inter> (\<lambda>x. norm (f y - f x - A (y - x)) - e * norm (y - x)) -` {..0}"
-                  by auto
-                ultimately show ?thesis by simp
-              qed
-            qed
-            moreover have "?C e A d y
-                          = {x \<in> S. d \<le> norm (y - x)} \<union> {x \<in> S. norm (f y - f x - A (y - x)) \<le> e * norm (y - x)}"
-              by (auto simp: not_less)
-            ultimately show "closedin (top_of_set S) (?C e A d y)"
-              by simp
-          qed
-        qed
-      qed
+        using lebesgue_derivative_bound_set [OF S that contf] .
 
       have coD: "countable ?D"
         using countable_Collect countable_rat by blast
@@ -1346,165 +1524,7 @@ proof -
     define M where "M \<equiv> (?T - {x \<in> S. f' x u \<bullet> v \<le> b} \<union> ({x \<in> S. f' x u \<bullet> v \<le> b} - ?T))"
     define \<Theta> where "\<Theta> \<equiv> \<lambda>x v. \<forall>\<xi>>0. \<exists>e>0. \<forall>y \<in> S-{x}. norm (x - y) < e \<longrightarrow> \<bar>v \<bullet> (y - x)\<bar> < \<xi> * norm (x - y)"
     have nN: "negligible {x \<in> S. \<exists>v\<noteq>0. \<Theta> x v}"
-      unfolding negligible_eq_zero_density 
-    proof clarsimp
-      fix x v and r e :: "real"
-      assume "x \<in> S" "v \<noteq> 0" "r > 0" "e > 0"
-      and Theta [rule_format]: "\<Theta> x v"
-      moreover have "(norm v * e / 2) / DIM('a) ^ DIM('a) > 0"
-        using  \<open>v \<noteq> 0\<close> \<open>e > 0\<close>
-        by (auto simp add: zero_less_divide_iff zero_less_mult_iff)
-      ultimately obtain d where "d > 0"
-         and dless: "\<And>y. \<lbrakk>y \<in> S - {x}; norm (x - y) < d\<rbrakk> \<Longrightarrow>
-                        \<bar>v \<bullet> (y - x)\<bar> < ((norm v * e / 2) / DIM('a) ^ DIM('a)) * norm (x - y)"
-        using Theta[unfolded \<Theta>_def, rule_format] by blast
-      let ?W = "ball x (min d r) \<inter> {y. \<bar>v \<bullet> (y - x)\<bar> < (norm v * e/2 * min d r) / DIM('a) ^ DIM('a)}"
-      have "open {x. \<bar>v \<bullet> (x - a)\<bar> < b}" for a b
-        by (intro open_Collect_less continuous_intros)
-      show "\<exists>d>0. d \<le> r \<and>
-            (\<exists>U. {x' \<in> S. \<exists>v\<noteq>0. \<Theta> x' v} \<inter> ball x d \<subseteq> U \<and>
-                 U \<in> lmeasurable \<and> measure lebesgue U < e * content (ball x d))"
-      proof (intro exI conjI)
-        show "0 < min d r" "min d r \<le> r"
-          using \<open>r > 0\<close> \<open>d > 0\<close> by auto
-        show "{x' \<in> S. \<exists>v. v \<noteq> 0 \<and> \<Theta> x' v} \<inter> ball x (min d r) \<subseteq> ?W"
-          proof (clarsimp simp: dist_norm norm_minus_commute)
-            fix y w
-            assume "y \<in> S" "w \<noteq> 0"
-              and d: "norm (y - x) < d" and r: "norm (y - x) < r"
-            show "\<bar>v \<bullet> (y - x)\<bar> < norm v * e * min d r / (2 * real DIM('a) ^ DIM('a))"
-            proof (cases "y = x")
-              case True
-              with \<open>r > 0\<close> \<open>d > 0\<close> \<open>e > 0\<close> \<open>v \<noteq> 0\<close> show ?thesis
-                by (auto simp: divide_simps)
-            next
-              case False
-              have "\<bar>v \<bullet> (y - x)\<bar> < norm v * e / 2 / real (DIM('a) ^ DIM('a)) * norm (x - y)"
-                by (metis Diff_iff False \<open>y \<in> S\<close> d dless empty_iff insert_iff norm_minus_commute)
-              also have "\<dots> \<le> norm v * e * min d r / (2 * real DIM('a) ^ DIM('a))"
-                using d r \<open>e > 0\<close> by (simp add: divide_simps norm_minus_commute mult_left_mono)
-              finally show ?thesis .
-            qed
-          qed
-          show "?W \<in> lmeasurable"
-            by (simp add: fmeasurable_Int_fmeasurable borel_open)
-          obtain e_k :: 'a where ek: "e_k \<in> Basis"
-            using nonempty_Basis by blast
-          obtain T where T: "orthogonal_transformation T" and v: "v = T (norm v *\<^sub>R e_k)"
-          proof -
-            have "norm (norm v *\<^sub>R e_k) = norm v"
-              using ek by (simp add: norm_Basis)
-            then show thesis
-              using orthogonal_transformation_exists_eu[of "norm v *\<^sub>R e_k" v] that by metis
-          qed
-          define b where "b \<equiv> norm v"
-          have "b > 0"
-            using \<open>v \<noteq> 0\<close> by (auto simp: b_def)
-          have eqb: "inv T v = b *\<^sub>R e_k"
-            using T v b_def orthogonal_transformation_bij bij_betw_inv_into_left
-            by (metis UNIV_I orthogonal_transformation_inj inv_f_f)
-          have "inj T" "bij T" and invT: "orthogonal_transformation (inv T)"
-            using T orthogonal_transformation_inj orthogonal_transformation_bij orthogonal_transformation_inv
-            by auto
-          let ?v = "\<Sum>i\<in>Basis. (min d r / DIM('a)) *\<^sub>R i"
-          let ?v' = "\<Sum>i\<in>Basis. (if i = e_k then (e/2 * min d r) / DIM('a) ^ DIM('a) else min d r) *\<^sub>R i"
-          let ?x' = "inv T x"
-          let ?W' = "(ball ?x' (min d r) \<inter> {y. \<bar>(y - ?x') \<bullet> e_k\<bar> < e * min d r / (2 * DIM('a) ^ DIM('a))})"
-          have abs: "x - e \<le> y \<and> y \<le> x + e \<longleftrightarrow> abs(y - x) \<le> e" for x y e::real
-            by auto
-          have "?W = T ` ?W'"
-          proof -
-            have 1: "T ` (ball (inv T x) (min d r)) = ball x (min d r)"
-              by (simp add: T image_orthogonal_transformation_ball orthogonal_transformation_surj surj_f_inv_f)
-            have 2: "{y. \<bar>v \<bullet> (y - x)\<bar> < b * e * min d r / (2 * real DIM('a) ^ DIM('a))} =
-                      T ` {y. \<bar>(y - ?x') \<bullet> e_k\<bar> < e * min d r / (2 * real DIM('a) ^ DIM('a))}"
-            proof -
-              have *: "\<bar>T (b *\<^sub>R e_k) \<bullet> (y - x)\<bar> = b * \<bar>(inv T y - ?x') \<bullet> e_k\<bar>" for y
-              proof -
-                have "\<bar>T (b *\<^sub>R e_k) \<bullet> (y - x)\<bar> = \<bar>(b *\<^sub>R e_k) \<bullet> inv T (y - x)\<bar>"
-                  using T invT by (metis orthogonal_transformation_def eqb v b_def)
-                also have "\<dots> = b * \<bar>e_k \<bullet> inv T (y - x)\<bar>"
-                  using \<open>b > 0\<close> by (simp add: abs_mult)
-                also have "\<dots> = b * \<bar>(inv T y - ?x') \<bullet> e_k\<bar>"
-                  using orthogonal_transformation_linear [OF invT]
-                  by (simp add: linear_diff inner_commute)
-                finally show ?thesis
-                  by simp
-              qed
-              show ?thesis
-                using v b_def [symmetric]
-                using \<open>b > 0\<close> by (simp add: * bij_image_Collect_eq [OF \<open>bij T\<close>] mult_less_cancel_left_pos times_divide_eq_right [symmetric] del: times_divide_eq_right)
-            qed
-            show ?thesis
-              using 1 2 b_def by (simp add: image_Int [OF \<open>inj T\<close>])
-          qed
-          moreover have "?W' \<in> lmeasurable"
-            by (auto intro: fmeasurable_Int_fmeasurable)
-          moreover have "\<bar>eucl.det T\<bar> = 1"
-          proof -
-            note [transfer_rule] = transfer_measure_bij_rules transfer_eucl_bij_rules
-            have "orthogonal_transformation f \<Longrightarrow> \<bar>eucl.det f\<bar> = 1" for f :: "'a \<Rightarrow> 'a"
-              using orthogonal_transformation_det[unfolded orthogonal_transformation_def,
-                where ?'n = "'a basis", untransferred]
-              by (simp add: orthogonal_transformation_def)
-            then show ?thesis using T by blast
-          qed
-          ultimately have "measure lebesgue ?W = measure lebesgue ?W'"
-            using measure_orthogonal_image_eu [OF T] by simp
-          also have "\<dots> \<le> measure lebesgue (cbox (?x' - ?v') (?x' + ?v'))"
-          proof (rule measure_mono_fmeasurable)
-            show "?W' \<subseteq> cbox (?x' - ?v') (?x' + ?v')"
-            proof (intro subsetI)
-              fix y assume "y \<in> ?W'"
-              then have ball: "dist ?x' y < min d r"
-                and ek_bound: "\<bar>(y - ?x') \<bullet> e_k\<bar> < e * min d r / (2 * real DIM('a) ^ DIM('a))"
-                by auto
-              then have dist: "norm (y - ?x') < min d r"
-                using ball by (simp add: dist_commute dist_norm)
-              show "y \<in> cbox (?x' - ?v') (?x' + ?v')"
-                using ek_bound
-                apply (auto simp add: mem_box algebra_simps)
-                apply (metis abs dist inner_diff_left norm_bound_Basis_le norm_minus_commute
-                    order_less_imp_le)
-                apply (smt (verit, ccfv_SIG) Basis_le_norm dist inner_diff_left)
-                done
-            qed
-          qed auto
-          also have "\<dots> \<le> e/2 * measure lebesgue (cbox (?x' - ?v) (?x' + ?v))"
-          proof -
-            have "cbox (?x' - ?v) (?x' + ?v) \<noteq> {}"
-              using \<open>r > 0\<close> \<open>d > 0\<close> by (auto simp: box_ne_empty algebra_simps divide_less_0_iff)
-            with \<open>r > 0\<close> \<open>d > 0\<close> \<open>e > 0\<close> ek show ?thesis
-              apply (simp add: content_cbox_if mem_box prod_nonneg algebra_simps)
-              apply (simp add: abs if_distrib prod.delta_remove field_simps power_diff split: if_split_asm)
-              done
-          qed
-          also have "\<dots> \<le> e/2 * measure lebesgue (cball ?x' (min d r))"
-          proof (rule mult_left_mono [OF measure_mono_fmeasurable])
-            have *: "norm (?x' - y) \<le> min d r"
-              if y: "\<And>i. i \<in> Basis \<Longrightarrow> \<bar>(?x' - y) \<bullet> i\<bar> \<le> min d r / real DIM('a)" for y
-            proof -
-              have "norm (?x' - y) \<le> (\<Sum>i\<in>Basis. \<bar>(?x' - y) \<bullet> i\<bar>)"
-                by (rule norm_le_l1)
-              also have "\<dots> \<le> real DIM('a) * (min d r / real DIM('a))"
-                by (rule sum_bounded_above) (use y in auto)
-              finally show ?thesis
-                by simp
-            qed
-            show "cbox (?x' - ?v) (?x' + ?v) \<subseteq> cball ?x' (min d r)"
-              apply (clarsimp simp only: mem_box dist_norm mem_cball intro!: *)
-              apply (simp add: abs_diff_le_iff algebra_simps)
-              done
-          qed (use \<open>e > 0\<close> in auto)
-          also have "\<dots> < e * content (cball ?x' (min d r))"
-            using \<open>r > 0\<close> \<open>d > 0\<close> \<open>e > 0\<close> by (auto intro: content_cball_pos)
-          also have "\<dots> = e * content (ball x (min d r))"
-            using \<open>r > 0\<close> \<open>d > 0\<close> content_ball_conv_unit_ball[of "min d r" "inv T x"]
-                  content_ball_conv_unit_ball[of "min d r" x]
-            by (simp add: content_cball_conv_ball)
-          finally show "measure lebesgue ?W < e * content (ball x (min d r))" .
-      qed
-    qed
+      using negligible_thin_direction[of S] by (simp add: \<Theta>_def)
     have *: "(\<And>x. (x \<notin> S) \<Longrightarrow> (x \<in> T \<longleftrightarrow> x \<in> U)) \<Longrightarrow> (T - U) \<union> (U - T) \<subseteq> S" for S T U :: "'a set"
       by blast
     have MN: "M \<subseteq> {x \<in> S. \<exists>v\<noteq>0. \<Theta> x v}"
@@ -1741,7 +1761,7 @@ proof -
             using Blim[of i] by (intro tendsto_intros)
           have lin_df: "linear (f' x)"
                and lim_df: "((\<lambda>y. (1 / norm (y - x)) *\<^sub>R (f y - (f x + f' x (y - x)))) \<longlongrightarrow> 0) (at x within S)"
-            using \<open>x \<in> S\<close> assms by (auto simp: has_derivative_within linear_linear)
+            using \<open>x \<in> S\<close> f by (auto simp: has_derivative_within linear_linear)
           moreover
           interpret linear "f' x" by fact
           have "(f' x - B) w = 0" for w
@@ -2007,8 +2027,19 @@ proof -
     show "negligible M"
       using negligible_subset [OF nN MN] .
   qed
+qed
+
+proposition borel_measurable_partial_derivatives_eu:
+  fixes f :: "'a::euclidean_space \<Rightarrow> 'b::euclidean_space"
+  assumes S: "S \<in> sets lebesgue"
+    and f: "\<And>x. x \<in> S \<Longrightarrow> (f has_derivative f' x) (at x within S)"
+    and uB: "u \<in> Basis" and vB: "v \<in> Basis"
+  shows "(\<lambda>x. f' x u \<bullet> v) \<in> borel_measurable (lebesgue_on S)"
+proof -
+  have "{x \<in> S. f' x u \<bullet> v \<le> b} \<in> sets lebesgue" for b
+    by (rule lebesgue_halfspace_derivative_le [OF S f]) (use uB vB in \<open>auto simp: norm_Basis\<close>)
   then show ?thesis
-    by (simp add: borel_measurable_vimage_halfspace_component_le sets_restrict_space_iff assms)
+    by (simp add: borel_measurable_vimage_halfspace_component_le sets_restrict_space_iff S)
 qed
 
 theorem borel_measurable_det_Jacobian:
