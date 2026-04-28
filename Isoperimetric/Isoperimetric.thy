@@ -4057,8 +4057,20 @@ begin
 lemma Green_area_zero:
   assumes "a = 0"
   shows "Green_concl g g'"
-  unfolding Green_concl_def
-  sorry
+proof -
+  have split_case: "\<And>t. 0 < t \<Longrightarrow> t < 1 \<Longrightarrow> g t = b \<Longrightarrow>
+    g ` {0..t} \<subseteq> {z. Im z \<ge> 0} \<Longrightarrow> g ` {t..1} \<subseteq> {z. Im z \<le> 0} \<Longrightarrow>
+    Green_concl g g'"
+    sorry
+  have split_exists: "\<exists>t. 0 < t \<and> t < 1 \<and> g t = b \<and>
+    g ` {0..t} \<subseteq> {z. Im z \<ge> 0} \<and> g ` {t..1} \<subseteq> {z. Im z \<le> 0}"
+    sorry
+  from split_exists obtain t where
+    "0 < t" "t < 1" "g t = b"
+    "g ` {0..t} \<subseteq> {z. Im z \<ge> 0}" "g ` {t..1} \<subseteq> {z. Im z \<le> 0}"
+    by auto
+  with split_case show ?thesis by blast
+qed
 
 lemma Green_invariant:
   assumes "\<And>g g' U b. Green g g' U 0 b \<Longrightarrow> Green_concl g g'"
