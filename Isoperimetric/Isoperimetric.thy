@@ -4232,14 +4232,110 @@ proof -
        \<integral>₀ᵗ Re(g') \<sqdot> Im(g) ds = \<integral>₀^{Re b} f_upper(x) dx \<ge> 0
        since f_upper = Im \<circ> g \<circ> Re⁻¹ \<ge> 0 on the upper arc.\<close>
     have upper_int: "integral {0..t} f \<ge> 0"
-      sorry
+    proof -
+      have t_le: "0 \<le> t" using ht(1) by linarith
+      have Re_le: "Re (g 0) \<le> Re (g t)" using g0 hgt Reb by simp
+      have ac_sub: "absolutely_continuous_on {0..t} g"
+        using absolutely_continuous_on_subset[OF cont] ht by auto
+      have inj_g_upper: "inj_on g {0..t}"
+      proof (rule inj_onI)
+        fix s1 s2 assume s1: "s1 \<in> {0..t}" and s2: "s2 \<in> {0..t}" and eq: "g s1 = g s2"
+        have s1_01: "s1 \<in> {0..1}" using s1 ht(2) by auto
+        have s2_01: "s2 \<in> {0..1}" using s2 ht(2) by auto
+        show "s1 = s2"
+        proof (rule ccontr)
+          assume neq: "s1 \<noteq> s2"
+          from g(1) have lf: "loop_free g" by (simp add: simple_path_def)
+          from lf[unfolded loop_free_def, rule_format, OF s1_01 s2_01 eq]
+          have "s1 = s2 \<or> s1 = 0 \<and> s2 = 1 \<or> s1 = 1 \<and> s2 = 0" by auto
+          with neq have "s1 = 0 \<and> s2 = 1 \<or> s1 = 1 \<and> s2 = 0" by auto
+          then show False using s1 s2 ht(2) by auto
+        qed
+      qed
+      have inj_Re_upper: "inj_on Re (g ` {0..t})"
+      proof (rule inj_onI)
+        fix x y assume "x \<in> g ` {0..t}" "y \<in> g ` {0..t}" "Re x = Re y"
+        then obtain s1 s2 where s1: "s1 \<in> {0..t}" "x = g s1"
+                            and s2: "s2 \<in> {0..t}" "y = g s2" by auto
+        then have "Re (g s1) = Re (g s2)" using \<open>Re x = Re y\<close> by simp
+        show "x = y"
+        proof (cases "s1 = s2")
+          case True then show ?thesis using s1 s2 by simp
+        next
+          case False
+          then have "(s1 = 0 \<and> s2 = t) \<or> (s1 = t \<and> s2 = 0)"
+            using Re_inj_upper[OF s1(1) s2(1) \<open>Re (g s1) = Re (g s2)\<close>] by auto
+          then have "Re (g 0) = Re (g t)" using \<open>Re (g s1) = Re (g s2)\<close> s1 s2 by auto
+          then have "0 = Re b" using g0 hgt by simp
+          then show ?thesis using Reb by simp
+        qed
+      qed
+      have vder_sub: "\<And>s. s \<in> {0..t} - U \<Longrightarrow> (g has_vector_derivative g' s) (at s)"
+        using vder ht(2) by auto
+      have "integral {0..t} (\<lambda>s. Re (g' s) * Im (g s)) =
+            measure lebesgue {z. \<exists>w \<in> g ` {0..t}. Re w = Re z \<and> 0 \<le> Im z \<and> Im z \<le> Im w}"
+        using area_below_arclet(2)[OF t_le Re_le ac_sub above inj_g_upper inj_Re_upper U vder_sub]
+        by auto
+      then have "integral {0..t} f =
+            measure lebesgue {z. \<exists>w \<in> g ` {0..t}. Re w = Re z \<and> 0 \<le> Im z \<and> Im z \<le> Im w}"
+        unfolding f_def by auto
+      then show ?thesis by simp
+    qed
     \<comment> \<open>Step 3: Lower arc integral \<ge> 0 as well.
        On [t,1], g goes from b back to 0 (Re decreasing) with Im(g) \<le> 0.
        By change of variables x = Re(g(s)):
        \<integral>ₜ¹ Re(g')\<sqdot>Im(g) ds = \<integral>_{Re b}^0 f_lower(x) dx = -\<integral>₀^{Re b} f_lower(x) dx \<ge> 0
        since f_lower \<le> 0.\<close>
     have lower_int: "integral {t..1} f \<ge> 0"
-      sorry
+    proof -
+      have t_le1: "t \<le> 1" using ht(2) by linarith
+      have Re_le': "Re (g 1) \<le> Re (g t)" using g1 hgt Reb by simp
+      have ac_sub': "absolutely_continuous_on {t..1} g"
+        using absolutely_continuous_on_subset[OF cont] ht by auto
+      have inj_g_lower: "inj_on g {t..1}"
+      proof (rule inj_onI)
+        fix s1 s2 assume s1: "s1 \<in> {t..1}" and s2: "s2 \<in> {t..1}" and eq: "g s1 = g s2"
+        have s1_01: "s1 \<in> {0..1}" using s1 ht(1) by auto
+        have s2_01: "s2 \<in> {0..1}" using s2 ht(1) by auto
+        show "s1 = s2"
+        proof (rule ccontr)
+          assume neq: "s1 \<noteq> s2"
+          from g(1) have lf: "loop_free g" by (simp add: simple_path_def)
+          from lf[unfolded loop_free_def, rule_format, OF s1_01 s2_01 eq]
+          have "s1 = s2 \<or> s1 = 0 \<and> s2 = 1 \<or> s1 = 1 \<and> s2 = 0" by auto
+          with neq have "s1 = 0 \<and> s2 = 1 \<or> s1 = 1 \<and> s2 = 0" by auto
+          then show False using s1 s2 ht(1) by auto
+        qed
+      qed
+      have inj_Re_lower: "\<And>x y. x \<in> g ` {t..1} \<Longrightarrow> y \<in> g ` {t..1} \<Longrightarrow> Re x = Re y \<Longrightarrow> x = y"
+      proof -
+        fix x y assume "x \<in> g ` {t..1}" "y \<in> g ` {t..1}" "Re x = Re y"
+        then obtain s1 s2 where s1: "s1 \<in> {t..1}" "x = g s1"
+                            and s2: "s2 \<in> {t..1}" "y = g s2" by auto
+        then have Re_eq: "Re (g s1) = Re (g s2)" using \<open>Re x = Re y\<close> by simp
+        show "x = y"
+        proof (cases "s1 = s2")
+          case True then show ?thesis using s1 s2 by simp
+        next
+          case False
+          then have "(s1 = t \<and> s2 = 1) \<or> (s1 = 1 \<and> s2 = t)"
+            using Re_inj_lower[OF s1(1) s2(1) Re_eq] by auto
+          then have "Re (g t) = Re (g 1)" using Re_eq s1 s2 by auto
+          then have "Re b = 0" using g1 hgt by simp
+          then show ?thesis using Reb by simp
+        qed
+      qed
+      have vder_sub': "\<And>s. s \<in> {t..1} - U \<Longrightarrow> (g has_vector_derivative g' s) (at s)"
+        using vder ht(1) by auto
+      have "integral {t..1} (\<lambda>s. Re (g' s) * Im (g s)) =
+            measure lebesgue {z. \<exists>w \<in> g ` {t..1}. Re w = Re z \<and> Im w \<le> Im z \<and> Im z \<le> 0}"
+        using area_above_arclet(2)[OF t_le1 Re_le' ac_sub' below inj_g_lower inj_Re_lower U vder_sub']
+        .
+      then have "integral {t..1} f =
+            measure lebesgue {z. \<exists>w \<in> g ` {t..1}. Re w = Re z \<and> Im w \<le> Im z \<and> Im z \<le> 0}"
+        unfolding f_def by auto
+      then show ?thesis by simp
+    qed
     \<comment> \<open>Step 4: total integral = area of inside.
        The inside decomposes as the region between the two arcs:
        inside(path_image g) = {z | Re z \<in> (0, Re b) \<and> f_lower(Re z) < Im z < f_upper(Re z)}
