@@ -4040,6 +4040,123 @@ proof (rule set_eqI)
     by (auto simp: inside_def)
 qed
 
+\<comment> \<open>At most 2 points on the frontier of a 2D convex body can share the same
+   inner product with a non-zero vector.  Consequence: if three distinct points
+   on the frontier have the same Re (or Im), the body must lie on one side.\<close>
+lemma frontier_vertical_at_most_two:
+  fixes S :: "complex set" and c :: real
+  assumes "convex S" "compact S" "interior S \<noteq> {}"
+    and sides: "\<exists>p \<in> S. Re p < c" "\<exists>q \<in> S. c < Re q"
+    and xyz: "x \<in> frontier S" "y \<in> frontier S" "z \<in> frontier S"
+      "Re x = c" "Re y = c" "Re z = c"
+  shows "\<not> (x \<noteq> y \<and> x \<noteq> z \<and> y \<noteq> z)"
+proof -
+  define T where "T \<equiv> {w :: complex. 1 \<bullet> w = c}"
+  have aff_T: "affine T" unfolding T_def by (rule affine_hyperplane)
+  have T_eq: "T = {w. Re w = c}" unfolding T_def by (simp add: complex_inner_1)
+  have xT: "x \<in> T" "y \<in> T" "z \<in> T"
+    using xyz unfolding T_eq by auto
+  \<comment> \<open>The interior of S intersects T\<close>
+  have int_T: "interior S \<inter> T \<noteq> {}"
+  proof -
+    have cl: "closed S" using assms(2) compact_imp_closed by blast
+    have cl_int: "closure (interior S) = S"
+      using convex_closure_interior[OF assms(1) assms(3)] cl
+      by (simp add: closure_closed)
+    \<comment> \<open>Find interior points on each side of Re = c\<close>
+    obtain p where p: "p \<in> interior S" "Re p < c"
+    proof -
+      obtain p0 where p0: "p0 \<in> S" "Re p0 < c" using sides(1) by auto
+      then have "p0 \<in> closure (interior S)" using cl_int by simp
+      then obtain ps where ps: "\<forall>n. ps n \<in> interior S" "ps \<longlonglongrightarrow> p0"
+        by (meson closure_sequential)
+      have "(\<lambda>n. Re (ps n)) \<longlonglongrightarrow> Re p0" by (rule tendsto_Re[OF ps(2)])
+      from order_tendstoD(2)[OF this p0(2)]
+      obtain n where "Re (ps n) < c" using eventually_sequentially by auto
+      then show thesis using that ps(1) by auto
+    qed
+    obtain q where q: "q \<in> interior S" "c < Re q"
+    proof -
+      obtain q0 where q0: "q0 \<in> S" "c < Re q0" using sides(2) by auto
+      then have "q0 \<in> closure (interior S)" using cl_int by simp
+      then obtain qs where qs: "\<forall>n. qs n \<in> interior S" "qs \<longlonglongrightarrow> q0"
+        by (meson closure_sequential)
+      have "(\<lambda>n. Re (qs n)) \<longlonglongrightarrow> Re q0" by (rule tendsto_Re[OF qs(2)])
+      from order_tendstoD(1)[OF this q0(2)]
+      obtain n where "c < Re (qs n)" using eventually_sequentially by auto
+      then show thesis using that qs(1) by auto
+    qed
+    \<comment> \<open>IVT on the segment [p,q] \<subseteq> interior S\<close>
+    have conv_int: "convex (interior S)" using convex_interior assms(1) by auto
+    then have seg_sub: "closed_segment p q \<subseteq> interior S"
+      using closed_segment_subset p(1) q(1) by auto
+    obtain r where "r \<in> closed_segment p q" "Re r = c"
+    proof -
+      have "1 \<bullet> p \<le> c" using p(2) by (simp add: complex_inner_1)
+      moreover have "c \<le> 1 \<bullet> q" using q(2) by (simp add: complex_inner_1)
+      moreover have "p \<in> closed_segment p q" "q \<in> closed_segment p q"
+        by (auto simp: ends_in_segment)
+      ultimately obtain r where "r \<in> closed_segment p q" "1 \<bullet> r = c"
+        using connected_ivt_hyperplane[OF connected_segment] by blast
+      then show thesis using that by (simp add: complex_inner_1)
+    qed
+    then have "r \<in> interior S \<inter> T" using seg_sub T_eq by auto
+    then show ?thesis by auto
+  qed
+
+  \<comment> \<open>Apply convex_affine_rel_frontier_Int\<close>
+  have rf_eq: "rel_frontier (S \<inter> T) = frontier S \<inter> T"
+    using convex_affine_rel_frontier_Int[OF assms(1) aff_T int_T] .
+  \<comment> \<open>S \<inter> T is a compact convex collinear set, hence a closed segment\<close>
+  have ST_ne: "S \<inter> T \<noteq> {}"
+    using int_T interior_subset by blast
+  have ST_compact: "compact (S \<inter> T)"
+  proof -
+    have "closed T" unfolding T_def by (rule closed_hyperplane)
+    then show ?thesis using assms(2) compact_Int_closed by auto
+  qed
+  have ST_convex: "convex (S \<inter> T)"
+    using assms(1) convex_Int aff_T affine_imp_convex by auto
+  have ST_collinear: "collinear (S \<inter> T)"
+  proof -
+    have "aff_dim T = int (DIM(complex) - 1)"
+      unfolding T_def by (rule aff_dim_hyperplane) simp
+    then have "aff_dim T = 1" by simp
+    moreover have "aff_dim (S \<inter> T) \<le> aff_dim T"
+      by (rule aff_dim_subset) auto
+    ultimately have "aff_dim (S \<inter> T) \<le> 1" by linarith
+    then show ?thesis using collinear_aff_dim by auto
+  qed
+  obtain p q where pq: "S \<inter> T = closed_segment p q"
+    using compact_convex_collinear_segment[OF ST_ne ST_compact ST_convex ST_collinear] by auto
+  \<comment> \<open>The rel_frontier of a closed segment has at most 2 elements\<close>
+  have rf_sub: "rel_frontier (S \<inter> T) \<subseteq> {p, q}"
+  proof (cases "p = q")
+    case True
+    then show ?thesis unfolding pq by (simp add: rel_frontier_sing)
+  next
+    case False
+    have "rel_frontier (closed_segment p q) = closed_segment p q - rel_interior (closed_segment p q)"
+      unfolding rel_frontier_def by (simp add: closure_closed_segment)
+    also have "\<dots> = closed_segment p q - open_segment p q"
+      using rel_interior_closed_segment[of p q] False by simp
+    also have "\<dots> = {p, q}"
+    proof -
+      have "closed_segment p q = open_segment p q \<union> {p, q}"
+        by (rule closed_segment_eq_open)
+      moreover have "p \<notin> open_segment p q" "q \<notin> open_segment p q"
+        by (simp_all add: open_segment_def)
+      ultimately show ?thesis by auto
+    qed
+    finally show ?thesis using pq by simp
+  qed
+  \<comment> \<open>x, y, z are all in rel_frontier (S \<inter> T) = frontier S \<inter> T \<subseteq> {p, q}\<close>
+  have "x \<in> {p, q}" "y \<in> {p, q}" "z \<in> {p, q}"
+    using xyz(1,2,3) xT rf_eq rf_sub by auto
+  then show ?thesis by auto
+qed
+
+
 locale Green =
   fixes g :: "real \<Rightarrow> complex" and g' :: "real \<Rightarrow> complex"
     and U :: "real set"
