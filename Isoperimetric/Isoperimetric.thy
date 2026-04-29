@@ -4176,20 +4176,145 @@ lemma Green_area_zero:
   shows "Green_concl g g'"
 proof -
   have split_case: "Green_concl g g'"
-    if "0 < t" "t < 1"
-      and "g t = b"
-      and "g ` {0..t} \<subseteq> {z. 0 \<le> Im z}"
-      and "g ` {t..1} \<subseteq> {z. Im z \<le> 0}"
+    if ht: "0 < t" "t < 1"
+      and hgt: "g t = b"
+      and above: "g ` {0..t} \<subseteq> {z. 0 \<le> Im z}"
+      and below: "g ` {t..1} \<subseteq> {z. Im z \<le> 0}"
     for t :: real
-    using that sorry
-  \<comment> \<open>Symmetric case: first arc below, second arc above\<close>
+  proof -
+    have g0: "g 0 = 0" using assms g(2) by (simp add: pathstart_def)
+    have g1: "g 1 = 0" using assms g(3) by (simp add: pathfinish_def)
+    have Reb: "Re b > 0" using b(2) assms by simp
+    have Imb: "Im b = 0" using b(3) assms by simp
+    define f where "f \<equiv> \<lambda>s. Re (g' s) * Im (g s)"
+    \<comment> \<open>Re-injectivity: on each arc, Re \<circ> g is injective (except at endpoints).
+       Otherwise frontier_vertical_at_most_two gives a contradiction via 3 points
+       on frontier(closure(inside)) with the same Re-value.\<close>
+    have Re_inj_upper: "\<lbrakk>s1 \<in> {0..t}; s2 \<in> {0..t}; Re (g s1) = Re (g s2); s1 \<noteq> s2\<rbrakk>
+        \<Longrightarrow> (s1 = 0 \<and> s2 = t) \<or> (s1 = t \<and> s2 = 0)" for s1 s2
+      sorry
+    have Re_inj_lower: "\<lbrakk>s1 \<in> {t..1}; s2 \<in> {t..1}; Re (g s1) = Re (g s2); s1 \<noteq> s2\<rbrakk>
+        \<Longrightarrow> (s1 = t \<and> s2 = 1) \<or> (s1 = 1 \<and> s2 = t)" for s1 s2
+      sorry
+    \<comment> \<open>Step 0: Absolute integrability (needed for integral splitting)\<close>
+    have f_abs_int: "f absolutely_integrable_on {0..1}"
+    proof -
+      have cont_g: "continuous_on {0..1} g"
+        using simple_path_imp_path[OF g(1)] by (simp add: path_def)
+      have gp_ai: "g' absolutely_integrable_on {0..1}"
+        using absolutely_integrable_absolutely_continuous_derivative[OF cont U]
+          vder has_vector_derivative_at_within by blast
+      have Re_gp_ai: "(\<lambda>t. Re (g' t)) absolutely_integrable_on {0..1}"
+      proof -
+        have "(\<lambda>t. g' t \<bullet> 1) absolutely_integrable_on {0..1}"
+          by (rule absolutely_integrable_component[OF gp_ai])
+        then show ?thesis by (simp add: complex_inner_1_right)
+      qed
+      have Im_g_cont: "continuous_on {0..1} (\<lambda>t. Im (g t))"
+        by (intro continuous_intros cont_g)
+      have Im_g_bdd: "bounded ((\<lambda>t. Im (g t)) ` {0..1})"
+        by (intro compact_imp_bounded compact_continuous_image[OF Im_g_cont compact_Icc])
+      have Im_g_meas: "(\<lambda>t. Im (g t)) \<in> borel_measurable (lebesgue_on {0..1})"
+        using continuous_imp_measurable_on_sets_lebesgue[OF Im_g_cont]
+          atLeastAtMost_borel lborelD
+        by (metis sets_completionI_sets)
+      show ?thesis unfolding f_def
+        using absolutely_integrable_bounded_measurable_product_real[OF Im_g_meas _ Im_g_bdd Re_gp_ai]
+        by (simp add: mult.commute)
+    qed
+    have f_int: "f integrable_on {0..1}"
+      using set_lebesgue_integral_eq_integral(1)[OF f_abs_int] .
+    \<comment> \<open>Step 1: The integral splits over [0,t] and [t,1]\<close>
+    have split_int: "integral {0..1} f = integral {0..t} f + integral {t..1} f"
+      using Henstock_Kurzweil_Integration.integral_combine[of 0 t 1 f] ht f_int by auto
+    \<comment> \<open>Step 2: Upper arc integral \<ge> 0.
+       By change of variables x = Re(g(s)) and Re-injectivity, the integral
+       \<integral>₀ᵗ Re(g') \<sqdot> Im(g) ds = \<integral>₀^{Re b} f_upper(x) dx \<ge> 0
+       since f_upper = Im \<circ> g \<circ> Re⁻¹ \<ge> 0 on the upper arc.\<close>
+    have upper_int: "integral {0..t} f \<ge> 0"
+      sorry
+    \<comment> \<open>Step 3: Lower arc integral \<ge> 0 as well.
+       On [t,1], g goes from b back to 0 (Re decreasing) with Im(g) \<le> 0.
+       By change of variables x = Re(g(s)):
+       \<integral>ₜ¹ Re(g')\<sqdot>Im(g) ds = \<integral>_{Re b}^0 f_lower(x) dx = -\<integral>₀^{Re b} f_lower(x) dx \<ge> 0
+       since f_lower \<le> 0.\<close>
+    have lower_int: "integral {t..1} f \<ge> 0"
+      sorry
+    \<comment> \<open>Step 4: total integral = area of inside.
+       The inside decomposes as the region between the two arcs:
+       inside(path_image g) = {z | Re z \<in> (0, Re b) \<and> f_lower(Re z) < Im z < f_upper(Re z)}
+       By Fubini, its area = \<integral>₀^{Re b} (f_upper(x) - f_lower(x)) dx
+       and by the change-of-variables computations above, this equals
+       integral {0..t} f + integral {t..1} f = integral {0..1} f.\<close>
+    have area_decomp: "measure lebesgue (inside (path_image g))
+                     = integral {0..t} f + integral {t..1} f"
+      sorry
+    \<comment> \<open>Step 5: Combine\<close>
+    have int_eq: "\<bar>integral {0..1} f\<bar> = measure lebesgue (inside (path_image g))"
+      using split_int area_decomp upper_int lower_int by linarith
+
+    show ?thesis unfolding Green_concl_def f_def
+      using int_eq f_abs_int unfolding f_def by auto
+  qed
+  \<comment> \<open>Symmetric case: first arc below, second arc above.
+     Reduce to split_case by conjugation: if g stays below first, then conj\<circ>g stays above first.
+     Green_concl is invariant under conjugation since Re(g') \<sqdot> Im(g) = -Re(conj g') \<sqdot> Im(conj g)
+     and inside is preserved up to reflection.\<close>
   have split_case': "Green_concl g g'"
-    if "0 < t" "t < 1"
-      and "g t = b"
-      and "g ` {0..t} \<subseteq> {z. Im z \<le> 0}"
-      and "g ` {t..1} \<subseteq> {z. 0 \<le> Im z}"
+    if ht: "0 < t" "t < 1"
+      and hgt: "g t = b"
+      and below: "g ` {0..t} \<subseteq> {z. Im z \<le> 0}"
+      and above: "g ` {t..1} \<subseteq> {z. 0 \<le> Im z}"
     for t :: real
-    using that sorry
+  proof -
+    have g0: "g 0 = 0" using assms g(2) by (simp add: pathstart_def)
+    have g1: "g 1 = 0" using assms g(3) by (simp add: pathfinish_def)
+    have Reb: "Re b > 0" using b(2) assms by simp
+    have Imb: "Im b = 0" using b(3) assms by simp
+    define f where "f \<equiv> \<lambda>s. Re (g' s) * Im (g s)"
+    \<comment> \<open>Absolute integrability and splitting (same as split_case)\<close>
+    have f_abs_int: "f absolutely_integrable_on {0..1}"
+    proof -
+      have cont_g: "continuous_on {0..1} g"
+        using simple_path_imp_path[OF g(1)] by (simp add: path_def)
+      have gp_ai: "g' absolutely_integrable_on {0..1}"
+        using absolutely_integrable_absolutely_continuous_derivative[OF cont U]
+          vder has_vector_derivative_at_within by blast
+      have Re_gp_ai: "(\<lambda>t. Re (g' t)) absolutely_integrable_on {0..1}"
+      proof -
+        have "(\<lambda>t. g' t \<bullet> 1) absolutely_integrable_on {0..1}"
+          by (rule absolutely_integrable_component[OF gp_ai])
+        then show ?thesis by (simp add: complex_inner_1_right)
+      qed
+      have Im_g_cont: "continuous_on {0..1} (\<lambda>t. Im (g t))"
+        by (intro continuous_intros cont_g)
+      have Im_g_bdd: "bounded ((\<lambda>t. Im (g t)) ` {0..1})"
+        by (intro compact_imp_bounded compact_continuous_image[OF Im_g_cont compact_Icc])
+      have Im_g_meas: "(\<lambda>t. Im (g t)) \<in> borel_measurable (lebesgue_on {0..1})"
+        using continuous_imp_measurable_on_sets_lebesgue[OF Im_g_cont]
+          atLeastAtMost_borel lborelD
+        by (metis sets_completionI_sets)
+      show ?thesis unfolding f_def
+        using absolutely_integrable_bounded_measurable_product_real[OF Im_g_meas _ Im_g_bdd Re_gp_ai]
+        by (simp add: mult.commute)
+    qed
+    have f_int: "f integrable_on {0..1}"
+      using set_lebesgue_integral_eq_integral(1)[OF f_abs_int] .
+    have split_int: "integral {0..1} f = integral {0..t} f + integral {t..1} f"
+      using Henstock_Kurzweil_Integration.integral_combine[of 0 t 1 f] ht f_int by auto
+    \<comment> \<open>In this case the signs are reversed: both partial integrals \<le> 0\<close>
+    have upper_int: "integral {0..t} f \<le> 0"
+      sorry \<comment> \<open>Im(g) \<le> 0 on [0,t] with Re increasing\<close>
+    have lower_int: "integral {t..1} f \<le> 0"
+      sorry \<comment> \<open>Im(g) \<ge> 0 on [t,1] with Re decreasing\<close>
+    have area_decomp: "measure lebesgue (inside (path_image g))
+                     = -(integral {0..t} f + integral {t..1} f)"
+      sorry \<comment> \<open>Same area decomposition, opposite sign\<close>
+    have int_eq: "\<bar>integral {0..1} f\<bar> = measure lebesgue (inside (path_image g))"
+      using split_int area_decomp upper_int lower_int by linarith
+    show ?thesis unfolding Green_concl_def f_def
+      using int_eq f_abs_int unfolding f_def by auto
+  qed
   \<comment> \<open>Key geometric fact: the only real points on the curve are a and b.
      This follows because open_segment a b \<subseteq> inside(path_image g),
      and the diameter bound forces any real point on the curve into closed_segment a b.\<close>
