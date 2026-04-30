@@ -1,5 +1,5 @@
 theory Determinant_Linear_Function
-  imports "HOL-Analysis.Analysis"
+  imports "HOL-Analysis.Determinants"
 begin
 
 subsection \<open>Determinants of linear functions between Euclidean spaces\<close>
