@@ -336,13 +336,17 @@ proof (rule Set.set_eqI)
     show "x \<in> c_ball n c"
     proof (cases "x = c")
       case True
-      then show ?thesis using assms c_ballI val_zero by auto
+      then have "c \<ominus> c = \<zero>" using assms Qp.r_neg by auto
+      then have "val (c \<ominus> c) = \<infinity>" using val_zero by auto
+      then have "eint n \<le> val (c \<ominus> c)" by simp
+      then show ?thesis using True c_ballI assms by auto
     next
       case False
       then have xc_nz: "x \<ominus> c \<in> nonzero Q\<^sub>p"
         using x_car assms Qp.not_eq_diff_nonzero by auto
       have "padic_dist c x = padic_norm (x \<ominus> c)"
-        using padic_dist_commute padic_dist_as_norm x_car assms by auto
+        using padic_dist_commute[of c x] padic_dist_as_norm[OF x_car assms]
+              padic_dist_as_norm[OF assms x_car] by simp
       also have "\<dots> = p powr (- real_of_int (ord (x \<ominus> c)))"
         using padic_norm_def Qp.nonzero_memE(2)[OF xc_nz] by auto
       finally have "p powr (- real_of_int (ord (x \<ominus> c))) \<le> p powr (- real_of_int n)"
@@ -356,6 +360,82 @@ proof (rule Set.set_eqI)
     qed
   qed
 qed
+
+(* Open balls in the metric sense correspond to c_balls with shifted index *)
+lemma mball_eq_c_ball:
+  assumes "c \<in> carrier Q\<^sub>p"
+  shows "padic.mball c (real_of_int p powr (- real_of_int n)) = c_ball (n + 1) c"
+proof (rule Set.set_eqI)
+  fix x
+  show "x \<in> padic.mball c (real_of_int p powr (- real_of_int n)) \<longleftrightarrow> x \<in> c_ball (n + 1) c"
+  proof
+    assume xin: "x \<in> padic.mball c (real_of_int p powr (- real_of_int n))"
+    then have x_car: "x \<in> carrier Q\<^sub>p" and dist_lt: "padic_dist c x < p powr (- real_of_int n)"
+      using padic.in_mball by auto
+    show "x \<in> c_ball (n + 1) c"
+    proof (cases "x = c")
+      case True
+      then have "c \<ominus> c = \<zero>" using assms Qp.r_neg by auto
+      then have "val (c \<ominus> c) = \<infinity>" using val_zero by auto
+      then have "eint (n + 1) \<le> val (c \<ominus> c)" by simp
+      then show ?thesis using True c_ballI assms by auto
+    next
+      case False
+      then have xc_nz: "x \<ominus> c \<in> nonzero Q\<^sub>p"
+        using x_car assms Qp.not_eq_diff_nonzero by auto
+      have "padic_dist c x = padic_norm (x \<ominus> c)"
+        using padic_dist_commute[of c x] padic_dist_as_norm[OF x_car assms]
+              padic_dist_as_norm[OF assms x_car] by simp
+      then have "padic_norm (x \<ominus> c) < p powr (- real_of_int n)"
+        using dist_lt by linarith
+      then have "p powr (- real_of_int (ord (x \<ominus> c))) < p powr (- real_of_int n)"
+        using padic_norm_def Qp.nonzero_memE(2)[OF xc_nz] by auto
+      then have "- real_of_int (ord (x \<ominus> c)) < - real_of_int n"
+        using powr_less_cancel_iff[OF p_gt_1_real] by auto
+      then have "n < ord (x \<ominus> c)" by linarith
+      then have "n + 1 \<le> ord (x \<ominus> c)" by linarith
+      then have "eint (n + 1) \<le> val (x \<ominus> c)"
+        using val_ord xc_nz by auto
+      then show ?thesis using c_ballI x_car by auto
+    qed
+  next
+    assume xin: "x \<in> c_ball (n + 1) c"
+    then have x_car: "x \<in> carrier Q\<^sub>p" and val_ge: "eint (n + 1) \<le> val (x \<ominus> c)"
+      using c_ball_def by auto
+    show "x \<in> padic.mball c (real_of_int p powr (- real_of_int n))"
+      unfolding padic.in_mball
+    proof (intro conjI)
+      show "c \<in> carrier Q\<^sub>p" using assms by auto
+      show "x \<in> carrier Q\<^sub>p" using x_car by auto
+      show "padic_dist c x < real_of_int p powr (- real_of_int n)"
+      proof (cases "x = c")
+        case True
+        then show ?thesis
+          using assms padic_dist_zero p_gt_1_real by auto
+      next
+        case False
+        then have xc_nz: "x \<ominus> c \<in> nonzero Q\<^sub>p"
+          using x_car assms Qp.not_eq_diff_nonzero by auto
+        have "val (x \<ominus> c) = eint (ord (x \<ominus> c))" using val_ord xc_nz by auto
+        then have "n + 1 \<le> ord (x \<ominus> c)" using val_ge by simp
+        then have "- real_of_int (ord (x \<ominus> c)) < - real_of_int n" by linarith
+        then have "p powr (- real_of_int (ord (x \<ominus> c))) < p powr (- real_of_int n)"
+          using p_gt_1_real by (simp add: powr_less_cancel_iff)
+        moreover have "padic_dist c x = p powr (- real_of_int (ord (x \<ominus> c)))"
+        proof -
+          have "padic_dist c x = padic_norm (x \<ominus> c)"
+            using padic_dist_commute[of c x] padic_dist_as_norm[OF x_car assms]
+                  padic_dist_as_norm[OF assms x_car] by simp
+          also have "\<dots> = p powr (- real_of_int (ord (x \<ominus> c)))"
+            using padic_norm_def Qp.nonzero_memE(2)[OF xc_nz] by auto
+          finally show ?thesis .
+        qed
+        ultimately show ?thesis by linarith
+      qed
+    qed
+  qed
+qed
+
 (* ================================================================ *)
 
 (* The topology generated by the metric equals the one from is_open *)
@@ -368,45 +448,75 @@ proof
     using padic.openin_mtopology by auto
   show "is_open U"
   proof (rule is_openI[OF U_sub])
-    fix c assume "c \<in> U"
-    then obtain r where "r > 0" "padic.mball c r \<subseteq> U"
-      using U_ball by auto
-        (* Choose n such that p powr (-n) \<le> r, then c_ball n c \<subseteq> mball c r \<subseteq> U *)
-    then obtain n where "c_ball n c \<subseteq> U"
-      sorry
-    then show "\<exists>n. c_ball n c \<subseteq> U" by blast
+    fix c assume c_in: "c \<in> U"
+    then have c_car: "c \<in> carrier Q\<^sub>p" using U_sub by auto
+    obtain r where r_pos: "r > 0" and r_sub: "padic.mball c r \<subseteq> U"
+      using U_ball c_in by auto
+    (* Choose n large enough that p powr (-n) < r.
+       Since p \<ge> 2, p powr (-n) \<rightarrow> 0, so such n exists. *)
+    obtain n :: int where n_large: "p powr (- real_of_int n) < r"
+    proof -
+      obtain k :: nat where hk: "1 / r < real_of_int p ^ k"
+        using real_arch_pow[of "1/r" "real_of_int p"] p_gt_1_real r_pos by auto
+      have "p powr (- real_of_int (int k)) = inverse (p ^ k)"
+        using p_gt_1_real
+        by (simp add: powr_minus powr_realpow inverse_eq_divide)
+      also have "\<dots> < r"
+        using hk r_pos p_gt_1_real
+        by (simp add: field_simps)
+      finally show ?thesis using that by blast
+    qed
+    have "c_ball (n + 1) c = padic.mball c (p powr (- real_of_int n))"
+      using mball_eq_c_ball[OF c_car] by auto
+    then have "c_ball (n + 1) c \<subseteq> U"
+      using r_sub padic.mball_subset_concentric n_large by auto
+    then show "\<exists>k. c_ball k c \<subseteq> U" by blast
   qed
 next
-  assume "is_open U"
+  assume U_open: "is_open U"
   show "openin padic.mtopology U"
     unfolding padic.openin_mtopology
   proof (intro conjI allI impI)
-    show "U \<subseteq> carrier Q\<^sub>p" using \<open>is_open U\<close> is_open_imp_in_Qp by blast
-    fix x assume "x \<in> U"
-    then obtain n where "c_ball n c \<subseteq> U"
-      using \<open>is_open U\<close> is_open_def sorry
-        (* Then mball x (p powr (-n)) = c_ball (n+1) x \<subseteq> c_ball n x \<subseteq> U *)
-    then show "\<exists>r>0. padic.mball x r \<subseteq> U"
-      sorry
+    show "U \<subseteq> carrier Q\<^sub>p" using U_open is_open_imp_in_Qp by blast
+  next
+    fix x assume x_in: "x \<in> U"
+    then have x_car: "x \<in> carrier Q\<^sub>p" using U_open is_open_imp_in_Qp by blast
+    obtain n where n_sub: "c_ball n x \<subseteq> U"
+      using U_open x_in is_open_def by auto
+    have ball_eq: "padic.mball x (p powr (- real_of_int (n - 1))) = c_ball n x"
+      using mball_eq_c_ball[OF x_car, of "n - 1"] by auto
+    have r_pos: "0 < p powr (- real_of_int (n - 1))"
+      using p_gt_1_real by simp
+    show "\<exists>r>0. padic.mball x r \<subseteq> U"
+      using ball_eq n_sub r_pos by auto
   qed
 qed
-
-
-(* ================================================================ *)
-(* PART 6: Ultrametric-specific results (new)                       *)
-(* ================================================================ *)
-
-(* Closed balls are also open — the key ultrametric phenomenon *)
 lemma mcball_is_open:
-  assumes "c \<in> carrier Q\<^sub>p"
+  assumes "c \<in> carrier Q\<^sub>p" "0 < r"
   shows "openin padic.mtopology (padic.mcball c r)"
-proof -
-  (* For any y in mcball c r, mball y r' \<subseteq> mcball c r
-       where r' = r (or any positive value), by ultrametric inequality:
-       d(c,z) \<le> max(d(c,y), d(y,z)) \<le> max(r, r') *)
-  show ?thesis
-    unfolding padic.openin_mtopology
-    sorry (* ultrametric: if d(c,y) \<le> r and d(y,z) < \<epsilon> then d(c,z) \<le> r *)
+  unfolding padic.openin_mtopology
+proof (intro conjI ballI)
+  show "padic.mcball c r \<subseteq> carrier Q\<^sub>p"
+    using padic.mcball_subset_mspace by auto
+next
+  fix y assume y_in: "y \<in> padic.mcball c r"
+  then have y_car: "y \<in> carrier Q\<^sub>p" and dy: "padic_dist c y \<le> r"
+    using padic.in_mcball by auto
+  show "\<exists>\<epsilon>>0. padic.mball y \<epsilon> \<subseteq> padic.mcball c r"
+  proof (intro exI conjI)
+    show "0 < r" using assms by auto
+    show "padic.mball y r \<subseteq> padic.mcball c r"
+    proof
+      fix z assume z_in: "z \<in> padic.mball y r"
+      then have z_car: "z \<in> carrier Q\<^sub>p" and dyz: "padic_dist y z < r"
+        using padic.in_mball by auto
+      have "padic_dist c z \<le> max (padic_dist c y) (padic_dist y z)"
+        using padic_dist_ultrametric[OF assms(1) y_car z_car] by auto
+      also have "\<dots> \<le> r" using dy dyz by simp
+      finally show "z \<in> padic.mcball c r"
+        using padic.in_mcball assms(1) z_car by auto
+    qed
+  qed
 qed
 
 (* Equivalently: balls are clopen *)

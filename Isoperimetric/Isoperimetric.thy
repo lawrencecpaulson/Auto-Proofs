@@ -4216,6 +4216,43 @@ proof -
   have Re_inj_lower: "\<lbrakk>s1 \<in> {t..1}; s2 \<in> {t..1}; Re (g s1) = Re (g s2); s1 \<noteq> s2\<rbrakk>
       \<Longrightarrow> (s1 = t \<and> s2 = 1) \<or> (s1 = 1 \<and> s2 = t)" if "0 < t" "t < 1" "g t = b" for s1 s2 t
     sorry
+  \<comment> \<open>Common injectivity lemmas used by both split_case and split_case'\<close>
+  have arc_inj_on: "inj_on g {u..v}"
+    if huv: "0 \<le> u" "v \<le> 1" "u < v" and hne: "u > 0 \<or> v < 1" for u v
+  proof (rule inj_onI)
+    fix s1 s2 assume s1: "s1 \<in> {u..v}" and s2: "s2 \<in> {u..v}" and eq: "g s1 = g s2"
+    have s1_01: "s1 \<in> {0..1}" using s1 huv by auto
+    have s2_01: "s2 \<in> {0..1}" using s2 huv by auto
+    show "s1 = s2"
+    proof (rule ccontr)
+      assume neq: "s1 \<noteq> s2"
+      from g(1) have lf: "loop_free g" by (simp add: simple_path_def)
+      from lf[unfolded loop_free_def, rule_format, OF s1_01 s2_01 eq]
+      have "s1 = s2 \<or> s1 = 0 \<and> s2 = 1 \<or> s1 = 1 \<and> s2 = 0" by auto
+      with neq have "s1 = 0 \<and> s2 = 1 \<or> s1 = 1 \<and> s2 = 0" by auto
+      then show False using s1 s2 huv hne by auto
+    qed
+  qed
+  have arc_Re_inj_on: "inj_on Re (g ` {u..v})"
+    if hinj: "inj_on g {u..v}"
+      and hRe: "\<And>s1 s2. \<lbrakk>s1 \<in> {u..v}; s2 \<in> {u..v}; Re (g s1) = Re (g s2); s1 \<noteq> s2\<rbrakk>
+               \<Longrightarrow> Re (g u) = Re (g v)"
+      and hne: "Re (g u) \<noteq> Re (g v)"
+    for u v
+  proof (rule inj_onI)
+    fix x y assume "x \<in> g ` {u..v}" "y \<in> g ` {u..v}" "Re x = Re y"
+    then obtain s1 s2 where s1: "s1 \<in> {u..v}" "x = g s1"
+                        and s2: "s2 \<in> {u..v}" "y = g s2" by auto
+    then have Re_eq: "Re (g s1) = Re (g s2)" using \<open>Re x = Re y\<close> by simp
+    show "x = y"
+    proof (cases "s1 = s2")
+      case True then show ?thesis using s1 s2 by simp
+    next
+      case False
+      then have "Re (g u) = Re (g v)" using hRe[OF s1(1) s2(1) Re_eq] by auto
+      then show ?thesis using hne by simp
+    qed
+  qed
   have split_case: "Green_concl g g'"
     if ht: "0 < t" "t < 1"
       and hgt: "g t = b"
