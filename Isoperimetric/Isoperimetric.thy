@@ -4175,6 +4175,47 @@ lemma Green_area_zero:
   assumes "a = 0"
   shows "Green_concl g g'"
 proof -
+  \<comment> \<open>Common facts used by both split_case and split_case'\<close>
+  have g0: "g 0 = 0" using assms g(2) by (simp add: pathstart_def)
+  have g1: "g 1 = 0" using assms g(3) by (simp add: pathfinish_def)
+  have Reb: "Re b > 0" using b(2) assms by simp
+  have Imb: "Im b = 0" using b(3) assms by simp
+  define f where "f \<equiv> \<lambda>s. Re (g' s) * Im (g s)"
+  have f_abs_int: "f absolutely_integrable_on {0..1}"
+  proof -
+    have cont_g: "continuous_on {0..1} g"
+      using simple_path_imp_path[OF g(1)] by (simp add: path_def)
+    have gp_ai: "g' absolutely_integrable_on {0..1}"
+      using absolutely_integrable_absolutely_continuous_derivative[OF cont U]
+        vder has_vector_derivative_at_within by blast
+    have Re_gp_ai: "(\<lambda>t. Re (g' t)) absolutely_integrable_on {0..1}"
+    proof -
+      have "(\<lambda>t. g' t \<bullet> 1) absolutely_integrable_on {0..1}"
+        by (rule absolutely_integrable_component[OF gp_ai])
+      then show ?thesis by (simp add: complex_inner_1_right)
+    qed
+    have Im_g_cont: "continuous_on {0..1} (\<lambda>t. Im (g t))"
+      by (intro continuous_intros cont_g)
+    have Im_g_bdd: "bounded ((\<lambda>t. Im (g t)) ` {0..1})"
+      by (intro compact_imp_bounded compact_continuous_image[OF Im_g_cont compact_Icc])
+    have Im_g_meas: "(\<lambda>t. Im (g t)) \<in> borel_measurable (lebesgue_on {0..1})"
+      using continuous_imp_measurable_on_sets_lebesgue[OF Im_g_cont]
+        atLeastAtMost_borel lborelD
+      by (metis sets_completionI_sets)
+    show ?thesis unfolding f_def
+      using absolutely_integrable_bounded_measurable_product_real[OF Im_g_meas _ Im_g_bdd Re_gp_ai]
+      by (simp add: mult.commute)
+  qed
+  have f_int: "f integrable_on {0..1}"
+    using set_lebesgue_integral_eq_integral(1)[OF f_abs_int] .
+  \<comment> \<open>Re-injectivity: on each arc, Re \<circ> g is injective (except at endpoints).
+     These facts depend only on simple_path and convexity, not on the half-plane orientation.\<close>
+  have Re_inj_upper: "\<lbrakk>s1 \<in> {0..t}; s2 \<in> {0..t}; Re (g s1) = Re (g s2); s1 \<noteq> s2\<rbrakk>
+      \<Longrightarrow> (s1 = 0 \<and> s2 = t) \<or> (s1 = t \<and> s2 = 0)" if "0 < t" "t < 1" "g t = b" for s1 s2 t
+    sorry
+  have Re_inj_lower: "\<lbrakk>s1 \<in> {t..1}; s2 \<in> {t..1}; Re (g s1) = Re (g s2); s1 \<noteq> s2\<rbrakk>
+      \<Longrightarrow> (s1 = t \<and> s2 = 1) \<or> (s1 = 1 \<and> s2 = t)" if "0 < t" "t < 1" "g t = b" for s1 s2 t
+    sorry
   have split_case: "Green_concl g g'"
     if ht: "0 < t" "t < 1"
       and hgt: "g t = b"
