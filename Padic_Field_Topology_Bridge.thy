@@ -86,24 +86,6 @@ lemma ball_openin_padic:
   "is_ball B \<Longrightarrow> openin padic_topology B"
   using openin_padic_topology ball_is_open by simp
 
-lemma ball_closedin_padic:
-  "is_ball B \<Longrightarrow> closedin padic_topology B"
-  sorry (* requires ball_is_closed *)
-
-(* Nested balls: the p-adic topology is totally disconnected *)
-lemma padic_totally_disconnected:
-  assumes "connectedin padic_topology S"
-  shows "\<exists>a. S \<subseteq> {a}"
-  sorry (* follows from nested_balls' and the ultrametric property:
-             every ball is both open and closed *)
-
-(* Balls are also closed *)
-lemma closedin_ball:
-  assumes "c \<in> carrier Q\<^sub>p"
-  shows "closedin padic_topology (B\<^bsub>n\<^esub>[c])"
-  sorry (* The complement of a ball is a union of balls, hence open.
-             Key fact: in ultrametric spaces, balls are clopen. *)
-
 (* Hensel's lemma consequence: compactness of Z_p *)
 (* (if the AFP entry proves compactness of the p-adic integers) *)
 
@@ -112,8 +94,25 @@ lemma open_max_ball_decomposition:
   assumes "openin padic_topology U"
   assumes "U \<noteq> topspace padic_topology"
   shows "U = \<Union>(max_balls U)"
-  using openin_padic_topology assms max_balls_interior open_interior
-  sorry
+proof -
+  have U_open: "is_open U" using assms openin_padic_topology by auto
+  have U_sub: "U \<subseteq> carrier Q\<^sub>p" using U_open is_open_imp_in_Qp by auto
+  have U_ne: "U \<noteq> carrier Q\<^sub>p" using assms topspace_padic by auto
+  have int_eq: "interior U = U" using open_interior U_open by auto
+  have int_decomp: "interior U = {x \<in> carrier Q\<^sub>p. \<exists>B\<in>max_balls U. x \<in> B}"
+    using max_balls_interior U_sub U_ne by auto
+  have "\<Union>(max_balls U) \<subseteq> carrier Q\<^sub>p"
+  proof
+    fix x assume "x \<in> \<Union>(max_balls U)"
+    then obtain B where "B \<in> max_balls U" "x \<in> B" by auto
+    then show "x \<in> carrier Q\<^sub>p" using int_decomp int_eq
+      using U_ne U_sub max_balls_interior' by blast
+  qed
+  moreover have "U = {x \<in> carrier Q\<^sub>p. \<exists>B\<in>max_balls U. x \<in> B}"
+    using int_eq int_decomp by simp
+  ultimately show "U = \<Union>(max_balls U)"
+    using U_sub by blast
+qed
 
 
 end
@@ -457,7 +456,8 @@ proof
     obtain n :: int where n_large: "p powr (- real_of_int n) < r"
     proof -
       obtain k :: nat where hk: "1 / r < real_of_int p ^ k"
-        using real_arch_pow[of "1/r" "real_of_int p"] p_gt_1_real r_pos by auto
+        using real_arch_pow[of "1/r" "real_of_int p"] p_gt_1_real r_pos
+        using real_arch_pow by blast
       have "p powr (- real_of_int (int k)) = inverse (p ^ k)"
         using p_gt_1_real
         by (simp add: powr_minus powr_realpow inverse_eq_divide)
@@ -488,14 +488,21 @@ next
     have r_pos: "0 < p powr (- real_of_int (n - 1))"
       using p_gt_1_real by simp
     show "\<exists>r>0. padic.mball x r \<subseteq> U"
-      using ball_eq n_sub r_pos by auto
+      using ball_eq n_sub r_pos
+      by blast
   qed
 qed
+
+lemma padic_mtopology_eq: "padic.mtopology = padic_topology"
+  using padic_topology_eq_mtopology openin_padic_topology
+  by (intro topology.openin_inject[THEN iffD1] ext iffI; simp)
+
+
 lemma mcball_is_open:
   assumes "c \<in> carrier Q\<^sub>p" "0 < r"
   shows "openin padic.mtopology (padic.mcball c r)"
   unfolding padic.openin_mtopology
-proof (intro conjI ballI)
+proof (intro conjI strip)
   show "padic.mcball c r \<subseteq> carrier Q\<^sub>p"
     using padic.mcball_subset_mspace by auto
 next
@@ -523,34 +530,160 @@ qed
 lemma c_ball_clopen:
   assumes "c \<in> carrier Q\<^sub>p"
   shows "openin padic.mtopology (c_ball n c) \<and> closedin padic.mtopology (c_ball n c)"
-  using c_ball_eq_mcball mcball_is_open assms padic.closedin_mcball
-  sorry
+proof
+  have r_pos: "0 < real_of_int p powr (- real_of_int n)"
+    using p_gt_1_real by simp
+  show "openin padic.mtopology (c_ball n c)"
+    using c_ball_eq_mcball[OF assms] mcball_is_open[OF assms r_pos] by simp
+  show "closedin padic.mtopology (c_ball n c)"
+    using c_ball_eq_mcball[OF assms] padic.closedin_mcball by simp
+qed
 
 (* Total disconnectedness *)
 lemma padic_mtop_totally_disconnected:
   assumes "connectedin padic.mtopology S"
   shows "\<exists>a. S \<subseteq> {a}"
-  sorry (* If S has two distinct points x, y with d(x,y) = p^{-n},
-           then c_ball (n+1) x is clopen, contains x but not y,
-           contradicting connectedness. *)
+proof (rule ccontr)
+  assume neg: "\<not>(\<exists>a. S \<subseteq> {a})"
+  have S_sub: "S \<subseteq> carrier Q\<^sub>p"
+    using assms connectedin_subset_topspace padic.topspace_mtopology by blast
+  obtain x y where xy: "x \<in> S" "y \<in> S" "x \<noteq> y"
+  proof -
+    have "S \<noteq> {}" using neg by blast
+    then obtain x where "x \<in> S" by auto
+    have "\<not>(S \<subseteq> {x})" using neg by auto
+    then obtain y where "y \<in> S" "y \<noteq> x" by auto
+    then show thesis using \<open>x \<in> S\<close> that by auto
+  qed
+  have x_car: "x \<in> carrier Q\<^sub>p" and y_car: "y \<in> carrier Q\<^sub>p"
+    using S_sub xy by auto
+  have xy_nz: "x \<ominus> y \<in> nonzero Q\<^sub>p"
+    using xy x_car y_car Qp.not_eq_diff_nonzero by auto
+  define n where "n = ord (x \<ominus> y) + 1"
+  have x_in_ball: "x \<in> c_ball n x"
+  proof (rule c_ballI[OF x_car])
+    have "x \<ominus> x = \<zero>" using x_car Qp.r_neg by auto
+    then show "eint n \<le> val (x \<ominus> x)" using val_zero by simp
+  qed
+  have y_not_in_ball: "y \<notin> c_ball n x"
+  proof
+    assume "y \<in> c_ball n x"
+    then have val_ge: "eint n \<le> val (y \<ominus> x)" using c_ballE by auto
+    have yx_nz: "y \<ominus> x \<in> nonzero Q\<^sub>p"
+      using xy x_car y_car Qp.not_eq_diff_nonzero by auto
+    have "val (y \<ominus> x) = eint (ord (y \<ominus> x))" using val_ord[OF yx_nz] by auto
+    then have n_le: "n \<le> ord (y \<ominus> x)" using val_ge by simp
+    have "y \<ominus> x = \<ominus> (x \<ominus> y)"
+      using x_car y_car using Qp.minus_a_inv by blast
+    then have "ord (y \<ominus> x) = ord (x \<ominus> y)"
+      using equal_val_imp_equal_ord(1)[OF xy_nz]
+            val_minus[of "x \<ominus> y"] val_ord[OF xy_nz] val_ord[OF yx_nz]
+      using ord_minus xy_nz by presburger
+    then show False using n_le n_def by linarith
+  qed
+  have clopen: "openin padic.mtopology (c_ball n x)" "closedin padic.mtopology (c_ball n x)"
+    using c_ball_clopen[OF x_car] by auto
+  have "S \<subseteq> c_ball n x \<or> disjnt S (c_ball n x)"
+    using connectedin_clopen_cases[OF assms clopen(2) clopen(1)] by auto
+  then show False
+  proof
+    assume "S \<subseteq> c_ball n x"
+    then show False using xy(2) y_not_in_ball by auto
+  next
+    assume "disjnt S (c_ball n x)"
+    then show False using xy(1) x_in_ball
+      by (simp add: disjnt_def disjoint_iff)
+  qed
+qed
 
 (* Nested balls — reproved from ultrametric *)
 lemma ultrametric_nested:
   assumes "padic.mcball x r \<inter> padic.mcball y s \<noteq> {}"
   shows "padic.mcball x r \<subseteq> padic.mcball y s \<or> padic.mcball y s \<subseteq> padic.mcball x r"
-  sorry (* direct from ultrametric inequality *)
+proof -
+  obtain z where z_xr: "z \<in> padic.mcball x r" and z_ys: "z \<in> padic.mcball y s"
+    using assms by blast
+  then have x_car: "x \<in> carrier Q\<^sub>p" and y_car: "y \<in> carrier Q\<^sub>p" and z_car: "z \<in> carrier Q\<^sub>p"
+    and dxz: "padic_dist x z \<le> r" and dyz: "padic_dist y z \<le> s"
+    using padic.in_mcball by auto
+  have dzx: "padic_dist z x \<le> r" using dxz padic_dist_commute by simp
+  have dzy: "padic_dist z y \<le> s" using dyz padic_dist_commute by simp
+  show ?thesis
+  proof (cases "r \<le> s")
+    case True
+    show ?thesis
+    proof (intro disjI1 subsetI)
+      fix w assume w_in: "w \<in> padic.mcball x r"
+      then have w_car: "w \<in> carrier Q\<^sub>p" and dxw: "padic_dist x w \<le> r"
+        using padic.in_mcball by auto
+      have "padic_dist z w \<le> max (padic_dist z x) (padic_dist x w)"
+        using padic_dist_ultrametric[OF z_car x_car w_car] by auto
+      also have "\<dots> \<le> r" using dzx dxw by simp
+      finally have dzw: "padic_dist z w \<le> r" .
+      have "padic_dist y w \<le> max (padic_dist y z) (padic_dist z w)"
+        using padic_dist_ultrametric[OF y_car z_car w_car] by auto
+      also have "\<dots> \<le> s" using dyz dzw True by simp
+      finally show "w \<in> padic.mcball y s"
+        using padic.in_mcball y_car w_car by auto
+    qed
+  next
+    case False
+    then have sr: "s \<le> r" by simp
+    show ?thesis
+    proof (intro disjI2 subsetI)
+      fix w assume w_in: "w \<in> padic.mcball y s"
+      then have w_car: "w \<in> carrier Q\<^sub>p" and dyw: "padic_dist y w \<le> s"
+        using padic.in_mcball by auto
+      have "padic_dist z w \<le> max (padic_dist z y) (padic_dist y w)"
+        using padic_dist_ultrametric[OF z_car y_car w_car] by auto
+      also have "\<dots> \<le> s" using dzy dyw by simp
+      finally have dzw: "padic_dist z w \<le> s" .
+      have "padic_dist x w \<le> max (padic_dist x z) (padic_dist z w)"
+        using padic_dist_ultrametric[OF x_car z_car w_car] by auto
+      also have "\<dots> \<le> r" using dxz dzw sr by simp
+      finally show "w \<in> padic.mcball x r"
+        using padic.in_mcball x_car w_car by auto
+    qed
+  qed
+qed
 
 (* ================================================================ *)
-(* PART 7: Completeness (if the AFP entry has the ingredients)      *)
+(* Bridging back: topology-framework closedness and disconnectedness *)
+(* ================================================================ *)
+
+(* Balls are also closed *)
+lemma closedin_ball:
+  assumes "c \<in> carrier Q\<^sub>p"
+  shows "closedin padic_topology (B\<^bsub>n\<^esub>[c])"
+  using c_ball_clopen[OF assms] padic_mtopology_eq by simp
+
+lemma ball_closedin_padic:
+  "is_ball B \<Longrightarrow> closedin padic_topology B"
+  using closedin_ball is_ball_def by auto
+
+(* Nested balls: the p-adic topology is totally disconnected *)
+lemma padic_totally_disconnected:
+  assumes "connectedin padic_topology S"
+  shows "\<exists>a. S \<subseteq> {a}"
+  using padic_mtop_totally_disconnected assms padic_mtopology_eq by simp
+
+(* ================================================================ *)
+(* Completeness (if the AFP entry has the ingredients)              *)
 (* ================================================================ *)
 
 (* Q_p is complete: every Cauchy sequence converges.
      This would use Metric_space.mcomplete. *)
 
 lemma padic_complete: "padic.mcomplete"
-  sorry (* Requires showing that Q_p is the completion of Q under | |_p.
-             The AFP entry constructs Q_p as equivalence classes of Cauchy
-             sequences in Z_p, so this should be provable from the construction. *)
+  sorry (* Deep result requiring extraction of completeness from Q_p's construction.
+           The AFP Padic_Field entry builds Q_p as equivalence classes of Cauchy
+           sequences of p-adic integers, but does not export a completeness theorem
+           in the Metric_space.mcomplete sense.  A proof would need to:
+             1. Show that padic.MCauchy sequences correspond to Cauchy sequences
+                in the AFP's internal notion (padic_int_poly / residue convergence).
+             2. Extract the limit from the equivalence-class construction.
+             3. Verify convergence in padic_dist.
+           This is feasible but requires significant infrastructure bridging. *)
 
 end
 end
