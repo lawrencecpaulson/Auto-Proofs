@@ -1464,12 +1464,7 @@ proof -
   have linP: "linear P"
     unfolding P_def by (intro linearI) (auto simp: inner_left_distrib scaleR_add_left scaleR_left_distrib algebra_simps add_divide_distrib)
   have Puv: "P u \<bullet> v = e / 4"
-  proof -
-    have "u \<bullet> u > 0" and "v \<bullet> v > 0"
-      by (simp_all add: inner_gt_zero_iff)
-    then show ?thesis
-      unfolding P_def by (simp add: power2_eq_square)
-  qed
+    using P_def by force
   have onormP: "onorm P \<le> e / 4"
   proof (rule onorm_bound)
     fix w :: 'a
@@ -1493,27 +1488,20 @@ proof -
   obtain B where linB: "linear B"
              and BRats: "\<And>i j. i \<in> Basis \<Longrightarrow> j \<in> Basis \<Longrightarrow> B i \<bullet> j \<in> \<rat>"
              and Bo_e6: "onorm (?A - B) < e/6"
-    by (metis \<open>0 < e\<close> divide_pos_pos linA' linear_rational_approximation
-        zero_less_numeral)
+    by (metis \<open>0 < e\<close> divide_pos_pos linA' linear_rational_approximation zero_less_numeral)
   show ?thesis
   proof (intro exI conjI ballI impI)
     show "d>0"
       by (rule \<open>d>0\<close>)
     show "linear B"
       by (rule linB)
+    have bl: "bounded_linear (?A - B)"
+      using linA' linB
+      by (metis (no_types, lifting) ext linear_compose_sub linear_linear minus_apply)
     show "B u \<bullet> v < b"
     proof -
       have "\<bar>(?A - B) u \<bullet> v\<bar> \<le> onorm (?A - B) * norm u * norm v"
-      proof -
-        have bl: "bounded_linear (?A - B)"
-          using linA' linB
-          by (metis (no_types, lifting) ext linear_compose_sub linear_linear minus_apply)
-        have "\<bar>(?A - B) u \<bullet> v\<bar> \<le> norm ((?A - B) u) * norm v"
-          by (rule Cauchy_Schwarz_ineq2)
-        also have "\<dots> \<le> onorm (?A - B) * norm u * norm v"
-          using onorm [OF bl, of u] by (intro mult_right_mono) auto
-        finally show ?thesis .
-      qed
+        by (meson Cauchy_Schwarz_ineq2 bl mult_right_mono norm_imp_pos_and_ge onorm order_trans)
       also have "\<dots> < e/6 * norm u * norm v"
         using Bo_e6 by simp
       finally have *: "\<bar>(?A - B) u \<bullet> v\<bar> < e/6 * norm u * norm v" .
@@ -1549,14 +1537,9 @@ proof -
         proof (rule split246)
           \<comment> \<open>First bound: (?A - B) part\<close>
           have blAB: "bounded_linear (\<lambda>w. ?A w - B w)"
-            using linA' linB
-            using bounded_linear_sub linear_linear by blast
+            using bounded_linear_sub linA' linB linear_linear by blast
           have "norm ((?A - B) (y - x)) / norm (y - x) \<le> onorm (?A - B)"
-          proof (rule le_onorm)
-            show "bounded_linear (?A - B)"
-              using linA' linB
-              by (metis (no_types, lifting) ext blAB fun_diff_def)
-          qed
+            using bl le_onorm by blast
           also have "\<dots> < e/6"
             by (rule Bo_e6)
           finally have "norm ((?A - B) (y - x)) / norm (y - x) < e / 6" .
@@ -1603,6 +1586,8 @@ proof -
     let ?T = "{x \<in> S. \<forall>e>0. \<exists>d>0. \<exists>A. linear A \<and> A u \<bullet> v < b \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>) \<and>
                        (\<forall>y \<in> S. x \<in> ?C e A d y)}"
     show "?T \<in> sets lebesgue"
+      using lebesgue_rational_linear_approx_set [OF S contf]
+
     proof -
       have "?T = {x \<in> S. \<forall>e>0. \<exists>d>0. \<exists>A. linear A \<and> A u \<bullet> v < b \<and> (\<forall>i\<in>Basis. \<forall>j\<in>Basis. A i \<bullet> j \<in> \<rat>) \<and>
                          (\<forall>y \<in> S. norm(y - x) < d \<longrightarrow> norm(f y - f x - A (y - x)) \<le> e * norm(y - x))}"
@@ -1799,12 +1784,8 @@ proof -
             finally have CA: "?CA = UNIV" .
             then have "Cauchy (\<lambda>n. A n i)"
               by auto
-            then obtain L where "(\<lambda>n. A n i) \<longlonglongrightarrow> L"
-              by (auto simp: Cauchy_convergent_iff convergent_def)
-            then have "(\<lambda>n. A n i \<bullet> j) \<longlonglongrightarrow> L \<bullet> j"
-              by (intro tendsto_intros)
             then show "\<exists>a. (\<lambda>n. A n i \<bullet> j) \<longlonglongrightarrow> a"
-              by blast
+              using tendsto_inner[of "\<lambda>n. A n i"] convergent_eq_Cauchy by blast
           qed
           \<comment> \<open>Construct the limit operator B as pointwise limit\<close>
           have conv: "convergent (\<lambda>n. A n i)" for i
@@ -3994,18 +3975,5 @@ proof -
     by (intro lmeasure_integral [symmetric]) auto
   finally show ?thesis .
 qed
-
-(*DELETE?
-lemma measure_differentiable_image_eq:
-  fixes f :: "real^'n::{finite,wellorder} \<Rightarrow> real^'n::_"
-  assumes S: "S \<in> sets lebesgue"
-    and der_f: "\<And>x. x \<in> S \<Longrightarrow> (f has_derivative f' x) (at x within S)"
-    and inj: "inj_on f S"
-    and intS: "(\<lambda>x. \<bar>matrix_det (matrix (f' x))\<bar>) integrable_on S"
-  shows "measure lebesgue (f ` S) = integral S (\<lambda>x. \<bar>matrix_det (matrix (f' x))\<bar>)"
-  using Change_Of_Vars.has_measure_differentiable_image S der_f inj intS by blast 
-  using measurable_differentiable_image_eq [OF S der_f inj]
-        assms has_measure_differentiable_image by blast
-*)
 
 end
