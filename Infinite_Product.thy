@@ -1254,9 +1254,17 @@ lemma infprod_power:
 
 lemma has_setprod_inverse:
   fixes f :: \<open>'a \<Rightarrow> 'b::{banach,real_normed_field}\<close>
-  assumes "(f has_setprod (inverse a)) A"
+  assumes "(f has_setprod (inverse a)) A" and "a \<noteq> 0"
   shows   \<open>((\<lambda>x. inverse (f x)) has_setprod a) A\<close>
-  sorry
+proof (rule has_setprodI)
+  from assms(1) have lim: \<open>(prod f \<longlongrightarrow> inverse a) (finite_subsets_at_top A)\<close>
+    by (rule has_setprodD)
+  from assms(2) have \<open>inverse a \<noteq> 0\<close> by simp
+  from tendsto_inverse[OF lim this] have \<open>((\<lambda>X. inverse (prod f X)) \<longlongrightarrow> inverse (inverse a)) (finite_subsets_at_top A)\<close> .
+  also have \<open>inverse (inverse a) = a\<close> using assms(2) by simp
+  finally show \<open>((\<lambda>X. prod (\<lambda>x. inverse (f x)) X) \<longlongrightarrow> a) (finite_subsets_at_top A)\<close>
+    by (simp add: prod_inversef[symmetric] o_def)
+qed
 
 lemma has_setprod_inverse_iff:
   fixes f :: \<open>'a \<Rightarrow> 'b::{banach,real_normed_field}\<close>
