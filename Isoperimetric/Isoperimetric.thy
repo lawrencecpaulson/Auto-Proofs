@@ -4296,13 +4296,190 @@ proof -
   have f_int: "f integrable_on {0..1}"
     using set_lebesgue_integral_eq_integral(1)[OF f_abs_int] f_def by argo
   \<comment> \<open>Re-injectivity: on each arc, Re \<circ> g is injective (except at endpoints).
-     These facts depend only on simple_path and convexity, not on the half-plane orientation.\<close>
+     These facts depend only on simple_path and convexity, not on the half-plane orientation.
+     Proof idea: if {s1,s2} \<noteq> {0,t} then at least one is interior, giving 3 distinct points
+     on frontier(convex hull (path_image g)) with the same Re-value, contradicting
+     frontier_vertical_at_most_two.\<close>
   have Re_inj_upper: "\<lbrakk>s1 \<in> {0..t}; s2 \<in> {0..t}; Re (g s1) = Re (g s2); s1 \<noteq> s2\<rbrakk>
-      \<Longrightarrow> (s1 = 0 \<and> s2 = t) \<or> (s1 = t \<and> s2 = 0)" if "0 < t" "t < 1" "g t = b" for s1 s2 t
-    sorry
+      \<Longrightarrow> (s1 = 0 \<and> s2 = t) \<or> (s1 = t \<and> s2 = 0)" if ht: "0 < t" "t < 1" "g t = b" for s1 s2 t
+  proof (rule ccontr)
+    assume s1t: "s1 \<in> {0..t}" and s2t: "s2 \<in> {0..t}"
+      and Re_eq: "Re (g s1) = Re (g s2)" and neq: "s1 \<noteq> s2"
+    assume not_endpts: "\<not> ((s1 = 0 \<and> s2 = t) \<or> (s1 = t \<and> s2 = 0))"
+    \<comment> \<open>Define S = convex hull (path_image g). This is the right set for
+       frontier_vertical_at_most_two.\<close>
+    define S where "S \<equiv> convex hull (path_image g)"
+    have S_convex: "convex S" unfolding S_def by (rule convex_convex_hull)
+    have S_compact: "compact S" unfolding S_def
+      using compact_simple_path_image[OF g(1)] compact_convex_hull by auto
+    have frontier_S: "frontier S = path_image g"
+      unfolding S_def using frontier_convex_hull_eq_path_image[OF g(1) _ conv] g(2,3) by auto
+    have S_int_ne: "interior S \<noteq> {}"
+    proof -
+      have "inside (path_image g) \<noteq> {}"
+        using Jordan_inside_outside[OF g(1)] g(2,3) by auto
+      moreover have "closure (inside (path_image g)) = S"
+        unfolding S_def using convex_hull_eq_closure_inside[OF g(1) _ conv] g(2,3) by auto
+      moreover have "interior (closure (inside (path_image g))) = inside (path_image g)"
+        using convex_interior_closure[OF conv] interior_open
+        using Jordan_inside_outside[OF g(1)] g(2,3) by auto
+      ultimately show ?thesis by auto
+    qed
+    \<comment> \<open>Step 1: At least one of s1, s2 is in the open interval (0,t).\<close>
+    have interior_param: "s1 \<in> {0<..<t} \<or> s2 \<in> {0<..<t}"
+      using s1t s2t neq not_endpts by auto
+    \<comment> \<open>Step 2: g s1 \<noteq> g s2 (from injectivity of g on {0..t}, which is a proper sub-arc).\<close>
+    have inj_sub: "inj_on g {0..t}"
+      using arc_inj_on[of 0 t] ht by auto
+    have g_neq: "g s1 \<noteq> g s2"
+    proof
+      assume "g s1 = g s2"
+      then have "s1 = s2" using inj_sub s1t s2t by (auto dest: inj_onD)
+      then show False using neq by auto
+    qed
+    \<comment> \<open>Step 3: Both g s1 and g s2 are on frontier S = path_image g.\<close>
+    have s1_01: "s1 \<in> {0..1}" using s1t ht(2) by auto
+    have s2_01: "s2 \<in> {0..1}" using s2t ht(2) by auto
+    have gs1_frontier: "g s1 \<in> frontier S"
+      using frontier_S s1_01 by (auto simp: path_image_def)
+    have gs2_frontier: "g s2 \<in> frontier S"
+      using frontier_S s2_01 by (auto simp: path_image_def)
+    \<comment> \<open>Step 4: Find a third distinct point on frontier S with the same Re-value.
+       Key insight: one of g(0)=0 or g(t)=b has a DIFFERENT parameter from s1 and s2,
+       and since g is injective on {0..t}, it gives a distinct POINT.
+       But we need it to have the SAME Re-value — that's only possible if Re(g s1) \<in> {0, Re b}.
+       If Re(g s1) = 0 then g s1 = g 0 (since Re(g 0) = 0) — but then s1 = 0 by injectivity.
+       Similarly if Re(g s1) = Re b then s1 = t.
+       So in fact, we need a different approach: the third point comes from the OTHER arc [t,1].
+       On the other arc, g goes from b back to 0, so Re goes from Re b back to 0.
+       By IVT (since g is continuous), for any c \<in> (0, Re b), there exists s3 \<in> [t,1] with
+       Re(g s3) = c. This s3 gives a third point on frontier S.\<close>
+    define c where "c \<equiv> Re (g s1)"
+    \<comment> \<open>Step 4a: Show c \<in> {0, Re b} forces s1 or s2 to an endpoint, contradicting not_endpts.\<close>
+    have c_strict: "0 < c \<and> c < Re b"
+      sorry \<comment> \<open>From: if c=0 then g s1 = g 0 (real part 0 + on path_image, need Im argument too)
+              or if c=Re b then g s1 = g t. Combined with injectivity \<rightarrow> s1 \<in> {0,t}.
+              Similarly for s2. Then {s1,s2} = {0,t}, contradicting not_endpts.
+              This step needs real_on_curve or a direct argument about Re-values at endpoints.\<close>
+    \<comment> \<open>Step 4b: By IVT on [t,1], find s3 with Re(g s3) = c.\<close>
+    have cont_Re_g: "continuous_on {t..1} (Re \<circ> g)"
+    proof -
+      have "continuous_on {0..1} g" using simple_path_imp_path[OF g(1)] by (simp add: path_def)
+      then have "continuous_on {t..1} g" by (rule continuous_on_subset) (use ht in auto)
+      then show ?thesis by (intro continuous_intros)
+    qed
+    obtain s3 where s3: "s3 \<in> {t..1}" "Re (g s3) = c"
+      sorry \<comment> \<open>IVT: Re(g t) = Re b > c and Re(g 1) = 0 < c, so by continuity
+              there exists s3 \<in> [t,1] with Re(g s3) = c.\<close>
+    \<comment> \<open>Step 4c: g s3 is on frontier S and distinct from g s1 and g s2.\<close>
+    have s3_01: "s3 \<in> {0..1}" using s3(1) ht(1) by auto
+    have gs3_frontier: "g s3 \<in> frontier S"
+      using frontier_S s3_01 by (auto simp: path_image_def)
+    have gs3_ne_gs1: "g s3 \<noteq> g s1"
+      sorry \<comment> \<open>s3 \<in> [t,1] and s1 \<in> [0,t]. If g s3 = g s1 then by loop_free,
+              either s3=s1 (impossible since s3\<ge>t>s1 unless s1=t, but then s2=0 by not_endpts
+              and we check this leads to contradiction) or {s3,s1}={0,1}.
+              Case analysis using ht and not_endpts.\<close>
+    have gs3_ne_gs2: "g s3 \<noteq> g s2"
+      sorry \<comment> \<open>Same argument as gs3_ne_gs1 but for s2.\<close>
+    \<comment> \<open>Step 5: The "sides" condition for frontier_vertical_at_most_two.\<close>
+    have side_left: "\<exists>p \<in> S. Re p < c"
+    proof -
+      have "g 0 \<in> path_image g" by (simp add: path_image_def)
+      then have g0S: "g 0 \<in> S" unfolding S_def by (rule hull_inc)
+      have "Re (g 0) < c" using g0 c_strict by simp
+      then show ?thesis using g0S by auto
+    qed
+    have side_right: "\<exists>q \<in> S. c < Re q"
+    proof -
+      have "g t \<in> path_image g" using ht(1,2) by (auto simp: path_image_def intro!: image_eqI)
+      then have gtS: "g t \<in> S" unfolding S_def by (rule hull_inc)
+      have "c < Re (g t)" using ht(3) c_strict by simp
+      then show ?thesis using gtS by auto
+    qed
+    \<comment> \<open>Step 6: Apply frontier_vertical_at_most_two for the contradiction.\<close>
+    have three_distinct: "g s1 \<noteq> g s2 \<and> g s1 \<noteq> g s3 \<and> g s2 \<noteq> g s3"
+      using g_neq gs3_ne_gs1 gs3_ne_gs2 by auto
+    have Re_all_c: "Re (g s1) = c" "Re (g s2) = c" "Re (g s3) = c"
+      unfolding c_def using Re_eq s3(2) c_def by auto
+    have "\<not> (g s1 \<noteq> g s2 \<and> g s1 \<noteq> g s3 \<and> g s2 \<noteq> g s3)"
+      using frontier_vertical_at_most_two[OF S_convex S_compact S_int_ne side_left side_right
+            gs1_frontier gs2_frontier gs3_frontier Re_all_c] .
+    then show False using three_distinct by auto
+  qed
   have Re_inj_lower: "\<lbrakk>s1 \<in> {t..1}; s2 \<in> {t..1}; Re (g s1) = Re (g s2); s1 \<noteq> s2\<rbrakk>
-      \<Longrightarrow> (s1 = t \<and> s2 = 1) \<or> (s1 = 1 \<and> s2 = t)" if "0 < t" "t < 1" "g t = b" for s1 s2 t
-    sorry
+      \<Longrightarrow> (s1 = t \<and> s2 = 1) \<or> (s1 = 1 \<and> s2 = t)" if ht: "0 < t" "t < 1" "g t = b" for s1 s2 t
+  proof (rule ccontr)
+    assume s1t: "s1 \<in> {t..1}" and s2t: "s2 \<in> {t..1}"
+      and Re_eq: "Re (g s1) = Re (g s2)" and neq: "s1 \<noteq> s2"
+    assume not_endpts: "\<not> ((s1 = t \<and> s2 = 1) \<or> (s1 = 1 \<and> s2 = t))"
+    define S where "S \<equiv> convex hull (path_image g)"
+    have S_convex: "convex S" unfolding S_def by (rule convex_convex_hull)
+    have S_compact: "compact S" unfolding S_def
+      using compact_simple_path_image[OF g(1)] compact_convex_hull by auto
+    have frontier_S: "frontier S = path_image g"
+      unfolding S_def using frontier_convex_hull_eq_path_image[OF g(1) _ conv] g(2,3) by auto
+    have S_int_ne: "interior S \<noteq> {}"
+    proof -
+      have "inside (path_image g) \<noteq> {}"
+        using Jordan_inside_outside[OF g(1)] g(2,3) by auto
+      moreover have "closure (inside (path_image g)) = S"
+        unfolding S_def using convex_hull_eq_closure_inside[OF g(1) _ conv] g(2,3) by auto
+      moreover have "interior (closure (inside (path_image g))) = inside (path_image g)"
+        using convex_interior_closure[OF conv] interior_open
+        using Jordan_inside_outside[OF g(1)] g(2,3) by auto
+      ultimately show ?thesis by auto
+    qed
+    have interior_param: "s1 \<in> {t<..<1} \<or> s2 \<in> {t<..<1}"
+      using s1t s2t neq not_endpts by auto
+    have inj_sub: "inj_on g {t..1}"
+      using arc_inj_on[of t 1] ht by auto
+    have g_neq: "g s1 \<noteq> g s2"
+    proof
+      assume "g s1 = g s2"
+      then have "s1 = s2" using inj_sub s1t s2t by (auto dest: inj_onD)
+      then show False using neq by auto
+    qed
+    have s1_01: "s1 \<in> {0..1}" using s1t ht(1) by auto
+    have s2_01: "s2 \<in> {0..1}" using s2t ht(1) by auto
+    have gs1_frontier: "g s1 \<in> frontier S" using frontier_S s1_01 by (auto simp: path_image_def)
+    have gs2_frontier: "g s2 \<in> frontier S" using frontier_S s2_01 by (auto simp: path_image_def)
+    define c where "c \<equiv> Re (g s1)"
+    \<comment> \<open>The IVT point now comes from the OTHER arc [0,t] (Re goes from 0 to Re b).\<close>
+    have c_strict: "0 < c \<and> c < Re b"
+      sorry \<comment> \<open>Same argument as upper case: c=0 or c=Re b forces endpoints, contradicting not_endpts.\<close>
+    obtain s3 where s3: "s3 \<in> {0..t}" "Re (g s3) = c"
+      sorry \<comment> \<open>IVT on [0,t]: Re(g 0) = 0 < c and Re(g t) = Re b > c.\<close>
+    have s3_01: "s3 \<in> {0..1}" using s3(1) ht(2) by auto
+    have gs3_frontier: "g s3 \<in> frontier S" using frontier_S s3_01 by (auto simp: path_image_def)
+    have gs3_ne_gs1: "g s3 \<noteq> g s1"
+      sorry \<comment> \<open>s3 \<in> [0,t] and s1 \<in> [t,1], use loop_free + case analysis.\<close>
+    have gs3_ne_gs2: "g s3 \<noteq> g s2"
+      sorry \<comment> \<open>Same argument for s2.\<close>
+    have side_left: "\<exists>p \<in> S. Re p < c"
+    proof -
+      have "g 0 \<in> path_image g" by (simp add: path_image_def)
+      then have g0S: "g 0 \<in> S" unfolding S_def by (rule hull_inc)
+      have "Re (g 0) < c" using g0 c_strict by simp
+      then show ?thesis using g0S by auto
+    qed
+    have side_right: "\<exists>q \<in> S. c < Re q"
+    proof -
+      have "g t \<in> path_image g" using ht(1,2) by (auto simp: path_image_def intro!: image_eqI)
+      then have gtS: "g t \<in> S" unfolding S_def by (rule hull_inc)
+      have "c < Re (g t)" using ht(3) c_strict by simp
+      then show ?thesis using gtS by auto
+    qed
+
+    have three_distinct: "g s1 \<noteq> g s2 \<and> g s1 \<noteq> g s3 \<and> g s2 \<noteq> g s3"
+      using g_neq gs3_ne_gs1 gs3_ne_gs2 by auto
+    have Re_all_c: "Re (g s1) = c" "Re (g s2) = c" "Re (g s3) = c"
+      unfolding c_def using Re_eq s3(2) c_def by auto
+    have "\<not> (g s1 \<noteq> g s2 \<and> g s1 \<noteq> g s3 \<and> g s2 \<noteq> g s3)"
+      using frontier_vertical_at_most_two[OF S_convex S_compact S_int_ne side_left side_right
+            gs1_frontier gs2_frontier gs3_frontier Re_all_c] .
+    then show False using three_distinct by auto
+  qed
   \<comment> \<open>Common injectivity lemmas used by both split_case and split_case'\<close>
   \<comment> \<open>Common arc-integral sign lemmas used by both split_case and split_case'.
      arc_int_above: Im(g) \<ge> 0 on [u,v] with Re increasing \<rightarrow> integral f \<ge> 0
@@ -4325,10 +4502,10 @@ proof -
        on frontier(closure(inside)) with the same Re-value.\<close>
     have Re_inj_upper: "\<lbrakk>s1 \<in> {0..t}; s2 \<in> {0..t}; Re (g s1) = Re (g s2); s1 \<noteq> s2\<rbrakk>
         \<Longrightarrow> (s1 = 0 \<and> s2 = t) \<or> (s1 = t \<and> s2 = 0)" for s1 s2
-      sorry
+      using Re_inj_upper[OF ht hgt] by blast
     have Re_inj_lower: "\<lbrakk>s1 \<in> {t..1}; s2 \<in> {t..1}; Re (g s1) = Re (g s2); s1 \<noteq> s2\<rbrakk>
         \<Longrightarrow> (s1 = t \<and> s2 = 1) \<or> (s1 = 1 \<and> s2 = t)" for s1 s2
-      sorry
+      using Re_inj_lower[OF ht hgt] by blast
     \<comment> \<open>Step 0: Absolute integrability (needed for integral splitting)\<close>
     have f_abs_int: "f absolutely_integrable_on {0..1}"
     proof -
