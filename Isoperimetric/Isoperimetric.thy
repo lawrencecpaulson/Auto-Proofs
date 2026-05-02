@@ -4338,10 +4338,110 @@ proof (rule ccontr)
   define c where "c \<equiv> Re (g s1)"
     \<comment> \<open>Step 4a: Show c \<in> {0, Re b} forces s1 or s2 to an endpoint, contradicting not_endpts.\<close>
   have c_strict: "0 < c \<and> c < Re b"
-    sorry \<comment> \<open>From: if c=0 then g s1 = g 0 (real part 0 + on path_image, need Im argument too)
-              or if c=Re b then g s1 = g t. Combined with injectivity \<rightarrow> s1 \<in> {0,t}.
-              Similarly for s2. Then {s1,s2} = {0,t}, contradicting not_endpts.
-              This step needs real_on_curve or a direct argument about Re-values at endpoints.\<close>
+  proof -
+    have a0: "a = 0" using geq0(1) g(2) by (simp add: pathstart_def)
+    have Imb: "Im b = 0" using b(3) a0 by simp
+    have Reb: "Re b > 0" using b(2) a0 by simp
+    have bdd: "bounded (path_image g)"
+      using compact_simple_path_image[OF g(1)] compact_imp_bounded by blast
+    have gs1_pi: "g s1 \<in> path_image g" using s1_01 by (auto simp: path_image_def)
+    have gs2_pi: "g s2 \<in> path_image g" using s2_01 by (auto simp: path_image_def)
+    have g0_pi: "0 \<in> path_image g" using geq0(1) by (metis pathstart_def pathstart_in_path_image)
+    have diam_eq: "dist 0 b = diameter (path_image g)" using dab a0 by simp
+    have dist_0b: "dist 0 b = Re b"
+    proof -
+      have "dist 0 b = cmod b" by (simp add: dist_norm)
+      also have "\<dots> = sqrt ((Re b)\<^sup>2 + (Im b)\<^sup>2)" by (simp add: cmod_power2 [symmetric])
+      also have "\<dots> = sqrt ((Re b)\<^sup>2)" using Imb by simp
+      also have "\<dots> = Re b" using Reb by simp
+      finally show ?thesis .
+    qed
+    \<comment> \<open>Every point on the curve is within distance Re b of both 0 and b\<close>
+    have d1: "dist (g s1) b \<le> Re b"
+      using diameter_bounded_bound[OF bdd gs1_pi b(1)] diam_eq dist_0b by simp
+    have d2: "dist 0 (g s1) \<le> Re b"
+      using diameter_bounded_bound[OF bdd g0_pi gs1_pi] diam_eq dist_0b by simp
+    \<comment> \<open>Helper: from cmod z \<le> Re b, derive (Re z)² + (Im z)² \<le> (Re b)²\<close>
+    have cmod_sq: "(Re z)\<^sup>2 + (Im z)\<^sup>2 \<le> (Re b)\<^sup>2" if "cmod z \<le> Re b" for z
+    proof -
+      have "(cmod z)\<^sup>2 \<le> (Re b)\<^sup>2"
+        by (intro power_mono that) simp
+      then show ?thesis using cmod_power2[of z] by simp
+    qed
+    \<comment> \<open>Helper: from cmod (z - b) \<le> Re b, derive (Re z - Re b)² + (Im z)² \<le> (Re b)²\<close>
+    have cmod_sq_b: "(Re z - Re b)\<^sup>2 + (Im z)\<^sup>2 \<le> (Re b)\<^sup>2" if "cmod (z - b) \<le> Re b" for z
+    proof -
+      have "(cmod (z - b))\<^sup>2 \<le> (Re b)\<^sup>2"
+        by (intro power_mono that) simp
+      then show ?thesis using cmod_power2[of "z - b"] Imb by simp
+    qed
+    \<comment> \<open>Helper: injectivity gives s = 0 from g s = 0, and s = t from g s = b\<close>
+    have eq_0: "s = 0" if "g s = 0" "s \<in> {0..t}" for s
+    proof -
+      have "g s = g 0" using that(1) geq0(1) by simp
+      then show ?thesis using inj_onD[OF inj_sub this that(2)] ht(1) by auto
+    qed
+    have eq_t: "s = t" if "g s = b" "s \<in> {0..t}" for s
+    proof -
+      have "g s = g t" using that(1) ht(3) by simp
+      then show ?thesis using inj_onD[OF inj_sub this that(2)] ht(1,2) by auto
+    qed
+    \<comment> \<open>Case c = 0: Re(g s1) = 0, dist(g s1, b) \<le> Re b forces Im(g s1) = 0, so g s1 = 0\<close>
+    have "c \<noteq> 0"
+    proof
+      assume "c = 0"
+      then have Re0: "Re (g s1) = 0" unfolding c_def by simp
+      have "(Re (g s1) - Re b)\<^sup>2 + (Im (g s1))\<^sup>2 \<le> (Re b)\<^sup>2"
+        using cmod_sq_b d1 by (simp add: dist_norm)
+      then have "(Im (g s1))\<^sup>2 \<le> 0" using Re0 by (simp add: power2_eq_square)
+      then have "g s1 = 0" using Re0 by (auto simp: complex_eq_iff)
+      then have "s1 = 0" using eq_0 s1t by simp
+      moreover have "Re (g s2) = 0" using Re_eq \<open>c = 0\<close> c_def by simp
+      then have "(Re (g s2) - Re b)\<^sup>2 + (Im (g s2))\<^sup>2 \<le> (Re b)\<^sup>2"
+        using cmod_sq_b[of "g s2"] diameter_bounded_bound[OF bdd gs2_pi b(1)]
+          diam_eq dist_0b by (simp add: dist_norm)
+      then have "(Im (g s2))\<^sup>2 \<le> 0" using \<open>Re (g s2) = 0\<close> by (simp add: power2_eq_square)
+      then have "g s2 = 0" using \<open>Re (g s2) = 0\<close> by (auto simp: complex_eq_iff)
+      then have "s2 = 0" using eq_0 s2t by simp
+      ultimately show False using neq by simp
+    qed
+    \<comment> \<open>Case c = Re b: dist(0, g s1) \<le> Re b forces Im(g s1) = 0, so g s1 = b\<close>
+    moreover have "c \<noteq> Re b"
+    proof
+      assume "c = Re b"
+      then have ReB: "Re (g s1) = Re b" unfolding c_def by simp
+      have "(Re (g s1))\<^sup>2 + (Im (g s1))\<^sup>2 \<le> (Re b)\<^sup>2"
+        using cmod_sq d2 by (simp add: dist_norm)
+      then have "(Im (g s1))\<^sup>2 \<le> 0" using ReB by (simp add: power2_eq_square)
+      then have "g s1 = b" using ReB Imb by (auto simp: complex_eq_iff)
+      then have "s1 = t" using eq_t s1t by simp
+      moreover have "Re (g s2) = Re b" using Re_eq \<open>c = Re b\<close> c_def by simp
+      then have "(Re (g s2))\<^sup>2 + (Im (g s2))\<^sup>2 \<le> (Re b)\<^sup>2"
+        using cmod_sq[of "g s2"] diameter_bounded_bound[OF bdd g0_pi gs2_pi]
+          diam_eq dist_0b by (simp add: dist_norm)
+      then have "(Im (g s2))\<^sup>2 \<le> 0" using \<open>Re (g s2) = Re b\<close> by (simp add: power2_eq_square)
+      then have "g s2 = b" using \<open>Re (g s2) = Re b\<close> Imb by (auto simp: complex_eq_iff)
+      then have "s2 = t" using eq_t s2t by simp
+      ultimately show False using neq by simp
+    qed
+    \<comment> \<open>c is bounded: 0 \<le> c \<le> Re b from diameter bound\<close>
+    moreover have "0 \<le> c"
+    proof -
+      have "(Re (g s1) - Re b)\<^sup>2 + (Im (g s1))\<^sup>2 \<le> (Re b)\<^sup>2"
+        using cmod_sq_b d1 by (simp add: dist_norm)
+      then have "(Re (g s1) - Re b)\<^sup>2 \<le> (Re b)\<^sup>2" by linarith
+      then have "Re (g s1) * (Re (g s1) - 2 * Re b) \<le> 0"
+        by (simp add: power2_eq_square algebra_simps)
+      then show ?thesis unfolding c_def using Reb by (cases "Re (g s1) \<ge> 0") (auto, nlinarith)
+    qed
+    moreover have "c \<le> Re b"
+    proof -
+      have "Re (g s1) \<le> cmod (g s1)" by (rule complex_Re_le_cmod)
+      also have "\<dots> \<le> Re b" using d2 by (simp add: dist_norm)
+      finally show ?thesis unfolding c_def by linarith
+    qed
+    ultimately show ?thesis by linarith
+  qed
       \<comment> \<open>Step 4b: By IVT on [t,1], find s3 with Re(g s3) = c.\<close>
   have cont_Re_g: "continuous_on {t..1} (Re \<circ> g)"
   proof -

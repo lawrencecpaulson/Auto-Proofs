@@ -844,10 +844,59 @@ lemma infprod_Un_disjoint:
   by (intro infprodI has_setprod_Un_disjoint has_setprod_infprod assms)  
 
 lemma abs_convergent_prod_imp_setprod:
-  fixes f :: "nat \<Rightarrow> 'b :: {topological_semigroup_mult, field, real_normed_vector}"
+  fixes f :: "nat \<Rightarrow> 'b :: real_normed_field"
   assumes "abs_convergent_prod f" and "f has_prod P"
   shows   "(f has_setprod P) (UNIV :: nat set)"
-  sorry
+proof (rule has_setprodI, unfold tendsto_iff, intro allI impI)
+  fix e :: real assume \<open>e > 0\<close>
+  from assms(2) have seq_lim: \<open>(\<lambda>n. prod f {..n}) \<longlonglongrightarrow> P\<close>
+    by (rule has_prod_imp_tendsto)
+  from assms(1) have ev_nz: \<open>\<forall>\<^sub>F n in sequentially. f n \<noteq> 0\<close>
+    by (rule abs_convergent_prod_imp_ev_nonzero)
+  then obtain N0 where N0: \<open>\<And>n. n \<ge> N0 \<Longrightarrow> f n \<noteq> 0\<close>
+    by (auto simp: eventually_at_top_linorder)
+
+  \<comment> \<open>The absolute product converges sequentially\<close>
+  define g where \<open>g n = 1 + norm (f n - 1)\<close> for n
+  from assms(1)[unfolded abs_convergent_prod_def]
+  have abs_conv: \<open>convergent_prod g\<close> unfolding g_def .
+  have g_nz: \<open>g n \<noteq> 0\<close> for n
+    unfolding g_def by (metis le_add_same_cancel1 norm_ge_zero not_one_le_zero)
+  then obtain L_abs where L_abs: \<open>g has_prod L_abs\<close> and \<open>L_abs \<noteq> 0\<close>
+    using abs_conv convergent_prod_has_prod prodinf_nonzero by blast
+  have g_ge1: \<open>g n \<ge> 1\<close> for n unfolding g_def by auto
+  have g_ge0: \<open>g n \<ge> 0\<close> for n using g_ge1[of n] by linarith
+
+  \<comment> \<open>Sequential partial products of g converge to L_abs\<close>
+  from L_abs have g_seq: \<open>(\<lambda>n. prod g {..n}) \<longlonglongrightarrow> L_abs\<close>
+    by (rule has_prod_imp_tendsto)
+
+  \<comment> \<open>Bound: for any finite S, norm(prod f S - 1) \<le> prod g S - 1\<close>
+  have norm_bound: \<open>norm ((\<Prod>n\<in>S. f n) - 1) \<le> (\<Prod>n\<in>S. g n) - 1\<close>
+    if \<open>finite S\<close> for S :: \<open>nat set\<close>
+    using norm_prod_minus1_le_prod_minus1[of \<open>\<lambda>n. f n - 1\<close> S] by (simp add: g_def)
+
+  \<comment> \<open>Bound: for any finite S, norm(prod f S) \<le> prod g S\<close>
+  have norm_prod_bound: \<open>norm (prod f S) \<le> prod g S\<close>
+    if \<open>finite S\<close> for S :: \<open>nat set\<close>
+    using that
+  proof induction
+    case empty
+    then show ?case by auto
+  next
+    case (insert n S)
+    then show ?case
+      by (metis (no_types, lifting) prod_norm g_def prod_mono norm_ge_zero norm_one norm_triangle_sub)
+  qed
+
+  \<comment> \<open>For finite S \<subseteq> {N+1,...}, prod g S \<le> prod g {..Max S} / prod g {..N}\<close>
+  \<comment> \<open>which is bounded by L_abs / prod g {..N}\<close>
+  \<comment> \<open>and prod g {..N} \<rightarrow> L_abs, so the tail \<rightarrow> 1\<close>
+
+  show \<open>\<forall>\<^sub>F x in finite_subsets_at_top (UNIV :: nat set). dist (prod f x) P < e\<close>
+    sorry
+qed
+
 
 lemma abs_convergent_prod_imp_multipliable_on:
   fixes f :: "nat \<Rightarrow> 'a :: {real_normed_field,complete_space,comm_ring_1}"
