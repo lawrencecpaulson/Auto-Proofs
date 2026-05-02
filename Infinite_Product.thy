@@ -254,9 +254,65 @@ lemma infprod_cong:
 
 
 lemma multipliable_on_cofin_subset:
+  fixes f :: \<open>'a \<Rightarrow> 'b::real_normed_field\<close>
   assumes "f multipliable_on A" and "finite F" and "\<And>x. x \<in> F \<Longrightarrow> f x \<noteq> 0"
   shows "f multipliable_on (A - F)"
-  sorry
+proof -
+  define G where \<open>G = A \<inter> F\<close>
+  have G_fin: \<open>finite G\<close>
+    using assms(2) unfolding G_def by blast
+  have G_sub: \<open>G \<subseteq> A\<close>
+    unfolding G_def by blast
+  have G_nz: \<open>prod f G \<noteq> 0\<close>
+    unfolding G_def using assms(2,3)
+    by (subst prod_zero_iff) auto
+  from assms(1) obtain p where hp: \<open>(f has_setprod p) A\<close>
+    unfolding multipliable_on_def by blast
+  then have lim: \<open>(prod f \<longlongrightarrow> p) (finite_subsets_at_top A)\<close>
+    unfolding has_setprod_def .
+  have filt: \<open>filterlim (\<lambda>X. X \<union> G) (finite_subsets_at_top A) (finite_subsets_at_top (A - F))\<close>
+    unfolding filterlim_def le_filter_def eventually_filtermap
+  proof safe
+    fix P assume \<open>\<forall>\<^sub>F X in finite_subsets_at_top A. P X\<close>
+    then obtain X0 where X0: \<open>finite X0\<close> \<open>X0 \<subseteq> A\<close>
+        and X0_P: \<open>\<And>X. finite X \<Longrightarrow> X0 \<subseteq> X \<Longrightarrow> X \<subseteq> A \<Longrightarrow> P X\<close>
+      unfolding eventually_finite_subsets_at_top by metis
+    show \<open>\<forall>\<^sub>F X in finite_subsets_at_top (A - F). P (X \<union> G)\<close>
+      unfolding eventually_finite_subsets_at_top
+    proof (rule exI[of _ \<open>X0 - F\<close>], intro allI conjI impI)
+      show \<open>finite (X0 - F)\<close> using X0(1) by blast
+      show \<open>X0 - F \<subseteq> A - F\<close> using X0(2) by blast
+    next
+      fix X assume X: \<open>finite X \<and> X0 - F \<subseteq> X \<and> X \<subseteq> A - F\<close>
+      have \<open>X0 \<subseteq> X \<union> G\<close>
+        using X X0(2) unfolding G_def by blast
+      moreover have \<open>X \<union> G \<subseteq> A\<close>
+        using X G_sub by blast
+      ultimately show \<open>P (X \<union> G)\<close>
+        by (intro X0_P) (use X G_fin in auto)
+    qed
+  qed
+  have ev_eq: \<open>\<forall>\<^sub>F X in finite_subsets_at_top (A - F). prod f (X \<union> G) = prod f X * prod f G\<close>
+    unfolding eventually_finite_subsets_at_top
+  proof (rule exI[of _ \<open>{}\<close>], intro allI conjI impI)
+    fix X assume X: \<open>finite X \<and> {} \<subseteq> X \<and> X \<subseteq> A - F\<close>
+    then have \<open>X \<inter> G = {}\<close> unfolding G_def by blast
+    then show \<open>prod f (X \<union> G) = prod f X * prod f G\<close>
+      using X G_fin by (subst prod.union_disjoint) auto
+  qed auto
+  have \<open>(prod f \<longlongrightarrow> p) (filtermap (\<lambda>X. X \<union> G) (finite_subsets_at_top (A - F)))\<close>
+    using lim filt by (metis filterlim_def tendsto_mono)
+  then have comp: \<open>((\<lambda>X. prod f (X \<union> G)) \<longlongrightarrow> p) (finite_subsets_at_top (A - F))\<close>
+    by (subst (asm) tendsto_compose_filtermap[symmetric]) (simp add: o_def)
+  have \<open>((\<lambda>X. prod f X * prod f G) \<longlongrightarrow> p) (finite_subsets_at_top (A - F))\<close>
+    using comp ev_eq by (rule Lim_transform_eventually)
+  then have \<open>((\<lambda>X. prod f X * prod f G) \<longlongrightarrow> (p / prod f G) * prod f G) (finite_subsets_at_top (A - F))\<close>
+    by (simp add: G_nz)
+  then have \<open>(prod f \<longlongrightarrow> p / prod f G) (finite_subsets_at_top (A - F))\<close>
+    using G_nz by (subst (asm) tendsto_mult_right_iff)
+  thus ?thesis
+    unfolding multipliable_on_def has_setprod_def by blast
+qed
 
 lemma zero_imp_has_setprod_0:
   assumes "x \<in> A" "f x = 0"
