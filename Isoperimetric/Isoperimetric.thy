@@ -4171,6 +4171,118 @@ locale Green =
 
 begin
 
+lemma f_abs_int: "(\<lambda>s. Re (g' s) * Im (g s)) absolutely_integrable_on {0..1}"
+proof -
+  have cont_g: "continuous_on {0..1} g"
+    using simple_path_imp_path[OF g(1)] by (simp add: path_def)
+  have gp_ai: "g' absolutely_integrable_on {0..1}"
+    using absolutely_integrable_absolutely_continuous_derivative[OF cont U]
+      vder has_vector_derivative_at_within by blast
+  have Re_gp_ai: "(\<lambda>t. Re (g' t)) absolutely_integrable_on {0..1}"
+  proof -
+    have "(\<lambda>t. g' t \<bullet> 1) absolutely_integrable_on {0..1}"
+      by (rule absolutely_integrable_component[OF gp_ai])
+    then show ?thesis by (simp add: complex_inner_1_right)
+  qed
+  have Im_g_cont: "continuous_on {0..1} (\<lambda>t. Im (g t))"
+    by (intro continuous_intros cont_g)
+  have Im_g_bdd: "bounded ((\<lambda>t. Im (g t)) ` {0..1})"
+    by (intro compact_imp_bounded compact_continuous_image[OF Im_g_cont compact_Icc])
+  have Im_g_meas: "(\<lambda>t. Im (g t)) \<in> borel_measurable (lebesgue_on {0..1})"
+    using continuous_imp_measurable_on_sets_lebesgue[OF Im_g_cont]
+      atLeastAtMost_borel lborelD
+    by (metis sets_completionI_sets)
+  show ?thesis
+    using absolutely_integrable_bounded_measurable_product_real[OF Im_g_meas _ Im_g_bdd Re_gp_ai]
+    by (simp add: mult.commute)
+qed
+
+lemma arc_inj_on: "inj_on g {u..v}"
+  if huv: "0 \<le> u" "v \<le> 1" "u < v" and hne: "u > 0 \<or> v < 1" 
+proof (rule inj_onI)
+  fix s1 s2 assume s1: "s1 \<in> {u..v}" and s2: "s2 \<in> {u..v}" and eq: "g s1 = g s2"
+  have s1_01: "s1 \<in> {0..1}" using s1 huv by auto
+  have s2_01: "s2 \<in> {0..1}" using s2 huv by auto
+  show "s1 = s2"
+  proof (rule ccontr)
+    assume neq: "s1 \<noteq> s2"
+    from g(1) have lf: "loop_free g" by (simp add: simple_path_def)
+    from lf[unfolded loop_free_def, rule_format, OF s1_01 s2_01 eq]
+    have "s1 = s2 \<or> s1 = 0 \<and> s2 = 1 \<or> s1 = 1 \<and> s2 = 0" by auto
+    with neq have "s1 = 0 \<and> s2 = 1 \<or> s1 = 1 \<and> s2 = 0" by auto
+    then show False using s1 s2 huv hne by auto
+  qed
+qed
+
+lemma arc_Re_inj_on: "inj_on Re (g ` {u..v})"
+  if hinj: "inj_on g {u..v}"
+    and hRe: "\<And>s1 s2. \<lbrakk>s1 \<in> {u..v}; s2 \<in> {u..v}; Re (g s1) = Re (g s2); s1 \<noteq> s2\<rbrakk>
+               \<Longrightarrow> Re (g u) = Re (g v)"
+    and hne: "Re (g u) \<noteq> Re (g v)"
+proof (rule inj_onI)
+  fix x y assume "x \<in> g ` {u..v}" "y \<in> g ` {u..v}" "Re x = Re y"
+  then obtain s1 s2 where s1: "s1 \<in> {u..v}" "x = g s1"
+    and s2: "s2 \<in> {u..v}" "y = g s2" by auto
+  then have Re_eq: "Re (g s1) = Re (g s2)" using \<open>Re x = Re y\<close> by simp
+  show "x = y"
+  proof (cases "s1 = s2")
+    case True then show ?thesis using s1 s2 by simp
+  next
+    case False
+    then have "Re (g u) = Re (g v)" using hRe[OF s1(1) s2(1) Re_eq] by auto
+    then show ?thesis using hne by simp
+  qed
+qed
+
+lemma arc_int_above: "integral {u..v} (\<lambda>s. Re (g' s) * Im (g s)) \<ge> 0"
+  if huv: "0 \<le> u" "v \<le> 1" "u < v" "u > 0 \<or> v < 1"
+    and hRe_le: "Re (g u) \<le> Re (g v)"
+    and hRe_ne: "Re (g u) \<noteq> Re (g v)"
+    and him: "g ` {u..v} \<subseteq> {z. 0 \<le> Im z}"
+    and hRe_inj: "\<And>s1 s2. \<lbrakk>s1 \<in> {u..v}; s2 \<in> {u..v}; Re (g s1) = Re (g s2); s1 \<noteq> s2\<rbrakk>
+                    \<Longrightarrow> Re (g u) = Re (g v)"
+proof -
+  have uv_le: "u \<le> v" using huv(3) by linarith
+  have ac: "absolutely_continuous_on {u..v} g"
+    using absolutely_continuous_on_subset[OF cont] huv(1,2) by auto
+  have inj_g: "inj_on g {u..v}"
+    using arc_inj_on[OF huv] by auto
+  have inj_Re: "inj_on Re (g ` {u..v})"
+    using arc_Re_inj_on[OF inj_g hRe_inj hRe_ne] by auto
+  have vd: "\<And>s. s \<in> {u..v} - U \<Longrightarrow> (g has_vector_derivative g' s) (at s)"
+    using vder huv(1,2) by auto
+  have "integral {u..v} (\<lambda>s. Re (g' s) * Im (g s)) =
+          measure lebesgue {z. \<exists>w \<in> g ` {u..v}. Re w = Re z \<and> 0 \<le> Im z \<and> Im z \<le> Im w}"
+    using area_below_arclet(2)[OF uv_le hRe_le ac him inj_g inj_Re U vd] by auto
+  then show ?thesis by simp
+qed
+
+lemma arc_int_below: "integral {u..v} (\<lambda>s. Re (g' s) * Im (g s)) \<ge> 0"
+  if huv: "0 \<le> u" "v \<le> 1" "u < v" "u > 0 \<or> v < 1"
+    and hRe_le: "Re (g v) \<le> Re (g u)"
+    and hRe_ne: "Re (g u) \<noteq> Re (g v)"
+    and him: "g ` {u..v} \<subseteq> {z. Im z \<le> 0}"
+    and hRe_inj: "\<And>s1 s2. \<lbrakk>s1 \<in> {u..v}; s2 \<in> {u..v}; Re (g s1) = Re (g s2); s1 \<noteq> s2\<rbrakk>
+                    \<Longrightarrow> Re (g u) = Re (g v)"
+  for u v
+proof -
+  have uv_le: "u \<le> v" using huv(3) by linarith
+  have ac: "absolutely_continuous_on {u..v} g"
+    using absolutely_continuous_on_subset[OF cont] huv(1,2) by auto
+  have inj_g: "inj_on g {u..v}"
+    using arc_inj_on[OF huv] by auto
+  have inj_Re_on: "inj_on Re (g ` {u..v})"
+    using arc_Re_inj_on[OF inj_g _ hRe_ne] hRe_inj by blast
+  have inj_Re: "\<And>x y. x \<in> g ` {u..v} \<Longrightarrow> y \<in> g ` {u..v} \<Longrightarrow> Re x = Re y \<Longrightarrow> x = y"
+    using inj_Re_on by (auto simp: inj_on_def)
+  have vd: "\<And>s. s \<in> {u..v} - U \<Longrightarrow> (g has_vector_derivative g' s) (at s)"
+    using vder huv(1,2) by auto
+  have "integral {u..v} (\<lambda>s. Re (g' s) * Im (g s)) =
+          measure lebesgue {z. \<exists>w \<in> g ` {u..v}. Re w = Re z \<and> Im w \<le> Im z \<and> Im z \<le> 0}"
+    using area_above_arclet(2)[OF uv_le hRe_le ac him inj_g inj_Re U vd] .
+  then show ?thesis by simp
+qed
+
 lemma Green_area_zero:
   assumes "a = 0"
   shows "Green_concl g g'"
@@ -4181,33 +4293,8 @@ proof -
   have Reb: "Re b > 0" using b(2) assms by simp
   have Imb: "Im b = 0" using b(3) assms by simp
   define f where "f \<equiv> \<lambda>s. Re (g' s) * Im (g s)"
-  have f_abs_int: "f absolutely_integrable_on {0..1}"
-  proof -
-    have cont_g: "continuous_on {0..1} g"
-      using simple_path_imp_path[OF g(1)] by (simp add: path_def)
-    have gp_ai: "g' absolutely_integrable_on {0..1}"
-      using absolutely_integrable_absolutely_continuous_derivative[OF cont U]
-        vder has_vector_derivative_at_within by blast
-    have Re_gp_ai: "(\<lambda>t. Re (g' t)) absolutely_integrable_on {0..1}"
-    proof -
-      have "(\<lambda>t. g' t \<bullet> 1) absolutely_integrable_on {0..1}"
-        by (rule absolutely_integrable_component[OF gp_ai])
-      then show ?thesis by (simp add: complex_inner_1_right)
-    qed
-    have Im_g_cont: "continuous_on {0..1} (\<lambda>t. Im (g t))"
-      by (intro continuous_intros cont_g)
-    have Im_g_bdd: "bounded ((\<lambda>t. Im (g t)) ` {0..1})"
-      by (intro compact_imp_bounded compact_continuous_image[OF Im_g_cont compact_Icc])
-    have Im_g_meas: "(\<lambda>t. Im (g t)) \<in> borel_measurable (lebesgue_on {0..1})"
-      using continuous_imp_measurable_on_sets_lebesgue[OF Im_g_cont]
-        atLeastAtMost_borel lborelD
-      by (metis sets_completionI_sets)
-    show ?thesis unfolding f_def
-      using absolutely_integrable_bounded_measurable_product_real[OF Im_g_meas _ Im_g_bdd Re_gp_ai]
-      by (simp add: mult.commute)
-  qed
   have f_int: "f integrable_on {0..1}"
-    using set_lebesgue_integral_eq_integral(1)[OF f_abs_int] .
+    using set_lebesgue_integral_eq_integral(1)[OF f_abs_int] f_def by argo
   \<comment> \<open>Re-injectivity: on each arc, Re \<circ> g is injective (except at endpoints).
      These facts depend only on simple_path and convexity, not on the half-plane orientation.\<close>
   have Re_inj_upper: "\<lbrakk>s1 \<in> {0..t}; s2 \<in> {0..t}; Re (g s1) = Re (g s2); s1 \<noteq> s2\<rbrakk>
@@ -4217,93 +4304,9 @@ proof -
       \<Longrightarrow> (s1 = t \<and> s2 = 1) \<or> (s1 = 1 \<and> s2 = t)" if "0 < t" "t < 1" "g t = b" for s1 s2 t
     sorry
   \<comment> \<open>Common injectivity lemmas used by both split_case and split_case'\<close>
-  have arc_inj_on: "inj_on g {u..v}"
-    if huv: "0 \<le> u" "v \<le> 1" "u < v" and hne: "u > 0 \<or> v < 1" for u v
-  proof (rule inj_onI)
-    fix s1 s2 assume s1: "s1 \<in> {u..v}" and s2: "s2 \<in> {u..v}" and eq: "g s1 = g s2"
-    have s1_01: "s1 \<in> {0..1}" using s1 huv by auto
-    have s2_01: "s2 \<in> {0..1}" using s2 huv by auto
-    show "s1 = s2"
-    proof (rule ccontr)
-      assume neq: "s1 \<noteq> s2"
-      from g(1) have lf: "loop_free g" by (simp add: simple_path_def)
-      from lf[unfolded loop_free_def, rule_format, OF s1_01 s2_01 eq]
-      have "s1 = s2 \<or> s1 = 0 \<and> s2 = 1 \<or> s1 = 1 \<and> s2 = 0" by auto
-      with neq have "s1 = 0 \<and> s2 = 1 \<or> s1 = 1 \<and> s2 = 0" by auto
-      then show False using s1 s2 huv hne by auto
-    qed
-  qed
-  have arc_Re_inj_on: "inj_on Re (g ` {u..v})"
-    if hinj: "inj_on g {u..v}"
-      and hRe: "\<And>s1 s2. \<lbrakk>s1 \<in> {u..v}; s2 \<in> {u..v}; Re (g s1) = Re (g s2); s1 \<noteq> s2\<rbrakk>
-               \<Longrightarrow> Re (g u) = Re (g v)"
-      and hne: "Re (g u) \<noteq> Re (g v)"
-    for u v
-  proof (rule inj_onI)
-    fix x y assume "x \<in> g ` {u..v}" "y \<in> g ` {u..v}" "Re x = Re y"
-    then obtain s1 s2 where s1: "s1 \<in> {u..v}" "x = g s1"
-                        and s2: "s2 \<in> {u..v}" "y = g s2" by auto
-    then have Re_eq: "Re (g s1) = Re (g s2)" using \<open>Re x = Re y\<close> by simp
-    show "x = y"
-    proof (cases "s1 = s2")
-      case True then show ?thesis using s1 s2 by simp
-    next
-      case False
-      then have "Re (g u) = Re (g v)" using hRe[OF s1(1) s2(1) Re_eq] by auto
-      then show ?thesis using hne by simp
-    qed
-  qed
   \<comment> \<open>Common arc-integral sign lemmas used by both split_case and split_case'.
      arc_int_above: Im(g) \<ge> 0 on [u,v] with Re increasing \<rightarrow> integral f \<ge> 0
      arc_int_below: Im(g) \<le> 0 on [u,v] with Re decreasing \<rightarrow> integral f \<ge> 0\<close>
-  have arc_int_above: "integral {u..v} f \<ge> 0"
-    if huv: "0 \<le> u" "v \<le> 1" "u < v" "u > 0 \<or> v < 1"
-      and hRe_le: "Re (g u) \<le> Re (g v)"
-      and hRe_ne: "Re (g u) \<noteq> Re (g v)"
-      and him: "g ` {u..v} \<subseteq> {z. 0 \<le> Im z}"
-      and hRe_inj: "\<And>s1 s2. \<lbrakk>s1 \<in> {u..v}; s2 \<in> {u..v}; Re (g s1) = Re (g s2); s1 \<noteq> s2\<rbrakk>
-                    \<Longrightarrow> Re (g u) = Re (g v)"
-    for u v
-  proof -
-    have uv_le: "u \<le> v" using huv(3) by linarith
-    have ac: "absolutely_continuous_on {u..v} g"
-      using absolutely_continuous_on_subset[OF cont] huv(1,2) by auto
-    have inj_g: "inj_on g {u..v}"
-      using arc_inj_on[OF huv] by auto
-    have inj_Re: "inj_on Re (g ` {u..v})"
-      using arc_Re_inj_on[OF inj_g hRe_inj hRe_ne] by auto
-    have vd: "\<And>s. s \<in> {u..v} - U \<Longrightarrow> (g has_vector_derivative g' s) (at s)"
-      using vder huv(1,2) by auto
-    have "integral {u..v} (\<lambda>s. Re (g' s) * Im (g s)) =
-          measure lebesgue {z. \<exists>w \<in> g ` {u..v}. Re w = Re z \<and> 0 \<le> Im z \<and> Im z \<le> Im w}"
-      using area_below_arclet(2)[OF uv_le hRe_le ac him inj_g inj_Re U vd] by auto
-    then show ?thesis unfolding f_def by simp
-  qed
-  have arc_int_below: "integral {u..v} f \<ge> 0"
-    if huv: "0 \<le> u" "v \<le> 1" "u < v" "u > 0 \<or> v < 1"
-      and hRe_le: "Re (g v) \<le> Re (g u)"
-      and hRe_ne: "Re (g u) \<noteq> Re (g v)"
-      and him: "g ` {u..v} \<subseteq> {z. Im z \<le> 0}"
-      and hRe_inj: "\<And>s1 s2. \<lbrakk>s1 \<in> {u..v}; s2 \<in> {u..v}; Re (g s1) = Re (g s2); s1 \<noteq> s2\<rbrakk>
-                    \<Longrightarrow> Re (g u) = Re (g v)"
-    for u v
-  proof -
-    have uv_le: "u \<le> v" using huv(3) by linarith
-    have ac: "absolutely_continuous_on {u..v} g"
-      using absolutely_continuous_on_subset[OF cont] huv(1,2) by auto
-    have inj_g: "inj_on g {u..v}"
-      using arc_inj_on[OF huv] by auto
-    have inj_Re_on: "inj_on Re (g ` {u..v})"
-      using arc_Re_inj_on[OF inj_g _ hRe_ne] hRe_inj by blast
-    have inj_Re: "\<And>x y. x \<in> g ` {u..v} \<Longrightarrow> y \<in> g ` {u..v} \<Longrightarrow> Re x = Re y \<Longrightarrow> x = y"
-      using inj_Re_on by (auto simp: inj_on_def)
-    have vd: "\<And>s. s \<in> {u..v} - U \<Longrightarrow> (g has_vector_derivative g' s) (at s)"
-      using vder huv(1,2) by auto
-    have "integral {u..v} (\<lambda>s. Re (g' s) * Im (g s)) =
-          measure lebesgue {z. \<exists>w \<in> g ` {u..v}. Re w = Re z \<and> Im w \<le> Im z \<and> Im z \<le> 0}"
-      using area_above_arclet(2)[OF uv_le hRe_le ac him inj_g inj_Re U vd] .
-    then show ?thesis unfolding f_def by simp
-  qed
 
   have split_case: "Green_concl g g'"
     if ht: "0 < t" "t < 1"
