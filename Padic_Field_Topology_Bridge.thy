@@ -2,25 +2,21 @@ theory Padic_Field_Topology_Bridge
   imports
     "Padic_Field.Padic_Field_Topology"
     "HOL-Analysis.Analysis"
-    "HOL-ex.Sketch_and_Explore" Isar_Explore
 
 begin
 
 context padic_fields
 begin
 
-(* ============================================================ *)
-(* STEP 1: Define the p-adic topology as an istopology          *)
-(* ============================================================ *)
+section \<open>the p-adic topology is a topology\<close>
 
 definition padic_topology :: "padic_number topology" where
   "padic_topology = topology is_open"
 
-(* The key bridging lemma: is_open satisfies istopology *)
 lemma istopology_padic: "istopology is_open"
-proof (unfold istopology_def, intro conjI allI impI)
-  (* Finite intersection: is_open S \<and> is_open T \<Longrightarrow> is_open (S \<inter> T) *)
-  fix S T :: "padic_number set"
+  unfolding istopology_def
+proof (intro conjI allI impI)
+  fix S T 
   assume "is_open S" "is_open T"
   show "is_open (S \<inter> T)"
   proof (rule is_openI)
@@ -38,16 +34,13 @@ proof (unfold istopology_def, intro conjI allI impI)
   qed
 qed (fastforce simp: is_open_def)
 
-(* Consequence: the definition is well-formed *)
+text \<open>agreement on the notions of open set\<close>
 lemma openin_padic_topology: "openin padic_topology = is_open"
   unfolding padic_topology_def
   using istopology_padic topology_inverse' by blast
 
-(* ============================================================ *)
-(* STEP 2: Bridging lemmas — connect old and new frameworks     *)
-(* ============================================================ *)
+section \<open>Bridging lemmas — connect old and new frameworks\<close>
 
-(* The topspace is carrier Q\<^sub>p *)
 lemma topspace_padic: "topspace padic_topology = carrier Q\<^sub>p"
 proof (rule Set.set_eqI)
   fix x
@@ -64,22 +57,18 @@ proof (rule Set.set_eqI)
   qed
 qed
 
-(* Every ball is openin padic_topology *)
 lemma openin_ball:
   assumes "c \<in> carrier Q\<^sub>p"
   shows "openin padic_topology (B\<^bsub>n\<^esub>[c])"
   using openin_padic_topology ball_is_open is_ball_def assms
   by auto
 
-(* The interior in the old sense equals the interior in the new sense *)
 lemma interior_eq:
   assumes "U \<subseteq> carrier Q\<^sub>p"
   shows "interior U = Abstract_Topology.interior_of padic_topology U"
   by (metis assms interiorI interior_of_unique interior_open interior_subset openin_padic_topology)
 
-(* ============================================================ *)
-(* STEP 3: Main topological results in the standard framework   *)
-(* ============================================================ *)
+section \<open>Main topological results in the standard framework\<close>
 
 (* Balls are open *)
 lemma ball_openin_padic:
@@ -102,12 +91,8 @@ proof -
   have int_decomp: "interior U = {x \<in> carrier Q\<^sub>p. \<exists>B\<in>max_balls U. x \<in> B}"
     using max_balls_interior U_sub U_ne by auto
   have "\<Union>(max_balls U) \<subseteq> carrier Q\<^sub>p"
-  proof
-    fix x assume "x \<in> \<Union>(max_balls U)"
-    then obtain B where "B \<in> max_balls U" "x \<in> B" by auto
-    then show "x \<in> carrier Q\<^sub>p" using int_decomp int_eq
-      using U_ne U_sub max_balls_interior' by blast
-  qed
+    by (metis (no_types, lifting) U_ne U_sub Union_least int_eq max_balls_interior'
+        subset_trans)
   moreover have "U = {x \<in> carrier Q\<^sub>p. \<exists>B\<in>max_balls U. x \<in> B}"
     using int_eq int_decomp by simp
   ultimately show "U = \<Union>(max_balls U)"
@@ -135,9 +120,7 @@ definition padic_norm :: "padic_number \<Rightarrow> real" where
 definition padic_dist :: "padic_number \<Rightarrow> padic_number \<Rightarrow> real" where
   "padic_dist x y \<equiv> if x \<in> carrier Q\<^sub>p \<and> y \<in> carrier Q\<^sub>p then padic_norm (x \<ominus> y) else 0"
 
-(* ================================================================ *)
-(* PART 2: Q_p is a Metric_space                                    *)
-(* ================================================================ *)
+section \<open>Q_p is a Metric_space\<close>
 
 lemma padic_dist_nonneg: "0 \<le> padic_dist x y"
   unfolding padic_dist_def padic_norm_def
@@ -212,12 +195,8 @@ next
       have a_nonzero: "a \<in> nonzero Q\<^sub>p" using a_nz assms Qp.nonzero_memI by auto
       have b_nonzero: "b \<in> nonzero Q\<^sub>p" using b_nz assms Qp.nonzero_memI by auto
       have ord_ineq: "min (ord a) (ord b) \<le> ord (a \<oplus> b)"
-      proof -
-        have "min (eint (ord a)) (eint (ord b)) \<le> eint (ord (a \<oplus> b))"
           using val_ineq val_ord[OF a_nonzero] val_ord[OF b_nonzero] val_ord[OF ab_nonzero]
-          by simp
-        then show ?thesis by (simp add: min_def split: if_splits)
-      qed
+          using a_nonzero ab_nonzero b_nonzero ord_ultrametric by blast
       have "p powr (- real_of_int (ord (a \<oplus> b))) \<le>
             max (p powr (- real_of_int (ord a))) (p powr (- real_of_int (ord b)))"
       proof -
