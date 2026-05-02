@@ -4369,19 +4369,70 @@ proof -
       then show ?thesis by (intro continuous_intros)
     qed
     obtain s3 where s3: "s3 \<in> {t..1}" "Re (g s3) = c"
-      sorry \<comment> \<open>IVT: Re(g t) = Re b > c and Re(g 1) = 0 < c, so by continuity
-              there exists s3 \<in> [t,1] with Re(g s3) = c.\<close>
+    proof -
+      have img_conn: "connected ((Re \<circ> g) ` {t..1})"
+        by (intro connected_continuous_image cont_Re_g connected_Icc)
+      then have img_iv: "is_interval ((Re \<circ> g) ` {t..1})"
+        using is_interval_connected_1 by auto
+      have "Re (g t) \<in> (Re \<circ> g) ` {t..1}" using ht(1,2) by (auto simp: image_def)
+      then have Regt_in: "Re b \<in> (Re \<circ> g) ` {t..1}" using ht(3) by simp
+      have "Re (g 1) \<in> (Re \<circ> g) ` {t..1}" using ht(2) by (auto simp: image_def)
+      then have Re0_in: "0 \<in> (Re \<circ> g) ` {t..1}" using g1 by simp
+      have "c \<in> (Re \<circ> g) ` {t..1}"
+        using img_iv[unfolded is_interval_1] Regt_in Re0_in c_strict by auto
+      then show ?thesis using that by (auto simp: image_def)
+    qed
     \<comment> \<open>Step 4c: g s3 is on frontier S and distinct from g s1 and g s2.\<close>
     have s3_01: "s3 \<in> {0..1}" using s3(1) ht(1) by auto
     have gs3_frontier: "g s3 \<in> frontier S"
       using frontier_S s3_01 by (auto simp: path_image_def)
     have gs3_ne_gs1: "g s3 \<noteq> g s1"
-      sorry \<comment> \<open>s3 \<in> [t,1] and s1 \<in> [0,t]. If g s3 = g s1 then by loop_free,
-              either s3=s1 (impossible since s3\<ge>t>s1 unless s1=t, but then s2=0 by not_endpts
-              and we check this leads to contradiction) or {s3,s1}={0,1}.
-              Case analysis using ht and not_endpts.\<close>
+    proof
+      assume eq: "g s3 = g s1"
+      from g(1) have lf: "loop_free g" by (simp add: simple_path_def)
+      from lf[unfolded loop_free_def, rule_format, OF s3_01 s1_01 eq]
+      have "s3 = s1 \<or> s3 = 0 \<and> s1 = 1 \<or> s3 = 1 \<and> s1 = 0" by auto
+      then show False
+      proof (elim disjE conjE)
+        assume "s3 = s1"
+        then have "s1 = t" using s3(1) s1t by auto
+        then have "c = Re b" unfolding c_def using ht(3) by simp
+        then show False using c_strict by simp
+      next
+        assume "s3 = 0" "s1 = 1"
+        then have "c = 0" unfolding c_def using g1 by simp
+        then show False using c_strict by simp
+      next
+        assume "s3 = 1" "s1 = 0"
+        then have "c = 0" unfolding c_def using g0 by simp
+        then show False using c_strict by simp
+      qed
+    qed
     have gs3_ne_gs2: "g s3 \<noteq> g s2"
-      sorry \<comment> \<open>Same argument as gs3_ne_gs1 but for s2.\<close>
+    proof
+      assume eq: "g s3 = g s2"
+      from g(1) have lf: "loop_free g" by (simp add: simple_path_def)
+      from lf[unfolded loop_free_def, rule_format, OF s3_01 s2_01 eq]
+      have "s3 = s2 \<or> s3 = 0 \<and> s2 = 1 \<or> s3 = 1 \<and> s2 = 0" by auto
+      then show False
+      proof (elim disjE conjE)
+        assume "s3 = s2"
+        then have "s2 = t" using s3(1) s2t by auto
+        then have "Re (g s2) = Re b" using ht(3) by simp
+        then have "c = Re b" unfolding c_def using Re_eq by simp
+        then show False using c_strict by simp
+      next
+        assume "s3 = 0" "s2 = 1"
+        then have "Re (g s2) = 0" using g1 by simp
+        then have "c = 0" unfolding c_def using Re_eq by simp
+        then show False using c_strict by simp
+      next
+        assume "s3 = 1" "s2 = 0"
+        then have "Re (g s2) = 0" using g0 by simp
+        then have "c = 0" unfolding c_def using Re_eq by simp
+        then show False using c_strict by simp
+      qed
+    qed
     \<comment> \<open>Step 5: The "sides" condition for frontier_vertical_at_most_two.\<close>
     have side_left: "\<exists>p \<in> S. Re p < c"
     proof -
@@ -4449,13 +4500,74 @@ proof -
     have c_strict: "0 < c \<and> c < Re b"
       sorry \<comment> \<open>Same argument as upper case: c=0 or c=Re b forces endpoints, contradicting not_endpts.\<close>
     obtain s3 where s3: "s3 \<in> {0..t}" "Re (g s3) = c"
-      sorry \<comment> \<open>IVT on [0,t]: Re(g 0) = 0 < c and Re(g t) = Re b > c.\<close>
+    proof -
+      have cont_Re_g: "continuous_on {0..t} (Re \<circ> g)"
+      proof -
+        have "continuous_on {0..1} g" using simple_path_imp_path[OF g(1)] by (simp add: path_def)
+        then have "continuous_on {0..t} g" by (rule continuous_on_subset) (use ht in auto)
+        then show ?thesis by (intro continuous_intros)
+      qed
+      have img_conn: "connected ((Re \<circ> g) ` {0..t})"
+        by (intro connected_continuous_image cont_Re_g connected_Icc)
+      then have img_iv: "is_interval ((Re \<circ> g) ` {0..t})"
+        using is_interval_connected_1 by auto
+      have "Re (g 0) \<in> (Re \<circ> g) ` {0..t}" using ht(1) by (auto simp: image_def)
+      then have Re0_in: "0 \<in> (Re \<circ> g) ` {0..t}" using g0 by simp
+      have "Re (g t) \<in> (Re \<circ> g) ` {0..t}" using ht(1) by (auto simp: image_def)
+      then have Regt_in: "Re b \<in> (Re \<circ> g) ` {0..t}" using ht(3) by simp
+      have "c \<in> (Re \<circ> g) ` {0..t}"
+        using img_iv[unfolded is_interval_1] Regt_in Re0_in c_strict by auto
+      then show ?thesis using that by (auto simp: image_def)
+    qed
     have s3_01: "s3 \<in> {0..1}" using s3(1) ht(2) by auto
     have gs3_frontier: "g s3 \<in> frontier S" using frontier_S s3_01 by (auto simp: path_image_def)
     have gs3_ne_gs1: "g s3 \<noteq> g s1"
-      sorry \<comment> \<open>s3 \<in> [0,t] and s1 \<in> [t,1], use loop_free + case analysis.\<close>
+    proof
+      assume eq: "g s3 = g s1"
+      from g(1) have lf: "loop_free g" by (simp add: simple_path_def)
+      from lf[unfolded loop_free_def, rule_format, OF s3_01 s1_01 eq]
+      have "s3 = s1 \<or> s3 = 0 \<and> s1 = 1 \<or> s3 = 1 \<and> s1 = 0" by auto
+      then show False
+      proof (elim disjE conjE)
+        assume "s3 = s1"
+        then have "s1 = t" using s3(1) s1t by auto
+        then have "c = Re b" unfolding c_def using ht(3) by simp
+        then show False using c_strict by simp
+      next
+        assume "s3 = 0" "s1 = 1"
+        then have "c = 0" unfolding c_def using g1 by simp
+        then show False using c_strict by simp
+      next
+        assume "s3 = 1" "s1 = 0"
+        then have "c = 0" unfolding c_def using g0 by simp
+        then show False using c_strict by simp
+      qed
+    qed
     have gs3_ne_gs2: "g s3 \<noteq> g s2"
-      sorry \<comment> \<open>Same argument for s2.\<close>
+    proof
+      assume eq: "g s3 = g s2"
+      from g(1) have lf: "loop_free g" by (simp add: simple_path_def)
+      from lf[unfolded loop_free_def, rule_format, OF s3_01 s2_01 eq]
+      have "s3 = s2 \<or> s3 = 0 \<and> s2 = 1 \<or> s3 = 1 \<and> s2 = 0" by auto
+      then show False
+      proof (elim disjE conjE)
+        assume "s3 = s2"
+        then have "s2 = t" using s3(1) s2t by auto
+        then have "Re (g s2) = Re b" using ht(3) by simp
+        then have "c = Re b" unfolding c_def using Re_eq by simp
+        then show False using c_strict by simp
+      next
+        assume "s3 = 0" "s2 = 1"
+        then have "Re (g s2) = 0" using g1 by simp
+        then have "c = 0" unfolding c_def using Re_eq by simp
+        then show False using c_strict by simp
+      next
+        assume "s3 = 1" "s2 = 0"
+        then have "Re (g s2) = 0" using g0 by simp
+        then have "c = 0" unfolding c_def using Re_eq by simp
+        then show False using c_strict by simp
+      qed
+    qed
     have side_left: "\<exists>p \<in> S. Re p < c"
     proof -
       have "g 0 \<in> path_image g" by (simp add: path_image_def)
