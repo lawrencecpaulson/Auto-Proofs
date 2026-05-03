@@ -4363,29 +4363,15 @@ proof (rule ccontr)
       using diameter_bounded_bound[OF bdd g0_pi gs1_pi] diam_eq dist_0b by simp
     \<comment> \<open>Helper: from cmod z \<le> Re b, derive (Re z)² + (Im z)² \<le> (Re b)²\<close>
     have cmod_sq: "(Re z)\<^sup>2 + (Im z)\<^sup>2 \<le> (Re b)\<^sup>2" if "cmod z \<le> Re b" for z
-    proof -
-      have "(cmod z)\<^sup>2 \<le> (Re b)\<^sup>2"
-        by (intro power_mono that) simp
-      then show ?thesis using cmod_power2[of z] by simp
-    qed
+      by (metis cmod_power2 norm_ge_zero power_mono that)
     \<comment> \<open>Helper: from cmod (z - b) \<le> Re b, derive (Re z - Re b)² + (Im z)² \<le> (Re b)²\<close>
     have cmod_sq_b: "(Re z - Re b)\<^sup>2 + (Im z)\<^sup>2 \<le> (Re b)\<^sup>2" if "cmod (z - b) \<le> Re b" for z
-    proof -
-      have "(cmod (z - b))\<^sup>2 \<le> (Re b)\<^sup>2"
-        by (intro power_mono that) simp
-      then show ?thesis using cmod_power2[of "z - b"] Imb by simp
-    qed
+      using Imb cmod_sq that by force
     \<comment> \<open>Helper: injectivity gives s = 0 from g s = 0, and s = t from g s = b\<close>
     have eq_0: "s = 0" if "g s = 0" "s \<in> {0..t}" for s
-    proof -
-      have "g s = g 0" using that(1) geq0(1) by simp
-      then show ?thesis using inj_onD[OF inj_sub this that(2)] ht(1) by auto
-    qed
+      using geq0(1) inj_onD inj_sub that by fastforce
     have eq_t: "s = t" if "g s = b" "s \<in> {0..t}" for s
-    proof -
-      have "g s = g t" using that(1) ht(3) by simp
-      then show ?thesis using inj_onD[OF inj_sub this that(2)] ht(1,2) by auto
-    qed
+      using ht(3) inj_on_contraD inj_sub that by fastforce
     \<comment> \<open>Case c = 0: Re(g s1) = 0, dist(g s1, b) \<le> Re b forces Im(g s1) = 0, so g s1 = 0\<close>
     have "c \<noteq> 0"
     proof
@@ -4427,19 +4413,14 @@ proof (rule ccontr)
     \<comment> \<open>c is bounded: 0 \<le> c \<le> Re b from diameter bound\<close>
     moreover have "0 \<le> c"
     proof -
-      have "(Re (g s1) - Re b)\<^sup>2 + (Im (g s1))\<^sup>2 \<le> (Re b)\<^sup>2"
-        using cmod_sq_b d1 by (simp add: dist_norm)
-      then have "(Re (g s1) - Re b)\<^sup>2 \<le> (Re b)\<^sup>2" by linarith
-      then have "Re (g s1) * (Re (g s1) - 2 * Re b) \<le> 0"
-        by (simp add: power2_eq_square algebra_simps)
-      then show ?thesis unfolding c_def using Reb by (cases "Re (g s1) \<ge> 0") (auto, nlinarith)
-    qed
-    moreover have "c \<le> Re b"
-    proof -
-      have "Re (g s1) \<le> cmod (g s1)" by (rule complex_Re_le_cmod)
-      also have "\<dots> \<le> Re b" using d2 by (simp add: dist_norm)
+      \<comment> \<open>From dist(g s1, b) \<le> Re b: |Re(g s1) - Re b| \<le> cmod(g s1 - b) \<le> Re b\<close>
+      have "\<bar>Re (g s1) - Re b\<bar> \<le> cmod (g s1 - b)"
+        using abs_Re_le_cmod[of "g s1 - b"] by simp
+      also have "\<dots> \<le> Re b" using d1 by (simp add: dist_norm)
       finally show ?thesis unfolding c_def by linarith
     qed
+    moreover have "c \<le> Re b"
+      by (smt (verit) c_def complex_Re_le_cmod d2 dist_0_norm)
     ultimately show ?thesis by linarith
   qed
       \<comment> \<open>Step 4b: By IVT on [t,1], find s3 with Re(g s3) = c.\<close>
@@ -4558,7 +4539,94 @@ proof -
     define c where "c \<equiv> Re (g s1)"
     \<comment> \<open>The IVT point now comes from the OTHER arc [0,t] (Re goes from 0 to Re b).\<close>
     have c_strict: "0 < c \<and> c < Re b"
-      sorry \<comment> \<open>Same argument as upper case: c=0 or c=Re b forces endpoints, contradicting not_endpts.\<close>
+    proof -
+      have bdd: "bounded (path_image g)"
+        using compact_simple_path_image[OF g(1)] compact_imp_bounded by blast
+      have gs1_pi: "g s1 \<in> path_image g" using s1_01 by (auto simp: path_image_def)
+      have gs2_pi: "g s2 \<in> path_image g" using s2_01 by (auto simp: path_image_def)
+      have g0_pi: "0 \<in> path_image g" using g0 by (metis pathstart_def pathstart_in_path_image)
+      have diam_eq: "dist 0 b = diameter (path_image g)" using dab assms by simp
+      have dist_0b: "dist 0 b = Re b"
+      proof -
+        have "dist 0 b = cmod b" by (simp add: dist_norm)
+        also have "\<dots> = sqrt ((Re b)\<^sup>2 + (Im b)\<^sup>2)" by (simp add: cmod_power2 [symmetric])
+        also have "\<dots> = sqrt ((Re b)\<^sup>2)" using Imb by simp
+        also have "\<dots> = Re b" using Reb by simp
+        finally show ?thesis .
+      qed
+      have d1: "dist (g s1) b \<le> Re b"
+        using diameter_bounded_bound[OF bdd gs1_pi b(1)] diam_eq dist_0b by simp
+      have d2: "dist 0 (g s1) \<le> Re b"
+        using diameter_bounded_bound[OF bdd g0_pi gs1_pi] diam_eq dist_0b by simp
+      have cmod_sq: "(Re z)\<^sup>2 + (Im z)\<^sup>2 \<le> (Re b)\<^sup>2" if "cmod z \<le> Re b" for z
+      proof -
+        have "(cmod z)\<^sup>2 \<le> (Re b)\<^sup>2" by (intro power_mono that) simp
+        then show ?thesis using cmod_power2[of z] by simp
+      qed
+      have cmod_sq_b: "(Re z - Re b)\<^sup>2 + (Im z)\<^sup>2 \<le> (Re b)\<^sup>2" if "cmod (z - b) \<le> Re b" for z
+      proof -
+        have "(cmod (z - b))\<^sup>2 \<le> (Re b)\<^sup>2" by (intro power_mono that) simp
+        then show ?thesis using cmod_power2[of "z - b"] Imb by simp
+      qed
+      have eq_1: "s = 1" if "g s = 0" "s \<in> {t..1}" for s
+        using g1 inj_onD inj_sub that(1,2) by fastforce
+      have eq_t: "s = t" if "g s = b" "s \<in> {t..1}" for s
+      proof -
+        have eq: "g s = g t" using that(1) ht(3) by simp
+        have "t \<in> {t..1}" using ht(2) by auto
+        from inj_onD[OF inj_sub eq that(2) this] show ?thesis .
+      qed
+      have "c \<noteq> 0"
+      proof
+        assume "c = 0"
+        then have Re0: "Re (g s1) = 0" unfolding c_def by simp
+        have "(Re (g s1) - Re b)\<^sup>2 + (Im (g s1))\<^sup>2 \<le> (Re b)\<^sup>2"
+          using cmod_sq_b d1 by (simp add: dist_norm)
+        then have "(Im (g s1))\<^sup>2 \<le> 0" using Re0 by (simp add: power2_eq_square)
+        then have "g s1 = 0" using Re0 by (auto simp: complex_eq_iff)
+        then have "s1 = 1" using eq_1 s1t by simp
+        moreover have "Re (g s2) = 0" using Re_eq \<open>c = 0\<close> c_def by simp
+        then have "(Re (g s2) - Re b)\<^sup>2 + (Im (g s2))\<^sup>2 \<le> (Re b)\<^sup>2"
+          using cmod_sq_b[of "g s2"] diameter_bounded_bound[OF bdd gs2_pi b(1)]
+            diam_eq dist_0b by (simp add: dist_norm)
+        then have "(Im (g s2))\<^sup>2 \<le> 0" using \<open>Re (g s2) = 0\<close> by (simp add: power2_eq_square)
+        then have "g s2 = 0" using \<open>Re (g s2) = 0\<close> by (auto simp: complex_eq_iff)
+        then have "s2 = 1" using eq_1 s2t by simp
+        ultimately show False using neq by simp
+      qed
+      moreover have "c \<noteq> Re b"
+      proof
+        assume "c = Re b"
+        then have ReB: "Re (g s1) = Re b" unfolding c_def by simp
+        have "(Re (g s1))\<^sup>2 + (Im (g s1))\<^sup>2 \<le> (Re b)\<^sup>2"
+          using cmod_sq d2 by (simp add: dist_norm)
+        then have "(Im (g s1))\<^sup>2 \<le> 0" using ReB by (simp add: power2_eq_square)
+        then have "g s1 = b" using ReB Imb by (auto simp: complex_eq_iff)
+        then have "s1 = t" using eq_t s1t by simp
+        moreover have "Re (g s2) = Re b" using Re_eq \<open>c = Re b\<close> c_def by simp
+        then have "(Re (g s2))\<^sup>2 + (Im (g s2))\<^sup>2 \<le> (Re b)\<^sup>2"
+          using cmod_sq[of "g s2"] diameter_bounded_bound[OF bdd g0_pi gs2_pi]
+            diam_eq dist_0b by (simp add: dist_norm)
+        then have "(Im (g s2))\<^sup>2 \<le> 0" using \<open>Re (g s2) = Re b\<close> by (simp add: power2_eq_square)
+        then have "g s2 = b" using \<open>Re (g s2) = Re b\<close> Imb by (auto simp: complex_eq_iff)
+        then have "s2 = t" using eq_t s2t by simp
+        ultimately show False using neq by simp
+      qed
+      moreover have "0 \<le> c"
+      proof -
+        have "\<bar>Re (g s1) - Re b\<bar> \<le> cmod (g s1 - b)"
+          using abs_Re_le_cmod[of "g s1 - b"] by simp
+        also have "\<dots> \<le> Re b" using d1 by (simp add: dist_norm)
+        finally show ?thesis unfolding c_def by linarith
+      qed
+      moreover have "c \<le> Re b"
+      proof -
+        have "Re (g s1) \<le> cmod (g s1)" by (rule complex_Re_le_cmod)
+        also have "\<dots> \<le> Re b" using d2 by (simp add: dist_norm)
+        finally show ?thesis unfolding c_def by linarith
+      qed
+      ultimately show ?thesis by linarith
+    qed
     obtain s3 where s3: "s3 \<in> {0..t}" "Re (g s3) = c"
     proof -
       have cont_Re_g: "continuous_on {0..t} (Re \<circ> g)"
@@ -4674,38 +4742,13 @@ proof -
        on frontier(closure(inside)) with the same Re-value.\<close>
     have Re_inj_upper: "\<lbrakk>s1 \<in> {0..t}; s2 \<in> {0..t}; Re (g s1) = Re (g s2); s1 \<noteq> s2\<rbrakk>
         \<Longrightarrow> (s1 = 0 \<and> s2 = t) \<or> (s1 = t \<and> s2 = 0)" for s1 s2
-      using Re_inj_upper[OF ht hgt] by blast
+      using Re_inj_upper ht(1,2) that(3) by blast
     have Re_inj_lower: "\<lbrakk>s1 \<in> {t..1}; s2 \<in> {t..1}; Re (g s1) = Re (g s2); s1 \<noteq> s2\<rbrakk>
         \<Longrightarrow> (s1 = t \<and> s2 = 1) \<or> (s1 = 1 \<and> s2 = t)" for s1 s2
       using Re_inj_lower[OF ht hgt] by blast
     \<comment> \<open>Step 0: Absolute integrability (needed for integral splitting)\<close>
-    have f_abs_int: "f absolutely_integrable_on {0..1}"
-    proof -
-      have cont_g: "continuous_on {0..1} g"
-        using simple_path_imp_path[OF g(1)] by (simp add: path_def)
-      have gp_ai: "g' absolutely_integrable_on {0..1}"
-        using absolutely_integrable_absolutely_continuous_derivative[OF cont U]
-          vder has_vector_derivative_at_within by blast
-      have Re_gp_ai: "(\<lambda>t. Re (g' t)) absolutely_integrable_on {0..1}"
-      proof -
-        have "(\<lambda>t. g' t \<bullet> 1) absolutely_integrable_on {0..1}"
-          by (rule absolutely_integrable_component[OF gp_ai])
-        then show ?thesis by (simp add: complex_inner_1_right)
-      qed
-      have Im_g_cont: "continuous_on {0..1} (\<lambda>t. Im (g t))"
-        by (intro continuous_intros cont_g)
-      have Im_g_bdd: "bounded ((\<lambda>t. Im (g t)) ` {0..1})"
-        by (intro compact_imp_bounded compact_continuous_image[OF Im_g_cont compact_Icc])
-      have Im_g_meas: "(\<lambda>t. Im (g t)) \<in> borel_measurable (lebesgue_on {0..1})"
-        using continuous_imp_measurable_on_sets_lebesgue[OF Im_g_cont]
-          atLeastAtMost_borel lborelD
-        by (metis sets_completionI_sets)
-      show ?thesis unfolding f_def
-        using absolutely_integrable_bounded_measurable_product_real[OF Im_g_meas _ Im_g_bdd Re_gp_ai]
-        by (simp add: mult.commute)
-    qed
     have f_int: "f integrable_on {0..1}"
-      using set_lebesgue_integral_eq_integral(1)[OF f_abs_int] .
+      using set_lebesgue_integral_eq_integral(1)[OF f_abs_int] f_def by argo
     \<comment> \<open>Step 1: The integral splits over [0,t] and [t,1]\<close>
     have split_int: "integral {0..1} f = integral {0..t} f + integral {t..1} f"
       using Henstock_Kurzweil_Integration.integral_combine[of 0 t 1 f] ht f_int by auto
@@ -4824,8 +4867,7 @@ proof -
        By Fubini, its area = \<integral>₀^{Re b} (f_upper(x) - f_lower(x)) dx
        and by the change-of-variables computations above, this equals
        integral {0..t} f + integral {t..1} f = integral {0..1} f.\<close>
-    have area_decomp: "measure lebesgue (inside (path_image g))
-                     = integral {0..t} f + integral {t..1} f"
+    have area_decomp: "measure lebesgue (inside (path_image g)) = integral {0..t} f + integral {t..1} f"
       sorry
     \<comment> \<open>Step 5: Combine\<close>
     have int_eq: "\<bar>integral {0..1} f\<bar> = measure lebesgue (inside (path_image g))"
