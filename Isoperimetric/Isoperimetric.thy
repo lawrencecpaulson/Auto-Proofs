@@ -4868,7 +4868,80 @@ proof -
        and by the change-of-variables computations above, this equals
        integral {0..t} f + integral {t..1} f = integral {0..1} f.\<close>
     have area_decomp: "measure lebesgue (inside (path_image g)) = integral {0..t} f + integral {t..1} f"
+    proof -
+      \<comment> \<open>Re-derive the integral = measure identities (proved locally in upper_int/lower_int)\<close>
+      have t_le: "0 \<le> t" using ht(1) by linarith
+      have t_le1: "t \<le> 1" using ht(2) by linarith
+      have Re_le: "Re (g 0) \<le> Re (g t)" using g0 hgt Reb by simp
+      have Re_le': "Re (g 1) \<le> Re (g t)" using g1 hgt Reb by simp
+      have ac_sub: "absolutely_continuous_on {0..t} g"
+        using absolutely_continuous_on_subset[OF cont] ht by auto
+      have ac_sub': "absolutely_continuous_on {t..1} g"
+        using absolutely_continuous_on_subset[OF cont] ht by auto
+      have inj_g_upper: "inj_on g {0..t}"
+        using arc_inj_on[of 0 t] ht by auto
+      have inj_g_lower: "inj_on g {t..1}"
+        using arc_inj_on[of t 1] ht by auto
+      have inj_Re_upper: "inj_on Re (g ` {0..t})"
+      proof (rule inj_onI)
+        fix x y assume "x \<in> g ` {0..t}" "y \<in> g ` {0..t}" "Re x = Re y"
+        then obtain s1 s2 where s1: "s1 \<in> {0..t}" "x = g s1"
+                            and s2: "s2 \<in> {0..t}" "y = g s2" by auto
+        then have "Re (g s1) = Re (g s2)" using \<open>Re x = Re y\<close> by simp
+        show "x = y"
+        proof (cases "s1 = s2")
+          case True then show ?thesis using s1 s2 by simp
+        next
+          case False
+          then have "(s1 = 0 \<and> s2 = t) \<or> (s1 = t \<and> s2 = 0)"
+            using Re_inj_upper[OF s1(1) s2(1) \<open>Re (g s1) = Re (g s2)\<close>] by auto
+          then have "Re (g 0) = Re (g t)" using \<open>Re (g s1) = Re (g s2)\<close> s1 s2 by auto
+          then have "0 = Re b" using g0 hgt by simp
+          then show ?thesis using Reb by simp
+        qed
+      qed
+      have inj_Re_lower: "\<And>x y. x \<in> g ` {t..1} \<Longrightarrow> y \<in> g ` {t..1} \<Longrightarrow> Re x = Re y \<Longrightarrow> x = y"
+      proof -
+        fix x y assume "x \<in> g ` {t..1}" "y \<in> g ` {t..1}" "Re x = Re y"
+        then obtain s1 s2 where s1: "s1 \<in> {t..1}" "x = g s1"
+                            and s2: "s2 \<in> {t..1}" "y = g s2" by auto
+        then have Re_eq: "Re (g s1) = Re (g s2)" using \<open>Re x = Re y\<close> by simp
+        show "x = y"
+        proof (cases "s1 = s2")
+          case True then show ?thesis using s1 s2 by simp
+        next
+          case False
+          then have "(s1 = t \<and> s2 = 1) \<or> (s1 = 1 \<and> s2 = t)"
+            using Re_inj_lower[OF s1(1) s2(1) Re_eq] by auto
+          then have "Re (g t) = Re (g 1)" using Re_eq s1 s2 by auto
+          then have "Re b = 0" using g1 hgt by simp
+          then show ?thesis using Reb by simp
+        qed
+      qed
+      have vder_sub: "\<And>s. s \<in> {0..t} - U \<Longrightarrow> (g has_vector_derivative g' s) (at s)"
+        using vder ht(2) by auto
+      have vder_sub': "\<And>s. s \<in> {t..1} - U \<Longrightarrow> (g has_vector_derivative g' s) (at s)"
+        using vder ht(1) by auto
+      \<comment> \<open>The integral = measure identities\<close>
+      define Au where "Au \<equiv> {z. \<exists>w \<in> g ` {0..t}. Re w = Re z \<and> 0 \<le> Im z \<and> Im z \<le> Im w}"
+      define Al where "Al \<equiv> {z. \<exists>w \<in> g ` {t..1}. Re w = Re z \<and> Im w \<le> Im z \<and> Im z \<le> 0}"
+      have int_upper: "integral {0..t} f = measure lebesgue Au"
+        using area_below_arclet(2)[OF t_le Re_le ac_sub above inj_g_upper inj_Re_upper U vder_sub]
+        unfolding f_def Au_def by auto
+      have int_lower: "integral {t..1} f = measure lebesgue Al"
+        using area_above_arclet(2)[OF t_le1 Re_le' ac_sub' below inj_g_lower inj_Re_lower U vder_sub']
+        unfolding f_def Al_def .
+      \<comment> \<open>Au and Al are measurable (compact, hence lmeasurable)\<close>
+      have Au_meas: "Au \<in> lmeasurable"
+      proof -
+        have "Au \<in> lmeasurable"
+          using area_below_arclet(1)[OF t_le Re_le ac_sub above inj_g_upper inj_Re_upper U vder_sub]
+          sorry
+        then show ?thesis .
+      qed
+      show ?thesis
       sorry
+    qed
     \<comment> \<open>Step 5: Combine\<close>
     have int_eq: "\<bar>integral {0..1} f\<bar> = measure lebesgue (inside (path_image g))"
       using split_int area_decomp upper_int lower_int by linarith
