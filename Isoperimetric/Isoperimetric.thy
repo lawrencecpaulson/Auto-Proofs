@@ -5044,17 +5044,174 @@ proof -
          and the gap closure(inside) \<setminus> inside = path_image g is negligible,
          so measure(inside) = measure(Au \<union> Al).\<close>
       have Au_Al_sub_closure: "Au \<union> Al \<subseteq> closure (inside (path_image g))"
-        sorry
+      proof -
+        have ch_eq: "convex hull (path_image g) = closure (inside (path_image g))"
+          using convex_hull_eq_closure_inside[OF g(1) _ conv] g(2,3) by auto
+        have zero_in_ch: "0 \<in> convex hull (path_image g)"
+          using hull_subset[of "path_image g" convex] g0
+          by (auto simp: path_image_def intro!: imageI[of 0])
+        have b_in_ch: "b \<in> convex hull (path_image g)"
+          using hull_subset[of "path_image g" convex] b(1) by auto
+        have real_seg: "closed_segment 0 b \<subseteq> convex hull (path_image g)"
+          using closed_segment_subset_convex_hull[OF zero_in_ch b_in_ch] .
+        have bdd_pi: "bounded (path_image g)"
+          using compact_simple_path_image[OF g(1)] compact_imp_bounded by blast
+        \<comment> \<open>Key fact: every point on the path has Re \<in> [0, Re b]\<close>
+        have zero_in_pi: "(0::complex) \<in> path_image g"
+          using g0 by (auto simp: path_image_def intro!: imageI[of 0])
+        have Re_bounds: "0 \<le> Re w \<and> Re w \<le> Re b" if "w \<in> path_image g" for w
+        proof -
+          have d0: "dist w 0 \<le> diameter (path_image g)"
+            using diameter_bounded_bound[OF bdd_pi that zero_in_pi] .
+          have db: "dist w b \<le> diameter (path_image g)"
+            using diameter_bounded_bound[OF bdd_pi that b(1)] .
+          have diam_eq: "diameter (path_image g) = Re b"
+          proof -
+            have "diameter (path_image g) = dist 0 b" using dab g0 g1 assms by simp
+            also have "\<dots> = cmod b" by (simp add: dist_norm)
+            also have "\<dots> = Re b"
+            proof -
+              have "cmod b = sqrt ((Re b)\<^sup>2 + (Im b)\<^sup>2)" by (simp add: cmod_def)
+              also have "\<dots> = sqrt ((Re b)\<^sup>2)" using Imb by simp
+              also have "\<dots> = Re b" using Reb by simp
+              finally show "cmod b = Re b" .
+            qed
+            finally show ?thesis .
+          qed
+          from d0 have ub: "cmod w \<le> Re b" using diam_eq by (simp add: dist_norm)
+          then have "Re w \<le> Re b"
+            using abs_Re_le_cmod[of w] by linarith
+          from db have "cmod (w - b) \<le> Re b" using diam_eq by (simp add: dist_norm)
+          then have "\<bar>Re w - Re b\<bar> \<le> cmod (w - b)"
+            using abs_Re_le_cmod[of "w - b"] by simp
+          then have "\<bar>Re w - Re b\<bar> \<le> Re b"
+            using \<open>cmod (w - b) \<le> Re b\<close> by linarith
+          then have "Re w \<ge> 0" by linarith
+          show ?thesis using \<open>Re w \<le> Re b\<close> \<open>Re w \<ge> 0\<close> by auto
+        qed
+        \<comment> \<open>Sublemma: Complex (Re w) 0 \<in> closed_segment 0 b for any w on the path\<close>
+        have real_point_in_seg: "Complex (Re w) 0 \<in> closed_segment 0 b"
+          if "w \<in> path_image g" for w
+        proof -
+          have bds: "0 \<le> Re w" "Re w \<le> Re b" using Re_bounds[OF that] by auto
+          define u where "u \<equiv> Re w / Re b"
+          have "0 \<le> u" "u \<le> 1" unfolding u_def using bds Reb by auto
+          have "Complex (Re w) 0 = (1 - u) *\<^sub>R 0 + u *\<^sub>R b"
+            unfolding u_def using Reb Imb
+            by (simp add: complex_eq_iff scaleR_complex.ctr)
+          then show ?thesis using \<open>0 \<le> u\<close> \<open>u \<le> 1\<close>
+            unfolding closed_segment_def by auto
+        qed
+        \<comment> \<open>Sublemma: z between p = Complex(Re w)(0) and w is in the convex hull\<close>
+        have in_ch_via_seg: "z \<in> convex hull (path_image g)"
+          if w_pi: "w \<in> path_image g"
+            and Re_eq: "Re w = Re z"
+            and Im_between: "(0 \<le> Im z \<and> Im z \<le> Im w) \<or> (Im w \<le> Im z \<and> Im z \<le> 0)"
+          for z w
+        proof -
+          define p where "p \<equiv> Complex (Re w) 0"
+          have p_in_ch: "p \<in> convex hull (path_image g)"
+            using real_point_in_seg[OF w_pi] real_seg
+            using p_def by blast
+          have w_in_ch: "w \<in> convex hull (path_image g)"
+            using hull_subset[of "path_image g" convex] w_pi by auto
+          show "z \<in> convex hull (path_image g)"
+          proof (cases "Im w = 0")
+            case True
+            then have "Im z = 0" using Im_between by linarith
+            then have "z = p" unfolding p_def using Re_eq by (simp add: complex_eq_iff)
+            then show ?thesis using p_in_ch by auto
+          next
+            case False
+            define u where "u \<equiv> Im z / Im w"
+            have "0 \<le> u" "u \<le> 1" unfolding u_def using Im_between False
+              by (auto simp: field_simps split: if_splits)
+            have "z = (1 - u) *\<^sub>R p + u *\<^sub>R w"
+              unfolding p_def u_def using False Re_eq
+              apply (simp add: complex_eq_iff scaleR_complex.ctr)
+              by argo
+            then have "z \<in> closed_segment p w" using \<open>0 \<le> u\<close> \<open>u \<le> 1\<close>
+              unfolding closed_segment_def by auto
+            then show ?thesis
+              using closed_segment_subset_convex_hull[OF p_in_ch w_in_ch] by auto
+          qed
+        qed
+        have Au_sub: "Au \<subseteq> convex hull (path_image g)"
+        proof (rule subsetI)
+          fix z assume "z \<in> Au"
+          then obtain w where w: "w \<in> g ` {0..t}" "Re w = Re z" "0 \<le> Im z" "Im z \<le> Im w"
+            unfolding Au_def by auto
+          have "w \<in> path_image g" using w(1) ht by (auto simp: path_image_def)
+          then show "z \<in> convex hull (path_image g)"
+            using in_ch_via_seg[of w z] w(2,3,4) by auto
+        qed
+        have Al_sub: "Al \<subseteq> convex hull (path_image g)"
+        proof (rule subsetI)
+          fix z assume "z \<in> Al"
+          then obtain w where w: "w \<in> g ` {t..1}" "Re w = Re z" "Im w \<le> Im z" "Im z \<le> 0"
+            unfolding Al_def by auto
+          have "w \<in> path_image g" using w(1) ht by (auto simp: path_image_def)
+          then show "z \<in> convex hull (path_image g)"
+            using in_ch_via_seg[of w z] w(2,3,4) by auto
+        qed
+        show ?thesis using Au_sub Al_sub ch_eq by auto
+      qed
+
       have inside_sub_Au_Al: "inside (path_image g) \<subseteq> Au \<union> Al"
         sorry
       have inside_eq: "measure lebesgue (inside (path_image g)) = measure lebesgue (Au \<union> Al)"
-        sorry
+      proof -
+        have bdd_inside: "bounded (inside (path_image g))"
+          using Jordan_inside_outside[OF g(1)] g(2,3) by auto
+        have frontier_inside: "frontier (inside (path_image g)) = path_image g"
+          using Jordan_inside_outside[OF g(1)] g(2,3) by auto
+        have neg_frontier: "negligible (frontier (inside (path_image g)))"
+          using negligible_convex_frontier[OF conv] .
+        have inside_meas: "inside (path_image g) \<in> lmeasurable"
+          using measurable_Jordan[OF bdd_inside neg_frontier] .
+        have AuAl_meas: "Au \<union> Al \<in> lmeasurable"
+          using fmeasurable.Un[OF Au_meas Al_meas] .
+        \<comment> \<open>Symmetric difference \<subseteq> path_image g, which is negligible\<close>
+        have "inside (path_image g) \<Delta> (Au \<union> Al) \<subseteq> path_image g"
+        proof (rule subsetI)
+          fix z assume "z \<in> inside (path_image g) \<Delta> (Au \<union> Al)"
+          then consider "z \<in> inside (path_image g)" "z \<notin> Au \<union> Al"
+            | "z \<in> Au \<union> Al" "z \<notin> inside (path_image g)"
+            by blast
+          then show "z \<in> path_image g"
+          proof cases
+            case 1
+            then show ?thesis using inside_sub_Au_Al by auto
+          next
+            case 2
+            have "z \<in> closure (inside (path_image g))" using Au_Al_sub_closure 2(1) by auto
+            then show ?thesis using 2(2)
+              by (simp add: closure_Un_frontier frontier_inside)
+          qed
+        qed
+        then have "negligible (inside (path_image g) \<Delta> (Au \<union> Al))"
+          using negligible_subset neg_frontier frontier_inside by auto
+        then show ?thesis
+          using measure_negligible_symdiff[OF inside_meas]
+          by presburger
+      qed
       \<comment> \<open>Step D: Au \<inter> Al \<subseteq> {z. Im z = 0}, which is negligible in \<real>².
          Therefore measure(Au \<union> Al) = measure(Au) + measure(Al).\<close>
       have inter_null: "Au \<inter> Al \<subseteq> {z. Im z = 0}"
         unfolding Au_def Al_def by auto
       have "measure lebesgue (Au \<union> Al) = measure lebesgue Au + measure lebesgue Al"
-        sorry
+      proof -
+        have "negligible {z :: complex. Im z = 0}"
+          using negligible_hyperplane[of \<i> 0]
+          by (simp add: complex_inner_i_left)
+        then have "negligible (Au \<inter> Al)"
+          using negligible_subset inter_null by blast
+        then have "measure lebesgue (Au \<inter> Al) = 0"
+          by (rule negligible_imp_measure0)
+        moreover have "measure lebesgue (Au \<union> Al) = measure lebesgue Au + measure lebesgue Al - measure lebesgue (Au \<inter> Al)"
+          using measure_Un3[of Au lebesgue Al] Au_meas Al_meas by auto
+        ultimately show ?thesis by simp
+      qed
       \<comment> \<open>Combine\<close>
       show ?thesis
         using inside_eq \<open>measure lebesgue (Au \<union> Al) = measure lebesgue Au + measure lebesgue Al\<close>
