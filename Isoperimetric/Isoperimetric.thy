@@ -4931,16 +4931,134 @@ proof -
       have int_lower: "integral {t..1} f = measure lebesgue Al"
         using area_above_arclet(2)[OF t_le1 Re_le' ac_sub' below inj_g_lower inj_Re_lower U vder_sub']
         unfolding f_def Al_def .
-      \<comment> \<open>Au and Al are measurable (compact, hence lmeasurable)\<close>
+      \<comment> \<open>Step A: Au and Al are measurable (compact, hence lmeasurable)\<close>
       have Au_meas: "Au \<in> lmeasurable"
       proof -
-        have "Au \<in> lmeasurable"
-          using area_below_arclet(1)[OF t_le Re_le ac_sub above inj_g_upper inj_Re_upper U vder_sub]
-          sorry
-        then show ?thesis .
+        have cont_g_upper: "continuous_on {0..t} g"
+          using absolutely_continuous_on_imp_continuous[OF ac_sub] is_interval_cc by blast
+        define \<phi> where "\<phi> \<equiv> \<lambda>(s::real, r::real). Complex (Re (g s)) (r * Im (g s))"
+        have cont_\<phi>: "continuous_on ({0..t} \<times> {0..1}) \<phi>"
+          unfolding \<phi>_def split_def
+          by (intro continuous_intros continuous_on_compose2[OF cont_g_upper] continuous_on_fst) auto
+        have img: "\<phi> ` ({0..t} \<times> {0..1}) = Au"
+        proof (rule set_eqI)
+          fix z :: complex
+          show "z \<in> \<phi> ` ({0..t} \<times> {0..1}) \<longleftrightarrow> z \<in> Au"
+          proof
+            assume "z \<in> \<phi> ` ({0..t} \<times> {0..1})"
+            then obtain s r where sr: "s \<in> {0..t}" "r \<in> {0..1}" "z = Complex (Re (g s)) (r * Im (g s))"
+              unfolding \<phi>_def by auto
+            have "g s \<in> g ` {0..t}" using sr(1) by auto
+            moreover have Im_ge: "Im (g s) \<ge> 0"
+              using subsetD[OF above imageI[OF sr(1)]] by simp
+            moreover have "Re (g s) = Re z" using sr(3) by simp
+            moreover have "0 \<le> Im z" using sr(3) sr(2) Im_ge
+              by (auto intro: mult_nonneg_nonneg)
+            moreover have "Im z \<le> Im (g s)" using sr(3) sr(2) Im_ge
+              by (auto simp: mult_left_le_one_le)
+            ultimately show "z \<in> Au" unfolding Au_def by auto
+          next
+            assume "z \<in> Au"
+            then obtain w where w: "w \<in> g ` {0..t}" "Re w = Re z" "0 \<le> Im z" "Im z \<le> Im w"
+              unfolding Au_def by auto
+            then obtain s where s: "s \<in> {0..t}" "w = g s" by auto
+            show "z \<in> \<phi> ` ({0..t} \<times> {0..1})"
+            proof (cases "Im w = 0")
+              case True
+              then have "Im z = 0" using w(3,4) by linarith
+              then have "z = \<phi> (s, 0)" unfolding \<phi>_def using w(2) s(2) by (simp add: complex_eq_iff)
+              then show ?thesis using s(1) by auto
+            next
+              case False
+              define r where "r \<equiv> Im z / Im w"
+              have "Im w > 0" using False w(3,4) by linarith
+              then have "r \<in> {0..1}" unfolding r_def using w(3,4) by (auto simp: field_simps)
+              moreover have "z = \<phi> (s, r)"
+                unfolding \<phi>_def r_def using False w(2) s(2) by (simp add: complex_eq_iff)
+              ultimately show ?thesis using s(1) by auto
+            qed
+          qed
+        qed
+        have "compact ({0..t} \<times> {0..1::real})" by (intro compact_Times compact_Icc)
+        then have "compact Au" using img compact_continuous_image[OF cont_\<phi>] by simp
+        then show ?thesis using lmeasurable_compact by blast
       qed
+      have Al_meas: "Al \<in> lmeasurable"
+      proof -
+        have cont_g_lower: "continuous_on {t..1} g"
+          using absolutely_continuous_on_imp_continuous[OF ac_sub'] is_interval_cc by blast
+        define \<psi> where "\<psi> \<equiv> \<lambda>(s::real, r::real). Complex (Re (g s)) (r * Im (g s))"
+        have cont_\<psi>: "continuous_on ({t..1} \<times> {0..1}) \<psi>"
+          unfolding \<psi>_def split_def
+          by (intro continuous_intros continuous_on_compose2[OF cont_g_lower] continuous_on_fst) auto
+        have img: "\<psi> ` ({t..1} \<times> {0..1}) = Al"
+        proof (rule set_eqI)
+          fix z :: complex
+          show "z \<in> \<psi> ` ({t..1} \<times> {0..1}) \<longleftrightarrow> z \<in> Al"
+          proof
+            assume "z \<in> \<psi> ` ({t..1} \<times> {0..1})"
+            then obtain s r where sr: "s \<in> {t..1}" "r \<in> {0..1}" "z = Complex (Re (g s)) (r * Im (g s))"
+              unfolding \<psi>_def by auto
+            have "g s \<in> g ` {t..1}" using sr(1) by auto
+            moreover have Im_le: "Im (g s) \<le> 0"
+              using subsetD[OF below imageI[OF sr(1)]] by simp
+            moreover have "Re (g s) = Re z" using sr(3) by simp
+            moreover have "Im (g s) \<le> Im z"
+            proof -
+              have "Im z = r * Im (g s)" using sr(3) by simp
+              also have "\<dots> \<ge> 1 * Im (g s)"
+                using mult_right_mono_neg[of r 1 "Im (g s)"] sr(2) Im_le by auto
+              finally show ?thesis by simp
+            qed
+            moreover have "Im z \<le> 0"
+              using sr(3) sr(2) Im_le mult_nonneg_nonpos[of r "Im (g s)"] by simp
+            ultimately show "z \<in> Al" unfolding Al_def by auto
+          next
+            assume "z \<in> Al"
+            then obtain w where w: "w \<in> g ` {t..1}" "Re w = Re z" "Im w \<le> Im z" "Im z \<le> 0"
+              unfolding Al_def by auto
+            then obtain s where s: "s \<in> {t..1}" "w = g s" by auto
+            show "z \<in> \<psi> ` ({t..1} \<times> {0..1})"
+            proof (cases "Im w = 0")
+              case True
+              then have "Im z = 0" using w(3,4) by linarith
+              then have "z = \<psi> (s, 0)" unfolding \<psi>_def using w(2) s(2) by (simp add: complex_eq_iff)
+              then show ?thesis using s(1) by auto
+            next
+              case False
+              define r where "r \<equiv> Im z / Im w"
+              have "Im w < 0" using False w(3,4) by linarith
+              then have "r \<in> {0..1}" unfolding r_def using w(3,4)
+                by (auto simp: field_simps divide_le_eq_1_neg divide_nonneg_neg)
+              moreover have "z = \<psi> (s, r)"
+                unfolding \<psi>_def r_def using False w(2) s(2) by (simp add: complex_eq_iff)
+              ultimately show ?thesis using s(1) by auto
+            qed
+          qed
+        qed
+        have "compact ({t..1} \<times> {0..1::real})" by (intro compact_Times compact_Icc)
+        then have "compact Al" using img compact_continuous_image[OF cont_\<psi>] by simp
+        then show ?thesis using lmeasurable_compact by blast
+      qed
+      \<comment> \<open>Step B+C: inside(path_image g) \<subseteq> Au \<union> Al \<subseteq> closure(inside(path_image g)),
+         and the gap closure(inside) \<setminus> inside = path_image g is negligible,
+         so measure(inside) = measure(Au \<union> Al).\<close>
+      have Au_Al_sub_closure: "Au \<union> Al \<subseteq> closure (inside (path_image g))"
+        sorry
+      have inside_sub_Au_Al: "inside (path_image g) \<subseteq> Au \<union> Al"
+        sorry
+      have inside_eq: "measure lebesgue (inside (path_image g)) = measure lebesgue (Au \<union> Al)"
+        sorry
+      \<comment> \<open>Step D: Au \<inter> Al \<subseteq> {z. Im z = 0}, which is negligible in \<real>².
+         Therefore measure(Au \<union> Al) = measure(Au) + measure(Al).\<close>
+      have inter_null: "Au \<inter> Al \<subseteq> {z. Im z = 0}"
+        unfolding Au_def Al_def by auto
+      have "measure lebesgue (Au \<union> Al) = measure lebesgue Au + measure lebesgue Al"
+        sorry
+      \<comment> \<open>Combine\<close>
       show ?thesis
-      sorry
+        using inside_eq \<open>measure lebesgue (Au \<union> Al) = measure lebesgue Au + measure lebesgue Al\<close>
+              int_upper int_lower by simp
     qed
     \<comment> \<open>Step 5: Combine\<close>
     have int_eq: "\<bar>integral {0..1} f\<bar> = measure lebesgue (inside (path_image g))"
