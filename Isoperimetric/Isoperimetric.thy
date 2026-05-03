@@ -5188,7 +5188,58 @@ proof -
      and the diameter bound forces any real point on the curve into closed_segment a b.\<close>
   have real_on_curve: "z \<in> path_image g \<Longrightarrow> Im z = 0 \<Longrightarrow> z = 0 \<or> z = b"
     for z
-    using assms sorry
+  proof -
+    assume z_on: "z \<in> path_image g" and z_real: "Im z = 0"
+    \<comment> \<open>Step 1: Basic setup\<close>
+    have a0: "a = 0" using assms by simp
+    have Reb: "Re b > 0" using b(2) a0 by simp
+    have Imb: "Im b = 0" using b(3) a0 by simp
+    \<comment> \<open>Step 2: Diameter bounds force z into closed_segment 0 b.
+       dist 0 z \<le> diam = Re b gives |Re z| \<le> Re b.
+       dist z b \<le> diam = Re b gives |Re z − Re b| \<le> Re b, hence Re z \<ge> 0.
+       So z is real with 0 \<le> Re z \<le> Re b, i.e. z \<in> closed_segment 0 b.\<close>
+    have z_in_seg: "z \<in> closed_segment 0 b"
+    proof -
+      have bdd: "bounded (path_image g)"
+        using g(1) bounded_simple_path_image by blast
+      have z0_on: "0 \<in> path_image g"
+        using pathstart_in_path_image[of g] g(2) a0 by simp
+      have diam_eq: "diameter (path_image g) = Re b"
+        using dab a0 Imb Reb by (simp add: dist_complex_def cmod_eq_Re)
+      have d1: "dist 0 z \<le> Re b"
+        using diameter_bounded_bound[OF bdd z0_on z_on] diam_eq by simp
+      have d2: "dist z b \<le> Re b"
+        using diameter_bounded_bound[OF bdd z_on b(1)] diam_eq by simp
+      have Re_le: "Re z \<le> Re b"
+        using d1 z_real by (simp add: dist_complex_def cmod_eq_Re)
+      have Re_ge: "Re z \<ge> 0"
+        using d2 z_real Imb by (simp add: dist_complex_def cmod_eq_Re minus_complex.sel)
+      have z_eq: "z = of_real (Re z)"
+        using z_real complex_is_Real_iff of_real_Re by metis
+      have b_eq: "b = of_real (Re b)"
+        using Imb complex_is_Real_iff of_real_Re by metis
+      show ?thesis
+        using Re_ge Re_le Reb z_eq b_eq 
+        by (subst z_eq, subst b_eq, subst of_real_0[symmetric],
+            subst of_real_closed_segment, simp add: closed_segment_eq_real_ivl1)
+    qed
+    \<comment> \<open>Step 3: open_segment 0 b \<subseteq> inside(path_image g).
+       Key sub-argument: for a compact convex body K with nonempty interior,
+       if dist a b = diameter K and a, b \<in> K, then open_segment a b \<subseteq> interior K.
+       Here K = closure(inside) = convex hull(path_image g).
+       Proof idea: if w \<in> open_segment 0 b and w \<in> frontier K, a supporting hyperplane
+       at w perpendicular to [0,b] would force a or b outside K, contradicting diameter.\<close>
+    have seg_inside: "open_segment 0 b \<subseteq> inside (path_image g)"
+      sorry
+    \<comment> \<open>Step 4: z is on the curve, so z \<notin> inside. Hence z \<notin> open_segment 0 b.
+       Combined with z \<in> closed_segment 0 b, we get z = 0 \<or> z = b.\<close>
+    have "z \<notin> inside (path_image g)"
+      using inside_no_overlap z_on by blast
+    then have "z \<notin> open_segment 0 b"
+      using seg_inside by blast
+    then show "z = 0 \<or> z = b"
+      using z_in_seg by (auto simp: closed_segment_eq_open)
+  qed
   have Im_a: "Im a = 0" using assms by simp
   have Im_b: "Im b = 0" using b(3) Im_a by simp
   have path_g: "path g" using g(1) simple_path_imp_path by blast
