@@ -3683,8 +3683,8 @@ lemma area_above_arclet:
     and "Re (g v) \<le> Re (g u)"
     and "absolutely_continuous_on {u..v} g"
     and "g ` {u..v} \<subseteq> {z. Im z \<le> 0}"
-    and "inj_on g {u..v}"
-    and "\<And>x y. x \<in> g ` {u..v} \<Longrightarrow> y \<in> g ` {u..v} \<Longrightarrow> Re x = Re y \<Longrightarrow> x = y"
+    and injg: "inj_on g {u..v}"
+    and injRe: "inj_on Re (g ` {u..v})"
     and "negligible S"
     and vder_g: "\<And>t. t \<in> {u..v} - S \<Longrightarrow> (g has_vector_derivative g' t) (at t)"
   shows "(\<lambda>t. Re (g' t) * Im (g t)) absolutely_integrable_on {u..v}"
@@ -3707,19 +3707,12 @@ proof -
       using k(3) bounded_imp_bdd_above bounded_imp_bdd_below by auto
     have ne_img: "\<phi> ` k \<noteq> {}" using k(2) by auto
     have bdd_img: "bdd_below (\<phi> ` k)"
-    proof (rule bdd_belowI[of _ "\<phi> (Sup k)"])
-      fix x assume "x \<in> \<phi> ` k"
-      then obtain t where "t \<in> k" "x = \<phi> t" by auto
-      then show "\<phi> (Sup k) \<le> x" unfolding \<phi>_def using cSup_upper[OF \<open>t \<in> k\<close> bdd(1)] by simp
-    qed
+      by (metis \<phi>_image atLeastAtMost_iff bdd_below.mono bdd_belowI image_mono k(1))
     show "\<phi> (Sup k) = Inf (\<phi> ` k)"
     proof (rule antisym)
       show "\<phi> (Sup k) \<le> Inf (\<phi> ` k)"
-      proof (rule cInf_greatest[OF ne_img])
-        fix x assume "x \<in> \<phi> ` k"
-        then obtain t where "t \<in> k" "x = \<phi> t" by auto
-        then show "\<phi> (Sup k) \<le> x" unfolding \<phi>_def using cSup_upper[OF \<open>t \<in> k\<close> bdd(1)] by simp
-      qed
+        unfolding \<phi>_def using cSup_upper[OF _ bdd(1)]
+        by (simp add: cINF_greatest k(2))
       show "Inf (\<phi> ` k) \<le> \<phi> (Sup k)"
       proof -
         have "(Inf (\<phi> ` k) \<le> \<phi> (Sup k)) = (\<forall>y > \<phi> (Sup k). \<exists>a \<in> \<phi> ` k. a < y)"
@@ -3738,9 +3731,8 @@ proof -
       qed
     qed
   qed
-  have \<phi>_Inf: "\<And>k. k \<subseteq> {u..v} \<Longrightarrow> k \<noteq> {} \<Longrightarrow> bounded k \<Longrightarrow> \<phi> (Inf k) = Sup (\<phi> ` k)"
+  have \<phi>_Inf: "\<phi> (Inf k) = Sup (\<phi> ` k)" if k: "k \<subseteq> {u..v}" "k \<noteq> {}" "bounded k" for k
   proof -
-    fix k :: "real set" assume k: "k \<subseteq> {u..v}" "k \<noteq> {}" "bounded k"
     have k': "\<phi> ` k \<subseteq> {u..v}" using k(1) \<phi>_mem by auto
     have ne': "\<phi> ` k \<noteq> {}" using k(2) by auto
     have bdd': "bounded (\<phi> ` k)"
@@ -3748,9 +3740,9 @@ proof -
     have "\<phi> (Sup (\<phi> ` k)) = Inf (\<phi> ` (\<phi> ` k))"
       using \<phi>_Sup[OF k' ne' bdd'] .
     also have "\<phi> ` (\<phi> ` k) = k" using \<phi>\<phi> by (simp add: image_image)
-    finally have eq: "\<phi> (Sup (\<phi> ` k)) = Inf k" .
-    then have "\<phi> (\<phi> (Sup (\<phi> ` k))) = \<phi> (Inf k)" by simp
-    then show "\<phi> (Inf k) = Sup (\<phi> ` k)" using \<phi>\<phi> by simp
+    finally have "\<phi> (Sup (\<phi> ` k)) = Inf k" .
+    then show "\<phi> (Inf k) = Sup (\<phi> ` k)" 
+      using \<phi>\<phi> by metis
   qed
   \<comment> \<open>1. u \<le> v\<close>
   note uv = assms(1)
@@ -3797,8 +3789,8 @@ proof -
     then have "Re (g (\<phi> s)) = Re (g (\<phi> t))" using xy(3) unfolding h_def by (simp add: o_def cnj.sel)
     moreover have "g (\<phi> s) \<in> g ` {u..v}" "g (\<phi> t) \<in> g ` {u..v}"
       using \<phi>_mem st(1,2) by auto
-    ultimately have "g (\<phi> s) = g (\<phi> t)" using assms(6) by auto
-    then show "x = y" using st(3,4) unfolding h_def by (simp add: o_def)
+    ultimately show "x = y" using st(3,4) unfolding h_def
+      by (metis assms(6) comp_eq_dest_lhs inj_on_eq_iff)
   qed
   \<comment> \<open>7. Negligible set and derivative of h\<close>
   define S' where "S' \<equiv> \<phi> ` S"
@@ -3856,11 +3848,7 @@ proof -
                     measure lebesgue {z. \<exists>w \<in> g ` {u..v}. Re w = Re z \<and> Im w \<le> Im z \<and> Im z \<le> 0}"
   proof -
     have h_image: "h ` {u..v} = cnj ` (g ` {u..v})"
-    proof -
-      have "(cnj \<circ> g \<circ> \<phi>) ` {u..v} = cnj ` (g ` (\<phi> ` {u..v}))"
-        by (simp add: image_comp)
-      then show ?thesis unfolding h_def using \<phi>_image by simp
-    qed
+      by (metis \<phi>_image h_def image_comp)
     define A where "A \<equiv> {z. \<exists>w \<in> h ` {u..v}. Re w = Re z \<and> 0 \<le> Im z \<and> Im z \<le> Im w}"
     define B where "B \<equiv> {z. \<exists>w \<in> g ` {u..v}. Re w = Re z \<and> Im w \<le> Im z \<and> Im z \<le> 0}"
     have AB: "A = cnj ` B"
@@ -4207,10 +4195,9 @@ proof (rule inj_onI)
   proof (rule ccontr)
     assume neq: "s1 \<noteq> s2"
     from g(1) have lf: "loop_free g" by (simp add: simple_path_def)
-    from lf[unfolded loop_free_def, rule_format, OF s1_01 s2_01 eq]
-    have "s1 = s2 \<or> s1 = 0 \<and> s2 = 1 \<or> s1 = 1 \<and> s2 = 0" by auto
-    with neq have "s1 = 0 \<and> s2 = 1 \<or> s1 = 1 \<and> s2 = 0" by auto
-    then show False using s1 s2 huv hne by auto
+    have "s1 = s2 \<or> s1 = 0 \<and> s2 = 1 \<or> s1 = 1 \<and> s2 = 0"
+      using eq lf loop_free_def s1_01 s2_01 by blast
+    with neq show False using s1 s2 huv hne by auto
   qed
 qed
 
@@ -4271,15 +4258,13 @@ proof -
     using absolutely_continuous_on_subset[OF cont] huv(1,2) by auto
   have inj_g: "inj_on g {u..v}"
     using arc_inj_on[OF huv] by auto
-  have inj_Re_on: "inj_on Re (g ` {u..v})"
+  have inj_on_Re: "inj_on Re (g ` {u..v})"
     using arc_Re_inj_on[OF inj_g _ hRe_ne] hRe_inj by blast
-  have inj_Re: "\<And>x y. x \<in> g ` {u..v} \<Longrightarrow> y \<in> g ` {u..v} \<Longrightarrow> Re x = Re y \<Longrightarrow> x = y"
-    using inj_Re_on by (auto simp: inj_on_def)
   have vd: "\<And>s. s \<in> {u..v} - U \<Longrightarrow> (g has_vector_derivative g' s) (at s)"
     using vder huv(1,2) by auto
   have "integral {u..v} (\<lambda>s. Re (g' s) * Im (g s)) =
           measure lebesgue {z. \<exists>w \<in> g ` {u..v}. Re w = Re z \<and> Im w \<le> Im z \<and> Im z \<le> 0}"
-    using area_above_arclet(2)[OF uv_le hRe_le ac him inj_g inj_Re U vd] .
+    using area_above_arclet(2)[OF uv_le hRe_le ac him inj_g inj_on_Re U vd] .
   then show ?thesis by simp
 qed
 
@@ -4763,38 +4748,10 @@ proof -
       have ac_sub: "absolutely_continuous_on {0..t} g"
         using absolutely_continuous_on_subset[OF cont] ht by auto
       have inj_g_upper: "inj_on g {0..t}"
-      proof (rule inj_onI)
-        fix s1 s2 assume s1: "s1 \<in> {0..t}" and s2: "s2 \<in> {0..t}" and eq: "g s1 = g s2"
-        have s1_01: "s1 \<in> {0..1}" using s1 ht(2) by auto
-        have s2_01: "s2 \<in> {0..1}" using s2 ht(2) by auto
-        show "s1 = s2"
-        proof (rule ccontr)
-          assume neq: "s1 \<noteq> s2"
-          from g(1) have lf: "loop_free g" by (simp add: simple_path_def)
-          from lf[unfolded loop_free_def, rule_format, OF s1_01 s2_01 eq]
-          have "s1 = s2 \<or> s1 = 0 \<and> s2 = 1 \<or> s1 = 1 \<and> s2 = 0" by auto
-          with neq have "s1 = 0 \<and> s2 = 1 \<or> s1 = 1 \<and> s2 = 0" by auto
-          then show False using s1 s2 ht(2) by auto
-        qed
-      qed
-      have inj_Re_upper: "inj_on Re (g ` {0..t})"
-      proof (rule inj_onI)
-        fix x y assume "x \<in> g ` {0..t}" "y \<in> g ` {0..t}" "Re x = Re y"
-        then obtain s1 s2 where s1: "s1 \<in> {0..t}" "x = g s1"
-                            and s2: "s2 \<in> {0..t}" "y = g s2" by auto
-        then have "Re (g s1) = Re (g s2)" using \<open>Re x = Re y\<close> by simp
-        show "x = y"
-        proof (cases "s1 = s2")
-          case True then show ?thesis using s1 s2 by simp
-        next
-          case False
-          then have "(s1 = 0 \<and> s2 = t) \<or> (s1 = t \<and> s2 = 0)"
-            using Re_inj_upper[OF s1(1) s2(1) \<open>Re (g s1) = Re (g s2)\<close>] by auto
-          then have "Re (g 0) = Re (g t)" using \<open>Re (g s1) = Re (g s2)\<close> s1 s2 by auto
-          then have "0 = Re b" using g0 hgt by simp
-          then show ?thesis using Reb by simp
-        qed
-      qed
+        using arc_inj_on ht(1) that(2) by auto
+      then have inj_Re_upper: "inj_on Re (g ` {0..t})"
+        using Reb Re_inj_upper g0 that(3)
+        by (intro arc_Re_inj_on; fastforce simp: assms b(2))
       have vder_sub: "\<And>s. s \<in> {0..t} - U \<Longrightarrow> (g has_vector_derivative g' s) (at s)"
         using vder ht(2) by auto
       have "integral {0..t} (\<lambda>s. Re (g' s) * Im (g s)) =
@@ -4818,38 +4775,10 @@ proof -
       have ac_sub': "absolutely_continuous_on {t..1} g"
         using absolutely_continuous_on_subset[OF cont] ht by auto
       have inj_g_lower: "inj_on g {t..1}"
-      proof (rule inj_onI)
-        fix s1 s2 assume s1: "s1 \<in> {t..1}" and s2: "s2 \<in> {t..1}" and eq: "g s1 = g s2"
-        have s1_01: "s1 \<in> {0..1}" using s1 ht(1) by auto
-        have s2_01: "s2 \<in> {0..1}" using s2 ht(1) by auto
-        show "s1 = s2"
-        proof (rule ccontr)
-          assume neq: "s1 \<noteq> s2"
-          from g(1) have lf: "loop_free g" by (simp add: simple_path_def)
-          from lf[unfolded loop_free_def, rule_format, OF s1_01 s2_01 eq]
-          have "s1 = s2 \<or> s1 = 0 \<and> s2 = 1 \<or> s1 = 1 \<and> s2 = 0" by auto
-          with neq have "s1 = 0 \<and> s2 = 1 \<or> s1 = 1 \<and> s2 = 0" by auto
-          then show False using s1 s2 ht(1) by auto
-        qed
-      qed
-      have inj_Re_lower: "\<And>x y. x \<in> g ` {t..1} \<Longrightarrow> y \<in> g ` {t..1} \<Longrightarrow> Re x = Re y \<Longrightarrow> x = y"
-      proof -
-        fix x y assume "x \<in> g ` {t..1}" "y \<in> g ` {t..1}" "Re x = Re y"
-        then obtain s1 s2 where s1: "s1 \<in> {t..1}" "x = g s1"
-                            and s2: "s2 \<in> {t..1}" "y = g s2" by auto
-        then have Re_eq: "Re (g s1) = Re (g s2)" using \<open>Re x = Re y\<close> by simp
-        show "x = y"
-        proof (cases "s1 = s2")
-          case True then show ?thesis using s1 s2 by simp
-        next
-          case False
-          then have "(s1 = t \<and> s2 = 1) \<or> (s1 = 1 \<and> s2 = t)"
-            using Re_inj_lower[OF s1(1) s2(1) Re_eq] by auto
-          then have "Re (g t) = Re (g 1)" using Re_eq s1 s2 by auto
-          then have "Re b = 0" using g1 hgt by simp
-          then show ?thesis using Reb by simp
-        qed
-      qed
+        using arc_inj_on ht(2) less_eq_real_def that(1) by presburger
+      then have inj_Re_lower: "inj_on Re (g ` {t..1})"
+        using Reb Re_inj_lower g1 that(3)
+        by (intro arc_Re_inj_on; fastforce simp: assms b(2))
       have vder_sub': "\<And>s. s \<in> {t..1} - U \<Longrightarrow> (g has_vector_derivative g' s) (at s)"
         using vder ht(1) by auto
       have "integral {t..1} (\<lambda>s. Re (g' s) * Im (g s)) =
@@ -4880,44 +4809,14 @@ proof -
         using absolutely_continuous_on_subset[OF cont] ht by auto
       have inj_g_upper: "inj_on g {0..t}"
         using arc_inj_on[of 0 t] ht by auto
+      then have inj_Re_upper: "inj_on Re (g ` {0..t})"
+        using Reb Re_inj_upper g0 that(3)
+        by (intro arc_Re_inj_on; fastforce simp: assms b(2))
       have inj_g_lower: "inj_on g {t..1}"
         using arc_inj_on[of t 1] ht by auto
-      have inj_Re_upper: "inj_on Re (g ` {0..t})"
-      proof (rule inj_onI)
-        fix x y assume "x \<in> g ` {0..t}" "y \<in> g ` {0..t}" "Re x = Re y"
-        then obtain s1 s2 where s1: "s1 \<in> {0..t}" "x = g s1"
-                            and s2: "s2 \<in> {0..t}" "y = g s2" by auto
-        then have "Re (g s1) = Re (g s2)" using \<open>Re x = Re y\<close> by simp
-        show "x = y"
-        proof (cases "s1 = s2")
-          case True then show ?thesis using s1 s2 by simp
-        next
-          case False
-          then have "(s1 = 0 \<and> s2 = t) \<or> (s1 = t \<and> s2 = 0)"
-            using Re_inj_upper[OF s1(1) s2(1) \<open>Re (g s1) = Re (g s2)\<close>] by auto
-          then have "Re (g 0) = Re (g t)" using \<open>Re (g s1) = Re (g s2)\<close> s1 s2 by auto
-          then have "0 = Re b" using g0 hgt by simp
-          then show ?thesis using Reb by simp
-        qed
-      qed
-      have inj_Re_lower: "\<And>x y. x \<in> g ` {t..1} \<Longrightarrow> y \<in> g ` {t..1} \<Longrightarrow> Re x = Re y \<Longrightarrow> x = y"
-      proof -
-        fix x y assume "x \<in> g ` {t..1}" "y \<in> g ` {t..1}" "Re x = Re y"
-        then obtain s1 s2 where s1: "s1 \<in> {t..1}" "x = g s1"
-                            and s2: "s2 \<in> {t..1}" "y = g s2" by auto
-        then have Re_eq: "Re (g s1) = Re (g s2)" using \<open>Re x = Re y\<close> by simp
-        show "x = y"
-        proof (cases "s1 = s2")
-          case True then show ?thesis using s1 s2 by simp
-        next
-          case False
-          then have "(s1 = t \<and> s2 = 1) \<or> (s1 = 1 \<and> s2 = t)"
-            using Re_inj_lower[OF s1(1) s2(1) Re_eq] by auto
-          then have "Re (g t) = Re (g 1)" using Re_eq s1 s2 by auto
-          then have "Re b = 0" using g1 hgt by simp
-          then show ?thesis using Reb by simp
-        qed
-      qed
+      then have inj_Re_lower: "inj_on Re (g ` {t..1})"
+        using Reb Re_inj_lower g1 that(3)
+        by (intro arc_Re_inj_on; fastforce simp: assms b(2))
       have vder_sub: "\<And>s. s \<in> {0..t} - U \<Longrightarrow> (g has_vector_derivative g' s) (at s)"
         using vder ht(2) by auto
       have vder_sub': "\<And>s. s \<in> {t..1} - U \<Longrightarrow> (g has_vector_derivative g' s) (at s)"
@@ -4930,7 +4829,8 @@ proof -
         unfolding f_def Au_def by auto
       have int_lower: "integral {t..1} f = measure lebesgue Al"
         using area_above_arclet(2)[OF t_le1 Re_le' ac_sub' below inj_g_lower inj_Re_lower U vder_sub']
-        unfolding f_def Al_def .
+        unfolding f_def Al_def
+        by blast
       \<comment> \<open>Step A: Au and Al are measurable (compact, hence lmeasurable)\<close>
       have Au_meas: "Au \<in> lmeasurable"
       proof -
