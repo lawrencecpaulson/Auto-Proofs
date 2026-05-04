@@ -4893,14 +4893,9 @@ proof -
             using diameter_bounded_bound[OF bdd_pi that zero_in_pi] .
           have db: "dist w b \<le> diameter (path_image g)"
             using diameter_bounded_bound[OF bdd_pi that b(1)] .
-          have diam_eq: "diameter (path_image g) = Re b"
-          proof -
-            have "diameter (path_image g) = dist 0 b" using dab g0 g1 assms by simp
-            also have "\<dots> = cmod b" by (simp add: dist_norm)
-            also have "\<dots> = Re b"
-              using Imb Re_le' complex_nonneg_Reals_iff g1 hgt norm_eq_Re_iff by force
-            finally show ?thesis .
-          qed
+          have "diameter (path_image g) = dist 0 b" using dab g0 g1 assms by simp
+          then have diam_eq: "diameter (path_image g) = Re b"
+            using Imb Re_le cmod_eq_Re g0 hgt by auto
           from d0 have ub: "cmod w \<le> Re b" using diam_eq by (simp add: dist_norm)
           then have "Re w \<le> Re b"
             using abs_Re_le_cmod[of w] by linarith
@@ -4996,22 +4991,8 @@ proof -
           using fmeasurable.Un[OF Au_meas Al_meas] .
         \<comment> \<open>Symmetric difference \<subseteq> path_image g, which is negligible\<close>
         have "inside (path_image g) \<Delta> (Au \<union> Al) \<subseteq> path_image g"
-        proof (rule subsetI)
-          fix z assume "z \<in> inside (path_image g) \<Delta> (Au \<union> Al)"
-          then consider "z \<in> inside (path_image g)" "z \<notin> Au \<union> Al"
-            | "z \<in> Au \<union> Al" "z \<notin> inside (path_image g)"
-            by blast
-          then show "z \<in> path_image g"
-          proof cases
-            case 1
-            then show ?thesis using inside_sub_Au_Al by auto
-          next
-            case 2
-            have "z \<in> closure (inside (path_image g))" using Au_Al_sub_closure 2(1) by auto
-            then show ?thesis using 2(2)
-              by (simp add: closure_Un_frontier frontier_inside)
-          qed
-        qed
+          by (metis Au_Al_sub_closure Diff_mono Diff_subset_conv closure_Un_frontier frontier_inside inside_sub_Au_Al
+              le_iff_sup)
         then have "negligible (inside (path_image g) \<Delta> (Au \<union> Al))"
           using negligible_subset neg_frontier frontier_inside by auto
         then show ?thesis
@@ -5072,11 +5053,7 @@ proof -
         using absolutely_integrable_absolutely_continuous_derivative[OF cont U]
           vder has_vector_derivative_at_within by blast
       have Re_gp_ai: "(\<lambda>t. Re (g' t)) absolutely_integrable_on {0..1}"
-      proof -
-        have "(\<lambda>t. g' t \<bullet> 1) absolutely_integrable_on {0..1}"
-          by (rule absolutely_integrable_component[OF gp_ai])
-        then show ?thesis by (simp add: complex_inner_1_right)
-      qed
+        by (metis (lifting) ext absolutely_integrable_component complex_inner_1_right gp_ai)
       have Im_g_cont: "continuous_on {0..1} (\<lambda>t. Im (g t))"
         by (intro continuous_intros cont_g)
       have Im_g_bdd: "bounded ((\<lambda>t. Im (g t)) ` {0..1})"

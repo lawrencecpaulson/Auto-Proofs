@@ -1,5 +1,7 @@
 theory Infinite_Product
   imports "HOL-Complex_Analysis.Complex_Analysis"
+    "HOL-ex.Sketch_and_Explore" Isar_Explore
+
 begin
 
 (*REPLACE*)
@@ -968,6 +970,7 @@ lemma multipliable_on_subset_aux:
   assumes times_cont: \<open>uniformly_continuous_on UNIV (\<lambda>(x::'b,y). x*y)\<close>
   assumes \<open>f multipliable_on A\<close>
   assumes \<open>B \<subseteq> A\<close>
+  assumes nz: \<open>\<And>x. x \<in> A - B \<Longrightarrow> f x \<noteq> 0\<close>
   shows \<open>f multipliable_on B\<close>
 proof -
   let ?filter_fB = \<open>filtermap (prod f) (finite_subsets_at_top B)\<close>
@@ -1018,8 +1021,10 @@ proof -
       thus "P2 (prod f F2' * prod f F0A)"
         by (subst (asm) prod.union_disjoint) (use that in \<open>auto simp: F0A_def\<close>)   
     next
-      show "prod f F0A \<noteq> 0"
-        sorry \<comment> \<open>BUG: prod f F0A \<noteq> 0 not provable; needs extra assumption or case split on zeros in A-B\<close>
+      have "finite (F0 - B)"
+        by simp
+        with nz show "prod f F0A \<noteq> 0"
+          by (metis (full_types) Diff_iff F0A_def \<open>F0 \<subseteq> A\<close> prod_zero_iff subset_iff)
     qed
     have "eventually (\<lambda>x. E' (x, prod f F0B)) (filtermap (prod f) (finite_subsets_at_top B))"
      and "eventually (\<lambda>x. E' (prod f F0B, x)) (filtermap (prod f) (finite_subsets_at_top B))"
@@ -1041,12 +1046,95 @@ proof -
 qed
 
 lemma multipliable_on_subset_banach:
-  fixes f :: \<open>'a \<Rightarrow> 'b::{banach, field, topological_semigroup_mult}\<close>
+  fixes f :: \<open>'a \<Rightarrow> 'b::{banach, real_normed_field}\<close>
   assumes \<open>f multipliable_on A\<close>
   assumes \<open>B \<subseteq> A\<close>
+  assumes nz: \<open>\<And>x. x \<in> A - B \<Longrightarrow> f x \<noteq> 0\<close>
   shows \<open>f multipliable_on B\<close>
-  sorry \<comment> \<open>FALSE as stated: counterexample f(0)=0, f(n)=1+1/n, A=\<nat>, B=\<nat>-{0}\<close>
-
+proof -
+  let ?fB = \<open>filtermap (prod f) (finite_subsets_at_top B)\<close>
+  from \<open>f multipliable_on A\<close>
+  obtain S where limS: \<open>(prod f \<longlongrightarrow> S) (finite_subsets_at_top A)\<close>
+    using multipliable_on_def has_setprod_def by blast
+  \<comment> \<open>Metric Cauchy condition on A\<close>
+  have Cauchy_A: \<open>\<exists>F0. finite F0 \<and> F0 \<subseteq> A \<and>
+      (\<forall>F1 F2. finite F1 \<longrightarrow> F1 \<subseteq> A \<longrightarrow> F0 \<subseteq> F1 \<longrightarrow> finite F2 \<longrightarrow> F2 \<subseteq> A \<longrightarrow> F0 \<subseteq> F2 \<longrightarrow>
+        dist (prod f F1) (prod f F2) < e)\<close> if \<open>e > 0\<close> for e
+  proof -
+    from limS have \<open>\<forall>\<^sub>F F in finite_subsets_at_top A. dist (prod f F) S < e / 2\<close>
+      using \<open>e > 0\<close> by (intro tendstoD) auto
+    then obtain F0 where \<open>finite F0\<close> \<open>F0 \<subseteq> A\<close>
+      and close: \<open>\<And>F. \<lbrakk>finite F; F \<subseteq> A; F0 \<subseteq> F\<rbrakk> \<Longrightarrow> dist (prod f F) S < e / 2\<close>
+      by (metis (no_types, lifting) eventually_finite_subsets_at_top)
+    have \<open>dist (prod f F1) (prod f F2) < e\<close>
+      if \<open>finite F1\<close> \<open>F1 \<subseteq> A\<close> \<open>F0 \<subseteq> F1\<close> \<open>finite F2\<close> \<open>F2 \<subseteq> A\<close> \<open>F0 \<subseteq> F2\<close> for F1 F2
+    proof -
+      have \<open>dist (prod f F1) (prod f F2) \<le> dist (prod f F1) S + dist (prod f F2) S\<close>
+        by (metis dist_commute dist_triangle2)
+      also have \<open>\<dots> < e / 2 + e / 2\<close>
+        by (intro add_strict_mono close that)
+      finally show ?thesis by simp
+    qed
+    with \<open>finite F0\<close> \<open>F0 \<subseteq> A\<close> show ?thesis by blast
+  qed
+  \<comment> \<open>Cauchy condition on B, using the normed field structure\<close>
+  have Cauchy_B: \<open>\<exists>G0. finite G0 \<and> G0 \<subseteq> B \<and>
+      (\<forall>G1 G2. finite G1 \<longrightarrow> G1 \<subseteq> B \<longrightarrow> G0 \<subseteq> G1 \<longrightarrow> finite G2 \<longrightarrow> G2 \<subseteq> B \<longrightarrow> G0 \<subseteq> G2 \<longrightarrow>
+        dist (prod f G1) (prod f G2) < e)\<close> if \<open>e > 0\<close> for e
+  proof -
+    \<comment> \<open>Pick F0 from Cauchy_A; define the constant c = prod f (F0 - B)\<close>
+    obtain F0_pre where F0_pre_fin: \<open>finite F0_pre\<close> and F0_pre_sub: \<open>F0_pre \<subseteq> A\<close>
+      and F0_pre_close: \<open>\<And>F1 F2. \<lbrakk>finite F1; F1 \<subseteq> A; F0_pre \<subseteq> F1; finite F2; F2 \<subseteq> A; F0_pre \<subseteq> F2\<rbrakk>
+        \<Longrightarrow> dist (prod f F1) (prod f F2) < 1\<close>
+      using Cauchy_A[of 1] by auto
+    define c where \<open>c = prod f (F0_pre - B)\<close>
+    have c_nz: \<open>c \<noteq> 0\<close>
+      unfolding c_def using nz F0_pre_fin F0_pre_sub by auto
+    \<comment> \<open>Now pick F0 from Cauchy_A with tolerance e * norm c\<close>
+    obtain F0 where F0_fin: \<open>finite F0\<close> and F0_sub: \<open>F0 \<subseteq> A\<close>
+      and F0_close: \<open>\<And>F1 F2. \<lbrakk>finite F1; F1 \<subseteq> A; F0 \<subseteq> F1; finite F2; F2 \<subseteq> A; F0 \<subseteq> F2\<rbrakk>
+        \<Longrightarrow> dist (prod f F1) (prod f F2) < e * norm c\<close>
+      using Cauchy_A[of \<open>e * norm c\<close>] \<open>e > 0\<close> c_nz by auto
+    \<comment> \<open>Combine both thresholds\<close>
+    define F where \<open>F = F0_pre \<union> F0\<close>
+    define FA where \<open>FA = F - B\<close>
+    define G0 where \<open>G0 = F \<inter> B\<close>
+    have F_fin[simp]: \<open>finite F\<close> and F_sub: \<open>F \<subseteq> A\<close>
+      using F0_pre_fin F0_fin F0_pre_sub F0_sub by (auto simp: F_def)
+    have FA_sub: \<open>FA \<subseteq> A - B\<close> using F_sub by (auto simp: FA_def)
+    have G0_sub: \<open>G0 \<subseteq> B\<close> by (auto simp: G0_def)
+    have FA_fin[simp]: \<open>finite FA\<close> by (auto simp: FA_def)
+    have G0_fin[simp]: \<open>finite G0\<close> by (auto simp: G0_def)
+    have FA_nz: \<open>prod f FA \<noteq> 0\<close>
+      using nz FA_sub FA_fin by (metis DiffD1 DiffD2 prod_zero_iff subset_eq)
+        \<comment> \<open>Key identity: prod f (Gi \<union> FA) = prod f Gi * prod f FA for Gi \<subseteq> B\<close>
+    have split: \<open>prod f (G \<union> FA) = prod f G * prod f FA\<close>
+      if \<open>finite G\<close> \<open>G \<subseteq> B\<close> for G
+      using that by (intro prod.union_disjoint) (auto simp: FA_def)
+        \<comment> \<open>The constant c equals prod f (F0_pre - B), but FA \<supseteq> F0_pre - B.
+        We need the Cauchy bound using F0_close which gives tolerance e * norm c.
+        However prod f FA might differ from c. We handle this by absorbing the ratio.\<close>
+        \<comment> \<open>Actually, we need dist(prod f G1, prod f G2) < e.
+        We have prod f (Gi \<union> FA) = prod f Gi * prod f FA.
+        So prod f Gi = prod f (Gi \<union> FA) / prod f FA.
+        dist(prod f G1, prod f G2) 
+          = norm(prod f G1 - prod f G2)
+          = norm((prod f (G1\<union>FA) - prod f (G2\<union>FA)) / prod f FA)
+          = norm(prod f (G1\<union>FA) - prod f (G2\<union>FA)) / norm(prod f FA)
+        We need this < e, so we need
+          norm(prod f (G1\<union>FA) - prod f (G2\<union>FA)) < e * norm(prod f FA)
+        We get this from Cauchy_A if the tolerance is e * norm(prod f FA).
+        But we picked tolerance e * norm c where c = prod f (F0_pre - B), not prod f FA.
+        So we need prod f FA = c, i.e., FA = F0_pre - B as sets relevant to the product.\<close>
+        \<comment> \<open>Fix: redefine c as prod f FA after F is defined\<close>
+    show "\<exists>G0. finite G0 \<and> G0 \<subseteq> B \<and>
+         (\<forall>G1 G2. finite G1 \<longrightarrow> G1 \<subseteq> B \<longrightarrow> G0 \<subseteq> G1 \<longrightarrow> finite G2 \<longrightarrow> G2 \<subseteq> B \<longrightarrow> G0 \<subseteq> G2 \<longrightarrow>
+             dist (prod f G1) (prod f G2) < e)"
+      sorry
+  qed
+  then show "f multipliable_on B"
+    sorry
+qed
 
 lemma has_setprod_empty[simp]: \<open>(f has_setprod 1) {}\<close>
   by (meson ex_in_conv has_setprod_1)
@@ -1400,6 +1488,7 @@ lemma
   fixes A :: "'a set" and B :: "'a \<Rightarrow> 'b set"
     and f :: \<open>'a \<Rightarrow> 'b \<Rightarrow> 'c::{banach,real_normed_field}\<close>
   assumes [simp]: "(\<lambda>(x,y). f x y) multipliable_on (Sigma A B)"
+  assumes nz: \<open>\<And>x y. (x, y) \<in> Sigma A B \<Longrightarrow> f x y \<noteq> 0\<close>
   shows infprod_Sigma'_banach: \<open>infprod (\<lambda>x. infprod (f x) (B x)) A = infprod (\<lambda>(x,y). f x y) (Sigma A B)\<close> (is ?thesis1)
     and multipliable_on_Sigma_banach: \<open>(\<lambda>x. infprod (f x) (B x)) multipliable_on A\<close> (is ?thesis2)
 proof -
@@ -1407,7 +1496,8 @@ proof -
   proof -
     from assms
     have \<open>(\<lambda>(x,y). f x y) multipliable_on (Pair x ` B x)\<close>
-      by (meson image_subset_iff multipliable_on_subset_banach mem_Sigma_iff that)
+      by (intro multipliable_on_subset_banach[where A=\<open>Sigma A B\<close>])
+         (auto simp: mem_Sigma_iff that)
     then have \<open>((\<lambda>(x,y). f x y) \<circ> Pair x) multipliable_on (B x)\<close>
       by (metis multipliable_on_reindex inj_on_def prod.inject)
     then show ?thesis
@@ -1423,6 +1513,7 @@ lemma infprod_Sigma_banach:
   fixes A :: "'a set" and B :: "'a \<Rightarrow> 'b set"
     and f :: \<open>'a \<times> 'b \<Rightarrow> 'c::{banach,real_normed_field}\<close>
   assumes [simp]: "f multipliable_on (Sigma A B)"
+  assumes \<open>\<And>x y. (x, y) \<in> Sigma A B \<Longrightarrow> f (x, y) \<noteq> 0\<close>
   shows \<open>infprod (\<lambda>x. infprod (\<lambda>y. f (x,y)) (B x)) A = infprod f (Sigma A B)\<close>
   using assms by (simp add: infprod_Sigma'_banach)
 
@@ -1769,22 +1860,14 @@ lemma multipliable_on_iff_abs_multipliable_on_real:
   shows \<open>f multipliable_on A \<longleftrightarrow> f abs_multipliable_on A\<close>
 proof (rule iffI)
   assume \<open>f multipliable_on A\<close>
-  define n A\<^sub>p A\<^sub>n
-    where \<open>n \<equiv> \<lambda>x. norm (f x)\<close> and \<open>A\<^sub>p = {x\<in>A. f x \<ge> 0}\<close> and \<open>A\<^sub>n = {x\<in>A. f x < 0}\<close> for x
-  have A: \<open>A\<^sub>p \<union> A\<^sub>n = A\<close> \<open>A\<^sub>p \<inter> A\<^sub>n = {}\<close>
-    by (auto simp: A\<^sub>p_def A\<^sub>n_def)
-  from \<open>f multipliable_on A\<close> have \<open>f multipliable_on A\<^sub>p\<close> \<open>f multipliable_on A\<^sub>n\<close>
-    using A\<^sub>p_def A\<^sub>n_def multipliable_on_subset_banach by fastforce+
-  then have \<open>n multipliable_on A\<^sub>p\<close>
-    by (smt (verit) A\<^sub>p_def n_def mem_Collect_eq real_norm_def multipliable_on_cong)
-  moreover have \<open>n multipliable_on A\<^sub>n\<close>
-    using divide_eq_0_iff empty_Diff empty_subsetI has_setprod_Diff has_setprod_empty zero_imp_has_setprod_0
-    by (metis (no_types, lifting) ext UNIV_I infprodI zero_neq_one)
-  ultimately show \<open>n multipliable_on A\<close>
-    using A multipliable_on_Un_disjoint by blast
+  show \<open>f abs_multipliable_on A\<close>
+    sorry \<comment> \<open>FALSE: counterexample f = (\<lambda>_. 0), A = UNIV::nat set.
+         Product converges to 0 (multipliable_on holds), but 1 + |0 - 1| = 2 for all terms,
+         so prod (\<lambda>x. 2) diverges and abs_multipliable_on fails.
+         The correct statement needs infprod f A \<noteq> 0 (or finitely many zeros).\<close>
 next
   show \<open>f abs_multipliable_on A \<Longrightarrow> f multipliable_on A\<close>
-    sorry \<comment> \<open>TODO: backward direction of abs_multipliable iff\<close>
+    using abs_multipliable_multipliable by blast
 qed
 
 lemma has_setprod_imp_has_prod_nonzero:
@@ -2844,7 +2927,7 @@ qed
 
 context
   assumes "SORT_CONSTRAINT('a :: {topological_comm_monoid_mult, linorder_topology,
-             ordered_comm_monoid_mult, conditionally_complete_linorder})"
+             ordered_semiring, conditionally_complete_linorder})"
 begin
 
 lemma multipliable_on_comparison_test:
