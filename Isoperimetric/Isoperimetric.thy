@@ -4475,6 +4475,7 @@ proof -
   \<comment> \<open>Common facts used by both split_case and split_case'\<close>
   have g0: "g 0 = 0" using assms g(2) by (simp add: pathstart_def)
   have g1: "g 1 = 0" using assms g(3) by (simp add: pathfinish_def)
+  have lfg: "loop_free g" using g by (simp add: simple_path_def)
   have Reb: "Re b > 0" using b(2) assms by simp
   have Imb: "Im b = 0" using b(3) assms by simp
   define f where "f \<equiv> \<lambda>s. Re (g' s) * Im (g s)"
@@ -4532,35 +4533,19 @@ proof -
       have g0_pi: "0 \<in> path_image g" using g0 by (metis pathstart_def pathstart_in_path_image)
       have diam_eq: "dist 0 b = diameter (path_image g)" using dab assms by simp
       have dist_0b: "dist 0 b = Re b"
-      proof -
-        have "dist 0 b = cmod b" by (simp add: dist_norm)
-        also have "\<dots> = sqrt ((Re b)\<^sup>2 + (Im b)\<^sup>2)" by (simp add: cmod_power2 [symmetric])
-        also have "\<dots> = sqrt ((Re b)\<^sup>2)" using Imb by simp
-        also have "\<dots> = Re b" using Reb by simp
-        finally show ?thesis .
-      qed
+        by (simp add: Imb Reb cmod_eq_Re less_eq_real_def)
       have d1: "dist (g s1) b \<le> Re b"
         using diameter_bounded_bound[OF bdd gs1_pi b(1)] diam_eq dist_0b by simp
       have d2: "dist 0 (g s1) \<le> Re b"
         using diameter_bounded_bound[OF bdd g0_pi gs1_pi] diam_eq dist_0b by simp
       have cmod_sq: "(Re z)\<^sup>2 + (Im z)\<^sup>2 \<le> (Re b)\<^sup>2" if "cmod z \<le> Re b" for z
-      proof -
-        have "(cmod z)\<^sup>2 \<le> (Re b)\<^sup>2" by (intro power_mono that) simp
-        then show ?thesis using cmod_power2[of z] by simp
-      qed
+        using cmod_def sqrt_le_D that by presburger
       have cmod_sq_b: "(Re z - Re b)\<^sup>2 + (Im z)\<^sup>2 \<le> (Re b)\<^sup>2" if "cmod (z - b) \<le> Re b" for z
-      proof -
-        have "(cmod (z - b))\<^sup>2 \<le> (Re b)\<^sup>2" by (intro power_mono that) simp
-        then show ?thesis using cmod_power2[of "z - b"] Imb by simp
-      qed
+        using Imb cmod_sq that by fastforce
       have eq_1: "s = 1" if "g s = 0" "s \<in> {t..1}" for s
         using g1 inj_onD inj_sub that(1,2) by fastforce
       have eq_t: "s = t" if "g s = b" "s \<in> {t..1}" for s
-      proof -
-        have eq: "g s = g t" using that(1) ht(3) by simp
-        have "t \<in> {t..1}" using ht(2) by auto
-        from inj_onD[OF inj_sub eq that(2) this] show ?thesis .
-      qed
+        using ht(3) inj_on_contraD inj_sub that(1,2) by fastforce
       have "c \<noteq> 0"
       proof
         assume "c = 0"
@@ -4605,11 +4590,7 @@ proof -
         finally show ?thesis unfolding c_def by linarith
       qed
       moreover have "c \<le> Re b"
-      proof -
-        have "Re (g s1) \<le> cmod (g s1)" by (rule complex_Re_le_cmod)
-        also have "\<dots> \<le> Re b" using d2 by (simp add: dist_norm)
-        finally show ?thesis unfolding c_def by linarith
-      qed
+        by (metis c_def complex_Re_le_cmod d2 dist_0_norm order_trans)
       ultimately show ?thesis by linarith
     qed
     obtain s3 where s3: "s3 \<in> {0..t}" "Re (g s3) = c"
@@ -4635,67 +4616,17 @@ proof -
     have s3_01: "s3 \<in> {0..1}" using s3(1) ht(2) by auto
     have gs3_frontier: "g s3 \<in> frontier S" using frontier_S s3_01 by (auto simp: path_image_def)
     have gs3_ne_gs1: "g s3 \<noteq> g s1"
-    proof
-      assume eq: "g s3 = g s1"
-      from g(1) have lf: "loop_free g" by (simp add: simple_path_def)
-      from lf[unfolded loop_free_def, rule_format, OF s3_01 s1_01 eq]
-      have "s3 = s1 \<or> s3 = 0 \<and> s1 = 1 \<or> s3 = 1 \<and> s1 = 0" by auto
-      then show False
-      proof (elim disjE conjE)
-        assume "s3 = s1"
-        then have "s1 = t" using s3(1) s1t by auto
-        then have "c = Re b" unfolding c_def using ht(3) by simp
-        then show False using c_strict by simp
-      next
-        assume "s3 = 0" "s1 = 1"
-        then have "c = 0" unfolding c_def using g1 by simp
-        then show False using c_strict by simp
-      next
-        assume "s3 = 1" "s1 = 0"
-        then have "c = 0" unfolding c_def using g0 by simp
-        then show False using c_strict by simp
-      qed
-    qed
+      using lfg c_strict unfolding c_def
+      by (smt (verit) arc_inj_on atLeastAtMost_iff g0 ht(3) inj_on_eq_iff order_trans order_less_le s1t
+          s3(1) zero_complex.sel(1))
     have gs3_ne_gs2: "g s3 \<noteq> g s2"
-    proof
-      assume eq: "g s3 = g s2"
-      from g(1) have lf: "loop_free g" by (simp add: simple_path_def)
-      from lf[unfolded loop_free_def, rule_format, OF s3_01 s2_01 eq]
-      have "s3 = s2 \<or> s3 = 0 \<and> s2 = 1 \<or> s3 = 1 \<and> s2 = 0" by auto
-      then show False
-      proof (elim disjE conjE)
-        assume "s3 = s2"
-        then have "s2 = t" using s3(1) s2t by auto
-        then have "Re (g s2) = Re b" using ht(3) by simp
-        then have "c = Re b" unfolding c_def using Re_eq by simp
-        then show False using c_strict by simp
-      next
-        assume "s3 = 0" "s2 = 1"
-        then have "Re (g s2) = 0" using g1 by simp
-        then have "c = 0" unfolding c_def using Re_eq by simp
-        then show False using c_strict by simp
-      next
-        assume "s3 = 1" "s2 = 0"
-        then have "Re (g s2) = 0" using g0 by simp
-        then have "c = 0" unfolding c_def using Re_eq by simp
-        then show False using c_strict by simp
-      qed
-    qed
+      using lfg c_strict s2_01 s2t s3(1,2) s3_01 g1 ht(3) 
+      apply (simp add: c_def loop_free_def)
+      by (metis not_less not_less_iff_gr_or_eq s2_01 s3_01 zero_complex.simps(1))
     have side_left: "\<exists>p \<in> S. Re p < c"
-    proof -
-      have "g 0 \<in> path_image g" by (simp add: path_image_def)
-      then have g0S: "g 0 \<in> S" unfolding S_def by (rule hull_inc)
-      have "Re (g 0) < c" using g0 c_strict by simp
-      then show ?thesis using g0S by auto
-    qed
+      by (metis S_def assms c_strict g(2) hull_inc pathstart_in_path_image zero_complex.simps(1))
     have side_right: "\<exists>q \<in> S. c < Re q"
-    proof -
-      have "g t \<in> path_image g" using ht(1,2) by (auto simp: path_image_def intro!: image_eqI)
-      then have gtS: "g t \<in> S" unfolding S_def by (rule hull_inc)
-      have "c < Re (g t)" using ht(3) c_strict by simp
-      then show ?thesis using gtS by auto
-    qed
-
+      by (metis S_def b(1) c_strict hull_inc)
     have three_distinct: "g s1 \<noteq> g s2 \<and> g s1 \<noteq> g s3 \<and> g s2 \<noteq> g s3"
       using g_neq gs3_ne_gs1 gs3_ne_gs2 by auto
     have Re_all_c: "Re (g s1) = c" "Re (g s2) = c" "Re (g s3) = c"
@@ -4904,15 +4835,12 @@ proof -
               using subsetD[OF below imageI[OF sr(1)]] by simp
             moreover have "Re (g s) = Re z" using sr(3) by simp
             moreover have "Im (g s) \<le> Im z"
-            proof -
-              have "Im z = r * Im (g s)" using sr(3) by simp
-              also have "\<dots> \<ge> 1 * Im (g s)"
-                using mult_right_mono_neg[of r 1 "Im (g s)"] sr(2) Im_le by auto
-              finally show ?thesis by simp
-            qed
+              by (metis atLeastAtMost_iff calculation(2) complex.sel(2) linorder_not_le mult_less_cancel_right2
+                  sr(2,3))
             moreover have "Im z \<le> 0"
               using sr(3) sr(2) Im_le mult_nonneg_nonpos[of r "Im (g s)"] by simp
-            ultimately show "z \<in> Al" unfolding Al_def by auto
+            ultimately show "z \<in> Al" unfolding Al_def
+              by blast
           next
             assume "z \<in> Al"
             then obtain w where w: "w \<in> g ` {t..1}" "Re w = Re z" "Im w \<le> Im z" "Im z \<le> 0"
@@ -4970,12 +4898,7 @@ proof -
             have "diameter (path_image g) = dist 0 b" using dab g0 g1 assms by simp
             also have "\<dots> = cmod b" by (simp add: dist_norm)
             also have "\<dots> = Re b"
-            proof -
-              have "cmod b = sqrt ((Re b)\<^sup>2 + (Im b)\<^sup>2)" by (simp add: cmod_def)
-              also have "\<dots> = sqrt ((Re b)\<^sup>2)" using Imb by simp
-              also have "\<dots> = Re b" using Reb by simp
-              finally show "cmod b = Re b" .
-            qed
+              using Imb Re_le' complex_nonneg_Reals_iff g1 hgt norm_eq_Re_iff by force
             finally show ?thesis .
           qed
           from d0 have ub: "cmod w \<le> Re b" using diam_eq by (simp add: dist_norm)
