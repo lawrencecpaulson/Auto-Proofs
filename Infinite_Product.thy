@@ -1052,88 +1052,45 @@ lemma multipliable_on_subset_banach:
   assumes nz: \<open>\<And>x. x \<in> A - B \<Longrightarrow> f x \<noteq> 0\<close>
   shows \<open>f multipliable_on B\<close>
 proof -
-  let ?fB = \<open>filtermap (prod f) (finite_subsets_at_top B)\<close>
+  \<comment> \<open>Step 1: The net prod f along finite_subsets_at_top A converges (given), hence is Cauchy.\<close>
   from \<open>f multipliable_on A\<close>
   obtain S where limS: \<open>(prod f \<longlongrightarrow> S) (finite_subsets_at_top A)\<close>
     using multipliable_on_def has_setprod_def by blast
-  \<comment> \<open>Metric Cauchy condition on A\<close>
-  have Cauchy_A: \<open>\<exists>F0. finite F0 \<and> F0 \<subseteq> A \<and>
-      (\<forall>F1 F2. finite F1 \<longrightarrow> F1 \<subseteq> A \<longrightarrow> F0 \<subseteq> F1 \<longrightarrow> finite F2 \<longrightarrow> F2 \<subseteq> A \<longrightarrow> F0 \<subseteq> F2 \<longrightarrow>
-        dist (prod f F1) (prod f F2) < e)\<close> if \<open>e > 0\<close> for e
-  proof -
-    from limS have \<open>\<forall>\<^sub>F F in finite_subsets_at_top A. dist (prod f F) S < e / 2\<close>
-      using \<open>e > 0\<close> by (intro tendstoD) auto
-    then obtain F0 where \<open>finite F0\<close> \<open>F0 \<subseteq> A\<close>
-      and close: \<open>\<And>F. \<lbrakk>finite F; F \<subseteq> A; F0 \<subseteq> F\<rbrakk> \<Longrightarrow> dist (prod f F) S < e / 2\<close>
-      by (metis (no_types, lifting) eventually_finite_subsets_at_top)
-    have \<open>dist (prod f F1) (prod f F2) < e\<close>
-      if \<open>finite F1\<close> \<open>F1 \<subseteq> A\<close> \<open>F0 \<subseteq> F1\<close> \<open>finite F2\<close> \<open>F2 \<subseteq> A\<close> \<open>F0 \<subseteq> F2\<close> for F1 F2
-    proof -
-      have \<open>dist (prod f F1) (prod f F2) \<le> dist (prod f F1) S + dist (prod f F2) S\<close>
-        by (metis dist_commute dist_triangle2)
-      also have \<open>\<dots> < e / 2 + e / 2\<close>
-        by (intro add_strict_mono close that)
-      finally show ?thesis by simp
-    qed
-    with \<open>finite F0\<close> \<open>F0 \<subseteq> A\<close> show ?thesis by blast
-  qed
-  \<comment> \<open>Cauchy condition on B, using the normed field structure\<close>
-  have Cauchy_B: \<open>\<exists>G0. finite G0 \<and> G0 \<subseteq> B \<and>
-      (\<forall>G1 G2. finite G1 \<longrightarrow> G1 \<subseteq> B \<longrightarrow> G0 \<subseteq> G1 \<longrightarrow> finite G2 \<longrightarrow> G2 \<subseteq> B \<longrightarrow> G0 \<subseteq> G2 \<longrightarrow>
-        dist (prod f G1) (prod f G2) < e)\<close> if \<open>e > 0\<close> for e
-  proof -
-    \<comment> \<open>Pick F0 from Cauchy_A; define the constant c = prod f (F0 - B)\<close>
-    obtain F0_pre where F0_pre_fin: \<open>finite F0_pre\<close> and F0_pre_sub: \<open>F0_pre \<subseteq> A\<close>
-      and F0_pre_close: \<open>\<And>F1 F2. \<lbrakk>finite F1; F1 \<subseteq> A; F0_pre \<subseteq> F1; finite F2; F2 \<subseteq> A; F0_pre \<subseteq> F2\<rbrakk>
-        \<Longrightarrow> dist (prod f F1) (prod f F2) < 1\<close>
-      using Cauchy_A[of 1] by auto
-    define c where \<open>c = prod f (F0_pre - B)\<close>
-    have c_nz: \<open>c \<noteq> 0\<close>
-      unfolding c_def using nz F0_pre_fin F0_pre_sub by auto
-    \<comment> \<open>Now pick F0 from Cauchy_A with tolerance e * norm c\<close>
-    obtain F0 where F0_fin: \<open>finite F0\<close> and F0_sub: \<open>F0 \<subseteq> A\<close>
-      and F0_close: \<open>\<And>F1 F2. \<lbrakk>finite F1; F1 \<subseteq> A; F0 \<subseteq> F1; finite F2; F2 \<subseteq> A; F0 \<subseteq> F2\<rbrakk>
-        \<Longrightarrow> dist (prod f F1) (prod f F2) < e * norm c\<close>
-      using Cauchy_A[of \<open>e * norm c\<close>] \<open>e > 0\<close> c_nz by auto
-    \<comment> \<open>Combine both thresholds\<close>
-    define F where \<open>F = F0_pre \<union> F0\<close>
-    define FA where \<open>FA = F - B\<close>
-    define G0 where \<open>G0 = F \<inter> B\<close>
-    have F_fin[simp]: \<open>finite F\<close> and F_sub: \<open>F \<subseteq> A\<close>
-      using F0_pre_fin F0_fin F0_pre_sub F0_sub by (auto simp: F_def)
-    have FA_sub: \<open>FA \<subseteq> A - B\<close> using F_sub by (auto simp: FA_def)
-    have G0_sub: \<open>G0 \<subseteq> B\<close> by (auto simp: G0_def)
-    have FA_fin[simp]: \<open>finite FA\<close> by (auto simp: FA_def)
-    have G0_fin[simp]: \<open>finite G0\<close> by (auto simp: G0_def)
-    have FA_nz: \<open>prod f FA \<noteq> 0\<close>
-      using nz FA_sub FA_fin by (metis DiffD1 DiffD2 prod_zero_iff subset_eq)
-        \<comment> \<open>Key identity: prod f (Gi \<union> FA) = prod f Gi * prod f FA for Gi \<subseteq> B\<close>
-    have split: \<open>prod f (G \<union> FA) = prod f G * prod f FA\<close>
-      if \<open>finite G\<close> \<open>G \<subseteq> B\<close> for G
-      using that by (intro prod.union_disjoint) (auto simp: FA_def)
-        \<comment> \<open>The constant c equals prod f (F0_pre - B), but FA \<supseteq> F0_pre - B.
-        We need the Cauchy bound using F0_close which gives tolerance e * norm c.
-        However prod f FA might differ from c. We handle this by absorbing the ratio.\<close>
-        \<comment> \<open>Actually, we need dist(prod f G1, prod f G2) < e.
-        We have prod f (Gi \<union> FA) = prod f Gi * prod f FA.
-        So prod f Gi = prod f (Gi \<union> FA) / prod f FA.
-        dist(prod f G1, prod f G2) 
-          = norm(prod f G1 - prod f G2)
-          = norm((prod f (G1\<union>FA) - prod f (G2\<union>FA)) / prod f FA)
-          = norm(prod f (G1\<union>FA) - prod f (G2\<union>FA)) / norm(prod f FA)
-        We need this < e, so we need
-          norm(prod f (G1\<union>FA) - prod f (G2\<union>FA)) < e * norm(prod f FA)
-        We get this from Cauchy_A if the tolerance is e * norm(prod f FA).
-        But we picked tolerance e * norm c where c = prod f (F0_pre - B), not prod f FA.
-        So we need prod f FA = c, i.e., FA = F0_pre - B as sets relevant to the product.\<close>
-        \<comment> \<open>Fix: redefine c as prod f FA after F is defined\<close>
-    show "\<exists>G0. finite G0 \<and> G0 \<subseteq> B \<and>
-         (\<forall>G1 G2. finite G1 \<longrightarrow> G1 \<subseteq> B \<longrightarrow> G0 \<subseteq> G1 \<longrightarrow> finite G2 \<longrightarrow> G2 \<subseteq> B \<longrightarrow> G0 \<subseteq> G2 \<longrightarrow>
-             dist (prod f G1) (prod f G2) < e)"
-      sorry
-  qed
-  then show "f multipliable_on B"
+
+  \<comment> \<open>Step 2: Fix FA = F0 - B for some sufficiently large finite F0 \<subseteq> A.\<close>
+  obtain F0 where F0_fin: \<open>finite F0\<close> and F0_sub: \<open>F0 \<subseteq> A\<close>
+    by blast
+  define FA where \<open>FA = F0 - B\<close>
+  have FA_fin[simp]: \<open>finite FA\<close> by (simp add: FA_def F0_fin)
+  have FA_sub: \<open>FA \<subseteq> A - B\<close> using F0_sub by (auto simp: FA_def)
+  have FA_nz: \<open>prod f FA \<noteq> 0\<close>
+    using nz FA_sub FA_fin by (metis DiffD1 DiffD2 prod_zero_iff subset_eq)
+
+  \<comment> \<open>Key identity: prod f (G \<union> FA) = prod f G * prod f FA for G \<subseteq> B\<close>
+  have split: \<open>prod f (G \<union> FA) = prod f G * prod f FA\<close>
+    if \<open>finite G\<close> \<open>G \<subseteq> B\<close> for G
+    using that FA_fin by (intro prod.union_disjoint) (auto simp: FA_def)
+
+  \<comment> \<open>Step 3: The map G \<mapsto> G \<union> FA embeds finite_subsets_at_top B into finite_subsets_at_top A (eventually).\<close>
+  have embed: \<open>\<forall>\<^sub>F G in finite_subsets_at_top B. finite (G \<union> FA) \<and> (G \<union> FA) \<subseteq> A \<and> F0 \<subseteq> (G \<union> FA)\<close>
     sorry
+
+  \<comment> \<open>Step 4: So G \<mapsto> prod f (G \<union> FA) converges along finite_subsets_at_top B.\<close>
+  have conv_union: \<open>\<exists>T. ((\<lambda>G. prod f (G \<union> FA)) \<longlongrightarrow> T) (finite_subsets_at_top B)\<close>
+    sorry
+
+  \<comment> \<open>Step 5: Since prod f (G \<union> FA) = prod f G * prod f FA and prod f FA \<noteq> 0,
+     we get prod f G = prod f (G \<union> FA) / prod f FA.\<close>
+  have eq: \<open>\<forall>\<^sub>F G in finite_subsets_at_top B. prod f G = prod f (G \<union> FA) / prod f FA\<close>
+    sorry
+
+  \<comment> \<open>Step 6: Dividing a convergent net by a nonzero constant gives a convergent net.\<close>
+  have conv_B: \<open>\<exists>T. (prod f \<longlongrightarrow> T) (finite_subsets_at_top B)\<close>
+    sorry
+
+  \<comment> \<open>Step 7: Hence f multipliable_on B.\<close>
+  then show \<open>f multipliable_on B\<close>
+    using multipliable_on_def has_setprod_def by blast
 qed
 
 lemma has_setprod_empty[simp]: \<open>(f has_setprod 1) {}\<close>
