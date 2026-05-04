@@ -5017,9 +5017,15 @@ proof -
           have Im_w_pos: "Im w > 0" using True d(1) Im_w by linarith
           \<comment> \<open>Since Im w > 0 and lower arc has Im \<le> 0, w must be on the upper arc\<close>
           have w_upper: "w \<in> g ` {0..t}"
-            sorry \<comment> \<open>w \<in> path_image g = g ` {0..t} \<union> g ` {t..1}.
-                    If w \<in> g ` {t..1} then Im w \<le> 0 by \<open>below\<close>, contradicting Im_w_pos.
-                    So w \<in> g ` {0..t}.  (Uses loop_free + path_image decomposition.)\<close>
+          proof -
+            have "{0..1} = {0..t} \<union> {t..1}" using t_le t_le1 by (auto simp: ivl_disj_un_two_touch)
+            then have "path_image g = g ` {0..t} \<union> g ` {t..1}"
+              unfolding path_image_def by (simp add: image_Un)
+            then have "w \<in> g ` {0..t} \<union> g ` {t..1}" using w_on_path by simp
+            moreover have "w \<notin> g ` {t..1}"
+              using below Im_w_pos by (auto simp: subset_iff)
+            ultimately show ?thesis by blast
+          qed
           have "z \<in> Au"
             using Au_def Im_w Re_w True d(1) w_upper by auto
           then show "z \<in> Au \<union> Al" ..
@@ -5027,18 +5033,27 @@ proof -
           case False
           then have Im_z_neg: "Im z \<le> 0" by simp
           \<comment> \<open>Shoot a ray downward from z in direction -\<i>\<close>
-          obtain d where d: "d > 0" "z - d *\<^sub>R \<i> \<in> rel_frontier S"
-            using S_bounded complex_i_not_zero ray_to_frontier rel_fr_eq z_int
-            sorry \<comment> \<open>From ray\_to\_rel\_frontier with direction l = -i\<close>
+          obtain d where d: "d > 0" "z + d *\<^sub>R (-\<i>) \<in> frontier S"
+            by (metis S_bounded complex_i_not_zero neg_equal_0_iff_equal ray_to_frontier z_int)
+          have d2: "z - d *\<^sub>R \<i> \<in> rel_frontier S"
+            using d(2) rel_fr_eq by (simp add: real_vector.scale_minus_right)
           define w where "w \<equiv> z - d *\<^sub>R \<i>"
           have w_on_path: "w \<in> path_image g"
-            using d(2) rel_fr_eq frontier_S w_def by auto
+            using d2 rel_fr_eq frontier_S w_def by auto
           have Re_w: "Re w = Re z" unfolding w_def by simp
           have Im_w: "Im w = Im z - d" unfolding w_def by simp
           have Im_w_neg: "Im w < 0" using Im_z_neg d(1) Im_w by linarith
           \<comment> \<open>Since Im w < 0, w must be on the lower arc\<close>
           have w_lower: "w \<in> g ` {t..1}"
-            sorry \<comment> \<open>Symmetric: Im w < 0 rules out g ` {0..t} (which has Im \<ge> 0 by \<open>above\<close>).\<close>
+          proof -
+            have "{0..1} = {0..t} \<union> {t..1}" using t_le t_le1 by (auto simp: ivl_disj_un_two_touch)
+            then have "path_image g = g ` {0..t} \<union> g ` {t..1}"
+              unfolding path_image_def by (simp add: image_Un)
+            then have "w \<in> g ` {0..t} \<union> g ` {t..1}" using w_on_path by simp
+            moreover have "w \<notin> g ` {0..t}"
+              using above Im_w_neg by (auto simp: subset_iff)
+            ultimately show ?thesis by blast
+          qed
           have "z \<in> Al"
             using Al_def Im_w Im_z_neg Re_w d(1) w_lower by auto
           then show "z \<in> Au \<union> Al" ..
