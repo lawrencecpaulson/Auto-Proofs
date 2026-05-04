@@ -4976,7 +4976,75 @@ proof -
       qed
 
       have inside_sub_Au_Al: "inside (path_image g) \<subseteq> Au \<union> Al"
-        sorry
+      proof (rule subsetI)
+        fix z assume z_in: "z \<in> inside (path_image g)"
+        \<comment> \<open>Set up the convex hull S and its key properties\<close>
+        define S where "S \<equiv> convex hull (path_image g)"
+        have S_convex: "convex S" unfolding S_def by (rule convex_convex_hull)
+        have S_compact: "compact S" unfolding S_def
+          using compact_simple_path_image[OF g(1)] compact_convex_hull by auto
+        have S_bounded: "bounded S" using S_compact compact_imp_bounded by auto
+        have ch_eq: "S = closure (inside (path_image g))"
+          unfolding S_def using convex_hull_eq_closure_inside[OF g(1) _ conv] g(2,3) by auto
+        have frontier_S: "frontier S = path_image g"
+          unfolding S_def using frontier_convex_hull_eq_path_image[OF g(1) _ conv] g(2,3) by auto
+        have inside_eq_int: "inside (path_image g) = interior S"
+          by (metis S_bounded S_convex frontier_S inside_frontier_eq_interior)
+        have S_int_ne: "interior S \<noteq> {}"
+          using z_in inside_eq_int by auto
+        have rel_int_eq: "rel_interior S = interior S"
+          using rel_interior_nonempty_interior[OF S_int_ne] .
+        have rel_fr_eq: "rel_frontier S = frontier S"
+          using rel_frontier_nonempty_interior[OF S_int_ne] .
+        have z_int: "z \<in> interior S" using z_in inside_eq_int by auto
+        have z_rel_int: "z \<in> rel_interior S" using z_int rel_int_eq by simp
+        \<comment> \<open>S is full-dimensional, so affine hull S = UNIV\<close>
+        have aff_S: "affine hull S = UNIV"
+          by (simp add: S_int_ne affine_hull_nonempty_interior)
+        \<comment> \<open>Case split on the sign of Im z\<close>
+        show "z \<in> Au \<union> Al"
+        proof (cases "Im z \<ge> 0")
+          case True
+          \<comment> \<open>Shoot a ray upward from z in direction \<i>.
+             By ray_to_rel_frontier, we hit a point on frontier S = path_image g.\<close>
+          obtain d where d: "d > 0" "z + d *\<^sub>R \<i> \<in> rel_frontier S"
+            by (metis S_bounded complex_i_not_zero ray_to_frontier rel_fr_eq z_int)
+          define w where "w \<equiv> z + d *\<^sub>R \<i>"
+          have w_on_path: "w \<in> path_image g"
+            using d(2) rel_fr_eq frontier_S w_def by auto
+          have Re_w: "Re w = Re z" unfolding w_def by simp
+          have Im_w: "Im w = Im z + d" unfolding w_def by simp
+          have Im_w_pos: "Im w > 0" using True d(1) Im_w by linarith
+          \<comment> \<open>Since Im w > 0 and lower arc has Im \<le> 0, w must be on the upper arc\<close>
+          have w_upper: "w \<in> g ` {0..t}"
+            sorry \<comment> \<open>w \<in> path_image g = g ` {0..t} \<union> g ` {t..1}.
+                    If w \<in> g ` {t..1} then Im w \<le> 0 by \<open>below\<close>, contradicting Im_w_pos.
+                    So w \<in> g ` {0..t}.  (Uses loop_free + path_image decomposition.)\<close>
+          have "z \<in> Au"
+            using Au_def Im_w Re_w True d(1) w_upper by auto
+          then show "z \<in> Au \<union> Al" ..
+        next
+          case False
+          then have Im_z_neg: "Im z \<le> 0" by simp
+          \<comment> \<open>Shoot a ray downward from z in direction -\<i>\<close>
+          obtain d where d: "d > 0" "z - d *\<^sub>R \<i> \<in> rel_frontier S"
+            using S_bounded complex_i_not_zero ray_to_frontier rel_fr_eq z_int
+            sorry \<comment> \<open>From ray\_to\_rel\_frontier with direction l = -i\<close>
+          define w where "w \<equiv> z - d *\<^sub>R \<i>"
+          have w_on_path: "w \<in> path_image g"
+            using d(2) rel_fr_eq frontier_S w_def by auto
+          have Re_w: "Re w = Re z" unfolding w_def by simp
+          have Im_w: "Im w = Im z - d" unfolding w_def by simp
+          have Im_w_neg: "Im w < 0" using Im_z_neg d(1) Im_w by linarith
+          \<comment> \<open>Since Im w < 0, w must be on the lower arc\<close>
+          have w_lower: "w \<in> g ` {t..1}"
+            sorry \<comment> \<open>Symmetric: Im w < 0 rules out g ` {0..t} (which has Im \<ge> 0 by \<open>above\<close>).\<close>
+          have "z \<in> Al"
+            using Al_def Im_w Im_z_neg Re_w d(1) w_lower by auto
+          then show "z \<in> Au \<union> Al" ..
+        qed
+      qed
+
       have inside_eq: "measure lebesgue (inside (path_image g)) = measure lebesgue (Au \<union> Al)"
       proof -
         have bdd_inside: "bounded (inside (path_image g))"
