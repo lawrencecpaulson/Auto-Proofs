@@ -1047,96 +1047,13 @@ qed
 
 lemma multipliable_on_subset_banach:
   fixes f :: \<open>'a \<Rightarrow> 'b::{banach, real_normed_field}\<close>
+  assumes times_cont: \<open>uniformly_continuous_on UNIV (\<lambda>(x::'b,y). x*y)\<close>
   assumes \<open>f multipliable_on A\<close>
   assumes \<open>B \<subseteq> A\<close>
   assumes nz: \<open>\<And>x. x \<in> A - B \<Longrightarrow> f x \<noteq> 0\<close>
   shows \<open>f multipliable_on B\<close>
-proof -
-  \<comment> \<open>Step 1: The net prod f along finite_subsets_at_top A converges (given), hence is Cauchy.\<close>
-  from \<open>f multipliable_on A\<close>
-  obtain S where limS: \<open>(prod f \<longlongrightarrow> S) (finite_subsets_at_top A)\<close>
-    using multipliable_on_def has_setprod_def by blast
-
-  \<comment> \<open>Step 2: Fix FA = F0 - B for some sufficiently large finite F0 \<subseteq> A.\<close>
-  obtain F0 where F0_fin: \<open>finite F0\<close> and F0_sub: \<open>F0 \<subseteq> A\<close>
-    by blast
-  define FA where \<open>FA = F0 - B\<close>
-  have FA_fin[simp]: \<open>finite FA\<close> by (simp add: FA_def F0_fin)
-  have FA_sub: \<open>FA \<subseteq> A - B\<close> using F0_sub by (auto simp: FA_def)
-  have FA_nz: \<open>prod f FA \<noteq> 0\<close>
-    using nz FA_sub FA_fin by (metis DiffD1 DiffD2 prod_zero_iff subset_eq)
-
-  \<comment> \<open>Key identity: prod f (G \<union> FA) = prod f G * prod f FA for G \<subseteq> B\<close>
-  have split: \<open>prod f (G \<union> FA) = prod f G * prod f FA\<close>
-    if \<open>finite G\<close> \<open>G \<subseteq> B\<close> for G
-    using that FA_fin by (intro prod.union_disjoint) (auto simp: FA_def)
-
-  \<comment> \<open>Step 3: The map G \<mapsto> G \<union> FA embeds finite_subsets_at_top B into finite_subsets_at_top A (eventually).\<close>
-  have embed: \<open>\<forall>\<^sub>F G in finite_subsets_at_top B. finite (G \<union> FA) \<and> (G \<union> FA) \<subseteq> A \<and> F0 \<subseteq> (G \<union> FA)\<close>
-  proof (subst eventually_finite_subsets_at_top, rule exI[of _ \<open>F0 \<inter> B\<close>], intro conjI)
-    show \<open>finite (F0 \<inter> B)\<close> using F0_fin by auto
-    show \<open>F0 \<inter> B \<subseteq> B\<close> by auto
-    show \<open>\<forall>G. finite G \<and> F0 \<inter> B \<subseteq> G \<and> G \<subseteq> B \<longrightarrow> finite (G \<union> FA) \<and> (G \<union> FA) \<subseteq> A \<and> F0 \<subseteq> (G \<union> FA)\<close>
-    proof (intro allI impI, elim conjE)
-      fix G assume \<open>finite G\<close> \<open>F0 \<inter> B \<subseteq> G\<close> \<open>G \<subseteq> B\<close>
-      show \<open>finite (G \<union> FA) \<and> (G \<union> FA) \<subseteq> A \<and> F0 \<subseteq> (G \<union> FA)\<close>
-        using \<open>finite G\<close> \<open>G \<subseteq> B\<close> \<open>B \<subseteq> A\<close> \<open>F0 \<inter> B \<subseteq> G\<close> FA_sub FA_fin
-        by (auto simp: FA_def)
-    qed
-  qed
-
-  \<comment> \<open>Step 4: So G \<mapsto> prod f (G \<union> FA) converges along finite_subsets_at_top B.\<close>
-  have conv_union: \<open>\<exists>T. ((\<lambda>G. prod f (G \<union> FA)) \<longlongrightarrow> T) (finite_subsets_at_top B)\<close>
-  proof -
-    have BFA_sub: \<open>B \<union> FA \<subseteq> A\<close> using \<open>B \<subseteq> A\<close> FA_sub by auto
-    have mono: \<open>finite_subsets_at_top (B \<union> FA) \<le> finite_subsets_at_top A\<close>
-      unfolding le_filter_def
-    proof (intro allI impI)
-      fix P assume \<open>eventually P (finite_subsets_at_top A)\<close>
-      then obtain X where \<open>finite X\<close> \<open>X \<subseteq> A\<close> 
-        and XP: \<open>\<forall>Y. finite Y \<and> X \<subseteq> Y \<and> Y \<subseteq> A \<longrightarrow> P Y\<close>
-        unfolding eventually_finite_subsets_at_top by auto
-      show \<open>eventually P (finite_subsets_at_top (B \<union> FA))\<close>
-        unfolding eventually_finite_subsets_at_top
-        apply (rule exI[of _ X])
-        using \<open>finite X\<close> \<open>X \<subseteq> A\<close> BFA_sub XP by auto
-    qed
-    have lim_BFA: \<open>(prod f \<longlongrightarrow> S) (finite_subsets_at_top (B \<union> FA))\<close>
-      using limS mono tendsto_mono by blast
-    have filt: \<open>filterlim (\<lambda>G. G \<union> FA) (finite_subsets_at_top B) (finite_subsets_at_top (B \<union> FA))\<close>
-      using filterlim_Un_finite_subsets_at_top[OF FA_fin] by simp
-    have \<open>((\<lambda>G. prod f (G \<union> FA)) \<longlongrightarrow> S) (finite_subsets_at_top B)\<close>
-      using filterlim_compose[OF lim_BFA filt] by (simp add: comp_def)
-    then show ?thesis by auto
-  qed
-
-  \<comment> \<open>Step 5: Since prod f (G \<union> FA) = prod f G * prod f FA and prod f FA \<noteq> 0,
-     we get prod f G = prod f (G \<union> FA) / prod f FA.\<close>
-  have eq: \<open>\<forall>\<^sub>F G in finite_subsets_at_top B. prod f G = prod f (G \<union> FA) / prod f FA\<close>
-  proof (rule eventually_finite_subsets_at_top_weakI)
-    fix G assume \<open>finite G\<close> \<open>G \<subseteq> B\<close>
-    from split[OF this] FA_nz show \<open>prod f G = prod f (G \<union> FA) / prod f FA\<close>
-      by (simp add: field_simps)
-  qed
-
-  \<comment> \<open>Step 6: Dividing a convergent net by a nonzero constant gives a convergent net.\<close>
-  have conv_B: \<open>\<exists>T. (prod f \<longlongrightarrow> T) (finite_subsets_at_top B)\<close>
-  proof -
-    from conv_union obtain T where convT: \<open>((\<lambda>G. prod f (G \<union> FA)) \<longlongrightarrow> T) (finite_subsets_at_top B)\<close>
-      by auto
-    have \<open>((\<lambda>G. prod f (G \<union> FA) / prod f FA) \<longlongrightarrow> T / prod f FA) (finite_subsets_at_top B)\<close>
-      using tendsto_divide[OF convT tendsto_const FA_nz] by simp
-    moreover have \<open>\<forall>\<^sub>F G in finite_subsets_at_top B. prod f (G \<union> FA) / prod f FA = prod f G\<close>
-      using eq by (rule eventually_mono) auto
-    ultimately have \<open>(prod f \<longlongrightarrow> T / prod f FA) (finite_subsets_at_top B)\<close>
-      by (rule Lim_transform_eventually)
-    then show ?thesis by auto
-  qed
-
-  \<comment> \<open>Step 7: Hence f multipliable_on B.\<close>
-  then show \<open>f multipliable_on B\<close>
-    using multipliable_on_def has_setprod_def by blast
-qed
+  by (rule multipliable_on_subset_aux[OF _ times_cont assms(2,3) nz])
+     (simp add: complete_UNIV)
 
 lemma has_setprod_empty[simp]: \<open>(f has_setprod 1) {}\<close>
   by (meson ex_in_conv has_setprod_1)
@@ -1494,10 +1411,11 @@ lemma
 proof -
   have fprod: \<open>(f x) multipliable_on (B x)\<close> if \<open>x \<in> A\<close> for x
   proof -
-    from assms
     have \<open>(\<lambda>(x,y). f x y) multipliable_on (Pair x ` B x)\<close>
-      by (intro multipliable_on_subset_banach[where A=\<open>Sigma A B\<close>])
-         (auto simp: mem_Sigma_iff that)
+      apply (rule multipliable_on_subset_banach[where A=\<open>Sigma A B\<close>, OF times_cont])
+        apply simp
+       using that apply (auto simp: mem_Sigma_iff) [1]
+      using nz by (auto simp: mem_Sigma_iff)
     then have \<open>((\<lambda>(x,y). f x y) \<circ> Pair x) multipliable_on (B x)\<close>
       by (metis multipliable_on_reindex inj_on_def prod.inject)
     then show ?thesis
@@ -1516,7 +1434,8 @@ lemma infprod_Sigma_banach:
   assumes \<open>\<And>x y. (x, y) \<in> Sigma A B \<Longrightarrow> f (x, y) \<noteq> 0\<close>
   assumes times_cont: \<open>uniformly_continuous_on UNIV (\<lambda>(x::'c,y). x*y)\<close>
   shows \<open>infprod (\<lambda>x. infprod (\<lambda>y. f (x,y)) (B x)) A = infprod f (Sigma A B)\<close>
-  using assms by (metis infprod_Sigma'_banach case_prod_conv)
+  using assms
+  by (metis (no_types, lifting) case_prod_eta infprod_Sigma'_banach infprod_cong)
 
 lemma infprod_swap:
   fixes A :: "'a set" and B :: "'b set"
