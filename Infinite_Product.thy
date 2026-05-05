@@ -1482,15 +1482,13 @@ lemma infprod_Sigma':
   using infprod_Sigma[of \<open>\<lambda>(x,y). f x y\<close> A B]
   using assms by auto
 
-lemma isUCont_times[simp]:
-  shows \<open>isUCont (\<lambda>(x::'a::real_normed_algebra,y). x*y)\<close>
-  sorry \<comment> \<open>FALSE: multiplication is not uniformly continuous on unbounded domains\<close>
 
 lemma
   fixes A :: "'a set" and B :: "'a \<Rightarrow> 'b set"
     and f :: \<open>'a \<Rightarrow> 'b \<Rightarrow> 'c::{banach,real_normed_field}\<close>
   assumes [simp]: "(\<lambda>(x,y). f x y) multipliable_on (Sigma A B)"
   assumes nz: \<open>\<And>x y. (x, y) \<in> Sigma A B \<Longrightarrow> f x y \<noteq> 0\<close>
+  assumes times_cont: \<open>uniformly_continuous_on UNIV (\<lambda>(x::'c,y). x*y)\<close>
   shows infprod_Sigma'_banach: \<open>infprod (\<lambda>x. infprod (f x) (B x)) A = infprod (\<lambda>(x,y). f x y) (Sigma A B)\<close> (is ?thesis1)
     and multipliable_on_Sigma_banach: \<open>(\<lambda>x. infprod (f x) (B x)) multipliable_on A\<close> (is ?thesis2)
 proof -
@@ -1506,9 +1504,9 @@ proof -
       by (auto simp: o_def)
   qed
   show ?thesis1
-    using fprod assms infprod_Sigma' isUCont_times by blast
+    using fprod assms times_cont infprod_Sigma' by blast
   show ?thesis2
-    using fprod assms isUCont_times multipliable_on_Sigma by blast
+    using fprod assms times_cont multipliable_on_Sigma by blast
 qed
 
 lemma infprod_Sigma_banach:
@@ -1516,8 +1514,9 @@ lemma infprod_Sigma_banach:
     and f :: \<open>'a \<times> 'b \<Rightarrow> 'c::{banach,real_normed_field}\<close>
   assumes [simp]: "f multipliable_on (Sigma A B)"
   assumes \<open>\<And>x y. (x, y) \<in> Sigma A B \<Longrightarrow> f (x, y) \<noteq> 0\<close>
+  assumes times_cont: \<open>uniformly_continuous_on UNIV (\<lambda>(x::'c,y). x*y)\<close>
   shows \<open>infprod (\<lambda>x. infprod (\<lambda>y. f (x,y)) (B x)) A = infprod f (Sigma A B)\<close>
-  using assms by (simp add: infprod_Sigma'_banach)
+  using assms by (metis infprod_Sigma'_banach case_prod_conv)
 
 lemma infprod_swap:
   fixes A :: "'a set" and B :: "'b set"
@@ -1547,18 +1546,24 @@ lemma infprod_swap_banach:
   fixes A :: "'a set" and B :: "'b set"
   fixes f :: "'a \<Rightarrow> 'b \<Rightarrow> 'c::{banach,real_normed_field}"
   assumes \<open>(\<lambda>(x, y). f x y) multipliable_on (A \<times> B)\<close>
+  assumes nz: \<open>\<And>x y. x \<in> A \<Longrightarrow> y \<in> B \<Longrightarrow> f x y \<noteq> 0\<close>
+  assumes times_cont: \<open>uniformly_continuous_on UNIV (\<lambda>(x::'c,y). x*y)\<close>
   shows "infprod (\<lambda>x. infprod (\<lambda>y. f x y) B) A = infprod (\<lambda>y. infprod (\<lambda>x. f x y) A) B"
 proof -
   have \<section>: \<open>(\<lambda>(x, y). f y x) multipliable_on (B \<times> A)\<close>
     by (metis (mono_tags, lifting) assms case_swap inj_swap o_apply product_swap multipliable_on_cong multipliable_on_reindex)
+  have nz1: \<open>\<And>x y. (x, y) \<in> Sigma A (\<lambda>_. B) \<Longrightarrow> f x y \<noteq> 0\<close>
+    using nz by auto
+  have nz2: \<open>\<And>x y. (x, y) \<in> Sigma B (\<lambda>_. A) \<Longrightarrow> f y x \<noteq> 0\<close>
+    using nz by auto
   have \<open>infprod (\<lambda>x. infprod (\<lambda>y. f x y) B) A = infprod (\<lambda>(x,y). f x y) (A \<times> B)\<close>
-    using assms infprod_Sigma'_banach by blast
+    using assms nz1 infprod_Sigma'_banach by blast
   also have \<open>\<dots> = infprod (\<lambda>(x,y). f y x) (B \<times> A)\<close>
     apply (subst product_swap[symmetric])
     apply (subst infprod_reindex)
     using assms by (auto simp: o_def)
   also have \<open>\<dots> = infprod (\<lambda>y. infprod (\<lambda>x. f x y) A) B\<close>
-    by (metis (mono_tags, lifting) \<section> infprod_Sigma'_banach infprod_cong)
+    by (metis (mono_tags, lifting) \<section> nz2 times_cont infprod_Sigma'_banach infprod_cong)
   finally show ?thesis .
 qed
 
