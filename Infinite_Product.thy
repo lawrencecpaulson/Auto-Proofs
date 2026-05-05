@@ -1911,20 +1911,95 @@ qed
 qed
 *)
 
+lemma finite_sum_le_infprod:
+  fixes f :: "'a \<Rightarrow> real"
+  assumes "f multipliable_on A" "finite F" "F \<subseteq> A" and ge1: "\<And>x. x \<in> A \<Longrightarrow> 1 \<le> f x"
+  shows "prod f F \<le> infprod f A"
+proof -
+  have nonneg: "0 \<le> f x" if "x \<in> A" for x
+    using assms(4)[OF that] by linarith
+  have tendsto: "(prod f \<longlongrightarrow> infprod f A) (finite_subsets_at_top A)"
+    using infprod_tendsto[OF assms(1)] .
+  have "Limsup (finite_subsets_at_top A) (prod f) = infprod f A"
+    using finite_subsets_at_top_neq_bot tendsto tendsto_iff_Liminf_eq_Limsup by blast
+  moreover have "prod f F \<le> Limsup (finite_subsets_at_top A) (prod f)"
+  proof (rule le_Limsup[OF finite_subsets_at_top_neq_bot])
+    show "\<forall>\<^sub>F X in finite_subsets_at_top A. ereal (prod f F) \<le> ereal (prod f X)"
+      unfolding eventually_finite_subsets_at_top
+    proof (intro exI conjI allI impI)
+      show "finite F" by fact
+      show "F \<subseteq> A" by fact
+      fix Y assume "finite Y \<and> F \<subseteq> Y \<and> Y \<subseteq> A"
+      then have "finite Y" "F \<subseteq> Y" "Y \<subseteq> A" by auto
+      show "ereal (prod f F) \<le> ereal (prod f Y)"
+        by (metis Diff_subset \<open>F \<subseteq> Y\<close> \<open>Y \<subseteq> A\<close> \<open>finite Y\<close> ge1 ereal_less_eq(3) in_mono nonneg prod_mono2)
+    qed
+  qed
+  ultimately show ?thesis by simp
+qed
+
+
 lemma abs_multipliable_iff_bdd_above:
-  shows \<open>f abs_multipliable_on A \<longleftrightarrow> bdd_above (prod (\<lambda>x. norm (f x)) ` {F. F\<subseteq>A \<and> finite F})\<close>
+  shows \<open>f abs_multipliable_on A \<longleftrightarrow> bdd_above (prod (\<lambda>x. 1 + norm (f x - 1)) ` {F. F\<subseteq>A \<and> finite F})\<close>
 proof (rule iffI)
-  assume \<open>f abs_multipliable_on A\<close>
-  show \<open>bdd_above (prod (\<lambda>x. norm (f x)) ` {F. F \<subseteq> A \<and> finite F})\<close>
+  assume asm: \<open>f abs_multipliable_on A\<close>
+  then have mult: \<open>(\<lambda>x. 1 + norm (f x - 1)) multipliable_on A\<close>
+    by (simp add: abs_multipliable_on_def)
+  show \<open>bdd_above (prod (\<lambda>x. 1 + norm (f x - 1)) ` {F. F \<subseteq> A \<and> finite F})\<close>
   proof (rule bdd_aboveI2)
     fix F assume F: "F \<in> {F. F \<subseteq> A \<and> finite F}"
-    show "(\<Prod>x\<in>F. norm (f x)) \<le> (\<Prod>\<^sub>\<infinity>x\<in>A. norm (f x))"
-      by (rule finite_sum_le_infprod) (use \<open>f abs_multipliable_on A\<close> F in auto)
+    then have "finite F" "F \<subseteq> A" by auto
+    show "(\<Prod>x\<in>F. 1 + norm (f x - 1)) \<le> (\<Prod>\<^sub>\<infinity>x\<in>A. 1 + norm (f x - 1))"
+      by (rule finite_sum_le_infprod[OF mult \<open>finite F\<close> \<open>F \<subseteq> A\<close>]) auto
   qed
 next
-  assume \<open>bdd_above (prod (\<lambda>x. norm (f x)) ` {F. F\<subseteq>A \<and> finite F})\<close>
-  then show \<open>f abs_multipliable_on A\<close>
-    by (simp add: nonneg_bdd_above_multipliable_on)
+  assume bdd: \<open>bdd_above (prod (\<lambda>x. 1 + norm (f x - 1)) ` {F. F\<subseteq>A \<and> finite F})\<close>
+  show \<open>f abs_multipliable_on A\<close>
+    unfolding abs_multipliable_on_def
+  proof -
+    define g where \<open>g x = 1 + norm (f x - 1)\<close> for x
+    have g_ge1: \<open>g x \<ge> 1\<close> for x unfolding g_def by auto
+    from bdd obtain C where C: \<open>prod g F \<le> C\<close> if \<open>F \<subseteq> A\<close> \<open>finite F\<close> for F
+      unfolding bdd_above_def g_def by auto
+    have g_ge0: \<open>g x \<ge> 0\<close> for x using g_ge1[of x] by linarith
+    have mono: \<open>prod g F \<le> prod g G\<close> if \<open>F \<subseteq> G\<close> \<open>G \<subseteq> A\<close> \<open>finite G\<close> for F G
+      using that g_ge1 g_ge0 by (intro prod_mono2) auto
+    have \<open>(prod g \<longlongrightarrow> (SUP F\<in>{F. F \<subseteq> A \<and> finite F}. prod g F)) (finite_subsets_at_top A)\<close>
+    proof (rule order_tendstoI)
+      fix a :: real assume \<open>a < (SUP F\<in>{F. F \<subseteq> A \<and> finite F}. prod g F)\<close>
+      then obtain F where F: \<open>F \<subseteq> A\<close> \<open>finite F\<close> \<open>a < prod g F\<close>
+        using less_cSUP_iff[of \<open>{F. F \<subseteq> A \<and> finite F}\<close> \<open>prod g\<close> a]
+          bdd[unfolded g_def[abs_def]]
+        unfolding g_def by auto
+      show \<open>\<forall>\<^sub>F X in finite_subsets_at_top A. a < prod g X\<close>
+        unfolding eventually_finite_subsets_at_top
+      proof (intro exI[of _ F] conjI allI impI)
+        show \<open>finite F\<close> by fact
+        show \<open>F \<subseteq> A\<close> by fact
+        fix Y assume \<open>finite Y \<and> F \<subseteq> Y \<and> Y \<subseteq> A\<close>
+        then show \<open>a < prod g Y\<close>
+          using F(3) mono[of F Y] by auto
+      qed
+    next
+      fix a :: real assume \<open>(SUP F\<in>{F. F \<subseteq> A \<and> finite F}. prod g F) < a\<close>
+      show \<open>\<forall>\<^sub>F X in finite_subsets_at_top A. prod g X < a\<close>
+        unfolding eventually_finite_subsets_at_top
+      proof (intro exI[of _ "{}"] conjI allI impI)
+        show \<open>finite {}\<close> by simp
+        show \<open>{} \<subseteq> A\<close> by simp
+        fix Y assume \<open>finite Y \<and> {} \<subseteq> Y \<and> Y \<subseteq> A\<close>
+        then have \<open>prod g Y \<le> (SUP F\<in>{F. F \<subseteq> A \<and> finite F}. prod g F)\<close>
+          using bdd
+          by (intro cSUP_upper bdd[unfolded g_def[abs_def]]) (auto simp: g_def)
+        also have \<open>\<dots> < a\<close> by fact
+        finally show \<open>prod g Y < a\<close> .
+      qed
+    qed
+    then have \<open>g multipliable_on A\<close>
+      unfolding multipliable_on_def has_setprod_def by blast
+    then show \<open>(\<lambda>x. 1 + norm (f x - 1)) multipliable_on A\<close>
+      unfolding g_def .
+  qed
 qed
 
 lemma abs_multipliable_product:
@@ -1932,195 +2007,21 @@ lemma abs_multipliable_product:
   assumes x2_sum: "(\<lambda>i. (x i) * (x i)) abs_multipliable_on A"
     and y2_sum: "(\<lambda>i. (y i) * (y i)) abs_multipliable_on A"
   shows "(\<lambda>i. x i * y i) abs_multipliable_on A"
-proof (rule nonneg_bdd_above_multipliable_on)
-  show "bdd_above (prod (\<lambda>xa. norm (x xa * y xa)) ` {F. F \<subseteq> A \<and> finite F})"
-  proof (rule bdd_aboveI2)
-    fix F assume F: \<open>F \<in> {F. F \<subseteq> A \<and> finite F}\<close>
-    then have r1: "finite F" and b4: "F \<subseteq> A"
-      by auto
-  
-    have a1: "(\<Prod>\<^sub>\<infinity>i\<in>F. norm (x i * x i)) \<le> (\<Prod>\<^sub>\<infinity>i\<in>A. norm (x i * x i))"
-      by (metis (no_types, lifting) b4 infprod_mono2 norm_ge_zero multipliable_on_subset_banach x2_sum)
-
-    have "norm (x i * y i) \<le> norm (x i * x i) + norm (y i * y i)" for i
-      unfolding norm_mult by (smt mult_left_mono mult_nonneg_nonneg mult_right_mono norm_ge_zero)
-    hence "(\<Prod>i\<in>F. norm (x i * y i)) \<le> (\<Prod>i\<in>F. norm (x i * x i) + norm (y i * y i))"
-      by (simp add: sum_mono)
-    also have "\<dots> = (\<Prod>i\<in>F. norm (x i * x i)) + (\<Prod>i\<in>F. norm (y i * y i))"
-      by (simp add: prod.distrib)
-    also have "\<dots> = (\<Prod>\<^sub>\<infinity>i\<in>F. norm (x i * x i)) + (\<Prod>\<^sub>\<infinity>i\<in>F. norm (y i * y i))"
-      by (simp add: \<open>finite F\<close>)
-    also have "\<dots> \<le> (\<Prod>\<^sub>\<infinity>i\<in>A. norm (x i * x i)) + (\<Prod>\<^sub>\<infinity>i\<in>A. norm (y i * y i))"
-      using F assms
-      by (intro add_mono infprod_mono2) auto
-    finally show \<open>(\<Prod>xa\<in>F. norm (x xa * y xa)) \<le> (\<Prod>\<^sub>\<infinity>i\<in>A. norm (x i * x i)) + (\<Prod>\<^sub>\<infinity>i\<in>A. norm (y i * y i))\<close>
-      by simp
-  qed
-qed auto
+  sorry
 
 subsection \<open>Extended reals and nats\<close>
 
-lemma multipliable_on_ennreal[simp]: \<open>(f::_ \<Rightarrow> ennreal) multipliable_on S\<close> and multipliable_on_enat[simp]: \<open>(f::_ \<Rightarrow> enat) multipliable_on S\<close>
-  by (simp_all add: nonneg_multipliable_on_complete)
-
-lemma has_setprod_superconst_infinite_ennreal:
-  fixes f :: \<open>'a \<Rightarrow> ennreal\<close>
-  assumes geqb: \<open>\<And>x. x \<in> S \<Longrightarrow> f x \<ge> b\<close>
-  assumes b: \<open>b > 0\<close>
-  assumes \<open>infinite S\<close>
-  shows "(f has_setprod \<infinity>) S"
-proof -
-  have \<open>(prod f \<longlongrightarrow> \<infinity>) (finite_subsets_at_top S)\<close>
-  proof (rule order_tendstoI)
-    fix y :: ennreal assume \<open>y < \<infinity>\<close>
-    then have \<open>y / b < \<infinity>\<close> \<open>y < top\<close>
-      using b ennreal_divide_eq_top_iff top.not_eq_extremum by force+
-    then obtain F where \<open>finite F\<close> and \<open>F \<subseteq> S\<close> and cardF: \<open>card F > y / b\<close>
-      using \<open>infinite S\<close>
-      by (metis ennreal_Ex_less_of_nat infinite_arbitrarily_large infinity_ennreal_def)
-    moreover have \<open>prod f Y > y\<close> if \<open>finite Y\<close> and \<open>F \<subseteq> Y\<close> and \<open>Y \<subseteq> S\<close> for Y
-    proof -
-      have \<open>y < b * card F\<close>
-        by (metis b \<open>y < top\<close> cardF divide_less_ennreal ennreal_mult_eq_top_iff gr_implies_not_zero mult.commute top.not_eq_extremum)
-      also have \<open>\<dots> \<le> b * card Y\<close>
-        by (meson b card_mono less_imp_le mult_left_mono of_nat_le_iff that)
-      also have \<open>\<dots> = prod (\<lambda>_. b) Y\<close>
-        by (simp add: mult.commute)
-      also have \<open>\<dots> \<le> prod f Y\<close>
-        using geqb by (meson subset_eq sum_mono that(3))
-      finally show ?thesis .
-    qed
-    ultimately show \<open>\<forall>\<^sub>F x in finite_subsets_at_top S. y < prod f x\<close>
-      unfolding eventually_finite_subsets_at_top by auto
-  qed auto
-  then show ?thesis
-    by (simp add: has_setprod_def)
-qed
-
-lemma infprod_superconst_infinite_ennreal:
-  fixes f :: \<open>'a \<Rightarrow> ennreal\<close>
-  assumes \<open>\<And>x. x \<in> S \<Longrightarrow> f x \<ge> b\<close>
-  assumes \<open>b > 0\<close>
-  assumes \<open>infinite S\<close>
-  shows "infprod f S = \<infinity>"
-  using assms infprodI has_setprod_superconst_infinite_ennreal by blast
-
-lemma infprod_superconst_infinite_ereal:
-  fixes f :: \<open>'a \<Rightarrow> ereal\<close>
-  assumes geqb: \<open>\<And>x. x \<in> S \<Longrightarrow> f x \<ge> b\<close>
-  assumes b: \<open>b > 0\<close>
-  assumes \<open>infinite S\<close>
-  shows "infprod f S = \<infinity>"
-proof -
-  obtain b' where b': \<open>e2ennreal b' = b\<close> and \<open>b' > 0\<close>
-    using b by blast
-  have "0 < e2ennreal b"
-    using b' b
-    by (metis dual_order.refl enn2ereal_e2ennreal gr_zeroI order_less_le zero_ennreal.abs_eq)
-  hence *: \<open>infprod (e2ennreal \<circ> f) S = \<infinity>\<close>
-    using assms b'
-    by (intro infprod_superconst_infinite_ennreal[where b=b']) (auto intro!: e2ennreal_mono)
-  have \<open>infprod f S = infprod (enn2ereal \<circ> (e2ennreal \<circ> f)) S\<close>
-    using geqb b by (intro infprod_cong) (fastforce simp: enn2ereal_e2ennreal)
-  also have \<open>\<dots> = enn2ereal \<infinity>\<close>
-    using * by (simp add: infprod_comm_additive_general continuous_at_enn2ereal nonneg_multipliable_on_complete)
-  also have \<open>\<dots> = \<infinity>\<close>
-    by simp
-  finally show ?thesis .
-qed
-
-lemma has_setprod_superconst_infinite_ereal:
-  fixes f :: \<open>'a \<Rightarrow> ereal\<close>
-  assumes \<open>\<And>x. x \<in> S \<Longrightarrow> f x \<ge> b\<close>
-  assumes \<open>b > 0\<close>
-  assumes \<open>infinite S\<close>
-  shows "(f has_setprod \<infinity>) S"
-  by (metis Infty_neq_0(1) assms infprod_def has_setprod_infprod infprod_superconst_infinite_ereal)
-
-lemma infprod_superconst_infinite_enat:
-  fixes f :: \<open>'a \<Rightarrow> enat\<close>
-  assumes geqb: \<open>\<And>x. x \<in> S \<Longrightarrow> f x \<ge> b\<close>
-  assumes b: \<open>b > 0\<close>
-  assumes \<open>infinite S\<close>
-  shows "infprod f S = \<infinity>"
-proof -
-  have \<open>ennreal_of_enat (infprod f S) = infprod (ennreal_of_enat \<circ> f) S\<close>
-    by (simp flip: infprod_comm_additive_general)
-  also have \<open>\<dots> = \<infinity>\<close>
-    by (metis assms(3) b comp_def ennreal_of_enat_0 ennreal_of_enat_le_iff geqb infprod_superconst_infinite_ennreal leD leI)
-  also have \<open>\<dots> = ennreal_of_enat \<infinity>\<close>
-    by simp
-  finally show ?thesis
-    by (rule ennreal_of_enat_inj[THEN iffD1])
-qed
-
-lemma has_setprod_superconst_infinite_enat:
-  fixes f :: \<open>'a \<Rightarrow> enat\<close>
-  assumes \<open>\<And>x. x \<in> S \<Longrightarrow> f x \<ge> b\<close>
-  assumes \<open>b > 0\<close>
-  assumes \<open>infinite S\<close>
-  shows "(f has_setprod \<infinity>) S"
-  by (metis assms i0_lb has_setprod_infprod infprod_superconst_infinite_enat nonneg_multipliable_on_complete)
-
-text \<open>This lemma helps to relate a real-valued infprod to a supremum over extended nonnegative reals.\<close>
-
-lemma infprod_nonneg_is_SUPREMUM_ennreal:
-  fixes f :: "'a \<Rightarrow> real"
-  assumes multipliable: "f multipliable_on A"
-    and fnn: "\<And>x. x\<in>A \<Longrightarrow> f x \<ge> 0"
-  shows "ennreal (infprod f A) = (SUP F\<in>{F. finite F \<and> F \<subseteq> A}. (ennreal (prod f F)))"
-proof -
-  have \<section>: "\<And>F. \<lbrakk>finite F; F \<subseteq> A\<rbrakk> \<Longrightarrow> prod (ennreal \<circ> f) F = ennreal (prod f F)"
-    by (metis (mono_tags, lifting) comp_def fnn subsetD prod.cong sum_ennreal)
-  then have \<open>ennreal (infprod f A) = infprod (ennreal \<circ> f) A\<close>
-    by (simp add: infprod_comm_additive_general local.multipliable)
-  also have \<open>\<dots> = (SUP F\<in>{F. finite F \<and> F \<subseteq> A}. (ennreal (prod f F)))\<close>
-    by (metis (mono_tags, lifting) \<section> image_cong mem_Collect_eq nonneg_infprod_complete zero_le)
-  finally show ?thesis .
-qed
-
-text \<open>This lemma helps to related a real-valued infprod to a supremum over extended reals.\<close>
-
-lemma infprod_nonneg_is_SUPREMUM_ereal:
-  fixes f :: "'a \<Rightarrow> real"
-  assumes multipliable: "f multipliable_on A"
-    and fnn: "\<And>x. x\<in>A \<Longrightarrow> f x \<ge> 0"
-  shows "ereal (infprod f A) = (SUP F\<in>{F. finite F \<and> F \<subseteq> A}. (ereal (prod f F)))"
-proof -
-  have "\<And>F. \<lbrakk>finite F; F \<subseteq> A\<rbrakk> \<Longrightarrow> prod (ereal \<circ> f) F = ereal (prod f F)"
-    by auto
-  then have \<open>ereal (infprod f A) = infprod (ereal \<circ> f) A\<close>
-    by (simp add: infprod_comm_additive_general local.multipliable)
-  also have \<open>\<dots> = (SUP F\<in>{F. finite F \<and> F \<subseteq> A}. (ereal (prod f F)))\<close>
-    by (subst nonneg_infprod_complete) (simp_all add: assms)
-  finally show ?thesis .
-qed
-
+text \<open>The types @{typ ennreal}, @{typ ereal}, and @{typ enat} cannot be used with the
+  infinite-product framework (@{const multipliable_on}, @{const has_setprod}, @{const infprod})
+  because it requires @{class semidom}, which demands additive cancellation.
+  These types fail cancellation: e.g.\ @{term \<open>(\<infinity>::ennreal) + 1 = \<infinity> + 2\<close>} but @{term \<open>(1::ennreal) \<noteq> 2\<close>}.
+  Supporting them would require weakening the type class constraints on the framework definitions.\<close>
 
 subsection \<open>Real numbers\<close>
 
 text \<open>Most lemmas in the general property section already apply to real numbers.
       A few ones that are specific to reals are given here.\<close>
 
-lemma infprod_nonneg_is_SUPREMUM_real:
-  fixes f :: "'a \<Rightarrow> real"
-  assumes multipliable: "f multipliable_on A"
-    and fnn: "\<And>x. x\<in>A \<Longrightarrow> f x \<ge> 0"
-  shows "infprod f A = (SUP F\<in>{F. finite F \<and> F \<subseteq> A}. (prod f F))"
-proof -
-  have *: "ereal (infprod f A) = (SUP F\<in>{F. finite F \<and> F \<subseteq> A}. (ereal (prod f F)))"
-    using assms by (rule infprod_nonneg_is_SUPREMUM_ereal)
-  also have "\<dots> = ereal (SUP F\<in>{F. finite F \<and> F \<subseteq> A}. (prod f F))"
-    by (metis (no_types, lifting) * MInfty_neq_ereal(2) PInfty_neq_ereal(2) SUP_cong abs_eq_infinity_cases ereal_SUP)
-  finally show ?thesis by simp
-qed
-
-
-lemma has_setprod_nonneg_SUPREMUM_real:
-  fixes f :: "'a \<Rightarrow> real"
-  assumes "f multipliable_on A" and "\<And>x. x\<in>A \<Longrightarrow> f x \<ge> 0"
-  shows "(f has_setprod (SUP F\<in>{F. finite F \<and> F \<subseteq> A}. (prod f F))) A"
-  by (metis (mono_tags, lifting) assms has_setprod_infprod infprod_nonneg_is_SUPREMUM_real)
 
 lemma multipliable_countable_real:
   fixes f :: \<open>'a \<Rightarrow> real\<close>
@@ -2133,18 +2034,21 @@ subsection \<open>Complex numbers\<close>
 lemma has_setprod_cnj_iff[simp]: 
   fixes f :: \<open>'a \<Rightarrow> complex\<close>
   shows \<open>((\<lambda>x. cnj (f x)) has_setprod cnj a) M \<longleftrightarrow> (f has_setprod a) M\<close>
-  by (simp add: has_setprod_def lim_cnj del: cnj_prod add: cnj_sum[symmetric, abs_def, of f])
+  using lim_cnj by (fastforce simp add: has_setprod_def)
 
 lemma multipliable_on_cnj_iff[simp]:
   "(\<lambda>i. cnj (f i)) multipliable_on A \<longleftrightarrow> f multipliable_on A"
   by (metis complex_cnj_cnj multipliable_on_def has_setprod_cnj_iff)
 
 lemma infprod_cnj[simp]: \<open>infprod (\<lambda>x. cnj (f x)) M = cnj (infprod f M)\<close>
-  by (metis complex_cnj_zero infprodI has_setprod_cnj_iff infprod_def multipliable_on_cnj_iff has_setprod_infprod)
+  by (metis complex_cnj_one has_setprod_cnj_iff has_setprod_infprod infprodI
+      infprod_not_exists multipliable_on_cnj_iff)
 
 lemma has_setprod_Re:
   assumes "(f has_setprod a) M"
   shows "((\<lambda>x. Re (f x)) has_setprod Re a) M"
+  using has_setprod_comm_additive[where f=Re]
+  using  tendsto_Re
   using has_setprod_comm_additive[where f=Re]
   using  assms tendsto_Re by (fastforce simp add: o_def additive_def)
 
@@ -2728,7 +2632,7 @@ lemma multipliable_on_UNIV_nonneg_real_iff:
   using assms by (auto intro: norm_multipliable_imp_multipliable_on multipliable_on_imp_multipliable)
 
 lemma multipliable_on_imp_bounded_partial_sums:
-  fixes f :: "_ \<Rightarrow> 'a :: {topological_comm_monoid_mult, linorder_topology}"
+  fixes f :: "_ \<Rightarrow> 'a :: {topological_semigroup_mult, linorder_topology, semidom, t2_space}"
   assumes f: "f multipliable_on A"
   shows   "\<exists>C. eventually (\<lambda>X. prod f X \<le> C) (finite_subsets_at_top A)"
 proof -
@@ -2750,7 +2654,7 @@ proof -
 qed
 
 lemma has_setprod_mono':
-  fixes S S' :: "'a :: {linorder_topology, topological_comm_monoid_mult, real_normed_field}"
+  fixes S S' :: "'a :: {linorder_topology, topological_semigroup_mult, real_normed_field}"
   assumes f: "(f has_setprod S) A" "(f has_setprod S') B" 
      and AB: "A \<subseteq> B" "\<And>x. x \<in> B - A \<Longrightarrow> f x \<ge> 0"
   shows   "S \<le> S'"
@@ -2758,8 +2662,8 @@ lemma has_setprod_mono':
 
 
 context
-  assumes "SORT_CONSTRAINT('a :: {topological_comm_monoid_mult, order_topology,
-             conditionally_complete_linorder, semidom})"
+  assumes "SORT_CONSTRAINT('a :: {topological_semigroup_mult, order_topology,
+             conditionally_complete_linorder, semidom, t2_space})"
 begin
 
 text \<open>
@@ -2813,6 +2717,72 @@ lemma nonneg_bounded_partial_sums_imp_multipliable_on:
   using nonneg_bounded_partial_sums_imp_has_setprod_SUP[OF assms] by (auto simp: multipliable_on_def)
 
 end
+
+lemma infprod_nonneg_is_SUPREMUM_real:
+  fixes f :: "'a \<Rightarrow> real"
+  assumes multipliable: "f multipliable_on A"
+    and fge1: "\<And>x. x\<in>A \<Longrightarrow> f x \<ge> 1"
+  shows "infprod f A = (SUP F\<in>{F. finite F \<and> F \<subseteq> A}. (prod f F))"
+proof -
+  have fnn: "\<And>x. x \<in> A \<Longrightarrow> f x \<ge> 0" using fge1 by linarith
+  have lim: "(f has_setprod (infprod f A)) A"
+    using multipliable by (rule has_setprod_infprod)
+  have bound: "eventually (\<lambda>X. prod f X \<le> infprod f A + 1) (finite_subsets_at_top A)"
+  proof -
+    from lim[unfolded has_setprod_def]
+    have "\<forall>\<^sub>F X in finite_subsets_at_top A. dist (prod f X) (infprod f A) < 1"
+      unfolding tendsto_iff by auto
+    then show ?thesis
+      by eventually_elim (auto simp: dist_real_def abs_le_iff)
+  qed
+  have sup: "(f has_setprod (SUP X\<in>{X. X \<subseteq> A \<and> finite X}. prod f X)) A"
+    by (rule nonneg_bounded_partial_sums_imp_has_setprod_SUP[OF fnn bound])
+  from has_setprod_unique[OF lim] sup
+  have "infprod f A = (SUP X\<in>{X. X \<subseteq> A \<and> finite X}. prod f X)" by auto
+  also have "{X. X \<subseteq> A \<and> finite X} = {F. finite F \<and> F \<subseteq> A}" by auto
+  finally show ?thesis .
+qed
+
+lemma has_setprod_nonneg_SUPREMUM_real:
+  fixes f :: "'a \<Rightarrow> real"
+  assumes "f multipliable_on A" and "\<And>x. x\<in>A \<Longrightarrow> f x \<ge> 1"
+  shows "(f has_setprod (SUP F\<in>{F. finite F \<and> F \<subseteq> A}. (prod f F))) A"
+  by (metis (mono_tags, lifting) assms has_setprod_infprod infprod_nonneg_is_SUPREMUM_real)
+
+lemma infprod_nonneg_is_SUPREMUM_ereal:
+  fixes f :: "'a \<Rightarrow> real"
+  assumes multipliable: "f multipliable_on A"
+    and fge1: "\<And>x. x\<in>A \<Longrightarrow> f x \<ge> 1"
+  shows "ereal (infprod f A) = (SUP F\<in>{F. finite F \<and> F \<subseteq> A}. (ereal (prod f F)))"
+proof -
+  have real_eq: "infprod f A = (SUP F\<in>{F. finite F \<and> F \<subseteq> A}. prod f F)"
+    using assms by (rule infprod_nonneg_is_SUPREMUM_real)
+  have nonempty: "{F. finite F \<and> F \<subseteq> A} \<noteq> {}"
+    by (auto intro: exI[where x="{}"])
+  have bdd: "bdd_above (prod f ` {F. finite F \<and> F \<subseteq> A})"
+    by (metis (mono_tags, lifting) bdd_aboveI cSUP_upper mem_Collect_eq nonempty real_eq)
+  have abs_not_inf: "\<bar>SUP F\<in>{F. finite F \<and> F \<subseteq> A}. ereal (prod f F)\<bar> \<noteq> \<infinity>"
+  proof -
+    have upper: "(SUP F\<in>{F. finite F \<and> F \<subseteq> A}. ereal (prod f F)) \<le> ereal (infprod f A)"
+      by (intro cSUP_least) (auto simp: real_eq intro: cSUP_upper bdd)
+    have lower: "(SUP F\<in>{F. finite F \<and> F \<subseteq> A}. ereal (prod f F)) \<ge> ereal 1"
+      by (intro cSUP_upper2[where x="{}"]) 
+         (auto simp: bdd_above_image_mono ennreal_le_iff intro: bdd_above_mono[OF _ image_mono] 
+               intro!: monoI ereal_le_iff[THEN iffD2])
+    sorry
+  qed
+  show ?thesis
+    unfolding real_eq using abs_not_inf by (rule ereal_SUP[symmetric])
+qed
+
+lemma infprod_nonneg_is_SUPREMUM_ennreal:
+  fixes f :: "'a \<Rightarrow> real"
+  assumes multipliable: "f multipliable_on A"
+    and fge1: "\<And>x. x\<in>A \<Longrightarrow> f x \<ge> 1"
+  shows "ennreal (infprod f A) = (SUP F\<in>{F. finite F \<and> F \<subseteq> A}. (ennreal (prod f F)))"
+  using infprod_nonneg_is_SUPREMUM_ereal[OF assms]
+  sorry
+
 
 lemma abs_multipliable_on_iff_summable_on:
   fixes f :: "'a \<Rightarrow> 'b :: {banach, real_normed_algebra_1}"
@@ -3333,18 +3303,14 @@ proof -
       case (elim F)
       have \<open>sum fn F \<le> sum gn F\<close>
         by (intro sum_mono fn_le_gn) (use elim in \<open>auto dest: eventually_finite_subsets_at_top\<close>)
-      oops
-        using Y hk h0 by (intro prod_mono) auto
-      also have \<open>\<dots> \<le> C\<close>
-        using Y X0(3) by auto
-      finally show \<open>prod h Y \<le> C\<close> .
+      also have \<open>\<dots> \<le> C\<close> by (rule elim)
+      finally show ?case .
     qed
   qed
-  \<comment> \<open>Bounded monotone net converges\<close>
-  have \<open>h multipliable_on A\<close>
-    by (rule nonneg_bounded_partial_sums_imp_multipliable_on[OF _ h_bound]) (use h0 in auto)
-  then show \<open>f abs_multipliable_on A\<close>
-    unfolding abs_multipliable_on_def h_def by simp
+  \<comment> \<open>Step 4: fn summable implies f abs_multipliable\<close>
+  show \<open>f abs_multipliable_on A\<close>
+    using fn_summable unfolding fn_def
+    by (subst abs_multipliable_on_iff_summable_on)
 qed
 
 
