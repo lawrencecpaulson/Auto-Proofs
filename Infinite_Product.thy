@@ -2143,12 +2143,6 @@ text \<open>Most lemmas in the general property section already apply to real nu
       A few ones that are specific to reals are given here.\<close>
 
 
-lemma multipliable_countable_real:
-  fixes f :: \<open>'a \<Rightarrow> real\<close>
-  assumes \<open>f multipliable_on A\<close>
-  shows \<open>countable {x\<in>A. f x \<noteq> 0}\<close>
-  using abs_multipliable_countable assms multipliable_on_iff_abs_multipliable_on_real by blast
-
 subsection \<open>Complex numbers\<close>
 
 lemma has_setprod_cnj_iff[simp]: 
@@ -2165,38 +2159,100 @@ lemma infprod_cnj[simp]: \<open>infprod (\<lambda>x. cnj (f x)) M = cnj (infprod
       infprod_not_exists multipliable_on_cnj_iff)
 
 lemma has_setprod_Re:
-  assumes "(f has_setprod a) M"
+  assumes "(f has_setprod a) M" and real: "\<And>x. x \<in> M \<Longrightarrow> f x \<in> \<real>"
   shows "((\<lambda>x. Re (f x)) has_setprod Re a) M"
-  using has_setprod_comm_additive[where f=Re]
-  using  tendsto_Re
-  using has_setprod_comm_additive[where f=Re]
-  using  assms tendsto_Re by (fastforce simp add: o_def additive_def)
+proof -
+  have eq: "\<forall>\<^sub>F X in finite_subsets_at_top M. prod (\<lambda>x. Re (f x)) X = Re (prod f X)"
+    by (rule eventually_finite_subsets_at_top_weakI)
+       (metis Re_prod_Reals real subset_iff)
+  from assms(1) have "(prod f \<longlongrightarrow> a) (finite_subsets_at_top M)"
+    by (simp add: has_setprod_def)
+  then have "((\<lambda>X. Re (prod f X)) \<longlongrightarrow> Re a) (finite_subsets_at_top M)"
+    by (rule tendsto_Re)
+  then show ?thesis
+    using eq unfolding has_setprod_def by (simp add: filterlim_cong)
+qed
 
 lemma infprod_Re:
-  assumes "f multipliable_on M"
+  assumes "f multipliable_on M" and "\<And>x. x \<in> M \<Longrightarrow> f x \<in> \<real>"
   shows "infprod (\<lambda>x. Re (f x)) M = Re (infprod f M)"
   by (simp add: assms has_setprod_Re infprodI)
 
-lemma multipliable_on_Re: 
-  assumes "f multipliable_on M"
+lemma multipliable_on_Re:
+  assumes "f multipliable_on M" and "\<And>x. x \<in> M \<Longrightarrow> f x \<in> \<real>"
   shows "(\<lambda>x. Re (f x)) multipliable_on M"
   by (metis assms has_setprod_Re multipliable_on_def)
 
 lemma has_setprod_Im:
-  assumes "(f has_setprod a) M"
+  assumes "(f has_setprod a) M" and real: "\<And>x. x \<in> M \<Longrightarrow> f x \<in> \<real>" and "M \<noteq> {}"
   shows "((\<lambda>x. Im (f x)) has_setprod Im a) M"
-  using has_setprod_comm_additive[where f=Im]
-  using  assms tendsto_Im by (fastforce simp add: o_def additive_def)
+proof -
+  from \<open>M \<noteq> {}\<close> obtain m where "m \<in> M" by blast
+  have eq: "\<forall>\<^sub>F X in finite_subsets_at_top M. prod (\<lambda>x. Im (f x)) X = Im (prod f X)"
+    unfolding eventually_finite_subsets_at_top
+  proof (intro exI[of _ "{m}"] conjI allI impI)
+    show "finite {m}" "{m} \<subseteq> M" using \<open>m \<in> M\<close> by auto
+  next
+    fix X assume "finite X \<and> {m} \<subseteq> X \<and> X \<subseteq> M"
+    then have "finite X" "X \<subseteq> M" "X \<noteq> {}" by auto
+    have "Im (f x) = 0" if "x \<in> X" for x
+      using real \<open>X \<subseteq> M\<close> that by (auto simp: complex_is_Real_iff subset_iff)
+    then have "prod (\<lambda>x. Im (f x)) X = prod (\<lambda>x. (0::real)) X"
+      by (intro prod.cong) auto
+    also have "\<dots> = 0"
+      using \<open>finite X\<close> \<open>X \<noteq> {}\<close> by (intro prod_zero) auto
+    finally have lhs: "prod (\<lambda>x. Im (f x)) X = 0" .
+    have "prod f X \<in> \<real>"
+      using real \<open>X \<subseteq> M\<close> by (intro prod_in_Reals) (auto simp: subset_iff)
+    then have "Im (prod f X) = 0"
+      by (simp add: complex_is_Real_iff)
+    with lhs show "prod (\<lambda>x. Im (f x)) X = Im (prod f X)" by simp
+  qed
+  from assms(1) have "(prod f \<longlongrightarrow> a) (finite_subsets_at_top M)"
+    by (simp add: has_setprod_def)
+  then have "((\<lambda>X. Im (prod f X)) \<longlongrightarrow> Im a) (finite_subsets_at_top M)"
+    by (rule tendsto_Im)
+  then show ?thesis
+    unfolding has_setprod_def using eq tendsto_cong by fastforce
+qed
 
-lemma infprod_Im: 
-  assumes "f multipliable_on M"
+
+lemma infprod_Im:
+  assumes "f multipliable_on M" and "\<And>x. x \<in> M \<Longrightarrow> f x \<in> \<real>" and "M \<noteq> {}"
   shows "infprod (\<lambda>x. Im (f x)) M = Im (infprod f M)"
   by (simp add: assms has_setprod_Im infprodI)
 
-lemma multipliable_on_Im: 
-  assumes "f multipliable_on M"
+lemma multipliable_on_Im:
+  assumes "f multipliable_on M" and "\<And>x. x \<in> M \<Longrightarrow> f x \<in> \<real>" and "M \<noteq> {}"
   shows "(\<lambda>x. Im (f x)) multipliable_on M"
   by (metis assms has_setprod_Im multipliable_on_def)
+
+text \<open>The following unconditional versions are needed for @{text multipliable_on_iff_abs_multipliable_on_complex}.
+  They state that if a complex product converges, then the products of the real and imaginary parts
+  also converge. This is non-trivial and requires showing that for convergent products,
+  eventually all factors are close to 1.\<close>
+
+lemma multipliable_on_Re':
+  assumes "f multipliable_on M"
+  shows "(\<lambda>x. Re (f x)) multipliable_on M"
+  sorry
+
+lemma multipliable_on_Im':
+  assumes "f multipliable_on M"
+  shows "(\<lambda>x. Im (f x)) multipliable_on M"
+  sorry
+
+lemma infprod_Re':
+  assumes "f multipliable_on M"
+  shows "infprod (\<lambda>x. Re (f x)) M = Re (infprod f M)"
+  sorry
+
+lemma infprod_Im':
+  assumes "f multipliable_on M"
+  shows "infprod (\<lambda>x. Im (f x)) M = Im (infprod f M)"
+  sorry
+
+
 
 lemma nonneg_infprod_le_0D_complex:
   fixes f :: "'a \<Rightarrow> complex"
@@ -2209,7 +2265,7 @@ proof -
   have \<open>Im (f x) = 0\<close>
     using assms(4) less_eq_complex_def nneg by auto
   moreover have \<open>Re (f x) = 0\<close>
-    using assms by (auto simp add: multipliable_on_Re infprod_Re less_eq_complex_def intro: nonneg_infprod_le_0D[where A=A])
+    using assms by (auto simp add: multipliable_on_Re infprod_Re less_eq_complex_def complex_is_Real_iff intro: nonneg_infprod_le_0D[where A=A])
   ultimately show ?thesis
     by (simp add: complex_eqI)
 qed
@@ -2234,13 +2290,13 @@ lemma infprod_mono_neutral_complex:
   shows \<open>infprod f A \<le> infprod g B\<close>
 proof -
   have \<open>infprod (\<lambda>x. Re (f x)) A \<le> infprod (\<lambda>x. Re (g x)) B\<close>
-    by (smt (verit) assms infprod_cong infprod_mono_neutral less_eq_complex_def multipliable_on_Re zero_complex.simps(1))
+    by (smt (verit) assms infprod_cong infprod_mono_neutral less_eq_complex_def multipliable_on_Re' zero_complex.simps(1))
   then have Re: \<open>Re (infprod f A) \<le> Re (infprod g B)\<close>
-    by (metis assms(1-2) infprod_Re)
+    by (metis assms(1-2) infprod_Re')
   have \<open>infprod (\<lambda>x. Im (f x)) A = infprod (\<lambda>x. Im (g x)) B\<close>
     by (smt (verit, best) assms(3-5) infprod_cong_neutral less_eq_complex_def zero_complex.simps(2))
   then have Im: \<open>Im (infprod f A) = Im (infprod g B)\<close>
-    by (metis assms(1-2) infprod_Im)
+    by (metis assms(1-2) infprod_Im')
   from Re Im show ?thesis
     by (auto simp: less_eq_complex_def)
 qed
@@ -2268,7 +2324,7 @@ proof -
   have \<open>complex_of_real (infprod (\<lambda>x. cmod (f x)) M) = infprod (\<lambda>x. complex_of_real (cmod (f x))) M\<close>
   proof (rule infprod_comm_additive[symmetric, unfolded o_def])
     have "(\<lambda>z. Re (f z)) multipliable_on M"
-      using assms multipliable_on_Re by blast
+      using assms by (intro multipliable_on_Re) (auto simp: less_eq_complex_def complex_is_Real_iff)
     also have "?this \<longleftrightarrow> f abs_multipliable_on M"
       using fnn by (intro multipliable_on_cong) (auto simp: less_eq_complex_def cmod_def)
     finally show \<dots> .
@@ -2288,12 +2344,12 @@ proof (rule iffI)
   define i r ni nr n where \<open>i x = Im (f x)\<close> and \<open>r x = Re (f x)\<close>
     and \<open>ni x = norm (i x)\<close> and \<open>nr x = norm (r x)\<close> and \<open>n x = norm (f x)\<close> for x
   from \<open>f multipliable_on A\<close> have \<open>i multipliable_on A\<close>
-    by (simp add: i_def[abs_def] multipliable_on_Im)
+    by (simp add: i_def[abs_def] multipliable_on_Im')
   then have [simp]: \<open>ni multipliable_on A\<close>
     using ni_def[abs_def] multipliable_on_iff_abs_multipliable_on_real by force
 
   from \<open>f multipliable_on A\<close> have \<open>r multipliable_on A\<close>
-    by (simp add: r_def[abs_def] multipliable_on_Re)
+    by (simp add: r_def[abs_def] multipliable_on_Re')
   then have [simp]: \<open>nr multipliable_on A\<close>
     by (metis nr_def multipliable_on_cong multipliable_on_iff_abs_multipliable_on_real)
 
@@ -3455,5 +3511,11 @@ lemma has_setprod_uminusI:
   using has_setprod_cmult_right[of f A S "-1"] by simp
 
 *)
+
+lemma multipliable_countable_real:
+  fixes f :: \<open>'a \<Rightarrow> real\<close>
+  assumes \<open>f multipliable_on A\<close>
+  shows \<open>countable {x\<in>A. f x \<noteq> 0}\<close>
+  using abs_multipliable_countable assms multipliable_on_iff_abs_multipliable_on_real by blast
 
 end
