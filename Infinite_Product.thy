@@ -2002,14 +2002,134 @@ next
   qed
 qed
 
+lemma multipliable_on_comparison_test:
+  fixes f g :: "'b \<Rightarrow> real"
+  assumes "f multipliable_on A" and "\<And>x. x \<in> A \<Longrightarrow> g x \<le> f x" and "\<And>x. x \<in> A \<Longrightarrow> 1 \<le> g x"
+  shows   "g multipliable_on A"
+proof -
+  from assms(1) obtain S where S: "(prod f \<longlongrightarrow> S) (finite_subsets_at_top A)"
+    unfolding multipliable_on_def has_setprod_def by blast
+  have g_ge1: "1 \<le> g x" if "x \<in> A" for x
+    using assms(3)[OF that] .
+  have g_nonneg: "0 \<le> g x" if "x \<in> A" for x
+    using g_ge1[OF that] by (meson dual_order.trans zero_le_one)
+  have g_le_f_prod: "prod g X \<le> prod f X" if "X \<subseteq> A" "finite X" for X
+  proof (rule prod_mono)
+    fix i assume "i \<in> X"
+    with that have "i \<in> A" by auto
+    thus "0 \<le> g i \<and> g i \<le> f i"
+      using g_nonneg assms(2) by auto
+  qed
+  have g_mono: "prod g X \<le> prod g Y" if "X \<subseteq> Y" "Y \<subseteq> A" "finite Y" for X Y
+  proof (rule prod_mono2[OF \<open>finite Y\<close> \<open>X \<subseteq> Y\<close>])
+    fix b assume "b \<in> Y - X"
+    with that have "b \<in> A" by auto
+    thus "1 \<le> g b" using g_ge1 by auto
+  next
+    fix a assume "a \<in> X"
+    with that have "a \<in> A" by auto
+    thus "0 \<le> g a" using g_nonneg by auto
+  qed
+  have f_bound: "\<exists>C. \<forall>\<^sub>F X in finite_subsets_at_top A. prod f X \<le> C"
+  proof (cases "\<exists>C. C > S")
+    case True
+    then obtain C where C: "C > S" by blast
+    have "\<forall>\<^sub>F X in finite_subsets_at_top A. prod f X < C"
+      using S C by (rule order_tendstoD)
+    thus ?thesis
+      by (meson eventually_mono nless_le)
+  next
+    case False thus ?thesis
+      by (meson not_eventuallyD not_le_imp_less)
+  qed
+  then obtain C where C: "\<forall>\<^sub>F X in finite_subsets_at_top A. prod f X \<le> C"
+    by blast
+  from C obtain X0 where X0: "finite X0" "X0 \<subseteq> A"
+    and X0_bound: "\<And>X. finite X \<Longrightarrow> X0 \<subseteq> X \<Longrightarrow> X \<subseteq> A \<Longrightarrow> prod f X \<le> C"
+    unfolding eventually_finite_subsets_at_top by auto
+  have g_bdd: "prod g X \<le> C" if "finite X" "X \<subseteq> A" for X
+  proof -
+    have "prod g X \<le> prod g (X \<union> X0)"
+      using that X0 by (intro g_mono) auto
+    also have "\<dots> \<le> prod f (X \<union> X0)"
+      using that X0 by (intro g_le_f_prod) auto
+    also have "\<dots> \<le> C"
+      using that X0 X0_bound[of "X \<union> X0"] by auto
+    finally show ?thesis .
+  qed
+  hence bdd: "bdd_above (prod g ` {X. X \<subseteq> A \<and> finite X})"
+    by (auto simp: bdd_above_def)
+  show ?thesis unfolding multipliable_on_def has_setprod_def
+  proof (rule exI, rule increasing_tendsto)
+    show "\<forall>\<^sub>F X in finite_subsets_at_top A. prod g X \<le> Sup (prod g ` {X. X \<subseteq> A \<and> finite X})"
+      by (intro eventually_finite_subsets_at_top_weakI cSUP_upper[OF _ bdd]) auto
+  next
+    fix y assume "y < Sup (prod g ` {X. X \<subseteq> A \<and> finite X})"
+    then obtain X where X: "X \<subseteq> A" "finite X" "y < prod g X"
+      by (subst (asm) less_cSUP_iff[OF _ bdd]) auto
+    from X have "eventually (\<lambda>X'. X \<subseteq> X' \<and> X' \<subseteq> A \<and> finite X') (finite_subsets_at_top A)"
+      by (auto simp: eventually_finite_subsets_at_top)
+    thus "eventually (\<lambda>X'. y < prod g X') (finite_subsets_at_top A)"
+    proof eventually_elim
+      case (elim X')
+      note \<open>y < prod g X\<close>
+      also have "prod g X \<le> prod g X'"
+        using elim by (intro g_mono) auto
+      finally show ?case .
+    qed
+  qed
+qed
+
+
+
 lemma abs_multipliable_product:
   fixes x :: "'a \<Rightarrow> 'b::{real_normed_div_algebra,banach,second_countable_topology}"
-  assumes x2_sum: "(\<lambda>i. (x i) * (x i)) abs_multipliable_on A"
-    and y2_sum: "(\<lambda>i. (y i) * (y i)) abs_multipliable_on A"
+  assumes x2_sum: "x abs_multipliable_on A"
+    and y2_sum: "y abs_multipliable_on A"
   shows "(\<lambda>i. x i * y i) abs_multipliable_on A"
-  sorry
+proof -
+  define xn yn where "xn i = norm (x i - 1)" and "yn i = norm (y i - 1)" for i
+  have xn_nn: "xn i \<ge> 0" for i unfolding xn_def by simp
+  have yn_nn: "yn i \<ge> 0" for i unfolding yn_def by simp
 
-subsection \<open>Extended reals and nats\<close>
+  \<comment> \<open>Key inequality: 1 + norm(xy - 1) \<le> (1 + norm(x-1)) * (1 + norm(y-1))\<close>
+  have prod_ineq: "1 + norm (x i * y i - 1) \<le> (1 + xn i) * (1 + yn i)" for i
+  proof -
+    have "x i * y i - 1 = (x i - 1) * (y i - 1) + (x i - 1) + (y i - 1)"
+      by (simp add: algebra_simps)
+    then have "norm (x i * y i - 1) \<le> norm ((x i - 1) * (y i - 1)) + norm (x i - 1) + norm (y i - 1)"
+      by (metis dual_order.refl norm_triangle_mono)
+    also have "\<dots> = xn i * yn i + xn i + yn i"
+      by (simp add: norm_mult xn_def yn_def)
+    finally have "1 + norm (x i * y i - 1) \<le> 1 + xn i * yn i + xn i + yn i"
+      by linarith
+    also have "\<dots> = (1 + xn i) * (1 + yn i)"
+      by (simp add: algebra_simps)
+    finally show ?thesis .
+  qed
+
+  \<comment> \<open>From the assumptions, get that (1 + xn) and (1 + yn) are multipliable\<close>
+  from x2_sum have xn_mult: "(\<lambda>i. 1 + xn i) multipliable_on A"
+    unfolding abs_multipliable_on_def xn_def by simp
+  from y2_sum have yn_mult: "(\<lambda>i. 1 + yn i) multipliable_on A"
+    unfolding abs_multipliable_on_def yn_def by simp
+
+  \<comment> \<open>Their pointwise product is multipliable\<close>
+  have prod_mult: "(\<lambda>i. (1 + xn i) * (1 + yn i)) multipliable_on A"
+    by (rule multipliable_on_mult[OF xn_mult yn_mult])
+
+  \<comment> \<open>By comparison, (1 + norm(xy - 1)) is multipliable\<close>
+  show "(\<lambda>i. x i * y i) abs_multipliable_on A"
+    unfolding abs_multipliable_on_def
+  proof (rule multipliable_on_comparison_test[OF prod_mult])
+    fix i assume "i \<in> A"
+    show "1 + norm (x i * y i - 1) \<le> (1 + xn i) * (1 + yn i)"
+      by (rule prod_ineq)
+  next
+    fix i assume "i \<in> A"
+    show "(1::real) \<le> 1 + norm (x i * y i - 1)" by simp
+  qed
+qed
 
 text \<open>The types @{typ ennreal}, @{typ ereal}, and @{typ enat} cannot be used with the
   infinite-product framework (@{const multipliable_on}, @{const has_setprod}, @{const infprod})
@@ -2837,28 +2957,6 @@ next
     qed
   qed
 qed
-
-context
-  assumes "SORT_CONSTRAINT('a :: {topological_comm_monoid_mult, linorder_topology,
-             ordered_semiring, conditionally_complete_linorder})"
-begin
-
-lemma multipliable_on_comparison_test:
-  assumes "f multipliable_on A" and "\<And>x. x \<in> A \<Longrightarrow> g x \<le> f x" and "\<And>x. x \<in> A \<Longrightarrow> (0::'a) \<le> g x"
-  shows   "g multipliable_on A"
-proof -
-  obtain C where C: "\<forall>\<^sub>F X in finite_subsets_at_top A. prod f X \<le> C"
-    using assms(1) multipliable_on_imp_bounded_partial_sums by blast
-  show ?thesis
-  proof (rule nonneg_bounded_partial_sums_imp_multipliable_on)
-    show "\<forall>\<^sub>F X in finite_subsets_at_top A. prod g X \<le> C"
-      using C assms 
-      unfolding eventually_finite_subsets_at_top
-      by (smt (verit, ccfv_SIG) order_trans subsetD sum_mono)
-  qed (use assms in auto)
-qed
-
-end
 
 
 
