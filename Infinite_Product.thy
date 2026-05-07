@@ -2395,20 +2395,22 @@ next
   show ?thesis sorry
 qed
 
+(*THESE ARE FALSE
 lemma infprod_Re':
   assumes "f multipliable_on M"
   shows "infprod (\<lambda>x. Re (f x)) M = Re (infprod f M)"
   \<comment> \<open>WARNING: This statement is FALSE in general. Re does not distribute over products.
       Counterexample: f(1) = 1+i, f(2) = 1-i \<Longrightarrow> Re(\<Prod>f) = 2 but \<Prod>Re(f) = 1.
       Incorrectly ported from the sum theory where Re(\<Sum>f) = \<Sum>Re(f) holds by linearity.\<close>
-  sorry
+  oops
 
 lemma infprod_Im':
   assumes "f multipliable_on M"
   shows "infprod (\<lambda>x. Im (f x)) M = Im (infprod f M)"
   \<comment> \<open>WARNING: This statement is FALSE in general. Im does not distribute over products.
       Incorrectly ported from the sum theory where Im(\<Sum>f) = \<Sum>Im(f) holds by linearity.\<close>
-  sorry
+  oops
+*)
 
 lemma nonneg_infprod_le_0D:
   fixes f :: "'a \<Rightarrow> real"
@@ -2452,8 +2454,14 @@ lemma nonneg_has_setprod_le_0D_complex:
   shows "f x = 0"
   by (metis assms infprodI nonneg_infprod_le_0D_complex multipliable_on_def)
 
+(*
 text \<open>The lemma @{thm [source] infprod_mono_neutral} above applies to various linear ordered monoids such as the reals but not to the complex numbers.
       Thus we have a separate corollary for those:\<close>
+
+  WARNING: The following lemmas (infprod_mono_neutral_complex through
+  multipliable_on_iff_abs_multipliable_on_complex) depend on the false lemmas
+  infprod_Re' and infprod_Im' which claim Re/Im distribute over infinite products.
+  They need to be reproved with correct approaches.
 
 lemma infprod_mono_neutral_complex:
   fixes f :: "'a \<Rightarrow> complex"
@@ -2463,79 +2471,33 @@ lemma infprod_mono_neutral_complex:
   assumes \<open>\<And>x. x \<in> A-B \<Longrightarrow> f x \<le> 0\<close>
   assumes \<open>\<And>x. x \<in> B-A \<Longrightarrow> g x \<ge> 0\<close>
   shows \<open>infprod f A \<le> infprod g B\<close>
-proof -
-  have \<open>infprod (\<lambda>x. Re (f x)) A \<le> infprod (\<lambda>x. Re (g x)) B\<close>
-    by (smt (verit) assms infprod_cong infprod_mono_neutral less_eq_complex_def multipliable_on_Re' zero_complex.simps(1))
-  then have Re: \<open>Re (infprod f A) \<le> Re (infprod g B)\<close>
-    by (metis assms(1-2) infprod_Re')
-  have \<open>infprod (\<lambda>x. Im (f x)) A = infprod (\<lambda>x. Im (g x)) B\<close>
-    sorry \<comment> \<open>needs infprod_cong_neutral for Im parts; current approach may be flawed\<close>
-  then have Im: \<open>Im (infprod f A) = Im (infprod g B)\<close>
-    by (metis assms(1-2) infprod_Im')
-  from Re Im show ?thesis
-    by (auto simp: less_eq_complex_def)
-qed
+  oops
 
 lemma infprod_mono_complex:
   fixes f g :: "'a \<Rightarrow> complex"
   assumes f_sum: "f multipliable_on A" and g_sum: "g multipliable_on A"
   assumes leq: "\<And>x. x \<in> A \<Longrightarrow> f x \<le> g x"
   shows   "infprod f A \<le> infprod g A"
-  by (metis DiffE IntD1 f_sum g_sum infprod_mono_neutral_complex leq)
-
+  oops
 
 lemma infprod_nonneg_complex:
   fixes f :: "'a \<Rightarrow> complex"
   assumes "f multipliable_on M"
     and "\<And>x. x \<in> M \<Longrightarrow> 0 \<le> f x"
   shows "infprod f M \<ge> 0" (is "?lhs \<ge> _")
-  by (metis empty_iff infprod_1 infprod_Im' multipliable_on_1 one_complex.sel(2) one_neq_zero)
+  oops
 
 lemma infprod_cmod:
   assumes "f multipliable_on M"
     and fnn: "\<And>x. x \<in> M \<Longrightarrow> 0 \<le> f x"
   shows "infprod (\<lambda>x. cmod (f x)) M = cmod (infprod f M)"
-proof -
-  have \<open>complex_of_real (infprod (\<lambda>x. cmod (f x)) M) = infprod (\<lambda>x. complex_of_real (cmod (f x))) M\<close>
-    using infprod_Im' multipliable_on_1 by fastforce
-  also have \<open>\<dots> = infprod f M\<close>
-    using fnn cmod_eq_Re complex_is_Real_iff less_eq_complex_def by (force cong: infprod_cong)
-  finally show ?thesis
-    by (metis infprod_Im' infprod_empty multipliable_on_empty one_complex.simps(2) zero_neq_one)
-qed
-
+  oops
 
 lemma multipliable_on_iff_abs_multipliable_on_complex:
   fixes f :: \<open>'a \<Rightarrow> complex\<close>
   shows \<open>f multipliable_on A \<longleftrightarrow> f abs_multipliable_on A\<close>
-proof (rule iffI)
-  assume \<open>f multipliable_on A\<close>
-  define i r ni nr n where \<open>i x = Im (f x)\<close> and \<open>r x = Re (f x)\<close>
-    and \<open>ni x = norm (i x)\<close> and \<open>nr x = norm (r x)\<close> and \<open>n x = norm (f x)\<close> for x
-  from \<open>f multipliable_on A\<close> have \<open>i multipliable_on A\<close>
-    by (simp add: i_def[abs_def] multipliable_on_Im')
-  then have [simp]: \<open>ni multipliable_on A\<close>
-    by (metis infprod_Im' infprod_empty multipliable_on_empty one_complex.simps(2) zero_neq_one)
-
-  from \<open>f multipliable_on A\<close> have \<open>r multipliable_on A\<close>
-    by (simp add: r_def[abs_def] multipliable_on_Re')
-  then have [simp]: \<open>nr multipliable_on A\<close>
-    by (metis infprod_Im' infprod_empty multipliable_on_empty one_complex.simps(2) zero_neq_one)
-
-  have n_sum: \<open>n x \<le> nr x + ni x\<close> for x
-    by (simp add: n_def nr_def ni_def r_def i_def cmod_le)
-
-  have *: \<open>(\<lambda>x. nr x + ni x) multipliable_on A\<close>
-    using infprod_Im' multipliable_on_empty by fastforce
-  have "bdd_above (prod n ` {F. F \<subseteq> A \<and> finite F})"
-    by (metis infprod_Im' infprod_empty multipliable_on_empty one_complex.simps(2) one_neq_zero)
-  then show \<open>f abs_multipliable_on A\<close>
-    apply (simp add: n_def)
-    by (metis infprod_Im' infprod_empty multipliable_on_empty one_complex.simps(2) one_neq_zero)
-next
-  show \<open>f abs_multipliable_on A \<Longrightarrow> f multipliable_on A\<close>
-    using abs_multipliable_multipliable by blast
-qed
+  oops
+*)
 
 lemma multipliable_countable_complex:
   fixes f :: \<open>'a \<Rightarrow> complex\<close>
@@ -3150,7 +3112,27 @@ lemma infprod_nonneg_is_SUPREMUM_ennreal:
     and fge1: "\<And>x. x\<in>A \<Longrightarrow> f x \<ge> 1"
   shows "ennreal (infprod f A) = (SUP F\<in>{F. finite F \<and> F \<subseteq> A}. (ennreal (prod f F)))"
   using infprod_nonneg_is_SUPREMUM_ereal[OF assms]
-  sorry
+proof -
+  have real_eq: "infprod f A = (SUP F\<in>{F. finite F \<and> F \<subseteq> A}. prod f F)"
+    using assms by (rule infprod_nonneg_is_SUPREMUM_real)
+  have prod_nonneg: "prod f F \<ge> 0" if "finite F" "F \<subseteq> A" for F
+    using fge1 that by (intro prod_nonneg) (auto intro: order_trans[OF zero_le_one])
+  have infprod_nonneg: "infprod f A \<ge> 0"
+    using multipliable_on_UNIV_nonneg_real_iff by fastforce
+  have nonempty: "{F. finite F \<and> F \<subseteq> A} \<noteq> {}"
+    by auto
+  have bdd: "bdd_above (prod f ` {F. finite F \<and> F \<subseteq> A})"
+  proof -
+    obtain C where "\<And>Y. finite Y \<Longrightarrow> Y \<subseteq> A \<Longrightarrow> prod f Y \<le> C"
+      using multipliable_on_imp_bounded_partial_sums[OF multipliable]
+      using fge1 finite_sum_le_infprod multipliable by blast
+    thus ?thesis by (auto intro!: bdd_aboveI)
+  qed
+  show ?thesis
+    unfolding real_eq
+    using prod_nonneg infprod_nonneg bdd nonempty
+    sorry
+qed
 
 
 lemma abs_multipliable_on_iff_summable_on:
@@ -3368,25 +3350,42 @@ lemma multipliable_on_swap:
   "f multipliable_on (A \<times> B) \<longleftrightarrow> (\<lambda>(x,y). f (y,x)) multipliable_on (B \<times> A)"
   by (metis has_setprod_swap multipliable_on_def)
 
+(*
 lemma has_setprod_cmult_right_iff:
   fixes c :: "'a :: {topological_semigroup_mult, field, t2_space}"
   assumes "c \<noteq> 0"
   shows   "((\<lambda>x. c * f x) has_setprod S) A \<longleftrightarrow> (f has_setprod (S / c)) A"
-  sorry
+  \<comment> \<open>WARNING: This statement is FALSE for |A| \<noteq> 1. 
+      Counterexample: A = {1,2}, f = (\<lambda>_. 1), c = 2. LHS product = 4, RHS product = 1 \<noteq> 4/2.
+      The correct version would need c^(card A) for finite A.\<close>
+  oops
 
 lemma has_setprod_cmult_left_iff:
   fixes c :: "'a :: {topological_semigroup_mult, field, t2_space}"
   assumes "c \<noteq> 0"
   shows   "((\<lambda>x. f x * c) has_setprod S) A \<longleftrightarrow> (f has_setprod (S / c)) A"
-  by (smt (verit, best) assms has_setprod_cmult_right_iff has_setprod_cong mult.commute)
+  oops
+*)
 
 lemma finite_nonzero_values_imp_multipliable_on:
   assumes "finite {x\<in>X. f x \<noteq> 0}"
   shows   "f multipliable_on X"
-  sorry
+proof (cases "finite X")
+  case True
+  then show ?thesis by simp
+next
+  case False
+  then have "X - {x\<in>X. f x \<noteq> 0} \<noteq> {}"
+    using assms by (metis Collect_mem_eq Diff_eq_empty_iff finite_subset subset_refl)
+  then obtain x where "x \<in> X" "f x = 0" by auto
+  then have "(f has_setprod 0) X"
+    by (rule zero_imp_has_setprod_0)
+  then show ?thesis
+    unfolding multipliable_on_def by blast
+qed
 
 lemma multipliable_on_of_int_iff:
-  "(\<lambda>x::'a. of_int (f x) :: 'b :: real_normed_algebra_1) multipliable_on A \<longleftrightarrow> f multipliable_on A"
+  "(\<lambda>x::'a. of_int (f x) :: 'b :: {real_normed_algebra_1, topological_semigroup_mult, semidom}) multipliable_on A \<longleftrightarrow> f multipliable_on A"
 proof
   assume "f multipliable_on A"
   thus "(\<lambda>x. of_int (f x)) multipliable_on A"
@@ -3415,19 +3414,40 @@ next
     ultimately have "dist (prod (\<lambda>x. of_int (f x)) X) (prod (\<lambda>x. of_int (f x) :: 'b) Y) <
                        1/2 + 1/2"
       using dist_triangle_less_add by blast
-    thus ?thesis
-      by (simp add: dist_norm flip: of_int_prod of_int_diff)
+    have eq: "of_int (prod f X) = (of_int (prod f Y) :: 'b)"
+    proof (rule ccontr)
+      assume "of_int (prod f X) \<noteq> (of_int (prod f Y) :: 'b)"
+      hence "prod f X \<noteq> prod f Y" by auto
+      hence "abs (prod f X - prod f Y) \<ge> 1" 
+        by (simp del: of_int_prod of_nat_prod)
+      hence "norm (of_int (prod f X - prod f Y) :: 'b) \<ge> 1"
+        by (simp add: norm_of_int del: of_int_prod of_nat_prod of_int_diff)
+      hence "norm (of_int (prod f X) - (of_int (prod f Y) :: 'b)) \<ge> 1"
+        by (simp add: of_int_diff)
+      moreover have "(of_int (prod f X) :: 'b) = prod (\<lambda>x. of_int (f x)) X"
+        using X(1) by (induction X rule: finite_induct) (auto simp: of_int_mult)
+      moreover have "(of_int (prod f Y) :: 'b) = prod (\<lambda>x. of_int (f x)) Y"
+        using that(1) by (induction Y rule: finite_induct) (auto simp: of_int_mult)
+      ultimately show False
+        using \<open>dist (prod (\<lambda>x. of_int (f x)) X) (prod (\<lambda>x. of_int (f x) :: 'b) Y) < 1/2 + 1/2\<close>
+        by (simp add: dist_norm)
+    qed
+    thus ?thesis 
+      using eq by (simp add: of_int_eq_iff del: of_int_prod of_nat_prod)
   qed
-  then have "{x\<in>A. f x \<noteq> 0} \<subseteq> X"
-    by (smt (verit) X finite_insert insert_iff mem_Collect_eq subset_eq prod.insert)
-  with \<open>finite X\<close> have "finite {x\<in>A. f x \<noteq> 0}"
-    using finite_subset by blast
+  have "(prod f \<longlongrightarrow> prod f X) (finite_subsets_at_top A)"
+  proof (rule tendsto_eventually)
+    show "\<forall>\<^sub>F Y in finite_subsets_at_top A. prod f Y = prod f X"
+      unfolding eventually_finite_subsets_at_top
+      using X(1,2) \<open>\<And>Y. finite Y \<Longrightarrow> X \<subseteq> Y \<Longrightarrow> Y \<subseteq> A \<Longrightarrow> prod f Y = prod f X\<close>
+      by blast
+  qed
   thus "f multipliable_on A"
-    by (rule finite_nonzero_values_imp_multipliable_on)
+    unfolding multipliable_on_def has_setprod_def by blast
 qed
 
 lemma multipliable_on_of_nat_iff:
-  "(\<lambda>x::'a. of_nat (f x) :: 'b :: {real_normed_algebra_1, semidom}) multipliable_on A \<longleftrightarrow> f multipliable_on A"
+  "(\<lambda>x::'a. of_nat (f x) :: 'b :: {real_normed_algebra_1, semidom, topological_semigroup_mult}) multipliable_on A \<longleftrightarrow> f multipliable_on A"
 proof
   assume "f multipliable_on A"
   thus "(\<lambda>x. of_nat (f x) :: 'b) multipliable_on A"
@@ -3437,19 +3457,52 @@ next
   hence "(\<lambda>x. of_int (int (f x)) :: 'b) multipliable_on A"
     by simp
   also have "?this \<longleftrightarrow> (\<lambda>x. int (f x)) multipliable_on A"
-    by (metis infprod_Im' infprod_empty multipliable_on_empty one_complex.simps(2) one_neq_zero)
+    by (rule multipliable_on_of_int_iff)
   also have "\<dots> \<longleftrightarrow> f multipliable_on A"
-    sorry
+  proof
+    have prod_int: "prod (\<lambda>x. int (f x)) X = int (prod f X)" if "finite X" for X
+      using that by (induction X rule: finite_induct) auto
+    show "(\<lambda>x. int (f x)) multipliable_on A \<Longrightarrow> f multipliable_on A"
+    proof -
+      assume "(\<lambda>x. int (f x)) multipliable_on A"
+      then obtain S where lim: "(prod (\<lambda>x. int (f x)) \<longlongrightarrow> S) (finite_subsets_at_top A)"
+        by (auto simp: multipliable_on_def has_setprod_def)
+      have "\<forall>\<^sub>F X in finite_subsets_at_top A. prod (\<lambda>x. int (f x)) X = S"
+        using lim by (simp add: tendsto_discrete)
+      then obtain X where X: "finite X" "X \<subseteq> A"
+        "\<And>Y. finite Y \<Longrightarrow> X \<subseteq> Y \<Longrightarrow> Y \<subseteq> A \<Longrightarrow> prod (\<lambda>x. int (f x)) Y = S"
+        unfolding eventually_finite_subsets_at_top by metis
+      have "prod f Y = prod f X" if "finite Y" "X \<subseteq> Y" "Y \<subseteq> A" for Y
+      proof -
+        have "int (prod f X) = prod (\<lambda>x. int (f x)) X"
+          using prod_int[OF X(1)] by simp
+        also have "\<dots> = S" by (rule X(3)) (use X in auto)
+        also have "\<dots> = prod (\<lambda>x. int (f x)) Y" by (rule X(3)[symmetric]) (use that in auto)
+        also have "\<dots> = int (prod f Y)"
+          using prod_int[OF that(1)] by simp
+        finally show ?thesis by presburger
+      qed
+      hence "(prod f \<longlongrightarrow> prod f X) (finite_subsets_at_top A)"
+        by (intro tendsto_eventually)
+           (auto simp: eventually_finite_subsets_at_top intro!: exI[of _ X] X(1,2))
+      thus "f multipliable_on A"
+        unfolding multipliable_on_def has_setprod_def by blast
+    qed
+    show "f multipliable_on A \<Longrightarrow> (\<lambda>x. int (f x)) multipliable_on A"
+      by (rule multipliable_on_homomorphism) auto
+  qed
   finally show "f multipliable_on A" .
 qed
 
 lemma infprod_of_nat:
   "infprod (\<lambda>x::'a. of_nat (f x) :: 'b :: {real_normed_algebra_1, semidom, topological_semigroup_mult}) A = of_nat (infprod f A)"
-  sorry
+  by (metis has_setprod_empty has_setprod_infprod has_setprod_of_nat infprodI infprod_def
+      multipliable_on_of_nat_iff)
 
 lemma infprod_of_int:
   "infprod (\<lambda>x::'a. of_int (f x) :: 'b :: {real_normed_algebra_1, semidom, topological_semigroup_mult}) A = of_int (infprod f A)"
-  sorry
+  by (metis has_setprod_infprod has_setprod_of_int infprodI infprod_not_exists
+      multipliable_on_of_int_iff of_int_1)
 
 
 lemma multipliable_on_SigmaI:
@@ -3654,7 +3707,7 @@ proof (rule abs_multipliable_on_comparison_test)
     by (metis multipliable_on_iff_abs_multipliable_on_real)
   with assms show "(\<lambda>x. norm (g x)) multipliable_on A" by blast
 qed (use assms in fastforce)
-  sorry
+
 
 
 lemma has_setprod_geometric_from_1:
@@ -3678,7 +3731,7 @@ proof -
     by (intro has_setprod_reindex_bij_witness[of _ "\<lambda>n. n-1" "\<lambda>n. n+1"]) auto
   finally show ?thesis .
 qed 
-  sorry
+
 
 (*
 lemma has_setprod_divide_const:
