@@ -2253,24 +2253,161 @@ text \<open>The following unconditional versions are needed for @{text multiplia
   also converge. This is non-trivial and requires showing that for convergent products,
   eventually all factors are close to 1.\<close>
 
+lemma has_setprod_factors_tend_to_1:
+  fixes f :: "'a \<Rightarrow> 'b :: real_normed_field"
+  assumes lim: "(prod f \<longlongrightarrow> L) (finite_subsets_at_top M)" and nz: "L \<noteq> 0"
+  shows "\<forall>\<epsilon>>0. \<exists>F. finite F \<and> F \<subseteq> M \<and> (\<forall>x\<in>M - F. dist (f x) 1 < \<epsilon>)"
+proof (intro allI impI)
+  fix \<epsilon> :: real assume "\<epsilon> > 0"
+  define \<delta> where "\<delta> = min (\<epsilon> * norm L / 4) (norm L / 4)"
+  have "\<delta> > 0" unfolding \<delta>_def using \<open>\<epsilon> > 0\<close> nz
+    by (simp add: zero_less_norm_iff)
+  have \<delta>_le1: "\<delta> \<le> \<epsilon> * norm L / 4" and \<delta>_le2: "\<delta> \<le> norm L / 4"
+    unfolding \<delta>_def by auto
+  from tendstoD[OF lim \<open>\<delta> > 0\<close>]
+  obtain F0 where F0_fin: "finite F0" and F0_sub: "F0 \<subseteq> M"
+    and F0_close: "\<And>Y. finite Y \<Longrightarrow> F0 \<subseteq> Y \<Longrightarrow> Y \<subseteq> M \<Longrightarrow> dist (prod f Y) L < \<delta>"
+    unfolding eventually_finite_subsets_at_top
+    by metis
+  \<comment> \<open>Show that prod f F0 is bounded away from 0\<close>
+  have dist_F0: "dist (prod f F0) L < \<delta>" using F0_close F0_fin F0_sub by auto
+  have "norm (prod f F0 - L) < norm L / 4"
+    using dist_F0 \<delta>_le2 by (simp add: dist_norm)
+  moreover have "norm L - norm (prod f F0 - L) \<le> norm (prod f F0)"
+    by (metis dist_commute dist_diff(1) dist_norm norm_triangle_ineq2)
+  ultimately have norm_F0: "norm (prod f F0) > norm L / 2"
+    using norm_ge_zero[of L] by linarith
+  hence prod_F0_nz: "prod f F0 \<noteq> 0" by auto
+  \<comment> \<open>For any x outside F0, f x is close to 1\<close>
+  show "\<exists>F. finite F \<and> F \<subseteq> M \<and> (\<forall>x\<in>M - F. dist (f x) 1 < \<epsilon>)"
+  proof (intro exI conjI ballI)
+    show "finite F0" by fact
+    show "F0 \<subseteq> M" by fact
+    fix x assume "x \<in> M - F0"
+    hence "x \<in> M" "x \<notin> F0" by auto
+    have "dist (prod f (F0 \<union> {x})) L < \<delta>"
+      using F0_close[of "F0 \<union> {x}"] F0_fin \<open>x \<in> M\<close> F0_sub by auto
+    hence "dist (prod f (F0 \<union> {x})) (prod f F0) < 2 * \<delta>"
+      using dist_F0 by (smt (verit) dist_triangle dist_commute)
+    moreover have "prod f (F0 \<union> {x}) = f x * prod f F0"
+      using prod.insert[OF F0_fin \<open>x \<notin> F0\<close>] by (simp add: insert_absorb)
+    ultimately have "dist (f x * prod f F0) (1 * prod f F0) < 2 * \<delta>"
+      by simp
+    hence "norm (prod f F0) * dist (f x) 1 < 2 * \<delta>"
+      by (metis dist_mult_right)
+    hence "dist (f x) 1 < 2 * \<delta> / norm (prod f F0)"
+      using norm_F0
+      by (simp add: mult.commute mult_imp_less_div_pos prod_F0_nz)
+    also have "\<dots> < 2 * \<delta> / (norm L / 2)"
+      by (metis \<open>0 < \<delta>\<close> frac_less2 half_gt_zero mult_pos_pos norm_F0 nz order.refl zero_less_norm_iff
+          zero_less_numeral)
+    also have "\<dots> \<le> 2 * (\<epsilon> * norm L / 4) / (norm L / 2)"
+      using \<delta>_le1 nz by (intro divide_right_mono mult_left_mono) (auto simp: zero_less_norm_iff)
+    also have "\<dots> = \<epsilon>" using nz
+      by (simp add: zero_less_norm_iff)
+    finally show "dist (f x) 1 < \<epsilon>" .
+  qed
+qed
+
 lemma multipliable_on_Re':
   assumes "f multipliable_on M"
   shows "(\<lambda>x. Re (f x)) multipliable_on M"
-  sorry
+proof (cases "\<exists>x\<in>M. Re (f x) = 0")
+  case True
+  then obtain x where "x \<in> M" "Re (f x) = 0" by auto
+  then have "((\<lambda>x. Re (f x)) has_setprod 0) M"
+    by (intro zero_imp_has_setprod_0) auto
+  then show ?thesis
+    unfolding multipliable_on_def by blast
+next
+  case False
+  \<comment> \<open>All real parts are nonzero.\<close>
+  from assms obtain L where lim: "(prod f \<longlongrightarrow> L) (finite_subsets_at_top M)"
+    unfolding multipliable_on_def has_setprod_def by blast
+  show ?thesis
+  proof (cases "L = 0")
+    case True
+    \<comment> \<open>If the complex product tends to 0, the real-part product is squeezed to 0.
+        Key: |\<Prod>x\<in>X. Re(f x)| \<le> \<Prod>x\<in>X. |Re(f x)| \<le> \<Prod>x\<in>X. norm(f x) = norm(\<Prod>x\<in>X. f x) \<rightarrow> 0\<close>
+    have bound: "norm (prod (\<lambda>x. Re (f x)) X) \<le> norm (prod f X)"
+      if "finite X" "X \<subseteq> M" for X
+    proof -
+      have "\<bar>prod (\<lambda>x. Re (f x)) X\<bar> = (\<Prod>x\<in>X. \<bar>Re (f x)\<bar>)"
+        by (rule abs_prod)
+      also have "\<dots> \<le> (\<Prod>x\<in>X. norm (f x))"
+        by (rule prod_mono) (auto intro: abs_Re_le_cmod)
+      also have "\<dots> = norm (prod f X)"
+        by (rule prod_norm)
+      finally show ?thesis by (simp add: real_norm_def)
+    qed
+    have "\<forall>\<^sub>F X in finite_subsets_at_top M. norm (prod (\<lambda>x. Re (f x)) X) \<le> norm (prod f X)"
+      by (intro eventually_finite_subsets_at_top_weakI bound)
+    moreover have "((\<lambda>X. norm (prod f X)) \<longlongrightarrow> 0) (finite_subsets_at_top M)"
+      using lim True tendsto_norm_zero by fastforce
+    ultimately have "((\<lambda>X. prod (\<lambda>x. Re (f x)) X) \<longlongrightarrow> 0) (finite_subsets_at_top M)"
+      by (rule Lim_null_comparison)
+    hence "((\<lambda>x. Re (f x)) has_setprod 0) M"
+      unfolding has_setprod_def .
+    thus ?thesis unfolding multipliable_on_def by blast
+  next
+    case L_nz: False
+    \<comment> \<open>L \<noteq> 0: factors tend to 1, so eventually Re > 0. Split into finite head + tail.\<close>
+    from has_setprod_factors_tend_to_1[OF lim L_nz, rule_format, of "1/2"]
+    obtain F where Ffin: "finite F" and Fsub: "F \<subseteq> M" 
+      and near1: "\<And>x. x \<in> M - F \<Longrightarrow> dist (f x) 1 < 1/2"
+      by auto
+    have Re_pos: "Re (f x) > 0" if "x \<in> M - F" for x
+    proof -
+      from near1[OF that] have "norm (f x - 1) < 1/2" by (simp add: dist_norm)
+      hence "\<bar>Re (f x) - 1\<bar> < 1/2"
+        by (smt (verit, del_insts) abs_Re_le_cmod minus_complex.simps(1) one_complex.simps(1))
+      thus "Re (f x) > 0" by linarith
+    qed
+    \<comment> \<open>On M - F, the real-part product converges (Cauchy filter + completeness)\<close>
+    have tail: "(\<lambda>x. Re (f x)) multipliable_on (M - F)"
+      sorry \<comment> \<open>Key step: use Re_pos and convergence of complex product on M-F
+              to establish convergence of the real-part product via Cauchy filter\<close>
+    \<comment> \<open>On F, the product is trivially multipliable (finite set)\<close>
+    have head: "(\<lambda>x. Re (f x)) multipliable_on F"
+      using Ffin by simp
+    \<comment> \<open>Combine using disjoint union\<close>
+    from head tail have "(\<lambda>x. Re (f x)) multipliable_on (F \<union> (M - F))"
+      by (intro multipliable_on_Un_disjoint) auto
+    also have "F \<union> (M - F) = M" using Fsub by auto
+    finally show ?thesis .
+  qed
+qed
+
 
 lemma multipliable_on_Im':
   assumes "f multipliable_on M"
   shows "(\<lambda>x. Im (f x)) multipliable_on M"
-  sorry
+proof (cases "\<exists>x\<in>M. Im (f x) = 0")
+  case True
+  then obtain x where "x \<in> M" "Im (f x) = 0" by auto
+  then have "((\<lambda>x. Im (f x)) has_setprod 0) M"
+    by (intro zero_imp_has_setprod_0) auto
+  then show ?thesis
+    unfolding multipliable_on_def by blast
+next
+  case False
+  \<comment> \<open>Analogous to multipliable_on_Re': all Im parts nonzero, use Cauchy argument.\<close>
+  show ?thesis sorry
+qed
 
 lemma infprod_Re':
   assumes "f multipliable_on M"
   shows "infprod (\<lambda>x. Re (f x)) M = Re (infprod f M)"
+  \<comment> \<open>WARNING: This statement is FALSE in general. Re does not distribute over products.
+      Counterexample: f(1) = 1+i, f(2) = 1-i \<Longrightarrow> Re(\<Prod>f) = 2 but \<Prod>Re(f) = 1.
+      Incorrectly ported from the sum theory where Re(\<Sum>f) = \<Sum>Re(f) holds by linearity.\<close>
   sorry
 
 lemma infprod_Im':
   assumes "f multipliable_on M"
   shows "infprod (\<lambda>x. Im (f x)) M = Im (infprod f M)"
+  \<comment> \<open>WARNING: This statement is FALSE in general. Im does not distribute over products.
+      Incorrectly ported from the sum theory where Im(\<Sum>f) = \<Sum>Im(f) holds by linearity.\<close>
   sorry
 
 lemma nonneg_infprod_le_0D:
