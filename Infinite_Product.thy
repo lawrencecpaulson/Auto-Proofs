@@ -2407,9 +2407,27 @@ next
           \<Longrightarrow> ln(Re(f x)) is summable \<Longrightarrow> prod Re(f x) converges via exp.
           This requires showing multipliable with nonzero limit implies abs_multipliable,
           which is the content of the (currently unproved) multipliable_on_iff_abs_multipliable_on_complex.\<close>
-      show ?thesis
-        unfolding multipliable_on_def has_setprod_def
+      \<comment> \<open>Step 1: From nonzero-limit convergence, derive norm summability\<close>
+      have norm_summable: "(\<lambda>x. norm (f x - 1)) summable_on (M - F)"
+        \<comment> \<open>Use Cauchy criterion: complex product converging to nonzero limit
+            implies norm(f x - 1) is summable. This is the hard direction of
+            the equivalence between convergence and absolute convergence for
+            infinite products.\<close>
         sorry
+      \<comment> \<open>Step 2: Derive summability of ln(Re(f x))\<close>
+      have ln_summable: "(\<lambda>x. norm (ln (Re (f x)))) summable_on (M - F)"
+        \<comment> \<open>For x \<in> M-F: |ln(Re(f x))| = |ln(1 + (Re(f x)-1))|
+                         \<le> 2\<sqdot>|Re(f x) - 1| \<le> 2\<sqdot>norm(f x - 1)
+            using that Re(f x) \<in> (1/2, 3/2) and the log estimate.\<close>
+        sorry
+      \<comment> \<open>Step 3: Summability of logs implies convergence of the product via exp\<close>
+      have prod_conv: "((\<lambda>X. \<Prod>x\<in>X. Re (f x)) \<longlongrightarrow> exp (\<Sum>\<^sub>\<infinity>x\<in>M-F. ln (Re (f x))))
+                        (finite_subsets_at_top (M - F))"
+        \<comment> \<open>prod Re(f x) over X = exp(\<Sum>x\<in>X. ln(Re(f x))) since all Re(f x) > 0.
+            The sum converges (by ln_summable), so the product converges to exp of the limit.\<close>
+        sorry
+      from prod_conv show ?thesis
+        unfolding multipliable_on_def has_setprod_def by blast
     qed
     \<comment> \<open>On F, the product is trivially multipliable (finite set)\<close>
     have head: "(\<lambda>x. Re (f x)) multipliable_on F"
