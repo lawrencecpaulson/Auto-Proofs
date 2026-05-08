@@ -2413,7 +2413,7 @@ next
             implies norm(f x - 1) is summable. This is the hard direction of
             the equivalence between convergence and absolute convergence for
             infinite products.\<close>
-        sorry
+      sorry
       \<comment> \<open>Step 2: Derive summability of ln(Re(f x))\<close>
       have ln_summable: "(\<lambda>x. norm (ln (Re (f x)))) summable_on (M - F)"
         \<comment> \<open>For x \<in> M-F: |ln(Re(f x))| = |ln(1 + (Re(f x)-1))|
@@ -3905,7 +3905,6 @@ lemma abs_multipliable_on_comparison_test':
   assumes "g multipliable_on A"
   assumes "\<And>x. x \<in> A \<Longrightarrow> norm (f x) \<le> g x"
   shows   "(\<lambda>x. norm (f x)) multipliable_on A"
-  sorry
 *)
 
 
@@ -3914,7 +3913,6 @@ lemma has_setprod_geometric_from_1:
   fixes z :: "'a :: {real_normed_field, banach}"
   assumes "norm z < 1"
   shows   "((\<lambda>n. z ^ n) has_setprod (z / (1 - z))) {1..}"
-  sorry
 *)
 
 
