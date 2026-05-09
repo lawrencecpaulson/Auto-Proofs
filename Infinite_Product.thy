@@ -1365,7 +1365,7 @@ qed
 
 lemma multipliable_on_Sigma:
   fixes A :: "'a set" and B :: "'a \<Rightarrow> 'b set"
-    and f :: \<open>'a \<Rightarrow> 'b \<Rightarrow> 'c::{field, topological_semigroup_mult, t2_space, uniform_space}\<close>
+    and f :: \<open>'a \<Rightarrow> 'b \<Rightarrow> 'c::real_normed_field\<close>
   assumes multipliableAB: "(\<lambda>(x,y). f x y) multipliable_on (Sigma A B)"
   assumes multipliableB: \<open>\<And>x. x\<in>A \<Longrightarrow> (f x) multipliable_on (B x)\<close>
   shows \<open>(\<lambda>x. infprod (f x) (B x)) multipliable_on A\<close>
@@ -1381,7 +1381,7 @@ qed
 
 lemma infprod_Sigma:
   fixes A :: "'a set" and B :: "'a \<Rightarrow> 'b set"
-    and f :: \<open>'a \<times> 'b \<Rightarrow> 'c::{field, topological_semigroup_mult, t2_space, uniform_space}\<close>
+    and f :: \<open>'a \<times> 'b \<Rightarrow> 'c::real_normed_field\<close>
   assumes multipliableAB: "f multipliable_on (Sigma A B)"
   assumes multipliableB: \<open>\<And>x. x\<in>A \<Longrightarrow> (\<lambda>y. f (x, y)) multipliable_on (B x)\<close>
   shows "infprod f (Sigma A B) = infprod (\<lambda>x. infprod (\<lambda>y. f (x, y)) (B x)) A"
@@ -1396,7 +1396,7 @@ qed
 
 lemma infprod_Sigma':
   fixes A :: "'a set" and B :: "'a \<Rightarrow> 'b set"
-    and f :: \<open>'a \<Rightarrow> 'b \<Rightarrow> 'c::{field, topological_semigroup_mult, t2_space, uniform_space}\<close>
+    and f :: \<open>'a \<Rightarrow> 'b \<Rightarrow> 'c::real_normed_field\<close>
   assumes multipliableAB: "(\<lambda>(x,y). f x y) multipliable_on (Sigma A B)"
   assumes multipliableB: \<open>\<And>x. x\<in>A \<Longrightarrow> (f x) multipliable_on (B x)\<close>
   shows \<open>infprod (\<lambda>x. infprod (f x) (B x)) A = infprod (\<lambda>(x,y). f x y) (Sigma A B)\<close>
@@ -2071,10 +2071,9 @@ text \<open>
   The equivalent for summable familes: In a summable family, all but finitely many elements are
   close to 0.
 \<close>
-(* Specialised to topological_ab_group_add following Manuel's advice. *)
-(* Specialised to topological_ab_group_add following Manuel's advice. *)
+(* Specialised to real_normed_field following Manuel's advice. *)
 lemma summable_on_imp_nhds_0:
-  fixes f :: "'a \<Rightarrow> 'b :: {topological_ab_group_add, t2_space}"
+  fixes f :: "'a \<Rightarrow> 'b :: real_normed_field"
   assumes lim: "f summable_on M"
   assumes X: "open X" "0 \<in> X"
   shows "\<exists>F. finite F \<and> F \<subseteq> M \<and> (\<forall>x\<in>M - F. f x \<in> X)"
@@ -2084,22 +2083,16 @@ proof -
   hence tend: "((\<lambda>U. sum f U) \<longlongrightarrow> S) (finite_subsets_at_top M)"
     by (auto simp: has_sum_def)
   \<comment> \<open>Find open W around S such that a - b \<in> X whenever a, b \<in> W\<close>
-  have sub_tend: "((\<lambda>(a,b). a - b) \<longlongrightarrow> (0::'b)) (nhds S \<times>\<^sub>F nhds S)"
-  proof -
-    have "((\<lambda>x. fst x + snd x) \<longlongrightarrow> S + (-S)) (nhds S \<times>\<^sub>F nhds (- S))"
-      by (rule tendsto_add_Pair)
-    moreover have "filterlim uminus (nhds (-S)) (nhds S)"
-      using tendsto_uminus_nhds[of S] by (simp add: filterlim_def)
-    hence "nhds S \<times>\<^sub>F nhds S \<le> nhds S \<times>\<^sub>F filtermap uminus (nhds S)"
-      by (intro prod_filter_mono order_refl) (simp add: filterlim_def)
-    moreover have "nhds S \<times>\<^sub>F filtermap uminus (nhds S) \<le> nhds S \<times>\<^sub>F nhds (-S)"
-      using tendsto_uminus_nhds[of S] by (intro prod_filter_mono order_refl) (simp add: filterlim_def)
-    ultimately have "((\<lambda>x. fst x + snd (map_prod id uminus x)) \<longlongrightarrow> 0) (nhds S \<times>\<^sub>F nhds S)"
-      sorry
-    then show ?thesis sorry
-  qed
+  have "continuous_on UNIV (\<lambda>(a::'b, b). a - b)"
+    by (auto intro!: continuous_intros simp: case_prod_unfold)
+  hence cont: "isCont (\<lambda>(a::'b, b). a - b) (S, S)"
+    by (simp add: continuous_on_eq_continuous_at)
+  from cont[unfolded isCont_def] have "((\<lambda>(a,b). a - b) \<longlongrightarrow> (0::'b)) (nhds (S, S))"
+    by simp
   from this[unfolded tendsto_def, rule_format, OF X(1) X(2)]
-  have ev: "eventually (\<lambda>(a,b). a - b \<in> X) (nhds S \<times>\<^sub>F nhds S)" .
+  have "eventually (\<lambda>(a,b). a - b \<in> X) (nhds (S, S))" .
+  hence "\<forall>\<^sub>F (a, b) in nhds S \<times>\<^sub>F nhds S. a - b \<in> X"
+    by (simp add: nhds_prod[symmetric])
   then obtain Q where Q_ev: "eventually Q (nhds S)" and Q_sub: "\<And>a b. Q a \<Longrightarrow> Q b \<Longrightarrow> a - b \<in> X"
     unfolding eventually_prod_same by auto
   then obtain W where W: "open W" "S \<in> W" "W \<subseteq> Collect Q"
