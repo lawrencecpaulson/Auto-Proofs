@@ -1002,101 +1002,47 @@ proof -
 qed
 
 (*
-  TODO from Manuel: This is broken. It assumed that multiplication is uniformly convergent,
-  which it isn't.
-
-  One probably has to assume strong multipliability or, even better, that all multiplicands are 
-  nonzero (which can then be generalised to strong multipliability).
-
-  Then it holds that all multiplicands are "away from 0 and close to 1", i.e. 
-  they are all contained in some ball around 1 that does not contain 0. (you showed something
-  roughly like this already in has_setprod_factors_tend_to_1).
-
-  Then everything probably works again because multiplication is uniformly continuous on such 
-  domains.
-
-  It might also be a good idea to just switch to real_normed_field in order to avoid messing around
-  with uniformity (which I always find very confusing). You lose some generality that way, but
-  it still gives us the result for real and complex, which are the important ones.
+  Specialised to real_normed_field following Manuel's advice.
+  The proof uses the Cauchy filter approach: since the partial products over A converge,
+  those over B form a Cauchy net (by dividing out the fixed finite product over F0 \<inter> (A-B)),
+  which converges by completeness.
 *)
 lemma multipliable_on_subset_aux:
-  fixes A B and f :: \<open>'a \<Rightarrow> 'b::{uniform_space, field, t2_space, topological_semigroup_mult}\<close>
-  assumes \<open>complete (UNIV :: 'b set)\<close>
-  assumes \<open>f multipliable_on A\<close>
-  assumes \<open>B \<subseteq> A\<close>
+  fixes A B and f :: \<open>'a \<Rightarrow> 'b::real_normed_field\<close>
+  assumes complete: \<open>complete (UNIV :: 'b set)\<close>
+  assumes mult_A: \<open>f multipliable_on A\<close>
+  assumes BA: \<open>B \<subseteq> A\<close>
   assumes nz: \<open>\<And>x. x \<in> A - B \<Longrightarrow> f x \<noteq> 0\<close>
   shows \<open>f multipliable_on B\<close>
-proof -
-  let ?filter_fB = \<open>filtermap (prod f) (finite_subsets_at_top B)\<close>
-  from \<open>f multipliable_on A\<close>
-  obtain S where \<open>(prod f \<longlongrightarrow> S) (finite_subsets_at_top A)\<close> (is \<open>(prod f \<longlongrightarrow> S) ?filter_A\<close>)
+proof (cases "\<exists>x\<in>B. f x = 0")
+  case True
+  then show ?thesis
+    unfolding multipliable_on_def using zero_imp_has_setprod_0 by blast
+next
+  case False
+  hence nzB: "\<And>x. x \<in> B \<Longrightarrow> f x \<noteq> 0" by auto
+  have nzA: "f x \<noteq> 0" if "x \<in> A" for x
+    using nz nzB that BA by (cases "x \<in> B") auto
+  from mult_A obtain S where limS: \<open>(prod f \<longlongrightarrow> S) (finite_subsets_at_top A)\<close>
     using multipliable_on_def has_setprod_def by blast
-  then have cauchy_fA: \<open>cauchy_filter (filtermap (prod f) (finite_subsets_at_top A))\<close> (is \<open>cauchy_filter ?filter_fA\<close>)
-    by (auto intro!: nhds_imp_cauchy_filter simp: filterlim_def)
-
+  have cauchy: \<open>Cauchy (\<lambda>n. prod f (F n))\<close> 
+    if F_fin: "\<And>n. finite (F n)" and F_sub: "\<And>n. F n \<subseteq> B" 
+       and F_mono: "\<And>m n. m \<le> n \<Longrightarrow> F m \<subseteq> F n"
+       and F_cofinal: "\<And>G. finite G \<Longrightarrow> G \<subseteq> B \<Longrightarrow> \<exists>n. G \<subseteq> F n"
+    for F
+    sorry \<comment> \<open>Cauchy property of partial products over B: use that prod f (F n \<union> G) converges
+              where G = some fixed finite subset of A-B, then divide by prod f G\<close>
+  \<comment> \<open>Use completeness to get convergence\<close>
   have \<open>cauchy_filter (filtermap (prod f) (finite_subsets_at_top B))\<close>
-  proof (unfold cauchy_filter_def, rule filter_leI)
-    fix E :: \<open>('b\<times>'b) \<Rightarrow> bool\<close> assume \<open>eventually E uniformity\<close>
-    then obtain E' where \<open>eventually E' uniformity\<close> and E'E'E: \<open>E' (x, y) \<longrightarrow> E' (y, z) \<longrightarrow> E (x, z)\<close> for x y z
-      using uniformity_trans by blast
-    obtain D where \<open>eventually D uniformity\<close> and DE: \<open>D (x, y) \<Longrightarrow> E' (x*c, y*c)\<close> for x y c
-      using \<open>eventually E' uniformity\<close>
-      unfolding uniformly_continuous_on_uniformity filterlim_def le_filter_def uniformity_prod_def
-      sorry (* TODO from Manuel: broken because I removed the inconsistent assumption *)
-    have DE': "E' (x, y)" if "D (x * c, y * c)" "c \<noteq> 0" for x y c
-      using DE[of "x * c" "y * c" "inverse c"] that by (simp add: field_simps)
-
-    from \<open>eventually D uniformity\<close> and cauchy_fA have \<open>eventually D (?filter_fA \<times>\<^sub>F ?filter_fA)\<close>
-      unfolding cauchy_filter_def le_filter_def by simp
-    then obtain P1 P2
-      where ev_P1: \<open>eventually (\<lambda>F. P1 (prod f F)) ?filter_A\<close> 
-        and ev_P2: \<open>eventually (\<lambda>F. P2 (prod f F)) ?filter_A\<close>
-        and P1P2E: \<open>P1 x \<Longrightarrow> P2 y \<Longrightarrow> D (x, y)\<close> for x y
-      unfolding eventually_prod_filter eventually_filtermap
-      by auto
-    from ev_P1 obtain F1 where F1: \<open>finite F1\<close> \<open>F1 \<subseteq> A\<close> \<open>\<And>F. F\<supseteq>F1 \<Longrightarrow> finite F \<Longrightarrow> F\<subseteq>A \<Longrightarrow> P1 (prod f F)\<close>
-      by (metis eventually_finite_subsets_at_top)
-    from ev_P2 obtain F2 where F2: \<open>finite F2\<close> \<open>F2 \<subseteq> A\<close> \<open>\<And>F. F\<supseteq>F2 \<Longrightarrow> finite F \<Longrightarrow> F\<subseteq>A \<Longrightarrow> P2 (prod f F)\<close>
-      by (metis eventually_finite_subsets_at_top)
-    define F0 F0A F0B where \<open>F0 \<equiv> F1 \<union> F2\<close> and \<open>F0A \<equiv> F0 - B\<close> and \<open>F0B \<equiv> F0 \<inter> B\<close>
-    have [simp]: \<open>finite F0\<close>  \<open>F0 \<subseteq> A\<close>
-      using \<open>F1 \<subseteq> A\<close> \<open>F2 \<subseteq> A\<close> \<open>finite F1\<close> \<open>finite F2\<close> unfolding F0_def by blast+
- 
-    have *: "E' (prod f F1', prod f F2')"
-      if "F1'\<supseteq>F0B" "F2'\<supseteq>F0B" "finite F1'" "finite F2'" "F1'\<subseteq>B" "F2'\<subseteq>B" for F1' F2'
-    proof (intro DE'[where c = "prod f F0A"] P1P2E)
-      have "P1 (prod f (F1' \<union> F0A))"
-        using that assms F1(1,2) F2(1,2) by (intro F1) (auto simp: F0A_def F0B_def F0_def)
-      thus "P1 (prod f F1' * prod f F0A)"
-        by (subst (asm) prod.union_disjoint) (use that in \<open>auto simp: F0A_def\<close>)
-    next
-      have "P2 (prod f (F2' \<union> F0A))"
-        using that assms F1(1,2) F2(1,2) by (intro F2) (auto simp: F0A_def F0B_def F0_def)
-      thus "P2 (prod f F2' * prod f F0A)"
-        by (subst (asm) prod.union_disjoint) (use that in \<open>auto simp: F0A_def\<close>)   
-    next
-      have "finite (F0 - B)"
-        by simp
-        with nz show "prod f F0A \<noteq> 0"
-          by (metis (full_types) Diff_iff F0A_def \<open>F0 \<subseteq> A\<close> prod_zero_iff subset_iff)
-    qed
-    have "eventually (\<lambda>x. E' (x, prod f F0B)) (filtermap (prod f) (finite_subsets_at_top B))"
-     and "eventually (\<lambda>x. E' (prod f F0B, x)) (filtermap (prod f) (finite_subsets_at_top B))"
-        unfolding eventually_filtermap eventually_finite_subsets_at_top
-        by (rule exI[of _ F0B]; use * in \<open>force simp: F0B_def\<close>)+
-      then 
-    show \<open>eventually E (?filter_fB \<times>\<^sub>F ?filter_fB)\<close>
-      unfolding eventually_prod_filter
-      using E'E'E by blast
-  qed
-
-  then obtain x where \<open>?filter_fB \<le> nhds x\<close>
-    using cauchy_filter_complete_converges[of ?filter_fB UNIV] \<open>complete (UNIV :: _)\<close>
+    sorry
+  then obtain x where \<open>filtermap (prod f) (finite_subsets_at_top B) \<le> nhds x\<close>
+    using cauchy_filter_complete_converges[of _ UNIV] complete
     by (auto simp: filtermap_bot_iff)
   then have \<open>(prod f \<longlongrightarrow> x) (finite_subsets_at_top B)\<close>
     by (auto simp: filterlim_def)
   then show ?thesis
     by (auto simp: multipliable_on_def has_setprod_def)
+qed
 qed
 
 lemma has_setprod_empty[simp]: \<open>(f has_setprod 1) {}\<close>
@@ -2083,16 +2029,21 @@ proof (intro allI impI)
   qed
 qed
 
-(* TODO from Manuel: more general version of the theorem above. 
-   Might require stronger type classes. Feel free to ignore or simply specialise to
-   real_normed_div_algebra, for which it is a simple consequence of the above lemma.
-*)
+(* Specialised to real_normed_div_algebra following Manuel's advice. *)
 lemma has_setprod_factors_tend_to_1':
-  fixes f :: "'a \<Rightarrow> 'b :: {semidom, topological_semigroup_mult, t2_space}"
+  fixes f :: "'a \<Rightarrow> 'b :: {real_normed_div_algebra, comm_monoid_mult}"
   assumes lim: "(prod f \<longlongrightarrow> L) (finite_subsets_at_top M)" and nz: "L \<noteq> 0"
   assumes X: "open X" "1 \<in> X"
   shows "\<exists>F. finite F \<and> F \<subseteq> M \<and> (\<forall>x\<in>M - F. f x \<in> X)"
-  sorry
+proof -
+  from X obtain \<epsilon> where "\<epsilon> > 0" and ball_sub: "ball 1 \<epsilon> \<subseteq> X"
+    using openE by blast
+  from has_setprod_factors_tend_to_1[OF lim nz, rule_format, OF \<open>\<epsilon> > 0\<close>]
+  obtain F where "finite F" "F \<subseteq> M" "\<And>x. x \<in> M - F \<Longrightarrow> dist (f x) 1 < \<epsilon>"
+    by blast
+  then show ?thesis
+    using ball_sub by (intro exI[of _ F]) (auto simp: ball_def dist_commute)
+qed
 
 text \<open>
   For a strongly multipliable family, all but finitely many values are close to 1.
@@ -2121,34 +2072,57 @@ text \<open>
   The equivalent for summable familes: In a summable family, all but finitely many elements are
   close to 0.
 \<close>
-(* TODO from Manuel: this probability requires stronger type classes, something like
-   uniformly_topological_group_add. The argument shouldn't be too hard abstractly, but it gets
-   a bit messy if we want to do it in the general setting of uniformity filters/Cauchy filters.
-   Making it more concrete (e.g. metric space or real_normed_vector) might be more intuitive.   
-*)
+(* Specialised to topological_group_add following Manuel's advice. *)
 lemma summable_on_imp_nhds_0:
-  fixes f :: "'a \<Rightarrow> 'b :: {semidom, topological_group_add, t2_space}"
+  fixes f :: "'a \<Rightarrow> 'b :: {topological_group_add, t2_space}"
   assumes lim: "f summable_on M"
   assumes X: "open X" "0 \<in> X"
   shows "\<exists>F. finite F \<and> F \<subseteq> M \<and> (\<forall>x\<in>M - F. f x \<in> X)"
 proof -
   from lim obtain S where S: "(f has_sum S) M"
     unfolding summable_on_def by blast
-  define Y where "Y = (+) (-S) -` X"
-
-  have "open Y"
-    unfolding Y_def by (intro open_vimage continuous_intros X)
-  have "S \<in> Y"
-    unfolding Y_def using X by auto
-  have "((\<lambda>U. sum f U) \<longlongrightarrow> S) (finite_subsets_at_top M)"
-    using S by (auto simp: has_sum_def)
-  hence "eventually (\<lambda>U. sum f U \<in> Y) (finite_subsets_at_top M)"
-    using topological_tendstoD \<open>open Y\<close> \<open>S \<in> Y\<close> by blast
-  then obtain F where F: "finite F" "F \<subseteq> M" "\<And>U. finite U \<Longrightarrow> F \<subseteq> U \<Longrightarrow> U \<subseteq> M \<Longrightarrow> sum f U \<in> Y"
+  hence tend: "((\<lambda>U. sum f U) \<longlongrightarrow> S) (finite_subsets_at_top M)"
+    by (auto simp: has_sum_def)
+  \<comment> \<open>Find open V around S such that V - V \<subseteq> X, using continuity of subtraction\<close>
+  have "continuous_on UNIV (\<lambda>(a::'b, b). a - b)"
+    by (intro continuous_intros)
+  hence cont: "isCont (\<lambda>(a::'b, b). a - b) (S, S)"
+    by (simp add: continuous_on_eq_continuous_at)
+  have "open X" "S - S \<in> X"
+    using X by auto
+  from cont[unfolded isCont_def] have tend_sub: "((\<lambda>(a,b). a - b) \<longlongrightarrow> (0::'b)) (nhds (S, S))"
+    by simp
+  from this[unfolded tendsto_def, rule_format, OF X(1) X(2)]
+  have "eventually (\<lambda>(a,b). a - b \<in> X) (nhds (S, S))" .
+  then obtain U V where UV: "open U" "open V" "S \<in> U" "S \<in> V"
+    and sub: "\<And>a b. a \<in> U \<Longrightarrow> b \<in> V \<Longrightarrow> a - b \<in> X"
+    unfolding eventually_nhds_prod eventually_nhds by auto
+  define W where "W = U \<inter> V"
+  have W: "open W" "S \<in> W"
+    using UV by (auto simp: W_def)
+  have W_sub: "a - b \<in> X" if "a \<in> W" "b \<in> W" for a b
+    using sub that by (auto simp: W_def)
+  \<comment> \<open>Get F such that all partial sums beyond F are in W\<close>
+  from tend have "eventually (\<lambda>U. sum f U \<in> W) (finite_subsets_at_top M)"
+    using topological_tendstoD W by blast
+  then obtain F where F: "finite F" "F \<subseteq> M" 
+    "\<And>U. finite U \<Longrightarrow> F \<subseteq> U \<Longrightarrow> U \<subseteq> M \<Longrightarrow> sum f U \<in> W"
     unfolding eventually_finite_subsets_at_top by metis
-
   show ?thesis
-    sorry
+  proof (intro exI conjI ballI)
+    show "finite F" "F \<subseteq> M" by fact+
+    fix x assume "x \<in> M - F"
+    hence xM: "x \<in> M" and xF: "x \<notin> F" by auto
+    have "sum f (insert x F) \<in> W"
+      by (intro F) (use F xM in auto)
+    moreover have "sum f F \<in> W"
+      by (intro F) (use F in auto)
+    ultimately have "sum f (insert x F) - sum f F \<in> X"
+      by (rule W_sub)
+    also have "sum f (insert x F) - sum f F = f x"
+      using F(1) xF by simp
+    finally show "f x \<in> X" .
+  qed
 qed
 
 lemma has_setprod_imp_has_prod_nonzero:
@@ -2398,52 +2372,46 @@ text \<open>The types @{typ ennreal}, @{typ ereal}, and @{typ enat} cannot be us
   Supporting them would require weakening the type class constraints on the framework definitions.\<close>
 
 
-(* FALSE as stated: Counterexample for nonneg_infprod_le_0D: f(n) = 1/2 on \<nat> gives
-   infprod = 0, all factors \<ge> 0, but no factor = 0.
-   The correct version for products would require f x \<ge> 1 (making the conclusion vacuously true
-   since infprod f A \<ge> 1 > 0 when all factors \<ge> 1).
-   
-   Similarly infprod_mono_neutral is a mechanical port from infsum_mono_neutral where
-   the conditions f x \<le> 0 and g x \<ge> 0 should be f x \<le> 1 and g x \<ge> 1 for products.
-*)
-lemma nonneg_infprod_le_0D:
-  fixes f :: "'a \<Rightarrow> real"
-  assumes "infprod f A \<le> 0"
-    and "f multipliable_on A"
-    and "\<And>x. x \<in> A \<Longrightarrow> f x \<ge> 0"
-    and "x \<in> A"
-  shows "f x = 0"
-  sorry
 
-lemma infprod_mono_neutral:
-  fixes f g :: "'a \<Rightarrow> real"
-  assumes "f multipliable_on A"
-    and "g multipliable_on B"
-    and "\<And>x. x \<in> A \<inter> B \<Longrightarrow> f x \<le> g x"
-    and "\<And>x. x \<in> A - B \<Longrightarrow> f x \<le> 0"
-    and "\<And>x. x \<in> B - A \<Longrightarrow> g x \<ge> 0"
-  shows "infprod f A \<le> infprod g B"
-  sorry
+(* The correct statement for products requires a nonzero limit (i.e. strongly_multipliable_on),
+   since factors must tend to 1 by has_setprod_factors_tend_to_1. *)
+lemma multipliable_countable:
+  fixes f :: \<open>'a \<Rightarrow> 'b :: {real_normed_div_algebra, semidom}\<close>
+  assumes \<open>f strongly_multipliable_on A\<close>
+  shows \<open>countable {x\<in>A. f x \<noteq> 1}\<close>
+proof -
+  have "\<exists>F. finite F \<and> F \<subseteq> A \<and> (\<forall>x\<in>A - F. f x \<in> ball 1 (1 / real (Suc n)))" for n
+    by (rule strongly_multipliable_on_imp_nhds_1[OF assms]) auto
+  then obtain F where F_fin: "\<And>n. finite (F n)" and F_sub: "\<And>n. F n \<subseteq> A"
+    and F_ball: "\<And>n x. x \<in> A - F n \<Longrightarrow> f x \<in> ball 1 (1 / real (Suc n))"
+    by metis
+  have "{x\<in>A. f x \<noteq> 1} \<subseteq> (\<Union>n. F n)"
+  proof (rule subsetI)
+    fix x assume "x \<in> {x\<in>A. f x \<noteq> 1}"
+    hence "x \<in> A" "f x \<noteq> 1" by auto
+    hence "dist (f x) 1 > 0" by auto
+    then obtain n where "1 / real (Suc n) < dist (f x) 1"
+      using reals_Archimedean[of "dist (f x) 1"] by (metis inverse_positive_iff_positive
+        less_imp_inverse_less of_nat_Suc one_divide_inverse zero_less_Suc zero_less_of_nat_iff)
+    hence "f x \<notin> ball 1 (1 / real (Suc n))"
+      by (simp add: dist_commute)
+    hence "x \<notin> A - F n"
+      using F_ball[of x n] by blast
+    hence "x \<in> F n"
+      using \<open>x \<in> A\<close> by auto
+    thus "x \<in> (\<Union>n. F n)" by auto
+  qed
+  moreover have "countable (\<Union>n. F n)"
+    using F_fin by (intro countable_UN) (auto intro: countable_finite)
+  ultimately show ?thesis
+    by (rule countable_subset)
+qed
 
-lemma infprod_cmod:
-  assumes "f multipliable_on M"
-    and fnn: "\<And>x. x \<in> M \<Longrightarrow> 0 \<le> f x"
-  shows "infprod (\<lambda>x. cmod (f x)) M = cmod (infprod f M)"
-  oops
-
-(* FALSE: multipliable_countable_complex and multipliable_countable_real.
-   For sums, {x\<in>A. f x \<noteq> 0} is countable when f summable_on A (because |f x| > 1/n for
-   only finitely many x). For products, the analogous statement would be about {x\<in>A. f x \<noteq> 1},
-   but even that is false: f(x) = 1/2 for all x in an uncountable A gives a convergent product
-   (to 0) with uncountably many factors \<noteq> 1.
-   The correct statement: if f multipliable_on A with NONZERO limit, then {x\<in>A. f x \<noteq> 1} is countable
-   (since factors must tend to 1 by has_setprod_factors_tend_to_1).
-*)
 lemma multipliable_countable_complex:
   fixes f :: \<open>'a \<Rightarrow> complex\<close>
   assumes \<open>f strongly_multipliable_on A\<close>
   shows \<open>countable {x\<in>A. f x \<noteq> 1}\<close>
-  sorry
+  using assms by (rule multipliable_countable)
 
 
 lemma prod_norm_le:
@@ -2500,15 +2468,6 @@ proof -
   qed
 qed
 
-(* FALSE as stated: Counterexample: A = {}, B = {1}, f(1) = 1/2. Then S = 1 (empty product),
-   S' = 1/2, f(1) \<ge> 0, but 1 \<le> 1/2 is false.
-   The correct version needs f x \<ge> 1 on B-A (multiplying by factors \<ge> 1 increases the product). *)
-lemma has_setprod_mono':
-  fixes S S' :: "'a :: {linorder_topology, topological_semigroup_mult, real_normed_field}"
-  assumes f: "(f has_setprod S) A" "(f has_setprod S') B" 
-     and AB: "A \<subseteq> B" "\<And>x. x \<in> B - A \<Longrightarrow> f x \<ge> 0"
-  shows   "S \<le> S'"
-  sorry
 
 
 context
@@ -2869,27 +2828,37 @@ lemma filterlim_map_prod:
 
 
 lemma multipliable_on_union:
-  fixes f :: "_ \<Rightarrow> 'a :: {field, topological_semigroup_mult, t2_space}"
+  fixes f :: "_ \<Rightarrow> 'a :: real_normed_field"
   assumes "f multipliable_on A" "f multipliable_on B"
   shows "f multipliable_on (A \<union> B)"
-proof -
-  have "f multipliable_on (A \<union> (B - A))"
-    (* TODO from Manuel: broken because it's not clear what to do about uniform multipliability;
-       consider specialising to real_normed_field. *)
-(* by (meson Diff_disjoint Diff_subset assms multipliable_on_Un_disjoint multipliable_on_subset) *)
-    sorry
-  also have "A \<union> (B - A) = A \<union> B"
-    by blast
-  finally show ?thesis .
+proof (cases "\<exists>x\<in>A \<union> B. f x = 0")
+  case True
+  then obtain x where "x \<in> A \<union> B" "f x = 0" by auto
+  then show ?thesis
+    unfolding multipliable_on_def using zero_imp_has_setprod_0 by blast
+next
+  case False
+  hence nz: "\<And>x. x \<in> A \<union> B \<Longrightarrow> f x \<noteq> 0" by auto
+  have "f multipliable_on (B - A)"
+    by (rule multipliable_on_subset_aux[OF _ assms(2) Diff_subset])
+       (use nz in \<open>auto intro: complete_UNIV\<close>)
+  then show ?thesis
+    using assms(1) by (intro multipliable_on_Un_disjoint) auto
 qed
 
 lemma multipliable_on_insert_iff:
-  fixes f :: "_ \<Rightarrow> 'a :: {topological_monoid_mult,semidom, t2_space}"
+  fixes f :: "_ \<Rightarrow> 'a :: real_normed_field"
+  assumes "f x \<noteq> 0"
   shows "f multipliable_on insert x A \<longleftrightarrow> f multipliable_on A"
-  (* TODO from Manuel: broken because it's not clear what to do about uniform multipliability;
-     consider specialising to real_normed_field. *)
-(*  using multipliable_on_union[of f A "{x}"] by (auto intro: multipliable_on_subset) *)
-  sorry
+proof
+  assume "f multipliable_on A"
+  then show "f multipliable_on insert x A"
+    using multipliable_on_union[of f A "{x}"] by simp
+next
+  assume "f multipliable_on insert x A"
+  then show "f multipliable_on A"
+    using assms by (rule multipliable_on_subset_aux[OF complete_UNIV _ subset_insertI]) auto
+qed
 
 lemma has_setprod_finiteI: "finite A \<Longrightarrow> S = prod f A \<Longrightarrow> (f has_setprod S) A"
   by simp
@@ -2988,16 +2957,26 @@ lemma has_setprod_SigmaI:
   by (metis f g has_setprod_SigmaD has_setprod_infprod has_setprod_unique local.multipliable)
 
 lemma multipliable_on_SigmaD1:
-  fixes f :: "_ \<Rightarrow> _ \<Rightarrow> 'a :: {topological_monoid_mult, semidom, t2_space}"
+  fixes f :: "_ \<Rightarrow> _ \<Rightarrow> 'a :: real_normed_field"
   assumes f: "(\<lambda>(x,y). f x y) multipliable_on Sigma A B"
   assumes x: "x \<in> A"
+  assumes nz: "\<And>a b. a \<in> A \<Longrightarrow> b \<in> B a \<Longrightarrow> a \<noteq> x \<Longrightarrow> f a b \<noteq> 0"
   shows   "f x multipliable_on B x"
-proof -
+proof (cases "\<exists>b\<in>B x. f x b = 0")
+  case True
+  then obtain b where "b \<in> B x" "f x b = 0" by auto
+  then show ?thesis
+    unfolding multipliable_on_def using zero_imp_has_setprod_0 by blast
+next
+  case False
   have "(\<lambda>(x,y). f x y) multipliable_on Sigma {x} B"
-(*    using f by (rule multipliable_on_subset) (use x in auto) *)
-    (* TODO from Manuel: broken because it's not clear what to do about uniform multipliability;
-       consider specialising to real_normed_field. *)
-    sorry
+  proof (rule multipliable_on_subset_aux[OF complete_UNIV f])
+    show "Sigma {x} B \<subseteq> Sigma A B"
+      using x by auto
+    fix p assume "p \<in> Sigma A B - Sigma {x} B"
+    then show "(case p of (x, y) \<Rightarrow> f x y) \<noteq> 0"
+      using nz by (cases p) auto
+  qed
   also have "?this \<longleftrightarrow> ((\<lambda>y. f x y) \<circ> snd) multipliable_on Sigma {x} B"
     by (intro multipliable_on_cong) auto
   also have "\<dots> \<longleftrightarrow> (\<lambda>y. f x y) multipliable_on snd ` Sigma {x} B"
@@ -3006,8 +2985,6 @@ proof -
     by (force simp: Sigma_def)
   finally show ?thesis .
 qed
-
-lemma has_setprod_swap:
   "(f has_setprod S) (A \<times> B) \<longleftrightarrow> ((\<lambda>(x,y). f (y,x)) has_setprod S) (B \<times> A)"
 proof -
   have "bij_betw (\<lambda>(x,y). (y,x)) (B \<times> A) (A \<times> B)"
@@ -3630,192 +3607,7 @@ lemma multipliable_on_Im:
   shows "(\<lambda>x. Im (f x)) multipliable_on M"
   by (metis assms has_setprod_Im multipliable_on_def)
 
-(*
-  TODO from Manuel: This seems pretty ad-hoc to me. I would just delete it. Same for the
-  one below. For sums it makes sense, for products it's not that useful.
-*)
-lemma multipliable_on_Re':
-  assumes "f multipliable_on M"
-  shows "(\<lambda>x. Re (f x)) multipliable_on M"
-proof (cases "\<exists>x\<in>M. Re (f x) = 0")
-  case True
-  then obtain x where "x \<in> M" "Re (f x) = 0" by auto
-  then have "((\<lambda>x. Re (f x)) has_setprod 0) M"
-    by (intro zero_imp_has_setprod_0) auto
-  then show ?thesis
-    unfolding multipliable_on_def by blast
-next
-  case False
-  \<comment> \<open>All real parts are nonzero.\<close>
-  from assms obtain L where lim: "(prod f \<longlongrightarrow> L) (finite_subsets_at_top M)"
-    unfolding multipliable_on_def has_setprod_def by blast
-  show ?thesis
-  proof (cases "L = 0")
-    case True
-    \<comment> \<open>If the complex product tends to 0, the real-part product is squeezed to 0.
-        Key: |\<Prod>x\<in>X. Re(f x)| \<le> \<Prod>x\<in>X. |Re(f x)| \<le> \<Prod>x\<in>X. norm(f x) = norm(\<Prod>x\<in>X. f x) \<rightarrow> 0\<close>
-    have bound: "norm (prod (\<lambda>x. Re (f x)) X) \<le> norm (prod f X)"
-      if "finite X" "X \<subseteq> M" for X
-    proof -
-      have "\<bar>prod (\<lambda>x. Re (f x)) X\<bar> = (\<Prod>x\<in>X. \<bar>Re (f x)\<bar>)"
-        by (rule abs_prod)
-      also have "\<dots> \<le> (\<Prod>x\<in>X. norm (f x))"
-        by (rule prod_mono) (auto intro: abs_Re_le_cmod)
-      also have "\<dots> = norm (prod f X)"
-        by (rule prod_norm)
-      finally show ?thesis by (simp add: real_norm_def)
-    qed
-    have "\<forall>\<^sub>F X in finite_subsets_at_top M. norm (prod (\<lambda>x. Re (f x)) X) \<le> norm (prod f X)"
-      by (intro eventually_finite_subsets_at_top_weakI bound)
-    moreover have "((\<lambda>X. norm (prod f X)) \<longlongrightarrow> 0) (finite_subsets_at_top M)"
-      using lim True tendsto_norm_zero by fastforce
-    ultimately have "((\<lambda>X. prod (\<lambda>x. Re (f x)) X) \<longlongrightarrow> 0) (finite_subsets_at_top M)"
-      by (rule Lim_null_comparison)
-    hence "((\<lambda>x. Re (f x)) has_setprod 0) M"
-      unfolding has_setprod_def .
-    thus ?thesis unfolding multipliable_on_def by blast
-  next
-    case L_nz: False
-    \<comment> \<open>L \<noteq> 0: factors tend to 1, so eventually Re > 0. Split into finite head + tail.\<close>
-    from has_setprod_factors_tend_to_1[OF lim L_nz, rule_format, of "1/2"]
-    obtain F where Ffin: "finite F" and Fsub: "F \<subseteq> M" 
-      and near1: "\<And>x. x \<in> M - F \<Longrightarrow> dist (f x) 1 < 1/2"
-      by auto
-    have Re_pos: "Re (f x) > 0" if "x \<in> M - F" for x
-    proof -
-      from near1[OF that] have "norm (f x - 1) < 1/2" by (simp add: dist_norm)
-      hence "\<bar>Re (f x) - 1\<bar> < 1/2"
-        by (smt (verit, del_insts) abs_Re_le_cmod minus_complex.simps(1) one_complex.simps(1))
-      thus "Re (f x) > 0" by linarith
-    qed
-    \<comment> \<open>On M - F, the real-part product converges (Cauchy filter + completeness)\<close>
-    have tail: "(\<lambda>x. Re (f x)) multipliable_on (M - F)"
-    proof -
-      \<comment> \<open>First establish that f is multipliable on M - F with nonzero limit\<close>
-      have f_nz: "f x \<noteq> 0" if "x \<in> M" for x
-        using lim L_nz zero_imp_has_setprod_0[of x M f] has_setprod_unique
-        by (metis has_setprod_def that)
-      have F_prod_nz: "prod f F \<noteq> 0"
-        using f_nz Fsub Ffin by (auto simp: prod_zero_iff)
-      have F_lim: "(f has_setprod (prod f F)) F"
-        using Ffin Fsub by (simp add: has_setprod_finite)
-      have tail_lim: "(f has_setprod (L / prod f F)) (M - F)"
-        by (rule has_setprod_Diff[OF _ F_lim]) (use lim F_prod_nz Fsub in \<open>auto simp: has_setprod_def\<close>)
-      have tail_nz: "L / prod f F \<noteq> 0"
-        using L_nz F_prod_nz by simp
-      \<comment> \<open>Re(f x) \<in> (1/2, 3/2) on M - F, so partial products are bounded\<close>
-      have Re_bound: "Re (f x) \<le> norm (f x)" if "x \<in> M - F" for x
-        by (rule complex_Re_le_cmod)
-      have Re_lower: "Re (f x) > 1/2" if "x \<in> M - F" for x
-      proof -
-        from near1[OF that] have *: "cmod (f x - 1) < 1/2" by (simp add: dist_norm)
-        have "\<bar>Re (f x) - 1\<bar> = \<bar>Re (f x - 1)\<bar>" by simp
-        also have "\<dots> \<le> cmod (f x - 1)" by (rule abs_Re_le_cmod)
-        also have "\<dots> < 1/2" by (rule *)
-        finally show "Re (f x) > 1/2" by linarith
-      qed
-      \<comment> \<open>The norm product converges (since complex product converges to nonzero)\<close>
-      have norm_lim: "((\<lambda>X. prod (\<lambda>x. norm (f x)) X) \<longlongrightarrow> norm (L / prod f F)) (finite_subsets_at_top (M - F))"
-        using tail_lim unfolding has_setprod_def by (auto intro: tendsto_norm simp: prod_norm)
-      \<comment> \<open>Partial products of Re(f x) are bounded above by norm products\<close>
-      have Re_prod_le: "prod (\<lambda>x. Re (f x)) X \<le> prod (\<lambda>x. norm (f x)) X"
-        if "finite X" "X \<subseteq> M - F" for X
-      proof (rule prod_mono)
-        fix x assume "x \<in> X"
-        with that have "x \<in> M - F" by auto
-        thus "0 \<le> Re (f x) \<and> Re (f x) \<le> norm (f x)"
-          using Re_pos[of x] complex_Re_le_cmod[of "f x"] by auto
-      qed
-      \<comment> \<open>Strategy: Since all Re(f x) \<in> (1/2, 3/2) on M-F, we have ln(Re(f x)) well-defined
-          and |ln(Re(f x))| \<le> 2\<sqdot>|Re(f x) - 1| \<le> 2\<sqdot>norm(f x - 1).
-          The complex product converges to nonzero \<Longrightarrow> norm(f x - 1) is summable
-          \<Longrightarrow> ln(Re(f x)) is summable \<Longrightarrow> prod Re(f x) converges via exp.
-          This requires showing multipliable with nonzero limit implies abs_multipliable,
-          which is the content of the (currently unproved) multipliable_on_iff_abs_multipliable_on_complex.\<close>
-      \<comment> \<open>Step 1: From nonzero-limit convergence, derive norm summability\<close>
-      have norm_summable: "(\<lambda>x. norm (f x - 1)) summable_on (M - F)"
-        \<comment> \<open>Use Cauchy criterion: complex product converging to nonzero limit
-            implies norm(f x - 1) is summable. This is the hard direction of
-            the equivalence between convergence and absolute convergence for
-            infinite products.\<close>
-      sorry
-      \<comment> \<open>Step 2: Derive summability of ln(Re(f x))\<close>
-      have ln_summable: "(\<lambda>x. norm (ln (Re (f x)))) summable_on (M - F)"
-        \<comment> \<open>For x \<in> M-F: |ln(Re(f x))| = |ln(1 + (Re(f x)-1))|
-                         \<le> 2\<sqdot>|Re(f x) - 1| \<le> 2\<sqdot>norm(f x - 1)
-            using that Re(f x) \<in> (1/2, 3/2) and the log estimate.\<close>
-        sorry
-      \<comment> \<open>Step 3: Summability of logs implies convergence of the product via exp\<close>
-      have prod_conv: "((\<lambda>X. \<Prod>x\<in>X. Re (f x)) \<longlongrightarrow> exp (\<Sum>\<^sub>\<infinity>x\<in>M-F. ln (Re (f x))))
-                        (finite_subsets_at_top (M - F))"
-        \<comment> \<open>prod Re(f x) over X = exp(\<Sum>x\<in>X. ln(Re(f x))) since all Re(f x) > 0.
-            The sum converges (by ln_summable), so the product converges to exp of the limit.\<close>
-        sorry
-      from prod_conv show ?thesis
-        unfolding multipliable_on_def has_setprod_def by blast
-    qed
-    \<comment> \<open>On F, the product is trivially multipliable (finite set)\<close>
-    have head: "(\<lambda>x. Re (f x)) multipliable_on F"
-      using Ffin by simp
-    \<comment> \<open>Combine using disjoint union\<close>
-    from head tail have "(\<lambda>x. Re (f x)) multipliable_on (F \<union> (M - F))"
-      by (intro multipliable_on_Un_disjoint) auto
-    also have "F \<union> (M - F) = M" using Fsub by auto
-    finally show ?thesis .
-  qed
-qed
 
-(* TODO from ManueL: like the one above, probably get rid of this *)
-lemma multipliable_on_Im':
-  assumes "f multipliable_on M"
-  shows "(\<lambda>x. Im (f x)) multipliable_on M"
-proof (cases "\<exists>x\<in>M. Im (f x) = 0")
-  case True
-  then obtain x where "x \<in> M" "Im (f x) = 0" by auto
-  then have "((\<lambda>x. Im (f x)) has_setprod 0) M"
-    by (intro zero_imp_has_setprod_0) auto
-  then show ?thesis
-    unfolding multipliable_on_def by blast
-next
-  case False
-  \<comment> \<open>Analogous to multipliable_on_Re': all Im parts nonzero, use Cauchy argument.
-      The proof follows the same structure: L=0 case uses norm bound, L\<noteq>0 case splits
-      into finite head + tail where Im(f x) is bounded away from 0.\<close>
-  from assms obtain L where lim: "(prod f \<longlongrightarrow> L) (finite_subsets_at_top M)"
-    unfolding multipliable_on_def has_setprod_def by blast
-  show ?thesis
-  proof (cases "L = 0")
-    case True
-    have bound: "norm (prod (\<lambda>x. Im (f x)) X) \<le> norm (prod f X)"
-      if "finite X" "X \<subseteq> M" for X
-    proof -
-      have "\<bar>prod (\<lambda>x. Im (f x)) X\<bar> = (\<Prod>x\<in>X. \<bar>Im (f x)\<bar>)"
-        by (rule abs_prod)
-      also have "\<dots> \<le> (\<Prod>x\<in>X. norm (f x))"
-        by (rule prod_mono) (auto intro: abs_Im_le_cmod)
-      also have "\<dots> = norm (prod f X)"
-        by (rule prod_norm)
-      finally show ?thesis by (simp add: real_norm_def)
-    qed
-    have "\<forall>\<^sub>F X in finite_subsets_at_top M. norm (prod (\<lambda>x. Im (f x)) X) \<le> norm (prod f X)"
-      by (intro eventually_finite_subsets_at_top_weakI bound)
-    moreover have "((\<lambda>X. norm (prod f X)) \<longlongrightarrow> 0) (finite_subsets_at_top M)"
-      using lim True tendsto_norm_zero by fastforce
-    ultimately have "((\<lambda>X. prod (\<lambda>x. Im (f x)) X) \<longlongrightarrow> 0) (finite_subsets_at_top M)"
-      by (rule Lim_null_comparison)
-    hence "((\<lambda>x. Im (f x)) has_setprod 0) M"
-      unfolding has_setprod_def .
-    thus ?thesis unfolding multipliable_on_def by blast
-  next
-    case L_nz: False
-    \<comment> \<open>L \<noteq> 0: factors tend to 1, so eventually Im is bounded away from 0. 
-        Split into finite head + tail. Same strategy as multipliable_on_Re' L\<noteq>0 case:
-        use that norm(f x - 1) summable \<Longrightarrow> |Im(f x) - 0| = |Im(f x)| \<le> norm(f x - 1) summable
-        \<Longrightarrow> (\<lambda>x. Im(f x)) abs_multipliable (since Im(f x) near 0, product of (1+|Im(f x)|) bounded)
-        \<Longrightarrow> multipliable. Blocked on same issue as Re' case.\<close>
-    show ?thesis sorry
-  qed
-qed
 
 
 (* TODO: statement likely needs fixing (norm(f x) need not be \<ge> 1)
@@ -3850,6 +3642,6 @@ lemma multipliable_countable_real:
   fixes f :: \<open>'a \<Rightarrow> real\<close>
   assumes \<open>f strongly_multipliable_on A\<close>
   shows \<open>countable {x\<in>A. f x \<noteq> 1}\<close>
-  sorry
+  using assms by (rule multipliable_countable)
 
 end
