@@ -224,14 +224,38 @@ text \<open>\\textbf{Uniqueness.} The function $g(x) = \\cos x - x$ has derivati
 
 lemma dottie_unique:
   fixes x y :: real
-  assumes "0 < x" "x < 1" "cos x = x"
-    and "0 < y" "y < 1" "cos y = y"
+  assumes "cos x = x" and "cos y = y"
   shows "x = y"
 proof (rule ccontr)
   assume "x \<noteq> y"
+  \<comment> \<open>Any fixed point of cosine lies in @{term "{0<..<1}"}.\<close>
+  have x_bounds: "0 < x" "x < 1"
+  proof -
+    from assms(1) cos_le_one[of x] have "x \<le> 1" by linarith
+    moreover from assms(1) cos_1_lt_1 have "x \<noteq> 1" by auto
+    ultimately have x1: "x < 1" by simp
+    from assms(1) abs_cos_le_one[of x] have "x \<ge> -1" by linarith
+    hence "-(pi/2) < x" using pi_gt3 by linarith
+    moreover from x1 pi_gt3 have "x < pi/2" by linarith
+    ultimately have "0 < cos x" using cos_gt_zero_pi by blast
+    hence "0 < x" using assms(1) by simp
+    with x1 show "0 < x" "x < 1" by auto
+  qed
+  have y_bounds: "0 < y" "y < 1"
+  proof -
+    from assms(2) cos_le_one[of y] have "y \<le> 1" by linarith
+    moreover from assms(2) cos_1_lt_1 have "y \<noteq> 1" by auto
+    ultimately have y1: "y < 1" by simp
+    from assms(2) abs_cos_le_one[of y] have "y \<ge> -1" by linarith
+    hence "-(pi/2) < y" using pi_gt3 by linarith
+    moreover from y1 pi_gt3 have "y < pi/2" by linarith
+    ultimately have "0 < cos y" using cos_gt_zero_pi by blast
+    hence "0 < y" using assms(2) by simp
+    with y1 show "0 < y" "y < 1" by auto
+  qed
   define g where "g = (\<lambda>x::real. cos x - x)"
-  have gx: "g x = 0" unfolding g_def using assms(3) by simp
-  have gy: "g y = 0" unfolding g_def using assms(6) by simp
+  have gx: "g x = 0" unfolding g_def using assms by simp
+  have gy: "g y = 0" unfolding g_def using assms by simp
   \<comment> \<open>The derivative of @{term g} is @{term "\<lambda>x. - sin x - 1"}, which is negative on @{term "{0..1}"}.\<close>
   have g_deriv: "\<exists>d. (g has_real_derivative d) (at t) \<and> d < 0"
     if "0 \<le> t" "t \<le> 1" for t
@@ -246,12 +270,12 @@ proof (rule ccontr)
   thus False
   proof
     assume "x < y"
-    from DERIV_neg_imp_decreasing[OF this] g_deriv assms
+    from DERIV_neg_imp_decreasing[OF this] g_deriv x_bounds y_bounds
     have "g y < g x" by auto
     with gx gy show False by simp
   next
     assume "y < x"
-    from DERIV_neg_imp_decreasing[OF this] g_deriv assms
+    from DERIV_neg_imp_decreasing[OF this] g_deriv x_bounds y_bounds
     have "g x < g y" by auto
     with gx gy show False by simp
   qed
@@ -269,7 +293,7 @@ proof -
   obtain x :: real where hx: "0 < x" "x < 1" "cos x = x"
     using dottie_exists by blast
   have unique: "y = x" if "0 < y" "y < 1" "cos y = y" for y :: real
-    using dottie_unique[OF hx(1,2,3) that(1,2,3)] by simp
+    using dottie_unique[OF that(3) hx(3)] by simp
   have the_eq: "(THE x. 0 < x \<and> x < 1 \<and> cos x = x) = x"
   proof (rule the_equality)
     show "0 < x \<and> x < 1 \<and> cos x = x" using hx by blast
