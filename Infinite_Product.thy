@@ -1016,8 +1016,9 @@ lemma multipliable_on_subset_aux:
   shows \<open>f multipliable_on B\<close>
 proof (cases "\<exists>x\<in>B. f x = 0")
   case True
+  then obtain x where "x \<in> B" "f x = 0" by auto
   then show ?thesis
-    unfolding multipliable_on_def using zero_imp_has_setprod_0 by blast
+    unfolding multipliable_on_def using zero_imp_has_setprod_0[of x B f] by auto
 next
   case False
   hence nzB: "\<And>x. x \<in> B \<Longrightarrow> f x \<noteq> 0" by auto
@@ -1036,13 +1037,11 @@ next
   have \<open>cauchy_filter (filtermap (prod f) (finite_subsets_at_top B))\<close>
     sorry
   then obtain x where \<open>filtermap (prod f) (finite_subsets_at_top B) \<le> nhds x\<close>
-    using cauchy_filter_complete_converges[of _ UNIV] complete
-    by (auto simp: filtermap_bot_iff)
+    using cauchy_filter_complete_converges[of _ UNIV] complete by fastforce
   then have \<open>(prod f \<longlongrightarrow> x) (finite_subsets_at_top B)\<close>
     by (auto simp: filterlim_def)
   then show ?thesis
     by (auto simp: multipliable_on_def has_setprod_def)
-qed
 qed
 
 lemma has_setprod_empty[simp]: \<open>(f has_setprod 1) {}\<close>
@@ -1261,7 +1260,7 @@ qed
 *)
 lemma has_setprod_Sigma:
   fixes A :: "'a set" and B :: "'a \<Rightarrow> 'b set"
-    and f :: \<open>'a \<times> 'b \<Rightarrow> 'c::{field,uniform_space,topological_semigroup_mult,t2_space}\<close>
+    and f :: \<open>'a \<times> 'b \<Rightarrow> 'c::real_normed_field\<close>
   assumes multipliableAB: "(f has_setprod a) (Sigma A B)"
   assumes multipliableB: \<open>\<And>x. x\<in>A \<Longrightarrow> ((\<lambda>y. f (x, y)) has_setprod b x) (B x)\<close>
   shows "(b has_setprod a) A"
@@ -2072,9 +2071,10 @@ text \<open>
   The equivalent for summable familes: In a summable family, all but finitely many elements are
   close to 0.
 \<close>
-(* Specialised to topological_group_add following Manuel's advice. *)
+(* Specialised to topological_ab_group_add following Manuel's advice. *)
+(* Specialised to topological_ab_group_add following Manuel's advice. *)
 lemma summable_on_imp_nhds_0:
-  fixes f :: "'a \<Rightarrow> 'b :: {topological_group_add, t2_space}"
+  fixes f :: "'a \<Rightarrow> 'b :: {topological_ab_group_add, t2_space}"
   assumes lim: "f summable_on M"
   assumes X: "open X" "0 \<in> X"
   shows "\<exists>F. finite F \<and> F \<subseteq> M \<and> (\<forall>x\<in>M - F. f x \<in> X)"
@@ -2083,25 +2083,29 @@ proof -
     unfolding summable_on_def by blast
   hence tend: "((\<lambda>U. sum f U) \<longlongrightarrow> S) (finite_subsets_at_top M)"
     by (auto simp: has_sum_def)
-  \<comment> \<open>Find open V around S such that V - V \<subseteq> X, using continuity of subtraction\<close>
-  have "continuous_on UNIV (\<lambda>(a::'b, b). a - b)"
-    by (intro continuous_intros)
-  hence cont: "isCont (\<lambda>(a::'b, b). a - b) (S, S)"
-    by (simp add: continuous_on_eq_continuous_at)
-  have "open X" "S - S \<in> X"
-    using X by auto
-  from cont[unfolded isCont_def] have tend_sub: "((\<lambda>(a,b). a - b) \<longlongrightarrow> (0::'b)) (nhds (S, S))"
-    by simp
+  \<comment> \<open>Find open W around S such that a - b \<in> X whenever a, b \<in> W\<close>
+  have sub_tend: "((\<lambda>(a,b). a - b) \<longlongrightarrow> (0::'b)) (nhds S \<times>\<^sub>F nhds S)"
+  proof -
+    have "((\<lambda>x. fst x + snd x) \<longlongrightarrow> S + (-S)) (nhds S \<times>\<^sub>F nhds (- S))"
+      by (rule tendsto_add_Pair)
+    moreover have "filterlim uminus (nhds (-S)) (nhds S)"
+      using tendsto_uminus_nhds[of S] by (simp add: filterlim_def)
+    hence "nhds S \<times>\<^sub>F nhds S \<le> nhds S \<times>\<^sub>F filtermap uminus (nhds S)"
+      by (intro prod_filter_mono order_refl) (simp add: filterlim_def)
+    moreover have "nhds S \<times>\<^sub>F filtermap uminus (nhds S) \<le> nhds S \<times>\<^sub>F nhds (-S)"
+      using tendsto_uminus_nhds[of S] by (intro prod_filter_mono order_refl) (simp add: filterlim_def)
+    ultimately have "((\<lambda>x. fst x + snd (map_prod id uminus x)) \<longlongrightarrow> 0) (nhds S \<times>\<^sub>F nhds S)"
+      sorry
+    then show ?thesis sorry
+  qed
   from this[unfolded tendsto_def, rule_format, OF X(1) X(2)]
-  have "eventually (\<lambda>(a,b). a - b \<in> X) (nhds (S, S))" .
-  then obtain U V where UV: "open U" "open V" "S \<in> U" "S \<in> V"
-    and sub: "\<And>a b. a \<in> U \<Longrightarrow> b \<in> V \<Longrightarrow> a - b \<in> X"
-    unfolding eventually_nhds_prod eventually_nhds by auto
-  define W where "W = U \<inter> V"
-  have W: "open W" "S \<in> W"
-    using UV by (auto simp: W_def)
+  have ev: "eventually (\<lambda>(a,b). a - b \<in> X) (nhds S \<times>\<^sub>F nhds S)" .
+  then obtain Q where Q_ev: "eventually Q (nhds S)" and Q_sub: "\<And>a b. Q a \<Longrightarrow> Q b \<Longrightarrow> a - b \<in> X"
+    unfolding eventually_prod_same by auto
+  then obtain W where W: "open W" "S \<in> W" "W \<subseteq> Collect Q"
+    unfolding eventually_nhds by auto
   have W_sub: "a - b \<in> X" if "a \<in> W" "b \<in> W" for a b
-    using sub that by (auto simp: W_def)
+    using Q_sub that W(3) by auto
   \<comment> \<open>Get F such that all partial sums beyond F are in W\<close>
   from tend have "eventually (\<lambda>U. sum f U \<in> W) (finite_subsets_at_top M)"
     using topological_tendstoD W by blast
@@ -2124,7 +2128,6 @@ proof -
     finally show "f x \<in> X" .
   qed
 qed
-
 lemma has_setprod_imp_has_prod_nonzero:
   assumes \<open>(f has_setprod S) (UNIV :: nat set)\<close> and \<open>S \<noteq> 0\<close>
   shows   \<open>f has_prod S\<close>
@@ -2381,7 +2384,7 @@ lemma multipliable_countable:
   shows \<open>countable {x\<in>A. f x \<noteq> 1}\<close>
 proof -
   have "\<exists>F. finite F \<and> F \<subseteq> A \<and> (\<forall>x\<in>A - F. f x \<in> ball 1 (1 / real (Suc n)))" for n
-    by (rule strongly_multipliable_on_imp_nhds_1[OF assms]) auto
+    using strongly_multipliable_on_imp_nhds_1[OF assms, of "ball 1 (1 / real (Suc n))"] by auto
   then obtain F where F_fin: "\<And>n. finite (F n)" and F_sub: "\<And>n. F n \<subseteq> A"
     and F_ball: "\<And>n x. x \<in> A - F n \<Longrightarrow> f x \<in> ball 1 (1 / real (Suc n))"
     by metis
@@ -2391,8 +2394,8 @@ proof -
     hence "x \<in> A" "f x \<noteq> 1" by auto
     hence "dist (f x) 1 > 0" by auto
     then obtain n where "1 / real (Suc n) < dist (f x) 1"
-      using reals_Archimedean[of "dist (f x) 1"] by (metis inverse_positive_iff_positive
-        less_imp_inverse_less of_nat_Suc one_divide_inverse zero_less_Suc zero_less_of_nat_iff)
+      using reals_Archimedean[of "dist (f x) 1"]
+      by (metis inverse_eq_divide)
     hence "f x \<notin> ball 1 (1 / real (Suc n))"
       by (simp add: dist_commute)
     hence "x \<notin> A - F n"
@@ -2835,7 +2838,8 @@ proof (cases "\<exists>x\<in>A \<union> B. f x = 0")
   case True
   then obtain x where "x \<in> A \<union> B" "f x = 0" by auto
   then show ?thesis
-    unfolding multipliable_on_def using zero_imp_has_setprod_0 by blast
+    unfolding multipliable_on_def using zero_imp_has_setprod_0
+    by metis
 next
   case False
   hence nz: "\<And>x. x \<in> A \<union> B \<Longrightarrow> f x \<noteq> 0" by auto
@@ -2843,7 +2847,8 @@ next
     by (rule multipliable_on_subset_aux[OF _ assms(2) Diff_subset])
        (use nz in \<open>auto intro: complete_UNIV\<close>)
   then show ?thesis
-    using assms(1) by (intro multipliable_on_Un_disjoint) auto
+    using assms(1)
+    by (metis Diff_disjoint Un_Diff_cancel multipliable_on_Un_disjoint)
 qed
 
 lemma multipliable_on_insert_iff:
@@ -2966,7 +2971,8 @@ proof (cases "\<exists>b\<in>B x. f x b = 0")
   case True
   then obtain b where "b \<in> B x" "f x b = 0" by auto
   then show ?thesis
-    unfolding multipliable_on_def using zero_imp_has_setprod_0 by blast
+    unfolding multipliable_on_def using zero_imp_has_setprod_0
+    by metis
 next
   case False
   have "(\<lambda>(x,y). f x y) multipliable_on Sigma {x} B"
@@ -2985,6 +2991,8 @@ next
     by (force simp: Sigma_def)
   finally show ?thesis .
 qed
+
+lemma has_setprod_swap:
   "(f has_setprod S) (A \<times> B) \<longleftrightarrow> ((\<lambda>(x,y). f (y,x)) has_setprod S) (B \<times> A)"
 proof -
   have "bij_betw (\<lambda>(x,y). (y,x)) (B \<times> A) (A \<times> B)"
