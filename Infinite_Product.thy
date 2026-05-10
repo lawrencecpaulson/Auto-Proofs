@@ -1504,12 +1504,49 @@ lemma
   shows infprod_Sigma'_banach: \<open>infprod (\<lambda>x. infprod (f x) (B x)) A = infprod (\<lambda>(x,y). f x y) (Sigma A B)\<close> (is ?thesis1)
     and multipliable_on_Sigma_banach: \<open>(\<lambda>x. infprod (f x) (B x)) multipliable_on A\<close> (is ?thesis2)
 proof -
-  have mult_B: \<open>(f x) multipliable_on (B x)\<close> if \<open>x \<in> A\<close> for x
-    using multipliable_on_SigmaD1[of f A B x] assms nz that by auto
+  have mult_B: \<open>(f x) multipliable_on (B x)\<close> if xA: \<open>x \<in> A\<close> for x
+  proof (cases \<open>\<exists>b\<in>B x. f x b = 0\<close>)
+    case True
+    then obtain b where \<open>b \<in> B x\<close> \<open>f x b = 0\<close> by auto
+    then show ?thesis
+      unfolding multipliable_on_def using zero_imp_has_setprod_0 by metis
+  next
+    case False
+    have step1: \<open>(\<lambda>(x,y). f x y) multipliable_on Sigma {x} B\<close>
+    proof (rule multipliable_on_subset_aux[OF complete_UNIV])
+      show \<open>(\<lambda>(x, y). f x y) multipliable_on Sigma A B\<close> by simp
+      show \<open>Sigma {x} B \<subseteq> Sigma A B\<close> using xA by auto
+      fix p assume \<open>p \<in> Sigma A B - Sigma {x} B\<close>
+      then show \<open>(case p of (x, y) \<Rightarrow> f x y) \<noteq> 0\<close>
+        using nz by (cases p) auto
+    qed
+    have step2: \<open>(\<lambda>y. f x y) \<circ> snd multipliable_on Sigma {x} B\<close>
+      using step1 multipliable_on_cong[of \<open>Sigma {x} B\<close> \<open>\<lambda>(a,b). f a b\<close> \<open>(\<lambda>y. f x y) \<circ> snd\<close>]
+      by auto
+    have inj: \<open>inj_on snd (Sigma {x} B)\<close>
+      by (auto intro!: inj_onI simp: Sigma_def)
+    have step3: \<open>(\<lambda>y. f x y) multipliable_on snd ` Sigma {x} B\<close>
+      using step2 multipliable_on_reindex[OF inj, of \<open>\<lambda>y. f x y\<close>] by simp
+    have \<open>snd ` Sigma {x} B = B x\<close>
+      by (force simp: Sigma_def)
+    with step3 show ?thesis by simp
+  qed
   then show ?thesis1
     using infprod_Sigma' assms by blast
   show ?thesis2
-    using multipliable_on_SigmaD[of \<open>\<lambda>(x,y). f x y\<close> A B] assms mult_B by auto
+    unfolding multipliable_on_def
+  proof -
+    have \<open>(\<lambda>(x,y). f x y) multipliable_on (Sigma A B)\<close> by simp
+    then have ab: \<open>((\<lambda>(x,y). f x y) has_setprod infprod (\<lambda>(x,y). f x y) (Sigma A B)) (Sigma A B)\<close>
+      by (rule has_setprod_infprod)
+    have bx: \<open>(f x has_setprod infprod (f x) (B x)) (B x)\<close> if \<open>x \<in> A\<close> for x
+      using mult_B[OF that] has_setprod_infprod by auto
+    have bx': \<open>((\<lambda>y. (case (x,y) of (a,b) \<Rightarrow> f a b)) has_setprod infprod (f x) (B x)) (B x)\<close> if \<open>x \<in> A\<close> for x
+      using bx[OF that] by simp
+    from has_setprod_Sigma[OF ab bx']
+    show \<open>\<exists>a. ((\<lambda>x. infprod (f x) (B x)) has_setprod a) A\<close>
+      by blast
+  qed
 qed
 
 lemma infprod_Sigma_banach:
@@ -2052,11 +2089,6 @@ proof -
   ultimately show ?thesis
     unfolding strongly_multipliable_on_def by blast
 qed
-
-lemma abs_multipliable_on_imp_strongly_multipliable_on:
-  assumes "f abs_multipliable_on A"
-  shows   "f strongly_multipliable_on A"
-  sorry
 
 
 subsection \<open>Absolute convergence\<close>
@@ -2904,6 +2936,113 @@ proof -
   finally show "(\<lambda>x. exp (f x) - 1) abs_summable_on A" .
 qed
 
+lemma abs_multipliable_on_imp_strongly_multipliable_on:
+  fixes f :: "'a \<Rightarrow> 'b :: {banach, real_normed_field}"
+  assumes "f abs_multipliable_on A"
+  shows   "f strongly_multipliable_on A"
+proof -
+  \<comment> \<open>Step 1: norm(f x - 1) is summable\<close>
+  have norm_sum: "(\<lambda>x. norm (f x - 1)) summable_on A"
+    using assms by (subst (asm) abs_multipliable_on_iff_summable_on)
+  \<comment> \<open>Step 2: Only finitely many zeros\<close>
+  have fin_zeros: "finite {x\<in>A. f x = 0}"
+  proof -
+    from summable_on_imp_nhds_0[OF abs_summable_summable[OF norm_sum], of "ball 0 (1::real)"]
+    obtain F where "finite F" "F \<subseteq> A" "\<forall>x\<in>A - F. norm (f x - 1) \<in> ball 0 1"
+      by auto
+    hence F_bound: "\<forall>x\<in>A - F. norm (f x - 1) < 1"
+      by (auto simp: ball_def dist_commute dist_real_def)
+    have "{x\<in>A. f x = 0} \<subseteq> F"
+    proof
+      fix x assume x: "x \<in> {x\<in>A. f x = 0}"
+      show "x \<in> F"
+      proof (rule ccontr)
+        assume "x \<notin> F"
+        with x have "x \<in> A - F" by auto
+        with F_bound have "norm (f x - 1) < 1" by auto
+        moreover from x have "norm (f x - 1) = 1" by simp
+        ultimately show False by simp
+      qed
+    qed
+    thus ?thesis using \<open>finite F\<close> finite_subset by blast
+  qed
+  \<comment> \<open>Step 3: f is abs_multipliable on the nonzero part\<close>
+  define S where "S = {x\<in>A. f x \<noteq> 0}"
+  have S_sub: "S \<subseteq> A" unfolding S_def by auto
+  have nz: "\<And>x. x \<in> S \<Longrightarrow> f x \<noteq> 0" unfolding S_def by auto
+  have norm_sum_S: "(\<lambda>x. norm (f x - 1)) summable_on S"
+    using norm_sum S_sub by (rule summable_on_subset_banach)
+  have abs_mult_S: "f abs_multipliable_on S"
+    using norm_sum_S by (subst abs_multipliable_on_iff_summable_on)
+  \<comment> \<open>Step 4: f is multipliable on S\<close>
+  have mult_S: "f multipliable_on S"
+    by (rule abs_multipliable_multipliable[OF abs_mult_S])
+  \<comment> \<open>Step 5: The inverse is also abs_multipliable on S\<close>
+  have inv_abs_mult_S: "(\<lambda>x. inverse (f x)) abs_multipliable_on S"
+  proof -
+    \<comment> \<open>Get a finite set F outside which norm(f x - 1) < 1/2\<close>
+    from summable_on_imp_nhds_0[OF norm_sum_S, of "ball 0 (1/2 :: real)"]
+    obtain F where F_fin: "finite F" and F_sub: "F \<subseteq> S" 
+      and F_small: "\<And>x. x \<in> S - F \<Longrightarrow> norm (f x - 1) \<in> ball 0 (1/2)"
+      by auto
+    \<comment> \<open>On S - F, norm(inverse(f x) - 1) \<le> 2 * norm(f x - 1)\<close>
+    have inv_bound: "norm (inverse (f x) - 1) \<le> 2 * norm (f x - 1)" if xSF: "x \<in> S - F" for x
+    proof -
+      have fx_nz: "f x \<noteq> 0" using xSF nz by auto
+      have small: "norm (f x - 1) < 1/2" using F_small xSF by auto
+      have "inverse (f x) - 1 = inverse (f x) * (1 - f x)"
+        using fx_nz by (simp add: field_simps)
+      hence "norm (inverse (f x) - 1) = norm (inverse (f x)) * norm (f x - 1)"
+        by (simp add: norm_mult norm_minus_commute)
+      moreover have "norm (inverse (f x)) \<le> 2"
+      proof -
+        have "norm (f x) \<ge> 1 - norm (f x - 1)"
+          by (smt (verit, ccfv_SIG) norm_minus_commute norm_one norm_triangle_ineq2)
+        hence "norm (f x) > 1/2" using small by linarith
+        hence "norm (inverse (f x)) = inverse (norm (f x))"
+          by (simp add: norm_inverse)
+        also have "\<dots> \<le> 2" using \<open>norm (f x) > 1/2\<close>
+          by (simp add: inverse_less_imp_less less_eq_real_def)
+        finally show ?thesis .
+      qed
+      ultimately show ?thesis
+        by (simp add: mult_right_mono)
+    qed
+    \<comment> \<open>norm(inverse(f x) - 1) is summable on S - F\<close>
+    have "(\<lambda>x. norm (inverse (f x) - 1)) summable_on (S - F)"
+    proof (rule summable_on_comparison_test)
+      show "(\<lambda>x. 2 * norm (f x - 1)) summable_on (S - F)"
+        using norm_sum_S F_sub F_fin summable_on_cmult_right summable_on_cofin_subset by blast
+      fix x assume "x \<in> S - F"
+      thus "norm (inverse (f x) - 1) \<le> 2 * norm (f x - 1)"
+        using inv_bound by simp
+    qed auto
+    \<comment> \<open>Combine with finite part\<close>
+    moreover have "(\<lambda>x. norm (inverse (f x) - 1)) summable_on F"
+      using F_fin by simp
+    ultimately have "(\<lambda>x. norm (inverse (f x) - 1)) summable_on (S - F \<union> F)"
+      by (intro summable_on_Un_disjoint) auto
+    also have "S - F \<union> F = S" using F_sub by auto
+    finally show ?thesis
+      by (subst abs_multipliable_on_iff_summable_on)
+  qed
+  \<comment> \<open>Step 6: The product over S is nonzero\<close>
+  have inv_mult_S: "(\<lambda>x. inverse (f x)) multipliable_on S"
+    by (rule abs_multipliable_multipliable[OF inv_abs_mult_S])
+  have "infprod (\<lambda>x. f x * inverse (f x)) S = infprod f S * infprod (\<lambda>x. inverse (f x)) S"
+    by (rule infprod_mult[OF mult_S inv_mult_S])
+  moreover have "infprod (\<lambda>x. f x * inverse (f x)) S = 1"
+    by (intro infprod_1) (use nz in auto)
+  ultimately have prod_nz: "infprod f S \<noteq> 0"
+    by (metis mult_zero_left zero_neq_one)
+  \<comment> \<open>Conclusion\<close>
+  from mult_S prod_nz obtain P where "(f has_setprod P) S" "P \<noteq> 0"
+    using has_setprod_infprod multipliable_on_def by fastforce
+  with fin_zeros show ?thesis
+    unfolding strongly_multipliable_on_def S_def by blast
+qed
+
+
 
 
 (*
@@ -2930,10 +3069,7 @@ next
     using assms(1)
     by (metis Diff_disjoint Un_Diff_cancel multipliable_on_Un_disjoint)
 qed
-  then show ?thesis
-    using assms(1)
-    by (metis Diff_disjoint Un_Diff_cancel multipliable_on_Un_disjoint)
-qed
+
 
 lemma multipliable_on_insert_iff:
   fixes f :: "_ \<Rightarrow> 'a :: {real_normed_field, complete_space}"
