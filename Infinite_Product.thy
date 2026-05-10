@@ -1054,68 +1054,69 @@ next
     then show ?thesis
       using that P_close by force
   qed
-  \<comment> \<open>G is the part of F0 outside B; disjoint from B, nonzero product\<close>
+  \<comment> \<open>Fix G = F0 - B (the finite part of A outside B from the initial witness)\<close>
   define G where \<open>G = F0 - B\<close>
   have G_fin: \<open>finite G\<close> using F0_fin unfolding G_def by auto
   have G_sub: \<open>G \<subseteq> A - B\<close> using F0_sub unfolding G_def by auto
-  have G_nz: \<open>prod f G \<noteq> 0\<close>
-    using prod_zero_iff[OF G_fin] nz G_sub by auto
-  have W_def: \<open>F0 \<inter> B \<subseteq> B\<close> by auto
+  have G_disj: \<open>X \<inter> G = {}\<close> if \<open>X \<subseteq> B\<close> for X using that unfolding G_def by auto
+  have nz_on_G: \<open>\<And>x. x \<in> G \<Longrightarrow> f x \<noteq> 0\<close> using nz G_sub by auto
+  have prod_G_nz: \<open>prod f G \<noteq> 0\<close> using prod_zero_iff[OF G_fin] nz_on_G by auto
+  have norm_G_pos: \<open>norm (prod f G) > 0\<close> using prod_G_nz by simp
   \<comment> \<open>Transfer Cauchyness from A to B\<close>
   have cauchy_B: \<open>cauchy_filter (filtermap (prod f) (finite_subsets_at_top B))\<close>
     unfolding cauchy_filter_metric_filtermap
   proof (intro allI impI)
     fix e :: real assume \<open>e > 0\<close>
-    \<comment> \<open>Scale epsilon by norm (prod f G) for the Cauchy property on A\<close>
-    define e' where \<open>e' = e * norm (prod f G)\<close>
-    have \<open>e' > 0\<close> unfolding e'_def using \<open>e > 0\<close> G_nz by simp
-    \<comment> \<open>From Cauchyness on A with e', get a witness\<close>
-    from cauchy_A \<open>e' > 0\<close> obtain P where
+    \<comment> \<open>Scale epsilon for use with A's Cauchy property\<close>
+    define e' where \<open>e' = e / norm (prod f G)\<close>
+    have e'_pos: \<open>e' > 0\<close> unfolding e'_def using \<open>e > 0\<close> norm_G_pos by auto
+    \<comment> \<open>From Cauchyness on A, get a witness F1 for the scaled epsilon\<close>
+    from cauchy_A e'_pos obtain P where
       ev_P: \<open>eventually P (finite_subsets_at_top A)\<close> and
       P_close: \<open>\<And>X Y. P X \<Longrightarrow> P Y \<Longrightarrow> dist (prod f X) (prod f Y) < e'\<close>
       by (auto simp: cauchy_filter_metric_filtermap)
     from ev_P obtain F1 where F1_fin: \<open>finite F1\<close> and F1_sub: \<open>F1 \<subseteq> A\<close>
       and F1_P: \<open>\<And>Z. finite Z \<Longrightarrow> F1 \<subseteq> Z \<Longrightarrow> Z \<subseteq> A \<Longrightarrow> P Z\<close>
       unfolding eventually_finite_subsets_at_top by auto
-    \<comment> \<open>Combine F0 and F1 to get a witness that works for both\<close>
-    define W where \<open>W = (F0 \<union> F1) \<inter> B\<close>
-    have W_fin: \<open>finite W\<close> using F0_fin F1_fin unfolding W_def by auto
+    \<comment> \<open>Enlarge F1 to contain F0\<close>
+    define F1' where \<open>F1' = F1 \<union> F0\<close>
+    have F1'_fin: \<open>finite F1'\<close> using F1_fin F0_fin unfolding F1'_def by auto
+    have F1'_sub: \<open>F1' \<subseteq> A\<close> using F1_sub F0_sub unfolding F1'_def by auto
+    have F1_sub_F1': \<open>F1 \<subseteq> F1'\<close> unfolding F1'_def by auto
+    have F0_sub_F1': \<open>F0 \<subseteq> F1'\<close> unfolding F1'_def by auto
+    have F1'_P: \<open>P Z\<close> if \<open>finite Z\<close> \<open>F1' \<subseteq> Z\<close> \<open>Z \<subseteq> A\<close> for Z
+      using F1_P[OF that(1) _ that(3)] that(2) F1_sub_F1' by auto
+    \<comment> \<open>W is the B-part of F1'\<close>
+    define W where \<open>W = F1' \<inter> B\<close>
+    have W_fin: \<open>finite W\<close> using F1'_fin unfolding W_def by auto
     have W_sub: \<open>W \<subseteq> B\<close> unfolding W_def by auto
-    \<comment> \<open>For X \<subseteq> B with W \<subseteq> X, the set X \<union> G contains F0 and F1\<close>
-    have XG_props: \<open>finite (X \<union> G) \<and> F0 \<subseteq> X \<union> G \<and> F1 \<subseteq> X \<union> G \<and> X \<union> G \<subseteq> A\<close>
-      if \<open>finite X\<close> \<open>W \<subseteq> X\<close> \<open>X \<subseteq> B\<close> for X
-    proof (intro conjI)
-      show \<open>finite (X \<union> G)\<close> using that G_fin by auto
-      show \<open>F0 \<subseteq> X \<union> G\<close>
-      proof
-        fix x assume \<open>x \<in> F0\<close>
-        show \<open>x \<in> X \<union> G\<close>
-        proof (cases \<open>x \<in> B\<close>)
-          case True
-          then have \<open>x \<in> W\<close> using \<open>x \<in> F0\<close> unfolding W_def by auto
-          then show ?thesis using that by auto
-        next
-          case False
-          then show ?thesis using \<open>x \<in> F0\<close> unfolding G_def by auto
-        qed
+    \<comment> \<open>For X \<subseteq> B with W \<subseteq> X, the set X \<union> G contains F1'\<close>
+    have F1'_sub_XG: \<open>F1' \<subseteq> X \<union> G\<close> if \<open>W \<subseteq> X\<close> \<open>X \<subseteq> B\<close> for X
+    proof
+      fix x assume \<open>x \<in> F1'\<close>
+      show \<open>x \<in> X \<union> G\<close>
+      proof (cases \<open>x \<in> B\<close>)
+        case True
+        then have \<open>x \<in> F1' \<inter> B\<close> using \<open>x \<in> F1'\<close> by auto
+        then have \<open>x \<in> W\<close> unfolding W_def by auto
+        then show ?thesis using that(1) by auto
+      next
+        case False
+        then have \<open>x \<in> F1' - B\<close> using \<open>x \<in> F1'\<close> by auto
+        then have \<open>x \<in> A - B\<close> using F1'_sub by auto
+        moreover have \<open>x \<in> F0\<close> 
+          \<comment> \<open>x \<in> F1' = F1 \<union> F0 and x \<notin> B, but we need x \<in> F0 for x \<in> G = F0 - B\<close>
+          \<comment> \<open>Actually, x \<in> F1' - B = (F1 \<union> F0) - B, which contains F0 - B = G\<close>
+          \<comment> \<open>but also F1 - B. We need F1' - B \<subseteq> G = F0 - B, i.e., F1 - B \<subseteq> F0 - B.\<close>
+          \<comment> \<open>This doesn't hold in general!\<close>
+          sorry
+        ultimately show ?thesis unfolding G_def by auto
       qed
-      show \<open>F1 \<subseteq> X \<union> G\<close>
-      proof
-        fix x assume \<open>x \<in> F1\<close>
-        show \<open>x \<in> X \<union> G\<close>
-        proof (cases \<open>x \<in> B\<close>)
-          case True
-          then have \<open>x \<in> W\<close> using \<open>x \<in> F1\<close> unfolding W_def by auto
-          then show ?thesis using that by auto
-        next
-          case False
-          then have \<open>x \<in> A - B\<close> using \<open>x \<in> F1\<close> F1_sub by auto
-          then show ?thesis using \<open>x \<in> F1\<close> unfolding G_def by auto \<comment> \<open>PROBLEM: x \<in> F1 - B but G = F0 - B\<close>
-        qed
-      qed
-      show \<open>X \<union> G \<subseteq> A\<close> using that BA G_sub by auto
     qed
-    sorry
+    then show "\<And>e. 0 < e \<Longrightarrow>
+         \<exists>P. eventually P (finite_subsets_at_top B) \<and>
+             (\<forall>x y. P x \<and> P y \<longrightarrow> dist (prod f x) (prod f y) < e)"
+      sorry
   qed
   \<comment> \<open>Completeness gives convergence\<close>
   from cauchy_B obtain L where \<open>filtermap (prod f) (finite_subsets_at_top B) \<le> nhds L\<close>
