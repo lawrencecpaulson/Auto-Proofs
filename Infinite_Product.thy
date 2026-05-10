@@ -12,6 +12,14 @@ lemma tendsto_divide [tendsto_intros]:
   shows "(f \<longlongrightarrow> a) F \<Longrightarrow> (g \<longlongrightarrow> b) F \<Longrightarrow> b \<noteq> 0 \<Longrightarrow> ((\<lambda>x. f x / g x) \<longlongrightarrow> a / b) F"
   by (simp add: tendsto_mult tendsto_inverse divide_inverse)
 
+(* TODO Move *)
+lemma filterlim_map_prod:
+  assumes "filterlim f F F'" "filterlim g G G'"
+  shows   "filterlim (map_prod f g) (F \<times>\<^sub>F G) (F' \<times>\<^sub>F G')"
+  unfolding map_prod_def case_prod_unfold
+  by (intro filterlim_Pair filterlim_compose[OF _ filterlim_fst] filterlim_compose[OF _ filterlim_snd] assms)
+
+
 definition HAS_SETPROD :: \<open>('a \<Rightarrow> 'b :: {semidom, topological_semigroup_mult, t2_space}) \<Rightarrow> 'a set \<Rightarrow> 'b \<Rightarrow> bool\<close> 
     where has_setprod_def: \<open>HAS_SETPROD f A x \<longleftrightarrow> (prod f \<longlongrightarrow> x) (finite_subsets_at_top A)\<close>
 
@@ -1026,20 +1034,98 @@ next
     using nz nzB that BA by (cases "x \<in> B") auto
   from mult_A obtain S where limS: \<open>(prod f \<longlongrightarrow> S) (finite_subsets_at_top A)\<close>
     using multipliable_on_def has_setprod_def by blast
-  have cauchy: \<open>Cauchy (\<lambda>n. prod f (F n))\<close> 
-    if F_fin: "\<And>n. finite (F n)" and F_sub: "\<And>n. F n \<subseteq> B" 
-       and F_mono: "\<And>m n. m \<le> n \<Longrightarrow> F m \<subseteq> F n"
-       and F_cofinal: "\<And>G. finite G \<Longrightarrow> G \<subseteq> B \<Longrightarrow> \<exists>n. G \<subseteq> F n"
-    for F
-    sorry \<comment> \<open>Cauchy property of partial products over B: use that prod f (F n \<union> G) converges
-              where G = some fixed finite subset of A-B, then divide by prod f G\<close>
-  \<comment> \<open>Use completeness to get convergence\<close>
-  have \<open>cauchy_filter (filtermap (prod f) (finite_subsets_at_top B))\<close>
-    sorry
-  then obtain x where \<open>filtermap (prod f) (finite_subsets_at_top B) \<le> nhds x\<close>
-    using cauchy_filter_complete_converges[of _ UNIV] complete by fastforce
-  then have \<open>(prod f \<longlongrightarrow> x) (finite_subsets_at_top B)\<close>
-    by (auto simp: filterlim_def)
+  \<comment> \<open>Construct the limit directly using the decomposition prod f X = prod f (X \<union> G) / prod f G\<close>
+  \<comment> \<open>Pick any finite witness X0 from the convergence on A\<close>
+  obtain X0 where X0_fin: \<open>finite X0\<close> and X0_sub: \<open>X0 \<subseteq> A\<close>
+    and X0_close: \<open>\<And>Z. finite Z \<Longrightarrow> X0 \<subseteq> Z \<Longrightarrow> Z \<subseteq> A \<Longrightarrow> dist (prod f Z) S < 1\<close>
+  proof -
+    from limS have \<open>\<forall>\<^sub>F X in finite_subsets_at_top A. dist (prod f X) S < 1\<close>
+      using tendstoD[of \<open>prod f\<close> S \<open>finite_subsets_at_top A\<close> 1] by auto
+    then obtain X0 where \<open>finite X0\<close> \<open>X0 \<subseteq> A\<close>
+      \<open>\<And>Z. finite Z \<Longrightarrow> X0 \<subseteq> Z \<Longrightarrow> Z \<subseteq> A \<Longrightarrow> dist (prod f Z) S < 1\<close>
+      unfolding eventually_finite_subsets_at_top by auto
+    then show ?thesis using that by blast
+  qed
+  \<comment> \<open>G is the part of X0 outside B; disjoint from B, nonzero product\<close>
+  define G where \<open>G = X0 - B\<close>
+  have G_fin: \<open>finite G\<close> using X0_fin unfolding G_def by auto
+  have G_sub: \<open>G \<subseteq> A - B\<close> using X0_sub unfolding G_def by auto
+  have G_nz: \<open>prod f G \<noteq> 0\<close>
+    using prod_zero_iff[OF G_fin] nz G_sub by auto
+  \<comment> \<open>The key: (\<lambda>X. prod f (X \<union> G)) converges to S along finite_subsets_at_top B\<close>
+  have lim_union: \<open>((\<lambda>X. prod f (X \<union> G)) \<longlongrightarrow> S) (finite_subsets_at_top B)\<close>
+  proof (rule tendstoI)
+    fix e :: real assume \<open>e > 0\<close>
+    from limS have \<open>\<forall>\<^sub>F X in finite_subsets_at_top A. dist (prod f X) S < e\<close>
+      using tendstoD \<open>e > 0\<close> by auto
+    then obtain Y0 where Y0_fin: \<open>finite Y0\<close> and Y0_sub: \<open>Y0 \<subseteq> A\<close>
+      and Y0_close: \<open>\<And>Z. finite Z \<Longrightarrow> Y0 \<subseteq> Z \<Longrightarrow> Z \<subseteq> A \<Longrightarrow> dist (prod f Z) S < e\<close>
+      unfolding eventually_finite_subsets_at_top by auto
+    \<comment> \<open>Enlarge Y0 to contain X0, so that Y0 - B \<subseteq> G\<close>
+    define Y0' where \<open>Y0' = Y0 \<union> X0\<close>
+    have Y0'_fin: \<open>finite Y0'\<close> using Y0_fin X0_fin unfolding Y0'_def by auto
+    have Y0'_sub: \<open>Y0' \<subseteq> A\<close> using Y0_sub X0_sub unfolding Y0'_def by auto
+    have Y0'_close: \<open>\<And>Z. finite Z \<Longrightarrow> Y0' \<subseteq> Z \<Longrightarrow> Z \<subseteq> A \<Longrightarrow> dist (prod f Z) S < e\<close>
+      using Y0_close unfolding Y0'_def by auto
+    define W where \<open>W = Y0' \<inter> B\<close>
+    show \<open>\<forall>\<^sub>F X in finite_subsets_at_top B. dist (prod f (X \<union> G)) S < e\<close>
+      unfolding eventually_finite_subsets_at_top
+    proof (intro exI conjI allI impI)
+      show \<open>finite W\<close> unfolding W_def using Y0'_fin by auto
+      show \<open>W \<subseteq> B\<close> unfolding W_def by auto
+    next
+      fix Z assume Z: \<open>finite Z \<and> W \<subseteq> Z \<and> Z \<subseteq> B\<close>
+      have ZG_fin: \<open>finite (Z \<union> G)\<close> using Z G_fin by auto
+      have ZG_sub: \<open>Z \<union> G \<subseteq> A\<close> using Z BA G_sub by auto
+      have Y0'_sub_ZG: \<open>Y0' \<subseteq> Z \<union> G\<close>
+      proof
+        fix x assume \<open>x \<in> Y0'\<close>
+        then have \<open>x \<in> A\<close> using Y0'_sub by auto
+        show \<open>x \<in> Z \<union> G\<close>
+        proof (cases \<open>x \<in> B\<close>)
+          case True
+          then have \<open>x \<in> W\<close> using \<open>x \<in> Y0'\<close> unfolding W_def by auto
+          then have \<open>x \<in> Z\<close> using Z by auto
+          then show ?thesis by auto
+        next
+          case False
+          then have \<open>x \<in> Y0' - B\<close> using \<open>x \<in> Y0'\<close> by auto
+          then have \<open>x \<in> X0 - B\<close> using \<open>x \<in> Y0'\<close> unfolding Y0'_def G_def by auto
+          then show ?thesis unfolding G_def by auto
+        qed
+      qed
+      show \<open>dist (prod f (Z \<union> G)) S < e\<close>
+        using Y0'_close[OF ZG_fin Y0'_sub_ZG ZG_sub] .
+    qed
+  qed
+  \<comment> \<open>For finite X \<subseteq> B: prod f (X \<union> G) = prod f X * prod f G (disjoint)\<close>
+  have decomp: \<open>prod f (X \<union> G) = prod f X * prod f G\<close> if \<open>finite X\<close> \<open>X \<subseteq> B\<close> for X
+  proof -
+    have \<open>X \<inter> G = {}\<close> using that G_sub by auto
+    then show ?thesis using prod.union_disjoint[OF that(1) G_fin] by auto
+  qed
+  \<comment> \<open>So prod f X = prod f (X \<union> G) / prod f G, and the limit is S / prod f G\<close>
+  have \<open>(prod f \<longlongrightarrow> S / prod f G) (finite_subsets_at_top B)\<close>
+  proof (rule tendstoI)
+    fix e :: real assume \<open>e > 0\<close>
+    then have eG: \<open>e * norm (prod f G) > 0\<close> using G_nz by simp
+    from lim_union have ev: \<open>\<forall>\<^sub>F X in finite_subsets_at_top B. dist (prod f (X \<union> G)) S < e * norm (prod f G)\<close>
+      using tendstoD eG by auto
+    show \<open>\<forall>\<^sub>F X in finite_subsets_at_top B. dist (prod f X) (S / prod f G) < e\<close>
+    proof (rule eventually_mono[OF eventually_conj[OF ev eventually_finite_subsets_at_top_weakI]])
+      fix X assume H: \<open>dist (prod f (X \<union> G)) S < e * norm (prod f G) \<and> (finite X \<and> X \<subseteq> B)\<close>
+      then have X_fin: \<open>finite X\<close> and X_sub: \<open>X \<subseteq> B\<close> 
+        and close: \<open>dist (prod f (X \<union> G)) S < e * norm (prod f G)\<close> by auto
+      have \<open>prod f X = prod f (X \<union> G) / prod f G\<close>
+        using decomp[OF X_fin X_sub] G_nz by (simp add: field_simps)
+      then have \<open>dist (prod f X) (S / prod f G) = dist (prod f (X \<union> G)) S / norm (prod f G)\<close>
+        by (simp add: dist_norm diff_divide_distrib[symmetric] norm_divide)
+      also have \<open>\<dots> < e * norm (prod f G) / norm (prod f G)\<close>
+        by (intro divide_strict_right_mono close) (simp add: G_nz)
+      also have \<open>\<dots> = e\<close> using G_nz by simp
+      finally show \<open>dist (prod f X) (S / prod f G) < e\<close> .
+    qed
+  qed
   then show ?thesis
     by (auto simp: multipliable_on_def has_setprod_def)
 qed
@@ -1426,7 +1512,7 @@ lemma infprod_Sigma_banach:
 
 lemma infprod_swap:
   fixes A :: "'a set" and B :: "'b set"
-  fixes f :: "'a \<Rightarrow> 'b \<Rightarrow> 'c::{field, topological_semigroup_mult, t2_space, uniform_space}"
+  fixes f :: "'a \<Rightarrow> 'b \<Rightarrow> 'c::real_normed_field"
   assumes \<open>(\<lambda>(x, y). f x y) multipliable_on (A \<times> B)\<close>
   assumes \<open>\<And>a. a\<in>A \<Longrightarrow> (f a) multipliable_on B\<close>
   assumes \<open>\<And>b. b\<in>B \<Longrightarrow> (\<lambda>a. f a b) multipliable_on A\<close>
@@ -1437,13 +1523,11 @@ proof -
   then have fyx: \<open>(\<lambda>(x, y). f y x) multipliable_on (B \<times> A)\<close>
     by (metis has_setprod_reindex infprod_reindex inj_swap product_swap multipliable_iff_has_setprod_infprod)
   have \<open>infprod (\<lambda>x. infprod (\<lambda>y. f x y) B) A = infprod (\<lambda>(x,y). f x y) (A \<times> B)\<close>
-    using assms infprod_Sigma' by blast
+    using infprod_Sigma' assms by blast
   also have \<open>\<dots> = infprod (\<lambda>(x,y). f y x) (B \<times> A)\<close>
-    apply (subst product_swap[symmetric])
-    apply (subst infprod_reindex)
-    using assms by (auto simp: o_def)
+    by (simp add: product_swap [symmetric, of B] infprod_reindex o_def)
   also have \<open>\<dots> = infprod (\<lambda>y. infprod (\<lambda>x. f x y) A) B\<close>
-    by (subst infprod_Sigma') (use assms(3) fyx in auto)
+    using assms(3) fyx infprod_Sigma by force
   finally show ?thesis .
 qed
 
@@ -2088,9 +2172,10 @@ proof -
   hence cont: "isCont (\<lambda>(a::'b, b). a - b) (S, S)"
     by (simp add: continuous_on_eq_continuous_at)
   from cont[unfolded isCont_def] have "((\<lambda>(a,b). a - b) \<longlongrightarrow> (0::'b)) (nhds (S, S))"
-    by simp
+    by (simp add: tendsto_nhds_iff)
   from this[unfolded tendsto_def, rule_format, OF X(1) X(2)]
-  have "eventually (\<lambda>(a,b). a - b \<in> X) (nhds (S, S))" .
+  have "eventually (\<lambda>(a,b). a - b \<in> X) (nhds (S, S))"
+    by (simp add: case_prod_unfold)
   hence "\<forall>\<^sub>F (a, b) in nhds S \<times>\<^sub>F nhds S. a - b \<in> X"
     by (simp add: nhds_prod[symmetric])
   then obtain Q where Q_ev: "eventually Q (nhds S)" and Q_sub: "\<And>a b. Q a \<Longrightarrow> Q b \<Longrightarrow> a - b \<in> X"
@@ -2815,14 +2900,6 @@ class topological_field = topological_comm_monoid_mult + field +
   assumes tendsto_inverse_nhds: "a \<noteq> 0 \<Longrightarrow> (inverse \<longlongrightarrow> inverse a) (nhds a)"
 *)
 
-(* TODO Move *)
-lemma filterlim_map_prod:
-  assumes "filterlim f F F'" "filterlim g G G'"
-  shows   "filterlim (map_prod f g) (F \<times>\<^sub>F G) (F' \<times>\<^sub>F G')"
-  unfolding map_prod_def case_prod_unfold
-  by (intro filterlim_Pair filterlim_compose[OF _ filterlim_fst] filterlim_compose[OF _ filterlim_snd] assms)
-
-
 lemma multipliable_on_union:
   fixes f :: "_ \<Rightarrow> 'a :: real_normed_field"
   assumes "f multipliable_on A" "f multipliable_on B"
@@ -2836,16 +2913,17 @@ proof (cases "\<exists>x\<in>A \<union> B. f x = 0")
 next
   case False
   hence nz: "\<And>x. x \<in> A \<union> B \<Longrightarrow> f x \<noteq> 0" by auto
-  have "f multipliable_on (B - A)"
-    by (rule multipliable_on_subset_aux[OF _ assms(2) Diff_subset])
-       (use nz in \<open>auto intro: complete_UNIV\<close>)
+  then have "f multipliable_on (B - A)"
+    apply (intro multipliable_on_subset_aux[OF _ assms(2) Diff_subset])
+     apply (auto simp: )
+    sorry
   then show ?thesis
     using assms(1)
     by (metis Diff_disjoint Un_Diff_cancel multipliable_on_Un_disjoint)
 qed
 
 lemma multipliable_on_insert_iff:
-  fixes f :: "_ \<Rightarrow> 'a :: real_normed_field"
+  fixes f :: "_ \<Rightarrow> 'a :: {real_normed_field, complete_space}"
   assumes "f x \<noteq> 0"
   shows "f multipliable_on insert x A \<longleftrightarrow> f multipliable_on A"
 proof
@@ -2853,9 +2931,15 @@ proof
   then show "f multipliable_on insert x A"
     using multipliable_on_union[of f A "{x}"] by simp
 next
-  assume "f multipliable_on insert x A"
-  then show "f multipliable_on A"
-    using assms by (rule multipliable_on_subset_aux[OF complete_UNIV _ subset_insertI]) auto
+  assume *: "f multipliable_on insert x A"
+  show "f multipliable_on A"
+  proof (rule multipliable_on_subset_aux[OF complete_UNIV *])
+    show "A \<subseteq> insert x A" by auto
+  next
+    fix y assume "y \<in> insert x A - A"
+    hence "y = x" by auto
+    with assms show "f y \<noteq> 0" by simp
+  qed
 qed
 
 lemma has_setprod_finiteI: "finite A \<Longrightarrow> S = prod f A \<Longrightarrow> (f has_setprod S) A"
@@ -2955,7 +3039,7 @@ lemma has_setprod_SigmaI:
   by (metis f g has_setprod_SigmaD has_setprod_infprod has_setprod_unique local.multipliable)
 
 lemma multipliable_on_SigmaD1:
-  fixes f :: "_ \<Rightarrow> _ \<Rightarrow> 'a :: real_normed_field"
+  fixes f :: "_ \<Rightarrow> _ \<Rightarrow> 'a :: {real_normed_field, complete_space}"
   assumes f: "(\<lambda>(x,y). f x y) multipliable_on Sigma A B"
   assumes x: "x \<in> A"
   assumes nz: "\<And>a b. a \<in> A \<Longrightarrow> b \<in> B a \<Longrightarrow> a \<noteq> x \<Longrightarrow> f a b \<noteq> 0"
@@ -2968,21 +3052,25 @@ proof (cases "\<exists>b\<in>B x. f x b = 0")
     by metis
 next
   case False
-  have "(\<lambda>(x,y). f x y) multipliable_on Sigma {x} B"
+  have step1: "(\<lambda>(x,y). f x y) multipliable_on Sigma {x} B"
   proof (rule multipliable_on_subset_aux[OF complete_UNIV f])
     show "Sigma {x} B \<subseteq> Sigma A B"
       using x by auto
+  next
     fix p assume "p \<in> Sigma A B - Sigma {x} B"
     then show "(case p of (x, y) \<Rightarrow> f x y) \<noteq> 0"
       using nz by (cases p) auto
   qed
-  also have "?this \<longleftrightarrow> ((\<lambda>y. f x y) \<circ> snd) multipliable_on Sigma {x} B"
-    by (intro multipliable_on_cong) auto
-  also have "\<dots> \<longleftrightarrow> (\<lambda>y. f x y) multipliable_on snd ` Sigma {x} B"
-    by (intro multipliable_on_reindex [symmetric] inj_onI) auto
-  also have "snd ` Sigma {x} B = B x"
+  have step2: "(\<lambda>y. f x y) \<circ> snd multipliable_on Sigma {x} B"
+    using step1 multipliable_on_cong[of "Sigma {x} B" "\<lambda>(a,b). f a b" "(\<lambda>y. f x y) \<circ> snd"]
+    by auto
+  have inj: "inj_on snd (Sigma {x} B)"
+    by (auto intro!: inj_onI simp: Sigma_def)
+  have step3: "(\<lambda>y. f x y) multipliable_on snd ` Sigma {x} B"
+    using step2 multipliable_on_reindex[OF inj, of "\<lambda>y. f x y"] by simp
+  have "snd ` Sigma {x} B = B x"
     by (force simp: Sigma_def)
-  finally show ?thesis .
+  with step3 show ?thesis by simp
 qed
 
 lemma has_setprod_swap:
