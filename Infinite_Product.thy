@@ -1445,6 +1445,14 @@ proof -
     by (simp add: FA_def has_setprod_def)
 qed
 
+lemma has_setprod_SigmaI:
+  fixes f :: "_ \<Rightarrow> 'a :: real_normed_field"
+  assumes f: "\<And>x. x \<in> A \<Longrightarrow> ((\<lambda>y. f (x, y)) has_setprod g x) (B x)"
+  assumes g: "(g has_setprod S) A"
+  assumes multipliable: "f multipliable_on Sigma A B"
+  shows   "(f has_setprod S) (Sigma A B)"
+  by (metis f g has_setprod_Sigma has_setprod_infprod has_setprod_unique local.multipliable)
+
 lemma multipliable_on_Sigma:
   fixes A :: "'a set" and B :: "'a \<Rightarrow> 'b set"
     and f :: \<open>'a \<Rightarrow> 'b \<Rightarrow> 'c::real_normed_field\<close>
@@ -1495,7 +1503,14 @@ lemma
   assumes nz: \<open>\<And>x y. (x, y) \<in> Sigma A B \<Longrightarrow> f x y \<noteq> 0\<close>
   shows infprod_Sigma'_banach: \<open>infprod (\<lambda>x. infprod (f x) (B x)) A = infprod (\<lambda>(x,y). f x y) (Sigma A B)\<close> (is ?thesis1)
     and multipliable_on_Sigma_banach: \<open>(\<lambda>x. infprod (f x) (B x)) multipliable_on A\<close> (is ?thesis2)
-  sorry
+proof -
+  have mult_B: \<open>(f x) multipliable_on (B x)\<close> if \<open>x \<in> A\<close> for x
+    using multipliable_on_SigmaD1[of f A B x] assms nz that by auto
+  then show ?thesis1
+    using infprod_Sigma' assms by blast
+  show ?thesis2
+    using multipliable_on_SigmaD[of \<open>\<lambda>(x,y). f x y\<close> A B] assms mult_B by auto
+qed
 
 lemma infprod_Sigma_banach:
   fixes A :: "'a set" and B :: "'a \<Rightarrow> 'b set"
@@ -2897,7 +2912,7 @@ class topological_field = topological_comm_monoid_mult + field +
 *)
 
 lemma multipliable_on_union:
-  fixes f :: "_ \<Rightarrow> 'a :: real_normed_field"
+  fixes f :: "_ \<Rightarrow> 'a :: {real_normed_field, complete_space}"
   assumes "f multipliable_on A" "f multipliable_on B"
   shows "f multipliable_on (A \<union> B)"
 proof (cases "\<exists>x\<in>A \<union> B. f x = 0")
@@ -2910,9 +2925,11 @@ next
   case False
   hence nz: "\<And>x. x \<in> A \<union> B \<Longrightarrow> f x \<noteq> 0" by auto
   then have "f multipliable_on (B - A)"
-    apply (intro multipliable_on_subset_aux[OF _ assms(2) Diff_subset])
-     apply (auto simp: )
-    sorry
+    by (intro multipliable_on_subset_aux[OF complete_UNIV assms(2) Diff_subset]) auto
+  then show ?thesis
+    using assms(1)
+    by (metis Diff_disjoint Un_Diff_cancel multipliable_on_Un_disjoint)
+qed
   then show ?thesis
     using assms(1)
     by (metis Diff_disjoint Un_Diff_cancel multipliable_on_Un_disjoint)
@@ -2956,83 +2973,6 @@ lemma infprod_insert:
   assumes "f multipliable_on A" "a \<notin> A"
   shows   "infprod f (insert a A) = f a * infprod f A"
   by (meson assms has_setprod_insert infprodI multipliable_iff_has_setprod_infprod)
-
-(* {real_normed_algebra,comm_ring_1, topological_comm_monoid_mult, semidom, t2_space, t3_space} ?*)
-lemma has_setprod_SigmaD:
-  fixes f :: "'b \<times> 'c \<Rightarrow> 'a :: real_normed_field"
-  assumes sum1: "(f has_setprod S) (Sigma A B)"
-  assumes sum2: "\<And>x. x \<in> A \<Longrightarrow> ((\<lambda>y. f (x, y)) has_setprod g x) (B x)"
-  shows   "(g has_setprod S) A"
-  unfolding has_setprod_def tendsto_def eventually_finite_subsets_at_top
-proof (safe, goal_cases)
-  case (1 X)
-  with nhds_closed[of S X] obtain X'
-    where X': "S \<in> X'" "closed X'" "X' \<subseteq> X" "eventually (\<lambda>y. y \<in> X') (nhds S)" by blast
-  from X'(4) obtain X'' where X'': "S \<in> X''" "open X''" "X'' \<subseteq> X'"
-    by (auto simp: eventually_nhds)
-  with sum1 obtain Y :: "('b \<times> 'c) set"
-    where Y: "Y \<subseteq> Sigma A B" "finite Y"
-             "\<And>Z. Y \<subseteq> Z \<Longrightarrow> Z \<subseteq> Sigma A B \<Longrightarrow> finite Z \<Longrightarrow> prod f Z \<in> X''"
-    unfolding has_setprod_def tendsto_def eventually_finite_subsets_at_top by force
-  define Y1 :: "'b set" where "Y1 = fst ` Y"
-  from Y have Y1: "Y1 \<subseteq> A" by (auto simp: Y1_def)
-  define Y2 :: "'b \<Rightarrow> 'c set" where "Y2 = (\<lambda>x. {y. (x, y) \<in> Y})"
-  have Y2: "finite (Y2 x)" "Y2 x \<subseteq> B x" if "x \<in> A" for x
-    using that Y(1,2) unfolding Y2_def
-    by (force simp: image_iff intro: finite_subset[of _ "snd ` Y"])+
-
-  show ?case
-  proof (rule exI[of _ Y1], safe, goal_cases)
-    case (3 Z)
-    define H where "H = (INF x\<in>Z. filtercomap (\<lambda>p. p x) (finite_subsets_at_top (B x)))"
-    
-    have "prod g Z \<in> X'"
-    proof (rule Lim_in_closed_set)
-      show "closed X'" by fact
-    next
-      show "((\<lambda>B'. prod (\<lambda>x. prod (\<lambda>y. f (x, y)) (B' x)) Z) \<longlongrightarrow> prod g Z) H"
-        unfolding H_def
-      proof (rule tendsto_prod[where f="\<lambda>i B'. prod (\<lambda>y. f (i, y)) (B' i)" and L=g, simplified])
-        fix x assume x: "x \<in> Z"
-        hence x': "x \<in> A" using 3 by auto
-        have tend_x: "((\<lambda>S. prod (\<lambda>y. f (x, y)) S) \<longlongrightarrow> g x) (finite_subsets_at_top (B x))"
-          using sum2[OF x'] unfolding has_setprod_def .
-        have filt: "filterlim (\<lambda>p. p x) (finite_subsets_at_top (B x))
-               (filtercomap (\<lambda>p. p x) (finite_subsets_at_top (B x)))"
-          by (rule filterlim_filtercomap)
-        have step1: "((\<lambda>B'. prod (\<lambda>y. f (x, y)) (B' x)) \<longlongrightarrow> g x)
-               (filtercomap (\<lambda>p. p x) (finite_subsets_at_top (B x)))"
-          by (rule filterlim_compose[OF tend_x filt])
-        have step2: "(INF x\<in>Z. filtercomap (\<lambda>p. p x) (finite_subsets_at_top (B x))) \<le>
-                       filtercomap (\<lambda>p. p x) (finite_subsets_at_top (B x))"
-          using x by (rule INF_lower)
-        show "((\<lambda>B'. prod (\<lambda>y. f (x, y)) (B' x)) \<longlongrightarrow> g x)
-                         (INF x\<in>Z. filtercomap (\<lambda>p. p x) (finite_subsets_at_top (B x)))"
-          using step1 step2 tendsto_mono by blast
-      qed
-      show "\<forall>\<^sub>F x in H. (\<Prod>xa\<in>Z. \<Prod>y\<in>x xa. f (xa, y)) \<in> X'" 
-        sorry
-      show "H \<noteq> bot"
-        apply (auto simp: H_def) sorry
-    qed
-  next
-    show "finite Y1"
-      using Y(2) Y1_def by blast
-    show "\<And>x. x \<in> Y1 \<Longrightarrow> x \<in> A"
-      using Y1 by blast
-    show "\<And>Y. finite Y \<Longrightarrow> Y1 \<subseteq> Y \<Longrightarrow> Y \<subseteq> A \<Longrightarrow> prod g Y \<in> X"
-      sorry
-  qed
-qed
-
-
-lemma has_setprod_SigmaI:
-  fixes f :: "_ \<Rightarrow> 'a :: real_normed_field"
-  assumes f: "\<And>x. x \<in> A \<Longrightarrow> ((\<lambda>y. f (x, y)) has_setprod g x) (B x)"
-  assumes g: "(g has_setprod S) A"
-  assumes multipliable: "f multipliable_on Sigma A B"
-  shows   "(f has_setprod S) (Sigma A B)"
-  by (metis f g has_setprod_SigmaD has_setprod_infprod has_setprod_unique local.multipliable)
 
 lemma multipliable_on_SigmaD1:
   fixes f :: "_ \<Rightarrow> _ \<Rightarrow> 'a :: {real_normed_field, complete_space}"
@@ -3362,7 +3302,7 @@ lemma multipliable_on_SigmaD:
   assumes sum2: "\<And>x. x \<in> A \<Longrightarrow> (\<lambda>y. f (x, y)) multipliable_on (B x)"
   shows   "(\<lambda>x. infprod (\<lambda>y. f (x, y)) (B x)) multipliable_on A"
   using assms unfolding multipliable_on_def
-  by (smt (verit, del_insts) assms has_setprod_SigmaD has_setprod_cong has_setprod_infprod)
+  by (smt (verit, del_insts) assms has_setprod_Sigma has_setprod_cong has_setprod_infprod)
 
 lemma multipliable_on_UnionD:
   fixes f :: "'a \<Rightarrow> 'c :: real_normed_field"
