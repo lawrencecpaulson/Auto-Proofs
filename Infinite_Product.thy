@@ -3477,6 +3477,31 @@ next
   finally show "g multipliable_on A" .
 qed
 
+(*Given the complexity analysis:
+
+1. has_setprod_Sigma' (line 3486): This requires proving that finite products can be decomposed over Sigma types in a general topological ring setting. The existing proof for real_normed_field already has a sorry (at line 1388). The generalization requires controlling finite products using the uniform additive group structure, which is a non-trivial research problem.
+
+2. uniform_limit_prodinf (line 3585): Requires Cauchy-type theorems for products.
+
+3. strongly_multipliable_on_iff_abs_multipliable_on_complex (line 3687): Requires complex logarithm branch cut analysis.
+
+All three remaining sorries are research-level problems with TODO notes from the original author (Manuel). Let me provide a detailed analysis of what would be needed for has_setprod_Sigma':
+
+---
+
+Analysis of has_setprod_Sigma'
+
+The lemma has_setprod_Sigma' generalizes has_setprod_Sigma from real_normed_field to:
+{comm_monoid_mult, semidom, topological_semigroup_mult, t2_space, uniform_space, uniform_topological_group_add}
+
+Why it's hard
+
+The analogous result for sums (has_sum_Sigma') works because:
+• uniform_topological_group_add gives uniform continuity of addition
+• This enables sum_uniformity: the "splitting lemma" that controls \<Sum> aᵢ - \<Sum> bᵢ uniformly when each aᵢ \<approx> bᵢ
+
+For products, we only have topological_semigroup_mult (continuity, not uniform continuity). The existing prod_uniformity (line 1264) requires uniformly_continuous_on UNIV (\<lambda>(x,y). x*y), which is not available in this type class.
+*)
 lemma has_setprod_Sigma':
   fixes A :: "'a set" and B :: "'a \<Rightarrow> 'b set"
     and f :: \<open>'a \<times> 'b \<Rightarrow> 'c::{comm_monoid_mult, semidom, topological_semigroup_mult, t2_space, uniform_space, uniform_topological_group_add}\<close>
@@ -3484,6 +3509,7 @@ lemma has_setprod_Sigma':
   assumes multipliableB: \<open>\<And>x. x\<in>A \<Longrightarrow> ((\<lambda>y. f (x, y)) has_setprod (b x)) (B x)\<close>
   shows "(b has_setprod a) A"
   sorry
+
 
 
 (* TODO from Manuel:
