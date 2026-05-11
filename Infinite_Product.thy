@@ -2440,135 +2440,6 @@ proof -
   qed
 qed
 
-lemma abs_multipliable_product:
-  fixes x :: "'a \<Rightarrow> 'b::{real_normed_div_algebra,banach,second_countable_topology}"
-  assumes x2_sum: "x abs_multipliable_on A"
-    and y2_sum: "y abs_multipliable_on A"
-  shows "(\<lambda>i. x i * y i) abs_multipliable_on A"
-proof -
-  define xn yn where "xn i = norm (x i - 1)" and "yn i = norm (y i - 1)" for i
-  have xn_nn: "xn i \<ge> 0" for i unfolding xn_def by simp
-  have yn_nn: "yn i \<ge> 0" for i unfolding yn_def by simp
-
-  \<comment> \<open>Key inequality: 1 + norm(xy - 1) \<le> (1 + norm(x-1)) * (1 + norm(y-1))\<close>
-  have prod_ineq: "1 + norm (x i * y i - 1) \<le> (1 + xn i) * (1 + yn i)" for i
-  proof -
-    have "x i * y i - 1 = (x i - 1) * (y i - 1) + (x i - 1) + (y i - 1)"
-      by (simp add: algebra_simps)
-    then have "norm (x i * y i - 1) \<le> norm ((x i - 1) * (y i - 1)) + norm (x i - 1) + norm (y i - 1)"
-      by (metis dual_order.refl norm_triangle_mono)
-    also have "\<dots> = xn i * yn i + xn i + yn i"
-      by (simp add: norm_mult xn_def yn_def)
-    finally have "1 + norm (x i * y i - 1) \<le> 1 + xn i * yn i + xn i + yn i"
-      by linarith
-    also have "\<dots> = (1 + xn i) * (1 + yn i)"
-      by (simp add: algebra_simps)
-    finally show ?thesis .
-  qed
-
-  \<comment> \<open>From the assumptions, get that (1 + xn) and (1 + yn) are multipliable\<close>
-  from x2_sum have xn_mult: "(\<lambda>i. 1 + xn i) multipliable_on A"
-    unfolding abs_multipliable_on_def xn_def by simp
-  from y2_sum have yn_mult: "(\<lambda>i. 1 + yn i) multipliable_on A"
-    unfolding abs_multipliable_on_def yn_def by simp
-
-  \<comment> \<open>Their pointwise product is multipliable\<close>
-  have prod_mult: "(\<lambda>i. (1 + xn i) * (1 + yn i)) multipliable_on A"
-    by (rule multipliable_on_mult[OF xn_mult yn_mult])
-
-  \<comment> \<open>By comparison, (1 + norm(xy - 1)) is multipliable\<close>
-  show "(\<lambda>i. x i * y i) abs_multipliable_on A"
-    unfolding abs_multipliable_on_def
-  proof (rule multipliable_on_comparison_test[OF prod_mult])
-    fix i assume "i \<in> A"
-    show "1 + norm (x i * y i - 1) \<le> (1 + xn i) * (1 + yn i)"
-      by (rule prod_ineq)
-  next
-    fix i assume "i \<in> A"
-    show "(1::real) \<le> 1 + norm (x i * y i - 1)" by simp
-  qed
-qed
-
-text \<open>The types @{typ ennreal}, @{typ ereal}, and @{typ enat} cannot be used with the
-  infinite-product framework (@{const multipliable_on}, @{const has_setprod}, @{const infprod})
-  because it requires @{class semidom}, which demands additive cancellation.
-  These types fail cancellation: e.g.\ @{term \<open>(\<infinity>::ennreal) + 1 = \<infinity> + 2\<close>} but @{term \<open>(1::ennreal) \<noteq> 2\<close>}.
-  Supporting them would require weakening the type class constraints on the framework definitions.\<close>
-
-
-
-(* The correct statement for products requires a nonzero limit (i.e. strongly_multipliable_on),
-   since factors must tend to 1 by has_setprod_factors_tend_to_1. *)
-lemma multipliable_countable:
-  fixes f :: \<open>'a \<Rightarrow> 'b :: {real_normed_div_algebra, semidom}\<close>
-  assumes \<open>f strongly_multipliable_on A\<close>
-  shows \<open>countable {x\<in>A. f x \<noteq> 1}\<close>
-proof -
-  have "\<exists>F. finite F \<and> F \<subseteq> A \<and> (\<forall>x\<in>A - F. f x \<in> ball 1 (1 / real (Suc n)))" for n
-    using strongly_multipliable_on_imp_nhds_1[OF assms, of "ball 1 (1 / real (Suc n))"] by auto
-  then obtain F where F_fin: "\<And>n. finite (F n)" and F_sub: "\<And>n. F n \<subseteq> A"
-    and F_ball: "\<And>n x. x \<in> A - F n \<Longrightarrow> f x \<in> ball 1 (1 / real (Suc n))"
-    by metis
-  have "{x\<in>A. f x \<noteq> 1} \<subseteq> (\<Union>n. F n)"
-  proof (rule subsetI)
-    fix x assume "x \<in> {x\<in>A. f x \<noteq> 1}"
-    hence "x \<in> A" "f x \<noteq> 1" by auto
-    hence "dist (f x) 1 > 0" by auto
-    then obtain n where "1 / real (Suc n) < dist (f x) 1"
-      using reals_Archimedean[of "dist (f x) 1"]
-      by (metis inverse_eq_divide)
-    hence "f x \<notin> ball 1 (1 / real (Suc n))"
-      by (simp add: dist_commute)
-    hence "x \<notin> A - F n"
-      using F_ball[of x n] by blast
-    hence "x \<in> F n"
-      using \<open>x \<in> A\<close> by auto
-    thus "x \<in> (\<Union>n. F n)" by auto
-  qed
-  moreover have "countable (\<Union>n. F n)"
-    using F_fin by (intro countable_UN) (auto intro: countable_finite)
-  ultimately show ?thesis
-    by (rule countable_subset)
-qed
-
-lemma multipliable_countable_complex:
-  fixes f :: \<open>'a \<Rightarrow> complex\<close>
-  assumes \<open>f strongly_multipliable_on A\<close>
-  shows \<open>countable {x\<in>A. f x \<noteq> 1}\<close>
-  using assms by (rule multipliable_countable)
-
-
-lemma prod_norm_le:
-  fixes  f::"'b \<Rightarrow> 'a::real_normed_field"
-  assumes "\<And>x. x \<in> S \<Longrightarrow> norm (f x) \<le> g x"
-  shows "norm (prod f S) \<le> prod g S"
-  by (metis norm_ge_zero prod_mono prod_norm assms)
-
-lemma norm_infprod_le:
-  fixes  f::"'b \<Rightarrow> 'a::real_normed_field"
-  assumes "(f has_setprod S) X"
-  assumes "(g has_setprod T) X"
-  assumes "\<And>x. x \<in> X \<Longrightarrow> norm (f x) \<le> g x"
-  shows   "norm S \<le> T"
-proof (rule tendsto_le)
-  show "((\<lambda>Y. norm (\<Prod>x\<in>Y. f x)) \<longlongrightarrow> norm S) (finite_subsets_at_top X)"
-    using assms(1) unfolding has_setprod_def by (intro tendsto_norm)
-  show "((\<lambda>Y. \<Prod>x\<in>Y. g x) \<longlongrightarrow> T) (finite_subsets_at_top X)"
-    using assms(2) unfolding has_setprod_def .
-  show "\<forall>\<^sub>F x in finite_subsets_at_top X. norm (prod f x) \<le> (\<Prod>x\<in>x. g x)"
-    by (simp add: assms(3) eventually_finite_subsets_at_top_weakI in_mono prod_norm_le)
-qed auto
-
-(*
-lemma multipliable_on_Sigma:
-  fixes A :: "'a set" and B :: "'a \<Rightarrow> 'b set"
-    and f :: \<open>'a \<Rightarrow> 'b \<Rightarrow> 'c::{comm_monoid_mult, t2_space, uniform_space}\<close>
-  assumes times_cont: \<open>uniformly_continuous_on UNIV (\<lambda>(x::'c,y). x+y)\<close>
-  assumes multipliableAB: "(\<lambda>(x,y). f x y) multipliable_on (Sigma A B)"
-  assumes multipliableB: \<open>\<And>x. x\<in>A \<Longrightarrow> (f x) multipliable_on (B x)\<close>
-  shows \<open>(\<lambda>x. infprod (f x) (B x)) multipliable_on A\<close>
-*)
-
 
 lemma multipliable_on_imp_bounded_partial_sums:
   fixes f :: "_ \<Rightarrow> 'a :: {topological_semigroup_mult, linorder_topology, semidom, t2_space}"
@@ -2651,6 +2522,308 @@ lemma nonneg_bounded_partial_sums_imp_multipliable_on:
   using nonneg_bounded_partial_prods_imp_has_setprod_SUP[OF assms] by (auto simp: multipliable_on_def)
 
 end
+
+lemma abs_multipliable_on_iff_summable_on:
+  fixes f :: "'a \<Rightarrow> 'b :: {banach, real_normed_algebra_1}"
+  shows "f abs_multipliable_on A \<longleftrightarrow> (\<lambda>n. norm (f n - 1)) summable_on A"
+proof
+  define g where \<open>g n = norm (f n - 1)\<close> for n
+  have g_nn: \<open>g n \<ge> 0\<close> for n unfolding g_def by simp
+  assume \<open>f abs_multipliable_on A\<close>
+  then obtain L where lim: \<open>((\<lambda>F. \<Prod>x\<in>F. 1 + g x) \<longlongrightarrow> L) (finite_subsets_at_top A)\<close>
+    unfolding abs_multipliable_on_def multipliable_on_def has_setprod_def g_def by blast
+  show \<open>(\<lambda>n. norm (f n - 1)) summable_on A\<close>
+    unfolding g_def[symmetric]
+  proof (rule nonneg_bounded_partial_sums_imp_summable_on)
+    show \<open>\<And>x. x \<in> A \<Longrightarrow> 0 \<le> g x\<close> using g_nn by simp
+    from lim have \<open>\<forall>\<^sub>F X in finite_subsets_at_top A. dist (prod (\<lambda>x. 1 + g x) X) L < 1\<close>
+      unfolding tendsto_iff by auto
+    then have \<open>\<forall>\<^sub>F X in finite_subsets_at_top A. prod (\<lambda>x. 1 + g x) X < L + 1\<close>
+      by (eventually_elim) (auto simp: dist_real_def)
+    then show \<open>\<forall>\<^sub>F X in finite_subsets_at_top A. sum g X \<le> L + 1\<close>
+    proof eventually_elim
+      case (elim X)
+      have \<open>sum g X \<le> prod (\<lambda>x. 1 + g x) X\<close>
+        by (rule sum_le_prod) (use g_nn in auto)
+      also have \<open>\<dots> < L + 1\<close> by (rule elim)
+      finally show ?case by linarith
+    qed
+  qed
+next
+  define g where \<open>g n = norm (f n - 1)\<close> for n
+  have g_nn: \<open>g n \<ge> 0\<close> for n unfolding g_def by simp
+  assume \<open>(\<lambda>n. norm (f n - 1)) summable_on A\<close>
+  then obtain L where lim: \<open>(sum g \<longlongrightarrow> L) (finite_subsets_at_top A)\<close>
+    unfolding summable_on_def has_sum_def g_def by blast
+  show \<open>f abs_multipliable_on A\<close>
+    unfolding abs_multipliable_on_def g_def[symmetric]
+  proof (rule nonneg_bounded_partial_sums_imp_multipliable_on)
+    show \<open>\<And>x. x \<in> A \<Longrightarrow> 1 \<le> (\<lambda>x. 1 + g x) x\<close> using g_nn by auto
+    \<comment> \<open>Partial products are bounded by exp(L+1)\<close>
+    from lim have \<open>\<forall>\<^sub>F X in finite_subsets_at_top A. dist (sum g X) L < 1\<close>
+      unfolding tendsto_iff by auto
+    then have sum_bound: \<open>\<forall>\<^sub>F X in finite_subsets_at_top A. sum g X < L + 1\<close>
+      by (eventually_elim) (auto simp: dist_real_def)
+    show \<open>\<forall>\<^sub>F X in finite_subsets_at_top A. prod (\<lambda>x. 1 + g x) X \<le> exp (L + 1)\<close>
+      using sum_bound
+    proof eventually_elim
+      case (elim X)
+      have \<open>prod (\<lambda>x. 1 + g x) X \<le> exp (sum g X)\<close>
+        by (rule prod_le_exp_sum) (use g_nn in auto)
+      also have \<open>\<dots> \<le> exp (L + 1)\<close>
+        using elim by simp
+      finally show ?case .
+    qed
+  qed
+qed
+
+lemma abs_multipliable_on_comparison_test:
+  fixes f :: \<open>'a \<Rightarrow> 'b::{banach, real_normed_algebra_1}\<close>
+    and g :: \<open>'a \<Rightarrow> 'c::{banach, real_normed_algebra_1}\<close>
+  assumes \<open>g abs_multipliable_on A\<close>
+  assumes \<open>\<And>x. x \<in> A \<Longrightarrow> norm (f x - 1) \<le> norm (g x - 1)\<close>
+  shows   \<open>f abs_multipliable_on A\<close>
+proof -
+  \<comment> \<open>Step 1: From g abs_multipliable, get that partial sums of norm(g x - 1) are bounded\<close>
+  define gn where \<open>gn x = norm (g x - 1)\<close> for x
+  define fn where \<open>fn x = norm (f x - 1)\<close> for x
+  have gn_nn: \<open>gn x \<ge> 0\<close> for x unfolding gn_def by simp
+  have fn_nn: \<open>fn x \<ge> 0\<close> for x unfolding fn_def by simp
+  have fn_le_gn: \<open>fn x \<le> gn x\<close> if \<open>x \<in> A\<close> for x
+    unfolding fn_def gn_def using assms(2)[OF that] by simp
+  \<comment> \<open>The partial products of (1 + gn) converge\<close>
+  from assms(1) have k_mult: \<open>(\<lambda>x. 1 + gn x) multipliable_on A\<close>
+    unfolding abs_multipliable_on_def gn_def by simp
+  from infprod_tendsto[OF k_mult]
+  have k_tendsto: \<open>(prod (\<lambda>x. 1 + gn x) \<longlongrightarrow> infprod (\<lambda>x. 1 + gn x) A) (finite_subsets_at_top A)\<close> .
+  \<comment> \<open>So partial products are eventually bounded\<close>
+  from tendstoD[OF k_tendsto, of 1]
+  have \<open>\<forall>\<^sub>F F in finite_subsets_at_top A. dist (prod (\<lambda>x. 1 + gn x) F) (infprod (\<lambda>x. 1 + gn x) A) < 1\<close>
+    by simp
+  then have prod_bound: \<open>\<forall>\<^sub>F F in finite_subsets_at_top A. prod (\<lambda>x. 1 + gn x) F < infprod (\<lambda>x. 1 + gn x) A + 1\<close>
+    by (eventually_elim) (auto simp: dist_real_def)
+  \<comment> \<open>Partial sums of gn are bounded by partial products\<close>
+  have sum_bound: \<open>\<forall>\<^sub>F F in finite_subsets_at_top A. sum gn F \<le> infprod (\<lambda>x. 1 + gn x) A + 1\<close>
+    using prod_bound
+  proof eventually_elim
+    case (elim F)
+    have \<open>sum gn F \<le> prod (\<lambda>x. 1 + gn x) F\<close>
+      by (rule sum_le_prod) (use gn_nn in auto)
+    also have \<open>\<dots> < infprod (\<lambda>x. 1 + gn x) A + 1\<close> by (rule elim)
+    finally show ?case by linarith
+  qed
+  \<comment> \<open>Step 2: gn is summable\<close>
+  have gn_summable: \<open>gn summable_on A\<close>
+    by (rule nonneg_bounded_partial_sums_imp_summable_on) (use gn_nn sum_bound in auto)
+  \<comment> \<open>Step 3: fn is summable by comparison\<close>
+  have fn_bound: \<open>\<exists>C. \<forall>\<^sub>F F in finite_subsets_at_top A. sum fn F \<le> C\<close>
+  proof -
+    from summable_on_imp_bounded_partial_sums[OF gn_summable]
+    obtain C where C: \<open>\<forall>\<^sub>F F in finite_subsets_at_top A. sum gn F \<le> C\<close> by auto
+    have FA: \<open>\<forall>\<^sub>F F in finite_subsets_at_top A. F \<subseteq> A\<close>
+      by (auto simp: eventually_finite_subsets_at_top)
+    from C FA have \<open>\<forall>\<^sub>F F in finite_subsets_at_top A. sum fn F \<le> C\<close>
+    proof eventually_elim
+      case (elim F)
+      have \<open>sum fn F \<le> sum gn F\<close>
+        by (intro sum_mono) (use fn_le_gn elim in auto)
+      also have \<open>\<dots> \<le> C\<close> by (rule elim)
+      finally show ?case .
+    qed
+    thus ?thesis by auto
+  qed
+  have fn_summable: \<open>fn summable_on A\<close>
+    using fn_bound fn_nn
+    by (auto intro!: nonneg_bounded_partial_sums_imp_summable_on)
+  show \<open>f abs_multipliable_on A\<close>
+    using fn_summable unfolding fn_def
+    by (subst abs_multipliable_on_iff_summable_on)
+qed
+
+lemma abs_multipliable_product:
+  fixes x :: "'a \<Rightarrow> 'b::{real_normed_div_algebra,banach,second_countable_topology}"
+  assumes x2_sum: "x abs_multipliable_on A"
+    and y2_sum: "y abs_multipliable_on A"
+  shows "(\<lambda>i. x i * y i) abs_multipliable_on A"
+proof -
+  define xn yn where "xn i = norm (x i - 1)" and "yn i = norm (y i - 1)" for i
+  have xn_nn: "xn i \<ge> 0" for i unfolding xn_def by simp
+  have yn_nn: "yn i \<ge> 0" for i unfolding yn_def by simp
+
+  \<comment> \<open>Key inequality: 1 + norm(xy - 1) \<le> (1 + norm(x-1)) * (1 + norm(y-1))\<close>
+  have prod_ineq: "1 + norm (x i * y i - 1) \<le> (1 + xn i) * (1 + yn i)" for i
+  proof -
+    have "x i * y i - 1 = (x i - 1) * (y i - 1) + (x i - 1) + (y i - 1)"
+      by (simp add: algebra_simps)
+    then have "norm (x i * y i - 1) \<le> norm ((x i - 1) * (y i - 1)) + norm (x i - 1) + norm (y i - 1)"
+      by (metis dual_order.refl norm_triangle_mono)
+    also have "\<dots> = xn i * yn i + xn i + yn i"
+      by (simp add: norm_mult xn_def yn_def)
+    finally have "1 + norm (x i * y i - 1) \<le> 1 + xn i * yn i + xn i + yn i"
+      by linarith
+    also have "\<dots> = (1 + xn i) * (1 + yn i)"
+      by (simp add: algebra_simps)
+    finally show ?thesis .
+  qed
+
+  \<comment> \<open>From the assumptions, get that (1 + xn) and (1 + yn) are multipliable\<close>
+  from x2_sum have xn_mult: "(\<lambda>i. 1 + xn i) multipliable_on A"
+    unfolding abs_multipliable_on_def xn_def by simp
+  from y2_sum have yn_mult: "(\<lambda>i. 1 + yn i) multipliable_on A"
+    unfolding abs_multipliable_on_def yn_def by simp
+
+  \<comment> \<open>Their pointwise product is multipliable\<close>
+  have prod_mult: "(\<lambda>i. (1 + xn i) * (1 + yn i)) multipliable_on A"
+    by (rule multipliable_on_mult[OF xn_mult yn_mult])
+
+  \<comment> \<open>By comparison, (1 + norm(xy - 1)) is multipliable\<close>
+  show "(\<lambda>i. x i * y i) abs_multipliable_on A"
+    unfolding abs_multipliable_on_def
+  proof (rule multipliable_on_comparison_test[OF prod_mult])
+    fix i assume "i \<in> A"
+    show "1 + norm (x i * y i - 1) \<le> (1 + xn i) * (1 + yn i)"
+      by (rule prod_ineq)
+  next
+    fix i assume "i \<in> A"
+    show "(1::real) \<le> 1 + norm (x i * y i - 1)" by simp
+  qed
+qed
+
+lemma abs_multipliable_on_inverse:
+  fixes f :: "'a \<Rightarrow> 'b :: {banach, real_normed_field}"
+  assumes "f abs_multipliable_on A" and nz: "\<And>x. x \<in> A \<Longrightarrow> f x \<noteq> 0"
+  shows   "(\<lambda>x. inverse (f x)) abs_multipliable_on A"
+proof -
+  have norm_sum: "(\<lambda>x. norm (f x - 1)) summable_on A"
+    using assms(1) by (subst (asm) abs_multipliable_on_iff_summable_on)
+
+  \<comment> \<open>Get a finite set F outside which norm(f x - 1) < 1/2\<close>
+  from summable_on_imp_nhds_0[OF norm_sum, of "ball 0 (1/2 :: real)"]
+  obtain F where F_fin: "finite F" and F_sub: "F \<subseteq> A" 
+    and F_small: "\<And>x. x \<in> A - F \<Longrightarrow> norm (f x - 1) \<in> ball 0 (1/2)"
+    by auto
+
+  \<comment> \<open>On A - F, norm(inverse(f x) - 1) \<le> 2 * norm(f x - 1)\<close>
+  have inv_bound: "norm (inverse (f x) - 1) \<le> 2 * norm (f x - 1)" if xSF: "x \<in> A - F" for x
+  proof -
+    have fx_nz: "f x \<noteq> 0" using xSF nz by auto
+    have small: "norm (f x - 1) < 1/2" using F_small xSF by auto
+    have "inverse (f x) - 1 = inverse (f x) * (1 - f x)"
+      using fx_nz by (simp add: field_simps)
+    hence "norm (inverse (f x) - 1) = norm (inverse (f x)) * norm (f x - 1)"
+      by (simp add: norm_mult norm_minus_commute)
+    moreover have "norm (inverse (f x)) \<le> 2"
+    proof -
+      have "norm (f x) \<ge> 1 - norm (f x - 1)"
+        by (smt (verit, ccfv_SIG) norm_minus_commute norm_one norm_triangle_ineq2)
+      hence "norm (f x) > 1/2" using small by linarith
+      hence "norm (inverse (f x)) = inverse (norm (f x))"
+        by (simp add: norm_inverse)
+      also have "\<dots> \<le> 2" using \<open>norm (f x) > 1/2\<close>
+        by (simp add: inverse_less_imp_less less_eq_real_def)
+      finally show ?thesis .
+    qed
+    ultimately show ?thesis
+      by (simp add: mult_right_mono)
+  qed
+  \<comment> \<open>norm(inverse(f x) - 1) is summable on A - F\<close>
+  have "(\<lambda>x. norm (inverse (f x) - 1)) summable_on (A - F)"
+  proof (rule summable_on_comparison_test)
+    show "(\<lambda>x. 2 * norm (f x - 1)) summable_on (A - F)"
+      using norm_sum F_sub F_fin summable_on_cmult_right summable_on_cofin_subset by blast
+    fix x assume "x \<in> A - F"
+    thus "norm (inverse (f x) - 1) \<le> 2 * norm (f x - 1)"
+      using inv_bound by simp
+  qed auto
+  \<comment> \<open>Combine with finite part\<close>
+  moreover have "(\<lambda>x. norm (inverse (f x) - 1)) summable_on F"
+    using F_fin by simp
+  ultimately have "(\<lambda>x. norm (inverse (f x) - 1)) summable_on (A - F \<union> F)"
+    by (intro summable_on_Un_disjoint) auto
+  also have "A - F \<union> F = A" using F_sub by auto
+  finally show "(\<lambda>x. inverse (f x)) abs_multipliable_on A"
+      by (subst abs_multipliable_on_iff_summable_on)
+qed
+
+text \<open>The types @{typ ennreal}, @{typ ereal}, and @{typ enat} cannot be used with the
+  infinite-product framework (@{const multipliable_on}, @{const has_setprod}, @{const infprod})
+  because it requires @{class semidom}, which demands additive cancellation.
+  These types fail cancellation: e.g.\ @{term \<open>(\<infinity>::ennreal) + 1 = \<infinity> + 2\<close>} but @{term \<open>(1::ennreal) \<noteq> 2\<close>}.
+  Supporting them would require weakening the type class constraints on the framework definitions.\<close>
+
+
+
+(* The correct statement for products requires a nonzero limit (i.e. strongly_multipliable_on),
+   since factors must tend to 1 by has_setprod_factors_tend_to_1. *)
+lemma multipliable_countable:
+  fixes f :: \<open>'a \<Rightarrow> 'b :: {real_normed_div_algebra, semidom}\<close>
+  assumes \<open>f strongly_multipliable_on A\<close>
+  shows \<open>countable {x\<in>A. f x \<noteq> 1}\<close>
+proof -
+  have "\<exists>F. finite F \<and> F \<subseteq> A \<and> (\<forall>x\<in>A - F. f x \<in> ball 1 (1 / real (Suc n)))" for n
+    using strongly_multipliable_on_imp_nhds_1[OF assms, of "ball 1 (1 / real (Suc n))"] by auto
+  then obtain F where F_fin: "\<And>n. finite (F n)" and F_sub: "\<And>n. F n \<subseteq> A"
+    and F_ball: "\<And>n x. x \<in> A - F n \<Longrightarrow> f x \<in> ball 1 (1 / real (Suc n))"
+    by metis
+  have "{x\<in>A. f x \<noteq> 1} \<subseteq> (\<Union>n. F n)"
+  proof (rule subsetI)
+    fix x assume "x \<in> {x\<in>A. f x \<noteq> 1}"
+    hence "x \<in> A" "f x \<noteq> 1" by auto
+    hence "dist (f x) 1 > 0" by auto
+    then obtain n where "1 / real (Suc n) < dist (f x) 1"
+      using reals_Archimedean[of "dist (f x) 1"]
+      by (metis inverse_eq_divide)
+    hence "f x \<notin> ball 1 (1 / real (Suc n))"
+      by (simp add: dist_commute)
+    hence "x \<notin> A - F n"
+      using F_ball[of x n] by blast
+    hence "x \<in> F n"
+      using \<open>x \<in> A\<close> by auto
+    thus "x \<in> (\<Union>n. F n)" by auto
+  qed
+  moreover have "countable (\<Union>n. F n)"
+    using F_fin by (intro countable_UN) (auto intro: countable_finite)
+  ultimately show ?thesis
+    by (rule countable_subset)
+qed
+
+lemma multipliable_countable_complex:
+  fixes f :: \<open>'a \<Rightarrow> complex\<close>
+  assumes \<open>f strongly_multipliable_on A\<close>
+  shows \<open>countable {x\<in>A. f x \<noteq> 1}\<close>
+  using assms by (rule multipliable_countable)
+
+
+lemma prod_norm_le:
+  fixes  f::"'b \<Rightarrow> 'a::real_normed_field"
+  assumes "\<And>x. x \<in> S \<Longrightarrow> norm (f x) \<le> g x"
+  shows "norm (prod f S) \<le> prod g S"
+  by (metis norm_ge_zero prod_mono prod_norm assms)
+
+lemma norm_infprod_le:
+  fixes  f::"'b \<Rightarrow> 'a::real_normed_field"
+  assumes "(f has_setprod S) X"
+  assumes "(g has_setprod T) X"
+  assumes "\<And>x. x \<in> X \<Longrightarrow> norm (f x) \<le> g x"
+  shows   "norm S \<le> T"
+proof (rule tendsto_le)
+  show "((\<lambda>Y. norm (\<Prod>x\<in>Y. f x)) \<longlongrightarrow> norm S) (finite_subsets_at_top X)"
+    using assms(1) unfolding has_setprod_def by (intro tendsto_norm)
+  show "((\<lambda>Y. \<Prod>x\<in>Y. g x) \<longlongrightarrow> T) (finite_subsets_at_top X)"
+    using assms(2) unfolding has_setprod_def .
+  show "\<forall>\<^sub>F x in finite_subsets_at_top X. norm (prod f x) \<le> (\<Prod>x\<in>x. g x)"
+    by (simp add: assms(3) eventually_finite_subsets_at_top_weakI in_mono prod_norm_le)
+qed auto
+
+(*
+lemma multipliable_on_Sigma:
+  fixes A :: "'a set" and B :: "'a \<Rightarrow> 'b set"
+    and f :: \<open>'a \<Rightarrow> 'b \<Rightarrow> 'c::{comm_monoid_mult, t2_space, uniform_space}\<close>
+  assumes times_cont: \<open>uniformly_continuous_on UNIV (\<lambda>(x::'c,y). x+y)\<close>
+  assumes multipliableAB: "(\<lambda>(x,y). f x y) multipliable_on (Sigma A B)"
+  assumes multipliableB: \<open>\<And>x. x\<in>A \<Longrightarrow> (f x) multipliable_on (B x)\<close>
+  shows \<open>(\<lambda>x. infprod (f x) (B x)) multipliable_on A\<close>
+*)
 
 lemma infprod_nonneg_is_SUPREMUM_real:
   fixes f :: "'a \<Rightarrow> real"
@@ -2792,124 +2965,6 @@ proof -
   qed
 qed
 
-
-lemma abs_multipliable_on_iff_summable_on:
-  fixes f :: "'a \<Rightarrow> 'b :: {banach, real_normed_algebra_1}"
-  shows "f abs_multipliable_on A \<longleftrightarrow> (\<lambda>n. norm (f n - 1)) summable_on A"
-proof
-  define g where \<open>g n = norm (f n - 1)\<close> for n
-  have g_nn: \<open>g n \<ge> 0\<close> for n unfolding g_def by simp
-  assume \<open>f abs_multipliable_on A\<close>
-  then obtain L where lim: \<open>((\<lambda>F. \<Prod>x\<in>F. 1 + g x) \<longlongrightarrow> L) (finite_subsets_at_top A)\<close>
-    unfolding abs_multipliable_on_def multipliable_on_def has_setprod_def g_def by blast
-  show \<open>(\<lambda>n. norm (f n - 1)) summable_on A\<close>
-    unfolding g_def[symmetric]
-  proof (rule nonneg_bounded_partial_sums_imp_summable_on)
-    show \<open>\<And>x. x \<in> A \<Longrightarrow> 0 \<le> g x\<close> using g_nn by simp
-    from lim have \<open>\<forall>\<^sub>F X in finite_subsets_at_top A. dist (prod (\<lambda>x. 1 + g x) X) L < 1\<close>
-      unfolding tendsto_iff by auto
-    then have \<open>\<forall>\<^sub>F X in finite_subsets_at_top A. prod (\<lambda>x. 1 + g x) X < L + 1\<close>
-      by (eventually_elim) (auto simp: dist_real_def)
-    then show \<open>\<forall>\<^sub>F X in finite_subsets_at_top A. sum g X \<le> L + 1\<close>
-    proof eventually_elim
-      case (elim X)
-      have \<open>sum g X \<le> prod (\<lambda>x. 1 + g x) X\<close>
-        by (rule sum_le_prod) (use g_nn in auto)
-      also have \<open>\<dots> < L + 1\<close> by (rule elim)
-      finally show ?case by linarith
-    qed
-  qed
-next
-  define g where \<open>g n = norm (f n - 1)\<close> for n
-  have g_nn: \<open>g n \<ge> 0\<close> for n unfolding g_def by simp
-  assume \<open>(\<lambda>n. norm (f n - 1)) summable_on A\<close>
-  then obtain L where lim: \<open>(sum g \<longlongrightarrow> L) (finite_subsets_at_top A)\<close>
-    unfolding summable_on_def has_sum_def g_def by blast
-  show \<open>f abs_multipliable_on A\<close>
-    unfolding abs_multipliable_on_def g_def[symmetric]
-  proof (rule nonneg_bounded_partial_sums_imp_multipliable_on)
-    show \<open>\<And>x. x \<in> A \<Longrightarrow> 1 \<le> (\<lambda>x. 1 + g x) x\<close> using g_nn by auto
-    \<comment> \<open>Partial products are bounded by exp(L+1)\<close>
-    from lim have \<open>\<forall>\<^sub>F X in finite_subsets_at_top A. dist (sum g X) L < 1\<close>
-      unfolding tendsto_iff by auto
-    then have sum_bound: \<open>\<forall>\<^sub>F X in finite_subsets_at_top A. sum g X < L + 1\<close>
-      by (eventually_elim) (auto simp: dist_real_def)
-    show \<open>\<forall>\<^sub>F X in finite_subsets_at_top A. prod (\<lambda>x. 1 + g x) X \<le> exp (L + 1)\<close>
-      using sum_bound
-    proof eventually_elim
-      case (elim X)
-      have \<open>prod (\<lambda>x. 1 + g x) X \<le> exp (sum g X)\<close>
-        by (rule prod_le_exp_sum) (use g_nn in auto)
-      also have \<open>\<dots> \<le> exp (L + 1)\<close>
-        using elim by simp
-      finally show ?case .
-    qed
-  qed
-qed
-
-lemma abs_multipliable_on_comparison_test:
-  fixes f :: \<open>'a \<Rightarrow> 'b::{banach, real_normed_algebra_1}\<close>
-    and g :: \<open>'a \<Rightarrow> 'c::{banach, real_normed_algebra_1}\<close>
-  assumes \<open>g abs_multipliable_on A\<close>
-  assumes \<open>\<And>x. x \<in> A \<Longrightarrow> norm (f x - 1) \<le> norm (g x - 1)\<close>
-  shows   \<open>f abs_multipliable_on A\<close>
-proof -
-  \<comment> \<open>Step 1: From g abs_multipliable, get that partial sums of norm(g x - 1) are bounded\<close>
-  define gn where \<open>gn x = norm (g x - 1)\<close> for x
-  define fn where \<open>fn x = norm (f x - 1)\<close> for x
-  have gn_nn: \<open>gn x \<ge> 0\<close> for x unfolding gn_def by simp
-  have fn_nn: \<open>fn x \<ge> 0\<close> for x unfolding fn_def by simp
-  have fn_le_gn: \<open>fn x \<le> gn x\<close> if \<open>x \<in> A\<close> for x
-    unfolding fn_def gn_def using assms(2)[OF that] by simp
-  \<comment> \<open>The partial products of (1 + gn) converge\<close>
-  from assms(1) have k_mult: \<open>(\<lambda>x. 1 + gn x) multipliable_on A\<close>
-    unfolding abs_multipliable_on_def gn_def by simp
-  from infprod_tendsto[OF k_mult]
-  have k_tendsto: \<open>(prod (\<lambda>x. 1 + gn x) \<longlongrightarrow> infprod (\<lambda>x. 1 + gn x) A) (finite_subsets_at_top A)\<close> .
-  \<comment> \<open>So partial products are eventually bounded\<close>
-  from tendstoD[OF k_tendsto, of 1]
-  have \<open>\<forall>\<^sub>F F in finite_subsets_at_top A. dist (prod (\<lambda>x. 1 + gn x) F) (infprod (\<lambda>x. 1 + gn x) A) < 1\<close>
-    by simp
-  then have prod_bound: \<open>\<forall>\<^sub>F F in finite_subsets_at_top A. prod (\<lambda>x. 1 + gn x) F < infprod (\<lambda>x. 1 + gn x) A + 1\<close>
-    by (eventually_elim) (auto simp: dist_real_def)
-  \<comment> \<open>Partial sums of gn are bounded by partial products\<close>
-  have sum_bound: \<open>\<forall>\<^sub>F F in finite_subsets_at_top A. sum gn F \<le> infprod (\<lambda>x. 1 + gn x) A + 1\<close>
-    using prod_bound
-  proof eventually_elim
-    case (elim F)
-    have \<open>sum gn F \<le> prod (\<lambda>x. 1 + gn x) F\<close>
-      by (rule sum_le_prod) (use gn_nn in auto)
-    also have \<open>\<dots> < infprod (\<lambda>x. 1 + gn x) A + 1\<close> by (rule elim)
-    finally show ?case by linarith
-  qed
-  \<comment> \<open>Step 2: gn is summable\<close>
-  have gn_summable: \<open>gn summable_on A\<close>
-    by (rule nonneg_bounded_partial_sums_imp_summable_on) (use gn_nn sum_bound in auto)
-  \<comment> \<open>Step 3: fn is summable by comparison\<close>
-  have fn_bound: \<open>\<exists>C. \<forall>\<^sub>F F in finite_subsets_at_top A. sum fn F \<le> C\<close>
-  proof -
-    from summable_on_imp_bounded_partial_sums[OF gn_summable]
-    obtain C where C: \<open>\<forall>\<^sub>F F in finite_subsets_at_top A. sum gn F \<le> C\<close> by auto
-    have FA: \<open>\<forall>\<^sub>F F in finite_subsets_at_top A. F \<subseteq> A\<close>
-      by (auto simp: eventually_finite_subsets_at_top)
-    from C FA have \<open>\<forall>\<^sub>F F in finite_subsets_at_top A. sum fn F \<le> C\<close>
-    proof eventually_elim
-      case (elim F)
-      have \<open>sum fn F \<le> sum gn F\<close>
-        by (intro sum_mono) (use fn_le_gn elim in auto)
-      also have \<open>\<dots> \<le> C\<close> by (rule elim)
-      finally show ?case .
-    qed
-    thus ?thesis by auto
-  qed
-  have fn_summable: \<open>fn summable_on A\<close>
-    using fn_bound fn_nn
-    by (auto intro!: nonneg_bounded_partial_sums_imp_summable_on)
-  show \<open>f abs_multipliable_on A\<close>
-    using fn_summable unfolding fn_def
-    by (subst abs_multipliable_on_iff_summable_on)
-qed
-
 lemma abs_multipliable_on_exp:
   fixes f :: "'a \<Rightarrow> 'b :: {real_normed_field, banach}"
   assumes "f abs_summable_on A"
@@ -2948,23 +3003,10 @@ proof -
   have fin_zeros: "finite {x\<in>A. f x = 0}"
   proof -
     from summable_on_imp_nhds_0[OF abs_summable_summable[OF norm_sum], of "ball 0 (1::real)"]
-    obtain F where "finite F" "F \<subseteq> A" "\<forall>x\<in>A - F. norm (f x - 1) \<in> ball 0 1"
+    obtain F where F: "finite F" "F \<subseteq> A" "\<forall>x\<in>A - F. norm (f x - 1) \<in> ball 0 1"
       by auto
-    hence F_bound: "\<forall>x\<in>A - F. norm (f x - 1) < 1"
-      by (auto simp: ball_def dist_commute dist_real_def)
-    have "{x\<in>A. f x = 0} \<subseteq> F"
-    proof
-      fix x assume x: "x \<in> {x\<in>A. f x = 0}"
-      show "x \<in> F"
-      proof (rule ccontr)
-        assume "x \<notin> F"
-        with x have "x \<in> A - F" by auto
-        with F_bound have "norm (f x - 1) < 1" by auto
-        moreover from x have "norm (f x - 1) = 1" by simp
-        ultimately show False by simp
-      qed
-    qed
-    thus ?thesis using \<open>finite F\<close> finite_subset by blast
+    show ?thesis
+      by (rule finite_subset[OF _ F(1)]) (use F(3) in force)
   qed
   \<comment> \<open>Step 3: f is abs_multipliable on the nonzero part\<close>
   define S where "S = {x\<in>A. f x \<noteq> 0}"
@@ -2979,53 +3021,7 @@ proof -
     by (rule abs_multipliable_multipliable[OF abs_mult_S])
   \<comment> \<open>Step 5: The inverse is also abs_multipliable on S\<close>
   have inv_abs_mult_S: "(\<lambda>x. inverse (f x)) abs_multipliable_on S"
-  proof -
-    \<comment> \<open>Get a finite set F outside which norm(f x - 1) < 1/2\<close>
-    from summable_on_imp_nhds_0[OF norm_sum_S, of "ball 0 (1/2 :: real)"]
-    obtain F where F_fin: "finite F" and F_sub: "F \<subseteq> S" 
-      and F_small: "\<And>x. x \<in> S - F \<Longrightarrow> norm (f x - 1) \<in> ball 0 (1/2)"
-      by auto
-    \<comment> \<open>On S - F, norm(inverse(f x) - 1) \<le> 2 * norm(f x - 1)\<close>
-    have inv_bound: "norm (inverse (f x) - 1) \<le> 2 * norm (f x - 1)" if xSF: "x \<in> S - F" for x
-    proof -
-      have fx_nz: "f x \<noteq> 0" using xSF nz by auto
-      have small: "norm (f x - 1) < 1/2" using F_small xSF by auto
-      have "inverse (f x) - 1 = inverse (f x) * (1 - f x)"
-        using fx_nz by (simp add: field_simps)
-      hence "norm (inverse (f x) - 1) = norm (inverse (f x)) * norm (f x - 1)"
-        by (simp add: norm_mult norm_minus_commute)
-      moreover have "norm (inverse (f x)) \<le> 2"
-      proof -
-        have "norm (f x) \<ge> 1 - norm (f x - 1)"
-          by (smt (verit, ccfv_SIG) norm_minus_commute norm_one norm_triangle_ineq2)
-        hence "norm (f x) > 1/2" using small by linarith
-        hence "norm (inverse (f x)) = inverse (norm (f x))"
-          by (simp add: norm_inverse)
-        also have "\<dots> \<le> 2" using \<open>norm (f x) > 1/2\<close>
-          by (simp add: inverse_less_imp_less less_eq_real_def)
-        finally show ?thesis .
-      qed
-      ultimately show ?thesis
-        by (simp add: mult_right_mono)
-    qed
-    \<comment> \<open>norm(inverse(f x) - 1) is summable on S - F\<close>
-    have "(\<lambda>x. norm (inverse (f x) - 1)) summable_on (S - F)"
-    proof (rule summable_on_comparison_test)
-      show "(\<lambda>x. 2 * norm (f x - 1)) summable_on (S - F)"
-        using norm_sum_S F_sub F_fin summable_on_cmult_right summable_on_cofin_subset by blast
-      fix x assume "x \<in> S - F"
-      thus "norm (inverse (f x) - 1) \<le> 2 * norm (f x - 1)"
-        using inv_bound by simp
-    qed auto
-    \<comment> \<open>Combine with finite part\<close>
-    moreover have "(\<lambda>x. norm (inverse (f x) - 1)) summable_on F"
-      using F_fin by simp
-    ultimately have "(\<lambda>x. norm (inverse (f x) - 1)) summable_on (S - F \<union> F)"
-      by (intro summable_on_Un_disjoint) auto
-    also have "S - F \<union> F = S" using F_sub by auto
-    finally show ?thesis
-      by (subst abs_multipliable_on_iff_summable_on)
-  qed
+    by (rule abs_multipliable_on_inverse) fact+
   \<comment> \<open>Step 6: The product over S is nonzero\<close>
   have inv_mult_S: "(\<lambda>x. inverse (f x)) multipliable_on S"
     by (rule abs_multipliable_multipliable[OF inv_abs_mult_S])
