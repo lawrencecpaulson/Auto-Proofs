@@ -1054,9 +1054,15 @@ next
     \<comment> \<open>From limS, get a witness for the e-ball around S\<close>
     from limS \<open>e > 0\<close> have \<open>eventually (\<lambda>X. dist (prod f X) S < e) (finite_subsets_at_top A)\<close>
       by (rule tendstoD)
-    then obtain F where F_fin: \<open>finite F\<close> and F_sub: \<open>F \<subseteq> A\<close>
-      and F_close: \<open>\<And>Z. finite Z \<Longrightarrow> F \<subseteq> Z \<Longrightarrow> Z \<subseteq> A \<Longrightarrow> dist (prod f Z) S < e\<close>
+    then obtain F' where F'_fin: \<open>finite F'\<close> and F'_sub: \<open>F' \<subseteq> A\<close>
+      and F'_close: \<open>\<And>Z. finite Z \<Longrightarrow> F' \<subseteq> Z \<Longrightarrow> Z \<subseteq> A \<Longrightarrow> dist (prod f Z) S < e\<close>
       unfolding eventually_finite_subsets_at_top by auto
+    \<comment> \<open>Enlarge F' to include F0 so that F - B \<subseteq> G\<close>
+    define F where \<open>F = F' \<union> F0\<close>
+    have F_fin: \<open>finite F\<close> using F'_fin F0_fin unfolding F_def by auto
+    have F_sub: \<open>F \<subseteq> A\<close> using F'_sub F0_sub unfolding F_def by auto
+    have F_close: \<open>\<And>Z. finite Z \<Longrightarrow> F \<subseteq> Z \<Longrightarrow> Z \<subseteq> A \<Longrightarrow> dist (prod f Z) S < e\<close>
+      using F'_close unfolding F_def by auto
     \<comment> \<open>Define the B-witness as (F \<union> F0) \<inter> B\<close>
     define W where \<open>W = (F \<union> F0) \<inter> B\<close>
     have W_fin: \<open>finite W\<close> using F_fin F0_fin unfolding W_def by auto
@@ -3602,26 +3608,92 @@ qed
   But that requires the Cauchy theorems...
 *)
 lemma uniform_limit_prodinf:
-  fixes f :: "nat \<Rightarrow> 'a :: topological_space \<Rightarrow> 'b :: {real_normed_div_algebra, comm_ring_1, banach}"
+  fixes f :: "nat \<Rightarrow> 'a :: topological_space \<Rightarrow> 'b :: {real_normed_div_algebra, comm_ring_1, banach, semidom, topological_semigroup_mult, t2_space}"
   assumes cont: "\<And>n. continuous_on B (f n)"
   assumes A: "compact B"
   assumes conv_sum: "uniform_limit B (\<lambda>X y. \<Sum>x\<in>X. norm (f x y)) L (finite_subsets_at_top A)"
-  shows   "uniform_limit B (\<lambda>X y. \<Prod>x\<in>X. 1 + f x y) (\<lambda>y. \<Prod>x\<in>X. 1 + f x y) (finite_subsets_at_top A)"
-  sorry
+  shows   "uniform_limit B (\<lambda>X y. \<Prod>x\<in>X. 1 + f x y) (\<lambda>y. \<Prod>\<^sub>\<infinity>x\<in>A. 1 + f x y) (finite_subsets_at_top A)"
+  unfolding uniform_limit_iff
+proof (intro allI impI)
+  fix \<epsilon> :: real assume \<epsilon>: "\<epsilon> > 0"
+
+  \<comment> \<open>From uniform convergence of sums, get pointwise summability and multipliability\<close>
+  have summ_y: "(\<lambda>n. norm (f n y)) summable_on A" if "y \<in> B" for y
+  proof -
+    from conv_sum that have "((\<lambda>X. \<Sum>x\<in>X. norm (f x y)) \<longlongrightarrow> L y) (finite_subsets_at_top A)"
+      by (intro tendsto_uniform_limitI)
+    thus ?thesis
+      unfolding summable_on_def has_sum_def by blast
+  qed
+
+  have mult_y: "(\<lambda>x. 1 + f x y) multipliable_on A" if "y \<in> B" for y
+  proof -
+    from summ_y[OF that] have "(\<lambda>x. 1 + f x y) abs_multipliable_on A"
+      unfolding abs_multipliable_on_iff_summable_on by simp
+    thus ?thesis by (rule abs_multipliable_multipliable)
+  qed
+
+  \<comment> \<open>The infprod is well-defined and is the pointwise limit\<close>
+  have prod_tendsto: "(prod (\<lambda>x. 1 + f x y) \<longlongrightarrow> infprod (\<lambda>x. 1 + f x y) A) (finite_subsets_at_top A)" 
+    if "y \<in> B" for y
+    using mult_y[OF that] by (rule infprod_tendsto)
+
+  \<comment> \<open>Now show: for all \<epsilon> > 0, eventually dist(partial_prod, infprod) < \<epsilon> uniformly in y\<close>
+  \<comment> \<open>Strategy: bound dist(prod X, prod X2) for X \<subseteq> X2, then take limit in X2 to get bound on dist(prod X, infprod)\<close>
+
+  \<comment> \<open>Key product estimate: for X \<subseteq> X2 finite subsets of A,\<close>
+  \<comment> \<open>  dist(prod X, prod X2) \<le> norm(prod X) * norm(prod(X2\\X) - 1)\<close>
+  \<comment> \<open>                        \<le> exp(sum_X norm f) * (exp(sum_{X2\\X} norm f) - 1)\<close>
+
+  \<comment> \<open>Get uniform bound: eventually sum norm f < L y + 1 for all y in B\<close>
+  have "\<forall>\<^sub>F X in finite_subsets_at_top A. \<forall>y\<in>B. dist (\<Sum>x\<in>X. norm (f x y)) (L y) < min 1 (\<epsilon> / 2)"
+  proof -
+    have "min 1 (\<epsilon> / 2) > 0" using \<epsilon> by auto
+    with conv_sum show ?thesis unfolding uniform_limit_iff by blast
+  qed
+  then obtain X0 where X0: "finite X0" "X0 \<subseteq> A" and
+    X0_prop: "\<And>X. \<lbrakk>finite X; X0 \<subseteq> X; X \<subseteq> A\<rbrakk> \<Longrightarrow> \<forall>y\<in>B. dist (\<Sum>x\<in>X. norm (f x y)) (L y) < min 1 (\<epsilon> / 2)"
+    by (auto simp: eventually_finite_subsets_at_top)
+
+  \<comment> \<open>Show the eventually condition\<close>
+  show "\<forall>\<^sub>F X in finite_subsets_at_top A. \<forall>y\<in>B. dist (\<Prod>x\<in>X. 1 + f x y) (\<Prod>\<^sub>\<infinity>x\<in>A. 1 + f x y) < \<epsilon>"
+    unfolding eventually_finite_subsets_at_top
+  proof (intro exI conjI allI impI)
+    show "finite X0" by (rule X0(1))
+    show "X0 \<subseteq> A" by (rule X0(2))
+    fix X assume X_props: "finite X \<and> X0 \<subseteq> X \<and> X \<subseteq> A"
+    then have X_fin: "finite X" and X0_X: "X0 \<subseteq> X" and X_sub: "X \<subseteq> A" by auto
+    show "\<forall>y\<in>B. dist (\<Prod>x\<in>X. 1 + f x y) (\<Prod>\<^sub>\<infinity>x\<in>A. 1 + f x y) < \<epsilon>"
+    proof
+      fix y assume y: "y \<in> B"
+      \<comment> \<open>Use Lim_in_closed_set: the limit of partial products lies in cball(prod X, bound)\<close>
+      \<comment> \<open>For any X2 with X \<subseteq> X2 \<subseteq> A:\<close>
+      \<comment> \<open>  dist(prod X, prod X2) = norm(prod X * (prod(X2\\X) - 1))\<close>
+      \<comment> \<open>                         \<le> norm(prod X) * norm(prod(X2\\X) - 1)\<close>
+      \<comment> \<open>                         \<le> exp(sum_X norm f) * (exp(sum_{X2\\X} norm f) - 1)\<close>
+      \<comment> \<open>                         \<le> exp(L y + 1) * (exp(sum_{X2\\X} norm f) - 1)\<close>
+      \<comment> \<open>For X2 \<supseteq> X \<supseteq> X0: sum_{X2\\X} \<le> sum_{X2} - sum_{X0} + ... \<le> 2 * min(1, \<epsilon>/2) \<le> \<epsilon>\<close>
+      sorry
+    qed
+  qed
+qed
 
 lemma uniform_limit_prodinf':
-  fixes f :: "nat \<Rightarrow> 'a :: topological_space \<Rightarrow> 'b :: {real_normed_div_algebra, comm_ring_1, banach}"
+  fixes f :: "nat \<Rightarrow> 'a :: topological_space \<Rightarrow> 'b :: {real_normed_div_algebra, comm_ring_1, banach, semidom, topological_semigroup_mult, t2_space}"
   assumes cont: "\<And>n. continuous_on B (f n)"
   assumes A: "compact B"
   assumes conv_sum: "uniform_limit B (\<lambda>X y. \<Sum>x\<in>X. norm (f x y - 1)) L (finite_subsets_at_top A)"
-  shows   "uniform_limit B (\<lambda>X y. \<Prod>x\<in>X. f x y) (\<lambda>y. \<Prod>x\<in>X. f x y) (finite_subsets_at_top A)"
+  shows   "uniform_limit B (\<lambda>X y. \<Prod>x\<in>X. f x y) (\<lambda>y. \<Prod>\<^sub>\<infinity>x\<in>A. f x y) (finite_subsets_at_top A)"
 proof -
-  have "uniform_limit B (\<lambda>X y. \<Prod>x\<in>X. 1 + (f x y - 1)) (\<lambda>y. \<Prod>x\<in>X. 1 + (f x y - 1)) (finite_subsets_at_top A)"
+  have "uniform_limit B (\<lambda>X y. \<Prod>x\<in>X. 1 + (f x y - 1)) (\<lambda>y. \<Prod>\<^sub>\<infinity>x\<in>A. 1 + (f x y - 1)) (finite_subsets_at_top A)"
     by (rule uniform_limit_prodinf) (use assms in \<open>auto intro!: continuous_intros\<close>)
-  thus ?thesis
+  moreover have "(\<lambda>X y. \<Prod>x\<in>X. 1 + (f x y - 1)) = (\<lambda>X y. \<Prod>x\<in>X. f x y)"
+    by simp
+  moreover have "(\<lambda>y. \<Prod>\<^sub>\<infinity>x\<in>A. 1 + (f x y - 1)) = (\<lambda>y. \<Prod>\<^sub>\<infinity>x\<in>A. f x y)"
+    by simp
+  ultimately show ?thesis
     by simp
 qed
-            
 
 
 subsection \<open>Real numbers\<close>
