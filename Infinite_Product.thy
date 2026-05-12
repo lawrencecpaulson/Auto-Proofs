@@ -3673,6 +3673,7 @@ proof (intro allI impI)
       \<comment> \<open>                         \<le> exp(sum_X norm f) * (exp(sum_{X2\\X} norm f) - 1)\<close>
       \<comment> \<open>                         \<le> exp(L y + 1) * (exp(sum_{X2\\X} norm f) - 1)\<close>
       \<comment> \<open>For X2 \<supseteq> X \<supseteq> X0: sum_{X2\\X} \<le> sum_{X2} - sum_{X0} + ... \<le> 2 * min(1, \<epsilon>/2) \<le> \<epsilon>\<close>
+      show "dist (\<Prod>x\<in>X. 1 + f x y) (\<Prod>\<^sub>\<infinity>x\<in>A. 1 + f x y) < \<epsilon>"
       sorry
     qed
   qed
