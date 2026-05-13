@@ -1,3 +1,5 @@
+section \<open>Integrability of Stopped Values and Processes\<close>
+
 theory Stopped_Value_Integration
   imports "Doob_Convergence.Stopping_Time"
 begin
@@ -104,7 +106,7 @@ subsection \<open>Stopped process\<close>
 text \<open>The stopped process @{text "X\<^sup>\<tau>"} is defined as @{text "X (min i \<tau>)"}.\<close>
 
 definition stopped_process :: "(nat \<Rightarrow> 'a \<Rightarrow> 'b) \<Rightarrow> ('a \<Rightarrow> nat) \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> 'b" where
-  "stopped_process X \<tau> i \<omega> = X (min i (\<tau> \<omega>)) \<omega>"
+  "stopped_process X \<tau> i \<omega> \<equiv> X (min i (\<tau> \<omega>)) \<omega>"
 
 lemma stopped_process_eq_stopped_value:
   "stopped_process X \<tau> i = stopped_value X (\<lambda>\<omega>. min i (\<tau> \<omega>))"

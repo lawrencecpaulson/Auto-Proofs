@@ -1,0 +1,44 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage{isabelle,isabellesym}
+\usepackage{amsmath,amssymb}
+
+% this should be the last package used
+\usepackage{pdfsetup}
+
+% urls in roman style, theory text in math-similar italics
+\urlstyle{rm}
+\isabellestyle{it}
+
+%%Euro-style date: 20 September 1955
+\def\today{\number\day\space\ifcase\month\or
+January\or February\or March\or April\or May\or June\or
+July\or August\or September\or October\or November\or December\fi
+\space\number\year}
+
+\begin{document}
+
+\title{The Fair Games Theorem}
+\author{Lawrence C. Paulson}
+\maketitle
+
+\begin{abstract}
+The fair games theorem, or optional stopping theorem, gives conditions
+for which the expected value of a martingale at a stopping time is equal 
+to its initial expected value.
+It has applications to financial mathematics 
+and is \#62 on the \emph{Top 100 Matheoamtical Theorems}.
+This formalisation was translated from mathlib's \textbf{OptionalStopping}
+automatically by Claude~4.6. It was polished manually afterwards.
+\end{abstract}
+
+\tableofcontents
+
+\newpage
+
+% include generated text of all theories
+\input{session}
+
+\bibliographystyle{abbrv}
+
+\end{document}

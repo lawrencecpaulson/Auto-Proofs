@@ -1,13 +1,14 @@
+section \<open>Fair Games Theorem\<close>
+
 theory Optional_Stopping
   imports
     Piecewise_Stopping_Time
     "Martingales.Martingale"
 begin
 
-text \<open>The optional stopping theorem (fair game theorem): an adapted integrable process is a
+text \<open>The optional stopping theorem (fair games theorem): an adapted integrable process is a
   submartingale if and only if for all bounded stopping times @{term \<tau>} and @{term \<pi>} with
   @{term "\<tau> \<le> \<pi>"}, the expected stopped value at @{term \<tau>} is at most that at @{term \<pi>}.
-
   We also prove that the stopped process of a submartingale is a submartingale.\<close>
 
 context nat_sigma_finite_filtered_measure
@@ -27,7 +28,7 @@ proof -
     by (auto simp: eq)
 qed
 
-section \<open>Forward direction\<close>
+subsection \<open>Forward direction\<close>
 
 text \<open>If @{term X} is a submartingale and @{term "\<tau> \<le> \<pi>"} are bounded stopping times,
   then @{term "(\<integral>\<omega>. stopped_value X \<tau> \<omega> \<partial>M) \<le> (\<integral>\<omega>. stopped_value X \<pi> \<omega> \<partial>M)"}.
@@ -116,7 +117,7 @@ proof -
   then show ?thesis by simp
 qed
 
-section \<open>Converse direction\<close>
+subsection \<open>Converse direction\<close>
 
 text \<open>If an adapted integrable process satisfies the monotonicity of expected stopped values
   for all bounded stopping times, then it is a submartingale.
@@ -176,7 +177,7 @@ proof (rule submartingale_of_set_integral_le_Suc[OF adapted integrable])
     using ineq lhs rhs by simp
 qed
 
-section \<open>The optional stopping theorem (iff)\<close>
+subsection \<open>The optional stopping theorem (iff)\<close>
 
 text \<open>The full characterization: an adapted integrable process is a submartingale iff
   expected stopped values are monotone for all bounded stopping times.
@@ -196,7 +197,7 @@ proof
     by (intro submartingale_of_expected_stopped_value_mono[OF assms]) blast
 qed
 
-section \<open>Stopped process of a submartingale\<close>
+subsection \<open>Stopped process of a submartingale\<close>
 
 text \<open>The stopped process of a submartingale with respect to a stopping time is a submartingale.
   This corresponds to \<^verbatim>\<open>Submartingale.stoppedProcess\<close> in Mathlib.\<close>
@@ -261,6 +262,7 @@ theorem stopped_process_submartingale:
     and \<tau>_st: "stopping_time \<tau>"
   shows "submartingale M F 0 (stopped_process X \<tau>)"
 proof -
+  let ?sv = "stopped_value (stopped_process X \<tau>)"
   from sub interpret S: submartingale_linorder M F 0 X .
   \<comment> \<open>Use the converse direction: suffices to show monotonicity of expected stopped values\<close>
   show ?thesis
@@ -272,27 +274,22 @@ proof -
   next
     fix \<sigma> \<rho> :: "'a \<Rightarrow> nat" and N :: nat
     assume \<sigma>_st: "stopping_time \<sigma>" and \<rho>_st: "stopping_time \<rho>"
-      and le: "\<And>\<omega>. \<omega> \<in> space M \<Longrightarrow> \<sigma> \<omega> \<le> \<rho> \<omega>"
+      and "\<And>\<omega>. \<omega> \<in> space M \<Longrightarrow> \<sigma> \<omega> \<le> \<rho> \<omega>"
       and bnd: "\<And>\<omega>. \<omega> \<in> space M \<Longrightarrow> \<rho> \<omega> \<le> N"
-    \<comment> \<open>@{const stopped_value} of the stopped process equals @{const stopped_value} of @{term X} with @{const min}\<close>
-    have sv_\<sigma>: "stopped_value (stopped_process X \<tau>) \<sigma> = stopped_value X (\<lambda>\<omega>. min (\<sigma> \<omega>) (\<tau> \<omega>))"
-      unfolding stopped_value_def stopped_process_def by simp
-    have sv_\<rho>: "stopped_value (stopped_process X \<tau>) \<rho> = stopped_value X (\<lambda>\<omega>. min (\<rho> \<omega>) (\<tau> \<omega>))"
-      unfolding stopped_value_def stopped_process_def by simp
+    then have le': "\<And>\<omega>. \<omega> \<in> space M \<Longrightarrow> min (\<sigma> \<omega>) (\<tau> \<omega>) \<le> min (\<rho> \<omega>) (\<tau> \<omega>)"
+      by (simp add: min_le_iff_disj)
+    \<comment> \<open>stopped value of the stopped process equals that of @{term X} with @{const min}\<close>
+    have sv: "?sv \<sigma> = stopped_value X (\<lambda>\<omega>. min (\<sigma> \<omega>) (\<tau> \<omega>))" "?sv \<rho> = stopped_value X (\<lambda>\<omega>. min (\<rho> \<omega>) (\<tau> \<omega>))"
+      unfolding stopped_value_def stopped_process_def by auto
     \<comment> \<open>@{term "\<lambda>\<omega>. min (\<sigma> \<omega>) (\<tau> \<omega>)"} and @{term "\<lambda>\<omega>. min (\<rho> \<omega>) (\<tau> \<omega>)"} are stopping times\<close>
     have st_\<sigma>': "stopping_time (\<lambda>\<omega>. min (\<sigma> \<omega>) (\<tau> \<omega>))"
       by (intro stopping_time_min \<sigma>_st \<tau>_st)
     have st_\<rho>': "stopping_time (\<lambda>\<omega>. min (\<rho> \<omega>) (\<tau> \<omega>))"
       by (intro stopping_time_min \<rho>_st \<tau>_st)
-    have le': "\<And>\<omega>. \<omega> \<in> space M \<Longrightarrow> min (\<sigma> \<omega>) (\<tau> \<omega>) \<le> min (\<rho> \<omega>) (\<tau> \<omega>)"
-      using le by (simp add: min_le_iff_disj)
-    have bnd': "\<And>\<omega>. \<omega> \<in> space M \<Longrightarrow> min (\<rho> \<omega>) (\<tau> \<omega>) \<le> N"
-      using bnd min_le_iff_disj by blast
     \<comment> \<open>Apply the forward direction\<close>
-    show "(\<integral>\<omega>. stopped_value (stopped_process X \<tau>) \<sigma> \<omega> \<partial>M) \<le>
-      (\<integral>\<omega>. stopped_value (stopped_process X \<tau>) \<rho> \<omega> \<partial>M)"
-      unfolding sv_\<sigma> sv_\<rho>
-      by (rule expected_stopped_value_mono[OF sub st_\<sigma>' st_\<rho>' le' bnd'])
+    show "(\<integral>\<omega>. ?sv \<sigma> \<omega> \<partial>M) \<le> (\<integral>\<omega>. ?sv \<rho> \<omega> \<partial>M)"
+      using expected_stopped_value_mono[OF sub st_\<sigma>' st_\<rho>' le'] sv bnd min_le_iff_disj
+      by metis
   qed
 qed
 

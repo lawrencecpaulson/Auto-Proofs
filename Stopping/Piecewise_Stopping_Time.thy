@@ -1,5 +1,8 @@
+section \<open>Piecewise Stopping Times\<close>
+
 theory Piecewise_Stopping_Time
   imports Stopped_Value_Integration
+
 begin
 
 text \<open>Piecewise constant stopping times and their interaction with stopped values and integration.
@@ -37,11 +40,10 @@ next
       then show ?thesis using top space_eq by simp
     next
       case 2
-      have "S \<in> sets (F t)"
-        using S sets_F_mono[of i t] 2 by auto
-      moreover have "{\<omega> \<in> space (F t). (if \<omega> \<in> S then i else j) \<le> t} = S"
-        using "2" S sets.sets_into_space subset_antisym by fastforce
-      ultimately show ?thesis by simp
+      then have "{\<omega> \<in> space (F t). (if \<omega> \<in> S then i else j) \<le> t} = S"
+        using S sets.sets_into_space subset_antisym by fastforce
+      then show ?thesis
+        using S 2 sets_F_mono by force 
     next
       case 3
       then show ?thesis 

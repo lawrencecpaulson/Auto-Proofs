@@ -1,8 +1,9 @@
 session Stopping = Doob_Convergence +
   options [timeout = 600]
-  directories
-    "."
   theories
     Stopped_Value_Integration
     Piecewise_Stopping_Time
     Optional_Stopping
+
+  document_files
+    "root.tex"
