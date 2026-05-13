@@ -15,7 +15,7 @@ text \<open>Given @{term "i \<le> j"} and an @{term "F i"}-measurable set @{term
   This corresponds to \<^verbatim>\<open>isStoppingTime_piecewise_const\<close> in Mathlib.\<close>
 
 lemma stopping_time_piecewise_const:
-  assumes "i \<le> j" "S \<in> sets (F i)"
+  assumes "i \<le> j" and S: "S \<in> sets (F i)"
   shows "stopping_time (\<lambda>\<omega>. if \<omega> \<in> S then i else j)"
 proof (rule stopping_timeI)
   fix \<omega> assume "\<omega> \<in> space M"
@@ -28,27 +28,24 @@ next
     unfolding Measurable.pred_def
   proof -
     consider "j \<le> t" | "i \<le> t" "\<not> j \<le> t" | "\<not> i \<le> t"
-      using assms(1) by linarith
+      using \<open>i \<le> j\<close> by linarith
     then show "{\<omega> \<in> space (F t). (if \<omega> \<in> S then i else j) \<le> t} \<in> sets (F t)"
     proof cases
       case 1
       then have "{\<omega> \<in> space (F t). (if \<omega> \<in> S then i else j) \<le> t} = space (F t)"
-        using assms(1) by (auto simp: space_eq)
+        using \<open>i \<le> j\<close> by (auto simp: space_eq)
       then show ?thesis using top space_eq by simp
     next
       case 2
-      have S_Ft: "S \<in> sets (F t)"
-        using assms(2) sets_F_mono[of i t] 2(1) by auto
-      have "{\<omega> \<in> space (F t). (if \<omega> \<in> S then i else j) \<le> t} = S"
-      proof -
-        have "\<And>\<omega>. (if \<omega> \<in> S then i else j) \<le> t \<longleftrightarrow> \<omega> \<in> S" using 2 assms(1) by auto
-        moreover have "S \<subseteq> space (F t)" using S_Ft by (rule sets.sets_into_space)
-        ultimately show ?thesis by auto
-      qed
-      then show ?thesis using S_Ft by simp
+      have "S \<in> sets (F t)"
+        using S sets_F_mono[of i t] 2 by auto
+      moreover have "{\<omega> \<in> space (F t). (if \<omega> \<in> S then i else j) \<le> t} = S"
+        using "2" S sets.sets_into_space subset_antisym by fastforce
+      ultimately show ?thesis by simp
     next
       case 3
-      then show ?thesis using assms(1) by (auto simp: Measurable.pred_def space_eq split: if_splits)
+      then show ?thesis 
+        using \<open>i \<le> j\<close> by (auto simp: Measurable.pred_def space_eq split: if_splits)
     qed
   qed
 qed
@@ -69,9 +66,8 @@ text \<open>The integral of a piecewise function splits into integrals over the 
 lemma piecewise_eq_indicator_sum:
   fixes f g :: "'a \<Rightarrow> real"
   assumes "S \<in> sets M" "\<omega> \<in> space M"
-  shows "(if \<omega> \<in> S then f \<omega> else g \<omega>) =
-    indicat_real S \<omega> * f \<omega> + indicat_real (space M - S) \<omega> * g \<omega>"
-  using assms(2) by (auto simp: indicator_def)
+  shows "(if \<omega> \<in> S then f \<omega> else g \<omega>) = indicat_real S \<omega> * f \<omega> + indicat_real (space M - S) \<omega> * g \<omega>"
+  using \<open>\<omega> \<in> space M\<close> by (auto simp: indicator_def)
 
 lemma integral_piecewise:
   fixes f g :: "'a \<Rightarrow> real"
@@ -85,10 +81,8 @@ proof -
   have int_Sf: "integrable M (\<lambda>\<omega>. indicat_real S \<omega> * f \<omega>)"
     using integrable_mult_indicator[OF S_meas int_f]
     by (simp add: scaleR_conv_of_real)
-  have compl_meas: "space M - S \<in> sets M" using S_meas by auto
   have int_Sg: "integrable M (\<lambda>\<omega>. indicat_real (space M - S) \<omega> * g \<omega>)"
-    using integrable_mult_indicator[OF compl_meas int_g]
-    by (simp add: scaleR_conv_of_real)
+    using integrable_mult_indicator[OF _ int_g] by (simp add: S_meas sets.Diff)
   have meas_if: "(\<lambda>\<omega>. if \<omega> \<in> S then f \<omega> else g \<omega>) \<in> borel_measurable M"
     by (intro measurable_If_set) (use int_f int_g S_meas in auto)
   have meas_h: "?h \<in> borel_measurable M"

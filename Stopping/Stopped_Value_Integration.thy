@@ -19,27 +19,15 @@ lemma stopped_value_eq_sum:
   assumes \<omega>_in: "\<omega> \<in> space M"
   shows "stopped_value X \<tau> \<omega> = (\<Sum>i\<le>N. indicator {\<omega> \<in> space M. \<tau> \<omega> = i} \<omega> *\<^sub>R X i \<omega>)"
 proof -
-  from \<tau>_bnd[OF \<omega>_in] have \<tau>_le: "\<tau> \<omega> \<le> N" .
-  then have \<tau>_mem: "\<tau> \<omega> \<in> {..N}" by simp
-  from \<omega>_in have ind_\<tau>: "indicator {\<omega> \<in> space M. \<tau> \<omega> = \<tau> \<omega>} \<omega> = (1::real)"
-    by (simp add: indicator_def)
-  have ind_ne: "\<And>i. i \<noteq> \<tau> \<omega> \<Longrightarrow> indicator {\<omega> \<in> space M. \<tau> \<omega> = i} \<omega> = (0::real)"
-    by (simp add: indicator_def)
-  have sum_split: "(\<Sum>i\<le>N. indicator {\<omega> \<in> space M. \<tau> \<omega> = i} \<omega> *\<^sub>R X i \<omega>) =
-    indicator {\<omega> \<in> space M. \<tau> \<omega> = \<tau> \<omega>} \<omega> *\<^sub>R X (\<tau> \<omega>) \<omega> +
-    (\<Sum>i \<in> {..N} - {\<tau> \<omega>}. indicator {\<omega> \<in> space M. \<tau> \<omega> = i} \<omega> *\<^sub>R X i \<omega>)"
-    using \<omega>_in \<tau>_le
-    by (subst sum.remove [where x = "\<tau> \<omega>"]) simp_all
-  have sum_rest: "(\<Sum>i \<in> {..N} - {\<tau> \<omega>}. indicator {\<omega> \<in> space M. \<tau> \<omega> = i} \<omega> *\<^sub>R X i \<omega>) = 0"
-    by simp
   have "stopped_value X \<tau> \<omega> = X (\<tau> \<omega>) \<omega>"
     by (simp add: stopped_value_def)
   also have "\<dots> = 1 *\<^sub>R X (\<tau> \<omega>) \<omega>" by (metis (full_types) scale_one)
   also have "\<dots> = indicator {\<omega> \<in> space M. \<tau> \<omega> = \<tau> \<omega>} \<omega> *\<^sub>R X (\<tau> \<omega>) \<omega> +
     (\<Sum>i \<in> {..N} - {\<tau> \<omega>}. indicator {\<omega> \<in> space M. \<tau> \<omega> = i} \<omega> *\<^sub>R X i \<omega>)"
-    using ind_\<tau> sum_rest by simp
+    using \<omega>_in by (simp add: indicator_def)
   also have "\<dots> = (\<Sum>i\<le>N. indicator {\<omega> \<in> space M. \<tau> \<omega> = i} \<omega> *\<^sub>R X i \<omega>)"
-    using sum_split by simp
+    using \<omega>_in \<tau>_bnd[OF \<omega>_in]
+    by (subst sum.remove [where x = "\<tau> \<omega>"]) simp_all
   finally show ?thesis .
 qed
 
@@ -57,22 +45,12 @@ lemma stopped_value_sub_eq_sum:
   shows "stopped_value X \<pi> \<omega> - stopped_value X \<tau> \<omega> =
     (\<Sum>i\<le>N. indicator {\<omega> \<in> space M. \<tau> \<omega> \<le> i \<and> i < \<pi> \<omega>} \<omega> * (X (Suc i) \<omega> - X i \<omega>))"
 proof -
-  have \<tau>_le_\<pi>: "\<tau> \<omega> \<le> \<pi> \<omega>" using le[OF \<omega>_in] .
-  have \<pi>_le: "\<pi> \<omega> \<le> N" using bnd[OF \<omega>_in] .
   have "(\<Sum>i\<le>N. indicator {\<omega> \<in> space M. \<tau> \<omega> \<le> i \<and> i < \<pi> \<omega>} \<omega> * (X (Suc i) \<omega> - X i \<omega>)) =
-    (\<Sum>i\<in>{..N}. if \<tau> \<omega> \<le> i \<and> i < \<pi> \<omega> then X (Suc i) \<omega> - X i \<omega> else 0)"
-    using \<omega>_in by (intro sum.cong) (auto simp: indicator_def)
-  also have "\<dots> = (\<Sum>i\<in>{\<tau> \<omega>..<\<pi> \<omega>}. X (Suc i) \<omega> - X i \<omega>)"
-  proof (rule sum.mono_neutral_cong_right)
-    show "finite {..N}" by simp
-    show "{\<tau> \<omega>..<\<pi> \<omega>} \<subseteq> {..N}" using \<pi>_le by auto
-    show "\<forall>i\<in>{..N} - {\<tau> \<omega>..<\<pi> \<omega>}. (if \<tau> \<omega> \<le> i \<and> i < \<pi> \<omega> then X (Suc i) \<omega> - X i \<omega> else 0) = 0"
-      by auto
-    show "\<And>x. x \<in> {\<tau> \<omega>..<\<pi> \<omega>} \<Longrightarrow> (if \<tau> \<omega> \<le> x \<and> x < \<pi> \<omega> then X (Suc x) \<omega> - X x \<omega> else 0) = X (Suc x) \<omega> - X x \<omega>"
-      by auto
-  qed
+    (\<Sum>i\<in>{\<tau> \<omega>..<\<pi> \<omega>}. X (Suc i) \<omega> - X i \<omega>)"
+    using \<omega>_in bnd[OF \<omega>_in] 
+    by (intro sum.mono_neutral_cong_right) (auto simp: indicator_def)
   also have "\<dots> = X (\<pi> \<omega>) \<omega> - X (\<tau> \<omega>) \<omega>"
-    using sum_Suc_diff'[OF \<tau>_le_\<pi>, of "\<lambda>i. X i \<omega>"] by simp
+    using \<omega>_in le sum_Suc_diff' by fastforce
   finally show ?thesis by (simp add: stopped_value_def)
 qed
 
@@ -96,17 +74,9 @@ proof -
     then show "{\<omega> \<in> space M. \<tau> \<omega> = i} \<in> sets M"
       using sets_F_subset[of i] by blast
   qed
-  \<comment> \<open>Each summand is integrable via @{thm Bochner_Integration.integrable_bound}\<close>
+  \<comment> \<open>Each summand is integrable\<close>
   have int_summand: "\<And>i. integrable M (\<lambda>\<omega>. indicat_real {\<omega> \<in> space M. \<tau> \<omega> = i} \<omega> * X i \<omega>)"
-  proof -
-    fix i
-    have meas: "(\<lambda>\<omega>. indicat_real {\<omega> \<in> space M. \<tau> \<omega> = i} \<omega> * X i \<omega>) \<in> borel_measurable M"
-      by (intro borel_measurable_times borel_measurable_indicator meas_eq
-              borel_measurable_integrable[OF int_X])
-    show "integrable M (\<lambda>\<omega>. indicat_real {\<omega> \<in> space M. \<tau> \<omega> = i} \<omega> * X i \<omega>)"
-      by (rule Bochner_Integration.integrable_bound[OF int_X[of i] meas], rule AE_I2)
-         (auto simp: indicator_def)
-  qed
+    by (simp add: int_X integrable_real_mult_indicator meas_eq mult.commute)
   \<comment> \<open>The sum is integrable\<close>
   have int_sum: "integrable M (\<lambda>\<omega>. \<Sum>i\<le>N. indicat_real {\<omega> \<in> space M. \<tau> \<omega> = i} \<omega> * X i \<omega>)"
     by (intro Bochner_Integration.integrable_sum) (auto intro: int_summand)
@@ -145,12 +115,11 @@ lemma integrable_stopped_process:
   assumes "stopping_time \<tau>" "\<And>i. integrable M (X i)"
   shows "integrable M (stopped_process X \<tau> n)"
 proof -
-  have st: "stopping_time (\<lambda>\<omega>. min n (\<tau> \<omega>))"
+  have "stopping_time (\<lambda>\<omega>. min n (\<tau> \<omega>))"
     by (intro stopping_time_min stopping_time_const assms) simp
-  have bnd: "\<And>\<omega>. \<omega> \<in> space M \<Longrightarrow> min n (\<tau> \<omega>) \<le> n" by simp
-  show ?thesis
+  with assms show ?thesis
     unfolding stopped_process_eq_stopped_value
-    by (rule integrable_stopped_value[OF st assms(2) bnd])
+    using integrable_stopped_value min.cobounded1 by blast
 qed
 
 end

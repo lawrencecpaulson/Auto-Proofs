@@ -19,17 +19,11 @@ lemma indicator_set_in_F:
   assumes \<tau>_st: "stopping_time \<tau>" and \<pi>_st: "stopping_time \<pi>"
   shows "{\<omega> \<in> space M. \<tau> \<omega> \<le> i \<and> i < \<pi> \<omega>} \<in> sets (F i)"
 proof -
-  have p1: "Measurable.pred (F i) (\<lambda>\<omega>. \<tau> \<omega> \<le> i)"
-    by (rule stopping_timeD[OF \<tau>_st]) simp
-  have p2: "Measurable.pred (F i) (\<lambda>\<omega>. \<pi> \<omega> \<le> i)"
-    by (rule stopping_timeD[OF \<pi>_st]) simp
-  have p3: "Measurable.pred (F i) (\<lambda>\<omega>. \<not> \<pi> \<omega> \<le> i)"
-    by (rule pred_intros_logic(2)[OF p2])
-  have p4: "Measurable.pred (F i) (\<lambda>\<omega>. \<tau> \<omega> \<le> i \<and> \<not> \<pi> \<omega> \<le> i)"
-    by (rule pred_intros_logic(3)[OF p1 p3])
+  have *: "Measurable.pred (F i) (\<lambda>\<omega>. \<tau> \<omega> \<le> i \<and> \<not> \<pi> \<omega> \<le> i)"
+    by (simp add: \<pi>_st \<tau>_st pred_intros_logic stopping_timeD)
   have eq: "{\<omega> \<in> space M. \<tau> \<omega> \<le> i \<and> i < \<pi> \<omega>} = {\<omega> \<in> space (F i). \<tau> \<omega> \<le> i \<and> \<not> \<pi> \<omega> \<le> i}"
     by auto
-  show ?thesis using Measurable.predE[OF p4] sets_F_subset[of i]
+  show ?thesis using Measurable.predE[OF *] sets_F_subset[of i]
     by (auto simp: eq)
 qed
 
@@ -48,22 +42,16 @@ theorem expected_stopped_value_mono:
   shows "(\<integral>\<omega>. stopped_value X \<tau> \<omega> \<partial>M) \<le> (\<integral>\<omega>. stopped_value X \<pi> \<omega> \<partial>M)"
 proof -
   from sub interpret S: submartingale_linorder M F 0 X .
-  \<comment> \<open>Integrability of each @{term "X i"}\<close>
-  have int_X: "\<And>i. integrable M (X i)" using S.integrable by simp
-  \<comment> \<open>Bound for @{term \<tau>}\<close>
   have \<tau>_bnd: "\<And>\<omega>. \<omega> \<in> space M \<Longrightarrow> \<tau> \<omega> \<le> N"
     using le bnd by (meson order_trans)
   \<comment> \<open>Integrability of stopped values\<close>
-  have int_\<tau>: "integrable M (stopped_value X \<tau>)"
-    by (rule integrable_stopped_value[OF \<tau>_st int_X \<tau>_bnd])
-  have int_\<pi>: "integrable M (stopped_value X \<pi>)"
-    by (rule integrable_stopped_value[OF \<pi>_st int_X bnd])
+  obtain int_\<tau>: "integrable M (stopped_value X \<tau>)" and int_\<pi>: "integrable M (stopped_value X \<pi>)"
+    by (meson S.integrable \<tau>_bnd \<tau>_st \<pi>_st bnd integrable_stopped_value zero_le)
   \<comment> \<open>Suffices to show the difference is non-negative\<close>
   have "0 \<le> (\<integral>\<omega>. stopped_value X \<pi> \<omega> \<partial>M) - (\<integral>\<omega>. stopped_value X \<tau> \<omega> \<partial>M)"
   proof -
-    \<comment> \<open>Rewrite using @{thm Bochner_Integration.integral_diff}\<close>
     have "(\<integral>\<omega>. stopped_value X \<pi> \<omega> \<partial>M) - (\<integral>\<omega>. stopped_value X \<tau> \<omega> \<partial>M) =
-      (\<integral>\<omega>. stopped_value X \<pi> \<omega> - stopped_value X \<tau> \<omega> \<partial>M)"
+          (\<integral>\<omega>. stopped_value X \<pi> \<omega> - stopped_value X \<tau> \<omega> \<partial>M)"
       by (rule Bochner_Integration.integral_diff[OF int_\<pi> int_\<tau>, symmetric])
     \<comment> \<open>Apply the telescoping identity AE\<close>
     also have "\<dots> = (\<integral>\<omega>. (\<Sum>i\<le>N. indicator {\<omega> \<in> space M. \<tau> \<omega> \<le> i \<and> i < \<pi> \<omega>} \<omega> *
@@ -78,8 +66,7 @@ proof -
         fix i assume "i \<in> {..N}"
         show "{\<omega> \<in> space M. \<tau> \<omega> \<le> i \<and> i < \<pi> \<omega>} \<in> sets M"
           using indicator_set_in_F[OF \<tau>_st \<pi>_st] sets_F_subset by blast
-        show "integrable M (X (Suc i))" "integrable M (X i)" by (rule int_X)+
-      qed
+      qed (auto simp: S.integrable)
       show "AE \<omega> in M. stopped_value X \<pi> \<omega> - stopped_value X \<tau> \<omega> =
         (\<Sum>i\<le>N. indicator {\<omega> \<in> space M. \<tau> \<omega> \<le> i \<and> i < \<pi> \<omega>} \<omega> * (X (Suc i) \<omega> - X i \<omega>))"
         by (rule AE_I2) (simp add: stopped_value_sub_eq_sum[OF \<tau>_st \<pi>_st le bnd])
@@ -89,11 +76,10 @@ proof -
       (X (Suc i) \<omega> - X i \<omega>) \<partial>M)"
     proof (rule Bochner_Integration.integral_sum)
       fix i assume "i \<in> {..N}"
-      have A_meas: "{\<omega> \<in> space M. \<tau> \<omega> \<le> i \<and> i < \<pi> \<omega>} \<in> sets M"
+      have "{\<omega> \<in> space M. \<tau> \<omega> \<le> i \<and> i < \<pi> \<omega>} \<in> sets M"
         using indicator_set_in_F[OF \<tau>_st \<pi>_st] sets_F_subset by blast
-      show "integrable M (\<lambda>\<omega>. indicator {\<omega> \<in> space M. \<tau> \<omega> \<le> i \<and> i < \<pi> \<omega>} \<omega> *
-        (X (Suc i) \<omega> - X i \<omega>))"
-        by (simp add: A_meas int_X integrable_real_mult_indicator mult.commute)
+      then show "integrable M (\<lambda>\<omega>. indicator {\<omega> \<in> space M. \<tau> \<omega> \<le> i \<and> i < \<pi> \<omega>} \<omega> * (X (Suc i) \<omega> - X i \<omega>))"
+        by (simp add: S.integrable integrable_real_mult_indicator mult.commute)
     qed
     \<comment> \<open>Each summand is non-negative via @{text set_integral_le}\<close>
     also have "\<dots> \<ge> 0"
@@ -102,24 +88,19 @@ proof -
       let ?A = "{\<omega> \<in> space M. \<tau> \<omega> \<le> i \<and> i < \<pi> \<omega>}"
       have A_Fi: "?A \<in> sets (F i)"
         by (rule indicator_set_in_F[OF \<tau>_st \<pi>_st])
-      have A_meas: "?A \<in> sets M"
-        using A_Fi sets_F_subset by blast
       \<comment> \<open>The summand equals @{text "\<integral>\<^sub>A X(Suc i) - \<integral>\<^sub>A X i"}\<close>
-      have int_Af: "integrable M (\<lambda>x. indicat_real ?A x * X (Suc i) x)"
-        using integrable_mult_indicator[OF A_meas int_X[of "Suc i"]]
-        by (simp add: scaleR_conv_of_real)
-      have int_Ag: "integrable M (\<lambda>x. indicat_real ?A x * X i x)"
-        using integrable_mult_indicator[OF A_meas int_X[of i]]
-        by (simp add: scaleR_conv_of_real)
       have eq: "(\<integral>\<omega>. indicat_real ?A \<omega> * (X (Suc i) \<omega> - X i \<omega>) \<partial>M) =
         set_lebesgue_integral M ?A (X (Suc i)) - set_lebesgue_integral M ?A (X i)"
       proof -
+        have "?A \<in> sets M"
+          using A_Fi sets_F_subset by blast
+        then have int: "integrable M (\<lambda>x. indicat_real ?A x * X j x)" for j
+          by (simp add: S.integrable integrable_real_mult_indicator mult.commute)
         have "(\<integral>\<omega>. indicat_real ?A \<omega> * (X (Suc i) \<omega> - X i \<omega>) \<partial>M) =
           (\<integral>\<omega>. indicat_real ?A \<omega> * X (Suc i) \<omega> - indicat_real ?A \<omega> * X i \<omega> \<partial>M)"
           by (simp add: right_diff_distrib)
-        also have "\<dots> = (\<integral>\<omega>. indicat_real ?A \<omega> * X (Suc i) \<omega> \<partial>M) -
-          (\<integral>\<omega>. indicat_real ?A \<omega> * X i \<omega> \<partial>M)"
-          by (rule Bochner_Integration.integral_diff[OF int_Af int_Ag])
+        also have "\<dots> = (\<integral>\<omega>. indicat_real ?A \<omega> * X (Suc i) \<omega> \<partial>M) - (\<integral>\<omega>. indicat_real ?A \<omega> * X i \<omega> \<partial>M)"
+          using Bochner_Integration.integral_diff int by blast
         also have "\<dots> = set_lebesgue_integral M ?A (X (Suc i)) - set_lebesgue_integral M ?A (X i)"
           unfolding set_lebesgue_integral_def by (simp add: scaleR_conv_of_real)
         finally show ?thesis .
@@ -134,6 +115,7 @@ proof -
   qed
   then show ?thesis by simp
 qed
+
 section \<open>Converse direction\<close>
 
 text \<open>If an adapted integrable process satisfies the monotonicity of expected stopped values
@@ -179,7 +161,7 @@ proof (rule submartingale_of_set_integral_le_Suc[OF adapted integrable])
     set_lebesgue_integral M A (X i) + set_lebesgue_integral M (space M - A) (X (Suc i))"
     unfolding sv_\<tau> by (rule integral_piecewise[OF A_meas integrable integrable])
   have rhs: "(\<integral>\<omega>. stopped_value X \<pi> \<omega> \<partial>M) =
-    set_lebesgue_integral M A (X (Suc i)) + set_lebesgue_integral M (space M - A) (X (Suc i))"
+             set_lebesgue_integral M A (X (Suc i)) + set_lebesgue_integral M (space M - A) (X (Suc i))"
   proof -
     have "(\<integral>\<omega>. stopped_value X \<pi> \<omega> \<partial>M) = (\<integral>\<omega>. X (Suc i) \<omega> \<partial>M)"
       unfolding sv_\<pi> ..
@@ -206,26 +188,11 @@ theorem submartingale_iff_expected_stopped_value_mono:
   shows "submartingale M F 0 X \<longleftrightarrow>
     (\<forall>\<tau> \<pi>. stopping_time \<tau> \<longrightarrow> stopping_time \<pi> \<longrightarrow>
       (\<forall>\<omega>\<in>space M. \<tau> \<omega> \<le> \<pi> \<omega>) \<longrightarrow> (\<exists>N. \<forall>\<omega>\<in>space M. \<pi> \<omega> \<le> N) \<longrightarrow>
-      (\<integral>\<omega>. stopped_value X \<tau> \<omega> \<partial>M) \<le> (\<integral>\<omega>. stopped_value X \<pi> \<omega> \<partial>M))"
+      (\<integral>\<omega>. stopped_value X \<tau> \<omega> \<partial>M) \<le> (\<integral>\<omega>. stopped_value X \<pi> \<omega> \<partial>M))" (is "?L = ?R")
 proof
-  assume sub: "submartingale M F 0 X"
-  show "\<forall>\<tau> \<pi>. stopping_time \<tau> \<longrightarrow> stopping_time \<pi> \<longrightarrow>
-    (\<forall>\<omega>\<in>space M. \<tau> \<omega> \<le> \<pi> \<omega>) \<longrightarrow> (\<exists>N. \<forall>\<omega>\<in>space M. \<pi> \<omega> \<le> N) \<longrightarrow>
-    (\<integral>\<omega>. stopped_value X \<tau> \<omega> \<partial>M) \<le> (\<integral>\<omega>. stopped_value X \<pi> \<omega> \<partial>M)"
-  proof (intro allI impI)
-    fix \<tau> \<pi>
-    assume \<tau>_st: "stopping_time \<tau>" and \<pi>_st: "stopping_time \<pi>"
-      and le: "\<forall>\<omega>\<in>space M. \<tau> \<omega> \<le> \<pi> \<omega>" and "\<exists>N. \<forall>\<omega>\<in>space M. \<pi> \<omega> \<le> N"
-    then obtain N where bnd: "\<forall>\<omega>\<in>space M. \<pi> \<omega> \<le> N" by auto
-    show "(\<integral>\<omega>. stopped_value X \<tau> \<omega> \<partial>M) \<le> (\<integral>\<omega>. stopped_value X \<pi> \<omega> \<partial>M)"
-      by (rule expected_stopped_value_mono[OF submartingale_linorder.intro[OF sub]
-            \<tau>_st \<pi>_st]) (use le bnd in auto)
-  qed
-next
-  assume "\<forall>\<tau> \<pi>. stopping_time \<tau> \<longrightarrow> stopping_time \<pi> \<longrightarrow>
-    (\<forall>\<omega>\<in>space M. \<tau> \<omega> \<le> \<pi> \<omega>) \<longrightarrow> (\<exists>N. \<forall>\<omega>\<in>space M. \<pi> \<omega> \<le> N) \<longrightarrow>
-    (\<integral>\<omega>. stopped_value X \<tau> \<omega> \<partial>M) \<le> (\<integral>\<omega>. stopped_value X \<pi> \<omega> \<partial>M)"
-  then show "submartingale M F 0 X"
+  show "?L \<Longrightarrow> ?R"
+    by (metis expected_stopped_value_mono submartingale_linorder_def)
+  show "?R \<Longrightarrow> ?L"
     by (intro submartingale_of_expected_stopped_value_mono[OF assms]) blast
 qed
 
@@ -278,21 +245,12 @@ proof (rule adapted_process.intro[OF filtered_measure_axioms])
       have A_sub: "?A \<subseteq> space (F (Suc n))" using sets.sets_into_space[OF A_sets] .
       have meas_pw: "(\<lambda>\<omega>. if \<omega> \<in> ?A then stopped_process X \<tau> n \<omega> else X (Suc n) \<omega>)
         \<in> borel_measurable (F (Suc n))"
-      proof (rule measurable_If_set)
-        show "stopped_process X \<tau> n \<in> (F (Suc n)) \<rightarrow>\<^sub>M borel" by (rule meas_n)
-        show "X (Suc n) \<in> (F (Suc n)) \<rightarrow>\<^sub>M borel" by (rule meas_Sn)
-        show "?A \<inter> space (F (Suc n)) \<in> sets (F (Suc n))"
-          using set_Sn by blast
-      qed
-      \<comment> \<open>Transfer via @{thm measurable_cong}: the stopped process agrees with the piecewise function on @{term "space (F (Suc n))"}\<close>
-      have eq_on_space: "\<And>\<omega>. \<omega> \<in> space (F (Suc n)) \<Longrightarrow>
-        stopped_process X \<tau> (Suc n) \<omega> =
-        (if \<omega> \<in> ?A then stopped_process X \<tau> n \<omega> else X (Suc n) \<omega>)"
-        using eq by auto
+        using measurable_If_set meas_n meas_Sn set_Sn by blast
+      \<comment> \<open>Transfer: the stopped process agrees with the piecewise function on @{term "space (F (Suc n))"}\<close>
       show ?case
         using measurable_cong[of "F (Suc n)" "stopped_process X \<tau> (Suc n)"
-          "\<lambda>\<omega>. if \<omega> \<in> ?A then stopped_process X \<tau> n \<omega> else X (Suc n) \<omega>" borel]
-          eq_on_space meas_pw by auto
+          "\<lambda>\<omega>. if \<omega> \<in> ?A then stopped_process X \<tau> n \<omega> else _ \<omega>"]
+          eq meas_pw by fastforce
     qed
   qed
 qed
@@ -304,18 +262,14 @@ theorem stopped_process_submartingale:
   shows "submartingale M F 0 (stopped_process X \<tau>)"
 proof -
   from sub interpret S: submartingale_linorder M F 0 X .
-  have sub': "submartingale M F 0 X"
-    by (rule submartingale_linorder.axioms[OF sub])
-  have adapted_X: "adapted_process M F 0 X"
-    using submartingale.axioms(2)[OF sub'] .
-  have int_X: "\<And>i. integrable M (X i)" using S.integrable by simp
-  have adapted_sp: "adapted_process M F 0 (stopped_process X \<tau>)"
-    by (rule adapted_stopped_process[OF adapted_X \<tau>_st])
-  have int_sp: "\<And>i. integrable M (stopped_process X \<tau> i)"
-    by (rule integrable_stopped_process[OF \<tau>_st int_X])
   \<comment> \<open>Use the converse direction: suffices to show monotonicity of expected stopped values\<close>
   show ?thesis
-  proof (rule submartingale_of_expected_stopped_value_mono[OF adapted_sp int_sp])
+  proof (rule submartingale_of_expected_stopped_value_mono)
+    show "adapted_process M F 0 (stopped_process X \<tau>)"
+      by (simp add: S.adapted_process_axioms \<tau>_st adapted_stopped_process)
+    show "\<And>i. integrable M (stopped_process X \<tau> i)"
+      by (simp add: S.integrable \<tau>_st integrable_stopped_process)
+  next
     fix \<sigma> \<rho> :: "'a \<Rightarrow> nat" and N :: nat
     assume \<sigma>_st: "stopping_time \<sigma>" and \<rho>_st: "stopping_time \<rho>"
       and le: "\<And>\<omega>. \<omega> \<in> space M \<Longrightarrow> \<sigma> \<omega> \<le> \<rho> \<omega>"
@@ -330,10 +284,8 @@ proof -
       by (intro stopping_time_min \<sigma>_st \<tau>_st)
     have st_\<rho>': "stopping_time (\<lambda>\<omega>. min (\<rho> \<omega>) (\<tau> \<omega>))"
       by (intro stopping_time_min \<rho>_st \<tau>_st)
-    \<comment> \<open>@{term "min (\<sigma> \<omega>) (\<tau> \<omega>) \<le> min (\<rho> \<omega>) (\<tau> \<omega>)"}\<close>
     have le': "\<And>\<omega>. \<omega> \<in> space M \<Longrightarrow> min (\<sigma> \<omega>) (\<tau> \<omega>) \<le> min (\<rho> \<omega>) (\<tau> \<omega>)"
       using le by (simp add: min_le_iff_disj)
-    \<comment> \<open>@{term "min (\<rho> \<omega>) (\<tau> \<omega>)"} is bounded by @{term N}\<close>
     have bnd': "\<And>\<omega>. \<omega> \<in> space M \<Longrightarrow> min (\<rho> \<omega>) (\<tau> \<omega>) \<le> N"
       using bnd min_le_iff_disj by blast
     \<comment> \<open>Apply the forward direction\<close>
