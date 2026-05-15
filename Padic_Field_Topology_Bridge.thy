@@ -654,7 +654,91 @@ lemma padic_totally_disconnected:
      This would use Metric_space.mcomplete. *)
 
 lemma padic_complete: "padic.mcomplete"
-  sorry (* Deep result requiring extraction of completeness from Q_p's construction.
+  unfolding padic.mcomplete_def
+proof (intro allI impI)
+  fix \<sigma> assume cauchy: "padic.MCauchy \<sigma>"
+
+  text \<open>Task 1: Reduce to bounded sequences.
+    Every Cauchy sequence in Q_p is eventually in some ball B_n[c].
+    By rescaling (multiplying by a power of p), we can reduce to a
+    sequence in Z_p (i.e., with non-negative valuation).\<close>
+
+  have \<sigma>_range: "range \<sigma> \<subseteq> carrier Q\<^sub>p"
+    using cauchy padic.MCauchy_def by auto
+
+  obtain c N where c_car: "c \<in> carrier Q\<^sub>p"
+    and eventually_in_ball: "\<forall>m \<ge> N. \<sigma> m \<in> c_ball 0 c"
+  proof -
+    obtain N where hN: "\<forall>n n'. N \<le> n \<longrightarrow> N \<le> n' \<longrightarrow> padic_dist (\<sigma> n) (\<sigma> n') < 1"
+      using cauchy[unfolded padic.MCauchy_def] by (meson zero_less_one)
+    have \<sigma>N_car: "\<sigma> N \<in> carrier Q\<^sub>p"
+      using \<sigma>_range by auto
+    have "\<forall>m \<ge> N. \<sigma> m \<in> c_ball 0 (\<sigma> N)"
+    proof (intro allI impI)
+      fix m assume "N \<le> m"
+      then have "padic_dist (\<sigma> N) (\<sigma> m) < 1" using hN by auto
+      then have "padic_dist (\<sigma> N) (\<sigma> m) \<le> real_of_int p powr (- real_of_int 0)"
+        using p_ge_1_real by simp
+      then have "\<sigma> m \<in> padic.mcball (\<sigma> N) (real_of_int p powr (- real_of_int 0))"
+        using padic.in_mcball \<sigma>N_car \<sigma>_range by auto
+      then show "\<sigma> m \<in> c_ball 0 (\<sigma> N)"
+        using c_ball_eq_mcball[OF \<sigma>N_car] by simp
+    qed
+    then show thesis using that \<sigma>N_car by blast
+  qed
+
+
+  text \<open>Task 2: Translate metric Cauchy to val-based Cauchy.
+    Show that padic.MCauchy (in padic_dist) implies that
+    for all n, eventually val(\<sigma> m - \<sigma> k) \<ge> n.
+    This is the AFP's notion of being Cauchy.\<close>
+
+  have val_cauchy: "\<forall>n. \<exists>K. \<forall>m k. m \<ge> K \<longrightarrow> k \<ge> K \<longrightarrow> eint n \<le> val (\<sigma> m \<ominus> \<sigma> k)"
+    sorry \<comment> \<open>Task 2: MCauchy \<rightarrow> val-based Cauchy condition\<close>
+
+  text \<open>Task 3: Reduce to Z_p.
+    After shifting/rescaling, express the (tail of the) sequence as
+    \<iota> \<circ> s for some s : nat \<rightarrow> carrier Z_p, then show s is is_Zp_cauchy.\<close>
+
+  obtain s where s_Zp: "\<forall>m. s m \<in> carrier Z\<^sub>p"
+    and s_eq: "\<forall>m \<ge> N. \<sigma> m = \<iota> (s m) \<oplus> c"  \<comment> \<open>or similar rescaling\<close>
+    sorry \<comment> \<open>Task 3a: extract Z_p sequence from eventually-bounded Q_p sequence\<close>
+
+  have s_cauchy: "is_Zp_cauchy s"
+    sorry \<comment> \<open>Task 3b: val-Cauchy in Q_p \<leftrightarrow> is_Zp_cauchy after translation\<close>
+
+  text \<open>Task 4: Apply Z_p completeness.
+    Use is_Zp_cauchy_imp_has_limit to get the limit in Z_p,
+    then map it back to Q_p.\<close>
+
+  define a where "a = res_lim s"
+  have a_Zp: "a \<in> carrier Z\<^sub>p"
+    using s_cauchy res_lim_in_Zp a_def by auto
+
+  have Zp_conv: "Zp_converges_to s a"
+    using is_Zp_cauchy_imp_has_limit s_cauchy a_def by auto
+
+  text \<open>Task 5: Translate Z_p convergence back to Q_p metric convergence.
+    Show Zp_converges_to s a implies
+    limitin padic.mtopology (\<iota> \<circ> s + c) (\<iota> a + c) sequentially.
+    Key bridge: val_of_inc, inc_of_diff, and the characterization
+    padic.limitin_metric_dist_null.\<close>
+
+  define L where "L = \<iota> a \<oplus> c"
+  have L_car: "L \<in> carrier Q\<^sub>p"
+    sorry \<comment> \<open>from inc_closed, a_Zp, c carrier\<close>
+
+  have "limitin padic.mtopology \<sigma> L sequentially"
+    sorry \<comment> \<open>Task 5: Zp_converges_to \<rightarrow> padic_dist convergence
+      Use: padic.limitin_metric_dist_null, val_of_inc, inc_of_diff,
+      and the definition of padic_dist/padic_norm to show
+      padic_dist (\<sigma> m) L \<rightarrow> 0.\<close>
+
+  then show "\<exists>x. limitin padic.mtopology \<sigma> x sequentially"
+    by blast
+qed
+
+   (* Deep result requiring extraction of completeness from Q_p's construction.
            The AFP Padic_Field entry builds Q_p as equivalence classes of Cauchy
            sequences of p-adic integers, but does not export a completeness theorem
            in the Metric_space.mcomplete sense.  A proof would need to:
