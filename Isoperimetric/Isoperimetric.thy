@@ -1,6 +1,6 @@
 theory Isoperimetric
   imports Arc_Length_Reparametrization "Fourier.Fourier" "Green.Green" "../Euclidean_Space_Transfer"
-    "HOL-ex.Sketch_and_Explore" Isar_Explore
+    "HOL-ex.Sketch_and_Explore" 
 begin
 
 (*The forthcoming version*)
@@ -52,34 +52,15 @@ next
         using \<open>0 < \<epsilon>\<close> by simp
       from cont[unfolded continuous_on_iff] x_ab eps_pos
       obtain \<delta> where "\<delta> > 0"
-        and \<delta>: "\<And>y. y \<in> {a..b} \<Longrightarrow> dist y x < \<delta> \<Longrightarrow> dist (f y) (f x) < \<epsilon> / 2 ^ (4 + n x)"
+        and "\<And>y. y \<in> {a..b} \<Longrightarrow> dist y x < \<delta> \<Longrightarrow> dist (f y) (f x) < \<epsilon> / 2 ^ (4 + n x)"
         by blast
-      show ?thesis
-      proof (intro exI conjI impI allI)
-        show "\<delta> > 0" by fact
-      next
-        fix y assume "\<bar>y - x\<bar> < \<delta> \<and> y \<in> {a..b}"
-        then have "y \<in> {a..b}" "dist y x < \<delta>" by (auto simp: dist_real_def)
-        then have "dist (f y) (f x) < \<epsilon> / 2 ^ (4 + n x)"
-          using \<delta> by auto
-        then show "norm (f y - f x) \<le> \<epsilon> / 2 ^ (4 + n x)"
-          by (simp add: dist_norm less_imp_le)
-      qed
+      then show ?thesis
+        by (auto simp: dist_norm less_eq_real_def)
     qed
   qed
-  then have d_exists: "\<forall>x. \<exists>d>0. (x \<in> {a..b} \<and> x \<in> \<sigma> ` T \<longrightarrow>
-      (\<forall>y. \<bar>y - x\<bar> < d \<and> y \<in> {a..b} \<longrightarrow>
-        norm (f y - f x) \<le> \<epsilon> / 2 ^ (4 + n x)))"
-    by blast
-  have d_choice: "\<exists>dd. \<forall>x. dd x > 0 \<and> (x \<in> {a..b} \<and> x \<in> \<sigma> ` T \<longrightarrow>
+  then have d_choice: "\<exists>dd. \<forall>x. dd x > 0 \<and> (x \<in> {a..b} \<and> x \<in> \<sigma> ` T \<longrightarrow>
       (\<forall>y. \<bar>y - x\<bar> < dd x \<and> y \<in> {a..b} \<longrightarrow> norm (f y - f x) \<le> \<epsilon> / 2 ^ (4 + n x)))"
-  proof -
-    have "\<forall>x. \<exists>d. d > 0 \<and> (x \<in> {a..b} \<and> x \<in> \<sigma> ` T \<longrightarrow>
-        (\<forall>y. \<bar>y - x\<bar> < d \<and> y \<in> {a..b} \<longrightarrow> norm (f y - f x) \<le> \<epsilon> / 2 ^ (4 + n x)))"
-      using d_exists by (simp add: Bex_def)
-    then show ?thesis
-      by (rule choice)
-  qed
+    by metis
   obtain d :: "real \<Rightarrow> real" where d_pos: "\<And>x. d x > 0"
     and d_bound: "\<And>x. x \<in> {a..b} \<Longrightarrow> x \<in> \<sigma> ` T \<Longrightarrow>
       (\<forall>y. \<bar>y - x\<bar> < d x \<and> y \<in> {a..b} \<longrightarrow> norm (f y - f x) \<le> \<epsilon> / 2 ^ (4 + n x))"
@@ -98,16 +79,9 @@ next
       by auto
     have p_finite: "finite p"
       using tagged_partial_division_ofD(1)[OF p_div] .
-
-    have finite_sub: "finite {(x,k). (x,k) \<in> p \<and> P x k}" for P
-      by (rule finite_subset[OF _ p_finite]) auto
     have finite_snd: "finite {k. (x,k) \<in> p \<and> P x k}" for P x
-    proof -
-      have "{k. (x,k) \<in> p \<and> P x k} \<subseteq> snd ` p"
-        by (force intro: image_eqI)
-      then show ?thesis
-        using finite_subset finite_imageI[OF p_finite] by blast
-    qed
+        using finite_subset finite_imageI[OF p_finite]
+        by (metis (mono_tags, lifting) image_eqI mem_Collect_eq snd_conv subsetI)
 
     show "norm (\<Sum>(x, k)\<in>p. f (\<Squnion> k) - f (\<Sqinter> k)) < \<epsilon>"
     proof -
@@ -216,7 +190,7 @@ next
         \<comment> \<open>Abbreviations\<close>
         let ?tags = "fst ` ?S'"
         have S'_finite: "finite ?S'"
-          using finite_sub[of "\<lambda>x k. x \<in> \<sigma> ` T \<and> Henstock_Kurzweil_Integration.content k \<noteq> 0"] by auto
+          by (simp add: case_prod_unfold p_finite)
         have tags_finite: "finite ?tags" using S'_finite by blast
 
         \<comment> \<open>Group the sum by first component (the tag) via Sigma decomposition\<close>
@@ -4167,11 +4141,8 @@ proof -
     using absolutely_integrable_absolutely_continuous_derivative[OF cont U]
       vder has_vector_derivative_at_within by blast
   have Re_gp_ai: "(\<lambda>t. Re (g' t)) absolutely_integrable_on {0..1}"
-  proof -
-    have "(\<lambda>t. g' t \<bullet> 1) absolutely_integrable_on {0..1}"
-      by (rule absolutely_integrable_component[OF gp_ai])
-    then show ?thesis by (simp add: complex_inner_1_right)
-  qed
+    by (metis (no_types, lifting) ext absolutely_integrable_component complex_inner_1_right
+        gp_ai)
   have Im_g_cont: "continuous_on {0..1} (\<lambda>t. Im (g t))"
     by (intro continuous_intros cont_g)
   have Im_g_bdd: "bounded ((\<lambda>t. Im (g t)) ` {0..1})"
