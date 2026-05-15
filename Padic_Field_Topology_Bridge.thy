@@ -694,18 +694,130 @@ proof (intro allI impI)
     This is the AFP's notion of being Cauchy.\<close>
 
   have val_cauchy: "\<forall>n. \<exists>K. \<forall>m k. m \<ge> K \<longrightarrow> k \<ge> K \<longrightarrow> eint n \<le> val (\<sigma> m \<ominus> \<sigma> k)"
-    sorry \<comment> \<open>Task 2: MCauchy \<rightarrow> val-based Cauchy condition\<close>
+  proof (intro allI)
+    fix n :: int
+    have "real_of_int p powr (- real_of_int n) > 0"
+      using p_gt_1 by (simp add: powr_gt_zero)
+    then obtain K where hK: "\<forall>m k. K \<le> m \<longrightarrow> K \<le> k \<longrightarrow> padic_dist (\<sigma> m) (\<sigma> k) < real_of_int p powr (- real_of_int n)"
+      using cauchy[unfolded padic.MCauchy_def] by (meson less_le_not_le)
+    show "\<exists>K. \<forall>m k. m \<ge> K \<longrightarrow> k \<ge> K \<longrightarrow> eint n \<le> val (\<sigma> m \<ominus> \<sigma> k)"
+    proof (intro exI allI impI)
+      fix m k assume "K \<le> m" "K \<le> k"
+      then have dist_bound: "padic_dist (\<sigma> m) (\<sigma> k) < real_of_int p powr (- real_of_int n)"
+        using hK by auto
+      have \<sigma>m_car: "\<sigma> m \<in> carrier Q\<^sub>p" and \<sigma>k_car: "\<sigma> k \<in> carrier Q\<^sub>p"
+        using \<sigma>_range by auto
+      have diff_car: "\<sigma> m \<ominus> \<sigma> k \<in> carrier Q\<^sub>p"
+        using Qp.minus_closed \<sigma>m_car \<sigma>k_car by auto
+      show "eint n \<le> val (\<sigma> m \<ominus> \<sigma> k)"
+      proof (cases "\<sigma> m \<ominus> \<sigma> k = \<zero>")
+        case True
+        then show ?thesis using val_zero by simp
+      next
+        case False
+        then have diff_nz: "\<sigma> m \<ominus> \<sigma> k \<in> nonzero Q\<^sub>p"
+          using Qp.nonzero_memI diff_car by auto
+        have norm_eq: "padic_norm (\<sigma> m \<ominus> \<sigma> k) = real_of_int p powr (- real_of_int (ord (\<sigma> m \<ominus> \<sigma> k)))"
+          using padic_norm_def False by auto
+        have "padic_norm (\<sigma> m \<ominus> \<sigma> k) < real_of_int p powr (- real_of_int n)"
+          using dist_bound padic_dist_as_norm \<sigma>m_car \<sigma>k_car by auto
+        then have "real_of_int p powr (- real_of_int (ord (\<sigma> m \<ominus> \<sigma> k))) < real_of_int p powr (- real_of_int n)"
+          using norm_eq by simp
+        then have "- real_of_int (ord (\<sigma> m \<ominus> \<sigma> k)) < - real_of_int n"
+          by (rule powr_less_cancel[OF _ p_gt_1_real])
+        then have "n < ord (\<sigma> m \<ominus> \<sigma> k)" by linarith
+        then have "n \<le> ord (\<sigma> m \<ominus> \<sigma> k)" by linarith
+        then show ?thesis
+          using val_ord diff_nz eint_ord_code(1) by auto
+      qed
+    qed
+  qed
 
   text \<open>Task 3: Reduce to Z_p.
     After shifting/rescaling, express the (tail of the) sequence as
     \<iota> \<circ> s for some s : nat \<rightarrow> carrier Z_p, then show s is is_Zp_cauchy.\<close>
 
-  obtain s where s_Zp: "\<forall>m. s m \<in> carrier Z\<^sub>p"
-    and s_eq: "\<forall>m \<ge> N. \<sigma> m = \<iota> (s m) \<oplus> c"  \<comment> \<open>or similar rescaling\<close>
-    sorry \<comment> \<open>Task 3a: extract Z_p sequence from eventually-bounded Q_p sequence\<close>
-
+  define s where "s m = to_Zp (\<sigma> m \<ominus> c)" for m
+  have s_Zp: "\<forall>m. s m \<in> carrier Z\<^sub>p"
+  proof
+    fix m
+    have "\<sigma> m \<in> carrier Q\<^sub>p" using \<sigma>_range by auto
+    then have "\<sigma> m \<ominus> c \<in> carrier Q\<^sub>p" using Qp.minus_closed c_car by auto
+    then show "s m \<in> carrier Z\<^sub>p" unfolding s_def using to_Zp_closed by auto
+  qed
+  have diff_in_val_ring: "\<forall>m \<ge> N. \<sigma> m \<ominus> c \<in> \<O>\<^sub>p"
+  proof (intro allI impI)
+    fix m assume "N \<le> m"
+    then have "\<sigma> m \<in> c_ball 0 c" using eventually_in_ball by auto
+    then have \<sigma>m_car: "\<sigma> m \<in> carrier Q\<^sub>p" and val_ge: "eint 0 \<le> val (\<sigma> m \<ominus> c)"
+      using c_ball_def by auto
+    have "\<sigma> m \<ominus> c \<in> carrier Q\<^sub>p" using Qp.minus_closed \<sigma>m_car c_car by auto
+    moreover have "(0 :: eint) \<le> val (\<sigma> m \<ominus> c)" using val_ge eint_0 by simp
+    ultimately show "\<sigma> m \<ominus> c \<in> \<O>\<^sub>p" using Qp_val_ringI by auto
+  qed
+  have s_eq: "\<forall>m \<ge> N. \<sigma> m = \<iota> (s m) \<oplus> c"
+  proof (intro allI impI)
+    fix m assume hm: "N \<le> m"
+    have in_val: "\<sigma> m \<ominus> c \<in> \<O>\<^sub>p" using diff_in_val_ring hm by auto
+    have "\<iota> (s m) = \<iota> (to_Zp (\<sigma> m \<ominus> c))" unfolding s_def by simp
+    also have "... = \<sigma> m \<ominus> c" using to_Zp_inc[OF in_val] by simp
+    finally have inc_eq: "\<iota> (s m) = \<sigma> m \<ominus> c" .
+    have \<sigma>m_car: "\<sigma> m \<in> carrier Q\<^sub>p" using \<sigma>_range by auto
+    have inc_car: "\<iota> (s m) \<in> carrier Q\<^sub>p" using inc_closed s_Zp by auto
+    show "\<sigma> m = \<iota> (s m) \<oplus> c"
+      using inc_eq \<sigma>m_car c_car
+      by (metis Qp.a_assoc Qp.a_inv_closed Qp.l_neg Qp.minus_eq Qp.r_zero)
+  qed
+  have s_closed: "s \<in> carrier Z\<^sub>p\<^bsup>\<omega>\<^esup>"
+    using s_Zp closed_seqs_memI by auto
+  have s_val_cauchy: "\<forall>n :: int. \<exists>M. \<forall>m k. M < m \<and> M < k \<longrightarrow> eint n < val_Zp_dist (s m) (s k)"
+  proof (intro allI)
+    fix n :: int
+    obtain K where hK: "\<forall>m k. m \<ge> K \<longrightarrow> k \<ge> K \<longrightarrow> eint (n + 1) \<le> val (\<sigma> m \<ominus> \<sigma> k)"
+      using val_cauchy by (meson le_cases)
+    define K' where "K' = max N K"
+    show "\<exists>M. \<forall>m k. M < m \<and> M < k \<longrightarrow> eint n < val_Zp_dist (s m) (s k)"
+    proof (intro exI[of _ K'] allI impI)
+      fix m k assume mk: "K' < m \<and> K' < k"
+      then have hm: "m \<ge> N" "m \<ge> K" and hk: "k \<ge> N" "k \<ge> K"
+        unfolding K'_def by auto
+      have sm_car: "s m \<in> carrier Z\<^sub>p" and sk_car: "s k \<in> carrier Z\<^sub>p"
+        using s_Zp by auto
+      have diff_Zp: "s m \<ominus>\<^bsub>Z\<^sub>p\<^esub> s k \<in> carrier Z\<^sub>p"
+        using Zp.minus_closed sm_car sk_car by auto
+      have "val_Zp_dist (s m) (s k) = val_Zp (s m \<ominus>\<^bsub>Z\<^sub>p\<^esub> s k)"
+        using val_Zp_dist_def by auto
+      also have "... = val (\<iota> (s m \<ominus>\<^bsub>Z\<^sub>p\<^esub> s k))"
+        using val_of_inc[OF diff_Zp] by simp
+      also have "... = val (\<iota> (s m) \<ominus> \<iota> (s k))"
+        using inc_of_diff[OF sm_car sk_car] by simp
+      also have "... = val ((\<sigma> m \<ominus> c) \<ominus> (\<sigma> k \<ominus> c))"
+      proof -
+        have "\<iota> (s m) = \<sigma> m \<ominus> c"
+          using to_Zp_inc diff_in_val_ring hm(1) s_def by auto
+        moreover have "\<iota> (s k) = \<sigma> k \<ominus> c"
+          using to_Zp_inc diff_in_val_ring hk(1) s_def by auto
+        ultimately show ?thesis by simp
+      qed
+      also have "... = val (\<sigma> m \<ominus> \<sigma> k)"
+      proof -
+        have \<sigma>m_car: "\<sigma> m \<in> carrier Q\<^sub>p" and \<sigma>k_car: "\<sigma> k \<in> carrier Q\<^sub>p"
+          using \<sigma>_range by auto
+        have "(\<sigma> m \<ominus> c) \<ominus> (\<sigma> k \<ominus> c) = \<sigma> m \<ominus> \<sigma> k"
+          using \<sigma>m_car \<sigma>k_car c_car Qp.minus_eq Qp.a_assoc Qp.a_comm
+                Qp.a_inv_closed Qp.l_neg Qp.r_zero Qp.minus_closed
+          by (smt (verit))
+        then show ?thesis by simp
+      qed
+      finally have val_eq: "val_Zp_dist (s m) (s k) = val (\<sigma> m \<ominus> \<sigma> k)" .
+      have "eint (n + 1) \<le> val (\<sigma> m \<ominus> \<sigma> k)"
+        using hK hm(2) hk(2) by auto
+      then show "eint n < val_Zp_dist (s m) (s k)"
+        using val_eq Suc_ile_eq by auto
+    qed
+  qed
   have s_cauchy: "is_Zp_cauchy s"
-    sorry \<comment> \<open>Task 3b: val-Cauchy in Q_p \<leftrightarrow> is_Zp_cauchy after translation\<close>
+    using s_closed s_val_cauchy is_Zp_cauchy_def by auto
 
   text \<open>Task 4: Apply Z_p completeness.
     Use is_Zp_cauchy_imp_has_limit to get the limit in Z_p,
