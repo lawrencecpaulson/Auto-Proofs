@@ -46,6 +46,18 @@ proof (rule set_eqI)
     by (auto simp: inside_def)
 qed
 
+lemma Re_absolutely_integrable_on:
+  assumes "g absolutely_integrable_on S"
+  shows "(\<lambda>t. Re (g t)) absolutely_integrable_on S"
+  using absolutely_integrable_component [OF assms]
+  by (metis (lifting) ext complex_inner_1_right)
+
+lemma Im_absolutely_integrable_on:
+  assumes "g absolutely_integrable_on S"
+  shows "(\<lambda>t. Im (g t)) absolutely_integrable_on S"
+  using absolutely_integrable_component [OF assms]
+  by (metis (lifting) ext complex_inner_i_right)
+
 (*Added to Absolute_Continuity 2026-05*)
 lemma fundamental_theorem_of_calculus_strong:
   fixes f :: "real \<Rightarrow> 'a::banach" and f' :: "real \<Rightarrow> 'a"
@@ -4020,12 +4032,6 @@ lemma f_abs_int: "(\<lambda>s. Re (g' s) * Im (g s)) absolutely_integrable_on {0
 proof -
   have cont_g: "continuous_on {0..1} g"
     using simple_path_imp_path[OF g(1)] by (simp add: path_def)
-  have gp_ai: "g' absolutely_integrable_on {0..1}"
-    using absolutely_integrable_absolutely_continuous_derivative[OF cont U]
-      vder has_vector_derivative_at_within by blast
-  have Re_gp_ai: "(\<lambda>t. Re (g' t)) absolutely_integrable_on {0..1}"
-    by (metis (no_types, lifting) ext absolutely_integrable_component complex_inner_1_right
-        gp_ai)
   have Im_g_cont: "continuous_on {0..1} (\<lambda>t. Im (g t))"
     by (intro continuous_intros cont_g)
   have Im_g_bdd: "bounded ((\<lambda>t. Im (g t)) ` {0..1})"
@@ -4034,8 +4040,11 @@ proof -
     using continuous_imp_measurable_on_sets_lebesgue[OF Im_g_cont]
       atLeastAtMost_borel lborelD
     by (metis sets_completionI_sets)
-  show ?thesis
-    using absolutely_integrable_bounded_measurable_product_real[OF Im_g_meas _ Im_g_bdd Re_gp_ai]
+  have gp_ai: "g' absolutely_integrable_on {0..1}"
+    using absolutely_integrable_absolutely_continuous_derivative[OF cont U]
+      vder has_vector_derivative_at_within by blast
+  then show ?thesis
+    using absolutely_integrable_bounded_measurable_product_real[OF Im_g_meas _ Im_g_bdd Re_absolutely_integrable_on]
     by (simp add: mult.commute)
 qed
 
