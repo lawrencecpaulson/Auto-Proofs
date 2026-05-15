@@ -28,6 +28,9 @@ lemma bounded_translation_eq [simp]:
   shows "bounded ((+) a ` S) \<longleftrightarrow> bounded S"
   by (metis bounded_iff bounded_translation imageI norm_add_leD)
 
+lemma bounded_cnj_image: "bounded (cnj ` S) = bounded S"
+  by (auto simp: bounded_iff)
+
 lemma inside_translation:
   fixes a :: "'a :: real_normed_vector"
   shows "inside ((+) a ` S) = (+) a ` inside S"
@@ -46,6 +49,25 @@ proof (rule set_eqI)
     by (auto simp: inside_def)
 qed
 
+lemma inside_cnj_image:
+  shows "inside (cnj ` S) = cnj ` inside S"
+proof (rule set_eqI)
+  fix x
+  define y where "y \<equiv> cnj x"
+  then have xy: "x = cnj y" by simp
+  have homeo: "homeomorphism (- S) (cnj ` (- S)) (cnj) cnj"
+    by (simp add: homeomorphism_def image_cnj_conv_vimage_cnj)
+  have "connected_component_set (- (cnj ` S)) x = cnj ` connected_component_set (- S) y"
+    using connected_component_set_homeomorphism[OF homeo]
+    by (metis complex_cnj_cnj connected_component_eq_empty image_cnj_conv_vimage_cnj image_is_empty
+        in_image_cnj_iff vimage_Compl y_def)
+  with xy show "(x \<in> inside (cnj ` S)) = (x \<in> cnj ` inside S)"
+    by (auto simp: inside_def bounded_cnj_image)
+qed
+
+lemma loop_free_cnj: "loop_free (cnj \<circ> g) = loop_free g"
+  by (simp add: inj_on_def linear_cnj loop_free_linear_image_eq)
+
 lemma Re_absolutely_integrable_on:
   assumes "g absolutely_integrable_on S"
   shows "(\<lambda>t. Re (g t)) absolutely_integrable_on S"
@@ -57,6 +79,17 @@ lemma Im_absolutely_integrable_on:
   shows "(\<lambda>t. Im (g t)) absolutely_integrable_on S"
   using absolutely_integrable_component [OF assms]
   by (metis (lifting) ext complex_inner_i_right)
+  
+lemma dist_cnj [simp]: "dist (cnj a) (cnj b) = dist a b"
+  by (metis complex_cnj_diff complex_mod_cnj dist_norm)
+
+lemma diameter_image_cnj: "diameter (cnj ` S) = diameter S"
+proof -
+  have "(\<lambda>(x,y). dist x y) ` (cnj ` S \<times> cnj ` S) = (\<lambda>(x,y). dist x y) ` (S \<times> S)"
+    by (force simp: image_iff)
+  then show ?thesis
+    by (simp add: diameter_def)
+qed
 
 (*Added to Absolute_Continuity 2026-05*)
 lemma fundamental_theorem_of_calculus_strong:
@@ -4028,6 +4061,49 @@ locale Green =
 
 begin
 
+definition "gop \<equiv> cnj \<circ> reversepath g"
+definition "gop' \<equiv> uminus \<circ> cnj \<circ> reversepath g'"
+
+interpretation OP: Green gop gop' "(\<lambda>t. 1-t) ` U" "cnj a" "cnj b"
+  sketch
+proof
+  show "simple_path gop"
+    using g by (simp add: simple_path_def gop_def loop_free_reversepath loop_free_cnj)
+  show "pathstart gop = cnj a"
+    using g by (simp add: gop_def pathstart_compose)
+  show "pathfinish gop = cnj a"
+    using g by (simp add: gop_def pathfinish_compose)
+  show "cnj b \<in> path_image gop"
+    using b by (simp add: gop_def path_image_compose)
+  show "Re (cnj a) < Re (cnj b)" "Im (cnj a) = Im (cnj b)"
+    using b by auto
+  show "dist (cnj a) (cnj b) = diameter (path_image gop)"
+    by (simp add: gop_def dab diameter_image_cnj path_image_compose flip: dab)
+  show "convex (inside (path_image gop))"
+    unfolding gop_def
+    by (metis conv convex_linear_vimage image_cnj_conv_vimage_cnj 
+        inside_cnj_image linear_cnj path_image_compose path_image_reversepath)
+  show "absolutely_continuous_on {0..1} gop"
+    using cont unfolding gop_def
+    by (simp add: absolutely_continuous_on_compose_linear absolutely_continuous_on_reflect linear_cnj
+        reversepath_o)
+  have "negligible (uminus ` U)"
+    by (simp add: U linear_uminus negligible_linear_image_eq)
+  then have "negligible (((+)1) ` uminus ` U)"
+    using negligible_translation by blast
+  then show "negligible ((-) 1 ` U)"
+    by (smt (verit, best) image_cong image_image)
+next
+  fix t :: real
+  note vder [unfolded has_vector_derivative_def, derivative_intros]
+  assume "t \<in> {0..1} - (-) 1 ` U"
+  then have "0 \<le> t" "t \<le> 1" "1-t \<notin> U"
+    by (auto simp: image_iff)
+  then show "(gop has_vector_derivative gop' t) (at t)"
+    unfolding gop_def gop'_def has_vector_derivative_def reversepath_o
+    by - (rule derivative_eq_intros | simp add: o_def | assumption)+
+qed
+
 lemma f_abs_int: "(\<lambda>s. Re (g' s) * Im (g s)) absolutely_integrable_on {0..1}"
 proof -
   have cont_g: "continuous_on {0..1} g"
@@ -4325,7 +4401,12 @@ proof (rule ccontr)
   then show False using three_distinct by auto
 qed
 
+end
+
 subsection \<open>Green's theorem special case at zero\<close>
+
+context Green
+begin
 
 lemma Green_area_zero:
   assumes "a = 0"
@@ -4350,6 +4431,9 @@ proof -
     using Re_inj_upper_gen g0 g1 ht by presburger
   have Re_inj_lower: "\<lbrakk>s1 \<in> {t..1}; s2 \<in> {t..1}; Re (g s1) = Re (g s2); s1 \<noteq> s2\<rbrakk>
       \<Longrightarrow> (s1 = t \<and> s2 = 1) \<or> (s1 = 1 \<and> s2 = t)" if ht: "0 < t" "t < 1" "g t = b" for s1 s2 t
+    (** (rule OP.Re_inj_upper_gen) **)
+
+
   proof (rule ccontr) (* symmetric case that we should be able to eliminate*)
     assume s1t: "s1 \<in> {t..1}" and s2t: "s2 \<in> {t..1}"
       and Re_eq: "Re (g s1) = Re (g s2)" and neq: "s1 \<noteq> s2"
