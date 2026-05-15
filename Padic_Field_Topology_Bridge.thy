@@ -550,7 +550,7 @@ subsection \<open>Completeness\<close>
 text \<open>$\mathbb{Q}_p$ is complete: every Cauchy sequence converges.
   This uses @{term \<open>Metric_space.mcomplete\<close>}.\<close>
 
-lemma padic_complete: "padic.mcomplete"
+theorem padic_complete: "padic.mcomplete"
   unfolding padic.mcomplete_def
 proof (intro allI impI)
   fix \<sigma> assume cauchy: "padic.MCauchy \<sigma>"
@@ -562,7 +562,6 @@ proof (intro allI impI)
 
   have \<sigma>_range: "range \<sigma> \<subseteq> carrier Q\<^sub>p"
     using cauchy padic.MCauchy_def by auto
-
   obtain c N where c_car: "c \<in> carrier Q\<^sub>p"
     and eventually_in_ball: "\<forall>m \<ge> N. \<sigma> m \<in> c_ball 0 c"
   proof -
@@ -584,15 +583,12 @@ proof (intro allI impI)
     then show thesis using that \<sigma>N_car by blast
   qed
 
-
   text \<open>Step 2: Translate metric Cauchy to val-based Cauchy.
     Show that @{term padic.MCauchy} (in @{term padic_dist}) implies that
-    for all $n$, eventually $\mathrm{val}(\sigma_m - \sigma_k) \ge n$.
-    This is the AFP's notion of being Cauchy.\<close>
+    for all $n$, eventually $\mathrm{val}(\sigma_m - \sigma_k) \ge n$.\<close>
 
-  have val_cauchy: "\<forall>n. \<exists>K. \<forall>m k. m \<ge> K \<longrightarrow> k \<ge> K \<longrightarrow> eint n \<le> val (\<sigma> m \<ominus> \<sigma> k)"
-  proof (intro allI)
-    fix n :: int
+  have val_cauchy: "\<exists>K. \<forall>m k. m \<ge> K \<longrightarrow> k \<ge> K \<longrightarrow> eint n \<le> val (\<sigma> m \<ominus> \<sigma> k)" for n
+  proof -
     have "real_of_int p powr (- real_of_int n) > 0"
       using p_gt_1 by (simp add: powr_gt_zero)
     then obtain K where hK: "\<forall>m k. K \<le> m \<longrightarrow> K \<le> k \<longrightarrow> padic_dist (\<sigma> m) (\<sigma> k) < real_of_int p powr (- real_of_int n)"
@@ -618,11 +614,8 @@ proof (intro allI impI)
           using padic_norm_def False by auto
         have "padic_norm (\<sigma> m \<ominus> \<sigma> k) < real_of_int p powr (- real_of_int n)"
           using dist_bound padic_dist_as_norm \<sigma>m_car \<sigma>k_car by auto
-        then have "real_of_int p powr (- real_of_int (ord (\<sigma> m \<ominus> \<sigma> k))) < real_of_int p powr (- real_of_int n)"
-          using norm_eq by simp
         then have "- real_of_int (ord (\<sigma> m \<ominus> \<sigma> k)) < - real_of_int n"
-          by (rule powr_less_cancel[OF _ p_gt_1_real])
-        then have "n < ord (\<sigma> m \<ominus> \<sigma> k)" by linarith
+          using local.norm_eq p_gt_1_real by force
         then have "n \<le> ord (\<sigma> m \<ominus> \<sigma> k)" by linarith
         then show ?thesis
           using val_ord diff_nz eint_ord_code(1) by auto
@@ -636,46 +629,36 @@ proof (intro allI impI)
     then show $s$ is @{term is_Zp_cauchy}.\<close>
 
   define s where "s m = to_Zp (\<sigma> m \<ominus> c)" for m
-  have s_Zp: "\<forall>m. s m \<in> carrier Z\<^sub>p"
-  proof
-    fix m
-    have "\<sigma> m \<in> carrier Q\<^sub>p" using \<sigma>_range by auto
-    then have "\<sigma> m \<ominus> c \<in> carrier Q\<^sub>p" using Qp.minus_closed c_car by auto
-    then show "s m \<in> carrier Z\<^sub>p" unfolding s_def using to_Zp_closed by auto
+  have s_Zp: "s m \<in> carrier Z\<^sub>p" for m
+  proof -
+    have "\<sigma> m \<ominus> c \<in> carrier Q\<^sub>p" using Qp.minus_closed c_car \<sigma>_range by auto
+    then show ?thesis unfolding s_def using to_Zp_closed by auto
   qed
-  have diff_in_val_ring: "\<forall>m \<ge> N. \<sigma> m \<ominus> c \<in> \<O>\<^sub>p"
-  proof (intro allI impI)
-    fix m assume "N \<le> m"
-    then have "\<sigma> m \<in> c_ball 0 c" using eventually_in_ball by auto
-    then have \<sigma>m_car: "\<sigma> m \<in> carrier Q\<^sub>p" and val_ge: "eint 0 \<le> val (\<sigma> m \<ominus> c)"
-      using c_ball_def by auto
-    have "\<sigma> m \<ominus> c \<in> carrier Q\<^sub>p" using Qp.minus_closed \<sigma>m_car c_car by auto
-    moreover have "(0 :: eint) \<le> val (\<sigma> m \<ominus> c)" using val_ge eint_0 by simp
-    ultimately show "\<sigma> m \<ominus> c \<in> \<O>\<^sub>p" using Qp_val_ringI by auto
+  have diff_in_val_ring: "\<sigma> m \<ominus> c \<in> \<O>\<^sub>p" if "N \<le> m" for m
+  proof -
+    have "\<sigma> m \<in> c_ball 0 c" using that eventually_in_ball by auto
+    then show ?thesis
+      by (simp add: Qp_val_ringI c_ballE c_car zero_eint_def)
   qed
-  have s_eq: "\<forall>m \<ge> N. \<sigma> m = \<iota> (s m) \<oplus> c"
-  proof (intro allI impI)
-    fix m assume hm: "N \<le> m"
-    have in_val: "\<sigma> m \<ominus> c \<in> \<O>\<^sub>p" using diff_in_val_ring hm by auto
+  have s_eq: "\<sigma> m = \<iota> (s m) \<oplus> c" if "N \<le> m" for m
+  proof -
+    have in_val: "\<sigma> m \<ominus> c \<in> \<O>\<^sub>p" using diff_in_val_ring that by auto
     have "\<iota> (s m) = \<iota> (to_Zp (\<sigma> m \<ominus> c))" unfolding s_def by simp
-    also have "... = \<sigma> m \<ominus> c" using to_Zp_inc[OF in_val] by simp
+    also have "\<dots> = \<sigma> m \<ominus> c" using to_Zp_inc[OF in_val] by simp
     finally have inc_eq: "\<iota> (s m) = \<sigma> m \<ominus> c" .
-    have \<sigma>m_car: "\<sigma> m \<in> carrier Q\<^sub>p" using \<sigma>_range by auto
-    have inc_car: "\<iota> (s m) \<in> carrier Q\<^sub>p" using inc_closed s_Zp by auto
-    show "\<sigma> m = \<iota> (s m) \<oplus> c"
-      using inc_eq \<sigma>m_car c_car
-      by (metis Qp.a_assoc Qp.a_inv_closed Qp.l_neg Qp.minus_eq Qp.r_zero)
+    have "\<sigma> m \<in> carrier Q\<^sub>p" using \<sigma>_range by auto
+    then show "\<sigma> m = \<iota> (s m) \<oplus> c"
+      by (metis inc_eq c_car Qp.add.inv_solve_right Qp.minus_closed a_minus_def) 
   qed
   have s_closed: "s \<in> carrier Z\<^sub>p\<^bsup>\<omega>\<^esup>"
     using s_Zp closed_seqs_memI by auto
-  have s_val_cauchy: "\<forall>n :: int. \<exists>M. \<forall>m k. M < m \<and> M < k \<longrightarrow> eint n < val_Zp_dist (s m) (s k)"
-  proof (intro allI)
-    fix n :: int
+  have s_val_cauchy: "\<exists>M. \<forall>m k. M < m \<and> M < k \<longrightarrow> eint n < val_Zp_dist (s m) (s k)" for n
+  proof -
     obtain K where hK: "\<forall>m k. m \<ge> K \<longrightarrow> k \<ge> K \<longrightarrow> eint (n + 1) \<le> val (\<sigma> m \<ominus> \<sigma> k)"
       using val_cauchy by (meson le_cases)
     define K' where "K' = max N K"
     show "\<exists>M. \<forall>m k. M < m \<and> M < k \<longrightarrow> eint n < val_Zp_dist (s m) (s k)"
-    proof (intro exI[of _ K'] allI impI)
+    proof (intro exI strip)
       fix m k assume mk: "K' < m \<and> K' < k"
       then have hm: "m \<ge> N" "m \<ge> K" and hk: "k \<ge> N" "k \<ge> K"
         unfolding K'_def by auto
@@ -685,28 +668,14 @@ proof (intro allI impI)
         using Zp.minus_closed sm_car sk_car by auto
       have "val_Zp_dist (s m) (s k) = val_Zp (s m \<ominus>\<^bsub>Z\<^sub>p\<^esub> s k)"
         using val_Zp_dist_def by auto
-      also have "... = val (\<iota> (s m \<ominus>\<^bsub>Z\<^sub>p\<^esub> s k))"
+      also have "\<dots> = val (\<iota> (s m \<ominus>\<^bsub>Z\<^sub>p\<^esub> s k))"
         using val_of_inc[OF diff_Zp] by simp
-      also have "... = val (\<iota> (s m) \<ominus> \<iota> (s k))"
+      also have "\<dots> = val (\<iota> (s m) \<ominus> \<iota> (s k))"
         using inc_of_diff[OF sm_car sk_car] by simp
-      also have "... = val ((\<sigma> m \<ominus> c) \<ominus> (\<sigma> k \<ominus> c))"
-      proof -
-        have "\<iota> (s m) = \<sigma> m \<ominus> c"
-          using to_Zp_inc diff_in_val_ring hm(1) s_def by auto
-        moreover have "\<iota> (s k) = \<sigma> k \<ominus> c"
-          using to_Zp_inc diff_in_val_ring hk(1) s_def by auto
-        ultimately show ?thesis by simp
-      qed
-      also have "... = val (\<sigma> m \<ominus> \<sigma> k)"
-      proof -
-        have \<sigma>m_car: "\<sigma> m \<in> carrier Q\<^sub>p" and \<sigma>k_car: "\<sigma> k \<in> carrier Q\<^sub>p"
-          using \<sigma>_range by auto
-        have "(\<sigma> m \<ominus> c) \<ominus> (\<sigma> k \<ominus> c) = \<sigma> m \<ominus> \<sigma> k"
-          using \<sigma>m_car \<sigma>k_car c_car Qp.minus_eq Qp.a_assoc Qp.a_comm
-                Qp.a_inv_closed Qp.l_neg Qp.r_zero Qp.minus_closed
-          by (smt (verit))
-        then show ?thesis by simp
-      qed
+      also have "\<dots> = val ((\<sigma> m \<ominus> c) \<ominus> (\<sigma> k \<ominus> c))"
+        using diff_in_val_ring hk(1) hm(1) s_def to_Zp_inc by presburger
+      also have "\<dots> = val (\<sigma> m \<ominus> \<sigma> k)"
+        by (metis Qp_diff_diff c_ballE(1) c_car eventually_in_ball hk(1) hm(1))
       finally have val_eq: "val_Zp_dist (s m) (s k) = val (\<sigma> m \<ominus> \<sigma> k)" .
       have "eint (n + 1) \<le> val (\<sigma> m \<ominus> \<sigma> k)"
         using hK hm(2) hk(2) by auto
@@ -749,18 +718,13 @@ proof (intro allI impI)
     show "((\<lambda>m. padic_dist (\<sigma> m) L) \<longlongrightarrow> 0) sequentially"
     proof (rule metric_LIMSEQ_I)
       fix r :: real assume "r > 0"
-      \<comment> \<open>Find n such that p powr (-n) < r\<close>
       define n where "n = \<lceil>- log (real_of_int p) r\<rceil> + 1"
+      \<comment> \<open>Find n such that @{term \<open>p powr (-n) < r\<close>}\<close>
       have n_bound: "real_of_int n > - log (real_of_int p) r"
         unfolding n_def using le_of_int_ceiling[of "- log (real_of_int p) r"]
         by linarith
       have p_powr_bound: "real_of_int p powr (- real_of_int n) < r"
-      proof -
-        have "- real_of_int n < log (real_of_int p) r"
-          using n_bound by linarith
-        then show ?thesis
-          using powr_less_iff[OF p_gt_1_real \<open>r > 0\<close>] by simp
-      qed
+        using \<open>0 < r\<close> n_bound p_gt_1_real powr_less_iff by auto
       \<comment> \<open>From Zp_conv, get K such that for m > K, val_Zp (s m \<ominus> a) > n\<close>
       have "\<exists>k. \<forall>m>k. eint n < val_Zp (s m \<ominus>\<^bsub>Z\<^sub>p\<^esub> a)"
         using Zp_conv[unfolded Zp_converges_to_def] by blast
@@ -769,28 +733,27 @@ proof (intro allI impI)
       \<comment> \<open>Take threshold = max K N + 1\<close>
       define M where "M = max (nat (K + 1)) N"
       show "\<exists>no. \<forall>m\<ge>no. dist ((\<lambda>m. padic_dist (\<sigma> m) L) m) 0 < r"
-      proof (intro exI[of _ M] allI impI)
+      proof (intro exI allI impI)
         fix m assume hm: "M \<le> m"
-        have m_ge_N: "m \<ge> N" using hm unfolding M_def by auto
-        have m_gt_K: "m > K" using hm unfolding M_def by auto
+        have m_ge_N: "m \<ge> N" and m_gt_K: "m > K" using hm unfolding M_def by auto
         \<comment> \<open>Relate padic_dist (\<sigma> m) L to val_Zp (s m \<ominus> a)\<close>
         have \<sigma>m_car: "\<sigma> m \<in> carrier Q\<^sub>p" using \<sigma>_range by auto
         have sm_car: "s m \<in> carrier Z\<^sub>p" using s_Zp by auto
         have diff_car: "s m \<ominus>\<^bsub>Z\<^sub>p\<^esub> a \<in> carrier Z\<^sub>p"
           using Zp.minus_closed[OF sm_car a_Zp] by auto
-        \<comment> \<open>Key: \<iota> (s m) \<ominus> \<iota> a = \<sigma> m \<ominus> L\<close>
+        \<comment> \<open>Key: @{term \<open>\<iota> (s m) \<ominus> \<iota> a = \<sigma> m \<ominus> L\<close>}\<close>
         have inc_sm: "\<iota> (s m) = \<sigma> m \<ominus> c"
           using s_eq m_ge_N \<sigma>m_car c_car
           by (metis diff_in_val_ring s_def to_Zp_inc)
         have "\<iota> (s m \<ominus>\<^bsub>Z\<^sub>p\<^esub> a) = \<iota> (s m) \<ominus> \<iota> a"
           using inc_of_diff[OF sm_car a_Zp] by simp
-        also have "... = (\<sigma> m \<ominus> c) \<ominus> \<iota> a"
+        also have "\<dots> = (\<sigma> m \<ominus> c) \<ominus> \<iota> a"
           using inc_sm by simp
-        also have "... = \<sigma> m \<ominus> (c \<oplus> \<iota> a)"
+        also have "\<dots> = \<sigma> m \<ominus> (c \<oplus> \<iota> a)"
           using Qp.right_inv_add[OF c_car inc_a_car \<sigma>m_car] by simp
-        also have "... = \<sigma> m \<ominus> (\<iota> a \<oplus> c)"
+        also have "\<dots> = \<sigma> m \<ominus> (\<iota> a \<oplus> c)"
           using Qp.a_comm[OF c_car inc_a_car] by simp
-        also have "... = \<sigma> m \<ominus> L" unfolding L_def by simp
+        also have "\<dots> = \<sigma> m \<ominus> L" unfolding L_def by simp
         finally have key_eq: "\<iota> (s m \<ominus>\<^bsub>Z\<^sub>p\<^esub> a) = \<sigma> m \<ominus> L" .
         \<comment> \<open>Get the val bound\<close>
         have val_bound: "eint n < val_Zp (s m \<ominus>\<^bsub>Z\<^sub>p\<^esub> a)"
