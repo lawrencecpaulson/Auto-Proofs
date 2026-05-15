@@ -830,7 +830,7 @@ proof (intro allI impI)
   have Zp_conv: "Zp_converges_to s a"
     using is_Zp_cauchy_imp_has_limit s_cauchy a_def by auto
 
-  text \<open>Task 5: Translate Z_p convergence back to Q_p metric convergence.
+  text \<open>Task 5: Translate $Z_p$ convergence back to Q_p metric convergence.
     Show Zp_converges_to s a implies
     limitin padic.mtopology (\<iota> \<circ> s + c) (\<iota> a + c) sequentially.
     Key bridge: val_of_inc, inc_of_diff, and the characterization
@@ -838,27 +838,105 @@ proof (intro allI impI)
 
   define L where "L = \<iota> a \<oplus> c"
   have L_car: "L \<in> carrier Q\<^sub>p"
-    sorry \<comment> \<open>from inc_closed, a_Zp, c carrier\<close>
-
+    unfolding L_def using Qp.a_closed[OF inc_closed[OF a_Zp] c_car] by simp
+  have inc_a_car: "\<iota> a \<in> carrier Q\<^sub>p" using inc_closed a_Zp by auto
   have "limitin padic.mtopology \<sigma> L sequentially"
-    sorry \<comment> \<open>Task 5: Zp_converges_to \<rightarrow> padic_dist convergence
-      Use: padic.limitin_metric_dist_null, val_of_inc, inc_of_diff,
-      and the definition of padic_dist/padic_norm to show
-      padic_dist (\<sigma> m) L \<rightarrow> 0.\<close>
-
+    unfolding padic.limitin_metric_dist_null
+  proof (intro conjI)
+    show "L \<in> carrier Q\<^sub>p" by (rule L_car)
+  next
+    show "\<forall>\<^sub>F m in sequentially. \<sigma> m \<in> carrier Q\<^sub>p"
+      using \<sigma>_range by (simp add: eventually_sequentially, intro exI[of _ 0]) auto
+  next
+    show "((\<lambda>m. padic_dist (\<sigma> m) L) \<longlongrightarrow> 0) sequentially"
+    proof (rule metric_LIMSEQ_I)
+      fix r :: real assume "r > 0"
+      \<comment> \<open>Find n such that p powr (-n) < r\<close>
+      define n where "n = \<lceil>- log (real_of_int p) r\<rceil> + 1"
+      have n_bound: "real_of_int n > - log (real_of_int p) r"
+        unfolding n_def using le_of_int_ceiling[of "- log (real_of_int p) r"]
+        by linarith
+      have p_powr_bound: "real_of_int p powr (- real_of_int n) < r"
+      proof -
+        have "- real_of_int n < log (real_of_int p) r"
+          using n_bound by linarith
+        then show ?thesis
+          using powr_less_iff[OF p_gt_1_real \<open>r > 0\<close>] by simp
+      qed
+      \<comment> \<open>From Zp_conv, get K such that for m > K, val_Zp (s m \<ominus> a) > n\<close>
+      have "\<exists>k. \<forall>m>k. eint n < val_Zp (s m \<ominus>\<^bsub>Z\<^sub>p\<^esub> a)"
+        using Zp_conv[unfolded Zp_converges_to_def] by blast
+      then obtain K where hK: "\<forall>m>K. eint n < val_Zp (s m \<ominus>\<^bsub>Z\<^sub>p\<^esub> a)"
+        by auto
+      \<comment> \<open>Take threshold = max K N + 1\<close>
+      define M where "M = max (nat (K + 1)) N"
+      show "\<exists>no. \<forall>m\<ge>no. dist ((\<lambda>m. padic_dist (\<sigma> m) L) m) 0 < r"
+      proof (intro exI[of _ M] allI impI)
+        fix m assume hm: "M \<le> m"
+        have m_ge_N: "m \<ge> N" using hm unfolding M_def by auto
+        have m_gt_K: "m > K" using hm unfolding M_def by auto
+        \<comment> \<open>Relate padic_dist (\<sigma> m) L to val_Zp (s m \<ominus> a)\<close>
+        have \<sigma>m_car: "\<sigma> m \<in> carrier Q\<^sub>p" using \<sigma>_range by auto
+        have sm_car: "s m \<in> carrier Z\<^sub>p" using s_Zp by auto
+        have diff_car: "s m \<ominus>\<^bsub>Z\<^sub>p\<^esub> a \<in> carrier Z\<^sub>p"
+          using Zp.minus_closed[OF sm_car a_Zp] by auto
+        \<comment> \<open>Key: \<iota> (s m) \<ominus> \<iota> a = \<sigma> m \<ominus> L\<close>
+        have inc_sm: "\<iota> (s m) = \<sigma> m \<ominus> c"
+          using s_eq m_ge_N \<sigma>m_car c_car
+          by (metis diff_in_val_ring s_def to_Zp_inc)
+        have "\<iota> (s m \<ominus>\<^bsub>Z\<^sub>p\<^esub> a) = \<iota> (s m) \<ominus> \<iota> a"
+          using inc_of_diff[OF sm_car a_Zp] by simp
+        also have "... = (\<sigma> m \<ominus> c) \<ominus> \<iota> a"
+          using inc_sm by simp
+        also have "... = \<sigma> m \<ominus> (c \<oplus> \<iota> a)"
+          using Qp.right_inv_add[OF c_car inc_a_car \<sigma>m_car] by simp
+        also have "... = \<sigma> m \<ominus> (\<iota> a \<oplus> c)"
+          using Qp.a_comm[OF c_car inc_a_car] by simp
+        also have "... = \<sigma> m \<ominus> L" unfolding L_def by simp
+        finally have key_eq: "\<iota> (s m \<ominus>\<^bsub>Z\<^sub>p\<^esub> a) = \<sigma> m \<ominus> L" .
+        \<comment> \<open>Get the val bound\<close>
+        have val_bound: "eint n < val_Zp (s m \<ominus>\<^bsub>Z\<^sub>p\<^esub> a)"
+          using hK m_gt_K by auto
+        have val_inc: "val_Zp (s m \<ominus>\<^bsub>Z\<^sub>p\<^esub> a) = val (\<iota> (s m \<ominus>\<^bsub>Z\<^sub>p\<^esub> a))"
+          using val_of_inc[OF diff_car] by simp
+        have val_diff: "eint n < val (\<sigma> m \<ominus> L)"
+          using val_bound val_inc key_eq by simp
+        \<comment> \<open>Convert to padic_dist bound\<close>
+        have diff_car2: "\<sigma> m \<ominus> L \<in> carrier Q\<^sub>p"
+          using Qp.minus_closed[OF \<sigma>m_car L_car] by simp
+        have dist_eq: "padic_dist (\<sigma> m) L = padic_norm (\<sigma> m \<ominus> L)"
+          using padic_dist_as_norm[OF \<sigma>m_car L_car] by simp
+        show "dist ((\<lambda>m. padic_dist (\<sigma> m) L) m) 0 < r"
+        proof (cases "\<sigma> m \<ominus> L = \<zero>")
+          case True
+          then have "padic_dist (\<sigma> m) L = 0"
+            using dist_eq padic_norm_def by simp
+          then show ?thesis using \<open>r > 0\<close> by (simp add: dist_real_def)
+        next
+          case False
+          have nz: "\<sigma> m \<ominus> L \<in> nonzero Q\<^sub>p"
+            using Qp.nonzero_memI[OF diff_car2 False] by simp
+          have val_eq: "val (\<sigma> m \<ominus> L) = eint (ord (\<sigma> m \<ominus> L))"
+            using val_ord[OF nz] by simp
+          have ord_bound: "n < ord (\<sigma> m \<ominus> L)"
+            using val_diff val_eq by simp
+          have neg_ord_bound: "- real_of_int (ord (\<sigma> m \<ominus> L)) < - real_of_int n"
+            using ord_bound by linarith
+          have norm_eq: "padic_norm (\<sigma> m \<ominus> L) = real_of_int p powr (- real_of_int (ord (\<sigma> m \<ominus> L)))"
+            using padic_norm_def False by simp
+          have "padic_norm (\<sigma> m \<ominus> L) < real_of_int p powr (- real_of_int n)"
+            using norm_eq powr_less_mono[OF neg_ord_bound p_gt_1_real] by simp
+          then have "padic_dist (\<sigma> m) L < r"
+            using dist_eq p_powr_bound by linarith
+          then show ?thesis
+            using padic_dist_nonneg[of "\<sigma> m" L] by (simp add: dist_real_def)
+        qed
+      qed
+    qed
+  qed
   then show "\<exists>x. limitin padic.mtopology \<sigma> x sequentially"
     by blast
 qed
-
-   (* Deep result requiring extraction of completeness from Q_p's construction.
-           The AFP Padic_Field entry builds Q_p as equivalence classes of Cauchy
-           sequences of p-adic integers, but does not export a completeness theorem
-           in the Metric_space.mcomplete sense.  A proof would need to:
-             1. Show that padic.MCauchy sequences correspond to Cauchy sequences
-                in the AFP's internal notion (padic_int_poly / residue convergence).
-             2. Extract the limit from the equivalence-class construction.
-             3. Verify convergence in padic_dist.
-           This is feasible but requires significant infrastructure bridging. *)
 
 end
 end
