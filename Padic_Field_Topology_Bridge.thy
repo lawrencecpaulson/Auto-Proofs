@@ -1,3 +1,5 @@
+section \<open>Topology, metric space, completeness for $p$-adic fields\<close>
+
 theory Padic_Field_Topology_Bridge
   imports
     "Padic_Field.Padic_Field_Topology"
@@ -8,7 +10,7 @@ begin
 context padic_fields
 begin
 
-section \<open>The $p$-adic topology is a topology\<close>
+subsection \<open>The $p$-adic topology is a topology\<close>
 
 definition padic_topology :: "padic_number topology" where
   "padic_topology = topology is_open"
@@ -39,22 +41,14 @@ lemma openin_padic_topology: "openin padic_topology = is_open"
   unfolding padic_topology_def
   using istopology_padic topology_inverse' by blast
 
-section \<open>Bridging lemmas — connect old and new frameworks\<close>
+subsection \<open>Bridging lemmas — connect old and new frameworks\<close>
 
 lemma topspace_padic: "topspace padic_topology = carrier Q\<^sub>p"
-proof (rule Set.set_eqI)
-  fix x
-  show "x \<in> topspace padic_topology \<longleftrightarrow> x \<in> carrier Q\<^sub>p"
-  proof
-    assume "x \<in> topspace padic_topology"
-    then show "x \<in> carrier Q\<^sub>p"
-      unfolding topspace_def using openin_padic_topology is_open_imp_in_Qp by auto
-  next
-    assume "x \<in> carrier Q\<^sub>p"
-    then show "x \<in> topspace padic_topology"
-      by (metis c_ball_in_Qp is_open_def openin_padic_topology openin_subset openin_topspace
-          set_eq_subset)
-  qed
+proof
+  show "topspace padic_topology \<subseteq> carrier Q\<^sub>p"
+    by (metis is_open_def openin_padic_topology openin_topspace)
+  show "carrier Q\<^sub>p \<subseteq> topspace padic_topology"
+    by (simp add: c_ball_in_Qp is_openI openin_padic_topology openin_subset)
 qed
 
 lemma openin_ball:
@@ -68,15 +62,14 @@ lemma interior_eq:
   shows "interior U = Abstract_Topology.interior_of padic_topology U"
   by (metis assms interiorI interior_of_unique interior_open interior_subset openin_padic_topology)
 
-section \<open>Main topological results in the standard framework\<close>
+subsection \<open>Main topological results in the standard framework\<close>
 
 text \<open>Balls are open.\<close>
 lemma ball_openin_padic:
   "is_ball B \<Longrightarrow> openin padic_topology B"
   using openin_padic_topology ball_is_open by simp
 
-text \<open>Hensel's lemma consequence: compactness of $\\mathbb{Z}_p$
-  (if the AFP entry proves compactness of the $p$-adic integers).\<close>
+text \<open>Hensel's lemma consequence: compactness of $\mathbb{Z}_p$.\<close>
 
 text \<open>Open decomposition into maximal balls.\<close>
 lemma open_max_ball_decomposition:
@@ -84,31 +77,24 @@ lemma open_max_ball_decomposition:
   assumes "U \<noteq> topspace padic_topology"
   shows "U = \<Union>(max_balls U)"
 proof -
-  have U_open: "is_open U" using assms openin_padic_topology by auto
-  have U_sub: "U \<subseteq> carrier Q\<^sub>p" using U_open is_open_imp_in_Qp by auto
-  have U_ne: "U \<noteq> carrier Q\<^sub>p" using assms topspace_padic by auto
-  have int_eq: "interior U = U" using open_interior U_open by auto
-  have int_decomp: "interior U = {x \<in> carrier Q\<^sub>p. \<exists>B\<in>max_balls U. x \<in> B}"
-    using max_balls_interior U_sub U_ne by auto
   have "\<Union>(max_balls U) \<subseteq> carrier Q\<^sub>p"
-    by (metis (no_types, lifting) U_ne U_sub Union_least int_eq max_balls_interior'
-        subset_trans)
-  moreover have "U = {x \<in> carrier Q\<^sub>p. \<exists>B\<in>max_balls U. x \<in> B}"
-    using int_eq int_decomp by simp
-  ultimately show "U = \<Union>(max_balls U)"
-    using U_sub by blast
+    using is_ball_imp_in_Qp is_max_ball_of_def max_balls_def by auto
+  moreover have "interior U = {x \<in> carrier Q\<^sub>p. \<exists>B\<in>max_balls U. x \<in> B}"
+    using max_balls_interior assms is_open_def openin_padic_topology topspace_padic by auto
+  then have "U = {x \<in> carrier Q\<^sub>p. \<exists>B\<in>max_balls U. x \<in> B}"
+    using assms(1) local.open_interior openin_padic_topology by force
+  ultimately show ?thesis by auto
 qed
-
 
 end
 
-section \<open>The $p$-adic metric on $\\mathbb{Q}_p$\<close>
+subsection \<open>The $p$-adic metric on $\mathbb{Q}_p$\<close>
 
 context padic_fields
 begin
 
 text \<open>The $p$-adic absolute value / distance function.
-  Convention: $|x|_p = p^{-\\mathrm{val}(x)}$, with $|0|_p = 0$.\<close>
+  Convention: $|x|_p = p^{-\mathrm{val}(x)}$, with $|0|_p = 0$.\<close>
 
 definition padic_norm :: "padic_number \<Rightarrow> real" where
   "padic_norm x \<equiv> (if x = \<zero> then 0 else p powr (- real_of_int (ord x)))"
@@ -116,7 +102,7 @@ definition padic_norm :: "padic_number \<Rightarrow> real" where
 definition padic_dist :: "padic_number \<Rightarrow> padic_number \<Rightarrow> real" where
   "padic_dist x y \<equiv> if x \<in> carrier Q\<^sub>p \<and> y \<in> carrier Q\<^sub>p then padic_norm (x \<ominus> y) else 0"
 
-section \<open>$\\mathbb{Q}_p$ is a Metric\_space\<close>
+subsection \<open>$\mathbb{Q}_p$ is a Metric\_space\<close>
 
 lemma padic_dist_nonneg: "0 \<le> padic_dist x y"
   unfolding padic_dist_def padic_norm_def
@@ -124,7 +110,7 @@ lemma padic_dist_nonneg: "0 \<le> padic_dist x y"
 
 lemma padic_dist_commute:
   shows "padic_dist x y = padic_dist y x"
-  apply (simp add: padic_dist_def padic_norm_def)
+  apply (simp add: padic_dist_def padic_norm_def )
   by (metis Qp.cring_simprules(4) Qp.minus_a_inv Qp.not_eq_diff_nonzero equal_val_imp_equal_ord(1)
       val_minus)
 
@@ -146,19 +132,7 @@ lemma p_gt_1_real: "(1 :: real) < real_of_int p"
 lemma diff_sum: 
   assumes "x \<in> carrier Q\<^sub>p" "y \<in> carrier Q\<^sub>p" "z \<in> carrier Q\<^sub>p"
   shows "x \<ominus> z = (x \<ominus> y) \<oplus> (y \<ominus> z)"
-proof -
-  have xy: "x \<ominus> y \<in> carrier Q\<^sub>p" using assms Qp.minus_closed by auto
-  have yz: "y \<ominus> z \<in> carrier Q\<^sub>p" using assms Qp.minus_closed by auto
-  have ny: "\<ominus> y \<in> carrier Q\<^sub>p" using assms Qp.a_inv_closed by auto
-  have nz: "\<ominus> z \<in> carrier Q\<^sub>p" using assms Qp.a_inv_closed by auto
-  have "(x \<ominus> y) \<oplus> (y \<ominus> z) = (x \<oplus> \<ominus> y) \<oplus> (y \<oplus> \<ominus> z)"
-    using Qp.minus_eq by presburger
-  also have "\<dots> = x \<oplus> (\<ominus> y \<oplus> (y \<oplus> \<ominus> z))"
-    using Qp.a_assoc[OF assms(1) ny] Qp.add.m_closed[OF assms(2) nz] by auto
-  also have "\<ominus> y \<oplus> (y \<oplus> \<ominus> z) = \<ominus> z"
-    using Qp.r_neg1[OF assms(2) nz] by auto
-  finally show ?thesis using Qp.minus_eq by auto
-qed
+  by (metis Qp.minus_a_inv Qp_diff_diff a_minus_def assms)
 
 lemma padic_norm_ultrametric:
   assumes "a \<in> carrier Q\<^sub>p" "b \<in> carrier Q\<^sub>p"
@@ -175,40 +149,19 @@ next
   have val_ineq: "min (val a) (val b) \<le> val (a \<oplus> b)"
     using val_ultrametric assms by auto
   show ?thesis
-  proof (cases "a = \<zero>")
+  proof (cases "a = \<zero> \<or> b = \<zero>")
     case True
-    then have "a \<oplus> b = b" using assms Qp.l_zero by auto
-    then show ?thesis unfolding padic_norm_def using powr_non_neg by auto
+    then show ?thesis unfolding padic_norm_def
+      using assms by fastforce
   next
-    case a_nz: False
-    show ?thesis
-    proof (cases "b = \<zero>")
-      case True
-      then have "a \<oplus> b = a" using assms Qp.r_zero by auto
-      then show ?thesis unfolding padic_norm_def using powr_non_neg by auto
-    next
-      case b_nz: False
-      have a_nonzero: "a \<in> nonzero Q\<^sub>p" using a_nz assms Qp.nonzero_memI by auto
-      have b_nonzero: "b \<in> nonzero Q\<^sub>p" using b_nz assms Qp.nonzero_memI by auto
-      have ord_ineq: "min (ord a) (ord b) \<le> ord (a \<oplus> b)"
-          using val_ineq val_ord[OF a_nonzero] val_ord[OF b_nonzero] val_ord[OF ab_nonzero]
-          using a_nonzero ab_nonzero b_nonzero ord_ultrametric by blast
-      have "p powr (- real_of_int (ord (a \<oplus> b))) \<le>
+    case False
+    then have ord_ineq: "min (ord a) (ord b) \<le> ord (a \<oplus> b)"
+      using Qp.nonzero_memI ab_nonzero assms ord_ultrametric by presburger
+    then have "p powr (- real_of_int (ord (a \<oplus> b))) \<le>
             max (p powr (- real_of_int (ord a))) (p powr (- real_of_int (ord b)))"
-      proof -
-        from ord_ineq have neg: "- real_of_int (ord (a \<oplus> b)) \<le>
-          max (- real_of_int (ord a)) (- real_of_int (ord b))" by linarith
-        have step1: "p powr (- real_of_int (ord (a \<oplus> b))) \<le>
-          p powr (max (- real_of_int (ord a)) (- real_of_int (ord b)))"
-          using powr_mono neg p_ge_1_real by auto
-        have step2: "p powr (max (- real_of_int (ord a)) (- real_of_int (ord b))) =
-          max (p powr (- real_of_int (ord a))) (p powr (- real_of_int (ord b)))"
-          by (auto simp: max_def powr_le_cancel_iff[OF p_gt_1_real])
-        show ?thesis using step1 step2 by linarith
-      qed
-      then show ?thesis
-        using padic_norm_def a_nz b_nz ab_nz by auto
-    qed
+      using le_max_iff_disj ord_ineq p_gt_1_real by fastforce
+    then show ?thesis
+      using padic_norm_def False ab_nz by auto
   qed
 qed
 
@@ -221,17 +174,10 @@ proof (cases "x = z")
   then show ?thesis using padic_dist_nonneg[of x y] padic_dist_nonneg[of y z] by simp
 next
   case xz: False
-  have xy_car: "x \<ominus> y \<in> carrier Q\<^sub>p" using assms Qp.minus_closed by auto
-  have yz_car: "y \<ominus> z \<in> carrier Q\<^sub>p" using assms Qp.minus_closed by auto
   have "padic_norm (x \<ominus> z) \<le> max (padic_norm (x \<ominus> y)) (padic_norm (y \<ominus> z))"
-    using padic_norm_ultrametric[OF xy_car yz_car] diff_sum[OF assms] by simp
-  moreover have "padic_dist x z = padic_norm (x \<ominus> z)"
+    by (metis Qp.minus_closed assms diff_sum padic_norm_ultrametric)
+  then show ?thesis
     using assms unfolding padic_dist_def by auto
-  moreover have "padic_dist x y = padic_norm (x \<ominus> y)"
-    using assms unfolding padic_dist_def by auto
-  moreover have "padic_dist y z = padic_norm (y \<ominus> z)"
-    using assms unfolding padic_dist_def by auto
-  ultimately show ?thesis by simp
 qed
 
 
@@ -259,8 +205,8 @@ qed
 
 
 text \<open>Key correspondence:
-  @{term \<open>c_ball n c\<close>} $= \\{x \\in \\mathrm{carrier}\\; \\mathbb{Q}_p \\mid \\mathrm{val}(x - c) \\ge n\\}$
-  $= \\{x \\in \\mathrm{carrier}\\; \\mathbb{Q}_p \\mid \\mathrm{padic\\_dist}\\; c\\; x \\le p^{-n}\\}$
+  @{term \<open>c_ball n c\<close>} $= \{x \in \mathrm{carrier}\; \mathbb{Q}_p \mid \mathrm{val}(x - c) \ge n\}$
+  $= \{x \in \mathrm{carrier}\; \mathbb{Q}_p \mid \mathrm{padic\_dist}\; c\; x \le p^{-n}\}$
   $=$ @{term \<open>padic.mcball c (p powr (-n))\<close>}.\<close>
 
 lemma padic_dist_as_norm:
@@ -309,18 +255,14 @@ proof (rule Set.set_eqI)
       using padic.in_mcball by auto
     show "x \<in> c_ball n c"
     proof (cases "x = c")
-      case True
-      then have "c \<ominus> c = \<zero>" using assms Qp.r_neg by auto
-      then have "val (c \<ominus> c) = \<infinity>" using val_zero by auto
-      then have "eint n \<le> val (c \<ominus> c)" by simp
-      then show ?thesis using True c_ballI assms by auto
+      case True then show ?thesis
+        using assms c_ball_center_in is_ball_def by blast
     next
       case False
       then have xc_nz: "x \<ominus> c \<in> nonzero Q\<^sub>p"
         using x_car assms Qp.not_eq_diff_nonzero by auto
       have "padic_dist c x = padic_norm (x \<ominus> c)"
-        using padic_dist_commute[of c x] padic_dist_as_norm[OF x_car assms]
-              padic_dist_as_norm[OF assms x_car] by simp
+        by (metis assms padic.commute padic_dist_as_norm x_car)
       also have "\<dots> = p powr (- real_of_int (ord (x \<ominus> c)))"
         using padic_norm_def Qp.nonzero_memE(2)[OF xc_nz] by auto
       finally have "p powr (- real_of_int (ord (x \<ominus> c))) \<le> p powr (- real_of_int n)"
@@ -349,28 +291,22 @@ proof (rule Set.set_eqI)
     show "x \<in> c_ball (n + 1) c"
     proof (cases "x = c")
       case True
-      then have "c \<ominus> c = \<zero>" using assms Qp.r_neg by auto
-      then have "val (c \<ominus> c) = \<infinity>" using val_zero by auto
-      then have "eint (n + 1) \<le> val (c \<ominus> c)" by simp
-      then show ?thesis using True c_ballI assms by auto
+      then show ?thesis
+        using assms c_ball_center_in is_ball_def by blast 
     next
       case False
       then have xc_nz: "x \<ominus> c \<in> nonzero Q\<^sub>p"
         using x_car assms Qp.not_eq_diff_nonzero by auto
       have "padic_dist c x = padic_norm (x \<ominus> c)"
-        using padic_dist_commute[of c x] padic_dist_as_norm[OF x_car assms]
-              padic_dist_as_norm[OF assms x_car] by simp
+        by (metis assms padic.commute padic_dist_as_norm x_car)
       then have "padic_norm (x \<ominus> c) < p powr (- real_of_int n)"
         using dist_lt by linarith
       then have "p powr (- real_of_int (ord (x \<ominus> c))) < p powr (- real_of_int n)"
         using padic_norm_def Qp.nonzero_memE(2)[OF xc_nz] by auto
       then have "- real_of_int (ord (x \<ominus> c)) < - real_of_int n"
         using powr_less_cancel_iff[OF p_gt_1_real] by auto
-      then have "n < ord (x \<ominus> c)" by linarith
       then have "n + 1 \<le> ord (x \<ominus> c)" by linarith
-      then have "eint (n + 1) \<le> val (x \<ominus> c)"
-        using val_ord xc_nz by auto
-      then show ?thesis using c_ballI x_car by auto
+      then show ?thesis using val_ord xc_nz c_ballI x_car by auto
     qed
   next
     assume xin: "x \<in> c_ball (n + 1) c"
@@ -398,8 +334,7 @@ proof (rule Set.set_eqI)
         moreover have "padic_dist c x = p powr (- real_of_int (ord (x \<ominus> c)))"
         proof -
           have "padic_dist c x = padic_norm (x \<ominus> c)"
-            using padic_dist_commute[of c x] padic_dist_as_norm[OF x_car assms]
-                  padic_dist_as_norm[OF assms x_car] by simp
+            by (metis assms padic.commute padic_dist_as_norm x_car)
           also have "\<dots> = p powr (- real_of_int (ord (x \<ominus> c)))"
             using padic_norm_def Qp.nonzero_memE(2)[OF xc_nz] by auto
           finally show ?thesis .
@@ -427,18 +362,7 @@ proof
     (* Choose n large enough that p powr (-n) < r.
        Since p \<ge> 2, p powr (-n) \<rightarrow> 0, so such n exists. *)
     obtain n :: int where n_large: "p powr (- real_of_int n) < r"
-    proof -
-      obtain k :: nat where hk: "1 / r < real_of_int p ^ k"
-        using real_arch_pow[of "1/r" "real_of_int p"] p_gt_1_real r_pos
-        using real_arch_pow by blast
-      have "p powr (- real_of_int (int k)) = inverse (p ^ k)"
-        using p_gt_1_real
-        by (simp add: powr_minus powr_realpow inverse_eq_divide)
-      also have "\<dots> < r"
-        using hk r_pos p_gt_1_real
-        by (simp add: field_simps)
-      finally show ?thesis using that by blast
-    qed
+      by (meson ex_less_of_int less_log_iff minus_less_iff p_gt_1_real r_pos)
     have "c_ball (n + 1) c = padic.mball c (p powr (- real_of_int n))"
       using mball_eq_c_ball[OF c_car] by auto
     then have "c_ball (n + 1) c \<subseteq> U"
@@ -483,34 +407,36 @@ next
   then have y_car: "y \<in> carrier Q\<^sub>p" and dy: "padic_dist c y \<le> r"
     using padic.in_mcball by auto
   show "\<exists>\<epsilon>>0. padic.mball y \<epsilon> \<subseteq> padic.mcball c r"
-  proof (intro exI conjI)
+  proof (intro exI conjI subsetI)
     show "0 < r" using assms by auto
-    show "padic.mball y r \<subseteq> padic.mcball c r"
-    proof
-      fix z assume z_in: "z \<in> padic.mball y r"
-      then have z_car: "z \<in> carrier Q\<^sub>p" and dyz: "padic_dist y z < r"
-        using padic.in_mball by auto
-      have "padic_dist c z \<le> max (padic_dist c y) (padic_dist y z)"
-        using padic_dist_ultrametric[OF assms(1) y_car z_car] by auto
-      also have "\<dots> \<le> r" using dy dyz by simp
-      finally show "z \<in> padic.mcball c r"
-        using padic.in_mcball assms(1) z_car by auto
-    qed
+  next
+    fix z assume z_in: "z \<in> padic.mball y r"
+    then have z_car: "z \<in> carrier Q\<^sub>p" and dyz: "padic_dist y z < r"
+      using padic.in_mball by auto
+    have "padic_dist c z \<le> max (padic_dist c y) (padic_dist y z)"
+      using padic_dist_ultrametric[OF assms(1) y_car z_car] by auto
+    also have "\<dots> \<le> r" using dy dyz by simp
+    finally show "z \<in> padic.mcball c r"
+      using padic.in_mcball assms(1) z_car by auto
   qed
 qed
 
-text \<open>Equivalently: balls are clopen.\<close>
+text \<open>Equivalently, balls are clopen.\<close>
+
+lemma c_ball_open:
+  assumes "c \<in> carrier Q\<^sub>p"
+  shows "openin padic.mtopology (c_ball n c)"
+  using assms openin_ball padic_mtopology_eq by force
+
+lemma c_ball_closed:
+  assumes "c \<in> carrier Q\<^sub>p"
+  shows "closedin padic.mtopology (c_ball n c)"
+  using assms c_ball_eq_mcball by force
+
 lemma c_ball_clopen:
   assumes "c \<in> carrier Q\<^sub>p"
   shows "openin padic.mtopology (c_ball n c) \<and> closedin padic.mtopology (c_ball n c)"
-proof
-  have r_pos: "0 < real_of_int p powr (- real_of_int n)"
-    using p_gt_1_real by simp
-  show "openin padic.mtopology (c_ball n c)"
-    using c_ball_eq_mcball[OF assms] mcball_is_open[OF assms r_pos] by simp
-  show "closedin padic.mtopology (c_ball n c)"
-    using c_ball_eq_mcball[OF assms] padic.closedin_mcball by simp
-qed
+  by (simp add: assms c_ball_closed c_ball_open)
 
 text \<open>Total disconnectedness.\<close>
 lemma padic_mtop_totally_disconnected:
@@ -521,23 +447,14 @@ proof (rule ccontr)
   have S_sub: "S \<subseteq> carrier Q\<^sub>p"
     using assms connectedin_subset_topspace padic.topspace_mtopology by blast
   obtain x y where xy: "x \<in> S" "y \<in> S" "x \<noteq> y"
-  proof -
-    have "S \<noteq> {}" using neg by blast
-    then obtain x where "x \<in> S" by auto
-    have "\<not>(S \<subseteq> {x})" using neg by auto
-    then obtain y where "y \<in> S" "y \<noteq> x" by auto
-    then show thesis using \<open>x \<in> S\<close> that by auto
-  qed
+    by (metis insertI1 neg subsetI)
   have x_car: "x \<in> carrier Q\<^sub>p" and y_car: "y \<in> carrier Q\<^sub>p"
     using S_sub xy by auto
   have xy_nz: "x \<ominus> y \<in> nonzero Q\<^sub>p"
     using xy x_car y_car Qp.not_eq_diff_nonzero by auto
   define n where "n = ord (x \<ominus> y) + 1"
   have x_in_ball: "x \<in> c_ball n x"
-  proof (rule c_ballI[OF x_car])
-    have "x \<ominus> x = \<zero>" using x_car Qp.r_neg by auto
-    then show "eint n \<le> val (x \<ominus> x)" using val_zero by simp
-  qed
+    using c_ball_center_in is_ball_def x_car by blast
   have y_not_in_ball: "y \<notin> c_ball n x"
   proof
     assume "y \<in> c_ball n x"
@@ -549,24 +466,14 @@ proof (rule ccontr)
     have "y \<ominus> x = \<ominus> (x \<ominus> y)"
       using x_car y_car using Qp.minus_a_inv by blast
     then have "ord (y \<ominus> x) = ord (x \<ominus> y)"
-      using equal_val_imp_equal_ord(1)[OF xy_nz]
-            val_minus[of "x \<ominus> y"] val_ord[OF xy_nz] val_ord[OF yx_nz]
       using ord_minus xy_nz by presburger
     then show False using n_le n_def by linarith
   qed
-  have clopen: "openin padic.mtopology (c_ball n x)" "closedin padic.mtopology (c_ball n x)"
-    using c_ball_clopen[OF x_car] by auto
   have "S \<subseteq> c_ball n x \<or> disjnt S (c_ball n x)"
-    using connectedin_clopen_cases[OF assms clopen(2) clopen(1)] by auto
+    using connectedin_clopen_cases[OF assms] c_ball_closed 
+    using openin_ball padic_mtopology_eq x_car by auto
   then show False
-  proof
-    assume "S \<subseteq> c_ball n x"
-    then show False using xy(2) y_not_in_ball by auto
-  next
-    assume "disjnt S (c_ball n x)"
-    then show False using xy(1) x_in_ball
-      by (simp add: disjnt_def disjoint_iff)
-  qed
+    by (meson disjnt_iff in_mono x_in_ball xy y_not_in_ball)
 qed
 
 text \<open>Nested balls — reproved from the ultrametric inequality.\<close>
@@ -640,7 +547,7 @@ lemma padic_totally_disconnected:
 
 subsection \<open>Completeness\<close>
 
-text \<open>$\\mathbb{Q}_p$ is complete: every Cauchy sequence converges.
+text \<open>$\mathbb{Q}_p$ is complete: every Cauchy sequence converges.
   This uses @{term \<open>Metric_space.mcomplete\<close>}.\<close>
 
 lemma padic_complete: "padic.mcomplete"
@@ -648,10 +555,10 @@ lemma padic_complete: "padic.mcomplete"
 proof (intro allI impI)
   fix \<sigma> assume cauchy: "padic.MCauchy \<sigma>"
 
-  text \<open>Task 1: Reduce to bounded sequences.
-    Every Cauchy sequence in $\\mathbb{Q}_p$ is eventually in some ball @{term \<open>c_ball 0 c\<close>}.
+  text \<open>Step 1: Reduce to bounded sequences.
+    Every Cauchy sequence in $\mathbb{Q}_p$ is eventually in some ball @{term \<open>c_ball 0 c\<close>}.
     By rescaling (multiplying by a power of $p$), we can reduce to a
-    sequence in $\\mathbb{Z}_p$ (i.e., with non-negative valuation).\<close>
+    sequence in $\mathbb{Z}_p$ (i.e., with non-negative valuation).\<close>
 
   have \<sigma>_range: "range \<sigma> \<subseteq> carrier Q\<^sub>p"
     using cauchy padic.MCauchy_def by auto
@@ -678,9 +585,9 @@ proof (intro allI impI)
   qed
 
 
-  text \<open>Task 2: Translate metric Cauchy to val-based Cauchy.
+  text \<open>Step 2: Translate metric Cauchy to val-based Cauchy.
     Show that @{term padic.MCauchy} (in @{term padic_dist}) implies that
-    for all $n$, eventually $\\mathrm{val}(\\sigma_m - \\sigma_k) \\ge n$.
+    for all $n$, eventually $\mathrm{val}(\sigma_m - \sigma_k) \ge n$.
     This is the AFP's notion of being Cauchy.\<close>
 
   have val_cauchy: "\<forall>n. \<exists>K. \<forall>m k. m \<ge> K \<longrightarrow> k \<ge> K \<longrightarrow> eint n \<le> val (\<sigma> m \<ominus> \<sigma> k)"
@@ -723,9 +630,9 @@ proof (intro allI impI)
     qed
   qed
 
-  text \<open>Task 3: Reduce to $\\mathbb{Z}_p$.
+  text \<open>Step 3: Reduce to $\mathbb{Z}_p$.
     After shifting/rescaling, express the (tail of the) sequence as
-    $\\iota \\circ s$ for some $s : \\mathbb{N} \\to \\mathrm{carrier}\\; \\mathbb{Z}_p$,
+    $\iota \circ s$ for some $s : \mathbb{N} \to \mathrm{carrier}\; \mathbb{Z}_p$,
     then show $s$ is @{term is_Zp_cauchy}.\<close>
 
   define s where "s m = to_Zp (\<sigma> m \<ominus> c)" for m
@@ -810,9 +717,9 @@ proof (intro allI impI)
   have s_cauchy: "is_Zp_cauchy s"
     using s_closed s_val_cauchy is_Zp_cauchy_def by auto
 
-  text \<open>Task 4: Apply $\\mathbb{Z}_p$ completeness.
-    Use @{thm [source] is_Zp_cauchy_imp_has_limit} to get the limit in $\\mathbb{Z}_p$,
-    then map it back to $\\mathbb{Q}_p$.\<close>
+  text \<open>Step 4: Apply $\mathbb{Z}_p$ completeness.
+    Use @{thm [source] is_Zp_cauchy_imp_has_limit} to get the limit in $\mathbb{Z}_p$,
+    then map it back to $\mathbb{Q}_p$.\<close>
 
   define a where "a = res_lim s"
   have a_Zp: "a \<in> carrier Z\<^sub>p"
@@ -821,7 +728,7 @@ proof (intro allI impI)
   have Zp_conv: "Zp_converges_to s a"
     using is_Zp_cauchy_imp_has_limit s_cauchy a_def by auto
 
-  text \<open>Task 5: Translate $\\mathbb{Z}_p$ convergence back to $\\mathbb{Q}_p$ metric convergence.
+  text \<open>Step 5: Translate $\mathbb{Z}_p$ convergence back to $\mathbb{Q}_p$ metric convergence.
     Show @{term \<open>Zp_converges_to s a\<close>} implies
     @{term \<open>limitin padic.mtopology \<sigma> L sequentially\<close>}.
     Key bridge: @{thm [source] val_of_inc}, @{thm [source] inc_of_diff}, and the characterization
