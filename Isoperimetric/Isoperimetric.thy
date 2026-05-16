@@ -4466,15 +4466,9 @@ proof -
   have lfg: "loop_free g" using g by (simp add: simple_path_def)
   have Reb: "Re b > 0" using b(2) assms by simp
   have Imb: "Im b = 0" using b(3) assms by simp
-\<comment> \<open>Common arc-integral sign lemmas used by both split_case and split_case'.
-     arc_int_above: Im(g) \<ge> 0 on [u,v] with Re increasing \<rightarrow> integral f \<ge> 0
-     arc_int_below: Im(g) \<le> 0 on [u,v] with Re decreasing \<rightarrow> integral f \<ge> 0\<close>
-  define f where "f \<equiv> \<lambda>s. Re (g' s) * Im (g s)"
     \<comment> \<open>Re-injectivity: on each arc, Re \<circ> g is injective (except at endpoints).
        Otherwise frontier_vertical_at_most_two gives a contradiction via 3 points
        on frontier(closure(inside)) with the same Re-value.\<close>
-  have f_int: "f integrable_on {0..1}"
-    using set_lebesgue_integral_eq_integral(1)[OF f_abs_int] f_def by argo
   have Re_inj_upper: "\<lbrakk>s1 \<in> {0..t}; s2 \<in> {0..t}; Re (g s1) = Re (g s2); s1 \<noteq> s2\<rbrakk>
         \<Longrightarrow> (s1 = 0 \<and> s2 = t) \<or> (s1 = t \<and> s2 = 0)" for s1 s2
     using Re_inj_upper_gen g0 g1 using hgt t by presburger
@@ -4483,6 +4477,7 @@ proof -
     using OP.Re_inj_upper_gen[of "1-s1" "1-t" "1-s2"] hgt t using g g0 g1 assms
     by (auto simp add: gop_def reversepath_def)
       \<comment> \<open>Step 0: Absolute integrability (needed for integral splitting)\<close>
+  define f where "f \<equiv> \<lambda>s. Re (g' s) * Im (g s)"
   have f_int: "f integrable_on {0..1}"
     using set_lebesgue_integral_eq_integral(1)[OF f_abs_int] f_def by argo
       \<comment> \<open>Step 1: The integral splits over [0,t] and [t,1]\<close>
@@ -4587,7 +4582,7 @@ proof -
     proof -
       have cont_g_upper: "continuous_on {0..t} g"
         using absolutely_continuous_on_imp_continuous[OF ac_sub] is_interval_cc by blast
-      define \<phi> where "\<phi> \<equiv> \<lambda>(s::real, r::real). Complex (Re (g s)) (r * Im (g s))"
+      define \<phi> where "\<phi> \<equiv> \<lambda>(s,r). Complex (Re (g s)) (r * Im (g s))"
       have cont_\<phi>: "continuous_on ({0..t} \<times> {0..1}) \<phi>"
         unfolding \<phi>_def split_def
         by (intro continuous_intros continuous_on_compose2[OF cont_g_upper] continuous_on_fst) auto
@@ -4615,7 +4610,7 @@ proof -
           then obtain s where s: "s \<in> {0..t}" "w = g s" by auto
           show "z \<in> \<phi> ` ({0..t} \<times> {0..1})"
           proof (cases "Im w = 0")
-            case True
+            case True 
             then have "Im z = 0" using w(3,4) by linarith
             then have "z = \<phi> (s, 0)" unfolding \<phi>_def using w(2) s(2) by (simp add: complex_eq_iff)
             then show ?thesis using s(1) by auto
@@ -4630,11 +4625,11 @@ proof -
           qed
         qed
       qed
-      have "compact ({0..t} \<times> {0..1::real})" by (intro compact_Times compact_Icc)
-      then have "compact Au" using img compact_continuous_image[OF cont_\<phi>] by simp
+      with compact_Times compact_Icc img compact_continuous_image[OF cont_\<phi>]
+      have "compact Au" by metis
       then show ?thesis using lmeasurable_compact by blast
     qed
-    have Al_meas: "Al \<in> lmeasurable"
+    have Al_meas: "Al \<in> lmeasurable" (*DUALITY*)
     proof -
       have cont_g_lower: "continuous_on {t..1} g"
         using absolutely_continuous_on_imp_continuous[OF ac_sub'] is_interval_cc by blast
@@ -5260,29 +5255,7 @@ proof -
       using Reb assms by force
 
     have not_all_above: "\<not> (path_image g \<subseteq> {z. 0 \<le> Im z})"
-    proof
-      assume above: "path_image g \<subseteq> {z. 0 \<le> Im z}"
-      then have hull_above: "convex hull (path_image g) \<subseteq> {z. 0 \<le> Im z}"
-        by (intro hull_minimal convex_halfspace_Im_ge)
-      then have inside_above: "inside (path_image g) \<subseteq> {z. 0 < Im z}"
-      proof -
-        have sub: "inside (path_image g) \<subseteq> {z. (0::real) \<le> \<i> \<bullet> z}"
-          using hull_above closure_eq closure_subset by auto
-        then have "inside (path_image g) \<subseteq> interior {z. (0::real) \<le> \<i> \<bullet> z}"
-          using interior_maximal open_inside by blast
-        also have "\<dots> = {z. 0 < \<i> \<bullet> z}"
-          by (rule interior_halfspace_ge) simp
-        finally show ?thesis by (simp add: complex_inner_i_right)
-      qed
-      have "open_segment a b \<subseteq> path_image g"
-        using frontier_def frontier_eq inside_above interior_open open_inside seg_Im0 seg_in_closure
-        by fastforce
-      then have "open_segment a b \<subseteq> {z \<in> path_image g. Im z = 0}"
-        using seg_Im0 by auto
-      also have "\<dots> \<subseteq> {0, b}"
-        using real_on_curve by blast
-      finally show False using seg_infinite finite_subset by blast
-    qed
+      using Reb assms not_all_above real_on_curve by blast
     
     have not_all_below: "\<not> (path_image g \<subseteq> {z. Im z \<le> 0})"
       using OP.not_all_above using g g0 g1 assms Reb real_on_curve
