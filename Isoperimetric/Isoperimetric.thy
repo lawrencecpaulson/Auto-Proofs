@@ -4730,7 +4730,37 @@ proof -
        Proof idea: if w \<in> open_segment 0 b and w \<in> frontier K, a supporting hyperplane
        at w perpendicular to [0,b] would force a or b outside K, contradicting diameter.\<close>
     have seg_inside: "open_segment 0 b \<subseteq> inside (path_image g)"
-      sorry
+    proof -
+      define K where \<open>K \<equiv> closure(inside (path_image g))\<close>
+      then have Keq: \<open>K = convex hull(path_image g)\<close>
+        using conv convex_hull_eq_closure_inside g by presburger
+      then have \<open>compact K \<close>
+        by (simp add: compact_convex_hull compact_simple_path_image g(1))
+      obtain K0b: \<open>0 \<in> K\<close> \<open>b \<in> K\<close>
+        by (metis Keq a0 b(1) g0 hull_inc path_defs(2) pathstart_in_path_image)
+      then have \<open>dist 0 b \<le> diameter K\<close>
+        by (meson \<open>compact K\<close> compact_imp_bounded diameter_bounded_bound)
+      have \<open>open_segment 0 b \<subseteq> interior K\<close>
+      proof
+        fix w
+        assume w: \<open>w \<in> open_segment 0 b\<close>
+        have False if \<open>w \<in> frontier K\<close>
+        proof -
+          have \<open>0 \<notin> K \<or> b \<notin> K\<close>
+            (*a supporting hyperplane at w perpendicular to [0,b] would force a or b outside K*)
+            sorry
+          then show False
+            by (simp add: \<open>0 \<in> K\<close> \<open>b \<in> K\<close>)
+        qed
+        with w show \<open>w \<in> interior K\<close>
+          unfolding frontier_def
+          by (metis DiffI K_def Keq K0b closure_closure convex_contains_open_segment 
+              convex_convex_hull in_mono)
+      qed
+      also have \<open>\<dots> \<subseteq> inside (path_image g)\<close>
+        by (simp add: K_def conv convex_interior_closure interior_subset)
+      finally show ?thesis .
+    qed
     \<comment> \<open>Step 4: z is on the curve, so z \<notin> inside. Hence z \<notin> open_segment 0 b.
        Combined with z \<in> closed_segment 0 b, we get z = 0 \<or> z = b.\<close>
     have "z \<notin> inside (path_image g)"
