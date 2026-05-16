@@ -1,6 +1,6 @@
 theory Isoperimetric
   imports Arc_Length_Reparametrization "Fourier.Fourier" "Green.Green" "../Euclidean_Space_Transfer"
-    "HOL-ex.Sketch_and_Explore" 
+    "HOL-ex.Sketch_and_Explore" "Isar_Explore"
 begin
 
 section \<open>Library material\<close>
@@ -5038,7 +5038,8 @@ proof -
     qed
     moreover have "integral {0..1} (\<lambda>t. Re (reversepath g' t) * Im (reversepath g t)) 
                  = integral {0..1} (\<lambda>t. Re (g' t) * Im (g t))"
-      sorry
+      using has_integral_affinity [of f _ 0 1 "-1" 1] f_abs_int
+      by (fastforce simp add: reversepath_def f_def absolutely_integrable_on_def)
     ultimately show ?thesis
       using f_abs_int by (auto simp: Green_concl_def)
   qed
