@@ -4747,8 +4747,14 @@ proof -
         have False if \<open>w \<in> frontier K\<close>
         proof -
           have \<open>0 \<notin> K \<or> b \<notin> K\<close>
-            (*a supporting hyperplane at w perpendicular to [0,b] would force a or b outside K*)
-            sorry
+          proof -
+            define H where \<open>H \<equiv> {z. Re z = Re w}\<close>
+            have \<open>H \<inter> K = {}\<close>
+              apply (auto simp: K_def H_def)
+              sorry
+            then show ?thesis
+              using H_def \<open>compact K\<close> frontier_subset_compact that by blast
+          qed
           then show False
             by (simp add: \<open>0 \<in> K\<close> \<open>b \<in> K\<close>)
         qed
