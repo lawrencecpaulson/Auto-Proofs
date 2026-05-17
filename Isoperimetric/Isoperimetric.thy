@@ -1,6 +1,6 @@
 theory Isoperimetric
   imports Arc_Length_Reparametrization "Fourier.Fourier" "Green.Green" "../Euclidean_Space_Transfer"
-    "HOL-ex.Sketch_and_Explore"
+    "HOL-ex.Sketch_and_Explore" "Isar_Explore"
 begin
 
 section \<open>Library material\<close>
@@ -103,6 +103,60 @@ proof -
     by (force simp: image_iff)
   then show ?thesis
     by (simp add: diameter_def)
+qed
+
+lemma convex_open_segment_cases:
+  fixes S :: "'a::euclidean_space set"
+  assumes "convex S" "x \<in> closure S" "y \<in> closure S"
+  shows "open_segment x y \<subseteq> rel_frontier S \<or> open_segment x y \<subseteq> rel_interior S"
+proof -
+  have seg_in_clos: "open_segment x y \<subseteq> closure S"
+    using convex_closure[OF assms(1)] assms(2,3)
+    by (meson convex_contains_segment segment_open_subset_closed subset_trans)
+  show ?thesis
+  proof (cases "open_segment x y \<inter> rel_interior S = {}")
+    case True
+    then have "open_segment x y \<subseteq> closure S - rel_interior S"
+      using seg_in_clos by auto
+    then show ?thesis
+      by (simp add: rel_frontier_def)
+  next
+    case False
+    then obtain c where c: "c \<in> open_segment x y" "c \<in> rel_interior S"
+      by auto
+    have "open_segment x y \<subseteq> rel_interior S"
+    proof -
+      have xc: "open_segment x c \<subseteq> rel_interior S"
+        using rel_interior_closure_convex_segment[OF assms(1) c(2) assms(2)]
+        by (simp add: open_segment_commute)
+      have cy: "open_segment c y \<subseteq> rel_interior S"
+        using rel_interior_closure_convex_segment[OF assms(1) c(2) assms(3)]
+        by simp
+      from Un_open_segment[OF c(1)] xc c(2) cy
+      show ?thesis by auto
+    qed
+    then show ?thesis by simp
+  qed
+qed
+
+lemma convex_open_segment_cases_alt:
+  fixes S :: "'a::euclidean_space set"
+  assumes "convex S" "x \<in> closure S" "y \<in> closure S"
+  shows "open_segment x y \<subseteq> frontier S \<or> open_segment x y \<subseteq> interior S"
+proof (cases "interior S = {}")
+  case True
+  then have "frontier S = closure S"
+    by (simp add: frontier_def)
+  moreover have "open_segment x y \<subseteq> closure S"
+    using convex_closure[OF assms(1)] assms(2,3)
+    by (meson convex_contains_segment segment_open_subset_closed subset_trans)
+  ultimately show ?thesis by simp
+next
+  case False
+  then have "rel_interior S = interior S" "rel_frontier S = frontier S"
+    using rel_interior_nonempty_interior rel_frontier_nonempty_interior by auto
+  with convex_open_segment_cases[OF assms]
+  show ?thesis by simp
 qed
 
 (*Added to Absolute_Continuity 2026-05*)
@@ -4615,55 +4669,28 @@ interpretation R: Green "reversepath g" "uminus \<circ> reversepath g'" "(\<lamb
 lemma Green_area_zero:
   assumes "a = 0"
   shows "Green_concl g g'"
+
 proof -
-  \<comment> \<open>Common facts used by both split_case and split_case'\<close>
   have g0: "g 0 = 0" using assms g(2) by (simp add: pathstart_def)
   have g1: "g 1 = 0" using assms g(3) by (simp add: pathfinish_def)
-  have lfg: "loop_free g" using g by (simp add: simple_path_def)
-  have Reb: "Re b > 0" using b(2) assms by simp
-  have Imb: "Im b = 0" using b(3) assms by simp
   define f where "f \<equiv> \<lambda>s. Re (g' s) * Im (g s)"
-  have f_int: "f integrable_on {0..1}"
-    using set_lebesgue_integral_eq_integral(1)[OF f_abs_int] f_def by argo
-  \<comment> \<open>Re-injectivity: on each arc, Re \<circ> g is injective (except at endpoints).
-     These facts depend only on simple_path and convexity, not on the half-plane orientation.
-     Proof idea: if {s1,s2} \<noteq> {0,t} then at least one is interior, giving 3 distinct points
-     on frontier(convex hull (path_image g)) with the same Re-value, contradicting
-     frontier_vertical_at_most_two.\<close>
-  have Re_inj_upper: "\<lbrakk>s1 \<in> {0..t}; s2 \<in> {0..t}; Re (g s1) = Re (g s2); s1 \<noteq> s2\<rbrakk>
-      \<Longrightarrow> (s1 = 0 \<and> s2 = t) \<or> (s1 = t \<and> s2 = 0)" if ht: "0 < t" "t < 1" "g t = b" for s1 s2 t
-    using Re_inj_upper_gen g0 g1 ht by presburger
-  have Re_inj_lower: "s1 = t \<and> s2 = 1 \<or> s1 = 1 \<and> s2 = t"
-    if "s1 \<in> {t..1}" and "s2 \<in> {t..1}" and "Re (g s1) = Re (g s2)" and "s1 \<noteq> s2" 
-      and ht: "0 < t" "t < 1" "g t = b"  for s1 s2 t
-    using R.Re_inj_upper_gen[of "1-s1" "1-t" "1-s2"] that using g g0 g1 assms
-    by (auto simp add: gop_def reversepath_def)
-
-  \<comment> \<open>Common injectivity lemmas used by both split_case and split_case'\<close>
-  \<comment> \<open>Common arc-integral sign lemmas used by both split_case and split_case'.
-     arc_int_above: Im(g) \<ge> 0 on [u,v] with Re increasing \<rightarrow> integral f \<ge> 0
-     arc_int_below: Im(g) \<le> 0 on [u,v] with Re decreasing \<rightarrow> integral f \<ge> 0\<close>
-
   have split_case: "Green_concl g g'"
-    if t: "0 < t" "t < 1"
+    if assms: "a = 0"
+      and t: "0 < t" "t < 1"
       and hgt: "g t = b"
       and above: "g ` {0..t} \<subseteq> {z. 0 \<le> Im z}"
       and below: "g ` {t..1} \<subseteq> {z. Im z \<le> 0}"
-    for t 
-    using Green_area_zero_A above assms below t(1,2) that(3) by blast
-
-
-  \<comment> \<open>Symmetric case: first arc below, second arc above.
-     Reduce to split_case by conjugation: if g stays below first, then conj\<circ>g stays above first.
-     Green_concl is invariant under conjugation since Re(g') \<sqdot> Im(g) = -Re(conj g') \<sqdot> Im(conj g)
-     and inside is preserved up to reflection.\<close>
+    for t :: real
+    using Green_area_zero_A[OF assms t hgt above below] .
   have split_case': "Green_concl g g'"
-    if t: "0 < t" "t < 1"
+    if assms: "a = 0"
+      and t: "0 < t" "t < 1"
       and hgt: "g t = b"
       and below: "g ` {0..t} \<subseteq> {z. Im z \<le> 0}"
       and above: "g ` {t..1} \<subseteq> {z. 0 \<le> Im z}"
     for t :: real
   proof -
+
     have "Green_concl (reversepath g) (uminus \<circ> reversepath g')"
     proof (intro R.Green_area_zero_A)
       show "a=0" "0 < 1-t" "1-t < 1"
@@ -4740,28 +4767,37 @@ proof -
         by (metis Keq a0 b(1) g0 hull_inc path_defs(2) pathstart_in_path_image)
       then have \<open>dist 0 b \<le> diameter K\<close>
         by (meson \<open>compact K\<close> compact_imp_bounded diameter_bounded_bound)
+      have convK: \<open>convex K\<close>
+        using Keq convex_convex_hull by auto
+      have closedK: \<open>closed K\<close>
+        using \<open>compact K\<close> compact_imp_closed by blast
+      have \<open>0 \<in> closure K\<close> \<open>b \<in> closure K\<close>
+        using K0b closedK by simp_all
+      have frontierK: \<open>frontier K = path_image g\<close>
+      proof -
+        have \<open>interior K = inside (path_image g)\<close>
+          using K_def conv convex_interior_closure
+          using Jordan_inside_outside R.g(1) g inside_frontier_eq_interior by fastforce
+        then show ?thesis           
+          using closure_closed[OF closedK] unfolding frontier_def K_def
+          by (metis Jordan_inside_outside frontier_def g(1) g0 g1 interior_interior pathfinish_def
+              pathstart_def)
+      qed
       have \<open>open_segment 0 b \<subseteq> interior K\<close>
-      proof
-        fix w
-        assume w: \<open>w \<in> open_segment 0 b\<close>
-        have False if \<open>w \<in> frontier K\<close>
-        proof -
-          have \<open>0 \<notin> K \<or> b \<notin> K\<close>
-          proof -
-            define H where \<open>H \<equiv> {z. Re z = Re w}\<close>
-            have \<open>H \<inter> K = {}\<close>
-              apply (auto simp: K_def H_def)
-              sorry
-            then show ?thesis
-              using H_def \<open>compact K\<close> frontier_subset_compact that by blast
-          qed
-          then show False
-            by (simp add: \<open>0 \<in> K\<close> \<open>b \<in> K\<close>)
-        qed
-        with w show \<open>w \<in> interior K\<close>
-          unfolding frontier_def
-          by (metis DiffI K_def Keq K0b closure_closure convex_contains_open_segment 
-              convex_convex_hull in_mono)
+      proof (rule disjE[OF convex_open_segment_cases_alt[OF convK \<open>0 \<in> closure K\<close> \<open>b \<in> closure K\<close>]])
+        assume front: \<open>open_segment 0 b \<subseteq> frontier K\<close>
+        \<comment> \<open>Pick the midpoint of 0 and b; it's in the open segment, real, on the curve, but \<noteq> 0, b\<close>
+        have \<open>midpoint 0 b \<in> open_segment 0 b\<close>
+          using Reb by auto
+        then have \<open>midpoint 0 b \<in> path_image g\<close>
+          using front frontierK by blast
+        moreover have \<open>Im (midpoint 0 b) = 0\<close>
+          using Imb by (simp add: midpoint_def)
+        ultimately have \<open>midpoint 0 b = 0 \<or> midpoint 0 b = b\<close>
+          sorry
+        moreover have \<open>midpoint 0 b \<noteq> 0\<close> \<open>midpoint 0 b \<noteq> b\<close>
+          using Reb by (auto simp: midpoint_def complex_eq_iff)
+        ultimately show ?thesis by blast
       qed
       also have \<open>\<dots> \<subseteq> inside (path_image g)\<close>
         by (simp add: K_def conv convex_interior_closure interior_subset)
@@ -4791,6 +4827,15 @@ proof -
       by (smt (verit, best) b(2) box_real(2) g(3) mem_box_real(2) pathfinish_def t0)
     ultimately show thesis using t0 that by blast
   qed
+  have Reb: "Re b > 0" using b(2) assms by simp
+  have Im_b: "Im b = 0" using b(3) assms by simp
+  have Re_inj_upper: "\<lbrakk>s1 \<in> {0..t}; s2 \<in> {0..t}; Re (g s1) = Re (g s2); s1 \<noteq> s2\<rbrakk>
+        \<Longrightarrow> (s1 = 0 \<and> s2 = t) \<or> (s1 = t \<and> s2 = 0)" for s1 s2
+    using Re_inj_upper_gen g0 g1 t by presburger
+  have Re_inj_lower: "\<lbrakk>s1 \<in> {t..1}; s2 \<in> {t..1}; Re (g s1) = Re (g s2); s1 \<noteq> s2\<rbrakk>
+        \<Longrightarrow> (s1 = t \<and> s2 = 1) \<or> (s1 = 1 \<and> s2 = t)" for s1 s2
+    using CR.Re_inj_upper_gen[of "1-s1" "1-t" "1-s2"] t g g0 g1 assms
+    by (auto simp add: gop_def reversepath_def)
   \<comment> \<open>Im \<circ> g doesn't change sign on [0,t]: if it did, IVT gives a real point on the curve
      in (0,t), contradicting real_on_curve and simple path injectivity.\<close>
   have no_cross_1: "(\<forall>s \<in> {0..t}. Im (g s) \<ge> 0) \<or> (\<forall>s \<in> {0..t}. Im (g s) \<le> 0)"
@@ -4944,7 +4989,8 @@ proof -
     show ?thesis by (auto simp: image_subset_iff)
   qed
   then show ?thesis
-    using split_case split_case' t by blast
+    using split_case split_case' t assms by blast
+
 qed
 
 subsection \<open>Conclusion of Green's theorem and the signed area formula for a convex closed curve.\<close>
