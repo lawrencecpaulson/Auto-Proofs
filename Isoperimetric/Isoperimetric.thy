@@ -2787,35 +2787,25 @@ proof -
     using pi_gt_zero by auto
   have img: "(\<lambda>x. x / (1/(2*pi))) ` {0..1} = {0..2*pi}"
     using image_divide_atLeastAtMost[OF inv_twopi_pos] by simp
-  text \<open>Precondition 1: g' has_integral (g x - g 0) on {0..x}\<close>
   have prec1: "\<And>x. x \<in> {0..2*pi} \<Longrightarrow> (g' has_integral (g x - g 0)) {0..x}"
   proof -
     fix x :: real assume x: "x \<in> {0..2*pi}"
-    have y_mem: "x / (2*pi) \<in> {0..1}" using x twopi_pos by (auto simp: field_simps)
-    have step1: "(f' has_integral (f (x/(2*pi)) - f 0)) {0..x/(2*pi)}"
-      using assms(1)[OF y_mem] by simp
-    have step2: "((\<lambda>s. f' (1/(2*pi) * s)) has_integral (2*pi) *\<^sub>R (f (x/(2*pi)) - f 0))
+    have *: "((\<lambda>s. f' (1/(2*pi) * s)) has_integral (2*pi) *\<^sub>R (f (x/(2*pi)) - f 0))
                  ((\<lambda>s. s / (1/(2*pi))) ` {0..x/(2*pi)})"
-      using has_integral_stretch_real[OF step1 inv_twopi_nz] inv_twopi_pos by simp
-    have img_sub: "(\<lambda>s. s / (1/(2*pi))) ` {0..x/(2*pi)} = {0..x}"
-      using image_divide_atLeastAtMost[OF inv_twopi_pos, of 0 "x/(2*pi)"]
+      using x has_integral_stretch_real[OF f' inv_twopi_nz] inv_twopi_pos by simp
+    have **: "((\<lambda>s. f' (s/(2*pi))) has_integral (2*pi) * (f (x/(2*pi)) - f 0)) {0..x}"
+      using * image_divide_atLeastAtMost[OF inv_twopi_pos, of 0 "x/(2*pi)"]
       using twopi_pos by (simp add: field_simps)
-    have step3: "((\<lambda>s. f' (s/(2*pi))) has_integral (2*pi) * (f (x/(2*pi)) - f 0)) {0..x}"
-      using step2 img_sub by (simp add: field_simps)
-    have step4: "((\<lambda>s. 1/(2*pi) * f' (s/(2*pi))) has_integral 1/(2*pi) * ((2*pi) * (f (x/(2*pi)) - f 0))) {0..x}"
-      using has_integral_mult_right[OF step3, of "1/(2*pi)"] by simp
     have val: "1/(2*pi) * ((2*pi) * (f (x/(2*pi)) - f 0)) = f (x/(2*pi)) - f 0"
       using twopi_nz by simp
     show "(g' has_integral (g x - g 0)) {0..x}"
-      using step4 twopi_nz unfolding g'_def g_def val by (simp add: field_simps)
+      using has_integral_mult_right[OF **, of "1/(2*pi)"] twopi_nz 
+      unfolding g'_def g_def val by (simp add: field_simps)
   qed
-  text \<open>Precondition 2: g(2*pi) = g(0)\<close>
   have prec2: "g (2*pi) = g 0"
     unfolding g_def using assms(2) by simp
-  text \<open>Precondition 3: (g has_integral 0) on {0..2*pi}\<close>
   have prec3: "(g has_integral 0) {0..2*pi}"
-    using has_integral_stretch_real_iff[OF inv_twopi_nz, of f 0 0 1] 
-    using assms(3) g_def img by auto
+    using has_integral_stretch_real_iff[OF inv_twopi_nz, of f 0 0 1]  f_int g_def img by auto
   text \<open>Precondition 4: (\<lambda>x. (g' x)²) integrable_on {0..2*pi}\<close>
   have prec4: "(\<lambda>x. (g' x)\<^sup>2) integrable_on {0..2*pi}"
   proof -
@@ -2842,14 +2832,7 @@ proof -
     unfolding g'_def by (simp add: power_mult_distrib field_simps)
   text \<open>Show 1: integrability of (f x)² on {0..1}\<close>
   show int_f2: "(\<lambda>x. (f x)\<^sup>2) integrable_on {0..1}"
-  proof -
-    from W1 have "(\<lambda>x. (f (1/(2*pi) * x))\<^sup>2) integrable_on {0..2*pi}"
-      by (simp add: g_unfold)
-    then have "(\<lambda>x. (f (1/(2*pi) * x))\<^sup>2) integrable_on ((\<lambda>x. x / (1/(2*pi))) ` {0..1})"
-      using img by simp
-    then show ?thesis
-      using integrable_stretch_real_iff[OF inv_twopi_nz, of "\<lambda>x. (f x)\<^sup>2" 0 1] by simp
-  qed
+    using integrable_stretch_real_iff[OF inv_twopi_nz, of "\<lambda>x. (f x)\<^sup>2" 0 1] W1 g_def img by force 
   text \<open>Show 2: the scaled inequality\<close>
   show "integral {0..1} (\<lambda>x. (2*pi * f x)\<^sup>2) \<le> integral {0..1} (\<lambda>x. (f' x)\<^sup>2)"
   proof -
@@ -2863,20 +2846,12 @@ proof -
       using integral_stretch_real[OF inv_twopi_nz, of 0 1 "\<lambda>x. (1/(2*pi))\<^sup>2 * (f' x)\<^sup>2"] by simp
     have factor_out: "integral {0..1} (\<lambda>x. (1/(2*pi))\<^sup>2 * (f' x)\<^sup>2) = (1/(2*pi))\<^sup>2 * integral {0..1} (\<lambda>x. (f' x)\<^sup>2)"
       by (simp add: integral_mult_right)
-    have rhs_val: "integral {0..2*pi} (\<lambda>x. (g' x)\<^sup>2) 
-                 = 2*pi * ((1/(2*pi))\<^sup>2 * integral {0..1} (\<lambda>x. (f' x)\<^sup>2))"
-    proof -
-      have "integral {0..2*pi} (\<lambda>x. (g' x)\<^sup>2) 
-          = integral ((\<lambda>x. x / (1/(2*pi))) ` {0..1}) (\<lambda>x. (g' x)\<^sup>2)"
-        using img by simp
-      also have "\<dots> = integral ((\<lambda>x. x / (1/(2*pi))) ` {0..1}) (\<lambda>x. (1/(2*pi))\<^sup>2 * (f' (1/(2*pi) * x))\<^sup>2)"
-        by (simp add: g'_unfold)
-      also have "\<dots> = (1 / \<bar>1/(2*pi)\<bar>) *\<^sub>R integral {0..1} (\<lambda>x. (1/(2*pi))\<^sup>2 * (f' x)\<^sup>2)"
-        using rhs_stretch by simp
-      also have "\<dots> = 2*pi * ((1/(2*pi))\<^sup>2 * integral {0..1} (\<lambda>x. (f' x)\<^sup>2))"
-        using inv_twopi_pos factor_out by simp
-      finally show ?thesis .
-    qed
+    have "integral {0..2*pi} (\<lambda>x. (g' x)\<^sup>2) = (1 / \<bar>1/(2*pi)\<bar>) *\<^sub>R integral {0..1} (\<lambda>x. (1/(2*pi))\<^sup>2 * (f' x)\<^sup>2)"
+      using img rhs_stretch by (simp add: g'_unfold)
+    also have "\<dots> = 2*pi * ((1/(2*pi))\<^sup>2 * integral {0..1} (\<lambda>x. (f' x)\<^sup>2))"
+      using inv_twopi_pos factor_out by simp
+    finally have rhs_val: "integral {0..2*pi} (\<lambda>x. (g' x)\<^sup>2) 
+                 = 2*pi * ((1/(2*pi))\<^sup>2 * integral {0..1} (\<lambda>x. (f' x)\<^sup>2))" .
     have rhs_simp: "2*pi * ((1/(2*pi))\<^sup>2 * integral {0..1} (\<lambda>x. (f' x)\<^sup>2))
                   = (1/(2*pi)) * integral {0..1} (\<lambda>x. (f' x)\<^sup>2)"
       using twopi_pos by (simp add: power2_eq_square field_simps)
@@ -2893,27 +2868,18 @@ proof -
       \<exists>c a. \<forall>x \<in> {0..1}. f x = c * sin (2*pi*x - a)"
   proof -
     assume eq: "integral {0..1} (\<lambda>x. (2*pi * f x)\<^sup>2) = integral {0..1} (\<lambda>x. (f' x)\<^sup>2)"
-    have lhs: "integral {0..2*pi} (\<lambda>x. (g x)\<^sup>2) = 2*pi * integral {0..1} (\<lambda>x. (f x)\<^sup>2)"
-    proof -
-      have "integral {0..2*pi} (\<lambda>x. (g x)\<^sup>2)
-          = integral ((\<lambda>x. x / (1/(2*pi))) ` {0..1}) (\<lambda>x. (f (1/(2*pi) * x))\<^sup>2)"
-        using img by (simp add: g_unfold)
-      also have "\<dots> = (1 / \<bar>1/(2*pi)\<bar>) *\<^sub>R integral {0..1} (\<lambda>x. (f x)\<^sup>2)"
-        using integral_stretch_real[OF inv_twopi_nz, of 0 1 "\<lambda>x. (f x)\<^sup>2"] by simp
-      also have "\<dots> = 2*pi * integral {0..1} (\<lambda>x. (f x)\<^sup>2)"
-        using inv_twopi_pos by simp
-      finally show ?thesis .
-    qed
+    have "integral {0..2*pi} (\<lambda>x. (g x)\<^sup>2) = (1 / \<bar>1/(2*pi)\<bar>) *\<^sub>R integral {0..1} (\<lambda>x. (f x)\<^sup>2)"
+      using img integral_stretch_real[OF inv_twopi_nz, of 0 1 "\<lambda>x. (f x)\<^sup>2"] by (simp add: g_unfold)
+    also have "\<dots> = 2*pi * integral {0..1} (\<lambda>x. (f x)\<^sup>2)"
+      using inv_twopi_pos by simp
+    finally have lhs: "integral {0..2*pi} (\<lambda>x. (g x)\<^sup>2) = 2*pi * integral {0..1} (\<lambda>x. (f x)\<^sup>2)" .
     have rhs: "integral {0..2*pi} (\<lambda>x. (g' x)\<^sup>2) 
              = (1/(2*pi)) * integral {0..1} (\<lambda>x. (f' x)\<^sup>2)"
     proof -
       have "integral {0..2*pi} (\<lambda>x. (g' x)\<^sup>2) 
-          = integral ((\<lambda>x. x / (1/(2*pi))) ` {0..1}) (\<lambda>x. (1/(2*pi))\<^sup>2 * (f' (1/(2*pi) * x))\<^sup>2)"
-        using img by (simp add: g'_unfold)
-      also have "\<dots> = (1 / \<bar>1/(2*pi)\<bar>) *\<^sub>R integral {0..1} (\<lambda>x. (1/(2*pi))\<^sup>2 * (f' x)\<^sup>2)"
-        using integral_stretch_real[OF inv_twopi_nz, of 0 1 "\<lambda>x. (1/(2*pi))\<^sup>2 * (f' x)\<^sup>2"] by simp
-      also have "\<dots> = 2*pi * ((1/(2*pi))\<^sup>2 * integral {0..1} (\<lambda>x. (f' x)\<^sup>2))"
-        using inv_twopi_pos by (simp add: integral_mult_right)
+          = (1 / \<bar>1/(2*pi)\<bar>) *\<^sub>R integral {0..1} (\<lambda>x. (1/(2*pi))\<^sup>2 * (f' x)\<^sup>2)"
+        using integral_stretch_real[OF inv_twopi_nz, of 0 1 "\<lambda>x. (1/(2*pi))\<^sup>2 * (f' x)\<^sup>2"] img 
+        by (simp add: g'_unfold)
       also have "\<dots> = (1/(2*pi)) * integral {0..1} (\<lambda>x. (f' x)\<^sup>2)"
         using twopi_pos by (simp add: power2_eq_square field_simps)
       finally show ?thesis .
@@ -2961,8 +2927,7 @@ proof -
   define ax where "ax \<equiv> (\<lambda>t. Re (g t)) ` {u..v}"
   have cont_h: "continuous_on ax h"
     unfolding ax_def
-    by (simp add: absolutely_continuous_on_imp_continuous assms(3) continuous_on_Re
-        continuous_on_inv h)
+    by (simp add: absolutely_continuous_on_imp_continuous acont_g continuous_on_Re continuous_on_inv h)
   show "(\<lambda>t. Re (g' t) * Im (g t)) absolutely_integrable_on {u..v}"
   proof -
     have cont_g: "continuous_on {u..v} g"
@@ -2971,18 +2936,13 @@ proof -
       using absolutely_integrable_absolutely_continuous_derivative[OF assms(3) assms(7)]
         assms(8) has_vector_derivative_at_within by blast
     have Re_gp_ai: "(\<lambda>t. Re (g' t)) absolutely_integrable_on {u..v}"
-    proof -
-      have "(\<lambda>t. g' t \<bullet> 1) absolutely_integrable_on {u..v}"
-        by (rule absolutely_integrable_component[OF gp_ai])
-      then show ?thesis by (simp add: complex_inner_1_right)
-    qed
+      using Re_absolutely_integrable_on gp_ai by blast
     have Im_g_cont: "continuous_on {u..v} (\<lambda>t. Im (g t))"
       by (intro continuous_intros cont_g)
     have Im_g_bdd: "bounded ((\<lambda>t. Im (g t)) ` {u..v})"
       by (intro compact_imp_bounded compact_continuous_image[OF Im_g_cont compact_Icc])
     have Im_g_meas: "(\<lambda>t. Im (g t)) \<in> borel_measurable (lebesgue_on {u..v})"
-      using continuous_imp_measurable_on_sets_lebesgue[OF Im_g_cont]
-        atLeastAtMost_borel lborelD
+      using continuous_imp_measurable_on_sets_lebesgue[OF Im_g_cont] atLeastAtMost_borel lborelD
       by (metis sets_completionI_sets)
     show ?thesis
       using absolutely_integrable_bounded_measurable_product_real [OF Im_g_meas _ Im_g_bdd Re_gp_ai]
@@ -3005,48 +2965,19 @@ proof -
       have smono: "strict_mono_on {u..v} (\<lambda>t. Re (g t)) \<or>
                    strict_antimono_on {u..v} (\<lambda>t. Re (g t))"
         using injective_eq_monotone_map[OF is_interval_cc cont_Reg] inj_Reg by auto
-      have mono: "strict_mono_on {u..v} (\<lambda>t. Re (g t))"
-      proof -
-        { assume am: "strict_antimono_on {u..v} (\<lambda>t. Re (g t))"
-          have "Re (g v) < Re (g u)"
-          proof -
-            from am have "antimono_on {u..v} (\<lambda>t. Re (g t))"
-              and "inj_on (\<lambda>t. Re (g t)) {u..v}"
-              using strict_antimono_iff_antimono by blast+
-            then have "mono_on {u..v} (\<lambda>t. - Re (g t))"
-              by (simp add: monotone_on_def)
-            then have "- Re (g u) \<le> - Re (g v)"
-              using mono_onD uv by fastforce
-            then show ?thesis
-              by (metis False assms(1,2) atLeastAtMost_iff h neg_le_iff_le nle_le)
-          qed
-          with Re_g_le have False by auto }
-        with smono show ?thesis by blast
-      qed
+      then have mono: "strict_mono_on {u..v} (\<lambda>t. Re (g t))"
+        by (smt (verit, ccfv_threshold) Re_g_le atLeastAtMost_iff monotone_onD uv)
       show ?thesis
         using mono by (auto simp: monotone_on_def ax_def less_eq_real_def)
     qed
   next
     show "{Re (g u)..Re (g v)} \<subseteq> ax"
-    proof
-      fix y assume "y \<in> {Re (g u)..Re (g v)}"
-      then have y: "Re (g u) \<le> y" "y \<le> Re (g v)" by auto
-      obtain t where t: "t \<in> {u..v}" "g t \<bullet> 1 = y"
-        using ivt_increasing_component_on_1[OF \<open>u \<le> v\<close> cont_g, of 1 y] y
-        by (auto simp: complex_inner_1_right)
-      then have "Re (g t) = y" by (simp add: complex_inner_1_right)
-      with t(1) show "y \<in> ax"
-        unfolding ax_def by force
-    qed
+      using ivt_increasing_component_on_1[OF \<open>u \<le> v\<close> cont_g, of 1] by (force simp: ax_def)
   qed
   show "integral {u..v} (\<lambda>t. Re (g' t) * Im (g t)) =
       measure lebesgue {z. \<exists>w \<in> g ` {u..v}. Re w = Re z \<and> 0 \<le> Im z \<and> Im z \<le> Im w}"
   proof -
     define f where "f \<equiv> (\<lambda>x. Im (g (h x)))"
-    have h_mem: "\<And>x. x \<in> {u..v} \<Longrightarrow> h (Re (g x)) \<in> {u..v}"
-      using h by simp
-    have h_inv: "\<And>x. x \<in> ax \<Longrightarrow> Re (g (h x)) = x"
-      using h by (force simp: ax_def)
     have f_gh: "\<And>t. t \<in> {u..v} \<Longrightarrow> f (Re (g t)) = Im (g t)"
       unfolding f_def using h by simp
     have h_range: "h ` ax \<subseteq> {u..v}"
@@ -3067,11 +2998,9 @@ proof -
       next
         case False
         with \<open>u \<le> v\<close> have "u < v" by auto
-        { assume am: "strict_antimono_on {u..v} (\<lambda>t. Re (g t))"
-          then have "Re (g v) < Re (g u)"
-            unfolding monotone_on_def using \<open>u < v\<close> \<open>u \<le> v\<close> by auto
-          with Re_g_le have False by auto }
-        with smono have "strict_mono_on {u..v} (\<lambda>t. Re (g t))" by blast
+        from smono have "strict_mono_on {u..v} (\<lambda>t. Re (g t))"
+          unfolding monotone_on_def using \<open>u < v\<close> \<open>u \<le> v\<close>
+          by (metis assms(2) atLeastAtMost_iff order.refl not_less)
         then show ?thesis
           by (simp add: monotone_on_def less_eq_real_def)
       qed
@@ -3089,48 +3018,26 @@ proof -
         cont_f ax by auto
     \<comment> \<open>Since f(Re(g t)) = Im(g t), the LHS simplifies\<close>
     have "integral {u..v} (\<lambda>t. Re (g' t) * Im (g t)) = integral {Re (g u)..Re (g v)} f"
-    proof -
-      have "((\<lambda>t. Re (g' t) * Im (g t)) has_integral (integral {Re (g u)..Re (g v)} f)) {u..v}"
-      proof -
-        have eq: "\<And>t. t \<in> {u..v} - {} \<Longrightarrow> Re (g' t) * Im (g t) = Re (g' t) * f (Re (g t))"
-          using f_gh by simp
-        show ?thesis
-          using has_integral_spike[OF negligible_empty eq subst] by auto
-      qed
-      then show ?thesis by (rule integral_unique)
-    qed
+      using f_gh has_integral_spike[OF negligible_empty _ subst] integral_unique
+      by fastforce
     \<comment> \<open>Apply area-under-curve: measure of subgraph = \<integral> f\<close>
     also have "\<dots> = measure lebesgue {z. \<exists>w \<in> g ` {u..v}. Re w = Re z \<and> 0 \<le> Im z \<and> Im z \<le> Im w}"
     proof -
       \<comment> \<open>First show the subgraph set equals {z. Re(g u) \<le> Re z \<and> Re z \<le> Re(g v) \<and> 0 \<le> Im z \<and> Im z \<le> f(Re z)}\<close>
       have set_eq: "{z. \<exists>w \<in> g ` {u..v}. Re w = Re z \<and> 0 \<le> Im z \<and> Im z \<le> Im w} =
                     {z. Re (g u) \<le> Re z \<and> Re z \<le> Re (g v) \<and> 0 \<le> Im z \<and> Im z \<le> f (Re z)}"
-      proof (rule antisym; rule subsetI)
+      proof (intro antisym subsetI)
         fix z assume "z \<in> {z. \<exists>w \<in> g ` {u..v}. Re w = Re z \<and> 0 \<le> Im z \<and> Im z \<le> Im w}"
         then obtain w t where wt: "t \<in> {u..v}" "w = g t" "Re w = Re z" "0 \<le> Im z" "Im z \<le> Im w"
           by auto
         have "Re z \<in> ax" unfolding ax_def using wt by force
-        then have "Re (g u) \<le> Re z" "Re z \<le> Re (g v)" using ax by auto
-        moreover have "f (Re z) = Im w"
-        proof -
-          have "h (Re z) = t"
-            by (metis h wt(1,2,3) atLeastAtMost_iff)
-          then show ?thesis unfolding f_def using wt by simp
-        qed
-        ultimately show "z \<in> {z. Re (g u) \<le> Re z \<and> Re z \<le> Re (g v) \<and> 0 \<le> Im z \<and> Im z \<le> f (Re z)}"
-          using wt by auto
+        then show "z \<in> {z. Re (g u) \<le> Re z \<and> Re z \<le> Re (g v) \<and> 0 \<le> Im z \<and> Im z \<le> f (Re z)}"
+          using f_def h wt ax by fastforce
       next
         fix z assume z: "z \<in> {z. Re (g u) \<le> Re z \<and> Re z \<le> Re (g v) \<and> 0 \<le> Im z \<and> Im z \<le> f (Re z)}"
         then have Rez: "Re z \<in> ax" using ax by auto
-        then obtain t where t: "t \<in> {u..v}" "Re (g t) = Re z"
-          unfolding ax_def by auto
-        let ?w = "g t"
-        have "?w \<in> g ` {u..v}" using t by auto
-        moreover have "Re ?w = Re z" using t by auto
-        moreover have "Im ?w = f (Re z)"
-          using f_gh[OF t(1)] t(2) by simp
-        ultimately show "z \<in> {z. \<exists>w \<in> g ` {u..v}. Re w = Re z \<and> 0 \<le> Im z \<and> Im z \<le> Im w}"
-          using z by auto
+        then show "z \<in> {z. \<exists>w \<in> g ` {u..v}. Re w = Re z \<and> 0 \<le> Im z \<and> Im z \<le> Im w}"
+          unfolding ax_def using f_gh z by force
       qed
       \<comment> \<open>Then apply area-under-curve (Fubini/Cavalieri)\<close>
       show ?thesis unfolding set_eq
@@ -3530,11 +3437,7 @@ proof -
       using absolutely_integrable_absolutely_continuous_derivative[OF assms(3) assms(7)]
         assms(8) has_vector_derivative_at_within by blast
     have Re_gp_ai: "(\<lambda>t. Re (g' t)) absolutely_integrable_on {u..v}"
-    proof -
-      have "(\<lambda>t. g' t \<bullet> 1) absolutely_integrable_on {u..v}"
-        by (rule absolutely_integrable_component[OF gp_ai])
-      then show ?thesis by (simp add: complex_inner_1_right)
-    qed
+      using Re_absolutely_integrable_on gp_ai by blast
     have cont_g_uv: "continuous_on {u..v} g"
       using assms(3) absolutely_continuous_on_imp_continuous is_interval_cc by blast
     have Im_g_cont: "continuous_on {u..v} (\<lambda>t. Im (g t))"
