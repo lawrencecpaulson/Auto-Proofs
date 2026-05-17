@@ -1597,6 +1597,566 @@ proof -
     by (metis f_sq_int l2norm_pow_2 mult.commute)
 qed
 
+locale W =
+  fixes f f' :: "real \<Rightarrow> real" and a::real
+  assumes f'hsd: "\<And>x. x \<in> {0..2*pi} \<Longrightarrow> (f' has_integral (f x - f 0)) {0..x}"
+    and feq: "f (2*pi) = f 0"
+    and f0: "(f has_integral 0) {0..2*pi}"
+    and f'2: "(\<lambda>x. (f' x)\<^sup>2) integrable_on {0..2*pi}"
+    and a: "0 \<le> a" "a < pi" "f (a + pi) = f a"
+
+begin
+
+definition g where "g \<equiv> \<lambda>x. (f x - f a)\<^sup>2 / tan (x - a)"
+definition g' where "g' \<equiv> \<lambda>x. (f' x)\<^sup>2 - (f x - f a)\<^sup>2 - (f' x - (f x - f a) / tan (x - a))\<^sup>2"
+
+lemma f': \<open>f' integrable_on {0..2*pi}\<close>
+  using f'hsd [of \<open>2*pi\<close>] by fastforce
+
+lemma f'abs: \<open>f' absolutely_integrable_on {0..2*pi}\<close>
+proof (rule absolutely_integrable_integrable_bound)
+  show \<open>norm (f' x) \<le> 1 + (f' x)\<^sup>2\<close> for x
+  proof -
+    have \<open>0 \<le> (1 - f' x)\<^sup>2\<close> and \<open>0 \<le> (1 + f' x)\<^sup>2\<close>
+      by (auto simp: power2_eq_square)
+    then show \<open>norm (f' x) \<le> 1 + (f' x)\<^sup>2\<close>
+      by (auto simp: power2_eq_square abs_le_iff algebra_simps)
+  qed
+  show \<open>f' integrable_on {0..2*pi}\<close> by (rule f')
+  show \<open>(\<lambda>x. 1 + (f' x)\<^sup>2) integrable_on {0..2*pi}\<close>
+    using integrable_add [OF integrable_const_ivl f'2] by simp
+qed
+
+lemma contf: \<open>continuous_on {0..2*pi} f\<close>
+proof (rule continuous_on_eq)
+  show \<open>continuous_on {0..2*pi} (\<lambda>x. integral {0..x} f' + f 0)\<close>
+    by (intro continuous_on_add indefinite_integral_continuous_1 [OF f'] continuous_on_const)
+  show \<open>\<And>x. x \<in> {0..2*pi} \<Longrightarrow> integral {0..x} f' + f 0 = f x\<close>
+    using f'hsd by (auto simp: has_integral_integrable_integral)
+qed
+
+text \<open>The integral over completely trouble-free intervals.\<close>
+lemma trouble_free: "(g' has_integral g d - g c) {c..d}"
+  if cd: "c \<le> d"
+    and sub_cd: "{c..d} \<subseteq> {0..2*pi}"
+    and sin_nz: "\<And>x. x \<in> {c..d} \<Longrightarrow> sin (x - a) \<noteq> 0"
+  for c d
+proof -
+  have f'_int: "((\<lambda>t. 2 * (f t - f a) * f' t) has_integral
+                   ((f x - f a)\<^sup>2 - (f c - f a)\<^sup>2)) {c..x}"
+    if xcd: "x \<in> {c..d}" for x
+  proof -
+    have cx: "c \<le> x" and xd: "x \<le> d" using xcd cd by auto
+    have sub_cx: "{c..x} \<subseteq> {0..2*pi}" using sub_cd xd by auto
+    have ac_f: "absolutely_continuous_on {0..2*pi} f"
+      using absolute_integral_absolutely_continuous_derivative_eq f'abs f'hsd by blast
+    have ac_sq: "absolutely_continuous_on {c..x} (\<lambda>t. (f t - f a)\<^sup>2)"
+      unfolding power2_eq_square using absolutely_continuous_on_subset ac_f sub_cx 
+      by(intro continuous_intros) fastforce+
+    obtain k where negk: "negligible k"
+      and derivf: "\<And>t. t \<in> {0..2*pi} - k \<Longrightarrow>
+          ((\<lambda>u. integral {0..u} f') has_vector_derivative f' t) (at t within {0..2*pi})"
+      using f' has_vector_derivative_indefinite_integral by blast
+        \<comment> \<open>Hence (f t - f a)^2 has the right derivative a.e.\<close>
+    have deriv_sq: "((\<lambda>t. (f t - f a)\<^sup>2) has_vector_derivative 2 * (f t - f a) * f' t) (at t within {c..x})"
+      if "t \<in> {c..x} - k" for t
+    proof -
+      have hvd_int: "((\<lambda>u. integral {0..u} f') has_vector_derivative f' t) (at t within {0..2*pi})"
+        using derivf that sub_cx by auto
+      have "((\<lambda>u. f u - f 0) has_vector_derivative f' t) (at t within {0..2*pi})"
+      proof (rule has_vector_derivative_transform_within[OF hvd_int])
+        fix u assume "u \<in> {0..2*pi}" "dist u t < 1"
+        then show "integral {0..u} f' = f u - f 0"
+          using f'hsd by blast
+      qed (use that sub_cx in auto)
+      then have fderiv: "(f has_vector_derivative f' t) (at t within {c..x})"
+        using has_vector_derivative_diff_const has_vector_derivative_within_subset sub_cx by blast
+      then show ?thesis
+        unfolding power2_eq_square has_vector_derivative_def
+        by - (rule derivative_eq_intros | simp add: algebra_simps)+
+    qed
+    show ?thesis
+      using fundamental_theorem_of_calculus_absolutely_continuous [OF negk cx ac_sq deriv_sq] by simp
+  qed
+  text \<open>Apply integration by parts with
+      \<^item> \<open>\<lambda>x. (f x - f a)²\<close> and its derivative \<open>\<lambda>x. 2 * (f x - f a) * f' x\<close>
+      \<^item> \<open>\<lambda>x. inverse (tan (x - a))\<close> and its derivative \<open>\<lambda>x. - inverse (sin (x - a))²\<close>\<close>
+  have ibp_int: "((\<lambda>x. (f x - f a)\<^sup>2 * (- inverse ((sin (x - a))\<^sup>2)) +
+      2 * (f x - f a) * f' x * inverse (tan (x - a)))
+      has_integral ((f y - f a)\<^sup>2 * inverse (tan (y - a)) -
+                    (f c - f a)\<^sup>2 * inverse (tan (c - a)))) {c..y}"
+    if "y \<in> {c..d}" for y
+  proof (rule absolute_real_integration_by_parts_sum(2))
+    show "c \<le> d" using cd .
+    show "(\<lambda>x. 2 * (f x - f a) * f' x) absolutely_integrable_on {c..d}"
+    proof -
+      have f'_abs_cd: "f' absolutely_integrable_on {c..d}"
+        using absolutely_integrable_on_subinterval[OF f'abs sub_cd] .
+      have cont_ffa: "continuous_on {c..d} (\<lambda>x. 2 * (f x - f a))"
+        using sub_cd by (intro continuous_intros continuous_on_subset [OF contf]) auto
+      have meas: "(\<lambda>x. 2 * (f x - f a)) \<in> borel_measurable (lebesgue_on {c..d})"
+        using cont_ffa by (intro continuous_imp_measurable_on_sets_lebesgue) auto
+      have bdd: "bounded ((\<lambda>x. 2 * (f x - f a)) ` {c..d})"
+        using cont_ffa compact_Icc compact_continuous_image compact_imp_bounded by blast
+      show ?thesis
+        using absolutely_integrable_bounded_measurable_product_real
+          [OF meas _ bdd f'_abs_cd] by auto
+    qed
+    show "(\<lambda>x. - inverse ((sin (x - a))\<^sup>2)) absolutely_integrable_on {c..d}"
+      by (intro absolutely_integrable_continuous_real continuous_intros) (use sin_nz in auto)
+    show "((\<lambda>t. 2 * (f t - f a) * f' t) has_integral
+            ((f x - f a)\<^sup>2 - (f c - f a)\<^sup>2)) {c..x}"
+      if "x \<in> {c..d}" for x using f'_int[OF that] .
+    show "((\<lambda>t. - inverse ((sin (t-a))\<^sup>2)) has_integral
+            (inverse (tan (x - a)) - inverse (tan (c - a)))) {c..x}"
+      if "x \<in> {c..d}" for x 
+    proof -
+      have cx: "c \<le> x" and sub_cx: "{c..x} \<subseteq> {c..d}"
+        using that by auto
+      have inv_tan_eq: "inverse (tan (t-a)) = cos (t-a) / sin (t-a)"
+        if "t \<in> {c..x}" for t
+        by (simp add: Multiseries_Expansion.tan_conv_sin_cos)
+          \<comment> \<open>cos(t-a)/sin(t-a) has the right derivative\<close>
+      have deriv: "((\<lambda>t. cos (t-a) / sin (t-a)) has_vector_derivative
+                    - inverse ((sin (t-a))\<^sup>2)) (at t within {c..x})"
+        if "t \<in> {c..x}" for t
+      proof -
+        have sin_nz_t: "sin (t-a) \<noteq> 0" using sin_nz that sub_cx by auto
+        have "((\<lambda>t. cos (t-a) / sin (t-a)) has_real_derivative
+              (- sin (t-a) * sin (t-a) - cos (t-a) * cos (t-a)) / (sin (t-a) * sin (t-a)))
+              (at t within {c..x})"
+          by (intro derivative_eq_intros | simp add: sin_nz_t)+
+        also have "(- sin (t-a) * sin (t-a) - cos (t-a) * cos (t-a)) / (sin (t-a) * sin (t-a))
+                 = - inverse ((sin (t-a))\<^sup>2)"
+          using sin_cos_squared_add3 [of "t-a"]
+          by (simp (no_asm_simp) add: divide_simps power2_eq_square)
+        finally show ?thesis
+          by (simp add: has_real_derivative_iff_has_vector_derivative)
+      qed
+        \<comment> \<open>Apply FTC\<close>
+      show ?thesis
+        using fundamental_theorem_of_calculus[OF cx deriv] inv_tan_eq inv_tan_eq cx
+        by simp
+    qed
+    show "y \<in> {c..d}" using that .
+  qed
+    \<comment> \<open>The IBP integrand equals g' pointwise on {c..d}\<close>
+  have integrand_eq: "(f x - f a)\<^sup>2 * (- inverse ((sin (x - a))\<^sup>2)) +
+      2 * (f x - f a) * f' x * inverse (tan (x - a)) = g' x"
+    if "x \<in> {c..d}" for x
+  proof -
+    have snz: "sin (x - a) \<noteq> 0" using sin_nz[OF that] .
+    have snz2: "(sin (x - a))\<^sup>2 \<noteq> 0" using snz by auto
+    let ?F = "f x - f a"
+    let ?s = "sin (x - a)"
+    let ?c = "cos (x - a)"
+    have inv_tan: "inverse (tan (x - a)) = ?c / ?s"
+      unfolding tan_def using snz by (simp add: field_simps)
+    have sc1: "?s\<^sup>2 + ?c\<^sup>2 = 1"
+      using sin_cos_squared_add[of "x - a"] by simp
+    have "((f x - f a)\<^sup>2 * (- inverse (?s\<^sup>2)) + 2 * (f x - f a) * f' x * inverse (tan (x - a))) * ?s\<^sup>2
+          = - ?F\<^sup>2 + 2 * ?F * f' x * ?c * ?s"
+      using snz snz2 by (simp add: tan_def field_simps power2_eq_square)
+    moreover have "g' x * ?s\<^sup>2 = ((f' x)\<^sup>2 - ?F\<^sup>2) * ?s\<^sup>2 - (f' x * ?s - ?F * ?c)\<^sup>2"
+      using snz by (simp add: g'_def tan_def field_simps)
+    moreover have "\<dots>  = - ?F\<^sup>2 + 2 * ?F * f' x * ?c * ?s"
+      using sc1 by algebra 
+    ultimately show ?thesis using snz2
+      by (metis mult_right_cancel)
+  qed
+    \<comment> \<open>Combine using has_integral_eq\<close>
+  show ?thesis
+    using has_integral_eq ibp_int integrand_eq unfolding g_def divide_inverse
+    by (metis (no_types, lifting) atLeastAtMost_iff order.refl that(1))
+qed
+
+text \<open>Continuity of g.\<close>
+lemma g_cont: "continuous_on {0..2*pi} g"
+  unfolding continuous_on_eq_continuous_within
+proof
+  fix c assume c_in: "c \<in> {0..2*pi}"
+  show "continuous (at c within {0..2*pi}) g"
+  proof (cases "sin (c - a) = 0")
+    case False
+      \<comment> \<open>When sin(c - a) \<noteq> 0, g is a quotient of continuous functions.\<close>
+    have g_eq: "g x = (f x - f a)\<^sup>2 * cos (x - a) / sin (x - a)" for x
+      unfolding g_def tan_def by (simp add: field_simps)
+    have "continuous (at c within {0..2*pi}) f"
+      using contf c_in continuous_on_eq_continuous_within by blast
+    then show ?thesis unfolding g_eq
+      using False by (auto simp: continuous_intros)
+  next
+    case True
+      \<comment> \<open>When sin(c - a) = 0, g(c) = 0 and we need to show g(x) \<rightarrow> 0.\<close>
+      \<comment> \<open>First establish that f(c) = f(a).\<close>
+    have fca: "f c = f a"
+    proof -
+      from True obtain n :: int where npi: "c - a = of_int n * pi"
+        using sin_zero_iff_int2 by auto
+      have "of_int n \<ge> -a / pi" "of_int n \<le> (2 * pi - a) / pi"
+        using a npi c_in pi_gt_zero by (simp_all add: field_simps)
+      moreover have "-a / pi > -1" using a pi_gt_zero by (simp add: field_simps)
+      moreover have "(2 * pi - a) / pi < 3"
+        using a pi_gt_zero by (auto simp: divide_simps)
+      ultimately have "of_int n > (-1 :: real)" "of_int n < (3 :: real)" by linarith+
+      then have "n = 0 \<or> n = 1 \<or> n = 2"
+        by auto
+      thus ?thesis
+      proof (elim disjE)
+        assume "n = 0" then show "f c = f a" using npi by simp
+      next
+        assume "n = 1" then show "f c = f a"
+          using npi a by (simp add: algebra_simps)
+      next
+        assume "n = 2"
+        then have "c = a + 2 * pi" using npi by (simp add: algebra_simps)
+        with c_in a pi_gt_zero have "a = 0" by auto
+        thus "f c = f a" using \<open>c = a + 2 * pi\<close> feq by simp
+      qed
+    qed
+    have gc0: "g c = 0"
+      unfolding g_def using fca by simp
+    show ?thesis unfolding continuous_within gc0
+    proof -
+      \<comment> \<open>Derive tan(x - a) = tan(x - c) from sin(c - a) = 0.\<close>
+      from True obtain n :: int where npi: "c - a = of_int n * pi"
+        using sin_zero_iff_int2 by auto
+      have tan_eq: "tan (x - a) = tan (x - c)" for x
+        by (metis npi diff_add_cancel diff_diff_eq2 tan_periodic_int)
+          \<comment> \<open>So g(x) = (f(x) - f(c))² / tan(x - c).\<close>
+      have g_eq2: "g x = (f x - f c)\<^sup>2 * cos (x - c) / sin (x - c)" for x
+        unfolding g_def by (metis fca divide_divide_eq_right local.tan_eq tan_def)
+          \<comment> \<open>Show (g \<longlongrightarrow> 0) using the cos/sin form.\<close>
+      show "(g \<longlongrightarrow> 0) (at c within {0..2*pi})"
+      proof -
+        \<comment> \<open>Cauchy-Schwarz bound: (f x - f c)² \<le> |x - c| * \<integral>_c^x (f')².\<close>
+        have cs_bound: "(f x - f c)\<^sup>2 \<le> \<bar>x - c\<bar> * integral {min c x..max c x} (\<lambda>t. (f' t)\<^sup>2)"
+          if xin: "x \<in> {0..2*pi}" for x
+        proof -
+          have f'_int_sub: "f' integrable_on {a..b}" if "{a..b} \<subseteq> {0..2*pi}" for a b
+            using integrable_subinterval_real[OF set_lebesgue_integral_eq_integral(1)[OF f'abs] that] .
+          have f'2_int_sub: "(\<lambda>t. (f' t)\<^sup>2) integrable_on {a..b}" if "{a..b} \<subseteq> {0..2*pi}" for a b
+            using integrable_subinterval_real[OF f'2 that] .
+              \<comment> \<open>Helper: FTC gives f(b) - f(a) = \<integral>_a^b f' for a,b \<in> {0..2\<pi>}\<close>
+          have ftc_sub: "f b - f a = integral {a..b} f'"
+            if "a \<in> {0..2*pi}" "b \<in> {0..2*pi}" "a \<le> b" for a b
+          proof -
+            have "integral {0..a} f' + integral {a..b} f' = integral {0..b} f'"
+              by (meson Henstock_Kurzweil_Integration.integral_combine atLeastAtMost_iff f'hsd
+                  has_integral_integrable that)
+            moreover have "integral {0..a} f' = f a - f 0" and "integral {0..b} f' = f b - f 0"
+              using f'hsd that by (auto simp: has_integral_integrable_integral)
+            ultimately show ?thesis by linarith
+          qed
+            \<comment> \<open>Helper: Cauchy-Schwarz (\<integral>_I f')² \<le> (b-a) * \<integral>_I (f')² for I = {a..b} \<subseteq> {0..2\<pi>}\<close>
+          have cs_sub: "(integral {a..b} f')\<^sup>2 \<le> (b-a) * integral {a..b} (\<lambda>t. (f' t)\<^sup>2)"
+            if sub: "{a..b} \<subseteq> {0..2*pi}" and ab: "a < b" for a b
+          proof -
+            define \<mu> where "\<mu> \<equiv> integral {a..b} f' / (b-a)"
+            have f'I: "f' integrable_on {a..b}" by (rule f'_int_sub[OF sub])
+            have f'2I: "(\<lambda>t. (f' t)\<^sup>2) integrable_on {a..b}" by (rule f'2_int_sub[OF sub])
+            have int1: "(\<lambda>t. - (2 * \<mu>) * f' t) integrable_on {a..b}"
+              using integrable_cmul[OF f'I, of "- (2 * \<mu>)"] by (simp add: scaleR_conv_of_real)
+            have sub_int: "(\<lambda>t. (f' t - \<mu>)\<^sup>2) integrable_on {a..b}"
+              using integrable_add[OF f'2I integrable_add[OF int1 integrable_const_ivl]]
+              by (simp add: power2_eq_square algebra_simps)
+            have "0 \<le> integral {a..b} (\<lambda>t. (f' t - \<mu>)\<^sup>2)"
+              by (rule integral_nonneg[OF sub_int]) (simp add: zero_le_power2)
+            also have "integral {a..b} (\<lambda>t. (f' t - \<mu>)\<^sup>2) =
+                integral {a..b} (\<lambda>t. (f' t)\<^sup>2) + (- (2 * \<mu>) * integral {a..b} f' + \<mu>\<^sup>2 * (b-a))"
+            proof -
+              have "integral {a..b} (\<lambda>t. (f' t - \<mu>)\<^sup>2) =
+                  integral {a..b} (\<lambda>t. (f' t)\<^sup>2 + (- (2 * \<mu>) * f' t + \<mu>\<^sup>2))"
+                by (rule integral_cong) (simp add: power2_eq_square algebra_simps)
+              also have "\<dots> = integral {a..b} (\<lambda>t. (f' t)\<^sup>2) +
+                  integral {a..b} (\<lambda>t. - (2 * \<mu>) * f' t + \<mu>\<^sup>2)"
+                by (rule integral_add[OF f'2I integrable_add[OF int1 integrable_const_ivl]])
+              also have "integral {a..b} (\<lambda>t. - (2 * \<mu>) * f' t + \<mu>\<^sup>2) =
+                  integral {a..b} (\<lambda>t. - (2 * \<mu>) * f' t) + integral {a..b} (\<lambda>t. \<mu>\<^sup>2)"
+                by (rule integral_add[OF int1 integrable_const_ivl])
+              finally show ?thesis using ab by simp
+            qed
+            also have "- (2 * \<mu>) * integral {a..b} f' + \<mu>\<^sup>2 * (b-a) = - (integral {a..b} f')\<^sup>2 / (b-a)"
+              using ab unfolding \<mu>_def by (simp add: power2_eq_square divide_simps)
+            finally show ?thesis using ab by (simp add: pos_divide_le_eq mult.commute)
+          qed
+          show ?thesis
+          proof (cases "c \<le> x")
+            case True
+            show ?thesis using cs_sub \<open>c \<le> x\<close> c_in xin ftc_sub by fastforce
+          next
+            case False
+            hence \<section>: "x < c" "{x..c} \<subseteq> {0..2*pi}" using c_in xin by auto
+            then show ?thesis
+              by (simp add: cs_sub ftc_sub power2_commute)
+          qed
+        qed
+          \<comment> \<open>The integral of f'² over a shrinking interval tends to 0.\<close>
+        have f'2_int_tends_0:
+          "((\<lambda>x. integral {min c x..max c x} (\<lambda>t. (f' t)\<^sup>2)) \<longlongrightarrow> 0) (at c within {0..2*pi})"
+        proof -
+          define F where "F \<equiv> \<lambda>x. integral {0..x} (\<lambda>t. (f' t)\<^sup>2)"
+          have F_cont: "continuous_on {0..2*pi} F"
+            unfolding F_def by (rule indefinite_integral_continuous_1[OF f'2])
+          have F_eq: "integral {min c x..max c x} (\<lambda>t. (f' t)\<^sup>2) = \<bar>F x - F c\<bar>"
+            if "x \<in> {0..2*pi}" for x
+          proof (cases "c \<le> x")
+            case True
+            have sub: "{c..x} \<subseteq> {0..2*pi}" using c_in that True by auto
+            have "integral {0..c} (\<lambda>t. (f' t)\<^sup>2) + integral {c..x} (\<lambda>t. (f' t)\<^sup>2) =
+                integral {0..x} (\<lambda>t. (f' t)\<^sup>2)"
+              by (metis Henstock_Kurzweil_Integration.integral_combine True atLeastatMost_subset_iff f'2
+                  integrable_on_subinterval order_refl sub)
+            hence "integral {c..x} (\<lambda>t. (f' t)\<^sup>2) = F x - F c"
+              unfolding F_def by linarith
+            moreover have "0 \<le> integral {c..x} (\<lambda>t. (f' t)\<^sup>2)"
+              by (metis integral_nonneg not_integrable_integral order.refl zero_le_power2)
+            ultimately show ?thesis using True by (simp add: min_def max_def)
+          next
+            case False
+            hence xc: "x \<le> c" by simp
+            have sub: "{x..c} \<subseteq> {0..2*pi}" using c_in that xc by auto
+            have "integral {0..x} (\<lambda>t. (f' t)\<^sup>2) + integral {x..c} (\<lambda>t. (f' t)\<^sup>2) 
+                  = integral {0..c} (\<lambda>t. (f' t)\<^sup>2)"
+              by (metis Henstock_Kurzweil_Integration.integral_combine atLeastatMost_subset_iff f'2
+                  integrable_subinterval_real order.refl sub xc)
+            moreover have "0 \<le> integral {x..c} (\<lambda>t. (f' t)\<^sup>2)"
+              by (metis integral_nonneg not_integrable_integral order.refl zero_le_power2)
+            ultimately show ?thesis using xc by (simp add: F_def min_def max_def)
+          qed
+          have "((\<lambda>x. \<bar>F x - F c\<bar>) \<longlongrightarrow> 0) (at c within {0..2*pi})"
+            by (metis F_cont LIM_zero_iff c_in continuous_on_def tendsto_rabs_zero)
+          thus ?thesis
+            by (smt (verit, best) F_eq Lim_cong_within)
+        qed
+        have "\<forall>\<^sub>F x in at c. \<bar>x - c\<bar> / \<bar>sin (x - c)\<bar> < 2"
+          by real_asymp
+        then have sinc_ratio_bounded:
+          "\<forall>\<^sub>F x in at c within {0..2*pi}. \<bar>x - c\<bar> / \<bar>sin (x - c)\<bar> \<le> 2"
+          by (metis (no_types, lifting) UNIV_I eventually_at_topological less_imp_le)
+            \<comment> \<open>Now combine everything.\<close>
+        show ?thesis
+        proof (rule Lim_null_comparison[where g = "\<lambda>x. 2 * integral {min c x..max c x} (\<lambda>t. (f' t)\<^sup>2)"])
+          \<comment> \<open>g(x) is eventually bounded by 2 * \<integral>(f')².\<close>
+          show "\<forall>\<^sub>F x in at c within {0..2*pi}. norm (g x) \<le> 2 * integral {min c x..max c x} (\<lambda>t. (f' t)\<^sup>2)"
+          proof -
+            have mem: "\<forall>\<^sub>F x in at c within {0..2*pi}. x \<in> {0..2*pi}"
+              unfolding at_within_def eventually_inf_principal by simp
+            show ?thesis
+            proof (rule eventually_mono[OF eventually_conj[OF sinc_ratio_bounded mem]])
+              fix x assume H: "\<bar>x - c\<bar> / \<bar>sin (x - c)\<bar> \<le> 2 \<and> x \<in> {0..2*pi}"
+              have "\<bar>g x\<bar> = (f x - f c)\<^sup>2 * \<bar>cos (x - c)\<bar> / \<bar>sin (x - c)\<bar>"
+                using g_eq2 by (simp add: abs_mult)
+              also have "\<dots> \<le> (f x - f c)\<^sup>2 * 1 / \<bar>sin (x - c)\<bar>"
+                by (meson abs_cos_le_one abs_ge_zero divide_right_mono
+                    ordered_comm_semiring_class.comm_mult_left_mono zero_le_power2)
+              also have "\<dots> = (f x - f c)\<^sup>2 / \<bar>sin (x - c)\<bar>" by simp
+              also have "\<dots> \<le> 2 * integral {min c x..max c x} (\<lambda>t. (f' t)\<^sup>2)"
+              proof -
+                have sub: "{min c x..max c x} \<subseteq> {0..2*pi}" using c_in H by auto
+                have f'2I: "(\<lambda>t. (f' t)\<^sup>2) integrable_on {min c x..max c x}"
+                  by (rule integrable_subinterval_real[OF f'2 sub])
+                show ?thesis
+                proof (cases "sin (x - c) = 0")
+                  case False
+                  define I where "I = integral {min c x..max c x} (\<lambda>t. (f' t)\<^sup>2)"
+                  have Ige: "I \<ge> 0"
+                    unfolding I_def by (rule integral_nonneg[OF f'2I]) auto
+                  have "(f x - f c)\<^sup>2 / \<bar>sin (x - c)\<bar> \<le> \<bar>x - c\<bar> * I / \<bar>sin (x - c)\<bar>"
+                    using H by (simp add: I_def cs_bound divide_right_mono)
+                  also have "\<dots> = (\<bar>x - c\<bar> / \<bar>sin (x - c)\<bar>) * I"
+                    by (simp add: field_simps)
+                  also have "\<dots> \<le> 2 * I"
+                    by (meson H Ige mult_mono order.refl zero_le_numeral)
+                  finally show ?thesis unfolding I_def .
+                qed (use integral_nonneg[OF f'2I] in auto)
+              qed
+              finally show "norm (g x) \<le> 2 * integral {min c x..max c x} (\<lambda>t. (f' t)\<^sup>2)" by simp
+            qed
+          qed
+          show "((\<lambda>x. 2 * integral {min c x..max c x} (\<lambda>t. (f' t)\<^sup>2)) \<longlongrightarrow> 0) (at c within {0..2*pi})"
+            using tendsto_mult_right_zero[OF f'2_int_tends_0] by simp
+        qed
+      qed
+    qed
+  qed
+qed
+
+text \<open>The integral over mainly trouble-free intervals:
+    we only need \<open>sin(x - a) \<noteq> 0\<close> on the open interior, allowing zeros at the endpoints.\<close>
+lemma mainly_trouble_free: "(g' has_integral g d - g c) {c..d}"
+  if "c \<le> d" and "{c..d} \<subseteq> {0..2*pi}" and "\<And>x. x \<in> {c<..<d} \<Longrightarrow> sin (x - a) \<noteq> 0"
+  for c d
+proof -
+  have "g' absolutely_integrable_on {c..d}"
+  proof -
+    have f'2_abs: "(\<lambda>x. (f' x)\<^sup>2) absolutely_integrable_on {0..2*pi}"
+      by (rule abs_absolutely_integrableI_1[OF f'2]) (simp add: integrable_eq[OF f'2])
+    have ffa_abs: "(\<lambda>x. (f x - f a)\<^sup>2) absolutely_integrable_on {0..2*pi}"
+      by (rule absolutely_integrable_continuous_real)
+        (intro continuous_intros contf)
+    note cd_le = \<open>c \<le> d\<close> and cd_sub = \<open>{c..d} \<subseteq> {0..2*pi}\<close>
+      and sin_nz = \<open>\<And>x. x \<in> {c<..<d} \<Longrightarrow> sin (x - a) \<noteq> 0\<close>
+    have g'_int_sub: "g' integrable_on {u..v}" if uv_sub: "{u..v} \<subseteq> {c<..<d}" for u v
+    proof (cases "u \<le> v")
+      case True
+      then have uv_mem: "u \<in> {c<..<d}" "v \<in> {c<..<d}" and  uv_2pi: "{u..v} \<subseteq> {0..2*pi}"
+        using uv_sub cd_sub by auto
+      have sin_nz': "sin (x - a) \<noteq> 0" if "x \<in> {u..v}" for x
+        using sin_nz that uv_sub by blast
+      show ?thesis
+        using has_integral_integrable[OF trouble_free[OF True uv_2pi sin_nz']] by auto
+    qed (simp add: not_le integrable_on_empty)
+    have g'_int: "g' integrable_on {c'..d'}" if "{c'..d'} \<subseteq> {c<..<d}" for c' d'
+      using \<open>{c'..d'} \<subseteq> {c<..<d}\<close> g'_int_sub by blast
+    have abs_g_cont: \<open>continuous_on {0..2 * pi} (\<lambda>x. \<bar>g x\<bar>)\<close>
+      by (intro continuous_intros g_cont)
+    obtain h where h_abs: "h absolutely_integrable_on {c..d}" 
+      and h_bounded: "(\<forall>x\<in>{c..d}. g' x \<le> h x) \<or> (\<forall>x\<in>{c..d}. h x \<le> g' x)"
+      using absolutely_integrable_on_subinterval[OF f'2_abs cd_sub]
+      by (simp add: g'_def) 
+    show ?thesis
+    proof (intro g'_int absolutely_integrable_improper [of c d , unfolded box_real])
+      obtain w where "0 \<le> w" "w \<le> 2*pi" and w: "\<forall>y. 0\<le>y \<longrightarrow> y \<le> 2*pi \<longrightarrow> \<bar>g y\<bar> \<le> \<bar>g w\<bar>"
+        using continuous_attains_sup [of \<open>{0..2*pi}\<close> \<open>\<lambda>x. \<bar>g x\<bar>\<close>]
+        by (metis Arg2pi abs_g_cont atLeastAtMost_iff compact_Icc empty_iff less_eq_real_def)
+      show "bounded {integral {c'..d'} g' |c' d'. {c'..d'} \<subseteq> {c<..<d}}"
+      proof (rule boundedI)
+        fix x assume "x \<in> {integral {c'..d'} g' |c' d'. {c'..d'} \<subseteq> {c<..<d}}"
+        then obtain c' d' where cd': "{c'..d'} \<subseteq> {c<..<d}" and xeq: "x = integral {c'..d'} g'"
+          by auto
+        show "norm x \<le> 2 * \<bar>g w\<bar>"
+        proof (cases "c' \<le> d'")
+          case True
+          have sub_2pi: "{c'..d'} \<subseteq> {0..2*pi}"
+            using cd' cd_sub greaterThanLessThan_subseteq_atLeastAtMost_iff by blast
+          have "sin (t-a) \<noteq> 0" if "t \<in> {c'..d'}" for t
+            using that cd' sin_nz by (meson greaterThanLessThan_subseteq_atLeastAtMost_iff subsetD)
+          then have "integral {c'..d'} g' = g d' - g c'"
+            using True sub_2pi trouble_free by blast
+          then have "\<bar>x\<bar> \<le> \<bar>g d'\<bar> + \<bar>g c'\<bar>"
+            using xeq by linarith
+          also have "\<dots> \<le> \<bar>g w\<bar> + \<bar>g w\<bar>"
+            by (metis True w add_mono atLeastatMost_subset_iff order_trans sub_2pi)
+          also have "\<dots> = 2 * \<bar>g w\<bar>" by algebra
+          finally show ?thesis by (simp add: xeq)
+        qed (simp add: xeq)
+      qed
+    qed (use h_abs h_bounded in auto)
+  qed
+  show ?thesis
+  proof -
+    note cd_le = \<open>c \<le> d\<close> and cd_sub = \<open>{c..d} \<subseteq> {0..2*pi}\<close>
+      and sin_nz = \<open>\<And>x. x \<in> {c<..<d} \<Longrightarrow> sin (x - a) \<noteq> 0\<close>
+    have g'_int: "g' integrable_on {c..d}"
+      using \<open>g' absolutely_integrable_on {c..d}\<close> set_lebesgue_integral_eq_integral by blast
+    have g_cont_cd: "continuous_on {c..d} g"
+      using continuous_on_subset[OF g_cont cd_sub] .
+    have goal: "integral {c..d} g' = g d - g c"
+    proof (cases "c < d")
+      case False
+      then have "c = d" using cd_le by linarith
+      then show ?thesis by simp
+    next
+      case True
+        \<comment> \<open>Pick sequences c_n \<rightarrow> c and d_n \<rightarrow> d from inside (c,d)\<close>
+      define c_n where "c_n \<equiv> \<lambda>n. c + (d - c) / (real n + 2)"
+      define d_n where "d_n \<equiv> \<lambda>n. d - (d - c) / (real n + 2)"
+      have pos: "0 < (d - c) / (real n + 2)" for n
+        using True by auto
+      have lt_dc: "(d - c) / (real n + 2) < d - c" for n
+        using True by (simp add: divide_less_eq)
+      have c_n_le_d_n: "c_n n \<le> d_n n" for n
+      proof -
+        have "0 \<le> real n" by simp
+        then have "c * real n \<le> d * real n"
+          using True by (intro mult_right_mono) linarith+
+        then have "2 * ((d - c) / (real n + 2)) \<le> d - c"
+          using True by (simp add: field_simps)
+        then show ?thesis unfolding c_n_def d_n_def by linarith
+      qed
+      have frac_lim: "(\<lambda>n. (d - c) / (real n + 2)) \<longlonglongrightarrow> 0"
+      proof (rule real_tendsto_sandwich)
+        show "\<forall>\<^sub>F n in sequentially. 0 \<le> (d - c) / (real n + 2)"
+          using True by (intro always_eventually allI) (auto simp: field_simps)
+        show "\<forall>\<^sub>F n in sequentially. (d - c) / (real n + 2) \<le> (d - c) * (1 / real n)"
+          using True by (intro eventually_sequentiallyI[of 1]) (auto simp: field_simps)
+        show "(\<lambda>_. (0::real)) \<longlonglongrightarrow> 0" by simp
+        show "(\<lambda>n. (d - c) * (1 / real n)) \<longlonglongrightarrow> 0"
+          using tendsto_mult_right_zero[OF lim_inverse_n'] by simp
+      qed
+      have c_n_lim: "c_n \<longlonglongrightarrow> c"
+        unfolding c_n_def using tendsto_add[OF tendsto_const frac_lim] by simp
+      have d_n_lim: "d_n \<longlonglongrightarrow> d"
+        unfolding d_n_def using tendsto_diff[OF tendsto_const frac_lim] by simp
+          \<comment> \<open>On each [c_n, d_n], trouble_free applies\<close>
+      have c_n_in: "c_n n \<in> {c<..<d}" and d_n_in: "d_n n \<in> {c<..<d}" for n
+        using pos[of n] lt_dc[of n] unfolding c_n_def d_n_def by auto
+      have sub_n: "{c_n n..d_n n} \<subseteq> {c<..<d}" for n
+        using c_n_in[of n] d_n_in[of n] c_n_le_d_n[of n] by auto
+      have sub_2pi_n: "{c_n n..d_n n} \<subseteq> {0..2*pi}" for n
+        using sub_n[of n] cd_sub greaterThanLessThan_subseteq_atLeastAtMost_iff by blast
+      have sin_nz_n: "sin (x - a) \<noteq> 0" if "x \<in> {c_n n..d_n n}" for n x
+        using that sub_n[of n] sin_nz
+        by (meson greaterThanLessThan_subseteq_atLeastAtMost_iff subsetD)
+      have tf_n: "(g' has_integral g (d_n n) - g (c_n n)) {c_n n..d_n n}" for n
+        using trouble_free[OF c_n_le_d_n sub_2pi_n sin_nz_n] .
+      have int_n: "integral {c_n n..d_n n} g' = g (d_n n) - g (c_n n)" for n
+        using tf_n[of n] by (rule integral_unique)
+          \<comment> \<open>The integrals converge to integral {c..d} g'\<close>
+      have int_lim: "(\<lambda>n. integral {c_n n..d_n n} g') \<longlonglongrightarrow> integral {c..d} g'"
+      proof -
+        have indef_cont: "continuous_on {c..d} (\<lambda>x. integral {c..x} g')"
+          by (rule indefinite_integral_continuous_1[OF g'_int])
+        have c_n_cd: "c_n n \<in> {c..d}" for n
+          using c_n_in[of n] by (meson atLeastAtMost_iff greaterThanLessThan_iff less_imp_le)
+        have d_n_cd: "d_n n \<in> {c..d}" for n
+          using d_n_in[of n] by (meson atLeastAtMost_iff greaterThanLessThan_iff less_imp_le)
+        have split: "integral {c_n n..d_n n} g' = integral {c..d_n n} g' - integral {c..c_n n} g'" for n
+        proof -
+          have cn_le: "c \<le> c_n n" using c_n_in[of n] by auto
+          have int_cdn: "g' integrable_on {c..d_n n}"
+            by (rule integrable_subinterval_real[OF g'_int])
+              (use d_n_cd[of n] cd_le in auto)
+          have "integral {c..c_n n} g' + integral {c_n n..d_n n} g' = integral {c..d_n n} g'"
+            by (rule Henstock_Kurzweil_Integration.integral_combine[OF cn_le c_n_le_d_n int_cdn])
+          then show ?thesis by linarith
+        qed
+        have "(\<lambda>n. integral {c..d_n n} g') \<longlonglongrightarrow> integral {c..d} g'"
+          by (rule continuous_on_tendsto_compose[OF indef_cont d_n_lim])
+            (use d_n_cd cd_le in \<open>auto intro: always_eventually\<close>)
+        moreover have "(\<lambda>n. integral {c..c_n n} g') \<longlonglongrightarrow> integral {c..c} g'"
+          by (rule continuous_on_tendsto_compose[OF indef_cont c_n_lim])
+            (use c_n_cd cd_le in \<open>auto intro: always_eventually\<close>)
+        moreover have "integral {c..c} g' = 0" by simp
+        ultimately have "(\<lambda>n. integral {c..d_n n} g' - integral {c..c_n n} g') \<longlonglongrightarrow> integral {c..d} g' - 0"
+          by (intro tendsto_diff) simp_all
+        then show ?thesis using split by simp
+      qed
+        \<comment> \<open>The RHS converges to g d - g c by continuity\<close>
+      moreover have "(\<lambda>n. g (d_n n) - g (c_n n)) \<longlonglongrightarrow> g d - g c"
+      proof (intro tendsto_diff)
+        have d_n_cd: "d_n n \<in> {c..d}" for n
+          using d_n_in[of n] by (meson atLeastAtMost_iff greaterThanLessThan_iff less_imp_le)
+        have c_n_cd: "c_n n \<in> {c..d}" for n
+          using c_n_in[of n] by (meson atLeastAtMost_iff greaterThanLessThan_iff less_imp_le)
+        show "(\<lambda>n. g (d_n n)) \<longlonglongrightarrow> g d"
+          by (rule continuous_on_tendsto_compose[OF g_cont_cd d_n_lim])
+            (use d_n_cd cd_le in \<open>auto intro: always_eventually\<close>)
+        show "(\<lambda>n. g (c_n n)) \<longlonglongrightarrow> g c"
+          by (rule continuous_on_tendsto_compose[OF g_cont_cd c_n_lim])
+            (use c_n_cd cd_le in \<open>auto intro: always_eventually\<close>)
+      qed
+      ultimately show ?thesis
+        using int_n LIMSEQ_unique by auto
+    qed
+    show ?thesis
+      using integrable_integral[OF g'_int] goal by auto
+  qed
+qed
+
+end
+
 theorem Wirtinger_inequality:
   fixes f f' :: "real \<Rightarrow> real"
   assumes f'hsd: "\<And>x. x \<in> {0..2*pi} \<Longrightarrow> (f' has_integral (f x - f 0)) {0..x}"
@@ -1608,592 +2168,47 @@ theorem Wirtinger_inequality:
     and "integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2) = integral {0..2*pi} (\<lambda>x. (f' x)\<^sup>2) \<Longrightarrow>
          \<exists>c a. \<forall>x \<in> {0..2*pi}. f x = c * sin (x - a)"
 proof -
-  have f': \<open>f' integrable_on {0..2*pi}\<close>
-    using f'hsd [of \<open>2*pi\<close>] by fastforce
-
-  have f'abs: \<open>f' absolutely_integrable_on {0..2*pi}\<close>
-  proof (rule absolutely_integrable_integrable_bound)
-    show \<open>norm (f' x) \<le> 1 + (f' x)\<^sup>2\<close> for x
-    proof -
-      have \<open>0 \<le> (1 - f' x)\<^sup>2\<close> and \<open>0 \<le> (1 + f' x)\<^sup>2\<close>
-        by (auto simp: power2_eq_square)
-      then show \<open>norm (f' x) \<le> 1 + (f' x)\<^sup>2\<close>
-        by (auto simp: power2_eq_square abs_le_iff algebra_simps)
-    qed
-    show \<open>f' integrable_on {0..2*pi}\<close> by (rule f')
-    show \<open>(\<lambda>x. 1 + (f' x)\<^sup>2) integrable_on {0..2*pi}\<close>
-      using integrable_add [OF integrable_const_ivl f'2] by simp
-  qed
-
-  have contf: \<open>continuous_on {0..2*pi} f\<close>
-  proof (rule continuous_on_eq)
-    show \<open>continuous_on {0..2*pi} (\<lambda>x. integral {0..x} f' + f 0)\<close>
-      by (intro continuous_on_add indefinite_integral_continuous_1 [OF f'] continuous_on_const)
-    show \<open>\<And>x. x \<in> {0..2*pi} \<Longrightarrow> integral {0..x} f' + f 0 = f x\<close>
-      using f'hsd by (auto simp: has_integral_integrable_integral)
-  qed
-  show "(\<lambda>x. (f x)\<^sup>2) integrable_on {0..2*pi}"
-    by (intro integrable_continuous_interval continuous_on_power contf)
-
-  obtain a where "0 \<le> a" "a < pi" "f (a + pi) = f a"
+  obtain a where a: "0 \<le> a" "a < pi" "f (a + pi) = f a"
   proof -
-    define g where "g \<equiv> \<lambda>x. f (x + pi) - f x"
-    have gcont: "continuous_on {0..pi} g"
-      unfolding g_def
+    have contf: \<open>continuous_on {0..2*pi} f\<close>
+    proof (rule continuous_on_eq)
+      show \<open>continuous_on {0..2*pi} (\<lambda>x. integral {0..x} f' + f 0)\<close>
+        using f'hsd [of \<open>2*pi\<close>] 
+        by (intro continuous_on_add indefinite_integral_continuous_1  continuous_on_const) auto
+      show \<open>\<And>x. x \<in> {0..2*pi} \<Longrightarrow> integral {0..x} f' + f 0 = f x\<close>
+        using f'hsd by (auto simp: has_integral_integrable_integral)
+    qed
+    define h where "h \<equiv> \<lambda>x. f (x + pi) - f x"
+    have hcont: "continuous_on {0..pi} h"
+      unfolding h_def
       by (intro continuous_intros continuous_on_compose2 [OF contf]) auto
-    have geq: "g 0 + g pi = 0"
-      unfolding g_def using feq by simp
-    have iv: "is_interval (g ` {0..pi})"
-      using is_interval_connected_1 connected_continuous_image [OF gcont connected_Icc]
+    have heq: "h 0 + h pi = 0"
+      unfolding h_def using feq by simp
+    have iv: "is_interval (h ` {0..pi})"
+      using is_interval_connected_1 connected_continuous_image [OF hcont connected_Icc]
       by blast
-    have"g 0 \<in> g ` {0..pi}"  "g pi \<in> g ` {0..pi}"
+    have"h 0 \<in> h ` {0..pi}"  "h pi \<in> h ` {0..pi}"
       using pi_gt_zero by auto
-    with geq obtain a where "a \<in> {0..pi}" "g a = 0"
+    with heq obtain a where "a \<in> {0..pi}" "h a = 0"
       by (smt (verit, best) imageE is_interval_1 iv)
     show thesis
     proof (cases "a = pi")
       case True
-      then have "g 0 = 0" using geq \<open>g a = 0\<close> by auto
-      then show thesis using that [of 0] pi_gt_zero by (auto simp: g_def)
+      then have "h 0 = 0" using heq \<open>h a = 0\<close> by auto
+      then show thesis using that [of 0] pi_gt_zero by (auto simp: h_def)
     next
       case False
-      then show thesis using that [of a] \<open>a \<in> {0..pi}\<close> \<open>g a = 0\<close>
-        by (auto simp: g_def)
+      then show thesis using that [of a] \<open>a \<in> {0..pi}\<close> \<open>h a = 0\<close>
+        by (auto simp: h_def)
     qed
   qed
 
-  define g where "g \<equiv> \<lambda>x. (f x - f a)\<^sup>2 / tan (x - a)"
-  define g' where "g' \<equiv> \<lambda>x. (f' x)\<^sup>2 - (f x - f a)\<^sup>2 - (f' x - (f x - f a) / tan (x - a))\<^sup>2"
+  interpret W f f' a
+    using W.intro a assms by blast
 
-  text \<open>The integral over completely trouble-free intervals.\<close>
-  have trouble_free: "(g' has_integral g d - g c) {c..d}"
-    if cd: "c \<le> d"
-      and sub_cd: "{c..d} \<subseteq> {0..2*pi}"
-      and sin_nz: "\<And>x. x \<in> {c..d} \<Longrightarrow> sin (x - a) \<noteq> 0"
-    for c d
-  proof -
-    have f'_int: "((\<lambda>t. 2 * (f t - f a) * f' t) has_integral
-                   ((f x - f a)\<^sup>2 - (f c - f a)\<^sup>2)) {c..x}"
-      if xcd: "x \<in> {c..d}" for x
-    proof -
-      have cx: "c \<le> x" and xd: "x \<le> d" using xcd cd by auto
-      have sub_cx: "{c..x} \<subseteq> {0..2*pi}" using sub_cd xd by auto
-      have ac_f: "absolutely_continuous_on {0..2*pi} f"
-        using absolute_integral_absolutely_continuous_derivative_eq f'abs f'hsd by blast
-      have ac_sq: "absolutely_continuous_on {c..x} (\<lambda>t. (f t - f a)\<^sup>2)"
-        unfolding power2_eq_square apply (intro continuous_intros)
-        using absolutely_continuous_on_subset ac_f sub_cx by fastforce+
-      obtain k where negk: "negligible k"
-        and derivf: "\<And>t. t \<in> {0..2*pi} - k \<Longrightarrow>
-          ((\<lambda>u. integral {0..u} f') has_vector_derivative f' t) (at t within {0..2*pi})"
-        using f' has_vector_derivative_indefinite_integral by blast
-          \<comment> \<open>Hence (f t - f a)^2 has the right derivative a.e.\<close>
-      have deriv_sq: "((\<lambda>t. (f t - f a)\<^sup>2) has_vector_derivative 2 * (f t - f a) * f' t)
-          (at t within {c..x})"
-        if "t \<in> {c..x} - k" for t
-      proof -
-        have hvd_int: "((\<lambda>u. integral {0..u} f') has_vector_derivative f' t)
-            (at t within {0..2*pi})"
-          using derivf that sub_cx by auto
-            \<comment> \<open>Convert to has_vector_derivative of f\<close>
-        have "((\<lambda>u. f u - f 0) has_vector_derivative f' t) (at t within {0..2*pi})"
-        proof (rule has_vector_derivative_transform_within[OF hvd_int])
-          fix u assume "u \<in> {0..2*pi}" "dist u t < 1"
-          then show "integral {0..u} f' = f u - f 0"
-            using f'hsd by blast
-        qed (use that sub_cx in auto)
-        then have "(f has_vector_derivative f' t) (at t within {0..2*pi})"
-          using has_vector_derivative_diff_const by blast
-        then have fderiv: "(f has_vector_derivative f' t) (at t within {c..x})"
-          by (rule has_vector_derivative_within_subset) (use sub_cx in auto)
-        have ffa_deriv: "((\<lambda>t. f t - f a) has_vector_derivative f' t) (at t within {c..x})"
-          using has_vector_derivative_diff[OF fderiv has_vector_derivative_const] by simp
-        show ?thesis
-          unfolding power2_eq_square
-          using has_vector_derivative_mult[OF ffa_deriv ffa_deriv]
-          by (simp add: algebra_simps scaleR_conv_of_real)
-      qed
-      show ?thesis
-        using fundamental_theorem_of_calculus_absolutely_continuous
-          [OF negk cx ac_sq deriv_sq] by simp
-    qed
-    text \<open>Apply integration by parts with
-      \<^item> \<open>\<lambda>x. (f x - f a)²\<close> and its derivative \<open>\<lambda>x. 2 * (f x - f a) * f' x\<close>
-      \<^item> \<open>\<lambda>x. inverse (tan (x - a))\<close> and its derivative \<open>\<lambda>x. - inverse (sin (x - a))²\<close>\<close>
-    have ibp_int: "((\<lambda>x. (f x - f a)\<^sup>2 * (- inverse ((sin (x - a))\<^sup>2)) +
-      2 * (f x - f a) * f' x * inverse (tan (x - a)))
-      has_integral ((f y - f a)\<^sup>2 * inverse (tan (y - a)) -
-                    (f c - f a)\<^sup>2 * inverse (tan (c - a)))) {c..y}"
-      if "y \<in> {c..d}" for y
-    proof (rule absolute_real_integration_by_parts_sum(2))
-      show "c \<le> d" using cd .
-      show "(\<lambda>x. 2 * (f x - f a) * f' x) absolutely_integrable_on {c..d}"
-      proof -
-        have f'_abs_cd: "f' absolutely_integrable_on {c..d}"
-          using absolutely_integrable_on_subinterval[OF f'abs sub_cd] .
-        have cont_ffa: "continuous_on {c..d} (\<lambda>x. 2 * (f x - f a))"
-          using sub_cd by (intro continuous_intros continuous_on_subset [OF contf]) auto
-        have meas: "(\<lambda>x. 2 * (f x - f a)) \<in> borel_measurable (lebesgue_on {c..d})"
-          using cont_ffa by (intro continuous_imp_measurable_on_sets_lebesgue) auto
-        have bdd: "bounded ((\<lambda>x. 2 * (f x - f a)) ` {c..d})"
-          using cont_ffa compact_Icc compact_continuous_image compact_imp_bounded by blast
-        show ?thesis
-          using absolutely_integrable_bounded_measurable_product_real
-            [OF meas _ bdd f'_abs_cd] by auto
-      qed
-      show "(\<lambda>x. - inverse ((sin (x - a))\<^sup>2)) absolutely_integrable_on {c..d}"
-        by (intro absolutely_integrable_continuous_real continuous_intros) (use sin_nz in auto)
-      show "((\<lambda>t. 2 * (f t - f a) * f' t) has_integral
-            ((f x - f a)\<^sup>2 - (f c - f a)\<^sup>2)) {c..x}"
-        if "x \<in> {c..d}" for x using f'_int[OF that] .
-      show "((\<lambda>t. - inverse ((sin (t-a))\<^sup>2)) has_integral
-            (inverse (tan (x - a)) - inverse (tan (c - a)))) {c..x}"
-        if "x \<in> {c..d}" for x 
-      proof -
-        have cx: "c \<le> x" and sub_cx: "{c..x} \<subseteq> {c..d}"
-          using that by auto
-        have inv_tan_eq: "inverse (tan (t-a)) = cos (t-a) / sin (t-a)"
-          if "t \<in> {c..x}" for t
-          by (simp add: Multiseries_Expansion.tan_conv_sin_cos)
-            \<comment> \<open>cos(t-a)/sin(t-a) has the right derivative\<close>
-        have deriv: "((\<lambda>t. cos (t-a) / sin (t-a)) has_vector_derivative
-                    - inverse ((sin (t-a))\<^sup>2)) (at t within {c..x})"
-          if "t \<in> {c..x}" for t
-        proof -
-          have sin_nz_t: "sin (t-a) \<noteq> 0" using sin_nz that sub_cx by auto
-          have "((\<lambda>t. cos (t-a) / sin (t-a)) has_real_derivative
-              (- sin (t-a) * sin (t-a) - cos (t-a) * cos (t-a)) / (sin (t-a) * sin (t-a)))
-              (at t within {c..x})"
-            by (intro derivative_eq_intros | simp add: sin_nz_t)+
-          also have "(- sin (t-a) * sin (t-a) - cos (t-a) * cos (t-a)) / (sin (t-a) * sin (t-a))
-                 = - inverse ((sin (t-a))\<^sup>2)"
-            using sin_cos_squared_add3 [of "t-a"]
-            by (simp (no_asm_simp) add: divide_simps power2_eq_square)
-          finally show ?thesis
-            by (simp add: has_real_derivative_iff_has_vector_derivative)
-        qed
-          \<comment> \<open>Apply FTC\<close>
-        show ?thesis
-          using fundamental_theorem_of_calculus[OF cx deriv] inv_tan_eq inv_tan_eq cx
-          by simp
-      qed
-      show "y \<in> {c..d}" using that .
-    qed
-      \<comment> \<open>The IBP integrand equals g' pointwise on {c..d}\<close>
-    have integrand_eq: "(f x - f a)\<^sup>2 * (- inverse ((sin (x - a))\<^sup>2)) +
-      2 * (f x - f a) * f' x * inverse (tan (x - a)) = g' x"
-      if "x \<in> {c..d}" for x
-    proof -
-      have snz: "sin (x - a) \<noteq> 0" using sin_nz[OF that] .
-      have snz2: "(sin (x - a))\<^sup>2 \<noteq> 0" using snz by auto
-      let ?F = "f x - f a"
-      let ?s = "sin (x - a)"
-      let ?c = "cos (x - a)"
-      have inv_tan: "inverse (tan (x - a)) = ?c / ?s"
-        unfolding tan_def using snz by (simp add: field_simps)
-      have sc1: "?s\<^sup>2 + ?c\<^sup>2 = 1"
-        using sin_cos_squared_add[of "x - a"] by simp
-      have "((f x - f a)\<^sup>2 * (- inverse (?s\<^sup>2)) + 2 * (f x - f a) * f' x * inverse (tan (x - a))) * ?s\<^sup>2
-          = - ?F\<^sup>2 + 2 * ?F * f' x * ?c * ?s"
-        using snz snz2 by (simp add: tan_def field_simps power2_eq_square)
-      moreover have "g' x * ?s\<^sup>2 = ((f' x)\<^sup>2 - ?F\<^sup>2) * ?s\<^sup>2 - (f' x * ?s - ?F * ?c)\<^sup>2"
-        using snz by (simp add: g'_def tan_def field_simps)
-      moreover have "\<dots>  = - ?F\<^sup>2 + 2 * ?F * f' x * ?c * ?s"
-        using sc1 by algebra 
-      ultimately show ?thesis using snz2
-        by (metis mult_right_cancel)
-    qed
-    \<comment> \<open>Combine using has_integral_eq\<close>
-    show ?thesis
-      using has_integral_eq ibp_int integrand_eq unfolding g_def divide_inverse
-      by (metis (no_types, lifting) atLeastAtMost_iff order.refl that(1))
-  qed
+  show "(\<lambda>x. (f x)\<^sup>2) integrable_on {0..2*pi}"
+    by (intro integrable_continuous_interval continuous_on_power contf)
 
-  text \<open>Continuity of g.\<close>
-  have g_cont: "continuous_on {0..2*pi} g"
-    unfolding continuous_on_eq_continuous_within
-  proof
-    fix c assume c_in: "c \<in> {0..2*pi}"
-    show "continuous (at c within {0..2*pi}) g"
-    proof (cases "sin (c - a) = 0")
-      case False
-        \<comment> \<open>When sin(c - a) \<noteq> 0, g is a quotient of continuous functions.\<close>
-      have g_eq: "g x = (f x - f a)\<^sup>2 * cos (x - a) / sin (x - a)" for x
-        unfolding g_def tan_def by (simp add: field_simps)
-      have "continuous (at c within {0..2*pi}) f"
-          using contf c_in continuous_on_eq_continuous_within by blast
-        then show ?thesis unfolding g_eq
-          using False by (auto simp: continuous_intros)
-    next
-      case True
-        \<comment> \<open>When sin(c - a) = 0, g(c) = 0 and we need to show g(x) \<rightarrow> 0.\<close>
-        \<comment> \<open>First establish that f(c) = f(a).\<close>
-      have fca: "f c = f a"
-      proof -
-        from True obtain n :: int where npi: "c - a = of_int n * pi"
-          using sin_zero_iff_int2 by auto
-        have "of_int n \<ge> -a / pi" "of_int n \<le> (2 * pi - a) / pi"
-          using  \<open>0 \<le> a\<close> \<open>a < pi\<close> npi c_in pi_gt_zero by (simp_all add: field_simps)
-        moreover have "-a / pi > -1" using \<open>0 \<le> a\<close> \<open>a < pi\<close> pi_gt_zero by (simp add: field_simps)
-        moreover have "(2 * pi - a) / pi < 3"
-          using \<open>0 \<le> a\<close> \<open>a < pi\<close> pi_gt_zero by (auto simp: divide_simps)
-        ultimately have "of_int n > (-1 :: real)" "of_int n < (3 :: real)" by linarith+
-        then have "n = 0 \<or> n = 1 \<or> n = 2"
-          by auto
-        thus ?thesis
-        proof (elim disjE)
-          assume "n = 0" then show "f c = f a" using npi by simp
-        next
-          assume "n = 1" then show "f c = f a"
-            using npi \<open>f (a + pi) = f a\<close> by (simp add: algebra_simps)
-        next
-          assume "n = 2"
-          then have "c = a + 2 * pi" using npi by (simp add: algebra_simps)
-          with c_in \<open>0 \<le> a\<close> \<open>a < pi\<close> pi_gt_zero have "a = 0" by auto
-          thus "f c = f a" using \<open>c = a + 2 * pi\<close> feq by simp
-        qed
-      qed
-      have gc0: "g c = 0"
-        unfolding g_def using fca by simp
-      show ?thesis unfolding continuous_within gc0
-      proof -
-        \<comment> \<open>Derive tan(x - a) = tan(x - c) from sin(c - a) = 0.\<close>
-        from True obtain n :: int where npi: "c - a = of_int n * pi"
-          using sin_zero_iff_int2 by auto
-        have tan_eq: "tan (x - a) = tan (x - c)" for x
-          by (metis npi diff_add_cancel diff_diff_eq2 tan_periodic_int)
-          \<comment> \<open>So g(x) = (f(x) - f(c))² / tan(x - c).\<close>
-        have g_eq2: "g x = (f x - f c)\<^sup>2 * cos (x - c) / sin (x - c)" for x
-          unfolding g_def by (metis fca divide_divide_eq_right local.tan_eq tan_def)
-            \<comment> \<open>Show (g \<longlongrightarrow> 0) using the cos/sin form.\<close>
-        show "(g \<longlongrightarrow> 0) (at c within {0..2*pi})"
-        proof -
-          \<comment> \<open>Cauchy-Schwarz bound: (f x - f c)² \<le> |x - c| * \<integral>_c^x (f')².\<close>
-          have cs_bound: "(f x - f c)\<^sup>2 \<le> \<bar>x - c\<bar> * integral {min c x..max c x} (\<lambda>t. (f' t)\<^sup>2)"
-            if xin: "x \<in> {0..2*pi}" for x
-          proof -
-            have f'_int_sub: "f' integrable_on {a..b}" if "{a..b} \<subseteq> {0..2*pi}" for a b
-              using integrable_subinterval_real[OF set_lebesgue_integral_eq_integral(1)[OF f'abs] that] .
-            have f'2_int_sub: "(\<lambda>t. (f' t)\<^sup>2) integrable_on {a..b}" if "{a..b} \<subseteq> {0..2*pi}" for a b
-              using integrable_subinterval_real[OF f'2 that] .
-                \<comment> \<open>Helper: FTC gives f(b) - f(a) = \<integral>_a^b f' for a,b \<in> {0..2\<pi>}\<close>
-            have ftc_sub: "f b - f a = integral {a..b} f'"
-              if "a \<in> {0..2*pi}" "b \<in> {0..2*pi}" "a \<le> b" for a b
-            proof -
-              have "integral {0..a} f' + integral {a..b} f' = integral {0..b} f'"
-                by (meson Henstock_Kurzweil_Integration.integral_combine atLeastAtMost_iff f'hsd
-                    has_integral_integrable that)
-              moreover have "integral {0..a} f' = f a - f 0" and "integral {0..b} f' = f b - f 0"
-                using f'hsd that by (auto simp: has_integral_integrable_integral)
-              ultimately show ?thesis by linarith
-            qed
-              \<comment> \<open>Helper: Cauchy-Schwarz (\<integral>_I f')² \<le> (b-a) * \<integral>_I (f')² for I = {a..b} \<subseteq> {0..2\<pi>}\<close>
-            have cs_sub: "(integral {a..b} f')\<^sup>2 \<le> (b-a) * integral {a..b} (\<lambda>t. (f' t)\<^sup>2)"
-              if sub: "{a..b} \<subseteq> {0..2*pi}" and ab: "a < b" for a b
-            proof -
-              define \<mu> where "\<mu> \<equiv> integral {a..b} f' / (b-a)"
-              have f'I: "f' integrable_on {a..b}" by (rule f'_int_sub[OF sub])
-              have f'2I: "(\<lambda>t. (f' t)\<^sup>2) integrable_on {a..b}" by (rule f'2_int_sub[OF sub])
-              have int1: "(\<lambda>t. - (2 * \<mu>) * f' t) integrable_on {a..b}"
-                using integrable_cmul[OF f'I, of "- (2 * \<mu>)"] by (simp add: scaleR_conv_of_real)
-              have sub_int: "(\<lambda>t. (f' t - \<mu>)\<^sup>2) integrable_on {a..b}"
-                using integrable_add[OF f'2I integrable_add[OF int1 integrable_const_ivl]]
-                by (simp add: power2_eq_square algebra_simps)
-              have "0 \<le> integral {a..b} (\<lambda>t. (f' t - \<mu>)\<^sup>2)"
-                by (rule integral_nonneg[OF sub_int]) (simp add: zero_le_power2)
-              also have "integral {a..b} (\<lambda>t. (f' t - \<mu>)\<^sup>2) =
-                integral {a..b} (\<lambda>t. (f' t)\<^sup>2) + (- (2 * \<mu>) * integral {a..b} f' + \<mu>\<^sup>2 * (b-a))"
-              proof -
-                have "integral {a..b} (\<lambda>t. (f' t - \<mu>)\<^sup>2) =
-                  integral {a..b} (\<lambda>t. (f' t)\<^sup>2 + (- (2 * \<mu>) * f' t + \<mu>\<^sup>2))"
-                  by (rule integral_cong) (simp add: power2_eq_square algebra_simps)
-                also have "\<dots> = integral {a..b} (\<lambda>t. (f' t)\<^sup>2) +
-                  integral {a..b} (\<lambda>t. - (2 * \<mu>) * f' t + \<mu>\<^sup>2)"
-                  by (rule integral_add[OF f'2I integrable_add[OF int1 integrable_const_ivl]])
-                also have "integral {a..b} (\<lambda>t. - (2 * \<mu>) * f' t + \<mu>\<^sup>2) =
-                  integral {a..b} (\<lambda>t. - (2 * \<mu>) * f' t) + integral {a..b} (\<lambda>t. \<mu>\<^sup>2)"
-                  by (rule integral_add[OF int1 integrable_const_ivl])
-                finally show ?thesis using ab by simp
-              qed
-              also have "- (2 * \<mu>) * integral {a..b} f' + \<mu>\<^sup>2 * (b-a) = - (integral {a..b} f')\<^sup>2 / (b-a)"
-                using ab unfolding \<mu>_def by (simp add: power2_eq_square divide_simps)
-              finally show ?thesis using ab by (simp add: pos_divide_le_eq mult.commute)
-            qed
-            show ?thesis
-            proof (cases "c \<le> x")
-              case True
-                show ?thesis using cs_sub \<open>c \<le> x\<close> c_in xin ftc_sub by fastforce
-              next
-                case False
-                hence \<section>: "x < c" "{x..c} \<subseteq> {0..2*pi}" using c_in xin by auto
-                then show ?thesis
-                  by (simp add: cs_sub ftc_sub power2_commute)
-              qed
-            qed
-          \<comment> \<open>The integral of f'² over a shrinking interval tends to 0.\<close>
-          have f'2_int_tends_0:
-            "((\<lambda>x. integral {min c x..max c x} (\<lambda>t. (f' t)\<^sup>2)) \<longlongrightarrow> 0) (at c within {0..2*pi})"
-          proof -
-            define F where "F \<equiv> \<lambda>x. integral {0..x} (\<lambda>t. (f' t)\<^sup>2)"
-            have F_cont: "continuous_on {0..2*pi} F"
-              unfolding F_def by (rule indefinite_integral_continuous_1[OF f'2])
-            have F_eq: "integral {min c x..max c x} (\<lambda>t. (f' t)\<^sup>2) = \<bar>F x - F c\<bar>"
-              if "x \<in> {0..2*pi}" for x
-            proof (cases "c \<le> x")
-              case True
-              have sub: "{c..x} \<subseteq> {0..2*pi}" using c_in that True by auto
-              have "integral {0..c} (\<lambda>t. (f' t)\<^sup>2) + integral {c..x} (\<lambda>t. (f' t)\<^sup>2) =
-                integral {0..x} (\<lambda>t. (f' t)\<^sup>2)"
-                by (metis Henstock_Kurzweil_Integration.integral_combine True atLeastatMost_subset_iff f'2
-                    integrable_on_subinterval order_refl sub)
-              hence "integral {c..x} (\<lambda>t. (f' t)\<^sup>2) = F x - F c"
-                unfolding F_def by linarith
-              moreover have "0 \<le> integral {c..x} (\<lambda>t. (f' t)\<^sup>2)"
-                by (metis integral_nonneg not_integrable_integral order.refl zero_le_power2)
-              ultimately show ?thesis using True by (simp add: min_def max_def)
-            next
-              case False
-              hence xc: "x \<le> c" by simp
-              have sub: "{x..c} \<subseteq> {0..2*pi}" using c_in that xc by auto
-              have "integral {0..x} (\<lambda>t. (f' t)\<^sup>2) + integral {x..c} (\<lambda>t. (f' t)\<^sup>2) 
-                  = integral {0..c} (\<lambda>t. (f' t)\<^sup>2)"
-                by (metis Henstock_Kurzweil_Integration.integral_combine atLeastatMost_subset_iff f'2
-                    integrable_subinterval_real order.refl sub xc)
-              moreover have "0 \<le> integral {x..c} (\<lambda>t. (f' t)\<^sup>2)"
-                by (metis integral_nonneg not_integrable_integral order.refl zero_le_power2)
-              ultimately show ?thesis using xc by (simp add: F_def min_def max_def)
-            qed
-            have "((\<lambda>x. \<bar>F x - F c\<bar>) \<longlongrightarrow> 0) (at c within {0..2*pi})"
-              by (metis F_cont LIM_zero_iff c_in continuous_on_def tendsto_rabs_zero)
-            thus ?thesis
-              by (smt (verit, best) F_eq Lim_cong_within)
-          qed
-          have "\<forall>\<^sub>F x in at c. \<bar>x - c\<bar> / \<bar>sin (x - c)\<bar> < 2"
-            by real_asymp
-          then have sinc_ratio_bounded:
-            "\<forall>\<^sub>F x in at c within {0..2*pi}. \<bar>x - c\<bar> / \<bar>sin (x - c)\<bar> \<le> 2"
-              by (metis (no_types, lifting) UNIV_I eventually_at_topological less_imp_le)
-          \<comment> \<open>Now combine everything.\<close>
-          show ?thesis
-          proof (rule Lim_null_comparison[where g = "\<lambda>x. 2 * integral {min c x..max c x} (\<lambda>t. (f' t)\<^sup>2)"])
-            \<comment> \<open>g(x) is eventually bounded by 2 * \<integral>(f')².\<close>
-            show "\<forall>\<^sub>F x in at c within {0..2*pi}. norm (g x) \<le> 2 * integral {min c x..max c x} (\<lambda>t. (f' t)\<^sup>2)"
-            proof -
-              have mem: "\<forall>\<^sub>F x in at c within {0..2*pi}. x \<in> {0..2*pi}"
-                unfolding at_within_def eventually_inf_principal by simp
-              show ?thesis
-              proof (rule eventually_mono[OF eventually_conj[OF sinc_ratio_bounded mem]])
-                fix x assume H: "\<bar>x - c\<bar> / \<bar>sin (x - c)\<bar> \<le> 2 \<and> x \<in> {0..2*pi}"
-                have "\<bar>g x\<bar> = (f x - f c)\<^sup>2 * \<bar>cos (x - c)\<bar> / \<bar>sin (x - c)\<bar>"
-                  using g_eq2 by (simp add: abs_mult)
-                also have "\<dots> \<le> (f x - f c)\<^sup>2 * 1 / \<bar>sin (x - c)\<bar>"
-                  by (meson abs_cos_le_one abs_ge_zero divide_right_mono
-                      ordered_comm_semiring_class.comm_mult_left_mono zero_le_power2)
-                also have "\<dots> = (f x - f c)\<^sup>2 / \<bar>sin (x - c)\<bar>" by simp
-                also have "\<dots> \<le> 2 * integral {min c x..max c x} (\<lambda>t. (f' t)\<^sup>2)"
-                proof -
-                  have sub: "{min c x..max c x} \<subseteq> {0..2*pi}" using c_in H by auto
-                  have f'2I: "(\<lambda>t. (f' t)\<^sup>2) integrable_on {min c x..max c x}"
-                    by (rule integrable_subinterval_real[OF f'2 sub])
-                  show ?thesis
-                  proof (cases "sin (x - c) = 0")
-                    case False
-                    define I where "I = integral {min c x..max c x} (\<lambda>t. (f' t)\<^sup>2)"
-                    have Ige: "I \<ge> 0"
-                      unfolding I_def by (rule integral_nonneg[OF f'2I]) auto
-                    have "(f x - f c)\<^sup>2 / \<bar>sin (x - c)\<bar> \<le> \<bar>x - c\<bar> * I / \<bar>sin (x - c)\<bar>"
-                      using H by (simp add: I_def cs_bound divide_right_mono)
-                    also have "\<dots> = (\<bar>x - c\<bar> / \<bar>sin (x - c)\<bar>) * I"
-                      by (simp add: field_simps)
-                    also have "\<dots> \<le> 2 * I"
-                      by (meson H Ige mult_mono order.refl zero_le_numeral)
-                    finally show ?thesis unfolding I_def .
-                  qed (use integral_nonneg[OF f'2I] in auto)
-                qed
-                finally show "norm (g x) \<le> 2 * integral {min c x..max c x} (\<lambda>t. (f' t)\<^sup>2)" by simp
-              qed
-            qed
-            show "((\<lambda>x. 2 * integral {min c x..max c x} (\<lambda>t. (f' t)\<^sup>2)) \<longlongrightarrow> 0) (at c within {0..2*pi})"
-              using tendsto_mult_right_zero[OF f'2_int_tends_0] by simp
-          qed
-        qed
-      qed
-    qed
-  qed
-
-
-  text \<open>The integral over mainly trouble-free intervals:
-    we only need \<open>sin(x - a) \<noteq> 0\<close> on the open interior, allowing zeros at the endpoints.\<close>
-  have mainly_trouble_free: "(g' has_integral g d - g c) {c..d}"
-    if "c \<le> d" and "{c..d} \<subseteq> {0..2*pi}" and "\<And>x. x \<in> {c<..<d} \<Longrightarrow> sin (x - a) \<noteq> 0"
-    for c d
-  proof -
-    have "g' absolutely_integrable_on {c..d}"
-    proof -
-      have f'2_abs: "(\<lambda>x. (f' x)\<^sup>2) absolutely_integrable_on {0..2*pi}"
-        by (rule abs_absolutely_integrableI_1[OF f'2]) (simp add: integrable_eq[OF f'2])
-      have ffa_abs: "(\<lambda>x. (f x - f a)\<^sup>2) absolutely_integrable_on {0..2*pi}"
-        by (rule absolutely_integrable_continuous_real)
-          (intro continuous_intros contf)
-      note cd_le = \<open>c \<le> d\<close> and cd_sub = \<open>{c..d} \<subseteq> {0..2*pi}\<close>
-        and sin_nz = \<open>\<And>x. x \<in> {c<..<d} \<Longrightarrow> sin (x - a) \<noteq> 0\<close>
-      have g'_int_sub: "g' integrable_on {u..v}" if uv_sub: "{u..v} \<subseteq> {c<..<d}" for u v
-      proof (cases "u \<le> v")
-        case True
-        then have uv_mem: "u \<in> {c<..<d}" "v \<in> {c<..<d}" and  uv_2pi: "{u..v} \<subseteq> {0..2*pi}"
-          using uv_sub cd_sub by auto
-        have sin_nz': "sin (x - a) \<noteq> 0" if "x \<in> {u..v}" for x
-          using sin_nz that uv_sub by blast
-        show ?thesis
-          using has_integral_integrable[OF trouble_free[OF True uv_2pi sin_nz']] by auto
-      qed (simp add: not_le integrable_on_empty)
-      have g'_int: "g' integrable_on {c'..d'}" if "{c'..d'} \<subseteq> {c<..<d}" for c' d'
-        using \<open>{c'..d'} \<subseteq> {c<..<d}\<close> g'_int_sub by blast
-      have abs_g_cont: \<open>continuous_on {0..2 * pi} (\<lambda>x. \<bar>g x\<bar>)\<close>
-        by (intro continuous_intros g_cont)
-      obtain h where h_abs: "h absolutely_integrable_on {c..d}" 
-                 and h_bounded: "(\<forall>x\<in>{c..d}. g' x \<le> h x) \<or> (\<forall>x\<in>{c..d}. h x \<le> g' x)"
-        using absolutely_integrable_on_subinterval[OF f'2_abs cd_sub]
-        by (simp add: g'_def) 
-      show ?thesis
-      proof (intro g'_int absolutely_integrable_improper [of c d , unfolded box_real])
-        obtain w where "0 \<le> w" "w \<le> 2*pi" and w: "\<forall>y. 0\<le>y \<longrightarrow> y \<le> 2*pi \<longrightarrow> \<bar>g y\<bar> \<le> \<bar>g w\<bar>"
-          using continuous_attains_sup [of \<open>{0..2*pi}\<close> \<open>\<lambda>x. \<bar>g x\<bar>\<close>]
-          by (metis Arg2pi abs_g_cont atLeastAtMost_iff compact_Icc empty_iff less_eq_real_def)
-        show "bounded {integral {c'..d'} g' |c' d'. {c'..d'} \<subseteq> {c<..<d}}"
-        proof (rule boundedI)
-          fix x assume "x \<in> {integral {c'..d'} g' |c' d'. {c'..d'} \<subseteq> {c<..<d}}"
-          then obtain c' d' where cd': "{c'..d'} \<subseteq> {c<..<d}" and xeq: "x = integral {c'..d'} g'"
-            by auto
-          show "norm x \<le> 2 * \<bar>g w\<bar>"
-          proof (cases "c' \<le> d'")
-            case True
-            have sub_2pi: "{c'..d'} \<subseteq> {0..2*pi}"
-              using cd' cd_sub greaterThanLessThan_subseteq_atLeastAtMost_iff by blast
-            have "sin (t-a) \<noteq> 0" if "t \<in> {c'..d'}" for t
-              using that cd' sin_nz by (meson greaterThanLessThan_subseteq_atLeastAtMost_iff subsetD)
-            then have "integral {c'..d'} g' = g d' - g c'"
-              using True sub_2pi trouble_free by blast
-            then have "\<bar>x\<bar> \<le> \<bar>g d'\<bar> + \<bar>g c'\<bar>"
-              using xeq by linarith
-            also have "\<dots> \<le> \<bar>g w\<bar> + \<bar>g w\<bar>"
-              by (metis True w add_mono atLeastatMost_subset_iff order_trans sub_2pi)
-            also have "\<dots> = 2 * \<bar>g w\<bar>" by algebra
-            finally show ?thesis by (simp add: xeq)
-          qed (simp add: xeq)
-        qed
-      qed (use h_abs h_bounded in auto)
-    qed
-    show ?thesis
-    proof -
-      note cd_le = \<open>c \<le> d\<close> and cd_sub = \<open>{c..d} \<subseteq> {0..2*pi}\<close>
-        and sin_nz = \<open>\<And>x. x \<in> {c<..<d} \<Longrightarrow> sin (x - a) \<noteq> 0\<close>
-      have g'_int: "g' integrable_on {c..d}"
-        using \<open>g' absolutely_integrable_on {c..d}\<close> set_lebesgue_integral_eq_integral by blast
-      have g_cont_cd: "continuous_on {c..d} g"
-        using continuous_on_subset[OF g_cont cd_sub] .
-      have goal: "integral {c..d} g' = g d - g c"
-      proof (cases "c < d")
-        case False
-        then have "c = d" using cd_le by linarith
-        then show ?thesis by simp
-      next
-        case True
-        \<comment> \<open>Pick sequences c_n \<rightarrow> c and d_n \<rightarrow> d from inside (c,d)\<close>
-        define c_n where "c_n \<equiv> \<lambda>n. c + (d - c) / (real n + 2)"
-        define d_n where "d_n \<equiv> \<lambda>n. d - (d - c) / (real n + 2)"
-        have pos: "0 < (d - c) / (real n + 2)" for n
-          using True by auto
-        have lt_dc: "(d - c) / (real n + 2) < d - c" for n
-          using True by (simp add: divide_less_eq)
-        have c_n_le_d_n: "c_n n \<le> d_n n" for n
-        proof -
-          have "0 \<le> real n" by simp
-          then have "c * real n \<le> d * real n"
-            using True by (intro mult_right_mono) linarith+
-          then have "2 * ((d - c) / (real n + 2)) \<le> d - c"
-            using True by (simp add: field_simps)
-          then show ?thesis unfolding c_n_def d_n_def by linarith
-        qed
-        have frac_lim: "(\<lambda>n. (d - c) / (real n + 2)) \<longlonglongrightarrow> 0"
-        proof (rule real_tendsto_sandwich)
-          show "\<forall>\<^sub>F n in sequentially. 0 \<le> (d - c) / (real n + 2)"
-            using True by (intro always_eventually allI) (auto simp: field_simps)
-          show "\<forall>\<^sub>F n in sequentially. (d - c) / (real n + 2) \<le> (d - c) * (1 / real n)"
-            using True by (intro eventually_sequentiallyI[of 1]) (auto simp: field_simps)
-          show "(\<lambda>_. (0::real)) \<longlonglongrightarrow> 0" by simp
-          show "(\<lambda>n. (d - c) * (1 / real n)) \<longlonglongrightarrow> 0"
-            using tendsto_mult_right_zero[OF lim_inverse_n'] by simp
-        qed
-        have c_n_lim: "c_n \<longlonglongrightarrow> c"
-          unfolding c_n_def using tendsto_add[OF tendsto_const frac_lim] by simp
-        have d_n_lim: "d_n \<longlonglongrightarrow> d"
-          unfolding d_n_def using tendsto_diff[OF tendsto_const frac_lim] by simp
-        \<comment> \<open>On each [c_n, d_n], trouble_free applies\<close>
-        have c_n_in: "c_n n \<in> {c<..<d}" and d_n_in: "d_n n \<in> {c<..<d}" for n
-          using pos[of n] lt_dc[of n] unfolding c_n_def d_n_def by auto
-        have sub_n: "{c_n n..d_n n} \<subseteq> {c<..<d}" for n
-          using c_n_in[of n] d_n_in[of n] c_n_le_d_n[of n] by auto
-        have sub_2pi_n: "{c_n n..d_n n} \<subseteq> {0..2*pi}" for n
-          using sub_n[of n] cd_sub greaterThanLessThan_subseteq_atLeastAtMost_iff by blast
-        have sin_nz_n: "sin (x - a) \<noteq> 0" if "x \<in> {c_n n..d_n n}" for n x
-          using that sub_n[of n] sin_nz
-          by (meson greaterThanLessThan_subseteq_atLeastAtMost_iff subsetD)
-        have tf_n: "(g' has_integral g (d_n n) - g (c_n n)) {c_n n..d_n n}" for n
-          using trouble_free[OF c_n_le_d_n sub_2pi_n sin_nz_n] .
-        have int_n: "integral {c_n n..d_n n} g' = g (d_n n) - g (c_n n)" for n
-          using tf_n[of n] by (rule integral_unique)
-        \<comment> \<open>The integrals converge to integral {c..d} g'\<close>
-        have int_lim: "(\<lambda>n. integral {c_n n..d_n n} g') \<longlonglongrightarrow> integral {c..d} g'"
-        proof -
-          have indef_cont: "continuous_on {c..d} (\<lambda>x. integral {c..x} g')"
-            by (rule indefinite_integral_continuous_1[OF g'_int])
-          have c_n_cd: "c_n n \<in> {c..d}" for n
-            using c_n_in[of n] by (meson atLeastAtMost_iff greaterThanLessThan_iff less_imp_le)
-          have d_n_cd: "d_n n \<in> {c..d}" for n
-            using d_n_in[of n] by (meson atLeastAtMost_iff greaterThanLessThan_iff less_imp_le)
-          have split: "integral {c_n n..d_n n} g' = integral {c..d_n n} g' - integral {c..c_n n} g'" for n
-          proof -
-            have cn_le: "c \<le> c_n n" using c_n_in[of n] by auto
-            have int_cdn: "g' integrable_on {c..d_n n}"
-              by (rule integrable_subinterval_real[OF g'_int])
-                 (use d_n_cd[of n] cd_le in auto)
-            have "integral {c..c_n n} g' + integral {c_n n..d_n n} g' = integral {c..d_n n} g'"
-              by (rule Henstock_Kurzweil_Integration.integral_combine[OF cn_le c_n_le_d_n int_cdn])
-            then show ?thesis by linarith
-          qed
-          have "(\<lambda>n. integral {c..d_n n} g') \<longlonglongrightarrow> integral {c..d} g'"
-            by (rule continuous_on_tendsto_compose[OF indef_cont d_n_lim])
-               (use d_n_cd cd_le in \<open>auto intro: always_eventually\<close>)
-          moreover have "(\<lambda>n. integral {c..c_n n} g') \<longlonglongrightarrow> integral {c..c} g'"
-            by (rule continuous_on_tendsto_compose[OF indef_cont c_n_lim])
-               (use c_n_cd cd_le in \<open>auto intro: always_eventually\<close>)
-          moreover have "integral {c..c} g' = 0" by simp
-          ultimately have "(\<lambda>n. integral {c..d_n n} g' - integral {c..c_n n} g') \<longlonglongrightarrow> integral {c..d} g' - 0"
-            by (intro tendsto_diff) simp_all
-          then show ?thesis using split by simp
-        qed
-        \<comment> \<open>The RHS converges to g d - g c by continuity\<close>
-        moreover have "(\<lambda>n. g (d_n n) - g (c_n n)) \<longlonglongrightarrow> g d - g c"
-        proof (intro tendsto_diff)
-          have d_n_cd: "d_n n \<in> {c..d}" for n
-            using d_n_in[of n] by (meson atLeastAtMost_iff greaterThanLessThan_iff less_imp_le)
-          have c_n_cd: "c_n n \<in> {c..d}" for n
-            using c_n_in[of n] by (meson atLeastAtMost_iff greaterThanLessThan_iff less_imp_le)
-          show "(\<lambda>n. g (d_n n)) \<longlonglongrightarrow> g d"
-            by (rule continuous_on_tendsto_compose[OF g_cont_cd d_n_lim])
-               (use d_n_cd cd_le in \<open>auto intro: always_eventually\<close>)
-          show "(\<lambda>n. g (c_n n)) \<longlonglongrightarrow> g c"
-            by (rule continuous_on_tendsto_compose[OF g_cont_cd c_n_lim])
-               (use c_n_cd cd_le in \<open>auto intro: always_eventually\<close>)
-        qed
-        ultimately show ?thesis
-          using int_n LIMSEQ_unique by auto
-      qed
-      show ?thesis
-        using integrable_integral[OF g'_int] goal by auto
-    qed
-  qed
   show "integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2) \<le> integral {0..2*pi} (\<lambda>x. (f' x)\<^sup>2)"
   proof -
     \<comment> \<open>Zeros of sin(x - a) in [0, 2\<pi>] are exactly at x = a and x = a + \<pi>.\<close>
