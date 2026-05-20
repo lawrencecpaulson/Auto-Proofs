@@ -1182,11 +1182,9 @@ proof -
       show "z \<in> \<phi> ` ({a..b} \<times> {0..1}) \<longleftrightarrow> z \<in> S"
       proof
         assume "z \<in> \<phi> ` ({a..b} \<times> {0..1})"
-        then obtain x t where xt: "x \<in> {a..b}" "t \<in> {0..1}" "z = Complex x (t * f x)"
-          unfolding \<phi>_def by auto
         then show "z \<in> S"
-          unfolding S_def using assms(3)[OF xt(1)]
-          by (auto simp: complex.sel intro: mult_left_le_one_le mult_nonneg_nonneg)
+          unfolding S_def using assms(3)
+          by (force simp: \<phi>_def image_iff complex.sel intro: mult_left_le_one_le)
       next
         assume "z \<in> S"
         then have hz: "a \<le> Re z" "Re z \<le> b" "0 \<le> Im z" "Im z \<le> f (Re z)"
@@ -1194,10 +1192,8 @@ proof -
         show "z \<in> \<phi> ` ({a..b} \<times> {0..1})"
         proof (cases "f (Re z) = 0")
           case True
-          then have "Im z = 0" using hz(3,4) by linarith
-          then have "z = \<phi> (Re z, 0)"
-            unfolding \<phi>_def by (simp add: complex_eq_iff)
-          then show ?thesis using hz(1,2) by auto
+          with hz show ?thesis 
+            unfolding \<phi>_def by (force simp: complex_eq_iff)
         next
           case False
           define t where "t \<equiv> Im z / f (Re z)"
@@ -1209,17 +1205,13 @@ proof -
         qed
       qed
     qed
-    have "compact ({a..b} \<times> {0..1::real})"
-      by (intro compact_Times compact_Icc)
     then show "compact S"
-      using img compact_continuous_image[OF cont_\<phi>] by simp
+      by (metis img compact_continuous_image[OF cont_\<phi>] compact_Times compact_Icc)      
   qed
-  have S_meas: "S \<in> lmeasurable"
-    using S_compact lmeasurable_compact by blast
+  with lmeasurable_compact have S_lmeasurable: "S \<in> lmeasurable" by blast
   \<comment> \<open>Now prove the measure equals the integral using change of variables\<close>
   have S_measure: "measure lebesgue S = integral {a..b} f"
   proof -
-    \<comment> \<open>Define the pair version of S and work in \<real>² = real \<times> real\<close>
     define S' :: "(real \<times> real) set"
       where "S' \<equiv> {(x, y). a \<le> x \<and> x \<le> b \<and> 0 \<le> y \<and> y \<le> f x}"
     \<comment> \<open>Step 1: measure of complex S = measure of pair S'\<close>
@@ -1232,27 +1224,19 @@ proof -
       moreover have "(\<lambda>(x,t). (x, t * f x)) ` ({a..b} \<times> {0..1}) = S'"
       proof -
         have "\<exists>y\<in>{0..1}. t = y * f x"
-          if "a \<le> x" and "x \<le> b" and t: "0 \<le> t" "t \<le> f x"
-          for x :: real and t :: real
+          if "a \<le> x" and "x \<le> b" and t: "0 \<le> t" "t \<le> f x" for x t
         proof (cases "f x = 0")
-          case True
-          then show ?thesis
-            using t by fastforce
-        next
           case False
           with t show ?thesis 
             by (rule_tac x = "t / f x" in bexI) auto
-        qed
+        qed (use t in auto)
         then show ?thesis
           by (auto simp: mult_left_le_one_le fge0 image_iff S'_def split: prod.splits)
       qed
-      moreover have "compact ({a..b} \<times> {0..1::real})"
-        by (intro compact_Times compact_Icc)
       ultimately show ?thesis
-        using compact_continuous_image by blast
+        using compact_continuous_image compact_Times by blast 
     qed
-    have S'_meas: "S' \<in> lmeasurable"
-      using S'_compact lmeasurable_compact by blast
+    with lmeasurable_compact have S'_meas: "S' \<in> lmeasurable" by blast
     have meas_eq: "measure lebesgue S = measure lebesgue S'"
     proof -
       have S_eq: "S = (\<lambda>(x,y). Complex x y) ` S'"
@@ -1269,34 +1253,22 @@ proof -
     have "measure lebesgue S' = integral {a..b} f"
     proof -
       have integ: "integrable lborel (indicat_real S')"
-      proof -
-        have "integrable lborel (\<lambda>x. indicat_real S' x *\<^sub>R (1::real))"
-          by (rule borel_integrable_compact[OF S'_compact continuous_on_const])
-        then show ?thesis by simp
-      qed
+        using S'_compact fmeasurable_compact fmeasurable_def by blast
       \<comment> \<open>The slice x \<mapsto> integral over y of indicator S' equals f(x) on [a,b] and 0 outside\<close>
       have slice_eq: "\<And>x. integral UNIV (\<lambda>y. indicat_real S' (x, y)) =
                           (if x \<in> {a..b} then f x else 0)"
       proof -
-        fix x :: real
+        fix x 
         show "integral UNIV (\<lambda>y. indicat_real S' (x, y)) = (if x \<in> {a..b} then f x else 0)"
         proof (cases "x \<in> {a..b}")
           case True
-          have "{y. (x,y) \<in> S'} = {0..f x}"
-            unfolding S'_def using True by auto
+          then have "{y. (x,y) \<in> S'} = {0..f x}"
+            unfolding S'_def by auto
           then have "integral UNIV (\<lambda>y. indicat_real S' (x, y)) = integral {0..f x} (\<lambda>_. 1)"
-            by (smt (verit, ccfv_SIG) Henstock_Kurzweil_Integration.integral_cong Henstock_Kurzweil_Integration.integral_restrict_UNIV indicator_eq_0_iff indicator_eq_1_iff
-                mem_Collect_eq)
-          also have "... = f x"
-            using assms(3)[OF True] by simp
-          finally show ?thesis using True by simp
-        next
-          case False
-          have "{y. (x,y) \<in> S'} = {}"
-            unfolding S'_def using False by auto
-          then show ?thesis using False
-            by auto
-        qed
+            by (smt (verit, ccfv_SIG) integral_cong integral_restrict_UNIV indicator_eq_0_iff
+                    indicator_eq_1_iff mem_Collect_eq)
+          then show ?thesis using True assms(3) by simp
+        qed (auto simp: S'_def)
       qed
       \<comment> \<open>Apply Fubini\<close>
       have "measure lebesgue S' = integral UNIV (indicat_real S')"
@@ -1305,9 +1277,8 @@ proof -
       proof (rule gauge_integral_Fubini_universe_x(1)[OF integ])
         show "(\<lambda>x. integral UNIV (\<lambda>y. indicat_real S' (x, y))) \<in> borel_measurable lborel"
         proof -
-          have "(\<lambda>x. integral UNIV (\<lambda>y. indicat_real S' (x, y))) =
-                (\<lambda>x. if x \<in> {a..b} then f x else 0)"
-            by (rule ext) (use slice_eq in auto)
+          have "(\<lambda>x. integral UNIV (\<lambda>y. indicat_real S' (x, y))) = (\<lambda>x. if x \<in> {a..b} then f x else 0)"
+            by (use slice_eq in auto)
           also have "... \<in> borel_measurable lborel"
           proof -
             have "(\<lambda>x::real. if x \<in> {a..b} then f x else 0) \<in> borel_measurable borel"
@@ -1327,7 +1298,7 @@ proof -
   qed
 
   show "{z::complex. a \<le> Re z \<and> Re z \<le> b \<and> 0 \<le> Im z \<and> Im z \<le> f (Re z)} \<in> lmeasurable"
-    using S_meas unfolding S_def .
+    using S_lmeasurable unfolding S_def .
   show "measure lebesgue {z::complex. a \<le> Re z \<and> Re z \<le> b \<and> 0 \<le> Im z \<and> Im z \<le> f (Re z)}
        = integral {a..b} f"
     using S_measure unfolding S_def .
@@ -1415,20 +1386,10 @@ proof -
   have f_meas: "f \<in> borel_measurable lebesgue"
     using assms measurable_on_imp_borel_measurable_lebesgue_UNIV by blast
   \<comment> \<open>Express as countable union using density of rationals\<close>
-  have eq: "{(x, y). y < f x} = (\<Union>q \<in> \<rat>. {x. q \<le> f x} \<times> {y. y < q})"
-  proof (intro equalityI subsetI)
-    fix p :: "real \<times> real"
-    assume "p \<in> {(x, y). y < f x}"
-    then obtain x y where p: "p = (x, y)" "y < f x" by auto
-    then obtain q where "q \<in> \<rat>" "y < q" "q < f x"
-      using Rats_dense_in_real by blast
-    then show "p \<in> (\<Union>q \<in> \<rat>. {x. q \<le> f x} \<times> {y. y < q})"
-      using p by (auto intro: less_imp_le)
-  next
-    fix p :: "real \<times> real"
-    assume "p \<in> (\<Union>q \<in> \<rat>. {x. q \<le> f x} \<times> {y. y < q})"
-    then show "p \<in> {(x, y). y < f x}" by auto
-  qed
+  have "\<And>a b. b < f a \<Longrightarrow> \<exists>x\<in>\<rat>. x \<le> f a \<and> b < x"
+    by (meson Rats_dense_in_real less_le)
+  then have eq: "{(x, y). y < f x} = (\<Union>q \<in> \<rat>. {x. q \<le> f x} \<times> {y. y < q})"
+    by auto
   \<comment> \<open>Each set in the union is measurable\<close>
   have meas_q: "\<And>q. q \<in> \<rat> \<Longrightarrow> {x. q \<le> f x} \<times> {y :: real. y < q}
       \<in> sets (lebesgue :: (real \<times> real) measure)"
@@ -1440,11 +1401,9 @@ proof -
       using lebesgue_measurable_vimage_borel[OF f_meas atLeast_borel] .
     then have B: "{x :: real. q \<le> f x} \<in> sets lebesgue"
       by (simp add: atLeast_def)
-    show "{x. q \<le> f x} \<times> {y :: real. y < q}
-        \<in> sets (lebesgue :: (real \<times> real) measure)"
+    show "{x. q \<le> f x} \<times> {y :: real. y < q} \<in> sets (lebesgue :: (real \<times> real) measure)"
       using lebesgue_measurable_Times_UNIV[OF B] lebesgue_measurable_UNIV_Times[OF A]
-        sets.Int[of "{x. q \<le> f x} \<times> UNIV" "lebesgue :: (real \<times> real) measure"
-                   "UNIV \<times> {y. y < q}"]
+        sets.Int[of "_ \<times> UNIV" _ "UNIV \<times> {y. y < q}"]
       by (simp add: Times_Int_Times)
   qed
   \<comment> \<open>Countable union\<close>
@@ -1504,10 +1463,7 @@ proof -
     unfolding h_def using g_conv limI by blast
   \<comment> \<open>The graph of f is contained in graph(h) \<union> (N \<times> UNIV)\<close>
   have graph_sub: "{(x, y). f x = y} \<subseteq> {(x, y). h x = y} \<union> N \<times> UNIV"
-  proof clarsimp
-    fix a assume "a \<notin> N"
-    then show "h a = f a" using h_eq by simp
-  qed
+    by (force simp: h_eq)
   \<comment> \<open>The graph of h is in @{term \<open>sets (lborel \<Otimes>\<^sub>M lborel)\<close>} and null by Fubini\<close>
   have h_meas_lborel: "h \<in> borel_measurable lborel"
     using h_borel by (simp add: sets_lborel)
@@ -1528,19 +1484,12 @@ proof -
     then show ?thesis using borel_measurable_vimage[OF diff_meas, of 0] by simp
   qed
   have "emeasure (lborel \<Otimes>\<^sub>M lborel) {(x, y). h x = y} = 0"
-  proof -
-    have "emeasure (lborel \<Otimes>\<^sub>M lborel) {(x, y). h x = y} =
-      (\<integral>\<^sup>+ x. emeasure lborel (Pair x -` {(x, y). h x = y}) \<partial>lborel)"
-      by (rule lborel.emeasure_pair_measure_alt[OF graph_h_borel])
-    then show ?thesis by simp
-  qed
+    using lborel.emeasure_pair_measure_alt[OF graph_h_borel] by simp
   then have graph_h_null: "{(x, y). h x = y} \<in> null_sets (lborel :: (real \<times> real) measure)"
     by (metis graph_h_borel lborel_prod null_setsI)
   \<comment> \<open>N \<times> UNIV is contained in a null set in lborel\<close>
-  have "N \<in> null_sets (lebesgue :: real measure)"
-    using neg_N negligible_iff_null_sets by auto
-  then obtain N' where N': "N' \<in> null_sets lborel" "N \<subseteq> N'"
-    using null_sets_completion_iff2 by metis
+  obtain N' where N': "N' \<in> null_sets lborel" "N \<subseteq> N'"
+    by (metis null_sets_completion_iff2 neg_N(1) negligible_iff_null_sets)
   have "N' \<times> (UNIV :: real set) \<in> null_sets (lborel \<Otimes>\<^sub>M lborel)"
     using lborel.times_in_null_sets1[OF N'(1) sets.top] by force
   then have N'_cross_null: "N' \<times> (UNIV :: real set) \<in> null_sets (lborel :: (real \<times> real) measure)"
