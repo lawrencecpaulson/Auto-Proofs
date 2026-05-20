@@ -7,6 +7,7 @@ hide_const (open) Polynomial.content
 
 section \<open>Library material\<close>
 
+(*All added to Absolute_Continuity 2026-05*)
 declare absolutely_continuous_on_const [continuous_intros] 
 declare absolutely_continuous_on_neg [continuous_intros] 
 declare absolutely_continuous_on_add [continuous_intros] 
@@ -14,6 +15,7 @@ declare absolutely_continuous_on_sub [continuous_intros]
 declare absolutely_continuous_on_mul [continuous_intros]
 declare absolutely_continuous_on_cmul [continuous_intros]
 
+(*All added to Absolute_Continuity 2026-05*)
 lemma absolutely_continuous_on_real_mult [continuous_intros]:
   fixes f :: \<open>real \<Rightarrow> real\<close> and g :: \<open>real \<Rightarrow> real\<close>
   assumes \<open>absolutely_continuous_on S f\<close> \<open>absolutely_continuous_on S g\<close> \<open>is_interval S\<close> \<open>bounded S\<close> 
@@ -30,6 +32,7 @@ lemma integral_change_of_variables_linear:
   sorry (*PROVED ELSEWHERE; ASSUMED HERE*)
 
 (*FIXME move these elsewhere*)
+(*Added to Elementary_Metric_Spaces 2026-05*)
 lemma diameter_translation:
   fixes a :: "'a::real_normed_vector"
   shows "diameter ((+) a ` S) = diameter S"
@@ -39,14 +42,17 @@ proof (cases "S = {}")
     by (simp add: diameter_def image_comp split_def flip: image_paired_Times)
 qed (simp add: diameter_def)
 
+(*Added to Elementary_Normed_Spaces 2026-05*)
 lemma bounded_translation_eq [simp]:
   fixes a :: "'a :: real_normed_vector"
   shows "bounded ((+) a ` S) \<longleftrightarrow> bounded S"
   by (metis bounded_iff bounded_translation imageI norm_add_leD)
 
+(*Added to Elementary_Metric_Spaces 2026-05*)
 lemma bounded_cnj_image: "bounded (cnj ` S) = bounded S"
   by (auto simp: bounded_iff)
 
+(*Added to Path_Connected 2026-05*)
 lemma inside_translation:
   fixes a :: "'a :: real_normed_vector"
   shows "inside ((+) a ` S) = (+) a ` inside S"
@@ -65,6 +71,7 @@ proof (rule set_eqI)
     by (auto simp: inside_def)
 qed
 
+(*Added to Path_Connected 2026-05*)
 lemma inside_cnj_image:
   shows "inside (cnj ` S) = cnj ` inside S"
 proof (rule set_eqI)
@@ -81,24 +88,29 @@ proof (rule set_eqI)
     by (auto simp: inside_def bounded_cnj_image)
 qed
 
+(*Added to Path_Connected 2026-05*)
 lemma loop_free_cnj: "loop_free (cnj \<circ> g) = loop_free g"
   by (simp add: inj_on_def linear_cnj loop_free_linear_image_eq)
 
+(*Added to Equivalence_Lebesgue_Henstock_Integration 2026-05*)
 lemma Re_absolutely_integrable_on:
   assumes "g absolutely_integrable_on S"
   shows "(\<lambda>t. Re (g t)) absolutely_integrable_on S"
   using absolutely_integrable_component [OF assms]
   by (metis (lifting) ext complex_inner_1_right)
 
+(*Added to Equivalence_Lebesgue_Henstock_Integration 2026-05*)
 lemma Im_absolutely_integrable_on:
   assumes "g absolutely_integrable_on S"
   shows "(\<lambda>t. Im (g t)) absolutely_integrable_on S"
   using absolutely_integrable_component [OF assms]
   by (metis (lifting) ext complex_inner_i_right)
   
+(*All added to Complex 2026-05*)
 lemma dist_cnj [simp]: "dist (cnj a) (cnj b) = dist a b"
   by (metis complex_cnj_diff complex_mod_cnj dist_norm)
 
+(*Added to Elementary_Metric_Spaces 2026-05*)
 lemma diameter_image_cnj: "diameter (cnj ` S) = diameter S"
 proof -
   have "(\<lambda>(x,y). dist x y) ` (cnj ` S \<times> cnj ` S) = (\<lambda>(x,y). dist x y) ` (S \<times> S)"
@@ -161,25 +173,19 @@ next
   show ?thesis by simp
 qed
 
+(*Added to Absolute_Continuity 2026-05*)
 lemma absolutely_continuous_on_reflect:
   assumes "absolutely_continuous_on {S - b..S - a} f"
   shows "absolutely_continuous_on {a..b} (f \<circ> (-) S)"
 proof -
-  have asm: "\<And>\<epsilon>. \<epsilon> > 0 \<Longrightarrow> \<exists>\<delta>>0. \<forall>d T. d division_of T \<and> T \<subseteq> {S-b..S-a} \<and>
-      (\<Sum>k\<in>d. content k) < \<delta> \<longrightarrow>
-      (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) < \<epsilon>"
-    using assms unfolding absolutely_continuous_on_def absolutely_setcontinuous_on_def
-    by auto
   show ?thesis
     unfolding absolutely_continuous_on_def absolutely_setcontinuous_on_def
   proof (intro allI impI)
     fix \<epsilon> :: real assume "\<epsilon> > 0"
-    from asm[OF this]
-    obtain \<delta> where "\<delta> > 0"
-      and \<delta>: "\<And>d T. d division_of T \<Longrightarrow> T \<subseteq> {S - b..S - a} \<Longrightarrow>
-             (\<Sum>k\<in>d. content k) < \<delta> \<Longrightarrow>
+    with assms obtain \<delta> where "\<delta> > 0"
+      and \<delta>: "\<And>d T. d division_of T \<Longrightarrow> T \<subseteq> {S - b..S - a} \<Longrightarrow> (\<Sum>k\<in>d. content k) < \<delta> \<Longrightarrow>
              (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) < \<epsilon>"
-      by meson
+      unfolding absolutely_continuous_on_def absolutely_setcontinuous_on_def by meson
     show "\<exists>\<delta>>0. \<forall>d T. d division_of T \<and> T \<subseteq> {a..b} \<and>
           (\<Sum>k\<in>d. content k) < \<delta> \<longrightarrow>
           (\<Sum>k\<in>d. norm ((f \<circ> (-) S) (Sup k) - (f \<circ> (-) S) (Inf k))) < \<epsilon>"
@@ -189,8 +195,6 @@ proof -
           (\<Sum>k\<in>d. content k) < \<delta>"
       then have dv: "d division_of T" and sub: "T \<subseteq> {a..b}"
         and sm: "(\<Sum>k\<in>d. content k) < \<delta>" by auto
-      have dv': "(`) ((-) S) ` d division_of (-) S ` T"
-        using division_of_reflect[OF dv] .
       have sub': "(-) S ` T \<subseteq> {S - b..S - a}"
         using sub by auto
       have inj: "inj_on ((`) ((-) S)) d"
@@ -200,13 +204,9 @@ proof -
         obtain c e :: real where ce: "k = cbox c e" and "c \<le> e"
           using \<open>k \<in> d\<close> dv
           by (metis atLeastatMost_empty_iff box_real(2) cbox_division_memE)
-        then have "((-) S) ` cbox c e = cbox (S - e) (S - c)"
-          by (auto simp: image_affinity_atLeastAtMost)
         then show "content ((-) S ` k) = content k"
           unfolding ce by (simp add: Henstock_Kurzweil_Integration.content_real)
       qed
-      have sm': "(\<Sum>k\<in>(`) ((-) S) ` d. content k) < \<delta>"
-        by (metis content_eq inj sm sum.reindex_cong)
       have osc_eq: "(\<Sum>k\<in>d. norm ((f \<circ> (-) S) (Sup k) - (f \<circ> (-) S) (Inf k))) =
                     (\<Sum>k'\<in>(`) ((-) S) ` d. norm (f (Sup k') - f (Inf k')))"
       proof -
@@ -218,21 +218,19 @@ proof -
           fix k assume "k \<in> d"
           then obtain c e :: real where ce: "k = cbox c e" and "c \<le> e"
             by (metis atLeastatMost_empty_iff box_real(2) cbox_division_memE dv)
-          then have "Sup ((-) S ` k) = S - Inf k" and "Inf ((-) S ` k) = S - Sup k"
-            unfolding ce 
-            by (auto simp: image_affinity_atLeastAtMost cSup_atLeastAtMost cInf_atLeastAtMost)
           then show "norm (f (Sup ((-) S ` k)) - f (Inf ((-) S ` k))) =
                      norm (f (S - Inf k) - f (S - Sup k))"
-            by simp
+            unfolding ce 
+            by (auto simp: image_affinity_atLeastAtMost cSup_atLeastAtMost cInf_atLeastAtMost)
         qed
-        also have "\<dots> = (\<Sum>k\<in>d. norm ((f \<circ> (-) S) (Inf k) - (f \<circ> (-) S) (Sup k)))"
-          by (simp add: o_def)
         also have "\<dots> = (\<Sum>k\<in>d. norm ((f \<circ> (-) S) (Sup k) - (f \<circ> (-) S) (Inf k)))"
           by (intro sum.cong refl) (simp add: norm_minus_commute)
         finally show ?thesis by simp
       qed
+      have sm': "(\<Sum>k\<in>(`) ((-) S) ` d. content k) < \<delta>"
+        by (metis content_eq inj sm sum.reindex_cong)
       show "(\<Sum>k\<in>d. norm ((f \<circ> (-) S) (Sup k) - (f \<circ> (-) S) (Inf k))) < \<epsilon>"
-        unfolding osc_eq using \<delta>[OF dv' sub' sm'] .
+        unfolding osc_eq using \<delta>[OF division_of_reflect[OF dv] sub' sm'] .
     qed
   qed
 qed
