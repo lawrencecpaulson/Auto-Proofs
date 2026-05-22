@@ -4498,10 +4498,9 @@ proof -
       with 1 have conn: "connectedin (subtopology euclidean (path_image g))
                          (open_segment 0 b)"
         by (simp add: connectedin_subtopology)
-      have "g ` {0<..<t} \<subseteq> path_image g" "g ` {t<..<1} \<subseteq> path_image g"
+      have pi1: "g ` {0<..<t} \<subseteq> path_image g" and pi2: "g ` {t<..<1} \<subseteq> path_image g"
         using t by (auto simp: path_image_def image_iff)
-      moreover
-      have "g ` {0<..<t} \<inter> path_image g \<inter> closure (path_image g \<inter> g ` {t<..<1}) = {}"
+      have cl1: "g ` {0<..<t} \<inter> path_image g \<inter> closure (path_image g \<inter> g ` {t<..<1}) = {}"
       proof -
         have lf: "loop_free g" using g(1) by (simp add: simple_path_def)
         have inj: "inj_on g {0<..<1}" using lf loop_free_inj_on by blast
@@ -4527,8 +4526,7 @@ proof -
           by (meson Int_lower2 closure_mono dual_order.trans)
         then show ?thesis using disj by auto
       qed
-      moreover
-      have "g ` {t<..<1} \<inter> path_image g \<inter> closure (path_image g \<inter> g ` {0<..<t}) = {}"
+      have cl2: "g ` {t<..<1} \<inter> path_image g \<inter> closure (path_image g \<inter> g ` {0<..<t}) = {}"
       proof -
         have lf: "loop_free g" using g(1) by (simp add: simple_path_def)
         have disj: "g ` {t<..<1} \<inter> g ` {0..t} = {}"
@@ -4553,8 +4551,7 @@ proof -
           by (meson Int_lower2 closure_mono dual_order.trans)
         then show ?thesis using disj by auto
       qed
-      moreover
-      have "open_segment 0 b \<subseteq> g ` {0<..<t} \<union> g ` {t<..<1}"
+      have sub: "open_segment 0 b \<subseteq> g ` {0<..<t} \<union> g ` {t<..<1}"
       proof -
         have decomp: "path_image g \<subseteq> g ` {0<..<t} \<union> g ` {t<..<1} \<union> {0, b}"
         proof
@@ -4569,16 +4566,9 @@ proof -
           unfolding open_segment_def by auto
         then show ?thesis using 1 decomp by auto
       qed
-      ultimately (*FIXME UGLY*)
       have sep: "separatedin (subtopology euclidean (path_image g))
                               (g ` {0<..<t}) (g ` {t<..<1})"
-        and sub: "open_segment 0 b \<subseteq> g ` {0<..<t} \<union> g ` {t<..<1}"
       proof -
-        assume pi1: "g ` {0<..<t} \<subseteq> path_image g"
-          and pi2: "g ` {t<..<1} \<subseteq> path_image g"
-          and cl1: "g ` {0<..<t} \<inter> path_image g \<inter> closure (path_image g \<inter> g ` {t<..<1}) = {}"
-          and cl2: "g ` {t<..<1} \<inter> path_image g \<inter> closure (path_image g \<inter> g ` {0<..<t}) = {}"
-          and sub: "open_segment 0 b \<subseteq> g ` {0<..<t} \<union> g ` {t<..<1}"
         have eq1: "path_image g \<inter> g ` {t<..<1} = g ` {t<..<1}" using pi2 by auto
         have eq2: "path_image g \<inter> g ` {0<..<t} = g ` {0<..<t}" using pi1 by auto
         have d1: "g ` {0<..<t} \<inter> closure (g ` {t<..<1}) = {}"
@@ -4588,10 +4578,8 @@ proof -
         have "separatedin euclidean (g ` {0<..<t}) (g ` {t<..<1})"
           unfolding separatedin_def using d1 d2
           by (simp add: euclidean_closure_of topspace_euclidean)
-        then show "separatedin (subtopology euclidean (path_image g))
-                              (g ` {0<..<t}) (g ` {t<..<1})"
+        then show ?thesis
           using pi1 pi2 by (simp add: separatedin_subtopology)
-        show "open_segment 0 b \<subseteq> g ` {0<..<t} \<union> g ` {t<..<1}" by (rule sub)
       qed
       have "open_segment 0 b \<subseteq> g ` {0<..<t} \<or> open_segment 0 b \<subseteq> g ` {t<..<1}"
         using connectedin_subset_separated_union[OF conn sep sub] .
@@ -4689,56 +4677,37 @@ proof -
       qed
       have pi_sub: "path_image g \<subseteq> closure (inside (path_image g))"
         using hull_subset[of "path_image g" convex] convex_hull_eq_closure_inside[OF g(1)] g(2,3) conv by force
-      from seg_eq inside_side
-      show ?thesis (*FIXME UGLY*)
+      \<comment> \<open>The closed segment from 0 to b has Im = 0, so lies in both half-planes.\<close>
+      have seg_both: "closed_segment 0 b \<subseteq> {z. Im z \<le> 0}" "closed_segment 0 b \<subseteq> {z. 0 \<le> Im z}"
+        using Im_b by (auto simp: closed_segment_def)
+      \<comment> \<open>If inside \<subseteq> half-plane, then so is path_image (by closure).\<close>
+      have side_le: "inside (path_image g) \<subseteq> {z. Im z \<le> 0} \<Longrightarrow> path_image g \<subseteq> {z. Im z \<le> 0}"
+        using pi_sub closure_minimal[OF _ closed_halfspace_le[of \<i> 0, simplified complex_inner_i_left]]
+        by auto
+      have side_ge: "inside (path_image g) \<subseteq> {z. 0 \<le> Im z} \<Longrightarrow> path_image g \<subseteq> {z. 0 \<le> Im z}"
+        using pi_sub closure_minimal[OF _ closed_halfspace_ge[of 0 \<i>, simplified complex_inner_i_left]]
+        by auto
+      from seg_eq inside_side show ?thesis
       proof (elim disjE)
         assume eq: "g ` {0..t} = closed_segment 0 b"
-          and side: "inside (path_image g) \<subseteq> {z. Im z \<le> 0}"
-        have "closure (inside (path_image g)) \<subseteq> {z. Im z \<le> 0}"
-          by (rule closure_minimal[OF side closed_halfspace_le[of \<i> 0, simplified complex_inner_i_left]])
-        then have "path_image g \<subseteq> {z. Im z \<le> 0}" using pi_sub by auto
-        then have low: "g ` {t..1} \<subseteq> {z. Im z \<le> 0}"
-          by (metis atLeastatMost_subset_iff image_mono less_eq_real_def path_image_def
-              subset_trans t(2))
-        have up: "g ` {0..t} \<subseteq> {z. 0 \<le> Im z}"
-          unfolding eq using Im_b by (auto simp: closed_segment_def)
-        show ?thesis using up low by blast
+        assume "inside (path_image g) \<subseteq> {z. Im z \<le> 0}"
+        then show ?thesis using side_le seg_both eq t
+          by (auto simp: path_image_def image_subset_iff dest!: subsetD)
       next
         assume eq: "g ` {0..t} = closed_segment 0 b"
-          and side: "inside (path_image g) \<subseteq> {z. 0 \<le> Im z}"
-        have "closure (inside (path_image g)) \<subseteq> {z. 0 \<le> Im z}"
-          by (rule closure_minimal[OF side closed_halfspace_ge[of 0 \<i>, simplified complex_inner_i_left]])
-        then have "path_image g \<subseteq> {z. 0 \<le> Im z}" using pi_sub by auto
-        then have up: "g ` {t..1} \<subseteq> {z. 0 \<le> Im z}"
-          by (metis atLeastatMost_subset_iff image_mono landau_omega.R_linear
-              linorder_not_less path_image_def subset_trans t(2))
-        have low: "g ` {0..t} \<subseteq> {z. Im z \<le> 0}"
-          unfolding eq using Im_b by (auto simp: closed_segment_def)
-        show ?thesis using low up by blast
+        assume "inside (path_image g) \<subseteq> {z. 0 \<le> Im z}"
+        then show ?thesis using side_ge seg_both eq t
+          by (auto simp: path_image_def image_subset_iff dest!: subsetD)
       next
         assume eq: "g ` {t..1} = closed_segment 0 b"
-          and side: "inside (path_image g) \<subseteq> {z. Im z \<le> 0}"
-        have "closure (inside (path_image g)) \<subseteq> {z. Im z \<le> 0}"
-          by (rule closure_minimal[OF side closed_halfspace_le[of \<i> 0, simplified complex_inner_i_left]])
-        then have "path_image g \<subseteq> {z. Im z \<le> 0}" using pi_sub by auto
-        then have low: "g ` {0..t} \<subseteq> {z. Im z \<le> 0}"
-          by (metis atLeastatMost_subset_iff image_mono less_eq_real_def path_defs(4)
-              subset_trans t(3))
-        have up: "g ` {t..1} \<subseteq> {z. 0 \<le> Im z}"
-          unfolding eq using Im_b by (auto simp: closed_segment_def)
-        show ?thesis using low up by blast
+        assume "inside (path_image g) \<subseteq> {z. Im z \<le> 0}"
+        then show ?thesis using side_le seg_both eq t
+          by (auto simp: path_image_def image_subset_iff dest!: subsetD)
       next
         assume eq: "g ` {t..1} = closed_segment 0 b"
-          and side: "inside (path_image g) \<subseteq> {z. 0 \<le> Im z}"
-        have "closure (inside (path_image g)) \<subseteq> {z. 0 \<le> Im z}"
-          by (rule closure_minimal[OF side closed_halfspace_ge[of 0 \<i>, simplified complex_inner_i_left]])
-        then have "path_image g \<subseteq> {z. 0 \<le> Im z}" using pi_sub by auto
-        then have up: "g ` {0..t} \<subseteq> {z. 0 \<le> Im z}"
-          by (metis atLeastatMost_subset_iff less_eq_real_def order.trans path_defs(4)
-              subset_image_iff t(3))
-        have low: "g ` {t..1} \<subseteq> {z. Im z \<le> 0}"
-          unfolding eq using Im_b by (auto simp: closed_segment_def)
-        show ?thesis using up low by blast
+        assume "inside (path_image g) \<subseteq> {z. 0 \<le> Im z}"
+        then show ?thesis using side_ge seg_both eq t
+          by (auto simp: path_image_def image_subset_iff dest!: subsetD)
       qed
     next
       case seg_inside:2
@@ -4751,6 +4720,7 @@ proof -
        dist 0 z \<le> diam = Re b gives |Re z| \<le> Re b.
        dist z b \<le> diam = Re b gives |Re z − Re b| \<le> Re b, hence Re z \<ge> 0.
        So z is real with 0 \<le> Re z \<le> Re b, i.e. z \<in> closed_segment 0 b.\<close>
+
         have z_in_seg: "z \<in> closed_segment 0 b"
         proof -
           have bdd: "bounded (path_image g)"
@@ -4792,118 +4762,60 @@ proof -
         using CR.Re_inj_upper_gen[of "1-s1" "1-t" "1-s2"] t g g0 g1 assms
         by (auto simp add: gop_def reversepath_def)
 
-        \<comment> \<open>Im \<circ> g doesn't change sign on [0,t]: if it did, IVT gives a real point on the curve
-     in (0,t), contradicting real_on_curve and simple path injectivity.\<close>
-      have no_cross_1: "(\<forall>s \<in> {0..t}. Im (g s) \<ge> 0) \<or> (\<forall>s \<in> {0..t}. Im (g s) \<le> 0)"
+        \<comment> \<open>Im \<circ> g doesn't change sign on either arc: if it did, IVT gives a real point
+     in the interior of the arc, contradicting real_on_curve and injectivity.\<close>
+      have no_cross: "(\<forall>s \<in> {u..v}. Im (g s) \<ge> 0) \<or> (\<forall>s \<in> {u..v}. Im (g s) \<le> 0)"
+        if huv: "u < v" "{u..v} \<subseteq> {0..1}" and hinj: "inj_on g {u..v}"
+          and hend: "Im (g u) = 0" "Im (g v) = 0" for u v
       proof (rule ccontr)
         assume "\<not> ?thesis"
-        then obtain s\<^sub>1 s\<^sub>2 where s1: "s\<^sub>1 \<in> {0..t}" "Im (g s\<^sub>1) > 0"
-          and s2: "s\<^sub>2 \<in> {0..t}" "Im (g s\<^sub>2) < 0"
+        then obtain s\<^sub>1 s\<^sub>2 where s1: "s\<^sub>1 \<in> {u..v}" "Im (g s\<^sub>1) > 0"
+          and s2: "s\<^sub>2 \<in> {u..v}" "Im (g s\<^sub>2) < 0"
           by (meson linorder_not_le)
-        have cont_01: "continuous_on {0..t} g"
-          using cont_g continuous_on_subset by (meson atLeastatMost_subset_iff order.refl t(3) less_imp_le)
-        have cont_Im: "continuous_on {0..t} (Im \<circ> g)"
-          by (intro continuous_on_compose cont_01 continuous_intros)
-            \<comment> \<open>Apply IVT to find a zero of Im \<circ> g strictly between s1 and s2\<close>
-        obtain s where s: "s \<in> {0..t}" "Im (g s) = 0" "s \<noteq> 0" "s \<noteq> t"
+        have cont_uv: "continuous_on {u..v} g"
+          using cont_g continuous_on_subset huv(2) by blast
+        \<comment> \<open>IVT gives s \<in> (u,v) with Im(g s) = 0\<close>
+        obtain s where s: "s \<in> {u..v}" "Im (g s) = 0" "s \<noteq> u" "s \<noteq> v"
         proof (cases "s\<^sub>1 \<le> s\<^sub>2")
           case True
-          obtain s where "s \<in> {s\<^sub>1..s\<^sub>2}" "g s \<bullet> \<i> = 0"
+          obtain s where hs: "s \<in> {s\<^sub>1..s\<^sub>2}" "Im (g s) = 0"
             using ivt_decreasing_component_on_1[OF True, of g \<i> 0]
-              continuous_on_subset[OF cont_01] s1 s2
+              continuous_on_subset[OF cont_uv] s1 s2
             by (force simp: complex_inner_i_right)
-          then have "s \<in> {0..t}" "Im (g s) = 0"
-            using s1(1) s2(1) by (auto simp: complex_inner_i_right)
-          moreover have "s \<noteq> 0"
-            using \<open>s \<in> {s\<^sub>1..s\<^sub>2}\<close> s1(2) assms
-            using calculation(2) s1(1) by auto
-          moreover have "s \<noteq> t"
-            using \<open>s \<in> {s\<^sub>1..s\<^sub>2}\<close> s1(2) Im_b t(1)
-            using s2(1,2) by force
-          ultimately show thesis using that by blast
+          have "s \<in> {u..v}" using hs(1) s1(1) s2(1) by auto
+          moreover have "s \<noteq> u" using hs s1 hend(1) by force
+          moreover have "s \<noteq> v" using hs s2 hend(2) by force
+          ultimately show thesis using that hs(2) by blast
         next
           case False
-          then have "s\<^sub>2 \<le> s\<^sub>1" by linarith
-          obtain s where "s \<in> {s\<^sub>2..s\<^sub>1}" "g s \<bullet> \<i> = 0"
-            using ivt_increasing_component_on_1[OF \<open>s\<^sub>2 \<le> s\<^sub>1\<close>, of g \<i> 0]
-              continuous_on_subset[OF cont_01] s1 s2
+          then have le: "s\<^sub>2 \<le> s\<^sub>1" by linarith
+          obtain s where hs: "s \<in> {s\<^sub>2..s\<^sub>1}" "Im (g s) = 0"
+            using ivt_increasing_component_on_1[OF le, of g \<i> 0]
+              continuous_on_subset[OF cont_uv] s1 s2
             by (force simp: complex_inner_i_right)
-          then have "s \<in> {0..t}" "Im (g s) = 0"
-            using s1(1) s2(1) by (auto simp: complex_inner_i_right)
-          moreover have "s \<noteq> 0"
-            using \<open>s \<in> {s\<^sub>2..s\<^sub>1}\<close> s2(2) assms
-            by (metis Im_a atLeastAtMost_iff g(2) nle_le order_less_irrefl pathstart_def s2(1))
-          moreover have "s \<noteq> t"
-            using \<open>s \<in> {s\<^sub>2..s\<^sub>1}\<close> s2(2) Im_b t(1)
-            using s1(1,2) by force
-          ultimately show thesis using that by blast
+          have "s \<in> {u..v}" using hs(1) s1(1) s2(1) by auto
+          moreover have "s \<noteq> u" using hs s2 hend(1) by force
+          moreover have "s \<noteq> v" using hs s1 hend(2) by force
+          ultimately show thesis using that hs(2) by blast
         qed
-          \<comment> \<open>g(s) is real and on the curve, so g(s) \<in> {0, b} by real_on_curve\<close>
-      have "g s \<in> path_image g"
-        using s(1) t(3) unfolding path_image_def
-        by (auto intro!: image_eqI[where x=s] simp: less_imp_le)
-      then have "g s = 0 \<or> g s = b" using real_on_curve s(2) by blast
-          \<comment> \<open>But g is injective on [0,1) and s \<in> (0,t), so g(s) \<noteq> g(0) = 0 and g(s) \<noteq> g(t) = b\<close>
-      moreover have "g s \<noteq> 0"
-        using s t by (metis Re_inj_upper atLeastAtMost_iff g0 less_eq_real_def)
-      moreover have "g s \<noteq> b"
-        using s t by (metis Re_inj_upper atLeastAtMost_iff less_eq_real_def)
-      ultimately show False by blast
-    qed
-      \<comment> \<open>Similarly for [t, 1]\<close>
-    have no_cross_2: "(\<forall>s \<in> {t..1}. Im (g s) \<ge> 0) \<or> (\<forall>s \<in> {t..1}. Im (g s) \<le> 0)"
-    proof (rule ccontr)
-      assume "\<not> ?thesis"
-      then obtain s\<^sub>1 s\<^sub>2 where s1: "s\<^sub>1 \<in> {t..1}" "Im (g s\<^sub>1) > 0"
-        and s2: "s\<^sub>2 \<in> {t..1}" "Im (g s\<^sub>2) < 0"
-        by (meson linorder_not_le)
-      have cont_t1: "continuous_on {t..1} g"
-        using cont_g continuous_on_subset by (meson atLeastatMost_subset_iff t(2) less_imp_le order.refl)
-          \<comment> \<open>Apply IVT to find a zero of Im \<circ> g strictly between s1 and s2\<close>
-      obtain s where s: "s \<in> {t..1}" "Im (g s) = 0" "s \<noteq> t" "s \<noteq> 1"
-      proof (cases "s\<^sub>1 \<le> s\<^sub>2")
-        case True
-        obtain s where "s \<in> {s\<^sub>1..s\<^sub>2}" "g s \<bullet> \<i> = 0"
-          using ivt_decreasing_component_on_1[OF True, of g \<i> 0]
-            continuous_on_subset[OF cont_t1] s1 s2
-          by (force simp: complex_inner_i_right)
-        then have "s \<in> {t..1}" "Im (g s) = 0"
-          using s1(1) s2(1) by (auto simp: complex_inner_i_right)
-        moreover have "s \<noteq> t"
-          using \<open>s \<in> {s\<^sub>1..s\<^sub>2}\<close> s1(2) Im_b t(1)
-          using s1(1) by force
-        moreover have "s \<noteq> 1"
-          using \<open>s \<in> {s\<^sub>1..s\<^sub>2}\<close> s1(2) assms
-          using calculation(2) s2(1,2) by force
-        ultimately show thesis using that by blast
-      next
-        case False
-        then have "s\<^sub>2 \<le> s\<^sub>1" by linarith
-        obtain s where "s \<in> {s\<^sub>2..s\<^sub>1}" "g s \<bullet> \<i> = 0"
-          using ivt_increasing_component_on_1[OF \<open>s\<^sub>2 \<le> s\<^sub>1\<close>, of g \<i> 0]
-            continuous_on_subset[OF cont_t1] s1 s2
-          by (force simp: complex_inner_i_right)
-        then have "s \<in> {t..1}" "Im (g s) = 0"
-          using s1(1) s2(1) by (auto simp: complex_inner_i_right)
-        moreover have "s \<noteq> t"
-          using \<open>s \<in> {s\<^sub>2..s\<^sub>1}\<close> s2(2) Im_b t(1)
-          using s2(1) by fastforce
-        moreover have "s \<noteq> 1"
-          using \<open>s \<in> {s\<^sub>2..s\<^sub>1}\<close> s2(2) assms
-          using calculation(2) s1(1,2) by fastforce
-        ultimately show thesis using that by blast
+
+        \<comment> \<open>g s is on the path, so g s \<in> {0, b} by real_on_curve\<close>
+        have "g s \<in> path_image g"
+          using s(1) huv(2) by (auto simp: path_image_def subset_iff)
+        then have "g s = 0 \<or> g s = b" using real_on_curve s(2) by blast
+        \<comment> \<open>But g is injective on [u,v] and s \<in> (u,v), so g s \<noteq> g u and g s \<noteq> g v\<close>
+        moreover have "g s \<noteq> g u" "g s \<noteq> g v"
+          using inj_onD[OF hinj] s(1,3,4) by auto
+        \<comment> \<open>Since {g u, g v} \<subseteq> {0, b}, this gives the contradiction\<close>
+        moreover have "g u \<in> {0, b}" "g v \<in> {0, b}"
+          using real_on_curve hend huv by (auto simp: path_image_def subset_iff)
+        ultimately show False
+          using \<open>u < v\<close> inj_onD [OF hinj] by (auto simp: order_class.less_le)
       qed
-      have "g s \<in> path_image g"
-        using s(1) t(2) unfolding path_image_def
-        by (auto intro!: image_eqI[where x=s] simp: less_imp_le)
-      then have "g s = 0 \<or> g s = b" using real_on_curve s(2)
-        by blast
-      moreover have "g s \<noteq> 0"
-        using s t by (metis Re_inj_lower atLeastAtMost_iff g1 less_eq_real_def)
-      moreover have "g s \<noteq> b"
-        using s t by (metis Re_inj_lower atLeastAtMost_iff less_eq_real_def)
-      ultimately show False by blast
-    qed
+      have no_cross_1: "(\<forall>s \<in> {0..t}. Im (g s) \<ge> 0) \<or> (\<forall>s \<in> {0..t}. Im (g s) \<le> 0)"
+        using no_cross[of 0 t] arc_inj_on[of 0 t] t g0 Im_b by auto
+      have no_cross_2: "(\<forall>s \<in> {t..1}. Im (g s) \<ge> 0) \<or> (\<forall>s \<in> {t..1}. Im (g s) \<le> 0)"
+        using no_cross[of t 1] arc_inj_on[of t 1] t g1 Im_b by auto
       \<comment> \<open>Now case-split on the orientation and dispatch to split_case or split_case'\<close>
     show ?thesis
     proof -
