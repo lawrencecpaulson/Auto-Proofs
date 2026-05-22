@@ -1258,7 +1258,7 @@ proof -
                               (\<Sum>i\<in>Basis. min (b1 \<bullet> i) (b2 \<bullet> i) *\<^sub>R i) = {}"
             using disj unfolding K1 K2 Int_interval interior_cbox by simp
           ultimately show "negligible (K1 \<inter> K2)"
-            using negligible_interval(1) by metis
+            using negligible_interval(1) by (metis (mono_tags, lifting))
         qed
       qed
       have eq: "(\<Sum>k\<in>d. integral k (\<lambda>t. norm (f' t))) = integral (\<Union>d) (\<lambda>t. norm (f' t))"
