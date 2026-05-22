@@ -4025,15 +4025,25 @@ proof -
     have vder_sub': "\<And>s. s \<in> {t..1} - U \<Longrightarrow> (g has_vector_derivative g' s) (at s)"
       using vder t(1) by auto
         \<comment> \<open>The integral = measure identities\<close>
+    interpret Area g g' 0 t U
+    proof
+      show "Re (g 0) \<le> Re (g t)" 
+        using g0 hgt Reb by simp
+      show "absolutely_continuous_on {0..t} g"
+        using absolutely_continuous_on_subset[OF cont] t by auto
+      show "inj_on g {0..t}"
+        using arc_inj_on t less_eq_real_def by presburger
+      then show "inj_on Re (g ` {0..t})"
+        using Reb Re_inj_upper g0 t
+        by (intro arc_Re_inj_on; fastforce simp: assms b(2))
+    qed (use above U vder t in auto)
     define Au where "Au \<equiv> {z. \<exists>w \<in> g ` {0..t}. Re w = Re z \<and> 0 \<le> Im z \<and> Im z \<le> Im w}"
     define Al where "Al \<equiv> {z. \<exists>w \<in> g ` {t..1}. Re w = Re z \<and> Im w \<le> Im z \<and> Im z \<le> 0}"
     have int_upper: "integral {0..t} f = measure lebesgue Au"
-      using area_below_arclet(2)[OF t_le Re_le ac_sub above inj_g_upper inj_Re_upper U vder_sub]
-      unfolding f_def Au_def by auto
+      using below_arclet(2) unfolding f_def Au_def by auto
     have int_lower: "integral {t..1} f = measure lebesgue Al"
       using area_above_arclet(2)[OF t_le1 Re_le' ac_sub' below inj_g_lower inj_Re_lower U vder_sub']
-      unfolding f_def Al_def
-      by blast
+      unfolding f_def Al_def by blast
         \<comment> \<open>Step A: Au and Al are measurable (compact, hence lmeasurable)\<close>
     have Au_meas: "Au \<in> lmeasurable"
     proof -
