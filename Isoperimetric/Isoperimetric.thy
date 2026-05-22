@@ -3674,53 +3674,6 @@ proof (rule inj_onI)
   qed
 qed
 
-lemma arc_int_above: "integral {u..v} (\<lambda>s. Re (g' s) * Im (g s)) \<ge> 0"
-  if huv: "0 \<le> u" "v \<le> 1" "u < v" "u > 0 \<or> v < 1"
-    and hRe_le: "Re (g u) \<le> Re (g v)"
-    and hRe_ne: "Re (g u) \<noteq> Re (g v)"
-    and him: "g ` {u..v} \<subseteq> {z. 0 \<le> Im z}"
-    and hRe_inj: "\<And>s1 s2. \<lbrakk>s1 \<in> {u..v}; s2 \<in> {u..v}; Re (g s1) = Re (g s2); s1 \<noteq> s2\<rbrakk>
-                    \<Longrightarrow> Re (g u) = Re (g v)"
-proof -
-  have uv_le: "u \<le> v" using huv(3) by linarith
-  have ac: "absolutely_continuous_on {u..v} g"
-    using absolutely_continuous_on_subset[OF cont] huv(1,2) by auto
-  have inj_g: "inj_on g {u..v}"
-    using arc_inj_on[OF huv] by auto
-  have inj_Re: "inj_on Re (g ` {u..v})"
-    using arc_Re_inj_on[OF inj_g hRe_inj hRe_ne] by auto
-  have vd: "\<And>s. s \<in> {u..v} - U \<Longrightarrow> (g has_vector_derivative g' s) (at s)"
-    using vder huv(1,2) by auto
-  have "integral {u..v} (\<lambda>s. Re (g' s) * Im (g s)) =
-          measure lebesgue {z. \<exists>w \<in> g ` {u..v}. Re w = Re z \<and> 0 \<le> Im z \<and> Im z \<le> Im w}"
-    using area_below_arclet(2)[OF uv_le hRe_le ac him inj_g inj_Re U vd] by auto
-  then show ?thesis by simp
-qed
-
-lemma arc_int_below: "integral {u..v} (\<lambda>s. Re (g' s) * Im (g s)) \<ge> 0"
-  if huv: "0 \<le> u" "v \<le> 1" "u < v" "u > 0 \<or> v < 1"
-    and hRe_le: "Re (g v) \<le> Re (g u)"
-    and hRe_ne: "Re (g u) \<noteq> Re (g v)"
-    and him: "g ` {u..v} \<subseteq> {z. Im z \<le> 0}"
-    and hRe_inj: "\<And>s1 s2. \<lbrakk>s1 \<in> {u..v}; s2 \<in> {u..v}; Re (g s1) = Re (g s2); s1 \<noteq> s2\<rbrakk>
-                    \<Longrightarrow> Re (g u) = Re (g v)"
-  for u v
-proof -
-  have uv_le: "u \<le> v" using huv(3) by linarith
-  have ac: "absolutely_continuous_on {u..v} g"
-    using absolutely_continuous_on_subset[OF cont] huv(1,2) by auto
-  have inj_g: "inj_on g {u..v}"
-    using arc_inj_on[OF huv] by auto
-  have inj_on_Re: "inj_on Re (g ` {u..v})"
-    using arc_Re_inj_on[OF inj_g _ hRe_ne] hRe_inj by blast
-  have vd: "\<And>s. s \<in> {u..v} - U \<Longrightarrow> (g has_vector_derivative g' s) (at s)"
-    using vder huv(1,2) by auto
-  have "integral {u..v} (\<lambda>s. Re (g' s) * Im (g s)) =
-          measure lebesgue {z. \<exists>w \<in> g ` {u..v}. Re w = Re z \<and> Im w \<le> Im z \<and> Im z \<le> 0}"
-    using area_above_arclet(2)[OF uv_le hRe_le ac him inj_g inj_on_Re U vd] .
-  then show ?thesis by simp
-qed
-
 lemma Re_inj_upper_gen: 
   assumes s1t: "s1 \<in> {0..t}" and s2t: "s2 \<in> {0..t}"
     and Re_eq: "Re (g s1) = Re (g s2)" and neq: "s1 \<noteq> s2"
@@ -3857,11 +3810,8 @@ proof (rule ccontr)
   qed
       \<comment> \<open>Step 4b: By IVT on [t,1], find s3 with Re(g s3) = c.\<close>
   have cont_Re_g: "continuous_on {t..1} (Re \<circ> g)"
-  proof -
-    have "continuous_on {0..1} g" using simple_path_imp_path[OF g(1)] by (simp add: path_def)
-    then have "continuous_on {t..1} g" by (rule continuous_on_subset) (use ht in auto)
-    then show ?thesis by (intro continuous_intros)
-  qed
+    using absolutely_continuous_on_imp_continuous assms(2) cont continuous_on_Re
+      continuous_on_eq continuous_on_subset by fastforce
   obtain s3 where s3: "s3 \<in> {t..1}" "Re (g s3) = c"
   proof -
     have img_conn: "connected ((Re \<circ> g) ` {t..1})"
@@ -3878,13 +3828,13 @@ proof (rule ccontr)
   qed
     \<comment> \<open>Step 4c: g s3 is on frontier S and distinct from g s1 and g s2.\<close>
   have s3_01: "s3 \<in> {0..1}" using s3(1) ht(1) by auto
+  have loopfr_g: "loop_free g" using g by (simp add: simple_path_def)
   have gs3_frontier: "g s3 \<in> frontier S"
     using frontier_S s3_01 by (auto simp: path_image_def)
   have gs3_ne_gs1: "g s3 \<noteq> g s1"
   proof
     assume eq: "g s3 = g s1"
-    from g(1) have lf: "loop_free g" by (simp add: simple_path_def)
-    then have "s3 = s1 \<or> s3 = 0 \<and> s1 = 1 \<or> s3 = 1 \<and> s1 = 0"
+    with loopfr_g have "s3 = s1 \<or> s3 = 0 \<and> s1 = 1 \<or> s3 = 1 \<and> s1 = 0"
       using eq loop_free_def s1_01 s3_01 by blast
     then show False
       using assms(1) c_def c_strict eq geq0(2) ht(3) s3(1) by auto
@@ -3892,8 +3842,7 @@ proof (rule ccontr)
   have gs3_ne_gs2: "g s3 \<noteq> g s2"
   proof
     assume eq: "g s3 = g s2"
-    from g(1) have lf: "loop_free g" by (simp add: simple_path_def)
-    then have "s3 = s2 \<or> s3 = 0 \<and> s2 = 1 \<or> s3 = 1 \<and> s2 = 0"
+    with loopfr_g have "s3 = s2 \<or> s3 = 0 \<and> s2 = 1 \<or> s3 = 1 \<and> s2 = 0"
       using eq loop_free_def s2_01 s3_01 by blast
     then show False
       using assms(2) c_strict geq0(2) ht(3) s3(1,2) by fastforce
@@ -4006,25 +3955,20 @@ proof -
        since f_upper = Im \<circ> g \<circ> Re⁻¹ \<ge> 0 on the upper arc.\<close>
   have upper_int: "integral {0..t} f \<ge> 0"
   proof -
-    have t_le: "0 \<le> t" using t(1) by linarith
-    have Re_le: "Re (g 0) \<le> Re (g t)" using g0 hgt Reb by simp
-    have ac_sub: "absolutely_continuous_on {0..t} g"
-      using absolutely_continuous_on_subset[OF cont] t by auto
-    have inj_g_upper: "inj_on g {0..t}"
-      using arc_inj_on t less_eq_real_def by presburger
-    then have inj_Re_upper: "inj_on Re (g ` {0..t})"
-      using Reb Re_inj_upper g0 t
-      by (intro arc_Re_inj_on; fastforce simp: assms b(2))
-    have vder_sub: "\<And>s. s \<in> {0..t} - U \<Longrightarrow> (g has_vector_derivative g' s) (at s)"
-      using vder t(2) by auto
-    have "integral {0..t} (\<lambda>s. Re (g' s) * Im (g s)) =
-            measure lebesgue {z. \<exists>w \<in> g ` {0..t}. Re w = Re z \<and> 0 \<le> Im z \<and> Im z \<le> Im w}"
-      using area_below_arclet(2)[OF t_le Re_le ac_sub above inj_g_upper inj_Re_upper U vder_sub]
-      by auto
-    then have "integral {0..t} f =
-            measure lebesgue {z. \<exists>w \<in> g ` {0..t}. Re w = Re z \<and> 0 \<le> Im z \<and> Im z \<le> Im w}"
-      unfolding f_def by auto
-    then show ?thesis by simp
+    interpret Area g g' 0 t U
+    proof
+      show "Re (g 0) \<le> Re (g t)" 
+        using g0 hgt Reb by simp
+      show "absolutely_continuous_on {0..t} g"
+        using absolutely_continuous_on_subset[OF cont] t by auto
+      show "inj_on g {0..t}"
+        using arc_inj_on t less_eq_real_def by presburger
+      then show "inj_on Re (g ` {0..t})"
+        using Reb Re_inj_upper g0 t
+        by (intro arc_Re_inj_on; fastforce simp: assms b(2))
+    qed (use above U vder t in auto)
+    show ?thesis
+      unfolding f_def using below_arclet(2) by auto
   qed
     \<comment> \<open>Step 3: Lower arc integral \<ge> 0 as well.
        On [t,1], g goes from b back to 0 (Re decreasing) with Im(g) \<le> 0.
@@ -4044,14 +3988,10 @@ proof -
       by (intro arc_Re_inj_on; fastforce simp: assms b(2))
     have vder_sub': "\<And>s. s \<in> {t..1} - U \<Longrightarrow> (g has_vector_derivative g' s) (at s)"
       using vder t(1) by auto
-    have "integral {t..1} (\<lambda>s. Re (g' s) * Im (g s)) =
-            measure lebesgue {z. \<exists>w \<in> g ` {t..1}. Re w = Re z \<and> Im w \<le> Im z \<and> Im z \<le> 0}"
+    show ?thesis
+      unfolding f_def
       using area_above_arclet(2)[OF t_le1 Re_le' ac_sub' below inj_g_lower inj_Re_lower U vder_sub']
-      .
-    then have "integral {t..1} f =
-            measure lebesgue {z. \<exists>w \<in> g ` {t..1}. Re w = Re z \<and> Im w \<le> Im z \<and> Im z \<le> 0}"
-      unfolding f_def by auto
-    then show ?thesis by simp
+      by auto
   qed
     \<comment> \<open>Step 4: total integral = area of inside.
        The inside decomposes as the region between the two arcs:
