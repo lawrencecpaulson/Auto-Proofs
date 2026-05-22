@@ -10,14 +10,6 @@ text \<open>
   @{term "{0..1}"}. The path length is the vector variation on that interval.
 \<close>
 
-section \<open>Definitions\<close>
-
-definition rectifiable_path :: "(real \<Rightarrow> 'a::euclidean_space) \<Rightarrow> bool" where
-  "rectifiable_path g \<longleftrightarrow> path g \<and> has_bounded_variation_on g {0..1}"
-
-definition path_length :: "(real \<Rightarrow> 'a::euclidean_space) \<Rightarrow> real" where
-  "path_length g = vector_variation {0..1} g"
-
 section \<open>Basic properties\<close>
 
 lemma rectifiable_path_imp_path:
@@ -717,7 +709,7 @@ lemma path_length_join:
   assumes "rectifiable_path g1"
     and "rectifiable_path g2"
     and "pathfinish g1 = pathstart g2"
-  shows "Rectifiable_Path.path_length (g1 +++ g2) = Rectifiable_Path.path_length g1 + Rectifiable_Path.path_length g2"
+  shows "path_length (g1 +++ g2) = path_length g1 + path_length g2"
 proof -
   have half: "(0::real) \<le> 1/2" "1/2 \<le> (1::real)" by auto
   have bvj: "has_bounded_variation_on (g1 +++ g2) {0..1}"
