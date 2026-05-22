@@ -4972,6 +4972,122 @@ end
 
 section \<open>Part 3: Isoperimetric theorem for convex curves\<close>
 
+text \<open>The kernel lemma: the isoperimetric inequality for a convex curve that has been
+  normalized to arc-length parametrization with zero-mean imaginary part and
+  diameter along the real axis starting at a point with Re = 0.
+  This is where the Wirtinger inequality is applied.\<close>
+
+lemma isoperimetric_kernel:
+  fixes g :: "real \<Rightarrow> complex" and L :: real and a b :: complex
+  assumes "0 < L"
+    and "convex (inside (path_image g))"
+    and "a \<in> path_image g" "b \<in> path_image g"
+    and "dist a b = diameter (path_image g)"
+    and "b - a = of_real (dist a b)"
+    and "pathstart g = a" "pathfinish g = a"
+    and "rectifiable_path g" "simple_path g"
+    and "path_length g = L"
+    and arc_length: "\<And>t. t \<in> {0..1} \<Longrightarrow> path_length (subpath 0 t g) = L * t"
+    and lipschitz: "\<And>x y. x \<in> {0..1} \<Longrightarrow> y \<in> {0..1} \<Longrightarrow> dist (g x) (g y) \<le> L * dist x y"
+    and "Re a = 0"
+    and "(Im \<circ> g has_integral 0) {0..1}"
+  shows "measure lebesgue (inside (path_image g)) \<le> L\<^sup>2 / (4 * pi)"
+    and "measure lebesgue (inside (path_image g)) = L\<^sup>2 / (4 * pi) \<Longrightarrow>
+      \<exists>c r. path_image g = sphere c r"
+  sorry
+
+text \<open>Reduction lemmas for the reparametrization steps.\<close>
+
+lemma isoperimetric_reduce_shift:
+  fixes g :: "real \<Rightarrow> complex"
+  assumes "rectifiable_path g" "simple_path g"
+    "pathfinish g = pathstart g"
+    "convex (inside (path_image g))"
+    "path_length g = L"
+    "a \<in> path_image g"
+  obtains h where "rectifiable_path h" "simple_path h"
+    "pathfinish h = pathstart h" "pathstart h = a"
+    "convex (inside (path_image h))"
+    "path_length h = L"
+    "path_image h = path_image g"
+proof -
+  obtain t where t: "t \<in> {0..1}" "g t = a"
+    using assms(6) by (auto simp: path_image_def)
+  define h where "h \<equiv> shiftpath t g"
+  have "rectifiable_path h"
+    unfolding h_def using rectifiable_path_shiftpath[OF assms(1) assms(3) t(1)] .
+  moreover have "simple_path h"
+    unfolding h_def using simple_path_shiftpath[OF assms(2) assms(3)] t(1) by auto
+  moreover have "pathfinish h = pathstart h"
+    unfolding h_def using pathfinish_shiftpath[of t g] pathstart_shiftpath[of t g]
+      t(1) assms(3) by auto
+  moreover have "pathstart h = a"
+    unfolding h_def using pathstart_shiftpath[of t g] t by auto
+  moreover have "path_image h = path_image g"
+    unfolding h_def using path_image_shiftpath[OF t(1) assms(3)] .
+  moreover have "convex (inside (path_image h))"
+    using assms(4) calculation(5) by simp
+  moreover have "path_length h = L"
+    unfolding h_def using path_length_shiftpath[OF assms(1) assms(3) t(1)] assms(5) by simp
+  ultimately show thesis using that by blast
+qed
+
+lemma isoperimetric_reduce_rotate_translate:
+  fixes g :: "real \<Rightarrow> complex" and a b :: complex
+  assumes "rectifiable_path g" "simple_path g"
+    "pathfinish g = pathstart g" "pathstart g = a"
+    "convex (inside (path_image g))"
+    "path_length g = L"
+    "b \<in> path_image g" "dist a b = diameter (path_image g)"
+    "a \<noteq> b"
+  obtains h a' b' where "rectifiable_path h" "simple_path h"
+    "pathfinish h = pathstart h" "pathstart h = a'"
+    "convex (inside (path_image h))"
+    "path_length h = L"
+    "b' \<in> path_image h" "dist a' b' = diameter (path_image h)"
+    "b' - a' = of_real (dist a' b')"
+    "Re a' = 0"
+    "measure lebesgue (inside (path_image h)) = measure lebesgue (inside (path_image g))"
+    "\<And>c r. path_image h = sphere c r \<Longrightarrow> \<exists>c' r'. path_image g = sphere c' r'"
+  sorry
+
+lemma isoperimetric_reduce_arc_length:
+  fixes g :: "real \<Rightarrow> complex"
+  assumes "rectifiable_path g" "simple_path g"
+    "pathfinish g = pathstart g"
+    "convex (inside (path_image g))"
+    "path_length g = L" "0 < L"
+  obtains h where "rectifiable_path h" "simple_path h"
+    "pathfinish h = pathstart h" "pathstart h = pathstart g"
+    "convex (inside (path_image h))"
+    "path_length h = L"
+    "path_image h = path_image g"
+    "\<And>t. t \<in> {0..1} \<Longrightarrow> path_length (subpath 0 t h) = L * t"
+    "\<And>x y. x \<in> {0..1} \<Longrightarrow> y \<in> {0..1} \<Longrightarrow> dist (h x) (h y) \<le> L * dist x y"
+  sorry
+
+lemma isoperimetric_reduce_zero_mean:
+  fixes g :: "real \<Rightarrow> complex"
+  assumes "rectifiable_path g" "simple_path g"
+    "pathfinish g = pathstart g"
+    "convex (inside (path_image g))"
+    "path_length g = L"
+    "b - pathstart g = of_real (dist (pathstart g) b)"
+    "Re (pathstart g) = 0"
+    "\<And>t. t \<in> {0..1} \<Longrightarrow> path_length (subpath 0 t g) = L * t"
+    "\<And>x y. x \<in> {0..1} \<Longrightarrow> y \<in> {0..1} \<Longrightarrow> dist (g x) (g y) \<le> L * dist x y"
+  obtains h where "rectifiable_path h" "simple_path h"
+    "pathfinish h = pathstart h"
+    "convex (inside (path_image h))"
+    "path_length h = L"
+    "pathstart h - pathstart g = of_real 0 \<or> True"
+    "\<And>t. t \<in> {0..1} \<Longrightarrow> path_length (subpath 0 t h) = L * t"
+    "\<And>x y. x \<in> {0..1} \<Longrightarrow> y \<in> {0..1} \<Longrightarrow> dist (h x) (h y) \<le> L * dist x y"
+    "(Im \<circ> h has_integral 0) {0..1}"
+    "measure lebesgue (inside (path_image h)) = measure lebesgue (inside (path_image g))"
+    "\<And>c r. path_image h = sphere c r \<Longrightarrow> \<exists>c' r'. path_image g = sphere c' r'"
+  sorry
+
 theorem isoperimetric_theorem_convex:
   fixes g :: "real \<Rightarrow> complex"
   assumes "rectifiable_path g" "simple_path g"
@@ -4981,7 +5097,58 @@ theorem isoperimetric_theorem_convex:
   shows "measure lebesgue (inside (path_image g)) \<le> L\<^sup>2 / (4 * pi)"
     and "measure lebesgue (inside (path_image g)) = L\<^sup>2 / (4 * pi) \<Longrightarrow>
       \<exists>a r. path_image g = sphere a r"
-  sorry
+proof -
+  have Lpos: "0 < L"
+    using simple_path_length_pos_lt[OF assms(1,2)] assms(5) by simp
+  text \<open>Step 1: obtain diameter endpoints\<close>
+  have compact_pi: "compact (path_image g)"
+    using compact_simple_path_image[OF assms(2)] .
+  have nonempty_pi: "path_image g \<noteq> {}"
+    using path_image_nonempty .
+  obtain a b where ab: "a \<in> path_image g" "b \<in> path_image g"
+    "dist a b = diameter (path_image g)"
+    using diameter_compact_attained[OF compact_pi nonempty_pi] by auto
+  text \<open>Step 2: reduce to normalized form via reparametrization and isometry\<close>
+  text \<open>After shifting start, rotating, translating, arc-length reparametrizing,
+    and vertically translating to zero-mean, we obtain a curve h satisfying
+    all hypotheses of isoperimetric\_kernel, with the same area and path length.\<close>
+  obtain h a' b' where h:
+    "0 < L"
+    "convex (inside (path_image h))"
+    "a' \<in> path_image h" "b' \<in> path_image h"
+    "dist a' b' = diameter (path_image h)"
+    "b' - a' = of_real (dist a' b')"
+    "pathstart h = a'" "pathfinish h = a'"
+    "rectifiable_path h" "simple_path h"
+    "path_length h = L"
+    "\<And>t. t \<in> {0..1} \<Longrightarrow> path_length (subpath 0 t h) = L * t"
+    "\<And>x y. x \<in> {0..1} \<Longrightarrow> y \<in> {0..1} \<Longrightarrow> dist (h x) (h y) \<le> L * dist x y"
+    "Re a' = 0"
+    "(Im \<circ> h has_integral 0) {0..1}"
+    and meas_eq: "measure lebesgue (inside (path_image h)) =
+      measure lebesgue (inside (path_image g))"
+    and sphere_back: "\<And>c r. path_image h = sphere c r \<Longrightarrow>
+      \<exists>c' r'. path_image g = sphere c' r'"
+    using assms ab
+    apply safe
+    apply (rule isoperimetric_reduce_zero_mean[of g L])
+             apply (simp_all add: )
+    sorry
+  text \<open>Step 3: apply the kernel lemma\<close>
+  have ineq_h: "measure lebesgue (inside (path_image h)) \<le> L\<^sup>2 / (4 * pi)"
+    using isoperimetric_kernel(1)[OF h] .
+  show "measure lebesgue (inside (path_image g)) \<le> L\<^sup>2 / (4 * pi)"
+    using ineq_h meas_eq by simp
+  show "\<exists>a r. path_image g = sphere a r"
+    if "measure lebesgue (inside (path_image g)) = L\<^sup>2 / (4 * pi)"
+  proof -
+    have "measure lebesgue (inside (path_image h)) = L\<^sup>2 / (4 * pi)"
+      using that meas_eq by simp
+    then obtain c r where "path_image h = sphere c r"
+      using isoperimetric_kernel(2)[OF h] by auto
+    then show ?thesis using sphere_back by auto
+  qed
+qed
 
 section \<open>Part 4: Convexification\<close>
 
