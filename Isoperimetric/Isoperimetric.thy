@@ -4499,6 +4499,7 @@ proof -
       using f_abs_int by (auto simp: Green_concl_def)
   qed
 
+  have Reb: "Re b > 0" using b(2) assms by simp
   have Im_a: "Im a = 0" using assms by simp
   have Im_b: "Im b = 0" using b(3) Im_a by simp
   have path_g: "path g" using g(1) simple_path_imp_path by blast
@@ -4514,6 +4515,13 @@ proof -
       by (smt (verit, best) b(2) box_real(2) g(3) mem_box_real(2) pathfinish_def t0)
     ultimately show thesis using t0 that by blast
   qed
+  have Re_inj_upper: "\<lbrakk>s1 \<in> {0..t}; s2 \<in> {0..t}; Re (g s1) = Re (g s2); s1 \<noteq> s2\<rbrakk>
+        \<Longrightarrow> (s1 = 0 \<and> s2 = t) \<or> (s1 = t \<and> s2 = 0)" for s1 s2
+    using Re_inj_upper_gen g0 g1 t by presburger
+  have Re_inj_lower: "\<lbrakk>s1 \<in> {t..1}; s2 \<in> {t..1}; Re (g s1) = Re (g s2); s1 \<noteq> s2\<rbrakk>
+        \<Longrightarrow> (s1 = t \<and> s2 = 1) \<or> (s1 = 1 \<and> s2 = t)" for s1 s2
+    using CR.Re_inj_upper_gen[of "1-s1" "1-t" "1-s2"] t g g0 g1 assms
+    by (auto simp add: gop_def reversepath_def)
   have "g ` {0..t} \<subseteq> {z. 0 \<le> Im z} \<and> g ` {t..1} \<subseteq> {z. Im z \<le> 0} \<or>
         g ` {0..t} \<subseteq> {z. Im z \<le> 0} \<and> g ` {t..1} \<subseteq> {z. 0 \<le> Im z}"
   proof -
@@ -4701,19 +4709,14 @@ proof -
                          inside (path_image g) \<subseteq> {z. 0 \<le> Im z}"
       proof -
         have J: "inside (path_image g) \<noteq> {}" "open (inside (path_image g))"
-              "frontier (inside (path_image g)) = path_image g"
+          "frontier (inside (path_image g)) = path_image g"
           using Jordan_inside_outside g by blast+
         have intne: "interior (inside (path_image g)) \<noteq> {}"
           using J(1,2) interior_eq by auto
         have rf_eq: "rel_frontier (inside (path_image g)) = frontier (inside (path_image g))"
           using rel_frontier_nonempty_interior intne by blast
         have mid_on: "midpoint 0 b \<in> path_image g"
-        proof -
-          have "midpoint 0 b \<in> open_segment 0 b"
-            using midpoint_in_open_segment b(2) assms
-            by (auto simp: complex_eq_iff)
-          with 1 show ?thesis by auto
-        qed
+          using "1" Reb by force
         have rf0: "(0::complex) \<in> rel_frontier (inside (path_image g))"
           using rf_eq J(3) g0 by (auto simp: path_image_def intro!: image_eqI[of _ _ 0])
         have rfb: "b \<in> rel_frontier (inside (path_image g))"
@@ -4788,379 +4791,215 @@ proof -
         show ?thesis using up low by blast
       qed
     next
-      case 2
-      then show ?thesis sorry
-    qed
-  qed
-  then show ?thesis
-    using assms split_case split_case' t by blast
-
-  have Reb: "Re b > 0" using b(2) assms by simp
-  have Im_b: "Im b = 0" using b(3) assms by simp
-  have Re_inj_upper: "\<lbrakk>s1 \<in> {0..t}; s2 \<in> {0..t}; Re (g s1) = Re (g s2); s1 \<noteq> s2\<rbrakk>
-        \<Longrightarrow> (s1 = 0 \<and> s2 = t) \<or> (s1 = t \<and> s2 = 0)" for s1 s2
-    using Re_inj_upper_gen g0 g1 t by presburger
-  have Re_inj_lower: "\<lbrakk>s1 \<in> {t..1}; s2 \<in> {t..1}; Re (g s1) = Re (g s2); s1 \<noteq> s2\<rbrakk>
-        \<Longrightarrow> (s1 = t \<and> s2 = 1) \<or> (s1 = 1 \<and> s2 = t)" for s1 s2
-    using CR.Re_inj_upper_gen[of "1-s1" "1-t" "1-s2"] t g g0 g1 assms
-    by (auto simp add: gop_def reversepath_def)
-
-  \<comment> \<open>Key geometric fact: the only real points on the curve are a and b.
-     This follows because open_segment a b \<subseteq> inside(path_image g),
-     and the diameter bound forces any real point on the curve into closed_segment a b.\<close>
-  have real_on_curve: "z = 0 \<or> z = t \<or> z = b" 
-      if z_on: "z \<in> path_image g" and z_real: "Im z = 0" for z
-  proof (rule ccontr)
-    assume non: "\<not> ?thesis"
-    \<comment> \<open>Step 1: Basic setup\<close>
-    have a0: "a = 0" using assms by simp
-    have Reb: "Re b > 0" using b(2) a0 by simp
-    have Imb: "Im b = 0" using b(3) a0 by simp
-    \<comment> \<open>Step 2: Diameter bounds force z into closed_segment 0 b.
+      case seg_inside:2
+      have real_on_curve: "z = 0 \<or> z = b" 
+        if z_on: "z \<in> path_image g" and z_real: "Im z = 0" for z
+      proof (rule ccontr)
+        assume non: "\<not> ?thesis"
+          \<comment> \<open>Step 1: Basic setup\<close>
+            \<comment> \<open>Step 2: Diameter bounds force z into closed_segment 0 b.
        dist 0 z \<le> diam = Re b gives |Re z| \<le> Re b.
        dist z b \<le> diam = Re b gives |Re z − Re b| \<le> Re b, hence Re z \<ge> 0.
        So z is real with 0 \<le> Re z \<le> Re b, i.e. z \<in> closed_segment 0 b.\<close>
-    have z_in_seg: "z \<in> closed_segment 0 b"
-    proof -
-      have bdd: "bounded (path_image g)"
-        using g(1) bounded_simple_path_image by blast
-      have z0_on: "0 \<in> path_image g"
-        using pathstart_in_path_image[of g] g(2) a0 by simp
-      have diam_eq: "diameter (path_image g) = Re b"
-        using dab a0 Imb Reb by (simp add: dist_complex_def cmod_eq_Re)
-      have d1: "dist 0 z \<le> Re b"
-        using diameter_bounded_bound[OF bdd z0_on z_on] diam_eq by simp
-      have d2: "dist z b \<le> Re b"
-        using diameter_bounded_bound[OF bdd z_on b(1)] diam_eq by simp
-      have Re_le: "Re z \<le> Re b"
-        using d1 z_real by (simp add: dist_complex_def cmod_eq_Re)
-      have Re_ge: "Re z \<ge> 0"
-        using d2 z_real Imb by (simp add: dist_complex_def cmod_eq_Re minus_complex.sel)
-      have z_eq: "z = of_real (Re z)"
-        using z_real complex_is_Real_iff of_real_Re by metis
-      have b_eq: "b = of_real (Re b)"
-        using Imb complex_is_Real_iff of_real_Re by metis
-      show ?thesis
-        by (metis Re_ge Re_le Reb atLeastAtMost_iff b_eq closed_segment_eq_real_ivl1
-            less_eq_real_def of_real_0 of_real_closed_segment z_eq)
-    qed
-    \<comment> \<open>Step 3: open_segment 0 b \<subseteq> inside(path_image g).
-       Key sub-argument: for a compact convex body K with nonempty interior,
-       if dist a b = diameter K and a, b \<in> K, then open_segment a b \<subseteq> interior K.
-       Here K = closure(inside) = convex hull(path_image g).
-       Proof idea: if w \<in> open_segment 0 b and w \<in> frontier K, a supporting hyperplane
-       at w perpendicular to [0,b] would force a or b outside K, contradicting diameter.\<close>
-
-    have XX: \<open>frontier(convex hull (path_image g)) = path_image g\<close>
-      by (simp add: conv frontier_convex_hull_eq_path_image g(1) g0 g1 path_defs(2)
-          pathfinish_def)
-
-    have seg_inside: "open_segment 0 b \<subseteq> inside (path_image g)"
-    proof -
-      define K where \<open>K \<equiv> closure(inside (path_image g))\<close>
-      then have Keq: \<open>K = convex hull(path_image g)\<close>
-        using conv convex_hull_eq_closure_inside g by presburger
-      then have \<open>compact K \<close>
-        by (simp add: compact_convex_hull compact_simple_path_image g(1))
-      obtain K0b: \<open>0 \<in> K\<close> \<open>b \<in> K\<close>
-        by (metis Keq a0 b(1) g0 hull_inc path_defs(2) pathstart_in_path_image)
-      then have \<open>dist 0 b \<le> diameter K\<close>
-        by (meson \<open>compact K\<close> compact_imp_bounded diameter_bounded_bound)
-      have convK: \<open>convex K\<close>
-        using Keq convex_convex_hull by auto
-      have closedK: \<open>closed K\<close>
-        using \<open>compact K\<close> compact_imp_closed by blast
-      have \<open>0 \<in> closure K\<close> \<open>b \<in> closure K\<close>
-        using K0b closedK by simp_all
-      have frontierK: \<open>frontier K = path_image g\<close>
-      proof -
-        have \<open>interior K = inside (path_image g)\<close>
-          using K_def conv convex_interior_closure
-          using Jordan_inside_outside R.g(1) g inside_frontier_eq_interior by fastforce
-        then show ?thesis           
-          using closure_closed[OF closedK] unfolding frontier_def K_def
-          by (metis Jordan_inside_outside frontier_def g(1) g0 g1 interior_interior pathfinish_def
-              pathstart_def)
-      qed
-      have \<open>open_segment 0 b \<subseteq> interior K\<close>
-      proof (rule disjE[OF convex_open_segment_cases_alt[OF convK \<open>0 \<in> closure K\<close> \<open>b \<in> closure K\<close>]])
-        assume front: \<open>open_segment 0 b \<subseteq> frontier K\<close>
-        \<comment> \<open>The midpoint is in the open segment, hence on the frontier\<close>
-        have mid_seg: \<open>midpoint 0 b \<in> open_segment 0 b\<close>
-          using Reb by (simp add: midpoint_in_open_segment complex_eq_iff)
-        then have mid_front: \<open>midpoint 0 b \<in> frontier K\<close>
-          using front by blast
-        \<comment> \<open>K has nonempty interior (it equals inside(path_image g) which is nonempty by Jordan)\<close>
-        have intK_ne: \<open>interior K \<noteq> {}\<close>
+        have z_in_seg: "z \<in> closed_segment 0 b"
         proof -
-          have \<open>inside (path_image g) \<noteq> {}\<close>
-            using Jordan_inside_outside g(1) g(3) g(2) by presburger
-          moreover have \<open>interior K = inside (path_image g)\<close>
-            using K_def conv convex_interior_closure
-            using Jordan_inside_outside g(1) g inside_frontier_eq_interior by fastforce
-          ultimately show ?thesis by simp
+          have bdd: "bounded (path_image g)"
+            using g(1) bounded_simple_path_image by blast
+          have z0_on: "0 \<in> path_image g"
+            using pathstart_in_path_image[of g] g(2) \<open>a=0\<close> by simp
+          have diam_eq: "diameter (path_image g) = Re b"
+            using dab \<open>a=0\<close> Im_b Reb by (simp add: dist_complex_def cmod_eq_Re)
+          have d1: "dist 0 z \<le> Re b"
+            using diameter_bounded_bound[OF bdd z0_on z_on] diam_eq by simp
+          have d2: "dist z b \<le> Re b"
+            using diameter_bounded_bound[OF bdd z_on b(1)] diam_eq by simp
+          have Re_le: "Re z \<le> Re b"
+            using d1 z_real by (simp add: dist_complex_def cmod_eq_Re)
+          have Re_ge: "Re z \<ge> 0"
+            using d2 z_real Im_b by (simp add: dist_complex_def cmod_eq_Re minus_complex.sel)
+          have z_eq: "z = of_real (Re z)"
+            using z_real complex_is_Real_iff of_real_Re by metis
+          have b_eq: "b = of_real (Re b)"
+            using Im_b complex_is_Real_iff of_real_Re by metis
+          show ?thesis
+            by (metis Re_ge Re_le Reb atLeastAtMost_iff b_eq closed_segment_eq_real_ivl1
+                less_eq_real_def of_real_0 of_real_closed_segment z_eq)
         qed
-        \<comment> \<open>Since K is convex with nonempty interior in \<complex> (2D), K is not in a hyperplane.
-           In particular there exists p \<in> K with Im p \<noteq> 0.\<close>
-        obtain p where p: \<open>p \<in> K\<close> \<open>Im p \<noteq> 0\<close>
-        proof -
-          have \<open>\<not> (K \<subseteq> {z. Im z = 0})\<close>
-          proof
-            assume \<open>K \<subseteq> {z. Im z = 0}\<close>
-            then have \<open>K \<subseteq> {z. (\<i> :: complex) \<bullet> z = 0}\<close>
-              by (auto simp: complex_inner_i_left)
-            then have \<open>interior K = {}\<close>
-              by (metis Diff_Diff_Int Diff_cancel K_def closure_closure complex_i_not_zero
-                  inf.orderE interior_Int interior_diff interior_hyperplane interior_subset)
-            then show False using intK_ne by blast
-          qed
-          then show ?thesis using that by blast
-        qed
-        \<comment> \<open>{0, b, p} is not collinear since 0 and b are real but p is not\<close>
-        have ncol: \<open>\<not> collinear {0, b, p}\<close>
-        proof
-          assume \<open>collinear {0, b, p}\<close>
-          then have \<open>p = 0 \<or> (\<exists>c. p = c *\<^sub>R b)\<close>
-            using collinear_lemma[of b p] R.b(2) a0 by blast
-          then have \<open>Im p = 0\<close>
-            using Imb by (auto simp: scaleR_complex.sel)
-          then show False using p(2) by blast
-        qed
-        \<comment> \<open>The midpoint is in the interior of the triangle {0, b, p}\<close>
-        show ?thesis if front: \<open>open_segment 0 b \<subseteq> frontier K\<close>
-        proof -
-          \<comment> \<open>0, b, midpoint 0 b are on frontier K = rel_frontier K, all with Im = 0\<close>
-          have "0 \<in> frontier K"
-            using frontierK g0 by (auto simp: path_image_def intro!: image_eqI[of _ _ 0])
-          moreover have "b \<in> frontier K"
-            using frontierK b(1) by auto
-          moreover have m_front: "midpoint 0 b \<in> frontier K"
-            using front mid_seg by blast
-          moreover have "rel_frontier K = frontier K"
-            using rel_frontier_nonempty_interior intK_ne by blast
-          ultimately have rf: "(0::complex) \<in> rel_frontier K" "b \<in> rel_frontier K"
-            "midpoint 0 b \<in> rel_frontier K"
-            by auto
-          \<comment> \<open>The three points are distinct\<close>
-          have ne1: "(0::complex) \<noteq> b" using Reb by (auto simp: complex_eq_iff)
-          have ne2: "(0::complex) \<noteq> midpoint 0 b"
-            using ne1 by (simp add: midpoint_def complex_eq_iff)
-          have ne3: "b \<noteq> midpoint 0 b"
-            using ne1 by (simp add: midpoint_def complex_eq_iff)
-          \<comment> \<open>All three have \<i> \<bullet> x = 0 (i.e. Im = 0)\<close>
-          have ip1: "\<i> \<bullet> (0::complex) = 0" by (simp add: complex_inner_i_left)
-          have ip2: "\<i> \<bullet> b = 0" using Imb by (simp add: complex_inner_i_left)
-          have ip3: "\<i> \<bullet> midpoint 0 b = 0"
-            using Imb by (simp add: midpoint_def complex_inner_i_left)
-          \<comment> \<open>Apply convex_triple_relative_frontier\<close>
-          have "K \<subseteq> {x. \<i> \<bullet> x \<le> 0} \<or> K \<subseteq> {x. \<i> \<bullet> x \<ge> 0}"
-            using convex_triple_relative_frontier[OF convK rf ne1 ne2 ne3 ip1 ip2 ip3] .
-          then have "K \<subseteq> {x. Im x \<le> 0} \<or> K \<subseteq> {x. 0 \<le> Im x}"
-            by (auto simp: complex_inner_i_left)
-          \<comment> \<open>interior K contains an open ball, which has points on both sides of Im = 0\<close>
-          then have False
-          proof
-            assume h: "K \<subseteq> {x. Im x \<le> 0}"
-            have "Im p > 0"
-            proof (rule ccontr)
-              assume "\<not> Im p > 0"
-              then have "Im p < 0" using p(2) by linarith
-              then have "K \<subseteq> {x. 0 \<le> Im x} \<Longrightarrow> False"
-                using p(1) by auto
-              moreover have "K \<subseteq> {x. Im x \<le> 0} \<Longrightarrow> K \<subseteq> {x. 0 \<le> Im x} \<Longrightarrow> False"
-                using p(1) p(2) by fastforce
-              ultimately show False using h by blast
-            qed
-            then show False using h p(1) by auto
-          next
-            assume h: "K \<subseteq> {x. 0 \<le> Im x}"
-            have "Im p < 0"
-            proof (rule ccontr)
-              assume "\<not> Im p < 0"
-              then have "Im p > 0" using p(2) by linarith
-              then have "K \<subseteq> {x. Im x \<le> 0} \<Longrightarrow> False"
-                using p(1) by auto
-              moreover have "K \<subseteq> {x. 0 \<le> Im x} \<Longrightarrow> K \<subseteq> {x. Im x \<le> 0} \<Longrightarrow> False"
-                using p(1) p(2) by fastforce
-              ultimately show False using h by blast
-            qed
-            then show False using h p(1) by auto
-          qed
-          then show ?thesis ..
-        qed
-        qed
-      qed
-      also have \<open>\<dots> \<subseteq> inside (path_image g)\<close>
-        by (simp add: K_def conv convex_interior_closure interior_subset)
-      finally show ?thesis .
-    qed
-    \<comment> \<open>Step 4: z is on the curve, so z \<notin> inside. Hence z \<notin> open_segment 0 b.
+          \<comment> \<open>Step 4: z is on the curve, so z \<notin> inside. Hence z \<notin> open_segment 0 b.
        Combined with z \<in> closed_segment 0 b, we get z = 0 \<or> z = b.\<close>
-    have "z \<notin> inside (path_image g)"
-      using inside_no_overlap z_on by blast
-    then have "z \<notin> open_segment 0 b"
-      using seg_inside by blast
-    then show False
-      using non z_in_seg by (auto simp: closed_segment_eq_open)
-  qed
-  \<comment> \<open>Im \<circ> g doesn't change sign on [0,t]: if it did, IVT gives a real point on the curve
+        have "z \<notin> inside (path_image g)"
+          using inside_no_overlap z_on by blast
+        then have "z \<notin> open_segment 0 b"
+          using seg_inside by blast
+        then show False
+          using non z_in_seg by (auto simp: closed_segment_eq_open)
+      qed
+      have Re_inj_upper: "\<lbrakk>s1 \<in> {0..t}; s2 \<in> {0..t}; Re (g s1) = Re (g s2); s1 \<noteq> s2\<rbrakk>
+        \<Longrightarrow> (s1 = 0 \<and> s2 = t) \<or> (s1 = t \<and> s2 = 0)" for s1 s2
+        using Re_inj_upper_gen g0 g1 t by presburger
+      have Re_inj_lower: "\<lbrakk>s1 \<in> {t..1}; s2 \<in> {t..1}; Re (g s1) = Re (g s2); s1 \<noteq> s2\<rbrakk>
+        \<Longrightarrow> (s1 = t \<and> s2 = 1) \<or> (s1 = 1 \<and> s2 = t)" for s1 s2
+        using CR.Re_inj_upper_gen[of "1-s1" "1-t" "1-s2"] t g g0 g1 assms
+        by (auto simp add: gop_def reversepath_def)
+
+        \<comment> \<open>Im \<circ> g doesn't change sign on [0,t]: if it did, IVT gives a real point on the curve
      in (0,t), contradicting real_on_curve and simple path injectivity.\<close>
-  have no_cross_1: "(\<forall>s \<in> {0..t}. Im (g s) \<ge> 0) \<or> (\<forall>s \<in> {0..t}. Im (g s) \<le> 0)"
-  proof (rule ccontr)
-    assume "\<not> ?thesis"
-    then obtain s\<^sub>1 s\<^sub>2 where s1: "s\<^sub>1 \<in> {0..t}" "Im (g s\<^sub>1) > 0"
-                          and s2: "s\<^sub>2 \<in> {0..t}" "Im (g s\<^sub>2) < 0"
-      by (meson linorder_not_le)
-    have cont_01: "continuous_on {0..t} g"
-      using cont_g continuous_on_subset by (meson atLeastatMost_subset_iff order.refl t(3) less_imp_le)
-    have cont_Im: "continuous_on {0..t} (Im \<circ> g)"
-      by (intro continuous_on_compose cont_01 continuous_intros)
-    \<comment> \<open>Apply IVT to find a zero of Im \<circ> g strictly between s1 and s2\<close>
-    obtain s where s: "s \<in> {0..t}" "Im (g s) = 0" "s \<noteq> 0" "s \<noteq> t"
-    proof (cases "s\<^sub>1 \<le> s\<^sub>2")
-      case True
-      obtain s where "s \<in> {s\<^sub>1..s\<^sub>2}" "g s \<bullet> \<i> = 0"
-        using ivt_decreasing_component_on_1[OF True, of g \<i> 0]
-          continuous_on_subset[OF cont_01] s1 s2
-        by (force simp: complex_inner_i_right)
-      then have "s \<in> {0..t}" "Im (g s) = 0"
-        using s1(1) s2(1) by (auto simp: complex_inner_i_right)
-      moreover have "s \<noteq> 0"
-        using \<open>s \<in> {s\<^sub>1..s\<^sub>2}\<close> s1(2) assms
-        using calculation(2) s1(1) by auto
-      moreover have "s \<noteq> t"
-        using \<open>s \<in> {s\<^sub>1..s\<^sub>2}\<close> s1(2) Im_b t(1)
-        using s2(1,2) by force
-      ultimately show thesis using that by blast
-    next
-      case False
-      then have "s\<^sub>2 \<le> s\<^sub>1" by linarith
-      obtain s where "s \<in> {s\<^sub>2..s\<^sub>1}" "g s \<bullet> \<i> = 0"
-        using ivt_increasing_component_on_1[OF \<open>s\<^sub>2 \<le> s\<^sub>1\<close>, of g \<i> 0]
-          continuous_on_subset[OF cont_01] s1 s2
-        by (force simp: complex_inner_i_right)
-      then have "s \<in> {0..t}" "Im (g s) = 0"
-        using s1(1) s2(1) by (auto simp: complex_inner_i_right)
-      moreover have "s \<noteq> 0"
-        using \<open>s \<in> {s\<^sub>2..s\<^sub>1}\<close> s2(2) assms
-        by (metis Im_a atLeastAtMost_iff g(2) nle_le order_less_irrefl pathstart_def s2(1))
-      moreover have "s \<noteq> t"
-        using \<open>s \<in> {s\<^sub>2..s\<^sub>1}\<close> s2(2) Im_b t(1)
-        using s1(1,2) by force
-      ultimately show thesis using that by blast
+      have no_cross_1: "(\<forall>s \<in> {0..t}. Im (g s) \<ge> 0) \<or> (\<forall>s \<in> {0..t}. Im (g s) \<le> 0)"
+      proof (rule ccontr)
+        assume "\<not> ?thesis"
+        then obtain s\<^sub>1 s\<^sub>2 where s1: "s\<^sub>1 \<in> {0..t}" "Im (g s\<^sub>1) > 0"
+          and s2: "s\<^sub>2 \<in> {0..t}" "Im (g s\<^sub>2) < 0"
+          by (meson linorder_not_le)
+        have cont_01: "continuous_on {0..t} g"
+          using cont_g continuous_on_subset by (meson atLeastatMost_subset_iff order.refl t(3) less_imp_le)
+        have cont_Im: "continuous_on {0..t} (Im \<circ> g)"
+          by (intro continuous_on_compose cont_01 continuous_intros)
+            \<comment> \<open>Apply IVT to find a zero of Im \<circ> g strictly between s1 and s2\<close>
+        obtain s where s: "s \<in> {0..t}" "Im (g s) = 0" "s \<noteq> 0" "s \<noteq> t"
+        proof (cases "s\<^sub>1 \<le> s\<^sub>2")
+          case True
+          obtain s where "s \<in> {s\<^sub>1..s\<^sub>2}" "g s \<bullet> \<i> = 0"
+            using ivt_decreasing_component_on_1[OF True, of g \<i> 0]
+              continuous_on_subset[OF cont_01] s1 s2
+            by (force simp: complex_inner_i_right)
+          then have "s \<in> {0..t}" "Im (g s) = 0"
+            using s1(1) s2(1) by (auto simp: complex_inner_i_right)
+          moreover have "s \<noteq> 0"
+            using \<open>s \<in> {s\<^sub>1..s\<^sub>2}\<close> s1(2) assms
+            using calculation(2) s1(1) by auto
+          moreover have "s \<noteq> t"
+            using \<open>s \<in> {s\<^sub>1..s\<^sub>2}\<close> s1(2) Im_b t(1)
+            using s2(1,2) by force
+          ultimately show thesis using that by blast
+        next
+          case False
+          then have "s\<^sub>2 \<le> s\<^sub>1" by linarith
+          obtain s where "s \<in> {s\<^sub>2..s\<^sub>1}" "g s \<bullet> \<i> = 0"
+            using ivt_increasing_component_on_1[OF \<open>s\<^sub>2 \<le> s\<^sub>1\<close>, of g \<i> 0]
+              continuous_on_subset[OF cont_01] s1 s2
+            by (force simp: complex_inner_i_right)
+          then have "s \<in> {0..t}" "Im (g s) = 0"
+            using s1(1) s2(1) by (auto simp: complex_inner_i_right)
+          moreover have "s \<noteq> 0"
+            using \<open>s \<in> {s\<^sub>2..s\<^sub>1}\<close> s2(2) assms
+            by (metis Im_a atLeastAtMost_iff g(2) nle_le order_less_irrefl pathstart_def s2(1))
+          moreover have "s \<noteq> t"
+            using \<open>s \<in> {s\<^sub>2..s\<^sub>1}\<close> s2(2) Im_b t(1)
+            using s1(1,2) by force
+          ultimately show thesis using that by blast
+        qed
+          \<comment> \<open>g(s) is real and on the curve, so g(s) \<in> {0, b} by real_on_curve\<close>
+      have "g s \<in> path_image g"
+        using s(1) t(3) unfolding path_image_def
+        by (auto intro!: image_eqI[where x=s] simp: less_imp_le)
+      then have "g s = 0 \<or> g s = b" using real_on_curve s(2) by blast
+          \<comment> \<open>But g is injective on [0,1) and s \<in> (0,t), so g(s) \<noteq> g(0) = 0 and g(s) \<noteq> g(t) = b\<close>
+      moreover have "g s \<noteq> 0"
+        using s t by (metis Re_inj_upper atLeastAtMost_iff g0 less_eq_real_def)
+      moreover have "g s \<noteq> b"
+        using s t by (metis Re_inj_upper atLeastAtMost_iff less_eq_real_def)
+      ultimately show False by blast
     qed
-    \<comment> \<open>g(s) is real and on the curve, so g(s) \<in> {0, b} by real_on_curve\<close>
-    have "g s \<in> path_image g"
-      using s(1) t(3) unfolding path_image_def
-      by (auto intro!: image_eqI[where x=s] simp: less_imp_le)
-    then have "g s = 0 \<or> g s = t \<or> g s = b" using real_on_curve s(2) by blast
-    \<comment> \<open>But g is injective on [0,1) and s \<in> (0,t), so g(s) \<noteq> g(0) = 0 and g(s) \<noteq> g(t) = b\<close>
-    moreover have "g s \<noteq> 0"
-      using s t by (metis Re_inj_upper atLeastAtMost_iff g0 less_eq_real_def)
-    moreover have "g s \<noteq> t"
-      using s t Re_inj_upper atLeastAtMost_iff g0 less_eq_real_def sorry
-    moreover have "g s \<noteq> b"
-      using s t by (metis Re_inj_upper atLeastAtMost_iff less_eq_real_def)
-    ultimately show False by blast
-  qed
-  \<comment> \<open>Similarly for [t, 1]\<close>
-  have no_cross_2: "(\<forall>s \<in> {t..1}. Im (g s) \<ge> 0) \<or> (\<forall>s \<in> {t..1}. Im (g s) \<le> 0)"
-  proof (rule ccontr)
-    assume "\<not> ?thesis"
-    then obtain s\<^sub>1 s\<^sub>2 where s1: "s\<^sub>1 \<in> {t..1}" "Im (g s\<^sub>1) > 0"
-                        and s2: "s\<^sub>2 \<in> {t..1}" "Im (g s\<^sub>2) < 0"
-      by (meson linorder_not_le)
-    have cont_t1: "continuous_on {t..1} g"
-      using cont_g continuous_on_subset by (meson atLeastatMost_subset_iff t(2) less_imp_le order.refl)
-    \<comment> \<open>Apply IVT to find a zero of Im \<circ> g strictly between s1 and s2\<close>
-    obtain s where s: "s \<in> {t..1}" "Im (g s) = 0" "s \<noteq> t" "s \<noteq> 1"
-    proof (cases "s\<^sub>1 \<le> s\<^sub>2")
-      case True
-      obtain s where "s \<in> {s\<^sub>1..s\<^sub>2}" "g s \<bullet> \<i> = 0"
-        using ivt_decreasing_component_on_1[OF True, of g \<i> 0]
-          continuous_on_subset[OF cont_t1] s1 s2
-        by (force simp: complex_inner_i_right)
-      then have "s \<in> {t..1}" "Im (g s) = 0"
-        using s1(1) s2(1) by (auto simp: complex_inner_i_right)
-      moreover have "s \<noteq> t"
-        using \<open>s \<in> {s\<^sub>1..s\<^sub>2}\<close> s1(2) Im_b t(1)
-        using s1(1) by force
-      moreover have "s \<noteq> 1"
-        using \<open>s \<in> {s\<^sub>1..s\<^sub>2}\<close> s1(2) assms
-        using calculation(2) s2(1,2) by force
-      ultimately show thesis using that by blast
-    next
-      case False
-      then have "s\<^sub>2 \<le> s\<^sub>1" by linarith
-      obtain s where "s \<in> {s\<^sub>2..s\<^sub>1}" "g s \<bullet> \<i> = 0"
-        using ivt_increasing_component_on_1[OF \<open>s\<^sub>2 \<le> s\<^sub>1\<close>, of g \<i> 0]
-          continuous_on_subset[OF cont_t1] s1 s2
-        by (force simp: complex_inner_i_right)
-      then have "s \<in> {t..1}" "Im (g s) = 0"
-        using s1(1) s2(1) by (auto simp: complex_inner_i_right)
-      moreover have "s \<noteq> t"
-        using \<open>s \<in> {s\<^sub>2..s\<^sub>1}\<close> s2(2) Im_b t(1)
-        using s2(1) by fastforce
-      moreover have "s \<noteq> 1"
-        using \<open>s \<in> {s\<^sub>2..s\<^sub>1}\<close> s2(2) assms
-        using calculation(2) s1(1,2) by fastforce
-      ultimately show thesis using that by blast
+      \<comment> \<open>Similarly for [t, 1]\<close>
+    have no_cross_2: "(\<forall>s \<in> {t..1}. Im (g s) \<ge> 0) \<or> (\<forall>s \<in> {t..1}. Im (g s) \<le> 0)"
+    proof (rule ccontr)
+      assume "\<not> ?thesis"
+      then obtain s\<^sub>1 s\<^sub>2 where s1: "s\<^sub>1 \<in> {t..1}" "Im (g s\<^sub>1) > 0"
+        and s2: "s\<^sub>2 \<in> {t..1}" "Im (g s\<^sub>2) < 0"
+        by (meson linorder_not_le)
+      have cont_t1: "continuous_on {t..1} g"
+        using cont_g continuous_on_subset by (meson atLeastatMost_subset_iff t(2) less_imp_le order.refl)
+          \<comment> \<open>Apply IVT to find a zero of Im \<circ> g strictly between s1 and s2\<close>
+      obtain s where s: "s \<in> {t..1}" "Im (g s) = 0" "s \<noteq> t" "s \<noteq> 1"
+      proof (cases "s\<^sub>1 \<le> s\<^sub>2")
+        case True
+        obtain s where "s \<in> {s\<^sub>1..s\<^sub>2}" "g s \<bullet> \<i> = 0"
+          using ivt_decreasing_component_on_1[OF True, of g \<i> 0]
+            continuous_on_subset[OF cont_t1] s1 s2
+          by (force simp: complex_inner_i_right)
+        then have "s \<in> {t..1}" "Im (g s) = 0"
+          using s1(1) s2(1) by (auto simp: complex_inner_i_right)
+        moreover have "s \<noteq> t"
+          using \<open>s \<in> {s\<^sub>1..s\<^sub>2}\<close> s1(2) Im_b t(1)
+          using s1(1) by force
+        moreover have "s \<noteq> 1"
+          using \<open>s \<in> {s\<^sub>1..s\<^sub>2}\<close> s1(2) assms
+          using calculation(2) s2(1,2) by force
+        ultimately show thesis using that by blast
+      next
+        case False
+        then have "s\<^sub>2 \<le> s\<^sub>1" by linarith
+        obtain s where "s \<in> {s\<^sub>2..s\<^sub>1}" "g s \<bullet> \<i> = 0"
+          using ivt_increasing_component_on_1[OF \<open>s\<^sub>2 \<le> s\<^sub>1\<close>, of g \<i> 0]
+            continuous_on_subset[OF cont_t1] s1 s2
+          by (force simp: complex_inner_i_right)
+        then have "s \<in> {t..1}" "Im (g s) = 0"
+          using s1(1) s2(1) by (auto simp: complex_inner_i_right)
+        moreover have "s \<noteq> t"
+          using \<open>s \<in> {s\<^sub>2..s\<^sub>1}\<close> s2(2) Im_b t(1)
+          using s2(1) by fastforce
+        moreover have "s \<noteq> 1"
+          using \<open>s \<in> {s\<^sub>2..s\<^sub>1}\<close> s2(2) assms
+          using calculation(2) s1(1,2) by fastforce
+        ultimately show thesis using that by blast
+      qed
+      have "g s \<in> path_image g"
+        using s(1) t(2) unfolding path_image_def
+        by (auto intro!: image_eqI[where x=s] simp: less_imp_le)
+      then have "g s = 0 \<or> g s = b" using real_on_curve s(2)
+        by blast
+      moreover have "g s \<noteq> 0"
+        using s t by (metis Re_inj_lower atLeastAtMost_iff g1 less_eq_real_def)
+      moreover have "g s \<noteq> b"
+        using s t by (metis Re_inj_lower atLeastAtMost_iff less_eq_real_def)
+      ultimately show False by blast
     qed
-    have "g s \<in> path_image g"
-      using s(1) t(2) unfolding path_image_def
-      by (auto intro!: image_eqI[where x=s] simp: less_imp_le)
-    then have "g s = 0 \<or> g s = b" using real_on_curve s(2) by blast
-    moreover have "g s \<noteq> 0"
-      using s t by (metis Re_inj_lower atLeastAtMost_iff g1 less_eq_real_def)
-    moreover have "g s \<noteq> b"
-      using s t by (metis Re_inj_lower atLeastAtMost_iff less_eq_real_def)
-    ultimately show False by blast
-  qed
-  \<comment> \<open>Now case-split on the orientation and dispatch to split_case or split_case'\<close>
-  have disj: "g ` {0..t} \<subseteq> {z. 0 \<le> Im z} \<and> g ` {t..1} \<subseteq> {z. Im z \<le> 0}
-            \<or> g ` {0..t} \<subseteq> {z. Im z \<le> 0} \<and> g ` {t..1} \<subseteq> {z. 0 \<le> Im z}"
-  proof -
-    \<comment> \<open>Eliminate the case where both arcs are on the same side of the real axis.
+      \<comment> \<open>Now case-split on the orientation and dispatch to split_case or split_case'\<close>
+    show ?thesis
+    proof -
+      \<comment> \<open>Eliminate the case where both arcs are on the same side of the real axis.
        Key idea: if path_image g \<subseteq> {Im z \<ge> 0}, then closure(inside) = convex hull \<subseteq> {Im z \<ge> 0},
        so inside \<subseteq> {Im z > 0} (since inside is open). But open_segment 0 b \<subseteq> closure(inside)
        has Im = 0, so it must be in frontier(inside) = path_image g.
        This contradicts real_on_curve since open_segment 0 b is infinite.\<close>
-    have inside_ne: "inside (path_image g) \<noteq> {}"
-      using Jordan_inside_outside g by blast
-    have frontier_eq: "frontier (inside (path_image g)) = path_image g"
-      using Jordan_inside_outside g by blast
-    have open_inside: "open (inside (path_image g))"
-      using Jordan_inside_outside g by blast
-    have bounded_inside: "bounded (inside (path_image g))"
-      using Jordan_inside_outside g by blast
-    have closure_eq: "closure (inside (path_image g)) = convex hull (path_image g)"
-      using convex_hull_eq_closure_inside g conv by auto
-    have ab_hull: "a \<in> convex hull (path_image g)" "b \<in> convex hull (path_image g)"
-      using b(1) g(2) pathstart_in_path_image hull_inc by fastforce+
-    have seg_in_closure: "open_segment a b \<subseteq> closure (inside (path_image g))"
-      by (metis ab_hull convex_contains_open_segment convex_convex_hull local.closure_eq)
-    have seg_Im0: "open_segment a b \<subseteq> {z. Im z = 0}"
-      using assms Im_b by (auto simp: in_segment complex_eq_iff)
-    have seg_infinite: "\<not> finite (open_segment a b)"
-      using Reb assms by force
+      have inside_ne: "inside (path_image g) \<noteq> {}"
+        using Jordan_inside_outside g by blast
+      have frontier_eq: "frontier (inside (path_image g)) = path_image g"
+        using Jordan_inside_outside g by blast
+      have open_inside: "open (inside (path_image g))"
+        using Jordan_inside_outside g by blast
+      have bounded_inside: "bounded (inside (path_image g))"
+        using Jordan_inside_outside g by blast
+      have closure_eq: "closure (inside (path_image g)) = convex hull (path_image g)"
+        using convex_hull_eq_closure_inside g conv by auto
+      have ab_hull: "a \<in> convex hull (path_image g)" "b \<in> convex hull (path_image g)"
+        using b(1) g(2) pathstart_in_path_image hull_inc by fastforce+
+      have seg_in_closure: "open_segment a b \<subseteq> closure (inside (path_image g))"
+        by (metis ab_hull convex_contains_open_segment convex_convex_hull local.closure_eq)
+      have seg_Im0: "open_segment a b \<subseteq> {z. Im z = 0}"
+        using assms Im_b by (auto simp: in_segment complex_eq_iff)
+      have seg_infinite: "\<not> finite (open_segment a b)"
+        using Reb assms by force
 
-    have not_all_above: "\<not> (path_image g \<subseteq> {z. 0 \<le> Im z})"
-      using Reb assms not_all_above real_on_curve t Im_b by blast
-    
-    have not_all_below: "\<not> (path_image g \<subseteq> {z. Im z \<le> 0})"
-      using CR.not_all_above using g g0 g1 assms Reb real_on_curve
-    by (force simp add: gop_def  path_image_compose)
-    \<comment> \<open>With the elimination, the 4-way case split from no_cross_1/no_cross_2 reduces to 2\<close>
-    have pi1: "path_image g = g ` {0..t} \<union> g ` {t..1}"
-      unfolding path_image_def using t(2,3)
-      by (metis image_Un ivl_disj_un_two_touch(4) less_eq_real_def)
-    from no_cross_1 no_cross_2 not_all_above not_all_below pi1
-    show ?thesis by (auto simp: image_subset_iff)
+      have not_all_above: "\<not> (path_image g \<subseteq> {z. 0 \<le> Im z})"
+        using Reb assms not_all_above real_on_curve t Im_b by blast
+
+      have not_all_below: "\<not> (path_image g \<subseteq> {z. Im z \<le> 0})"
+        using CR.not_all_above using g g0 g1 assms Reb real_on_curve
+        by (force simp add: gop_def  path_image_compose)
+          \<comment> \<open>With the elimination, the 4-way case split from no_cross_1/no_cross_2 reduces to 2\<close>
+      have pi1: "path_image g = g ` {0..t} \<union> g ` {t..1}"
+        unfolding path_image_def using t(2,3)
+        by (metis image_Un ivl_disj_un_two_touch(4) less_eq_real_def)
+      from no_cross_1 no_cross_2 not_all_above not_all_below pi1
+      show ?thesis by (auto simp: image_subset_iff)
+    qed
+    qed
   qed
   then show ?thesis
-    using split_case split_case' t assms by blast
-
+    using assms split_case split_case' t by blast
 qed
+
 
 subsection \<open>Conclusion of Green's theorem and the signed area formula for a convex closed curve.\<close>
 
