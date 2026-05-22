@@ -3,7 +3,7 @@ section \<open>Topology, metric space, completeness for $p$-adic fields\<close>
 theory Padic_Field_Topology_Bridge
   imports
     "Padic_Field.Padic_Field_Topology"
-    "HOL-Analysis.Analysis"
+    "HOL-Analysis.Abstract_Metric_Spaces"
 
 begin
 
@@ -25,12 +25,11 @@ proof (intro conjI allI impI)
     show "S \<inter> T \<subseteq> carrier Q\<^sub>p"
       using \<open>is_open S\<close> is_open_imp_in_Qp by blast
     fix c assume "c \<in> S \<inter> T"
-      (* Each point has a ball in S and a ball in T; take the smaller *)
     then obtain n m where "B\<^bsub>n\<^esub>[c] \<subseteq> S" "B\<^bsub>m\<^esub>[c] \<subseteq> T"
       using \<open>is_open S\<close> \<open>is_open T\<close> is_open_def by force
     then have "B\<^bsub>max n m\<^esub>[c] \<subseteq> S \<inter> T"
-      by (meson Int_greatest \<open>S \<inter> T \<subseteq> carrier Q\<^sub>p\<close> \<open>c \<in> S \<inter> T\<close> is_ball_def max.cobounded1 max.cobounded2
-          nested_balls subsetD subset_trans)
+      by (smt (verit, ccfv_SIG) IntE Int_mono \<open>c \<in> S \<inter> T\<close> \<open>is_open S\<close> order.trans inf.orderE
+          is_ball_def is_open_imp_in_Qp' nested_balls)
       (* larger radius index = smaller ball in ultrametric *)
     then show "\<exists>k. B\<^bsub>k\<^esub>[c] \<subseteq> S \<inter> T" by blast
   qed
@@ -65,16 +64,14 @@ lemma interior_eq:
 subsection \<open>Main topological results in the standard framework\<close>
 
 text \<open>Balls are open.\<close>
-lemma ball_openin_padic:
-  "is_ball B \<Longrightarrow> openin padic_topology B"
+lemma ball_openin_padic: "is_ball B \<Longrightarrow> openin padic_topology B"
   using openin_padic_topology ball_is_open by simp
 
 text \<open>Hensel's lemma consequence: compactness of $\mathbb{Z}_p$.\<close>
 
 text \<open>Open decomposition into maximal balls.\<close>
 lemma open_max_ball_decomposition:
-  assumes "openin padic_topology U"
-  assumes "U \<noteq> topspace padic_topology"
+  assumes "openin padic_topology U" "U \<noteq> topspace padic_topology"
   shows "U = \<Union>(max_balls U)"
 proof -
   have "\<Union>(max_balls U) \<subseteq> carrier Q\<^sub>p"
@@ -105,14 +102,13 @@ definition padic_dist :: "padic_number \<Rightarrow> padic_number \<Rightarrow> 
 subsection \<open>$\mathbb{Q}_p$ is a Metric\_space\<close>
 
 lemma padic_dist_nonneg: "0 \<le> padic_dist x y"
-  unfolding padic_dist_def padic_norm_def
-  by (simp add: powr_non_neg)
+  by (simp add: padic_dist_def padic_norm_def)
 
 lemma padic_dist_commute:
   shows "padic_dist x y = padic_dist y x"
-  apply (simp add: padic_dist_def padic_norm_def )
-  by (metis Qp.cring_simprules(4) Qp.minus_a_inv Qp.not_eq_diff_nonzero equal_val_imp_equal_ord(1)
-      val_minus)
+  apply (simp add: padic_dist_def padic_norm_def)
+  by (metis Qp.nonzero_memE(2) Qp.not_eq_diff_nonzero Qp.plus_diff_simp Qp.r_right_minus_eq
+      diff_ord_nonzero)
 
 lemma padic_dist_zero:
   assumes "x \<in> carrier Q\<^sub>p" "y \<in> carrier Q\<^sub>p"
@@ -269,7 +265,6 @@ proof (rule Set.set_eqI)
         using dist_le by linarith
       then have "- real_of_int (ord (x \<ominus> c)) \<le> - real_of_int n"
         using powr_le_cancel_iff[OF p_gt_1_real] by auto
-      then have "n \<le> ord (x \<ominus> c)" by linarith
       then have "eint n \<le> val (x \<ominus> c)"
         using val_ord xc_nz by auto
       then show ?thesis using c_ballI x_car by auto
@@ -305,7 +300,6 @@ proof (rule Set.set_eqI)
         using padic_norm_def Qp.nonzero_memE(2)[OF xc_nz] by auto
       then have "- real_of_int (ord (x \<ominus> c)) < - real_of_int n"
         using powr_less_cancel_iff[OF p_gt_1_real] by auto
-      then have "n + 1 \<le> ord (x \<ominus> c)" by linarith
       then show ?thesis using val_ord xc_nz c_ballI x_car by auto
     qed
   next
@@ -315,8 +309,7 @@ proof (rule Set.set_eqI)
     show "x \<in> padic.mball c (real_of_int p powr (- real_of_int n))"
       unfolding padic.in_mball
     proof (intro conjI)
-      show "c \<in> carrier Q\<^sub>p" using assms by auto
-      show "x \<in> carrier Q\<^sub>p" using x_car by auto
+      show "c \<in> carrier Q\<^sub>p" "x \<in> carrier Q\<^sub>p" using assms x_car by auto
       show "padic_dist c x < real_of_int p powr (- real_of_int n)"
       proof (cases "x = c")
         case True
@@ -327,8 +320,7 @@ proof (rule Set.set_eqI)
         then have xc_nz: "x \<ominus> c \<in> nonzero Q\<^sub>p"
           using x_car assms Qp.not_eq_diff_nonzero by auto
         have "val (x \<ominus> c) = eint (ord (x \<ominus> c))" using val_ord xc_nz by auto
-        then have "n + 1 \<le> ord (x \<ominus> c)" using val_ge by simp
-        then have "- real_of_int (ord (x \<ominus> c)) < - real_of_int n" by linarith
+        then have "- real_of_int (ord (x \<ominus> c)) < - real_of_int n" using val_ge by simp
         then have "p powr (- real_of_int (ord (x \<ominus> c))) < p powr (- real_of_int n)"
           using p_gt_1_real by (simp add: powr_less_cancel_iff)
         moreover have "padic_dist c x = p powr (- real_of_int (ord (x \<ominus> c)))"
