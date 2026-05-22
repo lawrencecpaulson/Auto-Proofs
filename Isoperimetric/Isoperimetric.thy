@@ -22,8 +22,7 @@ lemma absolutely_continuous_on_real_mult [continuous_intros]:
   shows \<open>absolutely_continuous_on S (\<lambda>x. f x * g x)\<close>
   using absolutely_continuous_on_mul assms by fastforce
 
-
-(*The forthcoming version*)
+(*already in The forthcoming version*)
 lemma integral_change_of_variables_linear:
   fixes f :: "'a::euclidean_space \<Rightarrow> 'b::euclidean_space" and g :: "'a \<Rightarrow> 'a"
   assumes "linear g"
@@ -4515,6 +4514,287 @@ proof -
       by (smt (verit, best) b(2) box_real(2) g(3) mem_box_real(2) pathfinish_def t0)
     ultimately show thesis using t0 that by blast
   qed
+  have "g ` {0..t} \<subseteq> {z. 0 \<le> Im z} \<and> g ` {t..1} \<subseteq> {z. Im z \<le> 0} \<or>
+        g ` {0..t} \<subseteq> {z. Im z \<le> 0} \<and> g ` {t..1} \<subseteq> {z. 0 \<le> Im z}"
+  proof -
+    have "open_segment 0 b \<subseteq> frontier (inside (path_image g)) \<or>
+          open_segment 0 b \<subseteq> interior (inside (path_image g))"
+    proof (rule convex_open_segment_cases_alt)
+      show "convex (inside (path_image g))"
+        by (simp add: conv)
+      show "0 \<in> closure (inside (path_image g))"
+        using hull_inc convex_hull_eq_closure_inside
+        by (metis assms conv g pathfinish_in_path_image)
+      show "b \<in> closure (inside (path_image g))"
+        using hull_inc convex_hull_eq_closure_inside
+        using R.g(2) b(1) conv g(1,2) by fastforce
+    qed
+    then consider "open_segment 0 b \<subseteq> path_image g" 
+                | "open_segment 0 b \<subseteq> inside (path_image g)"
+      by (metis Jordan_inside_outside g interior_subset subset_trans)
+    then show ?thesis
+    proof cases
+      case 1
+      have *: "connectedin euclidean (open_segment 0 b)"
+        by (simp add: convex_connected)
+      with 1 have conn: "connectedin (subtopology euclidean (path_image g))
+                         (open_segment 0 b)"
+        by (simp add: connectedin_subtopology)
+      have "g ` {0<..<t} \<subseteq> path_image g" "g ` {t<..<1} \<subseteq> path_image g"
+        using t by (auto simp: path_image_def image_iff)
+      moreover
+      have "g ` {0<..<t} \<inter> path_image g \<inter> closure (path_image g \<inter> g ` {t<..<1}) = {}"
+      proof -
+        have lf: "loop_free g" using g(1) by (simp add: simple_path_def)
+        have inj: "inj_on g {0<..<1}" using lf loop_free_inj_on by blast
+        have disj: "g ` {0<..<t} \<inter> g ` {t..1} = {}"
+        proof (rule ccontr)
+          assume "\<not> ?thesis"
+          then obtain x y where xy: "x \<in> {0<..<t}" "y \<in> {t..1}" "g x = g y"
+            by blast
+          have x01: "x \<in> {0..1}" using xy(1) t(3) by auto
+          have y01: "y \<in> {0..1}" using xy(2)
+            using t(2) by auto
+          have "x \<noteq> y" using xy(1,2) by auto
+          then have "x = 0 \<and> y = 1 \<or> x = 1 \<and> y = 0"
+            using lf xy(3) x01 y01 unfolding loop_free_def by blast
+          then show False using xy(1,2) by auto
+        qed
+        have closed_img: "closed (g ` {t..1})"
+          using compact_continuous_image[OF continuous_on_subset[OF cont_g]]
+          by (simp add: compact_imp_closed less_eq_real_def t(2))
+        have "closure (g ` {t<..<1}) \<subseteq> g ` {t..1}"
+          using closed_img closure_minimal by (meson closure_minimal image_mono greaterThanLessThan_subseteq_atLeastAtMost_iff order.refl less_imp_le)
+        then have "closure (path_image g \<inter> g ` {t<..<1}) \<subseteq> g ` {t..1}"
+          by (meson Int_lower2 closure_mono dual_order.trans)
+        then show ?thesis using disj by auto
+      qed
+      moreover
+      have "g ` {t<..<1} \<inter> path_image g \<inter> closure (path_image g \<inter> g ` {0<..<t}) = {}"
+      proof -
+        have lf: "loop_free g" using g(1) by (simp add: simple_path_def)
+        have disj: "g ` {t<..<1} \<inter> g ` {0..t} = {}"
+        proof (rule ccontr)
+          assume "\<not> ?thesis"
+          then obtain x y where xy: "x \<in> {t<..<1}" "y \<in> {0..t}" "g x = g y"
+            by blast
+          have x01: "x \<in> {0..1}" using xy(1) using t(2) by force
+          have y01: "y \<in> {0..1}" using xy(2) t(3) by auto
+          have "x \<noteq> y" using xy(1,2) by auto
+          then have "x = 0 \<and> y = 1 \<or> x = 1 \<and> y = 0"
+            using lf xy(3) x01 y01 unfolding loop_free_def by blast
+          then show False using xy(1,2) by auto
+        qed
+        have closed_img: "closed (g ` {0..t})"
+          using compact_continuous_image[OF continuous_on_subset[OF cont_g] _]
+          by (meson atLeastatMost_subset_iff compact_imp_closed compact_interval
+              eucl_less_le_not_le order.refl t(3))
+        have "closure (g ` {0<..<t}) \<subseteq> g ` {0..t}"
+          using closed_img closure_minimal by (meson closure_minimal image_mono greaterThanLessThan_subseteq_atLeastAtMost_iff order.refl less_imp_le)
+        then have "closure (path_image g \<inter> g ` {0<..<t}) \<subseteq> g ` {0..t}"
+          by (meson Int_lower2 closure_mono dual_order.trans)
+        then show ?thesis using disj by auto
+      qed
+      moreover
+      have "open_segment 0 b \<subseteq> g ` {0<..<t} \<union> g ` {t<..<1}"
+      proof -
+        have decomp: "path_image g \<subseteq> g ` {0<..<t} \<union> g ` {t<..<1} \<union> {0, b}"
+        proof
+          fix z assume "z \<in> path_image g"
+          then obtain s where s: "s \<in> {0..1}" "g s = z" by (auto simp: path_image_def)
+          then consider "s = 0" | "s \<in> {0<..<t}" | "s = t" | "s \<in> {t<..<1}" | "s = 1"
+            using t by force
+          then show "z \<in> g ` {0<..<t} \<union> g ` {t<..<1} \<union> {0, b}"
+            using \<open>g s = z\<close> t g0 g1 by blast 
+        qed
+        have "open_segment 0 b \<inter> {0, b} = {}"
+          unfolding open_segment_def by auto
+        then show ?thesis using 1 decomp by auto
+      qed
+      ultimately (*FIXME UGLY*)
+      have sep: "separatedin (subtopology euclidean (path_image g))
+                              (g ` {0<..<t}) (g ` {t<..<1})"
+        and sub: "open_segment 0 b \<subseteq> g ` {0<..<t} \<union> g ` {t<..<1}"
+      proof -
+        assume pi1: "g ` {0<..<t} \<subseteq> path_image g"
+          and pi2: "g ` {t<..<1} \<subseteq> path_image g"
+          and cl1: "g ` {0<..<t} \<inter> path_image g \<inter> closure (path_image g \<inter> g ` {t<..<1}) = {}"
+          and cl2: "g ` {t<..<1} \<inter> path_image g \<inter> closure (path_image g \<inter> g ` {0<..<t}) = {}"
+          and sub: "open_segment 0 b \<subseteq> g ` {0<..<t} \<union> g ` {t<..<1}"
+        have eq1: "path_image g \<inter> g ` {t<..<1} = g ` {t<..<1}" using pi2 by auto
+        have eq2: "path_image g \<inter> g ` {0<..<t} = g ` {0<..<t}" using pi1 by auto
+        have d1: "g ` {0<..<t} \<inter> closure (g ` {t<..<1}) = {}"
+          using cl1 pi1 eq1 by auto
+        have d2: "g ` {t<..<1} \<inter> closure (g ` {0<..<t}) = {}"
+          using cl2 pi2 eq2 by auto
+        have "separatedin euclidean (g ` {0<..<t}) (g ` {t<..<1})"
+          unfolding separatedin_def using d1 d2
+          by (simp add: euclidean_closure_of topspace_euclidean)
+        then show "separatedin (subtopology euclidean (path_image g))
+                              (g ` {0<..<t}) (g ` {t<..<1})"
+          using pi1 pi2 by (simp add: separatedin_subtopology)
+        show "open_segment 0 b \<subseteq> g ` {0<..<t} \<union> g ` {t<..<1}" by (rule sub)
+      qed
+      have "open_segment 0 b \<subseteq> g ` {0<..<t} \<or> open_segment 0 b \<subseteq> g ` {t<..<1}"
+        using connectedin_subset_separated_union[OF conn sep sub] .
+      then have "closed_segment 0 b \<subseteq> g ` {0..t} \<or> closed_segment 0 b \<subseteq> g ` {t..1}"
+        unfolding closed_segment_eq_open
+        by (elim disj_forward) (use g0 g1 t in auto)
+      then have seg_eq: "g ` {0..t} = closed_segment 0 b \<or> g ` {t..1} = closed_segment 0 b"
+      proof (elim disjE)
+        assume sub: "closed_segment 0 b \<subseteq> g ` {0..t}"
+        have inj: "inj_on g {0..t}" using arc_inj_on[of 0 t] t by auto
+        have "continuous_on {0..t} g"
+          using continuous_on_subset[OF cont_g] t by auto
+        then have cont_inv: "continuous_on (g ` {0..t}) (the_inv_into {0..t} g)"
+          using continuous_on_inv_into[OF _ compact_Icc inj] by metis
+        have inv_mem: "the_inv_into {0..t} g z \<in> {0..t}" if "z \<in> closed_segment 0 b" for z
+          using the_inv_into_into[OF inj _ order_refl] sub that by blast
+        have eq0: "the_inv_into {0..t} g 0 = 0"
+          using the_inv_into_f_f[OF inj, of 0] g0 t by auto
+        have eqt: "the_inv_into {0..t} g b = t"
+          using the_inv_into_f_f[OF inj, of t] t by auto
+        have conn: "connected (the_inv_into {0..t} g ` closed_segment 0 b)"
+          by (intro connected_continuous_image continuous_on_subset[OF cont_inv sub]
+                   connected_segment)
+        have "0 \<in> the_inv_into {0..t} g ` closed_segment 0 b"
+          using eq0 by (auto intro: rev_image_eqI ends_in_segment)
+        moreover have "t \<in> the_inv_into {0..t} g ` closed_segment 0 b"
+          using eqt by (auto intro: rev_image_eqI ends_in_segment)
+        ultimately have "{0..t} \<subseteq> the_inv_into {0..t} g ` closed_segment 0 b"
+          using connected_contains_Icc[OF conn] by auto
+        then have "g ` {0..t} \<subseteq> g ` (the_inv_into {0..t} g ` closed_segment 0 b)"
+          by (rule image_mono)
+        also have "\<dots> \<subseteq> closed_segment 0 b"
+          using f_the_inv_into_f[OF inj] sub by (auto simp: image_image)
+        finally show ?thesis using sub by auto
+      next
+        assume sub: "closed_segment 0 b \<subseteq> g ` {t..1}"
+        have inj: "inj_on g {t..1}" using arc_inj_on[of t 1] t by auto
+        have cont_sub: "continuous_on {t..1} g"
+          using continuous_on_subset[OF cont_g] t by auto
+        have cont_inv: "continuous_on (g ` {t..1}) (the_inv_into {t..1} g)"
+          using continuous_on_inv_into[OF cont_sub compact_Icc inj] .
+        have inv_mem: "the_inv_into {t..1} g z \<in> {t..1}" if "z \<in> closed_segment 0 b" for z
+          using the_inv_into_into[OF inj _ order_refl] sub that by blast
+        have eqt: "the_inv_into {t..1} g b = t"
+          using the_inv_into_f_f[OF inj, of t] t by auto
+        have eq1: "the_inv_into {t..1} g 0 = 1"
+          using the_inv_into_f_f[OF inj, of 1] g1 t by auto
+        have conn: "connected (the_inv_into {t..1} g ` closed_segment 0 b)"
+          by (intro connected_continuous_image continuous_on_subset[OF cont_inv sub]
+                   connected_segment)
+        have "t \<in> the_inv_into {t..1} g ` closed_segment 0 b"
+          using eqt by (auto intro: rev_image_eqI ends_in_segment)
+        moreover have "1 \<in> the_inv_into {t..1} g ` closed_segment 0 b"
+          using eq1 by (auto intro: rev_image_eqI ends_in_segment)
+        ultimately have "{t..1} \<subseteq> the_inv_into {t..1} g ` closed_segment 0 b"
+          using connected_contains_Icc[OF conn] by auto
+        then have "g ` {t..1} \<subseteq> g ` (the_inv_into {t..1} g ` closed_segment 0 b)"
+          by (rule image_mono)
+        also have "\<dots> \<subseteq> closed_segment 0 b"
+          using f_the_inv_into_f[OF inj] sub by (auto simp: image_image)
+        finally show ?thesis using sub by auto
+      qed
+      \<comment> \<open>Use convex_triple_relative_frontier to show inside is on one side of Im = 0\<close>
+      have inside_side: "inside (path_image g) \<subseteq> {z. Im z \<le> 0} \<or>
+                         inside (path_image g) \<subseteq> {z. 0 \<le> Im z}"
+      proof -
+        have J: "inside (path_image g) \<noteq> {}" "open (inside (path_image g))"
+              "frontier (inside (path_image g)) = path_image g"
+          using Jordan_inside_outside g by blast+
+        have intne: "interior (inside (path_image g)) \<noteq> {}"
+          using J(1,2) interior_eq by auto
+        have rf_eq: "rel_frontier (inside (path_image g)) = frontier (inside (path_image g))"
+          using rel_frontier_nonempty_interior intne by blast
+        have mid_on: "midpoint 0 b \<in> path_image g"
+        proof -
+          have "midpoint 0 b \<in> open_segment 0 b"
+            using midpoint_in_open_segment b(2) assms
+            by (auto simp: complex_eq_iff)
+          with 1 show ?thesis by auto
+        qed
+        have rf0: "(0::complex) \<in> rel_frontier (inside (path_image g))"
+          using rf_eq J(3) g0 by (auto simp: path_image_def intro!: image_eqI[of _ _ 0])
+        have rfb: "b \<in> rel_frontier (inside (path_image g))"
+          using rf_eq J(3) b(1) by auto
+        have rfm: "midpoint 0 b \<in> rel_frontier (inside (path_image g))"
+          using rf_eq J(3) mid_on by auto
+        have ne1: "(0::complex) \<noteq> b" using b(2) assms by (auto simp: complex_eq_iff)
+        have ne2: "(0::complex) \<noteq> midpoint 0 b"
+          using ne1 by (simp add: midpoint_def complex_eq_iff)
+        have ne3: "b \<noteq> midpoint 0 b"
+          using ne1 by (simp add: midpoint_def complex_eq_iff)
+        have ip1: "\<i> \<bullet> (0::complex) = 0" by (simp add: complex_inner_i_left)
+        have ip2: "\<i> \<bullet> b = 0" using Im_b by (simp add: complex_inner_i_left)
+        have ip3: "\<i> \<bullet> midpoint 0 b = 0"
+          using Im_b by (simp add: midpoint_def complex_inner_i_left)
+        have "inside (path_image g) \<subseteq> {x. \<i> \<bullet> x \<le> 0} \<or>
+              inside (path_image g) \<subseteq> {x. \<i> \<bullet> x \<ge> 0}"
+          using convex_triple_relative_frontier[OF conv rf0 rfb rfm ne1 ne2 ne3 ip1 ip2 ip3] .
+        then show ?thesis by (auto simp: complex_inner_i_left)
+      qed
+      have pi_sub: "path_image g \<subseteq> closure (inside (path_image g))"
+        using hull_subset[of "path_image g" convex] convex_hull_eq_closure_inside[OF g(1)] g(2,3) conv by force
+      from seg_eq inside_side
+      show ?thesis (*FIXME UGLY*)
+      proof (elim disjE)
+        assume eq: "g ` {0..t} = closed_segment 0 b"
+          and side: "inside (path_image g) \<subseteq> {z. Im z \<le> 0}"
+        have "closure (inside (path_image g)) \<subseteq> {z. Im z \<le> 0}"
+          by (rule closure_minimal[OF side closed_halfspace_le[of \<i> 0, simplified complex_inner_i_left]])
+        then have "path_image g \<subseteq> {z. Im z \<le> 0}" using pi_sub by auto
+        then have low: "g ` {t..1} \<subseteq> {z. Im z \<le> 0}"
+          by (metis atLeastatMost_subset_iff image_mono less_eq_real_def path_image_def
+              subset_trans t(2))
+        have up: "g ` {0..t} \<subseteq> {z. 0 \<le> Im z}"
+          unfolding eq using Im_b by (auto simp: closed_segment_def)
+        show ?thesis using up low by blast
+      next
+        assume eq: "g ` {0..t} = closed_segment 0 b"
+          and side: "inside (path_image g) \<subseteq> {z. 0 \<le> Im z}"
+        have "closure (inside (path_image g)) \<subseteq> {z. 0 \<le> Im z}"
+          by (rule closure_minimal[OF side closed_halfspace_ge[of 0 \<i>, simplified complex_inner_i_left]])
+        then have "path_image g \<subseteq> {z. 0 \<le> Im z}" using pi_sub by auto
+        then have up: "g ` {t..1} \<subseteq> {z. 0 \<le> Im z}"
+          by (metis atLeastatMost_subset_iff image_mono landau_omega.R_linear
+              linorder_not_less path_image_def subset_trans t(2))
+        have low: "g ` {0..t} \<subseteq> {z. Im z \<le> 0}"
+          unfolding eq using Im_b by (auto simp: closed_segment_def)
+        show ?thesis using low up by blast
+      next
+        assume eq: "g ` {t..1} = closed_segment 0 b"
+          and side: "inside (path_image g) \<subseteq> {z. Im z \<le> 0}"
+        have "closure (inside (path_image g)) \<subseteq> {z. Im z \<le> 0}"
+          by (rule closure_minimal[OF side closed_halfspace_le[of \<i> 0, simplified complex_inner_i_left]])
+        then have "path_image g \<subseteq> {z. Im z \<le> 0}" using pi_sub by auto
+        then have low: "g ` {0..t} \<subseteq> {z. Im z \<le> 0}"
+          by (metis atLeastatMost_subset_iff image_mono less_eq_real_def path_defs(4)
+              subset_trans t(3))
+        have up: "g ` {t..1} \<subseteq> {z. 0 \<le> Im z}"
+          unfolding eq using Im_b by (auto simp: closed_segment_def)
+        show ?thesis using low up by blast
+      next
+        assume eq: "g ` {t..1} = closed_segment 0 b"
+          and side: "inside (path_image g) \<subseteq> {z. 0 \<le> Im z}"
+        have "closure (inside (path_image g)) \<subseteq> {z. 0 \<le> Im z}"
+          by (rule closure_minimal[OF side closed_halfspace_ge[of 0 \<i>, simplified complex_inner_i_left]])
+        then have "path_image g \<subseteq> {z. 0 \<le> Im z}" using pi_sub by auto
+        then have up: "g ` {0..t} \<subseteq> {z. 0 \<le> Im z}"
+          by (metis atLeastatMost_subset_iff less_eq_real_def order.trans path_defs(4)
+              subset_image_iff t(3))
+        have low: "g ` {t..1} \<subseteq> {z. Im z \<le> 0}"
+          unfolding eq using Im_b by (auto simp: closed_segment_def)
+        show ?thesis using up low by blast
+      qed
+    next
+      case 2
+      then show ?thesis sorry
+    qed
+  qed
+  then show ?thesis
+    using assms split_case split_case' t by blast
+
   have Reb: "Re b > 0" using b(2) assms by simp
   have Im_b: "Im b = 0" using b(3) assms by simp
   have Re_inj_upper: "\<lbrakk>s1 \<in> {0..t}; s2 \<in> {0..t}; Re (g s1) = Re (g s2); s1 \<noteq> s2\<rbrakk>
@@ -4647,9 +4927,68 @@ proof -
           then show False using p(2) by blast
         qed
         \<comment> \<open>The midpoint is in the interior of the triangle {0, b, p}\<close>
-        show ?thesis if \<open>open_segment 0 b \<subseteq> frontier K\<close>
-          using XX
-          sorry
+        show ?thesis if front: \<open>open_segment 0 b \<subseteq> frontier K\<close>
+        proof -
+          \<comment> \<open>0, b, midpoint 0 b are on frontier K = rel_frontier K, all with Im = 0\<close>
+          have "0 \<in> frontier K"
+            using frontierK g0 by (auto simp: path_image_def intro!: image_eqI[of _ _ 0])
+          moreover have "b \<in> frontier K"
+            using frontierK b(1) by auto
+          moreover have m_front: "midpoint 0 b \<in> frontier K"
+            using front mid_seg by blast
+          moreover have "rel_frontier K = frontier K"
+            using rel_frontier_nonempty_interior intK_ne by blast
+          ultimately have rf: "(0::complex) \<in> rel_frontier K" "b \<in> rel_frontier K"
+            "midpoint 0 b \<in> rel_frontier K"
+            by auto
+          \<comment> \<open>The three points are distinct\<close>
+          have ne1: "(0::complex) \<noteq> b" using Reb by (auto simp: complex_eq_iff)
+          have ne2: "(0::complex) \<noteq> midpoint 0 b"
+            using ne1 by (simp add: midpoint_def complex_eq_iff)
+          have ne3: "b \<noteq> midpoint 0 b"
+            using ne1 by (simp add: midpoint_def complex_eq_iff)
+          \<comment> \<open>All three have \<i> \<bullet> x = 0 (i.e. Im = 0)\<close>
+          have ip1: "\<i> \<bullet> (0::complex) = 0" by (simp add: complex_inner_i_left)
+          have ip2: "\<i> \<bullet> b = 0" using Imb by (simp add: complex_inner_i_left)
+          have ip3: "\<i> \<bullet> midpoint 0 b = 0"
+            using Imb by (simp add: midpoint_def complex_inner_i_left)
+          \<comment> \<open>Apply convex_triple_relative_frontier\<close>
+          have "K \<subseteq> {x. \<i> \<bullet> x \<le> 0} \<or> K \<subseteq> {x. \<i> \<bullet> x \<ge> 0}"
+            using convex_triple_relative_frontier[OF convK rf ne1 ne2 ne3 ip1 ip2 ip3] .
+          then have "K \<subseteq> {x. Im x \<le> 0} \<or> K \<subseteq> {x. 0 \<le> Im x}"
+            by (auto simp: complex_inner_i_left)
+          \<comment> \<open>interior K contains an open ball, which has points on both sides of Im = 0\<close>
+          then have False
+          proof
+            assume h: "K \<subseteq> {x. Im x \<le> 0}"
+            have "Im p > 0"
+            proof (rule ccontr)
+              assume "\<not> Im p > 0"
+              then have "Im p < 0" using p(2) by linarith
+              then have "K \<subseteq> {x. 0 \<le> Im x} \<Longrightarrow> False"
+                using p(1) by auto
+              moreover have "K \<subseteq> {x. Im x \<le> 0} \<Longrightarrow> K \<subseteq> {x. 0 \<le> Im x} \<Longrightarrow> False"
+                using p(1) p(2) by fastforce
+              ultimately show False using h by blast
+            qed
+            then show False using h p(1) by auto
+          next
+            assume h: "K \<subseteq> {x. 0 \<le> Im x}"
+            have "Im p < 0"
+            proof (rule ccontr)
+              assume "\<not> Im p < 0"
+              then have "Im p > 0" using p(2) by linarith
+              then have "K \<subseteq> {x. Im x \<le> 0} \<Longrightarrow> False"
+                using p(1) by auto
+              moreover have "K \<subseteq> {x. 0 \<le> Im x} \<Longrightarrow> K \<subseteq> {x. Im x \<le> 0} \<Longrightarrow> False"
+                using p(1) p(2) by fastforce
+              ultimately show False using h by blast
+            qed
+            then show False using h p(1) by auto
+          qed
+          then show ?thesis ..
+        qed
+        qed
       qed
       also have \<open>\<dots> \<subseteq> inside (path_image g)\<close>
         by (simp add: K_def conv convex_interior_closure interior_subset)
