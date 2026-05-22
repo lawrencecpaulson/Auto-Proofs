@@ -41,6 +41,23 @@ proof (cases "S = {}")
     by (simp add: diameter_def image_comp split_def flip: image_paired_Times)
 qed (simp add: diameter_def)
 
+lemma diameter_eq_0:
+  fixes s :: "'a::metric_space set"
+  assumes "bounded s"
+  shows "diameter s = 0 \<longleftrightarrow> s = {} \<or> (\<exists>a. s = {a})"
+proof
+  assume "diameter s = 0"
+  then have "\<And>x y. x \<in> s \<Longrightarrow> y \<in> s \<Longrightarrow> x = y"
+    using diameter_bounded_bound[OF assms] by auto
+  then show "s = {} \<or> (\<exists>a. s = {a})"
+    by (metis empty_iff insertI1 set_eq_iff singletonD)
+next
+  assume "s = {} \<or> (\<exists>a. s = {a})"
+  then show "diameter s = 0"
+    using diameter_empty diameter_singleton by auto
+qed
+
+
 (*Added to Elementary_Normed_Spaces 2026-05*)
 lemma bounded_translation_eq [simp]:
   fixes a :: "'a :: real_normed_vector"
@@ -5067,26 +5084,121 @@ lemma isoperimetric_reduce_arc_length:
   sorry
 
 lemma isoperimetric_reduce_zero_mean:
-  fixes g :: "real \<Rightarrow> complex"
+  fixes g :: "real \<Rightarrow> complex" and b :: complex
   assumes "rectifiable_path g" "simple_path g"
     "pathfinish g = pathstart g"
     "convex (inside (path_image g))"
     "path_length g = L"
+    "b \<in> path_image g"
+    "dist (pathstart g) b = diameter (path_image g)"
     "b - pathstart g = of_real (dist (pathstart g) b)"
     "Re (pathstart g) = 0"
     "\<And>t. t \<in> {0..1} \<Longrightarrow> path_length (subpath 0 t g) = L * t"
     "\<And>x y. x \<in> {0..1} \<Longrightarrow> y \<in> {0..1} \<Longrightarrow> dist (g x) (g y) \<le> L * dist x y"
-  obtains h where "rectifiable_path h" "simple_path h"
+  obtains h a' b' where "rectifiable_path h" "simple_path h"
     "pathfinish h = pathstart h"
     "convex (inside (path_image h))"
     "path_length h = L"
-    "pathstart h - pathstart g = of_real 0 \<or> True"
+    "a' \<in> path_image h" "b' \<in> path_image h"
+    "dist a' b' = diameter (path_image h)"
+    "b' - a' = of_real (dist a' b')"
+    "pathstart h = a'" "pathfinish h = a'"
+    "Re a' = 0"
     "\<And>t. t \<in> {0..1} \<Longrightarrow> path_length (subpath 0 t h) = L * t"
     "\<And>x y. x \<in> {0..1} \<Longrightarrow> y \<in> {0..1} \<Longrightarrow> dist (h x) (h y) \<le> L * dist x y"
     "(Im \<circ> h has_integral 0) {0..1}"
     "measure lebesgue (inside (path_image h)) = measure lebesgue (inside (path_image g))"
     "\<And>c r. path_image h = sphere c r \<Longrightarrow> \<exists>c' r'. path_image g = sphere c' r'"
-  sorry
+proof -
+  define c where "c = integral {0..1} (Im \<circ> g)"
+  define d where "d = -(\<i> * (of_real c :: complex))"
+  define h where "h = (+) d \<circ> g"
+  define a' where "a' = pathstart g + d"
+  define b' where "b' = b + d"
+  have h_eq: "\<And>t. h t = g t + d" unfolding h_def comp_def by simp
+  have pi_h: "path_image h = (+) d ` path_image g"
+    unfolding h_def image_comp [symmetric] path_image_compose by simp
+  show ?thesis
+  proof (rule that[of h a' b'])
+    show "rectifiable_path h"
+      unfolding h_def using assms(1) rectifiable_path_translation_eq[of d g] by simp
+    show "simple_path h"
+      unfolding h_def using assms(2) simple_path_translation_eq[of d g] by simp
+    show "pathfinish h = pathstart h"
+      unfolding h_def using assms(3) by (simp add: pathstart_compose pathfinish_compose)
+    show "path_length h = L"
+      unfolding h_def using assms(5) path_length_translation[of d g] by simp
+    show "pathstart h = a'" unfolding h_def a'_def by (simp add: pathstart_compose)
+    show "pathfinish h = a'" unfolding h_def a'_def
+      using assms(3) by (simp add: pathstart_compose pathfinish_compose)
+    show "a' \<in> path_image h"
+      unfolding a'_def using pi_h path_image_def pathstart_def by fastforce
+    show "b' \<in> path_image h"
+      unfolding b'_def using pi_h assms(6) by auto
+    show "b' - a' = of_real (dist a' b')"
+      unfolding a'_def b'_def using assms(8) by (simp add: dist_norm)
+    show "dist a' b' = diameter (path_image h)"
+      using pi_h diameter_translation[of d "path_image g"] assms(7)
+      unfolding a'_def b'_def by (simp add: dist_norm)
+    show "Re a' = 0" unfolding a'_def d_def using assms(9) by simp
+    show "convex (inside (path_image h))"
+      using pi_h inside_translation[of d "path_image g"]
+        convex_translation_eq[of d "inside (path_image g)"] assms(4) by simp
+    show "\<And>t. t \<in> {0..1} \<Longrightarrow> path_length (subpath 0 t h) = L * t"
+    proof -
+      fix t :: real assume "t \<in> {0..1}"
+      have "subpath 0 t h = (+) d \<circ> subpath 0 t g"
+        unfolding h_def subpath_def comp_def by (auto simp: algebra_simps)
+      then have "path_length (subpath 0 t h) = path_length (subpath 0 t g)"
+        using path_length_translation[of d "subpath 0 t g"] by simp
+      also have "\<dots> = L * t" using assms(10) \<open>t \<in> {0..1}\<close> by simp
+      finally show "path_length (subpath 0 t h) = L * t" .
+    qed
+    show "\<And>x y. x \<in> {0..1} \<Longrightarrow> y \<in> {0..1} \<Longrightarrow> dist (h x) (h y) \<le> L * dist x y"
+    proof -
+      fix x y :: real assume "x \<in> {0..1}" "y \<in> {0..1}"
+      have "dist (h x) (h y) = dist (g x) (g y)"
+        unfolding h_eq by (simp add: dist_norm)
+      also have "\<dots> \<le> L * dist x y" using assms(11)[OF \<open>x \<in> {0..1}\<close> \<open>y \<in> {0..1}\<close>] .
+      finally show "dist (h x) (h y) \<le> L * dist x y" .
+    qed
+    show "(Im \<circ> h has_integral 0) {0..1}"
+    proof -
+      have cont_g: "continuous_on {0..1} g"
+        using rectifiable_path_imp_path[OF assms(1)] unfolding path_def .
+      have int_Im_g: "(\<lambda>t. Im (g t)) integrable_on {0..1}"
+        using integrable_continuous_real[OF continuous_on_Im[OF cont_g]] .
+      have Im_h: "\<And>t. Im (h t) = Im (g t) - c"
+        unfolding h_def comp_def d_def by simp
+      have eq: "\<And>t. (Im \<circ> h) t = (\<lambda>t. Im (g t) - c) t"
+        using Im_h unfolding comp_def by simp
+      have int_sub: "(\<lambda>t. Im (g t) - c) integrable_on {0..1}"
+        by (rule integrable_diff[OF int_Im_g integrable_const_ivl])
+      have int_h: "(Im \<circ> h) integrable_on {0..1}"
+        using integrable_spike_finite[OF finite.emptyI _ int_sub] eq by simp
+      have "integral {0..1} (Im \<circ> h) = integral {0..1} (\<lambda>t. Im (g t) - c)"
+        using integral_cong[of "{0..1}" "Im \<circ> h" "\<lambda>t. Im (g t) - c"] eq by simp
+      also have "\<dots> = integral {0..1} (\<lambda>t. Im (g t)) - integral {0..1} (\<lambda>_::real. c::real)"
+        using integral_diff[OF int_Im_g integrable_const_ivl] by simp
+      also have "\<dots> = 0" unfolding c_def comp_def by simp
+      finally show ?thesis using int_h has_integral_iff by blast
+    qed
+    show "measure lebesgue (inside (path_image h)) = measure lebesgue (inside (path_image g))"
+      using pi_h inside_translation[of d "path_image g"]
+        measure_translation[of d "inside (path_image g)"] by simp
+    show "\<And>c0 r. path_image h = sphere c0 r \<Longrightarrow> \<exists>c' r'. path_image g = sphere c' r'"
+    proof -
+      fix c0 r assume "path_image h = sphere c0 r"
+      then have "(+) d ` path_image g = sphere c0 r" using pi_h by simp
+      then have "(+) (- d) ` (+) d ` path_image g = (+) (- d) ` sphere c0 r" by simp
+      then have "path_image g = (+) (- d) ` sphere c0 r"
+        using translation_assoc[of "- d" d "path_image g"] by simp
+      also have "\<dots> = sphere (c0 + (- d)) r"
+        using sphere_translation[of "-d" c0 r] by simp
+      finally show "\<exists>c' r'. path_image g = sphere c' r'" by blast
+    qed
+  qed
+qed
 
 theorem isoperimetric_theorem_convex:
   fixes g :: "real \<Rightarrow> complex"
@@ -5108,35 +5220,94 @@ proof -
   obtain a b where ab: "a \<in> path_image g" "b \<in> path_image g"
     "dist a b = diameter (path_image g)"
     using diameter_compact_attained[OF compact_pi nonempty_pi] by auto
-  text \<open>Step 2: reduce to normalized form via reparametrization and isometry\<close>
-  text \<open>After shifting start, rotating, translating, arc-length reparametrizing,
-    and vertically translating to zero-mean, we obtain a curve h satisfying
-    all hypotheses of isoperimetric\_kernel, with the same area and path length.\<close>
-  obtain h a' b' where h:
-    "0 < L"
+  text \<open>Step 2: shift start to diameter endpoint a\<close>
+  obtain g1 where g1: "rectifiable_path g1" "simple_path g1"
+    "pathfinish g1 = pathstart g1" "pathstart g1 = a"
+    "convex (inside (path_image g1))"
+    "path_length g1 = L" "path_image g1 = path_image g"
+    using isoperimetric_reduce_shift[OF assms(1,2,3,4,5) ab(1)] by metis
+  have ab1: "a \<in> path_image g1" "b \<in> path_image g1"
+    "dist a b = diameter (path_image g1)"
+    using ab g1(7) by auto
+  have a_ne_b: "a \<noteq> b"
+  proof
+    assume "a = b"
+    then have "diameter (path_image g) = 0" using ab(3) by simp
+    then have "path_image g = {a}"
+      by (metis ab(1) compact_eq_bounded_closed compact_pi diameter_eq_0 equals0D
+          insertE)
+    then show False using simple_path_image_uncountable[OF assms(2)]
+      by (simp add: countable_finite)
+  qed
+  text \<open>Step 3: rotate and translate to normalize diameter direction\<close>
+  obtain g2 a2 b2 where g2: "rectifiable_path g2" "simple_path g2"
+    "pathfinish g2 = pathstart g2" "pathstart g2 = a2"
+    "convex (inside (path_image g2))"
+    "path_length g2 = L"
+    "b2 \<in> path_image g2" "dist a2 b2 = diameter (path_image g2)"
+    "b2 - a2 = of_real (dist a2 b2)"
+    "Re a2 = 0"
+    "measure lebesgue (inside (path_image g2)) = measure lebesgue (inside (path_image g))"
+    and sphere_back2: "\<And>c r. path_image g2 = sphere c r \<Longrightarrow>
+      \<exists>c' r'. path_image g = sphere c' r'"
+    using isoperimetric_reduce_rotate_translate[OF g1(1,2,3) g1(4) g1(5,6) ab1(2,3) a_ne_b]
+    by (metis g1(7))
+  text \<open>Step 4: arc-length reparametrization\<close>
+  obtain g3 where g3: "rectifiable_path g3" "simple_path g3"
+    "pathfinish g3 = pathstart g3" "pathstart g3 = pathstart g2"
+    "convex (inside (path_image g3))"
+    "path_length g3 = L"
+    "path_image g3 = path_image g2"
+    "\<And>t. t \<in> {0..1} \<Longrightarrow> path_length (subpath 0 t g3) = L * t"
+    "\<And>x y. x \<in> {0..1} \<Longrightarrow> y \<in> {0..1} \<Longrightarrow> dist (g3 x) (g3 y) \<le> L * dist x y"
+    using isoperimetric_reduce_arc_length[OF g2(1,2,3,5,6) Lpos] by metis
+  have g3_facts: "b2 \<in> path_image g3" "dist (pathstart g3) b2 = diameter (path_image g3)"
+    "b2 - pathstart g3 = of_real (dist (pathstart g3) b2)" "Re (pathstart g3) = 0"
+    using g2(7,8,9,10) g3(4,7) g2(4) by auto
+  text \<open>Step 5: vertical translation for zero-mean imaginary part\<close>
+  obtain h a' b' where h: "rectifiable_path h" "simple_path h"
+    "pathfinish h = pathstart h"
     "convex (inside (path_image h))"
+    "path_length h = L"
+    "a' \<in> path_image h" "b' \<in> path_image h"
+    "dist a' b' = diameter (path_image h)"
+    "b' - a' = of_real (dist a' b')"
+    "pathstart h = a'" "pathfinish h = a'"
+    "Re a' = 0"
+    "\<And>t. t \<in> {0..1} \<Longrightarrow> path_length (subpath 0 t h) = L * t"
+    "\<And>x y. x \<in> {0..1} \<Longrightarrow> y \<in> {0..1} \<Longrightarrow> dist (h x) (h y) \<le> L * dist x y"
+    "(Im \<circ> h has_integral 0) {0..1}"
+    and meas_eq5: "measure lebesgue (inside (path_image h)) =
+      measure lebesgue (inside (path_image g3))"
+    and sphere_back5: "\<And>c r. path_image h = sphere c r \<Longrightarrow>
+      \<exists>c' r'. path_image g3 = sphere c' r'"
+    using isoperimetric_reduce_zero_mean[OF g3(1,2,3,5,6) g3_facts(1,2,3,4) g3(8,9)]
+    by blast
+  have meas_eq: "measure lebesgue (inside (path_image h)) =
+    measure lebesgue (inside (path_image g))"
+    using meas_eq5 g3(5,7) g2(11) by simp
+  have sphere_back: "\<And>c r. path_image h = sphere c r \<Longrightarrow>
+    \<exists>c' r'. path_image g = sphere c' r'"
+  proof -
+    fix c r assume "path_image h = sphere c r"
+    then obtain c2 r2 where "path_image g2 = sphere c2 r2"
+      using sphere_back5 g3(7) by metis
+    then show "\<exists>c' r'. path_image g = sphere c' r'"
+      using sphere_back2 by auto
+  qed
+  text \<open>Step 6: apply the kernel lemma\<close>
+  have kernel_hyps: "0 < L" "convex (inside (path_image h))"
     "a' \<in> path_image h" "b' \<in> path_image h"
     "dist a' b' = diameter (path_image h)"
     "b' - a' = of_real (dist a' b')"
     "pathstart h = a'" "pathfinish h = a'"
     "rectifiable_path h" "simple_path h"
     "path_length h = L"
-    "\<And>t. t \<in> {0..1} \<Longrightarrow> path_length (subpath 0 t h) = L * t"
-    "\<And>x y. x \<in> {0..1} \<Longrightarrow> y \<in> {0..1} \<Longrightarrow> dist (h x) (h y) \<le> L * dist x y"
     "Re a' = 0"
     "(Im \<circ> h has_integral 0) {0..1}"
-    and meas_eq: "measure lebesgue (inside (path_image h)) =
-      measure lebesgue (inside (path_image g))"
-    and sphere_back: "\<And>c r. path_image h = sphere c r \<Longrightarrow>
-      \<exists>c' r'. path_image g = sphere c' r'"
-    using assms ab
-    apply safe
-    apply (rule isoperimetric_reduce_zero_mean[of g L])
-             apply (simp_all add: )
-    sorry
-  text \<open>Step 3: apply the kernel lemma\<close>
+    using Lpos h by auto
   have ineq_h: "measure lebesgue (inside (path_image h)) \<le> L\<^sup>2 / (4 * pi)"
-    using isoperimetric_kernel(1)[OF h] .
+    using isoperimetric_kernel(1)[OF kernel_hyps(1-11) h(13,14) kernel_hyps(12,13)] .
   show "measure lebesgue (inside (path_image g)) \<le> L\<^sup>2 / (4 * pi)"
     using ineq_h meas_eq by simp
   show "\<exists>a r. path_image g = sphere a r"
@@ -5145,7 +5316,7 @@ proof -
     have "measure lebesgue (inside (path_image h)) = L\<^sup>2 / (4 * pi)"
       using that meas_eq by simp
     then obtain c r where "path_image h = sphere c r"
-      using isoperimetric_kernel(2)[OF h] by auto
+      using isoperimetric_kernel(2)[OF kernel_hyps(1-11) h(13,14) kernel_hyps(12,13)] by auto
     then show ?thesis using sphere_back by auto
   qed
 qed
