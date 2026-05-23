@@ -37,51 +37,14 @@ lemma Lebesgue_differentiation_theorem_compact:
   sorry (*PROVED ELSEWHERE; ASSUMED HERE*)
 
 lemma limpt_of_convex:
-  fixes s :: "'a::real_normed_vector set"
-  assumes "convex s" "x \<in> s"
-  shows "x islimpt s \<longleftrightarrow> s \<noteq> {x}"
-proof
-  assume "x islimpt s"
-  then show "s \<noteq> {x}"
-    using islimpt_finite[of "{x}" x] by auto
-next
-  assume ne: "s \<noteq> {x}"
-  then obtain y where ys: "y \<in> s" and ynx: "y \<noteq> x"
-    using assms(2) by blast
-  show "x islimpt s"
-    unfolding islimpt_approachable
-  proof (intro allI impI)
-    fix e :: real assume "e > 0"
-    define u where "u = min (1/2) (e / (2 * norm (y - x)))"
-    have nyx_pos: "norm (y - x) > 0" using ynx by auto
-    have u_pos: "u > 0"
-      unfolding u_def using \<open>e > 0\<close> nyx_pos by (simp add: min_def field_simps)
-    have u_le1: "u \<le> 1"
-      unfolding u_def by (simp add: min_def)
-    define z where "z = (1 - u) *\<^sub>R x + u *\<^sub>R y"
-    have zs: "z \<in> s"
-      unfolding z_def using convexD_alt[OF \<open>convex s\<close> \<open>x \<in> s\<close> ys] u_pos u_le1
-      by (simp add: less_imp_le)
-    have znx: "z \<noteq> x"
-    proof -
-      have "z - x = u *\<^sub>R (y - x)"
-        unfolding z_def by (simp add: algebra_simps)
-      moreover have "u *\<^sub>R (y - x) \<noteq> 0"
-        using u_pos nyx_pos by auto
-      ultimately show ?thesis by auto
-    qed
-    have "dist z x = norm (u *\<^sub>R (y - x))"
-      unfolding z_def by (simp add: dist_norm algebra_simps)
-    also have "\<dots> = u * norm (y - x)"
-      using u_pos by simp
-    also have "\<dots> \<le> (e / (2 * norm (y - x))) * norm (y - x)"
-      using nyx_pos by (intro mult_right_mono) (auto simp: u_def min_def)
-    also have "\<dots> = e / 2"
-      using nyx_pos by simp
-    also have "\<dots> < e" using \<open>e > 0\<close> by simp
-    finally show "\<exists>x'\<in>s. x' \<noteq> x \<and> dist x' x < e"
-      using zs znx by auto
-  qed
+  fixes S :: "'a::real_normed_vector set"
+  assumes "convex S" "x \<in> S"
+  shows "x islimpt S \<longleftrightarrow> S \<noteq> {x}"
+proof -
+  have "\<And>u. \<lbrakk>\<not> x islimpt S; u \<in> S\<rbrakk> \<Longrightarrow> u = x"
+  using assms connected_imp_perfect convex_connected by blast
+  with assms show ?thesis
+    by (auto simp: islimpt_finite)
 qed
 
 lemma has_vector_derivative_within_1D:
@@ -89,45 +52,25 @@ lemma has_vector_derivative_within_1D:
   shows "(f has_vector_derivative f') (at x within s) \<longleftrightarrow>
          ((\<lambda>y. (f y - f x) /\<^sub>R (y - x)) \<longlongrightarrow> f') (at x within s)"
 proof -
-  have eq: "\<And>y. y \<noteq> x \<Longrightarrow> (f y - f x) /\<^sub>R (y - x) - f' = (f y - f x - (y - x) *\<^sub>R f') /\<^sub>R (y - x)"
-    by (simp add: scaleR_diff_right scaleR_scaleR)
-  have norm_eq: "\<And>y. y \<noteq> x \<Longrightarrow>
-    norm ((f y - f x - (y - x) *\<^sub>R f') /\<^sub>R \<bar>y - x\<bar>) =
-    norm ((f y - f x - (y - x) *\<^sub>R f') /\<^sub>R (y - x))"
-    by (simp add: norm_scaleR abs_inverse)
   have ev_eq: "\<forall>\<^sub>F y in at x within s. (f y - f x) /\<^sub>R (y - x) - f' = (f y - f x - (y - x) *\<^sub>R f') /\<^sub>R (y - x)"
-    unfolding eventually_at_filter by (simp add: eq)
+    unfolding eventually_at_filter by (simp add: scaleR_diff_right scaleR_scaleR)
   show ?thesis
   proof
     assume "(f has_vector_derivative f') (at x within s)"
-    then have lin: "bounded_linear (\<lambda>h. h *\<^sub>R f')" and
-      tend: "((\<lambda>y. (f y - f x - (y - x) *\<^sub>R f') /\<^sub>R \<bar>y - x\<bar>) \<longlongrightarrow> 0) (at x within s)"
-      unfolding has_vector_derivative_def has_derivative_at_within by auto
-    have "Zfun (\<lambda>y. (f y - f x - (y - x) *\<^sub>R f') /\<^sub>R \<bar>y - x\<bar>) (at x within s)"
-      using tend by (simp add: tendsto_Zfun_iff)
+    then have "Zfun (\<lambda>y. (f y - f x - (y - x) *\<^sub>R f') /\<^sub>R \<bar>y - x\<bar>) (at x within s)"
+      unfolding has_vector_derivative_def has_derivative_at_within tendsto_Zfun_iff by auto
     then have "Zfun (\<lambda>y. norm ((f y - f x - (y - x) *\<^sub>R f') /\<^sub>R \<bar>y - x\<bar>)) (at x within s)"
       using Zfun_norm_iff by fastforce
-    then have "Zfun (\<lambda>y. norm ((f y - f x - (y - x) *\<^sub>R f') /\<^sub>R (y - x))) (at x within s)"
-      by simp
-    then have "Zfun (\<lambda>y. (f y - f x - (y - x) *\<^sub>R f') /\<^sub>R (y - x)) (at x within s)"
-      using Zfun_norm_iff by blast
-    then have "Zfun (\<lambda>y. (f y - f x) /\<^sub>R (y - x) - f') (at x within s)"
-      using Zfun_ssubst ev_eq by fastforce
     then show "((\<lambda>y. (f y - f x) /\<^sub>R (y - x)) \<longlongrightarrow> f') (at x within s)"
-      by (simp add: tendsto_Zfun_iff)
+      using Zfun_norm_iff Zfun_ssubst ev_eq tendsto_Zfun_iff by fastforce
   next
     assume R: "((\<lambda>y. (f y - f x) /\<^sub>R (y - x)) \<longlongrightarrow> f') (at x within s)"
     have "Zfun (\<lambda>y. (f y - f x) /\<^sub>R (y - x) - f') (at x within s)"
       using R by (simp add: tendsto_Zfun_iff)
     then have "Zfun (\<lambda>y. (f y - f x - (y - x) *\<^sub>R f') /\<^sub>R (y - x)) (at x within s)"
-      by (metis (no_types, lifting) Zfun_le eq norm_eq_zero norm_imp_pos_and_ge
-          right_minus_eq scaleR_eq_0_iff)
-    then have "Zfun (\<lambda>y. norm ((f y - f x - (y - x) *\<^sub>R f') /\<^sub>R (y - x))) (at x within s)"
-      by (simp add: Zfun_le)
-    then have "Zfun (\<lambda>y. norm ((f y - f x - (y - x) *\<^sub>R f') /\<^sub>R \<bar>y - x\<bar>)) (at x within s)"
-      by simp
+      by (smt (verit, del_insts) Zfun_ssubst ev_eq eventually_mono)
     then have "Zfun (\<lambda>y. (f y - f x - (y - x) *\<^sub>R f') /\<^sub>R \<bar>y - x\<bar>) (at x within s)"
-      using Zfun_norm_iff by blast
+      using Zfun_norm_iff by (fastforce simp add: Zfun_le)
     then have "((\<lambda>y. (f y - f x - (y - x) *\<^sub>R f') /\<^sub>R \<bar>y - x\<bar>) \<longlongrightarrow> 0) (at x within s)"
       by (simp add: tendsto_Zfun_iff)
     then show "(f has_vector_derivative f') (at x within s)"
@@ -148,12 +91,11 @@ proof (rule tendsto_le)
     using limpt trivial_limit_within by blast
   let ?f = "\<lambda>y. norm(inverse(y - x) *\<^sub>R (f y - f x))"
   let ?g = "\<lambda>y. norm(inverse(y - x) *\<^sub>R (g y - g x))"
-  show "(?f \<longlongrightarrow> norm f') (at x within s)"
-    using assms(2) has_vector_derivative_within_1D tendsto_norm by blast
-  show "(?g \<longlongrightarrow> norm g') (at x within s)"
-    using assms(3) has_vector_derivative_within_1D tendsto_norm by blast
+  show "(?f \<longlongrightarrow> norm f') (at x within s)" 
+       "(?g \<longlongrightarrow> norm g') (at x within s)"
+    using fderiv gderiv has_vector_derivative_within_1D tendsto_norm by blast+
   show "\<forall>\<^sub>F x in at x within s. ?f x \<le> ?g x"
-    using ev by (rule eventually_mono) (simp add: norm_scaleR abs_ge_zero mult_left_mono)
+    using eventually_mono [OF ev] by (simp add: norm_scaleR abs_ge_zero mult_left_mono)
 qed
 
 
@@ -5124,13 +5066,13 @@ text \<open>The kernel lemma: the isoperimetric inequality for a convex curve th
 lemma isoperimetric_kernel:
   fixes g :: "real \<Rightarrow> complex" and L :: real and a b :: complex
   assumes "0 < L"
-    and "convex (inside (path_image g))"
-    and "a \<in> path_image g" "b \<in> path_image g"
-    and "dist a b = diameter (path_image g)"
-    and "b - a = of_real (dist a b)"
-    and "pathstart g = a" "pathfinish g = a"
-    and "rectifiable_path g" "simple_path g"
-    and "path_length g = L"
+    and conv_in: "convex (inside (path_image g))"
+    and ab: "a \<in> path_image g" "b \<in> path_image g"
+    and dist_ab: "dist a b = diameter (path_image g)"
+    and bma: "b - a = of_real (dist a b)"
+    and ga: "pathstart g = a" "pathfinish g = a"
+    and g: "rectifiable_path g" "simple_path g"
+    and L: "path_length g = L"
     and arc_length: "\<And>t. t \<in> {0..1} \<Longrightarrow> path_length (subpath 0 t g) = L * t"
     and lipschitz: "\<And>x y. x \<in> {0..1} \<Longrightarrow> y \<in> {0..1} \<Longrightarrow> dist (g x) (g y) \<le> L * dist x y"
     and "Re a = 0"
@@ -5150,60 +5092,37 @@ proof -
   define g' where "g' = (\<lambda>x. vector_derivative g (at x))"
   have g'_deriv: "\<And>x. x \<in> {0..1} - S \<Longrightarrow> (g has_vector_derivative g' x) (at x)"
     by (simp add: S_def g'_def vector_derivative_works)
-  have g'_int: "\<And>t. t \<in> {0..1} \<Longrightarrow>
-      g' absolutely_integrable_on {0..t} \<and> integral {0..t} g' = g t - a"
+  have g'_int: "g' absolutely_integrable_on {0..t} \<and> integral {0..t} g' = g t - a" 
+    if "t \<in> {0..1::real}" for t
   proof -
-    have rhs: "absolutely_continuous_on {0..1} g \<and>
-        (\<exists>S. negligible S \<and> (\<forall>x\<in>{0..1} - S. (g has_vector_derivative g' x) (at x within {0..1})))"
-      using acont_g negS g'_deriv has_vector_derivative_at_within by blast
-    then have lhs: "g' absolutely_integrable_on {0..1} \<and>
-        (\<forall>x\<in>{0..1}. (g' has_integral g x - g 0) {0..x})"
-      by (subst (asm) absolute_integral_absolutely_continuous_derivative_eq[symmetric]) auto
-    fix t assume "t \<in> {0..1::real}"
-    then have "0 \<le> t" "t \<le> 1" by auto
+    have lhs: "g' absolutely_integrable_on {0..1} \<and> (\<forall>x\<in>{0..1}. (g' has_integral g x - g 0) {0..x})"
+      unfolding absolute_integral_absolutely_continuous_derivative_eq
+      by (metis has_vector_derivative_at_within acont_g negS g'_deriv)
+    have "0 \<le> t" "t \<le> 1" using that by auto
     have abs_int_t: "g' absolutely_integrable_on {0..t}"
       using absolutely_integrable_on_subinterval[OF conjunct1[OF lhs]] \<open>0 \<le> t\<close> \<open>t \<le> 1\<close> by auto
     moreover have "integral {0..t} g' = g t - a"
-    proof -
-      have "(g' has_integral g t - g 0) {0..t}"
-        using conjunct2[OF lhs] \<open>t \<in> {0..1}\<close> by auto
-      then show ?thesis using integral_unique \<open>pathstart g = a\<close>
-        by (simp add: pathstart_def)
-    qed
+      using ga by (metis integral_unique lhs pathstart_def that)
     ultimately show "g' absolutely_integrable_on {0..t} \<and> integral {0..t} g' = g t - a"
       by auto
   qed
-
-  have norm_g'_int: "\<And>t. t \<in> {0..1} \<Longrightarrow>
-      (\<lambda>x. norm (g' x)) absolutely_integrable_on {0..t} \<and>
-      integral {0..t} (\<lambda>x. norm (g' x)) = L * t"
+  have norm_g'_int: "(\<lambda>x. norm (g' x)) absolutely_integrable_on {0..t} \<and> integral {0..t} (\<lambda>x. norm (g' x)) = L * t"
+    if "t \<in> {0..1}" for t
   proof -
-    fix t :: real assume t01: "t \<in> {0..1}"
-    then have "0 \<le> t" "t \<le> 1" by auto
     have acont_gt: "absolutely_continuous_on {0..t} g"
-      using absolutely_continuous_on_subset[OF acont_g] \<open>0 \<le> t\<close> \<open>t \<le> 1\<close> by auto
+      using absolutely_continuous_on_subset[OF acont_g] that by auto
     have g'_deriv_t: "\<And>x. x \<in> {0..t} - S \<Longrightarrow> (g has_vector_derivative g' x) (at x)"
-      using g'_deriv \<open>0 \<le> t\<close> \<open>t \<le> 1\<close> by auto
-    have vv_eq: "vector_variation {0..t} g = integral {0..t} (\<lambda>u. norm (g' u))"
-      using vector_variation_integral_norm_derivative[OF negS \<open>0 \<le> t\<close> acont_gt g'_deriv_t] .
-    have "vector_variation {0..t} g = L * t"
-    proof -
-      have "path_length (subpath 0 t g) = L * t"
-        using arc_length t01 by auto
-      moreover have "path_length (subpath 0 t g) = vector_variation (closed_segment 0 t) g"
-        using path_length_subpath_eq[of 0 t g] \<open>rectifiable_path g\<close> t01 by auto
-      moreover have "closed_segment 0 t = {0..t}"
-        using closed_segment_eq_real_ivl1 \<open>0 \<le> t\<close> by auto
-      ultimately show ?thesis by simp
-    qed
-    then have int_eq: "integral {0..t} (\<lambda>x. norm (g' x)) = L * t"
-      using vv_eq by simp
+      using g'_deriv that by auto
+    have "vector_variation {0..t} g = integral {0..t} (\<lambda>u. norm (g' u))"
+      using vector_variation_integral_norm_derivative[OF negS _ acont_gt g'_deriv_t] that
+      by presburger
+    moreover have "vector_variation {0..t} g = L * t"
+      using that \<open>rectifiable_path g\<close> path_length_subpath_eq [of 0 t, symmetric] arc_length
+      by (fastforce simp: closed_segment_eq_real_ivl1)
     moreover have "(\<lambda>x. norm (g' x)) absolutely_integrable_on {0..t}"
-      using absolutely_integrable_norm[OF conjunct1[OF g'_int[OF t01]]]
-      by (simp add: o_def)
-    ultimately show "(\<lambda>x. norm (g' x)) absolutely_integrable_on {0..t} \<and>
-        integral {0..t} (\<lambda>x. norm (g' x)) = L * t"
-      by auto
+      using g'_int set_integrable_norm that by blast
+    ultimately show ?thesis
+      using that by auto
   qed
   have norm_g'_le: "norm (g' x) \<le> L" if "x \<in> {0..1} - S" for x
   proof -
