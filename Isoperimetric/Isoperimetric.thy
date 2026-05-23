@@ -5066,7 +5066,219 @@ lemma isoperimetric_reduce_rotate_translate:
     "Re a' = 0"
     "measure lebesgue (inside (path_image h)) = measure lebesgue (inside (path_image g))"
     "\<And>c r. path_image h = sphere c r \<Longrightarrow> \<exists>c' r'. path_image g = sphere c' r'"
-  sorry
+proof -
+  define r where "r = cis (- Arg (b - a))"
+  define h where "h = (*) r \<circ> (+) (-a) \<circ> g"
+  define a' where "a' = r * (a - a)"
+  define b' where "b' = r * (b - a)"
+  have r_norm: "norm r = 1" unfolding r_def by simp
+  have r_ne: "r \<noteq> 0" using r_norm by auto
+  have lin_r: "linear ((*) r)" by (intro linearI) (auto simp: algebra_simps scaleR_conv_of_real)
+  have inj_r: "inj ((*) r)" using r_ne by (simp add: inj_def)
+  have norm_r: "\<And>x. norm (r * x) = norm x" using r_norm
+    by (simp add: norm_mult)
+  have dist_r: "\<And>x y. dist (r * x) (r * y) = dist x y"
+    by (simp add: dist_mult_left r_norm)
+  \<comment> \<open>Translation step: g₁ = (+) (-a) \<circ> g\<close>
+  define g1 where "g1 = (+) (-a) \<circ> g"
+  have rect_g1: "rectifiable_path g1"
+    unfolding g1_def using assms(1) rectifiable_path_translation_eq by blast
+  have sp_g1: "simple_path g1"
+    unfolding g1_def using assms(2) simple_path_translation_eq by blast
+  have pi_g1: "path_image g1 = (+) (-a) ` path_image g"
+    unfolding g1_def by (simp add: path_image_compose image_comp)
+  have ps_g1: "pathstart g1 = 0"
+    unfolding g1_def using assms(4) by (simp add: pathstart_compose)
+  have pf_g1: "pathfinish g1 = 0"
+    unfolding g1_def using assms(3,4) by (simp add: pathstart_compose pathfinish_compose)
+  have pl_g1: "path_length g1 = L"
+    unfolding g1_def using assms(6) path_length_translation by blast
+  \<comment> \<open>Rotation step: h = (*) r \<circ> g₁\<close>
+  have h_eq: "h = (*) r \<circ> g1" unfolding h_def g1_def by (simp add: comp_assoc)
+  have pi_h: "path_image h = (*) r ` path_image g1"
+    unfolding h_eq by (simp add: path_image_compose image_comp)
+  have a'_eq: "a' = 0" unfolding a'_def by simp
+  have b'_eq: "b' = r * (b - a)" unfolding b'_def by simp
+  \<comment> \<open>Key: r * (b-a) is a positive real\<close>
+  have ba_ne: "b - a \<noteq> 0" using assms(9) by auto
+  have "r * (b - a) = cis (- Arg (b-a)) * (b-a)"
+    unfolding r_def by simp
+  also have "\<dots> = of_real (cmod (b-a))"
+    by (subst (2) rcis_cmod_Arg[symmetric, of "b - a"]) (simp add: rcis_def cis_mult)
+  finally have rb_real: "b' = of_real (cmod (b-a))" unfolding b'_def by simp
+  show ?thesis
+  proof (rule that[of h a' b'])
+    show "rectifiable_path h"
+      unfolding h_eq using rect_g1 rectifiable_path_linear_image_eq[OF lin_r inj_r] by simp
+    show "simple_path h"
+      unfolding h_eq using sp_g1 simple_path_linear_image_eq[OF lin_r inj_r] by simp
+    show "pathfinish h = pathstart h"
+      unfolding h_eq using pf_g1 ps_g1 by (simp add: pathstart_compose pathfinish_compose)
+    show "pathstart h = a'"
+      unfolding h_eq a'_eq using ps_g1 by (simp add: pathstart_compose)
+    show "path_length h = L"
+      unfolding h_eq using pl_g1 path_length_linear_image[OF lin_r norm_r] by simp
+    show "b' \<in> path_image h"
+      unfolding pi_h b'_def g1_def using assms(7)
+      by (auto simp: path_image_compose image_comp image_iff)
+    show "Re a' = 0" unfolding a'_eq by simp
+    show "b' - a' = of_real (dist a' b')"
+      unfolding a'_eq using rb_real by (simp add: dist_norm)
+    show "dist a' b' = diameter (path_image h)"
+    proof -
+      have "diameter (path_image h) = diameter ((*) r ` path_image g1)"
+        unfolding pi_h by simp
+      also have "\<dots> = diameter (path_image g1)"
+      proof -
+        have "(\<lambda>(x,y). dist x y) ` ((*) r ` path_image g1 \<times> (*) r ` path_image g1) =
+              (\<lambda>(x,y). dist x y) ` (path_image g1 \<times> path_image g1)"
+          by (force simp: image_iff dist_r)
+        then show ?thesis by (simp add: diameter_def)
+      qed
+      also have "\<dots> = diameter ((+) (-a) ` path_image g)"
+        unfolding pi_g1 by simp
+      also have "\<dots> = diameter (path_image g)"
+        by (metis diameter_translation)
+      finally have diam_eq: "diameter (path_image h) = diameter (path_image g)" .
+      have "dist a' b' = dist a b"
+        unfolding a'_eq b'_def by (simp add: dist_norm norm_r norm_minus_commute)
+      then show ?thesis using diam_eq assms(8) by simp
+    qed
+    have inside_h: "inside (path_image h) = (*) r ` (+) (-a) ` inside (path_image g)"
+    proof -
+      have "inside (path_image h) = (*) r ` inside (path_image g1)"
+      proof -
+        have "inside ((*) r ` path_image g1) = (*) r ` inside (path_image g1)"
+        proof (rule set_eqI)
+          fix x
+          define y where "y = inverse r * x"
+          then have xy: "x = r * y" using r_ne by simp
+          have bij_r: "bij ((*) r)"
+            unfolding bij_def using lin_r inj_r eucl.linear_inj_imp_surj[OF lin_r inj_r] by blast
+          have compl_img: "(*) r ` (- path_image g1) = - ((*) r ` path_image g1)"
+            using bij_image_Compl_eq[OF bij_r] .
+          have homeo: "homeomorphism (- path_image g1) ((*) r ` (- path_image g1)) ((*) r) ((*) (inverse r))"
+          proof (rule homeomorphismI)
+            show "continuous_on (- path_image g1) ((*) r)"
+              by (intro continuous_intros)
+            show "continuous_on ((*) r ` (- path_image g1)) ((*) (inverse r))"
+              by (intro continuous_intros)
+            show "\<And>x. x \<in> - path_image g1 \<Longrightarrow> (*) (inverse r) (r * x) = x"
+              using r_ne by simp
+            show "\<And>y. y \<in> (*) r ` (- path_image g1) \<Longrightarrow> (*) r (inverse r * y) = y"
+              using r_ne by simp
+            show "(*) r ` (- path_image g1) \<subseteq> (*) r ` (- path_image g1)" by simp
+            show "(*) (inverse r) ` ((*) r ` (- path_image g1)) \<subseteq> - path_image g1"
+              using r_ne apply (auto simp: image_iff)
+              by (metis divide_inverse_commute nonzero_mult_div_cancel_left)
+          qed
+          have cc: "connected_component_set (- ((*) r ` path_image g1)) x =
+                    (*) r ` connected_component_set (- path_image g1) y"
+          proof (cases "y \<in> path_image g1")
+            case True
+            then have "x \<in> (*) r ` path_image g1" using xy by auto
+            then have "x \<notin> - ((*) r ` path_image g1)" by simp
+            moreover have "y \<notin> - path_image g1" using True by simp
+            ultimately show ?thesis
+              using connected_component_eq_empty by blast
+          next
+            case False
+            then have y_in: "y \<in> - path_image g1" by simp
+            have "connected_component_set ((*) r ` (- path_image g1)) (r * y) =
+                  (*) r ` connected_component_set (- path_image g1) y"
+              using connected_component_set_homeomorphism[OF homeo y_in] .
+            then show ?thesis using compl_img xy by simp
+          qed
+          have bounded_eq: "bounded ((*) r ` connected_component_set (- path_image g1) y) =
+                           bounded (connected_component_set (- path_image g1) y)"
+            by (simp add: bounded_iff norm_r image_iff)
+          have memb: "(x \<in> (*) r ` path_image g1) = (y \<in> path_image g1)"
+            using xy inj_r by (auto simp: inj_image_mem_iff)
+          show "(x \<in> inside ((*) r ` path_image g1)) = (x \<in> (*) r ` inside (path_image g1))"
+            unfolding inside_def mem_Collect_eq
+          proof
+            assume lhs: "x \<notin> (*) r ` path_image g1 \<and>
+                         bounded (connected_component_set (- (*) r ` path_image g1) x)"
+            have "y \<notin> path_image g1" using lhs memb by simp
+            moreover have "bounded (connected_component_set (- path_image g1) y)"
+              using lhs cc bounded_eq by simp
+            ultimately show "x \<in> (*) r ` {x. x \<notin> path_image g1 \<and>
+                            bounded (connected_component_set (- path_image g1) x)}"
+              using xy by blast
+          next
+            assume rhs: "x \<in> (*) r ` {x. x \<notin> path_image g1 \<and>
+                         bounded (connected_component_set (- path_image g1) x)}"
+            then obtain z where z: "z \<notin> path_image g1"
+              "bounded (connected_component_set (- path_image g1) z)" "x = r * z"
+              by auto
+            then have "z = y" using xy r_ne by (metis mult_left_cancel)
+            then show "x \<notin> (*) r ` path_image g1 \<and>
+                       bounded (connected_component_set (- (*) r ` path_image g1) x)"
+              using z memb cc bounded_eq by simp
+          qed
+        qed
+        then show ?thesis unfolding pi_h .
+      qed
+      also have "inside (path_image g1) = (+) (-a) ` inside (path_image g)"
+        unfolding pi_g1 using inside_translation[of "-a" "path_image g"] by simp
+      finally show ?thesis .
+    qed
+    show "convex (inside (path_image h))"
+      using inside_h assms(5)
+      by (metis convex_linear_image convex_translation_eq lin_r)
+    show "measure lebesgue (inside (path_image h)) = measure lebesgue (inside (path_image g))"
+    proof -
+      have meas_g: "inside (path_image g) \<in> lmeasurable"
+      proof -
+        have "bounded (inside (path_image g))"
+          using Jordan_inside_outside[OF assms(2) assms(3)] by blast
+        then show ?thesis using measurable_convex assms(5) by blast
+      qed
+      have "measure lebesgue ((*) r ` (+) (-a) ` inside (path_image g)) =
+            measure lebesgue ((+) (-a) ` inside (path_image g))"
+      proof -
+        have meas_t: "(+) (-a) ` inside (path_image g) \<in> lmeasurable"
+          using meas_g measurable_translation by blast
+        have "\<bar>eucl.det ((*) r)\<bar> = 1"
+          unfolding det_complex r_def by simp
+        then show ?thesis
+          using Euclidean_Space_Transfer.measure_linear_image[OF lin_r meas_t] by simp
+      qed
+      also have "\<dots> = measure lebesgue (inside (path_image g))"
+        using measure_translation[of "-a" "inside (path_image g)"] by simp
+      finally show ?thesis using inside_h by simp
+    qed
+
+    show "\<And>c0 r0. path_image h = sphere c0 r0 \<Longrightarrow> \<exists>c' r'. path_image g = sphere c' r'"
+    proof -
+      fix c0 r0 assume sph: "path_image h = sphere c0 r0"
+      then have eq1: "(*) r ` (+) (-a) ` path_image g = sphere c0 r0"
+        unfolding pi_h pi_g1 image_image by (simp add: comp_def)
+      have eq2: "(+) (-a) ` path_image g = (*) (inverse r) ` sphere c0 r0"
+      proof -
+        have "(*) (inverse r) ` ((*) r ` (+) (-a) ` path_image g) = (+) (-a) ` path_image g"
+        proof -
+          have *: "\<And>z. inverse r * (r * z) = z"
+            using r_ne by (metis left_inverse mult.assoc mult_1)
+          show ?thesis by (auto simp: image_iff *)
+        qed
+        then show ?thesis using eq1 by simp
+      qed
+      have eq3: "path_image g = (+) a ` (*) (inverse r) ` sphere c0 r0"
+      proof -
+        have "(+) a ` (+) (-a) ` path_image g = path_image g"
+          by (auto simp: image_comp o_def)
+        then show ?thesis using eq2 by simp
+      qed
+      moreover have "(*) (inverse r) ` sphere c0 r0 = sphere (inverse r * c0) r0"
+        by (auto simp: nonzero_norm_inverse r_ne r_norm sphere_cscale)
+      moreover have "(+) a ` sphere (inverse r * c0) r0 = sphere (a + inverse r * c0) r0"
+        using sphere_translation[of a "inverse r * c0" r0] by simp
+      ultimately show "\<exists>c' r'. path_image g = sphere c' r'" by auto
+    qed
+  qed
+qed
+
 
 lemma isoperimetric_reduce_arc_length:
   fixes g :: "real \<Rightarrow> complex"
@@ -5088,7 +5300,7 @@ proof -
     "arc g \<Longrightarrow> arc h" "simple_path g \<Longrightarrow> simple_path h"
     "\<forall>t\<in>{0..1}. path_length (subpath 0 t h) = path_length g * t"
     "\<forall>x\<in>{0..1}. \<forall>y\<in>{0..1}. dist (h x) (h y) \<le> path_length g * dist x y"
-    using arc_length_reparametrization assms(1) by metis
+    using arc_length_reparametrization [OF assms(1)] by metis
   have "simple_path h" using h(7) assms(2) by auto
   moreover have "pathfinish h = pathstart h"
     using h(3,4) assms(3) by simp
