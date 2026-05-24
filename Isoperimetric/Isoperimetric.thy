@@ -5601,8 +5601,151 @@ proof -
         show ?thesis
           using has_integral_unique[OF diff_int zero_int] by linarith
       qed
+      \<comment> \<open>Final step: path_image g = sphere c |C|\<close>
+      define c where "c = Complex (sgn * C * cos A) 0"
+      have subset: "path_image g \<subseteq> sphere c \<bar>C\<bar>"
+      proof -
+        have "cmod (g t - c) = \<bar>C\<bar>" if "t \<in> {0..1}" for t
+        proof -
+          have re: "Re (g t) = - sgn * C * (cos (2*pi*t - A) - cos A)"
+            using Re_g[OF that] .
+          have im: "Im (g t) = C * sin (2*pi*t - A)"
+            using CA[OF that] .
+          have eq_gt: "g t - c = Complex (- sgn * C * cos (2*pi*t - A)) (C * sin (2*pi*t - A))"
+          proof (rule complex_eqI)
+            show "Re (g t - c) = Re (Complex (- sgn * C * cos (2*pi*t - A)) (C * sin (2*pi*t - A)))"
+              unfolding c_def using re by (simp add: algebra_simps)
+            show "Im (g t - c) = Im (Complex (- sgn * C * cos (2*pi*t - A)) (C * sin (2*pi*t - A)))"
+              unfolding c_def using im by simp
+          qed
+          have "(cmod (g t - c))\<^sup>2 = (sgn * C * cos (2*pi*t - A))\<^sup>2 + (C * sin (2*pi*t - A))\<^sup>2"
+            using eq_gt by (simp add: complex_norm power2_eq_square)
+          also have "\<dots> = C\<^sup>2 * (sgn\<^sup>2 * (cos (2*pi*t - A))\<^sup>2 + (sin (2*pi*t - A))\<^sup>2)"
+            by (simp add: algebra_simps power2_eq_square)
+          also have "\<dots> = C\<^sup>2 * ((cos (2*pi*t - A))\<^sup>2 + (sin (2*pi*t - A))\<^sup>2)"
+            using sgn2 by simp
+          also have "\<dots> = C\<^sup>2"
+            by (simp add: sin_cos_squared_add3)
+          also have "\<dots> = \<bar>C\<bar>\<^sup>2"
+            by (simp add: power2_abs)
+          finally show "cmod (g t - c) = \<bar>C\<bar>"
+            by (rule power2_eq_imp_eq) auto
+        qed
+        then show ?thesis
+          by (auto simp: path_image_def sphere_def dist_norm norm_minus_commute)
+      qed
+      have supset: "sphere c \<bar>C\<bar> \<subseteq> path_image g"
+      proof (cases "C = 0")
+        case True
+        then have "sphere c \<bar>C\<bar> = {c}" by (simp add: sphere_def dist_self)
+        moreover have "g 0 = c"
+        proof (rule complex_eqI)
+          show "Re (g 0) = Re c"
+            using Re_g[of 0] by (simp add: c_def True)
+          show "Im (g 0) = Im c"
+            using CA[of 0] by (simp add: c_def True)
+        qed
+        moreover have "g 0 \<in> path_image g"
+          by (simp add: path_image_def)
+        ultimately show ?thesis by auto
+      next
+        case Cne: False
+        show ?thesis
+        proof (rule subsetI)
+          fix z assume z: "z \<in> sphere c \<bar>C\<bar>"
+          then have zc_norm: "cmod (z - c) = \<bar>C\<bar>"
+            by (simp add: sphere_def dist_norm norm_minus_commute)
+          \<comment> \<open>Find angle for (z-c) scaled to unit circle\<close>
+          have unit: "cmod (Complex (- Re (z - c) / (sgn * C)) (Im (z - c) / C)) = 1"
+          proof -
+            have "(cmod (Complex (- Re (z - c) / (sgn * C)) (Im (z - c) / C)))\<^sup>2
+                = (Re (z - c))\<^sup>2 / (sgn\<^sup>2 * C\<^sup>2) + (Im (z - c))\<^sup>2 / C\<^sup>2"
+              by (metis (no_types, opaque_lifting) cmod_power2 complex.sel(1,2) power2_minus
+                  power_divide power_mult_distrib)
+            also have "\<dots> = ((Re (z - c))\<^sup>2 + (Im (z - c))\<^sup>2) / C\<^sup>2"
+              using sgn2 by (simp add: add_divide_distrib)
+            also have "\<dots> = (cmod (z - c))\<^sup>2 / C\<^sup>2"
+              by (simp add: cmod_power2)
+            also have "\<dots> = \<bar>C\<bar>\<^sup>2 / C\<^sup>2"
+              using zc_norm by simp
+            also have "\<dots> = 1"
+              using Cne by (simp add: power2_abs)
+            finally show ?thesis
+              using norm_ge_zero
+              by (simp add: abs_square_eq_1)
+          qed
+          \<comment> \<open>Get angle \<theta>\<close>
+          obtain \<theta> where \<theta>_bounds: "0 \<le> \<theta>" "\<theta> < 2*pi"
+            and \<theta>_eq: "Complex (- Re (z - c) / (sgn * C)) (Im (z - c) / C) = Complex (cos \<theta>) (sin \<theta>)"
+            using complex_unimodular_polar[OF unit] by auto
+          have \<theta>_Re: "- Re (z - c) / (sgn * C) = cos \<theta>"
+            and \<theta>_Im: "Im (z - c) / C = sin \<theta>"
+            using \<theta>_eq by (simp_all add: complex.expand)
+          \<comment> \<open>Find t \<in> [0,1] with 2\<pi>t - A \<equiv> \<theta> (mod 2\<pi>)\<close>
+          define t where "t = frac ((\<theta> + A) / (2 * pi))"
+          have t01: "t \<in> {0..1}"
+          proof -
+            have "0 \<le> frac ((\<theta> + A) / (2 * pi))" by (rule frac_ge_0)
+            moreover have "frac ((\<theta> + A) / (2 * pi)) < 1" by (rule frac_lt_1)
+            ultimately show ?thesis unfolding t_def by auto
+          qed
+          have angle_eq: "cos (2*pi*t - A) = cos \<theta>" "sin (2*pi*t - A) = sin \<theta>"
+          proof -
+            have *: "2*pi*t = (\<theta> + A) - of_int \<lfloor>(\<theta> + A) / (2*pi)\<rfloor> * (2*pi)"
+            proof -
+              have "t = (\<theta> + A) / (2*pi) - of_int \<lfloor>(\<theta> + A) / (2*pi)\<rfloor>"
+                unfolding t_def frac_def by simp
+              then have "2*pi*t = 2*pi * ((\<theta> + A) / (2*pi) - of_int \<lfloor>(\<theta> + A) / (2*pi)\<rfloor>)"
+                by simp
+              also have "\<dots> = (\<theta> + A) - of_int \<lfloor>(\<theta> + A) / (2*pi)\<rfloor> * (2*pi)"
+                using pi_gt_zero by (simp add: field_simps)
+              finally show ?thesis .
+            qed
+            have eq: "2*pi*t - A = \<theta> - of_int \<lfloor>(\<theta> + A) / (2*pi)\<rfloor> * (2*pi)"
+              using * by linarith
+            show "cos (2*pi*t - A) = cos \<theta>"
+              unfolding eq
+              by (simp add: cos_diff mult_of_int_commute)
+            show "sin (2*pi*t - A) = sin \<theta>"
+              unfolding eq by (simp add: mult_of_int_commute sin_diff)
+        qed
+          \<comment> \<open>Show g t = z\<close>
+          have "g t = z"
+          proof (rule complex_eqI)
+            have "Re (g t) = - sgn * C * (cos (2*pi*t - A) - cos A)"
+              using Re_g[OF t01] .
+            also have "\<dots> = - sgn * C * cos \<theta> + sgn * C * cos A"
+              using angle_eq(1) by (simp add: algebra_simps)
+            also have "\<dots> = Re (z - c) + Re c"
+            proof -
+              have "sgn \<noteq> 0" using sgn2 by (metis power2_eq_square mult_zero_left zero_neq_one)
+              then have "Re (z - c) = - sgn * C * cos \<theta>"
+                using \<theta>_Re Cne by (simp add: field_simps)
+              moreover have "Re c = sgn * C * cos A"
+                unfolding c_def by simp
+              ultimately show ?thesis by (simp add: algebra_simps)
+            qed
+            also have "\<dots> = Re z"
+              by simp
+            finally show "Re (g t) = Re z" .
+          next
+            have "Im (g t) = C * sin (2*pi*t - A)"
+              using CA[OF t01] .
+            also have "\<dots> = C * sin \<theta>"
+              using angle_eq(2) by simp
+            also have "\<dots> = Im (z - c)"
+              using \<theta>_Im Cne by (simp add: field_simps)
+            also have "\<dots> = Im z"
+              by (simp add: c_def)
+            finally show "Im (g t) = Im z" .
+          qed
+          moreover have "g t \<in> path_image g"
+            using t01 by (auto simp: path_image_def)
+          ultimately show "z \<in> path_image g" by simp
+        qed
+      qed
       show ?thesis
-        sorry
+        using subset supset by (auto intro!: exI[of _ c] exI[of _ "\<bar>C\<bar>"])
     qed
     ultimately show ?thesis
       using key_eq by presburger
@@ -5856,7 +5999,6 @@ proof -
         using measure_translation[of "-a" "inside (path_image g)"] by simp
       finally show ?thesis using inside_h by simp
     qed
-
     show "\<And>c0 r0. path_image h = sphere c0 r0 \<Longrightarrow> \<exists>c' r'. path_image g = sphere c' r'"
     proof -
       fix c0 r0 assume sph: "path_image h = sphere c0 r0"
