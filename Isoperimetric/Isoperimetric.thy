@@ -5456,7 +5456,40 @@ proof -
           using wirt3 by blast
       qed
     qed
-    then show ?thesis sorry
+    define d where "d = L\<^sup>2 - measure lebesgue (inside (path_image g)) * 4 * pi - w"
+    have key_eq: "L\<^sup>2 - measure lebesgue (inside (path_image g)) * 4 * pi = d + w"
+      unfolding d_def by linarith
+
+    have sq_has_int: "((\<lambda>x. (Re (g' x) - 2 * pi * sgn * Im (g x))\<^sup>2) has_integral d) {0..1}"
+    proof -
+      have "((\<lambda>x. (Re (g' x) - 2 * pi * sgn * Im (g x))\<^sup>2 + ((Im (g' x))\<^sup>2 - (2 * pi * Im (g x))\<^sup>2)
+        - ((Im (g' x))\<^sup>2 - (2 * pi * Im (g x))\<^sup>2)) has_integral
+        (L\<^sup>2 - measure lebesgue (inside (path_image g)) * 4 * pi - w)) {0..1}"
+        using has_integral_diff[OF has_int_key
+          \<open>((\<lambda>x. (Im (g' x))\<^sup>2 - (2 * pi * Im (g x))\<^sup>2) has_integral w) {0..1}\<close>]
+        by simp
+      then show ?thesis
+        unfolding d_def by simp
+    qed
+    have d_nonneg: "0 \<le> d"
+    proof -
+      have sq_int: "(\<lambda>x. (Re (g' x) - 2 * pi * sgn * Im (g x))\<^sup>2) integrable_on {0..1}"
+        using has_integral_integrable[OF sq_has_int] .
+      have "0 \<le> integral {0..1} (\<lambda>x. (Re (g' x) - 2 * pi * sgn * Im (g x))\<^sup>2)"
+        by (rule integral_nonneg[OF sq_int]) (simp add: zero_le_power2)
+      then show "0 \<le> d"
+        using integral_unique[OF sq_has_int] by linarith
+    qed
+    have dw_nonneg: "0 \<le> d + w"
+      using d_nonneg w_nonneg by linarith
+    moreover have "\<exists>c r. path_image g = sphere c r" 
+      if "d + w = 0"
+    proof -
+      show ?thesis
+        sorry
+    qed
+    ultimately show ?thesis
+      using key_eq by presburger
   qed (use \<open>L>0\<close> in auto)
   show "measure lebesgue (inside (path_image g)) \<le> L\<^sup>2 / (4 * pi)"
     using key by (simp add: field_simps)
