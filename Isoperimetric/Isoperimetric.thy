@@ -5485,6 +5485,122 @@ proof -
     moreover have "\<exists>c r. path_image g = sphere c r" 
       if "d + w = 0"
     proof -
+      have d0: "d = 0" and w0: "w = 0"
+        using that d_nonneg w_nonneg by linarith+
+      obtain C A where CA: "\<And>x. x \<in> {0..1} \<Longrightarrow> Im (g x) = C * sin (2*pi*x - A)"
+        using w_zero[OF w0] by blast
+      have sq_zero: "((\<lambda>x. (Re (g' x) - 2 * pi * sgn * Im (g x))\<^sup>2) has_integral 0) {0..1}"
+        using sq_has_int d0 by simp
+      have neg_Re: "negligible {x \<in> {0..1}. Re (g' x) - 2 * pi * sgn * Im (g x) \<noteq> 0}"
+      proof -
+        have sq_abs: "(\<lambda>x. (Re (g' x) - 2 * pi * sgn * Im (g x))\<^sup>2) absolutely_integrable_on {0..1}"
+          using nonnegative_absolutely_integrable_1[OF has_integral_integrable[OF sq_zero]]
+          by (simp add: zero_le_power2)
+        have sq_leb: "integrable (lebesgue_on {0..1}) (\<lambda>x. (Re (g' x) - 2 * pi * sgn * Im (g x))\<^sup>2)"
+          by (rule absolutely_integrable_imp_integrable[OF sq_abs]) simp
+        have leb_zero: "integral\<^sup>L (lebesgue_on {0..1}) (\<lambda>x. (Re (g' x) - 2 * pi * sgn * Im (g x))\<^sup>2) = 0"
+          using lebesgue_integral_eq_integral[OF sq_leb] integral_unique[OF sq_zero] by simp
+        have "AE x in lebesgue_on {0..1}. (Re (g' x) - 2 * pi * sgn * Im (g x))\<^sup>2 = 0"
+          using integral_nonneg_eq_0_iff_AE[OF sq_leb] leb_zero
+          by (simp add: zero_le_power2)
+        then have "AE x in lebesgue_on {0..1}. Re (g' x) - 2 * pi * sgn * Im (g x) = 0"
+          by (rule AE_mp) (auto simp: power2_eq_square)
+        then show ?thesis
+        proof -
+          assume ae: "AE x in lebesgue_on {0..1}. Re (g' x) - 2 * pi * sgn * Im (g x) = 0"
+          from ae[unfolded eventually_ae_filter[of _ "lebesgue_on {0..1}"]]
+          obtain N0 where N0: "N0 \<in> null_sets (lebesgue_on {0..1})"
+            and sub: "{x \<in> space (lebesgue_on {0..1}). Re (g' x) - 2 * pi * sgn * Im (g x) \<noteq> 0} \<subseteq> N0"
+            by auto
+          have "negligible N0"
+          proof -
+            have "{0..1::real} \<in> sets lebesgue" by simp
+            then have "(N0 \<in> null_sets (lebesgue_on {0..1})) = (N0 \<subseteq> {0..1} \<and> N0 \<in> null_sets lebesgue)"
+              using null_sets_restrict_space[of "{0..1}" lebesgue N0] by simp
+            then show ?thesis
+              using N0 negligible_iff_null_sets by auto
+          qed
+
+          moreover have "{x \<in> {0..1}. Re (g' x) - 2 * pi * sgn * Im (g x) \<noteq> 0} \<subseteq> N0"
+            using sub by (auto simp: space_lebesgue_on)
+          ultimately show ?thesis
+            by (meson negligible_subset)
+        qed
+      qed
+      have neg_Re': "negligible {x \<in> {0..1}. Re (g' x) - 2 * pi * sgn * C * sin (2*pi*x - A) \<noteq> 0}"
+      proof -
+        have "{x \<in> {0..1}. Re (g' x) - 2 * pi * sgn * C * sin (2*pi*x - A) \<noteq> 0}
+            = {x \<in> {0..1}. Re (g' x) - 2 * pi * sgn * Im (g x) \<noteq> 0}"
+          using CA by auto
+        then show ?thesis using neg_Re by simp
+      qed
+
+      have Re_g: "Re (g x) = - sgn * C * (cos (2*pi*x - A) - cos A)"
+        if "x \<in> {0..1}" for x
+      proof -
+        have x01: "0 \<le> x" "x \<le> 1" using that by auto
+        \<comment> \<open>Step 1: integral of Re(g') over {0..x} = Re(g x)\<close>
+        have Re_g'_int: "((\<lambda>t. Re (g' t)) has_integral Re (g x)) {0..x}"
+        proof -
+          have "(g' has_integral (g x - a)) {0..x}"
+          proof -
+            have "g' absolutely_integrable_on {0..x}"
+              using g'_int[OF that] by auto
+            moreover have "integral {0..x} g' = g x - a"
+              using g'_int[OF that] by auto
+            ultimately show ?thesis
+              by (metis absolutely_integrable_on_def has_integral_integrable_integral)
+          qed
+          then have "((\<lambda>t. Re (g' t)) has_integral Re (g x - a)) {0..x}"
+            by (rule has_integral_Re)
+          then show ?thesis using \<open>Re a = 0\<close> by simp
+        qed
+        \<comment> \<open>Step 2: integral of 2*pi*sgn*C*sin(2*pi*t - A) over {0..x}\<close>
+        have sin_int: "((\<lambda>t. 2 * pi * sgn * C * sin (2 * pi * t - A)) has_integral
+          (- sgn * C * (cos (2 * pi * x - A) - cos A))) {0..x}"
+        proof -
+          have hvd: "((\<lambda>t. - sgn * C * cos (2 * pi * t - A)) has_vector_derivative
+            2 * pi * sgn * C * sin (2 * pi * t - A)) (at t within {0..x})" for t
+          proof -
+            have "((\<lambda>t. - sgn * C * cos (2 * pi * t - A)) has_real_derivative
+              - sgn * C * (- sin (2 * pi * t - A)) * (2 * pi)) (at t)"
+              by (auto intro!: derivative_eq_intros simp: algebra_simps)
+            then have "((\<lambda>t. - sgn * C * cos (2 * pi * t - A)) has_real_derivative
+              2 * pi * sgn * C * sin (2 * pi * t - A)) (at t)"
+              by (simp add: algebra_simps)
+            then show ?thesis
+              by (simp add: has_real_derivative_iff_has_vector_derivative
+                has_vector_derivative_at_within)
+          qed
+          have "((\<lambda>t. 2 * pi * sgn * C * sin (2 * pi * t - A)) has_integral
+            ((- sgn * C * cos (2 * pi * x - A)) - (- sgn * C * cos (2 * pi * 0 - A)))) {0..x}"
+            using fundamental_theorem_of_calculus[OF \<open>0 \<le> x\<close> hvd] by simp
+          then show ?thesis by (simp add: algebra_simps)
+        qed
+        \<comment> \<open>Step 3: integral of the difference = Re(g x) - (-sgn*C*(cos(...) - cos A))\<close>
+        have diff_int: "((\<lambda>t. Re (g' t) - 2 * pi * sgn * C * sin (2 * pi * t - A)) has_integral
+          (Re (g x) - (- sgn * C * (cos (2 * pi * x - A) - cos A)))) {0..x}"
+          using has_integral_diff[OF Re_g'_int sin_int] by simp
+        \<comment> \<open>Step 4: the integrand is 0 a.e. (from neg_Re'), so integral = 0\<close>
+        have zero_int: "((\<lambda>t. Re (g' t) - 2 * pi * sgn * C * sin (2 * pi * t - A)) has_integral 0) {0..x}"
+        proof -
+          have neg_sub: "negligible {t \<in> {0..x}. Re (g' t) - 2 * pi * sgn * C * sin (2 * pi * t - A) \<noteq> 0}"
+          proof (rule negligible_subset[OF neg_Re'])
+            show "{t \<in> {0..x}. Re (g' t) - 2 * pi * sgn * C * sin (2 * pi * t - A) \<noteq> 0}
+              \<subseteq> {x \<in> {0..1}. Re (g' x) - 2 * pi * sgn * C * sin (2 * pi * x - A) \<noteq> 0}"
+              using x01 by auto
+          qed
+          show ?thesis
+          proof (rule has_integral_spike[OF neg_sub _ has_integral_0])
+            fix t assume "t \<in> {0..x} - {t \<in> {0..x}. Re (g' t) - 2 * pi * sgn * C * sin (2 * pi * t - A) \<noteq> 0}"
+            then show "Re (g' t) - 2 * pi * sgn * C * sin (2 * pi * t - A) = (0::real)"
+              by auto
+          qed
+        qed
+        \<comment> \<open>Step 5: by uniqueness of integrals\<close>
+        show ?thesis
+          using has_integral_unique[OF diff_int zero_int] by linarith
+      qed
       show ?thesis
         sorry
     qed
