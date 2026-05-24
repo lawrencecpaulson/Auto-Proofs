@@ -5370,12 +5370,53 @@ proof -
       by (simp add: integrand_eq)
   qed
 
-
   have key: "0 \<le> L\<^sup>2 - measure lebesgue (inside (path_image g)) * 4 * pi \<and>
              (L\<^sup>2 - measure lebesgue (inside (path_image g)) * 4 * pi = 0 \<longrightarrow>
              (\<exists>c r. path_image g = sphere c r))"
   proof (cases "inside(path_image g) = {}")
     case False
+    have Im_g'_has_int: "((\<lambda>t. Im (g' t)) has_integral (Im (g x) - Im (g 0))) {0..x}"
+      if "x \<in> {0..1}" for x
+    proof -
+      have "(g' has_integral (g x - a)) {0..x}"
+        by (metis g'_int has_integral_iff set_lebesgue_integral_eq_integral(1)
+            that)
+      then have "((\<lambda>t. Im (g' t)) has_integral Im (g x - a)) {0..x}"
+        by (rule has_integral_Im)
+      then show ?thesis
+        using ga by (simp add: pathstart_def)
+    qed
+    have Im_g_periodic: "Im (g 1) = Im (g 0)"
+      using ga by (simp add: pathstart_def pathfinish_def)
+    have Im_g_zero_mean: "((\<lambda>x. Im (g x)) has_integral 0) {0..1}"
+      using assms by (simp add: o_def)
+    have Im_g'_sq_int: "(\<lambda>x. (Im (g' x))\<^sup>2) integrable_on {0..1}"
+    proof -
+      have "(\<lambda>x. (Im (g' x))\<^sup>2) absolutely_integrable_on {0..1}"
+      proof (rule measurable_bounded_by_integrable_imp_absolutely_integrable_ae)
+        show "(\<lambda>x. (Im (g' x))\<^sup>2) \<in> borel_measurable (lebesgue_on {0..1})"
+        proof -
+          have "g' \<in> borel_measurable (lebesgue_on {0..1})"
+            using absolutely_integrable_imp_borel_measurable[OF conjunct1[OF g'_int[of 1]]]
+            by auto
+          then show ?thesis
+            using borel_measurable_complex_iff borel_measurable_power by blast
+        qed
+        show "negligible S" by (rule negS)
+        fix x assume "x \<in> {0..1} - S"
+        then have "norm (g' x) \<le> L" using norm_g'_le by auto
+        then show "norm ((Im (g' x))\<^sup>2) \<le> L\<^sup>2"
+          by (metis abs_Im_le_cmod landau_omega.R_trans norm_ge_zero norm_power power_mono real_norm_def)
+      qed auto
+      then show ?thesis
+        using absolutely_integrable_on_def by blast
+    qed
+    have wirt1: "(\<lambda>x. (Im (g x))\<^sup>2) integrable_on {0..1}"
+      and wirt2: "integral {0..1} (\<lambda>x. (2*pi * Im (g x))\<^sup>2) \<le> integral {0..1} (\<lambda>x. (Im (g' x))\<^sup>2)"
+      and wirt3: "integral {0..1} (\<lambda>x. (2*pi * Im (g x))\<^sup>2) = integral {0..1} (\<lambda>x. (Im (g' x))\<^sup>2) \<Longrightarrow>
+        \<exists>c a. \<forall>x \<in> {0..1}. Im (g x) = c * sin (2*pi*x - a)"
+      using scaled_Wirtinger_inequality[OF Im_g'_has_int Im_g_periodic Im_g_zero_mean Im_g'_sq_int]
+      by auto
     then show ?thesis sorry
   qed (use \<open>L>0\<close> in auto)
   show "measure lebesgue (inside (path_image g)) \<le> L\<^sup>2 / (4 * pi)"
