@@ -5183,6 +5183,116 @@ proof -
       using \<open>0 < L\<close> by simp
   qed
 
+  have norm_g'_sq_int: "(\<lambda>x. (norm (g' x))\<^sup>2) absolutely_integrable_on {0..1}"
+  proof (rule measurable_bounded_by_integrable_imp_absolutely_integrable_ae)
+    show "(\<lambda>x. (norm (g' x))\<^sup>2) \<in> borel_measurable (lebesgue_on {0..1})"
+    proof -
+      have "g' \<in> borel_measurable (lebesgue_on {0..1})"
+        using absolutely_integrable_imp_borel_measurable[OF conjunct1[OF g'_int[of 1]]]
+        by auto
+      then have "(\<lambda>x. norm (g' x)) \<in> borel_measurable (lebesgue_on {0..1})"
+        using measurable_comp[OF _ borel_measurable_norm] by (simp add: comp_def)
+      then show ?thesis
+        by (rule borel_measurable_power)
+    qed
+    show "negligible S" by (rule negS)
+    fix x assume "x \<in> {0..1} - S"
+    then have "norm (g' x) \<le> L" using norm_g'_le by auto
+    then have "(norm (g' x))\<^sup>2 \<le> L\<^sup>2"
+      using \<open>0 < L\<close> by (intro power_mono) auto
+    then show "norm ((norm (g' x))\<^sup>2) \<le> L\<^sup>2"
+      by simp
+  qed auto
+
+  have integral_norm_g'_sq: "integral\<^sup>L (lebesgue_on {0..1}) (\<lambda>x. (norm (g' x))\<^sup>2) = L\<^sup>2"
+  proof -
+    let ?int01 = "{0..1::real}"
+    have meas01: "?int01 \<in> sets lebesgue" by simp
+    \<comment> \<open>norm(g') is integrable on lebesgue_on {0..1}\<close>
+    have norm_g'_abs: "(\<lambda>x. norm (g' x)) absolutely_integrable_on {0..1}"
+      using norm_g'_int[of 1] by auto
+    have norm_g'_leb: "integrable (lebesgue_on {0..1}) (\<lambda>x. norm (g' x))"
+      by (rule absolutely_integrable_imp_integrable[OF norm_g'_abs meas01])
+    \<comment> \<open>Its Lebesgue integral equals L\<close>
+    have int_norm_g': "integral\<^sup>L (lebesgue_on {0..1}) (\<lambda>x. norm (g' x)) = L"
+      by (simp add: lebesgue_integral_eq_integral norm_g'_int norm_g'_leb)
+    \<comment> \<open>The constant L is integrable with integral L\<close>
+    have const_leb: "integrable (lebesgue_on {0..1}) (\<lambda>x::real. L)"
+      by (simp add: integrable_const_ivl)
+    have int_const: "integral\<^sup>L (lebesgue_on {0..1}) (\<lambda>x::real. L) = L"
+      using lebesgue_integral_const[of "lebesgue_on {0..1}" L]
+      by (simp add: measure_restrict_space)
+    \<comment> \<open>norm(g' x) \<le> L a.e.\<close>
+    have ae_le: "AE x in lebesgue_on {0..1}. norm (g' x) \<le> L"
+    proof -
+      have "S \<inter> {0..1} \<in> null_sets (lebesgue_on {0..1})"
+        using negS negligible_iff_null_sets null_sets_restrict_space
+        by (metis inf_le2 meas01 null_set_Int2)
+      then have "AE x in lebesgue_on {0..1}. x \<notin> S"
+        by (metis AE_not_in Collect_subset S_def inf.orderE)
+      then show ?thesis
+        using norm_g'_le by (auto elim: eventually_mono)
+    qed
+    \<comment> \<open>Therefore norm(g' x) = L a.e.\<close>
+    have ae_eq: "AE x in lebesgue_on {0..1}. norm (g' x) = L"
+      using integral_ineq_eq_0_then_AE[OF ae_le norm_g'_leb const_leb] int_norm_g' int_const
+      by simp
+    \<comment> \<open>Therefore (norm(g' x))² = L² a.e.\<close>
+    have ae_sq: "AE x in lebesgue_on {0..1}. (norm (g' x))\<^sup>2 = L\<^sup>2"
+      using ae_eq by (rule AE_mp) auto
+    \<comment> \<open>Conclude by integral_cong_AE\<close>
+    have meas_sq: "(\<lambda>x. (norm (g' x))\<^sup>2) \<in> borel_measurable (lebesgue_on {0..1})"
+    proof -
+      have "g' \<in> borel_measurable (lebesgue_on {0..1})"
+        using absolutely_integrable_imp_borel_measurable[OF conjunct1[OF g'_int[of 1]]]
+        by auto
+      then have "(\<lambda>x. norm (g' x)) \<in> borel_measurable (lebesgue_on {0..1})"
+        using measurable_comp[OF _ borel_measurable_norm] by (simp add: comp_def)
+      then show ?thesis by (rule borel_measurable_power)
+    qed
+    have "integral\<^sup>L (lebesgue_on ?int01) (\<lambda>x. (norm (g' x))\<^sup>2) =
+          integral\<^sup>L (lebesgue_on ?int01) (\<lambda>x. L\<^sup>2)"
+      by (rule integral_cong_AE[OF meas_sq _ ae_sq]) simp
+    also have "\<dots> = L\<^sup>2"
+      using lebesgue_integral_const[of "lebesgue_on ?int01" "L\<^sup>2"]
+      by (simp add: measure_restrict_space)
+    finally show ?thesis .
+  qed
+
+  text \<open>Use the Green formula for the area inside the curve.\<close>
+  have green_ai: "(\<lambda>t. Re (g' t) * Im (g t)) absolutely_integrable_on {0..1}"
+    and green_area: "\<bar>integral {0..1} (\<lambda>t. Re (g' t) * Im (g t))\<bar> =
+      measure lebesgue (inside (path_image g))"
+  proof -
+    have "Re a < Re b"
+    proof -
+      have "dist a b > 0"
+        using \<open>0 < L\<close> L dist_ab diameter_ge_0 g(1) order_less_le (*TODO UGLY*)
+        by (metis path_image_nonempty Diff_cancel ab(1) assms(7,8) bounded_simple_path_image diameter_eq_0
+            g(2) insert_absorb nonempty_simple_path_endless singletonD)
+      then show ?thesis
+        by (metis Re_complex_of_real assms(14,6) diff_zero minus_complex.simps(1))
+    qed
+    moreover have "Im a = Im b"
+      using bma by (simp add: complex_of_real_def complex_eq_iff)
+    ultimately interpret G: Green g g' S a b
+    proof unfold_locales
+      show "simple_path g" using g by auto
+      show "pathstart g = a" "pathfinish g = a" using ga by auto
+      show "b \<in> path_image g" using ab by auto
+      show "dist a b = diameter (path_image g)" using dist_ab .
+      show "convex (inside (path_image g))" using conv_in .
+      show "absolutely_continuous_on {0..1} g" using acont_g .
+      show "negligible S" using negS .
+      show "\<And>t. t \<in> {0..1} - S \<Longrightarrow> (g has_vector_derivative g' t) (at t)"
+        using g'_deriv by auto
+    qed auto
+    from G.area_theorem show "(\<lambda>t. Re (g' t) * Im (g t)) absolutely_integrable_on {0..1}"
+      and "\<bar>integral {0..1} (\<lambda>t. Re (g' t) * Im (g t))\<bar> =
+        measure lebesgue (inside (path_image g))"
+      by (metis (full_types))+
+  qed
+
   show "measure lebesgue (inside (path_image g)) \<le> L\<^sup>2 / (4 * pi)"
     and "measure lebesgue (inside (path_image g)) = L\<^sup>2 / (4 * pi) \<Longrightarrow>
       \<exists>c r. path_image g = sphere c r"
