@@ -5293,10 +5293,102 @@ proof -
       by (metis (full_types))+
   qed
 
+  obtain sgn :: real where sgn2: "sgn\<^sup>2 = 1"
+    and has_int_green: "((\<lambda>t. Re (g' t) * Im (g t)) has_integral
+      (sgn * measure lebesgue (inside (path_image g)))) {0..1}"
+  proof -
+    have integrable: "(\<lambda>t. Re (g' t) * Im (g t)) integrable_on {0..1}"
+      using green_ai absolutely_integrable_on_def by blast
+    show thesis
+    proof (cases "integral {0..1} (\<lambda>t. Re (g' t) * Im (g t)) \<ge> 0")
+      case True
+      then have eq: "integral {0..1} (\<lambda>t. Re (g' t) * Im (g t)) =
+        measure lebesgue (inside (path_image g))"
+        using green_area by (simp add: abs_if split: if_splits)
+      have "((\<lambda>t. Re (g' t) * Im (g t)) has_integral
+        (1 * measure lebesgue (inside (path_image g)))) {0..1}"
+        using integrable eq by (simp add: has_integral_integrable_integral)
+      then show thesis using that[of 1] by simp
+    next
+      case False
+      then have eq: "integral {0..1} (\<lambda>t. Re (g' t) * Im (g t)) =
+        - measure lebesgue (inside (path_image g))"
+        using green_area by (simp add: abs_if split: if_splits)
+      have "((\<lambda>t. Re (g' t) * Im (g t)) has_integral
+        ((-1) * measure lebesgue (inside (path_image g)))) {0..1}"
+        using integrable eq by (simp add: has_integral_integrable_integral)
+      then show thesis using that[of "-1"] by simp
+    qed
+  qed
+
+  have has_int_norm_sq: "((\<lambda>x. (norm (g' x))\<^sup>2) has_integral L\<^sup>2) {0..1}"
+  proof -
+    have int_on: "(\<lambda>x. (norm (g' x))\<^sup>2) integrable_on {0..1}"
+      using norm_g'_sq_int absolutely_integrable_on_def by blast
+    have "integral {0..1} (\<lambda>x. (norm (g' x))\<^sup>2) = L\<^sup>2"
+      using integral_norm_g'_sq norm_g'_sq_int
+        lebesgue_integral_eq_integral[of "{0..1}" "\<lambda>x. (norm (g' x))\<^sup>2"]
+        absolutely_integrable_imp_integrable[OF norm_g'_sq_int]
+      by auto
+    then show ?thesis
+      using int_on by (simp add: has_integral_integrable_integral)
+  qed
+
+  have has_int_key: "((\<lambda>x. (Re (g' x) - 2 * pi * sgn * Im (g x))\<^sup>2 +
+    (Im (g' x))\<^sup>2 - (2 * pi * Im (g x))\<^sup>2) has_integral
+    (L\<^sup>2 - measure lebesgue (inside (path_image g)) * 4 * pi)) {0..1}"
+  proof -
+    have sgn_sq: "sgn * sgn = 1" using sgn2 by (metis power2_eq_square)
+    have integrand_eq: "\<And>x. (Re (g' x) - 2 * pi * sgn * Im (g x))\<^sup>2 +
+      (Im (g' x))\<^sup>2 - (2 * pi * Im (g x))\<^sup>2 =
+      (norm (g' x))\<^sup>2 - 4 * pi * sgn * Re (g' x) * Im (g x)"
+    proof -
+      fix x
+      have "(Re (g' x) - 2 * pi * sgn * Im (g x))\<^sup>2 +
+        (Im (g' x))\<^sup>2 - (2 * pi * Im (g x))\<^sup>2 =
+        (Re (g' x))\<^sup>2 + (Im (g' x))\<^sup>2 - 4 * pi * sgn * Re (g' x) * Im (g x)"
+        using sgn_sq by (simp add: power2_eq_square algebra_simps)
+      also have "\<dots> = (norm (g' x))\<^sup>2 - 4 * pi * sgn * Re (g' x) * Im (g x)"
+        by (simp add: cmod_power2)
+      finally show "(Re (g' x) - 2 * pi * sgn * Im (g x))\<^sup>2 +
+        (Im (g' x))\<^sup>2 - (2 * pi * Im (g x))\<^sup>2 =
+        (norm (g' x))\<^sup>2 - 4 * pi * sgn * Re (g' x) * Im (g x)" .
+    qed
+    have scaled_green: "((\<lambda>t. 4 * pi * sgn * (Re (g' t) * Im (g t))) has_integral
+      (4 * pi * sgn * (sgn * measure lebesgue (inside (path_image g))))) {0..1}"
+      using has_integral_mult_right[OF has_int_green, of "4 * pi * sgn"] .
+    have val: "4 * pi * sgn * (sgn * measure lebesgue (inside (path_image g))) =
+      measure lebesgue (inside (path_image g)) * 4 * pi"
+      using sgn_sq by (simp add: algebra_simps)
+    have scaled_green': "((\<lambda>t. 4 * pi * sgn * Re (g' t) * Im (g t)) has_integral
+      (measure lebesgue (inside (path_image g)) * 4 * pi)) {0..1}"
+      using scaled_green unfolding val by (simp add: algebra_simps)
+    have "((\<lambda>x. (norm (g' x))\<^sup>2 - 4 * pi * sgn * Re (g' x) * Im (g x)) has_integral
+      (L\<^sup>2 - measure lebesgue (inside (path_image g)) * 4 * pi)) {0..1}"
+      using has_integral_diff[OF has_int_norm_sq scaled_green'] by (simp add: algebra_simps)
+    then show ?thesis
+      by (simp add: integrand_eq)
+  qed
+
+
+  have key: "0 \<le> L\<^sup>2 - measure lebesgue (inside (path_image g)) * 4 * pi \<and>
+             (L\<^sup>2 - measure lebesgue (inside (path_image g)) * 4 * pi = 0 \<longrightarrow>
+             (\<exists>c r. path_image g = sphere c r))"
+  proof (cases "inside(path_image g) = {}")
+    case False
+    then show ?thesis sorry
+  qed (use \<open>L>0\<close> in auto)
   show "measure lebesgue (inside (path_image g)) \<le> L\<^sup>2 / (4 * pi)"
-    and "measure lebesgue (inside (path_image g)) = L\<^sup>2 / (4 * pi) \<Longrightarrow>
-      \<exists>c r. path_image g = sphere c r"
-    sorry
+    using key by (simp add: field_simps)
+  show "measure lebesgue (inside (path_image g)) = L\<^sup>2 / (4 * pi) \<Longrightarrow>
+    \<exists>c r. path_image g = sphere c r"
+  proof -
+    assume eq: "measure lebesgue (inside (path_image g)) = L\<^sup>2 / (4 * pi)"
+    have "L\<^sup>2 - measure lebesgue (inside (path_image g)) * 4 * pi = 0"
+      using eq by (simp add: field_simps)
+    then show "\<exists>c r. path_image g = sphere c r"
+      using key by blast
+  qed
 qed
 
 text \<open>Reduction lemmas for the reparametrization steps.\<close>
