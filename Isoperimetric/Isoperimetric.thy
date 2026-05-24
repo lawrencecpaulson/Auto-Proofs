@@ -5417,6 +5417,45 @@ proof -
         \<exists>c a. \<forall>x \<in> {0..1}. Im (g x) = c * sin (2*pi*x - a)"
       using scaled_Wirtinger_inequality[OF Im_g'_has_int Im_g_periodic Im_g_zero_mean Im_g'_sq_int]
       by auto
+    obtain w where "((\<lambda>x. (Im (g' x))\<^sup>2 - (2 * pi * Im (g x))\<^sup>2) has_integral w) {0..1}"
+    proof -
+      have sq: "(\<lambda>x. (2 * pi * Im (g x))\<^sup>2) integrable_on {0..1}"
+        using integrable_cmul[OF wirt1, of "(2*pi)\<^sup>2"]
+        by (simp add: power_mult_distrib mult.commute)
+      with that show ?thesis
+        using integrable_diff[OF Im_g'_sq_int sq] by force
+    qed
+    have w_nonneg: "0 \<le> w"
+      and w_zero: "w = 0 \<Longrightarrow> \<exists>c a. \<forall>x \<in> {0..1}. Im (g x) = c * sin (2*pi*x - a)"
+    proof -
+      have "((\<lambda>x. (Im (g' x))\<^sup>2 - (2 * pi * Im (g x))\<^sup>2) has_integral w) {0..1}"
+        using \<open>((\<lambda>x. (Im (g' x))\<^sup>2 - (2 * pi * Im (g x))\<^sup>2) has_integral w) {0..1}\<close> .
+      then have w_eq: "w = integral {0..1} (\<lambda>x. (Im (g' x))\<^sup>2) - integral {0..1} (\<lambda>x. (2 * pi * Im (g x))\<^sup>2)"
+      proof -
+        have "w = integral {0..1} (\<lambda>x. (Im (g' x))\<^sup>2 - (2 * pi * Im (g x))\<^sup>2)"
+          using \<open>((\<lambda>x. (Im (g' x))\<^sup>2 - (2 * pi * Im (g x))\<^sup>2) has_integral w) {0..1}\<close>
+          by (simp add: integral_unique)
+        also have "\<dots> = integral {0..1} (\<lambda>x. (Im (g' x))\<^sup>2) - integral {0..1} (\<lambda>x. (2 * pi * Im (g x))\<^sup>2)"
+        proof -
+          have sq: "(\<lambda>x. (2 * pi * Im (g x))\<^sup>2) integrable_on {0..1}"
+            using integrable_cmul[OF wirt1, of "(2*pi)\<^sup>2"]
+            by (simp add: power_mult_distrib mult.commute)
+          show ?thesis
+            using integral_diff[OF Im_g'_sq_int sq] by simp
+        qed
+        finally show ?thesis .
+      qed
+      show "0 \<le> w"
+        using w_eq wirt2 by linarith
+      show "w = 0 \<Longrightarrow> \<exists>c a. \<forall>x \<in> {0..1}. Im (g x) = c * sin (2*pi*x - a)"
+      proof -
+        assume "w = 0"
+        then have "integral {0..1} (\<lambda>x. (2*pi * Im (g x))\<^sup>2) = integral {0..1} (\<lambda>x. (Im (g' x))\<^sup>2)"
+          using w_eq by linarith
+        then show "\<exists>c a. \<forall>x \<in> {0..1}. Im (g x) = c * sin (2*pi*x - a)"
+          using wirt3 by blast
+      qed
+    qed
     then show ?thesis sorry
   qed (use \<open>L>0\<close> in auto)
   show "measure lebesgue (inside (path_image g)) \<le> L\<^sup>2 / (4 * pi)"
