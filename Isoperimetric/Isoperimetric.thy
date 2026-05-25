@@ -105,7 +105,6 @@ lemma lemma1:
              (\<forall>x \<in> {a..b} - t.
                 \<exists>B>0. eventually (\<lambda>y. norm (f y - f x) \<le> B * norm (y - x)) (at x))"
 proof -
-
   define t where "t = {x \<in> {a<..<b}. isCont f x \<and>
     \<not> (\<exists>B>0. eventually (\<lambda>y. norm (f y - f x) \<le> B * norm (y - x)) (at x))}"
     \<comment> \<open>the "bad set": points in the open interval where f is continuous 
@@ -156,18 +155,198 @@ proof -
           qed
           obtain y where yx: "0 < dist y x" "dist y x < d"
             and ylip: "(3 * M) * norm (y - x) < norm (f y - f x)"
-          proof -
-            from xnlip' \<open>d > 0\<close> obtain y where
-              "0 < dist y x" "dist y x < d"
-              "\<not> (norm (f y - f x) \<le> (3 * M) * norm (y - x))"
-              by (metis linorder_not_less)
-            then show ?thesis using that by (auto simp: not_le)
+            by (meson \<open>0 < d\<close> not_le xnlip')
+          have yab: "y \<in> {a<..<b}"
+            using dsub yx(2) by (auto simp: dist_real_def)
+          have xab': "x \<in> {a..b}" and yab': "y \<in> {a..b}"
+            using xab yab by auto
+          consider "x<y" | "y<x"
+            using yx by fastforce
+          then show ?thesis
+          proof cases
+            case 1
+            then show ?thesis
+            proof -
+              note xy = \<open>x < y\<close>
+              have ynx: "y - x > 0" using xy by simp
+              have Myx: "M * (y - x) > 0" using \<open>0 < M\<close> ynx by auto
+              from xcont have "(f \<longlongrightarrow> f x) (at x)"
+                by (simp add: isCont_def)
+              from tendstoD[OF this Myx]
+              have "\<forall>\<^sub>F x' in at x. dist (f x') (f x) < M * (y - x)" .
+              then obtain d' where "d' > 0" and
+                hd': "\<And>x'. x' \<noteq> x \<Longrightarrow> dist x' x < d' \<Longrightarrow> dist (f x') (f x) < M * (y - x)"
+                unfolding eventually_at by auto
+              define u where "u = x - min (y - x) (min d d') / 2"
+              have ux: "u < x" unfolding u_def using \<open>d' > 0\<close> \<open>0 < d\<close> ynx by auto
+              have xu_bound: "x - u < y - x"
+                unfolding u_def using \<open>d' > 0\<close> \<open>0 < d\<close> ynx by auto
+              have xu_d: "x - u < d" unfolding u_def using \<open>d' > 0\<close> \<open>0 < d\<close> ynx by auto
+              have xu_d': "x - u < d'" unfolding u_def using \<open>d' > 0\<close> \<open>0 < d\<close> ynx by auto
+              have fu_bound: "norm (f u - f x) < M * (y - x)"
+              proof -
+                have "u \<noteq> x" using ux by auto
+                moreover have "dist u x < d'"
+                  using xu_d' ux by (simp add: dist_real_def)
+                ultimately have "dist (f u) (f x) < M * (y - x)"
+                  using hd'[of u] by auto
+                then show ?thesis by (simp add: dist_norm)
+              qed
+              have uab: "u \<in> {a<..<b}"
+              proof -
+                have "\<bar>u - x\<bar> < d" using xu_d ux by auto
+                then show ?thesis using dsub by auto
+              qed
+              have uab': "u \<in> {a..b}" using uab by auto
+              have xuv: "x \<in> {u<..<y}" using ux xy by auto
+              have vu_bound: "y - u < 2 * (y - x)"
+                using xu_bound ux xy by auto
+              have ylip': "norm (f y - f x) > 3 * M * (y - x)"
+                using ylip ynx by (simp add: real_norm_def)
+              have key: "norm (f u - f y) > 2 * M * (y - x)"
+              proof -
+                have tri: "norm (f y - f x) \<le> norm (f y - f u) + norm (f u - f x)"
+                proof -
+                  have "f y - f x = (f y - f u) + (f u - f x)" by simp
+                  then show ?thesis using norm_triangle_ineq[of "f y - f u" "f u - f x"] by simp
+                qed
+                have "norm (f y - f u) \<ge> norm (f y - f x) - norm (f u - f x)"
+                  using tri by linarith
+                then have "norm (f y - f u) > 3 * M * (y - x) - M * (y - x)"
+                  using ylip' fu_bound by linarith
+                then have "norm (f y - f u) > 2 * M * (y - x)" by linarith
+                then show ?thesis by (simp add: norm_minus_commute)
+              qed
+              have "M * \<bar>y - u\<bar> \<le> norm (f u - f y)"
+              proof -
+                have "y - u < 2 * (y - x)" using vu_bound .
+                then have "M * (y - u) < M * (2 * (y - x))"
+                  using \<open>0 < M\<close> by auto
+                then have "M * (y - u) < 2 * M * (y - x)" by linarith
+                also have "2 * M * (y - x) < norm (f u - f y)" using key by linarith
+                finally have "M * (y - u) < norm (f u - f y)" .
+                moreover have "\<bar>y - u\<bar> = y - u" using ux xy by auto
+                ultimately show ?thesis by linarith
+              qed
+              then show ?thesis
+                using uab' yab' xuv by (intro exI[of _ u] exI[of _ y]) auto
+            qed
+          next
+            case 2
+            then show ?thesis
+            proof -
+              note yx = \<open>y < x\<close>
+              have xny: "x - y > 0" using yx by simp
+              have Mxy: "M * (x - y) > 0" using \<open>0 < M\<close> xny by auto
+              from xcont have "(f \<longlongrightarrow> f x) (at x)"
+                by (simp add: isCont_def)
+              from tendstoD[OF this Mxy]
+              have "\<forall>\<^sub>F x' in at x. dist (f x') (f x) < M * (x - y)" .
+              then obtain d' where "d' > 0" and
+                hd': "\<And>x'. x' \<noteq> x \<Longrightarrow> dist x' x < d' \<Longrightarrow> dist (f x') (f x) < M * (x - y)"
+                unfolding eventually_at by auto
+              define v where "v = x + min (x - y) (min d d') / 2"
+              have xv: "x < v" unfolding v_def using \<open>d' > 0\<close> \<open>0 < d\<close> xny by auto
+              have vx_bound: "v - x < x - y"
+                unfolding v_def using \<open>d' > 0\<close> \<open>0 < d\<close> xny by auto
+              have vx_d: "v - x < d" unfolding v_def using \<open>d' > 0\<close> \<open>0 < d\<close> xny by auto
+              have vx_d': "v - x < d'" unfolding v_def using \<open>d' > 0\<close> \<open>0 < d\<close> xny by auto
+              have fv_bound: "norm (f v - f x) < M * (x - y)"
+              proof -
+                have "v \<noteq> x" using xv by auto
+                moreover have "dist v x < d'"
+                  using vx_d' xv by (simp add: dist_real_def)
+                ultimately have "dist (f v) (f x) < M * (x - y)"
+                  using hd'[of v] by auto
+                then show ?thesis by (simp add: dist_norm)
+              qed
+              have vab: "v \<in> {a<..<b}"
+              proof -
+                have "\<bar>v - x\<bar> < d" using vx_d xv by auto
+                then show ?thesis using dsub by auto
+              qed
+              have vab': "v \<in> {a..b}" using vab by auto
+              have yxv: "x \<in> {y<..<v}" using yx xv by auto
+              have vy_bound: "v - y < 2 * (x - y)"
+                using vx_bound xv yx by auto
+              have ylip': "norm (f y - f x) > 3 * M * (x - y)"
+                using ylip xny by (simp add: real_norm_def norm_minus_commute)
+              have key: "norm (f v - f y) > 2 * M * (x - y)"
+              proof -
+                have tri: "norm (f y - f x) \<le> norm (f y - f v) + norm (f v - f x)"
+                proof -
+                  have "f y - f x = (f y - f v) + (f v - f x)" by simp
+                  then show ?thesis using norm_triangle_ineq[of "f y - f v" "f v - f x"] by simp
+                qed
+                have "norm (f y - f v) \<ge> norm (f y - f x) - norm (f v - f x)"
+                  using tri by linarith
+                then have "norm (f y - f v) > 3 * M * (x - y) - M * (x - y)"
+                  using ylip' fv_bound by linarith
+                then have "norm (f y - f v) > 2 * M * (x - y)" by linarith
+                then show ?thesis by (simp add: norm_minus_commute)
+              qed
+              have "M * \<bar>v - y\<bar> \<le> norm (f y - f v)"
+              proof -
+                have "v - y < 2 * (x - y)" using vy_bound .
+                then have "M * (v - y) < M * (2 * (x - y))"
+                  using \<open>0 < M\<close> by auto
+                then have "M * (v - y) < 2 * M * (x - y)" by linarith
+                also have "2 * M * (x - y) < norm (f v - f y)" using key by linarith
+                finally have "M * (v - y) < norm (f v - f y)" .
+                moreover have "\<bar>v - y\<bar> = v - y" using yx xv by auto
+                ultimately show ?thesis by (simp add: norm_minus_commute)
+              qed
+              then show ?thesis
+                using yab' vab' yxv by (intro exI[of _ y] exI[of _ v]) auto
+            qed
           qed
-          show ?thesis
+        qed
+        then obtain u v where uv: "\<And>x. x \<in> t \<Longrightarrow> u x \<in> {a..b} \<and> v x \<in> {a..b} \<and> x \<in> {u x <..< v x}
+                             \<and> M * \<bar>v x - u x\<bar> \<le> norm (f (u x) - f (v x))"
+          by metis
+        let ?UVT = "(\<lambda>x. box (u x) (v x)) ` t"
+        obtain \<F> where "\<F> \<subseteq> ?UVT" "countable \<F>" "\<Union>\<F> = \<Union>?UVT"
+          by (smt (verit, best) Lindelof imageE open_box)
+        then obtain c where "countable c" and "c \<subseteq> t" 
+          and c: "\<Union>((\<lambda>x. box (u x) (v x)) ` c) = \<Union> ?UVT"
+          by (metis (lifting) countable_subset_image)
+        show "\<exists>T. t \<subseteq> T \<and> T \<in> lmeasurable \<and> Sigma_Algebra.measure lebesgue T \<le> \<epsilon>"
+        proof (rule ccontr)
+          assume non: "\<nexists>T. t \<subseteq> T \<and> T \<in> lmeasurable \<and> Sigma_Algebra.measure lebesgue T \<le> \<epsilon>"
+          let ?\<C> =  "(\<lambda>x. cbox (u x) (v x)) ` c"
+          have cnt: "countable ?\<C>"
+            using \<open>countable c\<close> by auto
+          have meas: "\<And>D. D \<in> ?\<C> \<Longrightarrow> D \<in> lmeasurable"
+            by (auto intro: lmeasurable_cbox)
+          have tsub: "t \<subseteq> \<Union>?\<C>"
+          proof
+            fix x assume "x \<in> t"
+            then obtain z where "z \<in> c" "x \<in> box (u z) (v z)"
+              using c uv by fastforce
+            then have "x \<in> cbox (u z) (v z)" using box_subset_cbox by blast
+            moreover have "cbox (u z) (v z) \<in> ?\<C>" 
+              using \<open>z \<in> c\<close> by auto
+            ultimately show "x \<in> \<Union>?\<C>" by blast
+          qed
+          have "\<exists>P. finite P \<and> P \<subseteq> ?\<C> \<and> \<epsilon> < measure lebesgue (\<Union>P)"
+          proof (rule ccontr)
+            assume "\<not> (\<exists>p. finite p \<and> p \<subseteq> ?\<C> \<and> \<epsilon> < measure lebesgue (\<Union>p))"
+            then have bound: "\<And>\<E>. \<E> \<subseteq> ?\<C> \<Longrightarrow> finite \<E> \<Longrightarrow> measure lebesgue (\<Union>\<E>) \<le> \<epsilon>"
+              by (meson linorder_not_less)
+            have "measure lebesgue (\<Union>?\<C>) \<le> \<epsilon>"
+              by (rule measure_Union_bound[OF cnt meas bound])
+            moreover have "\<Union>?\<C> \<in> lmeasurable"
+              by (rule fmeasurable_Union_bound[OF cnt meas bound])
+            ultimately have "\<exists>T. t \<subseteq> T \<and> T \<in> lmeasurable \<and> measure lebesgue T \<le> \<epsilon>"
+              using tsub by auto
+            then show False using non by auto
+          qed
+          then obtain p where "finite p" "p \<subseteq> c"
+            and p: "\<epsilon> < measure lebesgue (Union ((\<lambda>x. cbox (u x) (v x)) ` p))"
+            by (metis (no_types, lifting) finite_subset_image)
+          show False
             sorry
         qed
-        show "\<exists>T. t \<subseteq> T \<and> T \<in> lmeasurable \<and> Sigma_Algebra.measure lebesgue T \<le> \<epsilon>"
-          sorry
       qed
     qed auto
   qed (auto simp: t_def)
