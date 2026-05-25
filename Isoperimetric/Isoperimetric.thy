@@ -30,6 +30,171 @@ lemma integral_change_of_variables_linear:
     shows "integral (g ` S) f = \<bar>eucl.det g\<bar> *\<^sub>R integral S (f \<circ> g)"
   sorry (*PROVED ELSEWHERE; ASSUMED HERE*)
 
+lemma has_bounded_variation_countable_discontinuities:
+  fixes f :: "real \<Rightarrow> 'a::euclidean_space"
+  assumes "has_bounded_variation_on f {a..b}"
+  shows "countable {x \<in> {a..b}. \<not> isCont f x}"
+proof -
+  define V where "V \<equiv> \<lambda>x. vector_variation {a..x} f"
+  have V_mono: "mono_on {a..b} V"
+  proof (rule mono_onI)
+    fix x y :: real assume xy: "x \<in> {a..b}" "y \<in> {a..b}" "x \<le> y"
+    then have sub: "{a..x} \<subseteq> {a..b}" "{a..y} \<subseteq> {a..b}" "{x..y} \<subseteq> {a..b}" by auto
+    have bv_ax: "has_bounded_variation_on f {a..x}"
+      using has_bounded_variation_on_subset[OF assms sub(1)] .
+    have bv_ay: "has_bounded_variation_on f {a..y}"
+      using has_bounded_variation_on_subset[OF assms sub(2)] .
+    have "x \<in> {a..y}" using xy by auto
+    then have "V y = V x + vector_variation {x..y} f"
+      unfolding V_def using vector_variation_combine[OF bv_ay] by auto
+    moreover have "0 \<le> vector_variation {x..y} f"
+      using vector_variation_pos_le[OF has_bounded_variation_on_subset[OF assms sub(3)]] .
+    ultimately show "V x \<le> V y" by linarith
+  qed
+  have discont_within: "countable {x \<in> {a..b}. \<not> continuous (at x within {a..b}) f}"
+  proof -
+    have eq: "{x \<in> {a..b}. \<not> continuous (at x within {a..b}) f} =
+              {x \<in> {a..b}. \<not> continuous (at x within {a..b}) V}"
+      using vector_variation_continuous[OF assms] unfolding V_def by auto
+    show ?thesis
+      unfolding eq using mono_on_ctble_discont[OF V_mono] .
+  qed
+  have "{x \<in> {a..b}. \<not> isCont f x} \<subseteq> {x \<in> {a..b}. \<not> continuous (at x within {a..b}) f} \<union> {a, b}"
+  proof (rule subsetI)
+    fix x assume x: "x \<in> {x \<in> {a..b}. \<not> isCont f x}"
+    then have xab: "x \<in> {a..b}" and not_cont: "\<not> isCont f x" by auto
+    show "x \<in> {x \<in> {a..b}. \<not> continuous (at x within {a..b}) f} \<union> {a, b}"
+    proof (cases "x \<in> {a<..<b}")
+      case True
+      then have "x \<in> interior {a..b}" by (simp add: interior_atLeastAtMost_real)
+      then have "at x within {a..b} = at x" by (rule at_within_interior)
+      then have "\<not> continuous (at x within {a..b}) f" using not_cont
+        by (simp add: isCont_def)
+      then show ?thesis using xab by auto
+    next
+      case False
+      then have "x = a \<or> x = b" using xab by auto
+      then show ?thesis by auto
+    qed
+  qed
+  then show ?thesis
+    using countable_subset discont_within by (meson countable_Un countable_insert countable_empty)
+qed
+
+lemma lemma0:
+  fixes x y k :: real
+  assumes "k \<le> y - x" "0 < k"
+  shows "\<exists>q\<in>\<rat>. k / 3 < q - x \<and> k / 3 < y - q"
+proof -
+  have mid: "(x + y) / 2 - k / 6 < (x + y) / 2 + k / 6"
+    using assms by auto
+  then obtain q where q: "q \<in> \<rat>" "(x + y) / 2 - k / 6 < q" "q < (x + y) / 2 + k / 6"
+    using Rats_dense_in_real by blast
+  have "k / 3 < q - x"
+    using q(2) assms by (simp add: field_simps)
+  moreover have "k / 3 < y - q"
+    using q(3) assms by (simp add: field_simps)
+  ultimately show ?thesis
+    using q(1) by auto
+qed
+
+lemma lemma1:
+  fixes f :: "real \<Rightarrow> 'a::euclidean_space" and a b :: real
+  assumes "has_bounded_variation_on f {a..b}"
+  shows "\<exists>t. negligible t \<and>
+             (\<forall>x \<in> {a..b} - t.
+                \<exists>B>0. eventually (\<lambda>y. norm (f y - f x) \<le> B * norm (y - x)) (at x))"
+proof -
+
+  define t where "t = {x \<in> {a<..<b}. isCont f x \<and>
+    \<not> (\<exists>B>0. eventually (\<lambda>y. norm (f y - f x) \<le> B * norm (y - x)) (at x))}"
+    \<comment> \<open>the "bad set": points in the open interval where f is continuous 
+        but fails to have a local Lipschitz bound.\<close>
+  obtain B where B: "\<And>d T. \<lbrakk>d division_of T; T \<subseteq> {a..b}\<rbrakk> \<Longrightarrow>
+      (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> B"
+  proof -
+    from assms obtain B where "\<forall>d T. d division_of T \<and> T \<subseteq> {a..b} \<longrightarrow>
+        (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> B"
+      unfolding has_bounded_variation_on_def has_bounded_setvariation_on_def by auto
+    then show ?thesis using that by blast
+  qed
+  have claim: "\<exists>T. negligible T \<and>
+       (\<forall>x. x \<in> {a..b} - T \<longrightarrow> isCont f x \<longrightarrow>
+          (\<exists>B>0. eventually (\<lambda>y. norm (f y - f x) \<le> B * norm (y - x)) (at x)))"
+  proof (intro exI [where x = "_ \<union> t"] conjI strip)
+    show "negligible ({a, b} \<union> t)"
+    proof (rule negligible_Un)
+      show "negligible t"
+        unfolding negligible_outer_le
+      proof (intro strip)
+        fix \<epsilon> :: real
+        assume "0 < \<epsilon>"
+        define M where "M = 3 * (\<bar>B\<bar> + 1) / \<epsilon>"
+        have "0 < M"
+          unfolding M_def using \<open>0 < \<epsilon>\<close> by (auto intro: divide_pos_pos)
+        have interval_witness: 
+          "\<exists>u v. u \<in> {a..b} \<and> v \<in> {a..b} \<and> x \<in> {u<..<v} \<and>
+                  M * \<bar>v - u\<bar> \<le> norm (f u - f v)" if "x \<in> t" for x
+        proof -
+          from that have xab: "x \<in> {a<..<b}" and xcont: "isCont f x"
+            and xnlip: "\<not> (\<exists>B>0. eventually (\<lambda>y. norm (f y - f x) \<le> B * norm (y - x)) (at x))"
+            unfolding t_def by auto
+          from xab obtain d where "d > 0" and dsub: "\<And>x'. \<bar>x' - x\<bar> < d \<Longrightarrow> x' \<in> {a<..<b}"
+            by (meson open_greaterThanLessThan open_real)
+          have xnlip': "\<not> (\<exists>d>0. \<forall>x'. 0 < dist x' x \<and> dist x' x < d \<longrightarrow>
+              norm (f x' - f x) \<le> (3 * M) * norm (x' - x))" (*UGLY*)
+          proof (rule ccontr, simp only: not_not)
+            assume "\<exists>d>0. \<forall>x'. 0 < dist x' x \<and> dist x' x < d \<longrightarrow>
+                norm (f x' - f x) \<le> (3 * M) * norm (x' - x)"
+            then obtain d where "d > 0" and
+              hd: "\<And>x'. 0 < dist x' x \<Longrightarrow> dist x' x < d \<Longrightarrow>
+                norm (f x' - f x) \<le> (3 * M) * norm (x' - x)" by auto
+            have "eventually (\<lambda>y. norm (f y - f x) \<le> (3 * M) * norm (y - x)) (at x)"
+              unfolding eventually_at using \<open>d > 0\<close> hd by auto
+            moreover have "(3 * M) > 0" using \<open>0 < M\<close> by auto
+            ultimately show False using xnlip by auto
+          qed
+          obtain y where yx: "0 < dist y x" "dist y x < d"
+            and ylip: "(3 * M) * norm (y - x) < norm (f y - f x)"
+          proof -
+            from xnlip' \<open>d > 0\<close> obtain y where
+              "0 < dist y x" "dist y x < d"
+              "\<not> (norm (f y - f x) \<le> (3 * M) * norm (y - x))"
+              by (metis linorder_not_less)
+            then show ?thesis using that by (auto simp: not_le)
+          qed
+          show ?thesis
+            sorry
+        qed
+        show "\<exists>T. t \<subseteq> T \<and> T \<in> lmeasurable \<and> Sigma_Algebra.measure lebesgue T \<le> \<epsilon>"
+          sorry
+      qed
+    qed auto
+  qed (auto simp: t_def)
+  then obtain T where tn: "negligible T" and
+    tc: "\<And>x. x \<in> {a..b} - T \<Longrightarrow> isCont f x \<Longrightarrow>
+       \<exists>B>0. eventually (\<lambda>y. norm (f y - f x) \<le> B * norm (y - x)) (at x)"
+    by auto
+  define D where "D = {x \<in> {a..b}. \<not> isCont f x}"
+  have "countable D"
+    unfolding D_def using has_bounded_variation_countable_discontinuities[OF assms] .
+  hence "negligible D"
+    using countable_imp_negligible by blast
+  have "negligible (T \<union> D)"
+    using tn \<open>negligible D\<close> negligible_Un by blast
+  moreover have "\<forall>x \<in> {a..b} - (T \<union> D).
+      \<exists>B>0. eventually (\<lambda>y. norm (f y - f x) \<le> B * norm (y - x)) (at x)"
+  proof
+    fix x assume "x \<in> {a..b} - (T \<union> D)"
+    then have "x \<in> {a..b} - T" and "isCont f x"
+      unfolding D_def by auto
+    thus "\<exists>B>0. eventually (\<lambda>y. norm (f y - f x) \<le> B * norm (y - x)) (at x)"
+      using tc by blast
+  qed
+  ultimately show ?thesis by blast
+qed
+
+
 lemma Lebesgue_differentiation_theorem_compact:
   fixes f :: "real \<Rightarrow> 'a::euclidean_space"
   assumes "has_bounded_variation_on f (cbox a b)"
