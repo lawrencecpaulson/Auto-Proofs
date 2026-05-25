@@ -345,7 +345,108 @@ proof -
             and p: "\<epsilon> < measure lebesgue (Union ((\<lambda>x. cbox (u x) (v x)) ` p))"
             by (metis (no_types, lifting) finite_subset_image)
           show False
-            sorry
+          proof -
+            define \<D> where "\<D> = (\<lambda>x. cbox (u x) (v x)) ` p"
+            have fin\<D>: "finite \<D>" unfolding \<D>_def using \<open>finite p\<close> by auto
+            have cube: "\<exists>k a' b'. D = cbox a' b' \<and> (\<forall>i\<in>Basis. b' \<bullet> i - a' \<bullet> i = k)"
+              if "D \<in> \<D>" for D
+            proof -
+              from that obtain x where "x \<in> p" "D = cbox (u x) (v x)"
+                unfolding \<D>_def by auto
+              then show ?thesis
+                by (intro exI[of _ "v x - u x"] exI[of _ "u x"] exI[of _ "v x"])
+                   (auto simp: Basis_real_def inner_real_def)
+            qed
+            obtain \<C> where "\<C> \<subseteq> \<D>" "disjoint \<C>"
+              and \<C>meas: "measure lebesgue (\<Union>\<D>) / 3 ^ DIM(real) \<le> measure lebesgue (\<Union>\<C>)"
+              using Austin_Lemma[OF fin\<D> cube] by auto
+            have "\<epsilon> / 3 < measure lebesgue (\<Union>\<C>)"
+            proof -
+              have "\<epsilon> / 3 < measure lebesgue (\<Union>\<D>) / 3"
+                using p unfolding \<D>_def by auto
+              also have "\<dots> = measure lebesgue (\<Union>\<D>) / 3 ^ DIM(real)"
+                by (simp add: DIM_real)
+              also have "\<dots> \<le> measure lebesgue (\<Union>\<C>)" by (rule \<C>meas)
+              finally show ?thesis .
+            qed
+            moreover obtain p' where "p' \<subseteq> p" and \<C>_eq: "\<C> = (\<lambda>x. cbox (u x) (v x)) ` p'"
+            proof -
+              have "\<C> \<subseteq> (\<lambda>x. cbox (u x) (v x)) ` p" using \<open>\<C> \<subseteq> \<D>\<close> unfolding \<D>_def by auto
+              then obtain p' where "p' \<subseteq> p" "\<C> = (\<lambda>x. cbox (u x) (v x)) ` p'"
+                by (meson subset_imageE)
+              then show ?thesis using that by auto
+            qed
+            have finp': "finite p'" using \<open>p' \<subseteq> p\<close> \<open>finite p\<close> finite_subset by blast
+            have p'sub: "p' \<subseteq> t" using \<open>p' \<subseteq> p\<close> \<open>p \<subseteq> c\<close> \<open>c \<subseteq> t\<close> by auto
+            have "measure lebesgue (\<Union>\<C>) \<le> (\<Sum>x\<in>p'. measure lebesgue (cbox (u x) (v x)))"
+            proof -
+              have "measure lebesgue (\<Union>\<C>) \<le> (\<Sum>D\<in>\<C>. measure lebesgue D)"
+                using measure_Union_le[OF finite_subset[OF \<open>\<C> \<subseteq> \<D>\<close> fin\<D>]]
+                by (metis (no_types, lifting)
+                    \<open>\<And>thesis. (\<And>p'. p' \<subseteq> p \<Longrightarrow> \<C> = (\<lambda>x. cbox (u x) (v x)) ` p' \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close>
+                    fmeasurableD fmeasurable_cbox image_subsetI in_mono
+                    sets_completionI_sets)
+              also have "\<dots> \<le> (\<Sum>x\<in>p'. measure lebesgue (cbox (u x) (v x)))"
+              proof -
+                have "sum (measure lebesgue) ((\<lambda>x. cbox (u x) (v x)) ` p')
+                      \<le> sum (measure lebesgue \<circ> (\<lambda>x. cbox (u x) (v x))) p'"
+                  using finp' by (rule sum_image_le) (auto intro: measure_nonneg)
+                also have "\<dots> = (\<Sum>x\<in>p'. measure lebesgue (cbox (u x) (v x)))"
+                  by (simp add: comp_def)
+                finally show ?thesis unfolding \<C>_eq .
+              qed
+              finally show ?thesis .
+            qed
+            also have "\<dots> = (\<Sum>x\<in>p'. content (cbox (u x) (v x)))"
+              by (simp add: measure_lborel_cbox_eq)
+            also have "\<dots> = (\<Sum>x\<in>p'. v x - u x)"
+            proof (intro sum.cong refl)
+              fix x assume "x \<in> p'"
+              then have "x \<in> t" using p'sub by auto
+              then have "u x < v x" using uv[of x] by auto
+              then show "content (cbox (u x) (v x)) = v x - u x"
+                by (simp add: content_real)
+            qed
+            also have "\<dots> \<le> (\<Sum>x\<in>p'. norm (f (u x) - f (v x))) / M"
+            proof -
+              have "(\<Sum>x\<in>p'. v x - u x) = (\<Sum>x\<in>p'. \<bar>v x - u x\<bar>)"
+              proof (intro sum.cong refl)
+                fix x assume "x \<in> p'"
+                then have "x \<in> t" using p'sub by auto
+                then have "u x < v x" using uv[of x] by auto
+                then show "v x - u x = \<bar>v x - u x\<bar>" by auto
+              qed
+              also have "\<dots> \<le> (\<Sum>x\<in>p'. norm (f (u x) - f (v x)) / M)"
+              proof (intro sum_mono)
+                fix x assume "x \<in> p'"
+                then have "x \<in> t" using p'sub by auto
+                then have "M * \<bar>v x - u x\<bar> \<le> norm (f (u x) - f (v x))" using uv by auto
+                then show "\<bar>v x - u x\<bar> \<le> norm (f (u x) - f (v x)) / M"
+                  using \<open>0 < M\<close> by (simp add: field_simps)
+              qed
+              also have "\<dots> = (\<Sum>x\<in>p'. norm (f (u x) - f (v x))) / M"
+                by (simp add: sum_divide_distrib)
+              finally show ?thesis .
+            qed
+            also have "\<dots> \<le> B / M"
+            proof -
+              have "(\<Sum>x\<in>p'. norm (f (u x) - f (v x))) \<le> B"
+                using order_trans [OF _ B]
+                sorry
+              then show ?thesis using \<open>0 < M\<close> by (simp add: divide_right_mono)
+            qed
+            also have "\<dots> = B * \<epsilon> / (3 * (\<bar>B\<bar> + 1))"
+              unfolding M_def using \<open>0 < \<epsilon>\<close> by (simp add: field_simps)
+            also have "\<dots> < \<epsilon> / 3"
+            proof -
+              have "B < \<bar>B\<bar> + 1" by linarith
+              then have "B * \<epsilon> < (\<bar>B\<bar> + 1) * \<epsilon>" using \<open>0 < \<epsilon>\<close> by auto
+              then have "B * \<epsilon> / (3 * (\<bar>B\<bar> + 1)) < \<epsilon> / 3"
+                by (simp add: field_simps)
+              then show ?thesis .
+            qed
+            ultimately show False by linarith
+          qed
         qed
       qed
     qed auto
