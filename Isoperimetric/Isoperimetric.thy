@@ -370,22 +370,48 @@ proof -
               finally show ?thesis .
             qed
             moreover obtain p' where "p' \<subseteq> p" and \<C>_eq: "\<C> = (\<lambda>x. cbox (u x) (v x)) ` p'"
+              and inj: "inj_on (\<lambda>x. cbox (u x) (v x)) p'"
             proof -
-              have "\<C> \<subseteq> (\<lambda>x. cbox (u x) (v x)) ` p" using \<open>\<C> \<subseteq> \<D>\<close> unfolding \<D>_def by auto
-              then obtain p' where "p' \<subseteq> p" "\<C> = (\<lambda>x. cbox (u x) (v x)) ` p'"
-                by (meson subset_imageE)
-              then show ?thesis using that by auto
+              let ?f = "\<lambda>x. cbox (u x) (v x)"
+              have Csub_im: "\<C> \<subseteq> ?f ` p"
+                using \<open>\<C> \<subseteq> \<D>\<close> unfolding \<D>_def by auto
+              define p' where "p' = inv_into p ?f ` \<C>"
+              have p'_sub: "p' \<subseteq> p"
+                unfolding p'_def using Csub_im by (auto intro: inv_into_into)
+              have C_eq: "\<C> = ?f ` p'"
+                unfolding p'_def using image_inv_into_cancel[of ?f p "?f ` p" \<C>]
+                  Csub_im by auto
+              have "inj_on ?f p'"
+              proof (rule inj_onI)
+                fix x y assume "x \<in> p'" "y \<in> p'" "?f x = ?f y"
+                from \<open>x \<in> p'\<close> obtain K1 where "K1 \<in> \<C>" "x = inv_into p ?f K1"
+                  unfolding p'_def by auto
+                from \<open>y \<in> p'\<close> obtain K2 where "K2 \<in> \<C>" "y = inv_into p ?f K2"
+                  unfolding p'_def by auto
+                have "K1 = ?f (inv_into p ?f K1)"
+                  using f_inv_into_f[of K1 ?f p] \<open>K1 \<in> \<C>\<close> Csub_im by auto
+                also have "\<dots> = ?f x" using \<open>x = inv_into p ?f K1\<close> by simp
+                also have "\<dots> = ?f y" using \<open>?f x = ?f y\<close> by simp
+                also have "\<dots> = ?f (inv_into p ?f K2)" using \<open>y = inv_into p ?f K2\<close> by simp
+                also have "\<dots> = K2"
+                  using f_inv_into_f[of K2 ?f p] \<open>K2 \<in> \<C>\<close> Csub_im by auto
+                finally have "K1 = K2" .
+                then show "x = y" using \<open>x = inv_into p ?f K1\<close> \<open>y = inv_into p ?f K2\<close> by simp
+              qed
+              then show ?thesis using that p'_sub C_eq by blast
             qed
             have finp': "finite p'" using \<open>p' \<subseteq> p\<close> \<open>finite p\<close> finite_subset by blast
             have p'sub: "p' \<subseteq> t" using \<open>p' \<subseteq> p\<close> \<open>p \<subseteq> c\<close> \<open>c \<subseteq> t\<close> by auto
             have "measure lebesgue (\<Union>\<C>) \<le> (\<Sum>x\<in>p'. measure lebesgue (cbox (u x) (v x)))"
             proof -
               have "measure lebesgue (\<Union>\<C>) \<le> (\<Sum>D\<in>\<C>. measure lebesgue D)"
-                using measure_Union_le[OF finite_subset[OF \<open>\<C> \<subseteq> \<D>\<close> fin\<D>]]
-                by (metis (no_types, lifting)
-                    \<open>\<And>thesis. (\<And>p'. p' \<subseteq> p \<Longrightarrow> \<C> = (\<lambda>x. cbox (u x) (v x)) ` p' \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close>
-                    fmeasurableD fmeasurable_cbox image_subsetI in_mono
-                    sets_completionI_sets)
+              proof (rule measure_Union_le)
+                show "finite \<C>" using finp' unfolding \<C>_eq by auto
+                fix D assume "D \<in> \<C>"
+                then obtain x where "x \<in> p'" "D = cbox (u x) (v x)" unfolding \<C>_eq by auto
+                then show "D \<in> sets lebesgue"
+                  using fmeasurableD[OF fmeasurable_cbox] by auto
+              qed
               also have "\<dots> \<le> (\<Sum>x\<in>p'. measure lebesgue (cbox (u x) (v x)))"
               proof -
                 have "sum (measure lebesgue) ((\<lambda>x. cbox (u x) (v x)) ` p')
@@ -431,8 +457,66 @@ proof -
             also have "\<dots> \<le> B / M"
             proof -
               have "(\<Sum>x\<in>p'. norm (f (u x) - f (v x))) \<le> B"
-                using order_trans [OF _ B]
-                sorry
+              proof -
+                have ux_less_vx: "u x < v x" if "x \<in> p'" for x
+                  using uv[of x] p'sub that by auto
+
+                have div: "\<C> division_of \<Union>\<C>"
+                  unfolding division_of_def
+                proof (intro conjI)
+                  show "finite \<C>"
+                    using finp' unfolding \<C>_eq by auto
+                next
+                  show "\<forall>K\<in>\<C>. K \<subseteq> \<Union>\<C> \<and> K \<noteq> {} \<and> (\<exists>a b. K = cbox a b)"
+                  proof
+                    fix K assume "K \<in> \<C>"
+                    then obtain x where "x \<in> p'" "K = cbox (u x) (v x)"
+                      unfolding \<C>_eq by auto
+                    then show "K \<subseteq> \<Union>\<C> \<and> K \<noteq> {} \<and> (\<exists>a b. K = cbox a b)"
+                      using ux_less_vx[of x] \<open>K \<in> \<C>\<close> by auto
+                  qed
+                next
+                  show "\<forall>K1\<in>\<C>. \<forall>K2\<in>\<C>. K1 \<noteq> K2 \<longrightarrow> interior K1 \<inter> interior K2 = {}"
+                  proof (intro ballI impI)
+                    fix K1 K2
+                    assume "K1 \<in> \<C>" "K2 \<in> \<C>" "K1 \<noteq> K2"
+                    then show "interior K1 \<inter> interior K2 = {}"
+                      using \<open>disjoint \<C>\<close> unfolding disjoint_def
+                      by (metis disjoint_iff interior_subset subsetD)
+                  qed
+                next
+                  show "\<Union>\<C> = \<Union>\<C>" by simp
+                qed
+                have Csub: "\<Union>\<C> \<subseteq> {a..b}"
+                proof
+                  fix x assume "x \<in> \<Union>\<C>"
+                  then obtain K where "K \<in> \<C>" "x \<in> K" by auto
+                  then obtain z where "z \<in> p'" "K = cbox (u z) (v z)"
+                    unfolding \<C>_eq by auto
+                  then have "u z \<in> {a..b}" "v z \<in> {a..b}"
+                    using uv[of z] p'sub by auto
+                  then show "x \<in> {a..b}"
+                    using \<open>x \<in> K\<close> \<open>K = cbox (u z) (v z)\<close> by auto
+                qed
+                have "(\<Sum>x\<in>p'. norm (f (u x) - f (v x)))
+                    = (\<Sum>x\<in>p'. norm (f (v x) - f (u x)))"
+                  by (simp add: norm_minus_commute)
+                also have "\<dots> = (\<Sum>x\<in>p'. norm (f (Sup (cbox (u x) (v x))) - f (Inf (cbox (u x) (v x)))))"
+                proof (intro sum.cong refl)
+                  fix x assume "x \<in> p'"
+                  then have "u x \<le> v x" using ux_less_vx
+                  by (simp add: less_imp_le)
+                  then show "norm (f (v x) - f (u x)) 
+                           = norm (f (Sup (cbox (u x) (v x))) - f (Inf (cbox (u x) (v x))))"
+                    by simp
+                qed
+                also have "\<dots> = (\<Sum>K\<in>\<C>. norm (f (Sup K) - f (Inf K)))"
+                  unfolding \<C>_eq using sum.reindex[OF inj, of "\<lambda>K. norm (f (Sup K) - f (Inf K))"]
+                  by (simp add: comp_def)
+                also have "\<dots> \<le> B"
+                  using B[OF div Csub] .
+                finally show ?thesis .
+              qed
               then show ?thesis using \<open>0 < M\<close> by (simp add: divide_right_mono)
             qed
             also have "\<dots> = B * \<epsilon> / (3 * (\<bar>B\<bar> + 1))"
