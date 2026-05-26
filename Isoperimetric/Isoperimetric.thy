@@ -630,9 +630,233 @@ proof -
         then show "negligible T"
           using \<open>T = frontier K\<close> negligible_convex_frontier convex_box(1) by metis
       qed
+      \<comment> \<open>For each x in t, find division element and witnessing u, v\<close>
+      have key: "\<And>x. x \<in> t \<Longrightarrow>
+        \<exists>c d u v. {c..d} \<in> D \<and> x \<in> {c<..<d} \<and> u \<in> {c<..<d} \<and> v \<in> {c<..<d} \<and>
+                  x \<in> {u<..<v} \<and>
+                  (f c \<le> f d \<longrightarrow> f v - f u \<le> -k * (v - u)) \<and>
+                  (f d < f c \<longrightarrow> k * (v - u) \<le> f v - f u)"
+      proof -
+        fix x assume "x \<in> t"
+        then have xt': "x \<in> t'" and xnf: "x \<notin> \<Union>(frontier ` D)"
+          unfolding t_def by auto
+        from xt' have xab: "x \<in> {a..b}" unfolding t'_def by auto
+        \<comment> \<open>Find the division element containing x\<close>
+        have "x \<in> \<Union>D" using xab division_ofD(6)[OF D_div] by auto
+        then obtain K where "K \<in> D" "x \<in> K" by auto
+        then obtain c d where Kcd: "K = cbox c d"
+          using division_ofD(4)[OF D_div] by (metis (full_types))
+        have Kcd': "K = {c..d}" using Kcd by auto
+        have KD: "{c..d} \<in> D" using \<open>K \<in> D\<close> Kcd' by auto
+        have xK: "x \<in> {c..d}" using \<open>x \<in> K\<close> Kcd' by auto
+        \<comment> \<open>x is not on the frontier, so it's in the interior\<close>
+        have "x \<notin> frontier K" using xnf \<open>K \<in> D\<close> by auto
+        then have "x \<notin> {c..d} - {c<..<d}"
+          using frontier_cbox[of c d] box_real(1)[of c d] Kcd by auto
+        then have x_int: "x \<in> {c<..<d}" using xK by auto
+        \<comment> \<open>Apply the t' property with open set {c<..<d}\<close>
+        have "open {c<..<d}" by auto
+        with x_int xt' have both:
+          "(\<exists>u v. u \<in> {a..b} \<and> u \<in> {c<..<d} \<and> v \<in> {a..b} \<and> v \<in> {c<..<d} \<and>
+                  x \<in> {u<..<v} \<and> k \<le> (f v - f u) / (v - u)) \<and>
+           (\<exists>u v. u \<in> {a..b} \<and> u \<in> {c<..<d} \<and> v \<in> {a..b} \<and> v \<in> {c<..<d} \<and>
+                  x \<in> {u<..<v} \<and> (f v - f u) / (v - u) \<le> -k)"
+        proof -
+          have "x \<in> {a..b}" and
+            spec: "\<forall>S. open S \<and> x \<in> S \<longrightarrow>
+              (\<exists>u v. u \<in> {a..b} \<and> u \<in> S \<and> v \<in> {a..b} \<and> v \<in> S \<and>
+                     x \<in> {u<..<v} \<and> k \<le> (f v - f u) / (v - u)) \<and>
+              (\<exists>u v. u \<in> {a..b} \<and> u \<in> S \<and> v \<in> {a..b} \<and> v \<in> S \<and>
+                     x \<in> {u<..<v} \<and> (f v - f u) / (v - u) \<le> -k)"
+            using xt' unfolding t'_def by auto
+          from spec[rule_format, OF conjI[OF \<open>open {c<..<d}\<close> x_int]] show ?thesis .
+        qed
+        \<comment> \<open>Case split on whether f c \<le> f d\<close>
+        show "\<exists>c d u v. {c..d} \<in> D \<and> x \<in> {c<..<d} \<and> u \<in> {c<..<d} \<and> v \<in> {c<..<d} \<and>
+                        x \<in> {u<..<v} \<and>
+                        (f c \<le> f d \<longrightarrow> f v - f u \<le> -k * (v - u)) \<and>
+                        (f d < f c \<longrightarrow> k * (v - u) \<le> f v - f u)"
+        proof (cases "f c \<le> f d")
+          case True
+          \<comment> \<open>Use the pair with negative slope\<close>
+          from both obtain u v where
+            uv: "u \<in> {c<..<d}" "v \<in> {c<..<d}" "x \<in> {u<..<v}"
+                "(f v - f u) / (v - u) \<le> -k"
+            by auto
+          have "u < v" using uv(3) by auto
+          then have "v - u > 0" by auto
+          from uv(4) have "f v - f u \<le> -k * (v - u)"
+            using pos_divide_le_eq[OF \<open>v - u > 0\<close>] by (auto simp: mult.commute)
+          then show ?thesis
+            using KD x_int uv(1-3) True
+            by (rule_tac x=c in exI, rule_tac x=d in exI,
+                rule_tac x=u in exI, rule_tac x=v in exI) auto
+        next
+          case False
+          then have "f d < f c" by auto
+          \<comment> \<open>Use the pair with positive slope\<close>
+          from both obtain u v where
+            uv: "u \<in> {c<..<d}" "v \<in> {c<..<d}" "x \<in> {u<..<v}"
+                "k \<le> (f v - f u) / (v - u)"
+            by auto
+          have "u < v" using uv(3) by auto
+          then have "v - u > 0" by auto
+          from uv(4) have "k * (v - u) \<le> f v - f u"
+            using pos_le_divide_eq[OF \<open>v - u > 0\<close>] by (auto simp: mult.commute)
+          then show ?thesis
+            using KD x_int uv(1-3) \<open>f d < f c\<close> False
+            by (rule_tac x=c in exI, rule_tac x=d in exI,
+                rule_tac x=u in exI, rule_tac x=v in exI) auto
+        qed
+      qed
+      then obtain cx dx ux vx where
+        key_fn: "\<And>x. x \<in> t \<Longrightarrow> {cx x..dx x} \<in> D \<and> x \<in> {cx x<..<dx x} \<and>
+                   ux x \<in> {cx x<..<dx x} \<and> vx x \<in> {cx x<..<dx x} \<and>
+                   x \<in> {ux x<..<vx x} \<and>
+                   (f (cx x) \<le> f (dx x) \<longrightarrow> f (vx x) - f (ux x) \<le> -k * (vx x - ux x)) \<and>
+                   (f (dx x) < f (cx x) \<longrightarrow> k * (vx x - ux x) \<le> f (vx x) - f (ux x))"
+        by metis
       \<comment> \<open>Reduce to finding a cover for t\<close>
       have cover_t: "\<exists>c. t \<subseteq> c \<and> c \<in> lmeasurable \<and> measure lebesgue c \<le> e"
-        sorry \<comment> \<open>Main construction; proved in stages below\<close>
+      proof (rule ccontr)
+        assume non: "\<not> (\<exists>c. t \<subseteq> c \<and> c \<in> lmeasurable \<and> measure lebesgue c \<le> e)"
+        \<comment> \<open>Apply Lindelöf to the family of open intervals {ux x<..<vx x}\<close>
+        let ?UVT = "(\<lambda>x. {ux x<..<vx x}) ` t"
+        obtain \<F> where "\<F> \<subseteq> ?UVT" "countable \<F>" "\<Union>\<F> = \<Union>?UVT"
+          by (smt (verit, best) Lindelof imageE open_greaterThanLessThan)
+        then obtain c where "countable c" and "c \<subseteq> t"
+          and c_union: "\<Union>((\<lambda>x. {ux x<..<vx x}) ` c) = \<Union>?UVT"
+          by (metis (lifting) countable_subset_image)
+        \<comment> \<open>Find a finite subset with measure exceeding e\<close>
+        have "\<exists>p. finite p \<and> p \<subseteq> (\<lambda>x. {ux x..vx x}) ` c \<and> e < measure lebesgue (\<Union>p)"
+        proof (rule ccontr)
+          assume "\<not> (\<exists>p. finite p \<and> p \<subseteq> (\<lambda>x. {ux x..vx x}) ` c \<and> e < measure lebesgue (\<Union>p))"
+          then have le_e: "\<And>p. p \<subseteq> (\<lambda>x. {ux x..vx x}) ` c \<Longrightarrow> finite p \<Longrightarrow>
+              measure lebesgue (\<Union>p) \<le> e"
+            by (meson linorder_not_less)
+          \<comment> \<open>From le_e, the full countable union has measure \<le> e\<close>
+          have union_le: "measure lebesgue (\<Union>((\<lambda>x. {ux x..vx x}) ` c)) \<le> e"
+          proof (rule measure_Union_bound)
+            show "countable ((\<lambda>x. {ux x..vx x}) ` c)"
+              using \<open>countable c\<close> by auto
+          next
+            fix D assume "D \<in> (\<lambda>x. {ux x..vx x}) ` c"
+            then show "D \<in> lmeasurable"
+              using lmeasurable_cbox by (auto simp: cbox_interval)
+          next
+            fix \<E> assume "\<E> \<subseteq> (\<lambda>x. {ux x..vx x}) ` c" "finite \<E>"
+            then show "measure lebesgue (\<Union>\<E>) \<le> e"
+              using le_e by auto
+          qed
+          \<comment> \<open>But t \<subseteq> \<Union>((\<lambda>x. {ux x..vx x}) ` c), so e < measure\<close>
+          have t_sub_meas: "t \<subseteq> \<Union>((\<lambda>x. {ux x..vx x}) ` c) \<and>
+              \<Union>((\<lambda>x. {ux x..vx x}) ` c) \<in> lmeasurable"
+          proof (intro conjI)
+            show "t \<subseteq> \<Union>((\<lambda>x. {ux x..vx x}) ` c)"
+            proof
+              fix x assume "x \<in> t"
+              then have "x \<in> {ux x<..<vx x}" using key_fn by auto
+              then have "x \<in> \<Union>((\<lambda>x. {ux x<..<vx x}) ` t)" using \<open>x \<in> t\<close> by auto
+              then have "x \<in> \<Union>((\<lambda>x. {ux x<..<vx x}) ` c)" using c_union by auto
+              then show "x \<in> \<Union>((\<lambda>x. {ux x..vx x}) ` c)"
+                by force
+            qed
+          next
+            show "\<Union>((\<lambda>x. {ux x..vx x}) ` c) \<in> lmeasurable"
+              using \<open>countable c\<close> le_e
+              by (intro fmeasurable_Union_bound[where B=e]) auto
+          qed
+          then have "e < measure lebesgue (\<Union>((\<lambda>x. {ux x..vx x}) ` c))"
+            using non by (simp add: not_le)
+          with union_le show False by linarith
+        qed
+        then obtain q where "finite q" "q \<subseteq> (\<lambda>x. {ux x..vx x}) ` c"
+          "e < measure lebesgue (\<Union>q)" by auto
+        from finite_subset_image[OF \<open>finite q\<close> \<open>q \<subseteq> (\<lambda>x. {ux x..vx x}) ` c\<close>]
+        obtain p where "p \<subseteq> c" "finite p" "q = (\<lambda>x. {ux x..vx x}) ` p" by auto
+        then have fin_p: "finite p" and p_sub: "p \<subseteq> c"
+          and p_meas: "e < measure lebesgue (\<Union>((\<lambda>x. {ux x..vx x}) ` p))"
+          using \<open>e < measure lebesgue (\<Union>q)\<close> by auto
+
+        \<comment> \<open>Apply Austin's lemma to the finite collection of intervals\<close>
+        define \<D> where "\<D> = (\<lambda>x. {ux x..vx x}) ` p"
+        have fin\<D>: "finite \<D>" unfolding \<D>_def using fin_p by auto
+        have cube: "\<exists>k a b. D = cbox a b \<and> (\<forall>i\<in>Basis. b \<bullet> i - a \<bullet> i = k)"
+          if "D \<in> \<D>" for D
+        proof -
+          from that obtain x where "x \<in> p" "D = {ux x..vx x}"
+            unfolding \<D>_def by auto
+          then show ?thesis
+            by (intro exI[of _ "vx x - ux x"] exI[of _ "ux x"] exI[of _ "vx x"])
+               (auto simp: Basis_real_def inner_real_def cbox_interval)
+        qed
+        obtain d where "d \<subseteq> \<D>" "disjoint d"
+          and d_meas: "measure lebesgue (\<Union>\<D>) / 3 ^ DIM(real) \<le> measure lebesgue (\<Union>d)"
+          using Austin_Lemma[OF fin\<D> cube] by auto
+        have d_sub: "d \<subseteq> (\<lambda>x. {ux x..vx x}) ` p"
+          using \<open>d \<subseteq> \<D>\<close> unfolding \<D>_def by auto
+        have d_disj: "disjoint d" by fact
+        have d_meas': "measure lebesgue (\<Union>((\<lambda>x. {ux x..vx x}) ` p)) / 3 \<le> measure lebesgue (\<Union>d)"
+          using d_meas unfolding \<D>_def by (simp add: DIM_real)
+
+        \<comment> \<open>Decompose \<Union>d by division elements\<close>
+        have d_decomp: "\<Union>d = (\<Union>j\<in>D. \<Union>{i \<in> d. i \<subseteq> j})"
+        proof -
+          \<comment> \<open>Each i \<in> d is a subset of some j \<in> D\<close>
+          have sub_D: "\<exists>j. j \<in> D \<and> i \<subseteq> j" if "i \<in> d" for i
+          proof -
+            from that d_sub obtain x where "x \<in> p" "i = {ux x..vx x}" by auto
+            then have "x \<in> t" using p_sub \<open>c \<subseteq> t\<close> by auto
+            from key_fn[OF this] have "{cx x..dx x} \<in> D"
+              and "ux x \<in> {cx x<..<dx x}" "vx x \<in> {cx x<..<dx x}" by auto
+            then have "{ux x..vx x} \<subseteq> {cx x..dx x}"
+              by (auto simp: atLeastatMost_subset_iff greaterThanLessThan_iff)
+            then show ?thesis using \<open>{cx x..dx x} \<in> D\<close> \<open>i = {ux x..vx x}\<close> by auto
+          qed
+          show ?thesis
+          proof (intro set_eqI iffI)
+            fix x assume "x \<in> \<Union>d"
+            then obtain i where "i \<in> d" "x \<in> i" by auto
+            from sub_D[OF \<open>i \<in> d\<close>] obtain j where "j \<in> D" "i \<subseteq> j" by auto
+            then show "x \<in> (\<Union>j\<in>D. \<Union>{i \<in> d. i \<subseteq> j})" using \<open>i \<in> d\<close> \<open>x \<in> i\<close> by auto
+          next
+            fix x assume "x \<in> (\<Union>j\<in>D. \<Union>{i \<in> d. i \<subseteq> j})"
+            then show "x \<in> \<Union>d" by auto
+          qed
+        qed
+        have d_bound: "measure lebesgue (\<Union>d) < e / 3"
+        proof -
+          let ?F = "(\<lambda>j. \<Union>{i \<in> d. i \<subseteq> j}) ` D"
+          have fin_F: "finite ?F"
+            using fin_D by auto
+          have fin_d: "finite d" using finite_subset[OF \<open>d \<subseteq> \<D>\<close> fin\<D>] .
+          have meas_F: "\<And>s. s \<in> ?F \<Longrightarrow> s \<in> sets lebesgue"
+          proof -
+            fix s assume "s \<in> ?F"
+            then obtain j where "j \<in> D" "s = \<Union>{i \<in> d. i \<subseteq> j}" by auto
+            have "finite {i \<in> d. i \<subseteq> j}" using fin_d by auto
+            moreover have "i \<in> sets lebesgue" if "i \<in> d" "i \<subseteq> j" for i
+            proof -
+              from d_sub that obtain x where "x \<in> p" "i = {ux x..vx x}" by auto
+              then show ?thesis
+                using fmeasurableD[OF fmeasurable_cbox[of "ux x" "vx x"]]
+                by (simp add: cbox_interval)
+            qed
+            ultimately show "s \<in> sets lebesgue"
+              unfolding \<open>s = \<Union>{i \<in> d. i \<subseteq> j}\<close>
+              by (intro sets.finite_Union) auto
+          qed
+          have "measure lebesgue (\<Union>d) = measure lebesgue (\<Union>?F)"
+            using d_decomp by (simp add: image_UN)
+          also have "\<dots> \<le> sum (measure lebesgue) ?F"
+            using measure_Union_le[OF fin_F meas_F] .
+          also have "\<dots> < e / 3"
+            sorry
+          finally show ?thesis .
+        qed
+        show False
+          using p_meas d_meas' d_bound by linarith
+      qed
       then obtain c where c_sub: "t \<subseteq> c" and c_meas: "c \<in> lmeasurable"
         and c_bound: "measure lebesgue c \<le> e" by auto
       define T where "T \<equiv> c \<union> \<Union>(frontier ` D)"
