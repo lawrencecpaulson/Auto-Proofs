@@ -1,6 +1,6 @@
 theory Isoperimetric
   imports Arc_Length_Reparametrization "Fourier.Fourier" "Green.Green" "../Euclidean_Space_Transfer"
-    "HOL-ex.Sketch_and_Explore" Isar_Explore
+    "HOL-ex.Sketch_and_Explore" 
 begin
 
 hide_const (open) Polynomial.content
@@ -36,6 +36,13 @@ lemma Lebesgue_differentiation_theorem_compact:
   shows "negligible {x \<in> cbox a b. \<not> f differentiable (at x)}"
   sorry (*PROVED ELSEWHERE; ASSUMED HERE*)
 
+(*FIXME move these elsewhere*)
+
+lemma le_iff_forall_rat_less_imp:
+  fixes x y :: real
+  shows "x \<le> y \<longleftrightarrow> (\<forall>q \<in> \<rat>. y < q \<longrightarrow> x < q)"
+  by (meson Rats_dense_in_real less_asym less_le_trans not_less)
+
 lemma limpt_of_convex:
   fixes S :: "'a::real_normed_vector set"
   assumes "convex S" "x \<in> S"
@@ -46,6 +53,9 @@ proof -
   with assms show ?thesis
     by (auto simp: islimpt_finite)
 qed
+
+lemma Zfun_cong: "eventually (\<lambda>x. f x = g x) F \<Longrightarrow> Zfun f F = Zfun g F"
+  by (smt (verit) Zfun_ssubst eventually_mono)
 
 lemma has_vector_derivative_within_1D:
   fixes f :: "real \<Rightarrow> 'a::real_normed_vector"
@@ -71,10 +81,8 @@ proof -
       by (smt (verit, del_insts) Zfun_ssubst ev_eq eventually_mono)
     then have "Zfun (\<lambda>y. (f y - f x - (y - x) *\<^sub>R f') /\<^sub>R \<bar>y - x\<bar>) (at x within s)"
       using Zfun_norm_iff by (fastforce simp add: Zfun_le)
-    then have "((\<lambda>y. (f y - f x - (y - x) *\<^sub>R f') /\<^sub>R \<bar>y - x\<bar>) \<longlongrightarrow> 0) (at x within s)"
-      by (simp add: tendsto_Zfun_iff)
     then show "(f has_vector_derivative f') (at x within s)"
-      unfolding has_vector_derivative_def has_derivative_at_within
+      unfolding has_vector_derivative_def has_derivative_at_within tendsto_Zfun_iff
       using bounded_linear_scaleR_left by auto
   qed
 qed
@@ -98,8 +106,6 @@ proof (rule tendsto_le)
     using eventually_mono [OF ev] by (simp add: norm_scaleR abs_ge_zero mult_left_mono)
 qed
 
-
-(*FIXME move these elsewhere*)
 (*Added to Elementary_Metric_Spaces 2026-05*)
 lemma diameter_translation:
   fixes a :: "'a::real_normed_vector"
@@ -245,10 +251,8 @@ proof -
   show ?thesis
   proof (cases "open_segment x y \<inter> rel_interior S = {}")
     case True
-    then have "open_segment x y \<subseteq> closure S - rel_interior S"
-      using seg_in_clos by auto
     then show ?thesis
-      by (simp add: rel_frontier_def)
+      using seg_in_clos by (auto simp: rel_frontier_def)
   next
     case False
     then obtain c where c: "c \<in> open_segment x y" "c \<in> rel_interior S"
@@ -273,19 +277,13 @@ lemma convex_open_segment_cases_alt:
   assumes "convex S" "x \<in> closure S" "y \<in> closure S"
   shows "open_segment x y \<subseteq> frontier S \<or> open_segment x y \<subseteq> interior S"
 proof (cases "interior S = {}")
-  case True
-  then have "frontier S = closure S"
-    by (simp add: frontier_def)
-  moreover have "open_segment x y \<subseteq> closure S"
-    using convex_closure[OF assms(1)] assms(2,3)
-    by (meson convex_contains_segment segment_open_subset_closed subset_trans)
-  ultimately show ?thesis by simp
+  case True then show ?thesis
+    by (metis Diff_empty assms convex_closure convex_contains_open_segment frontier_def)
 next
   case False
   then have "rel_interior S = interior S" "rel_frontier S = frontier S"
     using rel_interior_nonempty_interior rel_frontier_nonempty_interior by auto
-  with convex_open_segment_cases[OF assms]
-  show ?thesis by simp
+  with convex_open_segment_cases[OF assms] show ?thesis by simp
 qed
 
 (*Added to Absolute_Continuity 2026-05*)
@@ -702,12 +700,11 @@ lemma integral_has_vector_derivative_pointwise:
 lemma has_integral_substitution_strong:
   fixes f :: "real \<Rightarrow> 'a::euclidean_space" and g g' :: "real \<Rightarrow> real"
   assumes "countable k"
-    and "f integrable_on {c..d}"
-    and "continuous_on {a..b} g"
-    and "g ` {a..b} \<subseteq> {c..d}"
-    and "\<And>x. x \<in> {a..b} - k \<Longrightarrow>
-      (g has_vector_derivative g' x) (at x within {a..b}) \<and>
-      continuous (at (g x) within {c..d}) f"
+    and intf: "f integrable_on {c..d}"
+    and contg: "continuous_on {a..b} g"
+    and g: "g \<in> {a..b} \<rightarrow> {c..d}"
+    and derg: "\<And>x. x \<in> {a..b} - k \<Longrightarrow>
+      (g has_vector_derivative g' x) (at x within {a..b}) \<and> continuous (at (g x) within {c..d}) f"
     and "a \<le> b" and "c \<le> d" and "g a \<le> g b"
   shows "((\<lambda>x. g' x *\<^sub>R f (g x)) has_integral integral {g a..g b} f) {a..b}"
 proof -
@@ -718,10 +715,8 @@ proof -
     unfolding ff_def using indefinite_integral_continuous_1[OF assms(2)] .
   \<comment> \<open>ff \<circ> g is continuous on {a..b}\<close>
   have fg_cont: "continuous_on {a..b} (ff \<circ> g)"
-    using continuous_on_compose2[OF ff_cont assms(3) assms(4)] unfolding comp_def .
+    using continuous_on_compose2[OF ff_cont contg] g unfolding comp_def by blast
   \<comment> \<open>g maps {a..b} into {c..d}\<close>
-  have g_in: "g x \<in> {c..d}" if "x \<in> {a..b}" for x
-    using assms(4) that by blast
   \<comment> \<open>Apply FTC interior strong to ff \<circ> g\<close>
   have ftc: "((\<lambda>x. g' x *\<^sub>R f (g x)) has_integral ((ff \<circ> g) b - (ff \<circ> g) a)) {a..b}"
   proof (rule fundamental_theorem_of_calculus_interior_strong[where S = k])
@@ -729,20 +724,18 @@ proof -
     show "a \<le> b" by fact
     show "continuous_on {a..b} (ff \<circ> g)" by fact
     fix x assume xk: "x \<in> {a<..<b} - k"
-    then have x_ab: "x \<in> {a..b}" and x_nk: "x \<notin> k" by auto
-    have x_ab_k: "x \<in> {a..b} - k" using x_ab x_nk by auto
-    have gx_cd: "g x \<in> {c..d}" using g_in[OF x_ab] .
     \<comment> \<open>Get derivative of g and continuity of f at g(x)\<close>
     have g_deriv: "(g has_vector_derivative g' x) (at x within {a..b})"
       and f_cont: "continuous (at (g x) within {c..d}) f"
-      using assms(5)[OF x_ab_k] by auto
+      using derg xk by auto
     \<comment> \<open>Get derivative of ff at g(x) within {c..d}\<close>
     have ff_deriv: "(ff has_vector_derivative f (g x)) (at (g x) within {c..d})"
       unfolding ff_def
-      using integral_has_vector_derivative_pointwise[OF assms(2) gx_cd f_cont] .
+      using integral_has_vector_derivative_pointwise[OF assms(2) _ f_cont] 
     \<comment> \<open>Weaken to derivative within g ` {a..b}\<close>
+      using g xk by (auto simp: Pi_iff)
     have ff_deriv': "(ff has_vector_derivative f (g x)) (at (g x) within g ` {a..b})"
-      using has_vector_derivative_within_subset[OF ff_deriv assms(4)] .
+      using has_vector_derivative_within_subset[OF ff_deriv] g by (simp add: funcset_image)
     \<comment> \<open>Apply chain rule\<close>
     have chain: "((ff \<circ> g) has_vector_derivative g' x *\<^sub>R f (g x)) (at x within {a..b})"
       using vector_diff_chain_within[OF g_deriv ff_deriv'] .
@@ -757,19 +750,13 @@ proof -
   \<comment> \<open>Now show (ff \<circ> g) b - (ff \<circ> g) a = integral {g a..g b} f\<close>
   have "(ff \<circ> g) b - (ff \<circ> g) a = integral {g a..g b} f"
   proof -
-    have ga_cd: "g a \<in> {c..d}" using g_in[OF _] assms(6) by auto
-    have gb_cd: "g b \<in> {c..d}" using g_in[OF _] assms(6) by auto
-    have c_ga: "c \<le> g a" and ga_d: "g a \<le> d"
-      using ga_cd by auto
-    have c_gb: "c \<le> g b" and gb_d: "g b \<le> d"
-      using gb_cd by auto
-    have "f integrable_on {c..g b}"
-      using integrable_on_subinterval[OF assms(2), of c "g b"] c_gb gb_d by auto
+    obtain c_ga: "c \<le> g a" and "c \<le> g b" "g b \<le> d"
+      by (metis Pi_mem g \<open>a \<le> b\<close> atLeastAtMost_iff nle_le)
+    then have "f integrable_on {c..g b}"
+      using integrable_on_subinterval[OF assms(2), of c "g b"] by auto
     then have combine: "integral {c..g a} f + integral {g a..g b} f = integral {c..g b} f"
-      using Henstock_Kurzweil_Integration.integral_combine[OF c_ga assms(8)] by auto
-    have "(ff \<circ> g) b - (ff \<circ> g) a = ff (g b) - ff (g a)"
-      by (simp add: comp_def)
-    also have "\<dots> = integral {c..g b} f - integral {c..g a} f"
+      using Henstock_Kurzweil_Integration.integral_combine[OF c_ga \<open>g a \<le> g b\<close>] by auto
+    have "(ff \<circ> g) b - (ff \<circ> g) a = integral {c..g b} f - integral {c..g a} f"
       by (simp add: ff_def)
     also have "\<dots> = integral {g a..g b} f"
       using combine by (simp add: algebra_simps)
@@ -812,23 +799,17 @@ proof -
         by auto
       have K_in: "\<Squnion> K \<in> {a..b}" "\<Sqinter> K \<in> {a..b}" if Kd: "K \<in> d" for K
       proof -
-        obtain u v where Kuv: "K = cbox u v"
-          using division_ofD(4)[OF divi Kd] by auto
-        have Kne: "K \<noteq> {}" using division_ofD(3)[OF divi Kd] .
-        have ne: "u \<le> v" using Kne Kuv by (auto simp: box_real)
-        have "K \<subseteq> {a..b}" using division_ofD(2)[OF divi Kd] sub by auto
-        then have uv_in: "u \<in> {a..b}" "v \<in> {a..b}" using Kuv ne by (auto simp: box_real)
-        have "\<Squnion> K = v" "\<Sqinter> K = u"
+        obtain u v where Kuv: "K = cbox u v" and Kne: "K \<noteq> {}" and ne: "u \<le> v"
+          by (metis Kd atLeastatMost_empty_iff box_real(2) cbox_division_memE hyp)
+        obtain uv_in: "u \<in> {a..b}" "v \<in> {a..b}" using Kuv ne
+          by (smt (verit, best) Kd divi division_of_def in_mono mem_box_real(2) sub)
+        moreover have "\<Squnion> K = v" "\<Sqinter> K = u"
           unfolding Kuv box_real using ne interval_bounds_real by auto
-        with uv_in show "\<Squnion> K \<in> {a..b}" "\<Sqinter> K \<in> {a..b}" by auto
+        ultimately show "\<Squnion> K \<in> {a..b}" "\<Sqinter> K \<in> {a..b}" by auto
       qed
       have term_bound: "norm ((g \<circ> \<phi>) (\<Squnion> K) - (g \<circ> \<phi>) (\<Sqinter> K)) \<le> L * norm (\<phi> (\<Squnion> K) - \<phi> (\<Sqinter> K))"
         if "K \<in> d" for K
-      proof -
-        have "norm (g (\<phi> (\<Squnion> K)) - g (\<phi> (\<Sqinter> K))) \<le> L * \<bar>\<phi> (\<Squnion> K) - \<phi> (\<Sqinter> K)\<bar>"
-          using lip K_in[OF that] by auto
-        then show ?thesis by (simp add: comp_def norm_real)
-      qed
+        using K_in lip that by auto
       have "(\<Sum>k\<in>d. norm ((g \<circ> \<phi>) (\<Squnion> k) - (g \<circ> \<phi>) (\<Sqinter> k)))
         \<le> (\<Sum>k\<in>d. L * norm (\<phi> (\<Squnion> k) - \<phi> (\<Sqinter> k)))"
         using term_bound by (intro sum_mono)
@@ -855,10 +836,10 @@ text \<open>1D substitution for absolutely continuous monotone functions.\<close
 lemma has_integral_substitution_ac:
   fixes \<phi> :: "real \<Rightarrow> real" and \<phi>' :: "real \<Rightarrow> real" and f :: "real \<Rightarrow> real"
   assumes "a \<le> b" "\<phi> a \<le> \<phi> b"
-    and "absolutely_continuous_on {a..b} \<phi>"
+    and \<phi>: "absolutely_continuous_on {a..b} \<phi>"
     and "negligible S"
-    and "\<And>t. t \<in> {a..b} - S \<Longrightarrow> (\<phi> has_vector_derivative \<phi>' t) (at t)"
-    and "continuous_on {\<phi> a..\<phi> b} f"
+    and vec: "\<And>t. t \<in> {a..b} - S \<Longrightarrow> (\<phi> has_vector_derivative \<phi>' t) (at t)"
+    and contf: "continuous_on {\<phi> a..\<phi> b} f"
     and mono: "\<And>x y. x \<in> {a..b} \<Longrightarrow> y \<in> {a..b} \<Longrightarrow> x \<le> y \<Longrightarrow> \<phi> x \<le> \<phi> y"
   shows "((\<lambda>t. \<phi>' t * f (\<phi> t)) has_integral (integral {\<phi> a..\<phi> b} f)) {a..b}"
 proof -
@@ -866,104 +847,66 @@ proof -
   define ff where "ff \<equiv> \<lambda>x. integral {\<phi> a..x} f"
   \<comment> \<open>f is integrable on {\<phi> a..\<phi> b}\<close>
   have f_int: "f integrable_on {\<phi> a..\<phi> b}"
-    using integrable_continuous_real assms(6) by blast
+    using integrable_continuous_real contf by blast
   \<comment> \<open>f is bounded on {\<phi> a..\<phi> b} — needed for Lipschitz property of ff\<close>
   obtain M where M_pos: "0 \<le> M" and M_bound: "\<And>t. t \<in> {\<phi> a..\<phi> b} \<Longrightarrow> \<bar>f t\<bar> \<le> M"
-    using continuous_on_compact_bound[of "{\<phi> a..\<phi> b}" f, OF _ assms(6)]
+    using continuous_on_compact_bound[of "{\<phi> a..\<phi> b}" f, OF _ contf]
     by (auto simp: norm_real)
   \<comment> \<open>ff is Lipschitz on {\<phi> a..\<phi> b}\<close>
-  have ff_lip: "norm (ff x - ff y) \<le> M * \<bar>x - y\<bar>"
-    if "x \<in> {\<phi> a..\<phi> b}" "y \<in> {\<phi> a..\<phi> b}" for x y
+  have ff_lip_half: "norm (ff x - ff y) \<le> M * \<bar>x - y\<bar>"
+    if "x \<in> {\<phi> a..\<phi> b}" "y \<in> {\<phi> a..\<phi> b}" "x \<le> y" for x y
   proof -
     have x_le: "\<phi> a \<le> x" "x \<le> \<phi> b" using that(1) by auto
     have y_le: "\<phi> a \<le> y" "y \<le> \<phi> b" using that(2) by auto
-    consider "x \<le> y" | "y < x" by linarith
-    then show ?thesis
-    proof cases
-      case 1
-      have f_int_xy: "f integrable_on {x..y}"
-        using integrable_on_subinterval[OF f_int] x_le y_le 1 by auto
-      have "ff y - ff x = integral {x..y} f"
-      proof -
-        have "f integrable_on {\<phi> a..y}"
-          using integrable_on_subinterval[OF f_int] y_le by auto
-        then have "integral {\<phi> a..x} f + integral {x..y} f = integral {\<phi> a..y} f"
-          using Henstock_Kurzweil_Integration.integral_combine[OF x_le(1) 1] by auto
-        then show ?thesis by (simp add: ff_def algebra_simps)
-      qed
-      also have "norm \<dots> \<le> M * (y - x)"
-        using integral_bound[OF 1 continuous_on_subset[OF assms(6)] _]
-              x_le y_le M_bound by (auto simp: norm_real)
-      also have "\<dots> = M * \<bar>x - y\<bar>" using 1 by (simp add: abs_of_nonneg)
-      finally show ?thesis by simp
-    next
-      case 2
-      have f_int_yx: "f integrable_on {y..x}"
-        using integrable_on_subinterval[OF f_int] x_le y_le 2 by auto
-      have "ff x - ff y = integral {y..x} f"
-      proof -
-        have "f integrable_on {\<phi> a..x}"
-          using integrable_on_subinterval[OF f_int] x_le by auto
-        then have "integral {\<phi> a..y} f + integral {y..x} f = integral {\<phi> a..x} f"
-          using Henstock_Kurzweil_Integration.integral_combine[OF y_le(1), of x f] 2 by auto
-        then show ?thesis by (simp add: ff_def algebra_simps)
-      qed
-      also have "norm \<dots> \<le> M * (x - y)"
-        using integral_bound[OF _ continuous_on_subset[OF assms(6)] _]
-              x_le y_le M_bound 2 by (auto simp: norm_real)
-      also have "\<dots> = M * \<bar>x - y\<bar>" using 2 by (simp add: abs_of_nonpos)
-      finally show ?thesis by simp
+    have f_int_xy: "f integrable_on {x..y}"
+      using integrable_on_subinterval[OF f_int] x_le y_le by auto
+    have "ff y - ff x = integral {x..y} f"
+    proof -
+      have "f integrable_on {\<phi> a..y}"
+        using integrable_on_subinterval[OF f_int] y_le by auto
+      then have "integral {\<phi> a..x} f + integral {x..y} f = integral {\<phi> a..y} f"
+        using Henstock_Kurzweil_Integration.integral_combine[OF x_le(1) \<open>x \<le> y\<close>] by auto
+      then show ?thesis by (simp add: ff_def algebra_simps)
     qed
+    also have "norm \<dots> \<le> M * (y - x)"
+      using integral_bound[OF \<open>x \<le> y\<close> continuous_on_subset[OF contf] _]
+        x_le y_le M_bound by (auto simp: norm_real)
+    finally show ?thesis
+      by (simp add: \<open>x \<le> y\<close>)
   qed
+  have ff_lip: "norm (ff x - ff y) \<le> M * \<bar>x - y\<bar>"
+    if "x \<in> {\<phi> a..\<phi> b}" "y \<in> {\<phi> a..\<phi> b}" for x y
+    by (metis ff_lip_half linorder_class.linear norm_minus_commute real_norm_def that)
   \<comment> \<open>Monotonicity: \<phi> maps {a..b} into {\<phi> a..\<phi> b}\<close>
   have \<phi>_range: "\<phi> t \<in> {\<phi> a..\<phi> b}" if "t \<in> {a..b}" for t
-    using mono[of a t] mono[of t b] that assms(1) by auto
+    using mono[of a t] mono[of t b] that by auto
   \<comment> \<open>ff \<circ> \<phi> is AC on {a..b}\<close>
   have ac_comp: "absolutely_continuous_on {a..b} (ff \<circ> \<phi>)"
-  proof (rule absolutely_continuous_on_Lipschitz_compose[OF assms(3) _ M_pos])
-    fix x y assume "x \<in> \<phi> ` {a..b}" "y \<in> \<phi> ` {a..b}"
-    then obtain s t where "s \<in> {a..b}" "x = \<phi> s" "t \<in> {a..b}" "y = \<phi> t" by auto
-    then have "x \<in> {\<phi> a..\<phi> b}" "y \<in> {\<phi> a..\<phi> b}" using \<phi>_range by auto
-    then show "norm (ff x - ff y) \<le> M * \<bar>x - y\<bar>" using ff_lip by auto
-  qed
-  \<comment> \<open>Chain rule: derivative of ff \<circ> \<phi> at each t \<in> {a..b} - S\<close>
+  proof (rule absolutely_continuous_on_Lipschitz_compose[OF \<phi> _ M_pos])
+  qed (use \<phi>_range ff_lip in auto)
   have deriv: "((ff \<circ> \<phi>) has_vector_derivative \<phi>' t *\<^sub>R f (\<phi> t))
     (at t within {a..b})" if "t \<in> {a..b} - S" for t
   proof -
-    have t_ab: "t \<in> {a..b}" using that by auto
-    \<comment> \<open>Derivative of \<phi> at t within {a..b}\<close>
     have \<phi>_deriv: "(\<phi> has_vector_derivative \<phi>' t) (at t within {a..b})"
-      using assms(5)[OF that] has_vector_derivative_at_within by blast
-    \<comment> \<open>\<phi> t is in {\<phi> a..\<phi> b}\<close>
-    have \<phi>t_in: "\<phi> t \<in> {\<phi> a..\<phi> b}" using \<phi>_range[OF t_ab] .
-    \<comment> \<open>f is continuous at \<phi> t within {\<phi> a..\<phi> b}\<close>
+      using vec[OF that] has_vector_derivative_at_within by blast
+    have \<phi>t_in: "\<phi> t \<in> {\<phi> a..\<phi> b}"
+      using \<phi>_range that by auto
     have f_cont: "continuous (at (\<phi> t) within {\<phi> a..\<phi> b}) f"
-      using assms(6) \<phi>t_in continuous_on_eq_continuous_within by blast
-    \<comment> \<open>Derivative of ff at \<phi> t within {\<phi> a..\<phi> b}\<close>
+      using contf \<phi>t_in continuous_on_eq_continuous_within by blast
     have ff_deriv: "(ff has_vector_derivative f (\<phi> t)) (at (\<phi> t) within {\<phi> a..\<phi> b})"
       unfolding ff_def
       using integral_has_vector_derivative_pointwise[OF f_int \<phi>t_in f_cont] .
-    \<comment> \<open>Weaken to derivative within \<phi> ` {a..b}\<close>
     have "\<phi> ` {a..b} \<subseteq> {\<phi> a..\<phi> b}"
       using \<phi>_range by auto
-    then have ff_deriv': "(ff has_vector_derivative f (\<phi> t)) (at (\<phi> t) within \<phi> ` {a..b})"
-      using has_vector_derivative_within_subset[OF ff_deriv] by blast
-    \<comment> \<open>Apply chain rule\<close>
-    show ?thesis using vector_diff_chain_within[OF \<phi>_deriv ff_deriv'] .
+    then show ?thesis using vector_diff_chain_within[OF \<phi>_deriv]
+      by (metis ff_deriv has_vector_derivative_within_subset) 
   qed
   \<comment> \<open>Apply FTC for absolutely continuous functions\<close>
   have ftc: "((\<lambda>t. \<phi>' t *\<^sub>R f (\<phi> t)) has_integral ((ff \<circ> \<phi>) b - (ff \<circ> \<phi>) a)) {a..b}"
     using fundamental_theorem_of_calculus_absolutely_continuous
-      [OF assms(4) assms(1) ac_comp] deriv by auto
-  \<comment> \<open>(ff \<circ> \<phi>) b - (ff \<circ> \<phi>) a = integral {\<phi> a..\<phi> b} f\<close>
+      [OF \<open>negligible S\<close> \<open>a \<le> b\<close> ac_comp] deriv by auto
   have "(ff \<circ> \<phi>) b - (ff \<circ> \<phi>) a = integral {\<phi> a..\<phi> b} f"
-  proof -
-    have "(ff \<circ> \<phi>) a = integral {\<phi> a..\<phi> a} f" by (simp add: comp_def ff_def)
-    also have "\<dots> = 0" by simp
-    finally have a_eq: "(ff \<circ> \<phi>) a = 0" .
-    have "(ff \<circ> \<phi>) b = integral {\<phi> a..\<phi> b} f" by (simp add: comp_def ff_def)
-    with a_eq show ?thesis by simp
-  qed
+    using ff_def by auto
   \<comment> \<open>Combine: for real-valued functions, scaleR equals multiplication\<close>
   with ftc show ?thesis by (simp add: real_scaleR_def)
 qed
@@ -980,10 +923,8 @@ proof (rule lborel_eqI[symmetric])
   proof -
     have "continuous_on UNIV (\<lambda>p :: real \<times> real. Complex (fst p) (snd p))"
       by (intro continuous_on_Complex continuous_on_fst continuous_on_snd continuous_on_id)
-    then have "continuous_on UNIV ?C"
-      by (simp add: case_prod_unfold)
     then have "?C \<in> borel_measurable borel"
-      by (rule borel_measurable_continuous_onI)
+      by (simp add: borel_measurable_continuous_onI case_prod_unfold)
     then show ?thesis by (simp add: measurable_lborel1)
   qed
   have "emeasure (distr lborel borel ?C) (box l u) = emeasure lborel (?C -` box l u)"
@@ -1094,12 +1035,8 @@ proof -
       show "0 < 1 - u" using \<open>u < 1\<close> by linarith
     qed
     moreover have "d' \<bullet> b \<le> d' \<bullet> a"
-    proof (rule mult_left_le_imp_le[of u])
-      have "(1 - u) * (d' \<bullet> a) + u * (d' \<bullet> b) \<le> d' \<bullet> a" by fact
-      then show "u * (d' \<bullet> b) \<le> u * (d' \<bullet> a)"
-        by (simp add: algebra_simps)
-      show "0 < u" by fact
-    qed
+      using ineq2 mult_left_le_imp_le[of u]
+      by (smt (verit, best) \<open>0 < u\<close> \<open>u < 1\<close> segment_bound_lemma)
     ultimately have "d' \<bullet> a = d' \<bullet> b" by linarith
     then show ?thesis using \<open>d' \<bullet> a = e'\<close> by simp
   qed
@@ -1136,7 +1073,7 @@ proof -
     qed
     ultimately show ?thesis by simp
   qed
-  have ri_half: "rel_interior S \<subseteq> {x. d \<bullet> x < e} \<or> rel_interior S \<subseteq> {x. e < d \<bullet> x}"
+  have "rel_interior S \<subseteq> {x. d \<bullet> x < e} \<or> rel_interior S \<subseteq> {x. e < d \<bullet> x}"
   proof -
     have conn: "connected (rel_interior S)"
       by (meson \<open>convex S\<close> convex_connected convex_rel_interior)
@@ -1155,30 +1092,19 @@ proof -
       using connectedD[OF conn open_halfspace_lt open_halfspace_gt disj sub] .
     then show ?thesis using sub by blast
   qed
-  show ?thesis
-  proof (rule disjE[OF ri_half])
+  then show ?thesis
+  proof 
     assume h: "rel_interior S \<subseteq> {x. d \<bullet> x < e}"
-    have "closure (rel_interior S) \<subseteq> closure {x. d \<bullet> x < e}"
-      by (rule closure_mono[OF h])
-    then have "closure S \<subseteq> {x. d \<bullet> x \<le> e}"
-      using convex_closure_rel_interior[OF \<open>convex S\<close>] closure_halfspace_lt[OF \<open>d \<noteq> 0\<close>]
-      by simp
-    then have "S \<subseteq> {x. d \<bullet> x \<le> e}"
-      using closure_subset by (meson order_trans)
-    then show ?thesis by blast
+    then show ?thesis
+      using closure_mono[OF h] convex_closure_rel_interior[OF \<open>convex S\<close>] 
+      using closure_subset closure_halfspace_lt[OF \<open>d \<noteq> 0\<close>] by blast
   next
     assume h: "rel_interior S \<subseteq> {x. e < d \<bullet> x}"
-    have "closure (rel_interior S) \<subseteq> closure {x. e < d \<bullet> x}"
-      by (rule closure_mono[OF h])
-    then have "closure S \<subseteq> {x. e \<le> d \<bullet> x}"
-      using convex_closure_rel_interior[OF \<open>convex S\<close>] closure_halfspace_gt[OF \<open>d \<noteq> 0\<close>]
-      by simp
-    then have "S \<subseteq> {x. d \<bullet> x \<ge> e}"
-      using closure_subset by (meson order_trans)
-    then show ?thesis by blast
+    then show ?thesis
+      using closure_mono[OF h] convex_closure_rel_interior[OF \<open>convex S\<close>] 
+      using closure_subset closure_halfspace_gt[OF \<open>d \<noteq> 0\<close>] by blast
   qed
 qed
-
 
 lemma convex_triple_relative_frontier:
   fixes S :: "complex set" and a b c d :: complex and e :: real
@@ -1204,25 +1130,6 @@ qed auto
 
 section \<open>Lebesgue measurability of ordinate sets\<close>
 
-lemma le_iff_forall_rat_less_imp:
-  fixes x y :: real
-  shows "x \<le> y \<longleftrightarrow> (\<forall>q \<in> \<rat>. y < q \<longrightarrow> x < q)"
-proof (intro iffI)
-  assume "x \<le> y"
-  then show "\<forall>q\<in>\<rat>. y < q \<longrightarrow> x < q"
-    by (meson order_le_less_trans)
-next
-  assume *: "\<forall>q\<in>\<rat>. y < q \<longrightarrow> x < q"
-  show "x \<le> y"
-  proof (rule ccontr)
-    assume "\<not> x \<le> y"
-    then have "y < x" by simp
-    then obtain q where "q \<in> \<rat>" "y < q" "q < x"
-      using Rats_dense_in_real by blast
-    with * show False by auto
-  qed
-qed
-
 text \<open>Helper: if A is Lebesgue measurable in \<real>, then A \<times> UNIV is Lebesgue measurable in \<real>².\<close>
 
 lemma lebesgue_measurable_Times_UNIV:
@@ -1230,68 +1137,44 @@ lemma lebesgue_measurable_Times_UNIV:
   assumes "A \<in> sets lebesgue"
   shows "A \<times> (UNIV :: real set) \<in> sets lebesgue"
 proof -
-  have A_eq: "A = main_part lborel A \<union> null_part lborel A"
-    using main_part_null_part_Un[OF assms] by simp
-  have mp: "main_part lborel A \<in> sets lborel"
-    using main_part_sets[OF assms] .
+  have mp_borel: "main_part lborel A \<in> sets borel"
+    using main_part_sets[OF assms] by (simp add: sets_lborel)
+  have UNIV_borel: "(UNIV :: real set) \<in> sets borel"
+    using sets.top[of "borel :: real measure"] by (simp add: space_borel)
+  have mp_leb: "main_part lborel A \<times> (UNIV :: real set) \<in> sets lebesgue"
+    using sets_completionI_sets by (simp add: borel_Times mp_borel)
   obtain N :: "real set" where N: "N \<in> null_sets lborel" "null_part lborel A \<subseteq> N"
     using null_part[OF assms] by auto
-  have mp_borel: "main_part lborel A \<in> sets (borel :: real measure)"
-    using mp by (simp add: sets_lborel)
-  have UNIV_borel: "(UNIV :: real set) \<in> sets (borel :: real measure)"
-    using sets.top[of "borel :: real measure"] by (simp add: space_borel)
-  have "main_part lborel A \<times> (UNIV :: real set) \<in> sets (borel :: (real \<times> real) measure)"
-    using borel_Times[OF mp_borel UNIV_borel] .
-  then have mp_leb: "main_part lborel A \<times> (UNIV :: real set)
-      \<in> sets (lebesgue :: (real \<times> real) measure)"
-    using sets_completionI_sets by (simp add: sets_lborel)
-  have UNIV_lborel: "(UNIV :: real set) \<in> sets (lborel :: real measure)"
-    using sets.top[of "lborel :: real measure"] by (simp add: space_lborel space_borel)
-  have "N \<times> (UNIV :: real set) \<in> null_sets (lborel \<Otimes>\<^sub>M (lborel :: real measure))"
-    using lborel.times_in_null_sets1[OF N(1) UNIV_lborel] .
-  then have N_null: "N \<times> (UNIV :: real set) \<in> null_sets (lborel :: (real \<times> real) measure)"
-    by (simp add: lborel_prod)
-  have "null_part lborel A \<times> (UNIV :: real set) \<subseteq> N \<times> (UNIV :: real set)"
-    using N(2) by auto
-  moreover have "N \<times> (UNIV :: real set) \<in> null_sets (lebesgue :: (real \<times> real) measure)"
-    using N_null null_sets_completionI by blast
-  ultimately have np_leb: "null_part lborel A \<times> (UNIV :: real set)
-      \<in> sets (lebesgue :: (real \<times> real) measure)"
-    using completion.complete by blast
-  have "A \<times> (UNIV :: real set) = (main_part lborel A \<times> UNIV) \<union> (null_part lborel A \<times> UNIV)"
-    using A_eq by auto
-  then show ?thesis using mp_leb np_leb sets.Un by metis
+  then have "N \<times> (UNIV :: real set) \<in> null_sets lborel"
+    by (metis UNIV_borel lborel.times_in_null_sets1 lborel_prod sets_lborel)
+  then have "null_part lborel A \<times> (UNIV :: real set) \<in> sets lebesgue"
+    using completion.complete
+    by (simp add: N(2) Sigma_mono sets_completionI_sub)
+  then show ?thesis  using main_part_null_part_Un[OF assms]
+    by (metis Sigma_Un_distrib1 mp_leb sets.Un)
 qed
 
 lemma prod_swap_lebesgue_measurable:
   "prod.swap \<in> (lebesgue :: ('a::euclidean_space \<times> 'b::euclidean_space) measure)
     \<rightarrow>\<^sub>M (lebesgue :: ('b \<times> 'a) measure)"
 proof -
-  \<comment> \<open>Step 1: prod.swap is Borel-measurable\<close>
-  have swap_lborel: "prod.swap \<in> (lborel :: ('a \<times> 'b) measure)
-    \<rightarrow>\<^sub>M (lborel :: ('b \<times> 'a) measure)"
+  have swap_lborel: "prod.swap \<in> (lborel :: ('a \<times> 'b) measure) \<rightarrow>\<^sub>M lborel"
     by (simp add: borel_measurable_continuous_onI continuous_on_swap)
-  \<comment> \<open>Step 2: lift source to completion\<close>
-  have swap_compl: "prod.swap \<in> (lebesgue :: ('a \<times> 'b) measure)
-    \<rightarrow>\<^sub>M (lborel :: ('b \<times> 'a) measure)"
+  have swap_compl: "prod.swap \<in> (lebesgue :: ('a \<times> 'b) measure) \<rightarrow>\<^sub>M lborel"
     using measurable_completion[OF swap_lborel] by simp
-  \<comment> \<open>Step 3: null sets are preserved\<close>
-  have "distr (lebesgue :: ('a \<times> 'b) measure) lborel prod.swap
-    = distr lborel lborel prod.swap"
+  have "distr (lebesgue :: ('a \<times> 'b) measure) lborel prod.swap = distr lborel lborel prod.swap"
     using distr_completion[OF swap_lborel] by simp
-  also have "... = (lborel :: ('b \<times> 'a) measure)"
+  also have "... = lborel"
   proof -
-    have "distr lborel lborel prod.swap
-      = distr lborel lborel (\<lambda>(x::'a, y::'b). (y, x))"
+    have "distr lborel lborel prod.swap = distr lborel lborel (\<lambda>(x::'a, y::'b). (y, x))"
       by (intro distr_cong) (auto simp: swap_simp)
-    also have "... = (lborel :: ('b \<times> 'a) measure)"
+    also have "... = lborel"
       using lborel_pair.distr_pair_swap by (simp add: lborel_prod eq_commute)
     finally show ?thesis .
   qed
   finally have null_eq: "null_sets (lborel :: ('b \<times> 'a) measure)
-    \<subseteq> null_sets (distr (lebesgue :: ('a \<times> 'b) measure) lborel prod.swap)"
+    \<subseteq> null_sets (distr lebesgue lborel prod.swap)"
     by simp
-  \<comment> \<open>Step 4: lift target to completion\<close>
   show ?thesis
     using completion.measurable_completion2[OF swap_compl null_eq] by simp
 qed
@@ -1316,13 +1199,7 @@ proof -
   let ?inv = "\<lambda>z::complex. (Re z, Im z)"
   \<comment> \<open>Key: ?C is linear from real \<times> real to complex\<close>
   have lin: "linear ?C"
-  proof (rule linearI)
-    fix x y :: "real \<times> real" and c :: real
-    show "?C (x + y) = ?C x + ?C y"
-      by (cases x; cases y) (simp add: complex_eq_iff)
-    show "?C (c *\<^sub>R x) = c *\<^sub>R ?C x"
-      by (cases x) (simp add: complex_eq_iff)
-  qed
+    by (simp add: complex_eq_iff linear_iff)
   \<comment> \<open>?C maps cboxes to cboxes with the same measure\<close>
   have box_eq: "measure lebesgue (?C ` cbox a b) = 1 * measure lebesgue (cbox a b)"
     for a b :: "real \<times> real"
@@ -1330,17 +1207,7 @@ proof -
     obtain a1 a2 where a: "a = (a1, a2)" by (cases a)
     obtain b1 b2 where b: "b = (b1, b2)" by (cases b)
     have "?C ` cbox (a1,a2) (b1,b2) = cbox (Complex a1 a2) (Complex b1 b2)"
-    proof (intro set_eqI iffI)
-      fix z :: complex
-      assume "z \<in> ?C ` cbox (a1,a2) (b1,b2)"
-      then show "z \<in> cbox (Complex a1 a2) (Complex b1 b2)"
-        by (auto simp: cbox_complex_eq complex.sel mem_box Basis_prod_def)
-    next
-      fix z :: complex
-      assume "z \<in> cbox (Complex a1 a2) (Complex b1 b2)"
-      then show "z \<in> ?C ` cbox (a1,a2) (b1,b2)"
-        by (simp add: cbox_Complex_eq cbox_Pair_eq split_def)
-    qed
+      by (force simp: cbox_complex_eq mem_box Basis_prod_def image_iff split_def)
     moreover have "measure lebesgue (cbox (Complex a1 a2) (Complex b1 b2)) =
           measure lebesgue (cbox (a1,a2) (b1,b2))"
       by (simp add: measure_lborel_cbox_eq Basis_complex_def Basis_prod_def
@@ -1348,20 +1215,16 @@ proof -
     ultimately show ?thesis unfolding a b by simp
   qed
   \<comment> \<open>?inv is measurable from complex lborel to (real \<times> real) lborel\<close>
-  have inv_lborel: "?inv \<in> (lborel :: complex measure) \<rightarrow>\<^sub>M (lborel :: (real \<times> real) measure)"
-  proof -
-    have "?inv \<in> (borel :: complex measure) \<rightarrow>\<^sub>M (borel :: (real \<times> real) measure)"
-      by (intro borel_measurable_Pair borel_measurable_Re borel_measurable_Im)
-    then show ?thesis by (simp add: measurable_def sets_lborel)
-  qed
+  have inv_lborel: "?inv \<in> lborel \<rightarrow>\<^sub>M lborel"
+    by simp
   \<comment> \<open>Lift source to completion\<close>
-  have inv_compl: "?inv \<in> (lebesgue :: complex measure) \<rightarrow>\<^sub>M (lborel :: (real \<times> real) measure)"
+  have inv_compl: "?inv \<in> lebesgue \<rightarrow>\<^sub>M lborel"
     using measurable_completion[OF inv_lborel] by simp
   \<comment> \<open>Compute distr lebesgue lborel ?inv = lborel\<close>
   have "distr (lebesgue :: complex measure) lborel ?inv
-      = distr (lborel :: complex measure) lborel ?inv"
+      = distr lborel lborel ?inv"
     using distr_completion[OF inv_lborel] by simp
-  also have "\<dots> = (lborel :: (real \<times> real) measure)"
+  also have "\<dots> = lborel"
   proof -
     \<comment> \<open>Use distr_distr with ?C and ?inv: ?inv \<circ> ?C = id\<close>
     have C_meas: "?C \<in> (lborel :: (real \<times> real) measure) \<rightarrow>\<^sub>M (borel :: complex measure)"
