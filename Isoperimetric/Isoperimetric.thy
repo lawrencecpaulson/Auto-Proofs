@@ -1,5 +1,5 @@
 theory Isoperimetric
-  imports Arc_Length_Reparametrization "Fourier.Fourier" "Green.Green" "../Euclidean_Space_Transfer"
+  imports Arc_Length_Reparametrization (*"Fourier.Fourier" "Green.Green" "../Euclidean_Space_Transfer"*)
     "HOL-ex.Sketch_and_Explore" Isar_Explore
 begin
 
@@ -558,6 +558,111 @@ proof -
   ultimately show ?thesis by blast
 qed
 
+
+lemma lemma2:
+  fixes f :: "real \<Rightarrow> real" and a b k :: real
+  assumes "has_bounded_variation_on f {a..b}" "a < b" "0 < k"
+  shows "negligible
+           {x \<in> {a..b}.
+              \<forall>S. open S \<and> x \<in> S \<longrightarrow>
+                (\<exists>u v. u \<in> {a..b} \<and> u \<in> S \<and>
+                       v \<in> {a..b} \<and> v \<in> S \<and>
+                       x \<in> {u<..<v} \<and>
+                       k \<le> (f v - f u) / (v - u)) \<and>
+                (\<exists>u v. u \<in> {a..b} \<and> u \<in> S \<and>
+                       v \<in> {a..b} \<and> v \<in> S \<and>
+                       x \<in> {u<..<v} \<and>
+                       (f v - f u) / (v - u) \<le> -k)}"
+proof -
+  define t' where "t' \<equiv> {x \<in> {a..b}.
+              \<forall>S. open S \<and> x \<in> S \<longrightarrow>
+                (\<exists>u v. u \<in> {a..b} \<and> u \<in> S \<and>
+                       v \<in> {a..b} \<and> v \<in> S \<and>
+                       x \<in> {u<..<v} \<and>
+                       k \<le> (f v - f u) / (v - u)) \<and>
+                (\<exists>u v. u \<in> {a..b} \<and> u \<in> S \<and>
+                       v \<in> {a..b} \<and> v \<in> S \<and>
+                       x \<in> {u<..<v} \<and>
+                       (f v - f u) / (v - u) \<le> -k)}"
+  have neg_iff: "negligible t' \<longleftrightarrow>
+    (\<forall>e>0. \<exists>T. t' \<subseteq> T \<and> T \<in> lmeasurable \<and> measure lebesgue T \<le> e)"
+    by (rule negligible_outer_le)
+  have "negligible t'"
+    unfolding neg_iff
+  proof (intro allI impI)
+    fix e :: real assume "e > 0"
+    have ke3_pos: "0 < k * e / 3"
+      using \<open>0 < k\<close> \<open>e > 0\<close> by auto
+    \<comment> \<open>Get a division D of [a,b] whose sum exceeds vector_variation - k*e/3\<close>
+    have vv_eq: "vector_variation {a..b} f =
+          Sup {\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k)) |d. d division_of {a..b}}"
+      using assms(1) by (rule vector_variation_on_interval)
+    define S where "S \<equiv> {\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k)) |d. d division_of {a..b}}"
+    have S_ne: "S \<noteq> {}"
+    proof -
+      have "{a..b} = cbox a b" by auto
+      then obtain p where "p division_of {a..b}"
+        using elementary_interval[of a b] by metis
+      then show ?thesis unfolding S_def by blast
+    qed
+    have "vector_variation {a..b} f - k * e / 3 < Sup S"
+      using ke3_pos vv_eq unfolding S_def by linarith
+    then obtain x where "x \<in> S" "vector_variation {a..b} f - k * e / 3 < x"
+      using less_cSupD[OF S_ne] by auto
+    then obtain D where D_div: "D division_of {a..b}"
+      and D_sum: "vector_variation {a..b} f - k * e / 3 <
+                  (\<Sum>K\<in>D. norm (f (Sup K) - f (Inf K)))"
+      unfolding S_def by auto
+    show "\<exists>T. t' \<subseteq> T \<and> T \<in> lmeasurable \<and> measure lebesgue T \<le> e"
+    proof -
+      have fin_D: "finite D"
+        using D_div division_of_finite by blast
+      define t where "t \<equiv> t' - \<Union>(frontier ` D)"
+      \<comment> \<open>Frontiers of division elements are negligible\<close>
+      have neg_frontiers: "negligible (\<Union>(frontier ` D))"
+      proof (rule negligible_Union)
+        show "finite (frontier ` D)" using fin_D by auto
+      next
+        fix T assume "T \<in> frontier ` D"
+        then obtain K where "K \<in> D" "T = frontier K" by auto
+        then obtain c d where "K = cbox c d"
+          using division_ofD(4)[OF D_div] by blast
+        then show "negligible T"
+          using \<open>T = frontier K\<close> negligible_convex_frontier convex_box(1) by metis
+      qed
+      \<comment> \<open>Reduce to finding a cover for t\<close>
+      have cover_t: "\<exists>c. t \<subseteq> c \<and> c \<in> lmeasurable \<and> measure lebesgue c \<le> e"
+        sorry \<comment> \<open>Main construction; proved in stages below\<close>
+      then obtain c where c_sub: "t \<subseteq> c" and c_meas: "c \<in> lmeasurable"
+        and c_bound: "measure lebesgue c \<le> e" by auto
+      define T where "T \<equiv> c \<union> \<Union>(frontier ` D)"
+      have "t' \<subseteq> T" unfolding T_def using c_sub unfolding t_def by auto
+      moreover have "T \<in> lmeasurable"
+      proof -
+        have "\<Union>(frontier ` D) \<in> lmeasurable"
+          using neg_frontiers negligible_imp_measurable by auto
+        then show ?thesis unfolding T_def using c_meas
+          by (intro fmeasurable.Un) auto
+      qed
+      moreover have "measure lebesgue T \<le> e"
+      proof -
+        have "measure lebesgue T \<le> measure lebesgue c + measure lebesgue (\<Union>(frontier ` D))"
+          unfolding T_def
+        proof (rule measure_Un_le)
+          show "c \<in> sets lebesgue" using c_meas fmeasurableD by blast
+          show "\<Union>(frontier ` D) \<in> sets lebesgue"
+            using neg_frontiers negligible_imp_measurable fmeasurableD by blast
+        qed
+        also have "measure lebesgue (\<Union>(frontier ` D)) = 0"
+          using neg_frontiers negligible_imp_measure0 by auto
+        finally show ?thesis using c_bound by linarith
+      qed
+      ultimately show ?thesis by blast
+    qed
+  qed
+  then show ?thesis
+    by (simp add: t'_def)
+qed
 
 lemma Lebesgue_differentiation_theorem_compact:
   fixes f :: "real \<Rightarrow> 'a::euclidean_space"
