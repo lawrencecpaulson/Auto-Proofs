@@ -30,6 +30,1063 @@ lemma integral_change_of_variables_linear:
     shows "integral (g ` S) f = \<bar>eucl.det g\<bar> *\<^sub>R integral S (f \<circ> g)"
   sorry (*PROVED ELSEWHERE; ASSUMED HERE*)
 
+lemma has_bounded_variation_countable_discontinuities:
+  fixes f :: "real \<Rightarrow> 'a::euclidean_space"
+  assumes "has_bounded_variation_on f {a..b}"
+  shows "countable {x \<in> {a..b}. \<not> isCont f x}"
+proof -
+  define V where "V \<equiv> \<lambda>x. vector_variation {a..x} f"
+  have "\<And>x y. \<lbrakk>a \<le> x; y \<le> b; x \<le> y\<rbrakk>
+           \<Longrightarrow> vector_variation {a..x} f \<le> vector_variation {a..y} f"
+    by (metis assms atLeastatMost_subset_iff order.trans eq_refl
+        has_bounded_variation_on_combine vector_variation_monotone)
+  then have V_mono: "mono_on {a..b} V"
+    by (auto simp: V_def monotone_on_def)
+  have discont_within: "countable {x \<in> {a..b}. \<not> continuous (at x within {a..b}) f}"
+    using vector_variation_continuous[OF assms] mono_on_ctble_discont[OF V_mono] unfolding V_def
+    by (metis (mono_tags, lifting) Collect_cong)
+  have "{x \<in> {a..b}. \<not> isCont f x} \<subseteq> {x \<in> {a..b}. \<not> continuous (at x within {a..b}) f} \<union> {a, b}"
+    by (auto simp: at_within_Icc_at)
+  then show ?thesis
+    using countable_subset discont_within by (meson countable_Un countable_insert countable_empty)
+qed
+
+lemma lemma0:
+  fixes x y k :: real
+  assumes "k \<le> y - x" "0 < k"
+  shows "\<exists>q\<in>\<rat>. k / 3 < q - x \<and> k / 3 < y - q"
+proof -
+  have mid: "(x + y) / 2 - k / 6 < (x + y) / 2 + k / 6"
+    using assms by auto
+  then obtain q where q: "q \<in> \<rat>" "(x + y) / 2 - k / 6 < q" "q < (x + y) / 2 + k / 6"
+    using Rats_dense_in_real by blast
+  have "k / 3 < q - x"
+    using q(2) assms by (simp add: field_simps)
+  moreover have "k / 3 < y - q"
+    using q(3) assms by (simp add: field_simps)
+  ultimately show ?thesis
+    using q(1) by auto
+qed
+
+lemma lemma1:
+  fixes f :: "real \<Rightarrow> 'a::euclidean_space" and a b :: real
+  assumes "has_bounded_variation_on f {a..b}"
+  shows "\<exists>t. negligible t \<and>
+             (\<forall>x \<in> {a..b} - t.
+                \<exists>B>0. eventually (\<lambda>y. norm (f y - f x) \<le> B * norm (y - x)) (at x))"
+proof -
+  define t where "t = {x \<in> {a<..<b}. isCont f x \<and>
+    \<not> (\<exists>B>0. eventually (\<lambda>y. norm (f y - f x) \<le> B * norm (y - x)) (at x))}"
+    \<comment> \<open>the "bad set": points in the open interval where f is continuous 
+        but fails to have a local Lipschitz bound.\<close>
+  obtain B where B: "\<And>d T. \<lbrakk>d division_of T; T \<subseteq> {a..b}\<rbrakk> \<Longrightarrow>
+      (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> B"
+  proof -
+    from assms obtain B where "\<forall>d T. d division_of T \<and> T \<subseteq> {a..b} \<longrightarrow>
+        (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> B"
+      unfolding has_bounded_variation_on_def has_bounded_setvariation_on_def by auto
+    then show ?thesis using that by blast
+  qed
+  have claim: "\<exists>T. negligible T \<and>
+       (\<forall>x. x \<in> {a..b} - T \<longrightarrow> isCont f x \<longrightarrow>
+          (\<exists>B>0. eventually (\<lambda>y. norm (f y - f x) \<le> B * norm (y - x)) (at x)))"
+  proof (intro exI [where x = "_ \<union> t"] conjI strip)
+    show "negligible ({a, b} \<union> t)"
+    proof (rule negligible_Un)
+      show "negligible t"
+        unfolding negligible_outer_le
+      proof (intro strip)
+        fix \<epsilon> :: real
+        assume "0 < \<epsilon>"
+        define M where "M = 3 * (\<bar>B\<bar> + 1) / \<epsilon>"
+        have "0 < M"
+          unfolding M_def using \<open>0 < \<epsilon>\<close> by (auto intro: divide_pos_pos)
+        have interval_witness: 
+          "\<exists>u v. u \<in> {a..b} \<and> v \<in> {a..b} \<and> x \<in> {u<..<v} \<and>
+                  M * \<bar>v - u\<bar> \<le> norm (f u - f v)" if "x \<in> t" for x
+        proof -
+          from that have xab: "x \<in> {a<..<b}" and xcont: "isCont f x"
+            and xnlip: "\<not> (\<exists>B>0. eventually (\<lambda>y. norm (f y - f x) \<le> B * norm (y - x)) (at x))"
+            unfolding t_def by auto
+          from xab obtain d where "d > 0" and dsub: "\<And>x'. \<bar>x' - x\<bar> < d \<Longrightarrow> x' \<in> {a<..<b}"
+            by (meson open_greaterThanLessThan open_real)
+          have xnlip': "\<not> (\<exists>d>0. \<forall>x'. 0 < dist x' x \<and> dist x' x < d \<longrightarrow>
+              norm (f x' - f x) \<le> (3 * M) * norm (x' - x))" (*UGLY*)
+          proof (rule ccontr, simp only: not_not)
+            assume "\<exists>d>0. \<forall>x'. 0 < dist x' x \<and> dist x' x < d \<longrightarrow>
+                norm (f x' - f x) \<le> (3 * M) * norm (x' - x)"
+            then obtain d where "d > 0" and
+              hd: "\<And>x'. 0 < dist x' x \<Longrightarrow> dist x' x < d \<Longrightarrow>
+                norm (f x' - f x) \<le> (3 * M) * norm (x' - x)" by auto
+            have "eventually (\<lambda>y. norm (f y - f x) \<le> (3 * M) * norm (y - x)) (at x)"
+              unfolding eventually_at using \<open>d > 0\<close> hd by auto
+            moreover have "(3 * M) > 0" using \<open>0 < M\<close> by auto
+            ultimately show False using xnlip by auto
+          qed
+          obtain y where yx: "0 < dist y x" "dist y x < d"
+            and ylip: "(3 * M) * norm (y - x) < norm (f y - f x)"
+            by (meson \<open>0 < d\<close> not_le xnlip')
+          have yab: "y \<in> {a<..<b}"
+            using dsub yx(2) by (auto simp: dist_real_def)
+          have xab': "x \<in> {a..b}" and yab': "y \<in> {a..b}"
+            using xab yab by auto
+          consider "x<y" | "y<x"
+            using yx by fastforce
+          then show ?thesis
+          proof cases
+            case 1
+            then show ?thesis
+            proof -
+              note xy = \<open>x < y\<close>
+              have ynx: "y - x > 0" using xy by simp
+              have Myx: "M * (y - x) > 0" using \<open>0 < M\<close> ynx by auto
+              from xcont have "(f \<longlongrightarrow> f x) (at x)"
+                by (simp add: isCont_def)
+              from tendstoD[OF this Myx]
+              have "\<forall>\<^sub>F x' in at x. dist (f x') (f x) < M * (y - x)" .
+              then obtain d' where "d' > 0" and
+                hd': "\<And>x'. x' \<noteq> x \<Longrightarrow> dist x' x < d' \<Longrightarrow> dist (f x') (f x) < M * (y - x)"
+                unfolding eventually_at by auto
+              define u where "u = x - min (y - x) (min d d') / 2"
+              have ux: "u < x" unfolding u_def using \<open>d' > 0\<close> \<open>0 < d\<close> ynx by auto
+              have xu_bound: "x - u < y - x"
+                unfolding u_def using \<open>d' > 0\<close> \<open>0 < d\<close> ynx by auto
+              have xu_d: "x - u < d" unfolding u_def using \<open>d' > 0\<close> \<open>0 < d\<close> ynx by auto
+              have xu_d': "x - u < d'" unfolding u_def using \<open>d' > 0\<close> \<open>0 < d\<close> ynx by auto
+              have fu_bound: "norm (f u - f x) < M * (y - x)"
+              proof -
+                have "u \<noteq> x" using ux by auto
+                moreover have "dist u x < d'"
+                  using xu_d' ux by (simp add: dist_real_def)
+                ultimately have "dist (f u) (f x) < M * (y - x)"
+                  using hd'[of u] by auto
+                then show ?thesis by (simp add: dist_norm)
+              qed
+              have uab: "u \<in> {a<..<b}"
+              proof -
+                have "\<bar>u - x\<bar> < d" using xu_d ux by auto
+                then show ?thesis using dsub by auto
+              qed
+              have uab': "u \<in> {a..b}" using uab by auto
+              have xuv: "x \<in> {u<..<y}" using ux xy by auto
+              have vu_bound: "y - u < 2 * (y - x)"
+                using xu_bound ux xy by auto
+              have ylip': "norm (f y - f x) > 3 * M * (y - x)"
+                using ylip ynx by (simp add: real_norm_def)
+              have key: "norm (f u - f y) > 2 * M * (y - x)"
+              proof -
+                have tri: "norm (f y - f x) \<le> norm (f y - f u) + norm (f u - f x)"
+                proof -
+                  have "f y - f x = (f y - f u) + (f u - f x)" by simp
+                  then show ?thesis using norm_triangle_ineq[of "f y - f u" "f u - f x"] by simp
+                qed
+                have "norm (f y - f u) \<ge> norm (f y - f x) - norm (f u - f x)"
+                  using tri by linarith
+                then have "norm (f y - f u) > 3 * M * (y - x) - M * (y - x)"
+                  using ylip' fu_bound by linarith
+                then have "norm (f y - f u) > 2 * M * (y - x)" by linarith
+                then show ?thesis by (simp add: norm_minus_commute)
+              qed
+              have "M * \<bar>y - u\<bar> \<le> norm (f u - f y)"
+              proof -
+                have "y - u < 2 * (y - x)" using vu_bound .
+                then have "M * (y - u) < M * (2 * (y - x))"
+                  using \<open>0 < M\<close> by auto
+                then have "M * (y - u) < 2 * M * (y - x)" by linarith
+                also have "2 * M * (y - x) < norm (f u - f y)" using key by linarith
+                finally have "M * (y - u) < norm (f u - f y)" .
+                moreover have "\<bar>y - u\<bar> = y - u" using ux xy by auto
+                ultimately show ?thesis by linarith
+              qed
+              then show ?thesis
+                using uab' yab' xuv by (intro exI[of _ u] exI[of _ y]) auto
+            qed
+          next
+            case 2
+            then show ?thesis
+            proof -
+              note yx = \<open>y < x\<close>
+              have xny: "x - y > 0" using yx by simp
+              have Mxy: "M * (x - y) > 0" using \<open>0 < M\<close> xny by auto
+              from xcont have "(f \<longlongrightarrow> f x) (at x)"
+                by (simp add: isCont_def)
+              from tendstoD[OF this Mxy]
+              have "\<forall>\<^sub>F x' in at x. dist (f x') (f x) < M * (x - y)" .
+              then obtain d' where "d' > 0" and
+                hd': "\<And>x'. x' \<noteq> x \<Longrightarrow> dist x' x < d' \<Longrightarrow> dist (f x') (f x) < M * (x - y)"
+                unfolding eventually_at by auto
+              define v where "v = x + min (x - y) (min d d') / 2"
+              have xv: "x < v" unfolding v_def using \<open>d' > 0\<close> \<open>0 < d\<close> xny by auto
+              have vx_bound: "v - x < x - y"
+                unfolding v_def using \<open>d' > 0\<close> \<open>0 < d\<close> xny by auto
+              have vx_d: "v - x < d" unfolding v_def using \<open>d' > 0\<close> \<open>0 < d\<close> xny by auto
+              have vx_d': "v - x < d'" unfolding v_def using \<open>d' > 0\<close> \<open>0 < d\<close> xny by auto
+              have fv_bound: "norm (f v - f x) < M * (x - y)"
+              proof -
+                have "v \<noteq> x" using xv by auto
+                moreover have "dist v x < d'"
+                  using vx_d' xv by (simp add: dist_real_def)
+                ultimately have "dist (f v) (f x) < M * (x - y)"
+                  using hd'[of v] by auto
+                then show ?thesis by (simp add: dist_norm)
+              qed
+              have vab: "v \<in> {a<..<b}"
+              proof -
+                have "\<bar>v - x\<bar> < d" using vx_d xv by auto
+                then show ?thesis using dsub by auto
+              qed
+              have vab': "v \<in> {a..b}" using vab by auto
+              have yxv: "x \<in> {y<..<v}" using yx xv by auto
+              have vy_bound: "v - y < 2 * (x - y)"
+                using vx_bound xv yx by auto
+              have ylip': "norm (f y - f x) > 3 * M * (x - y)"
+                using ylip xny by (simp add: real_norm_def norm_minus_commute)
+              have key: "norm (f v - f y) > 2 * M * (x - y)"
+              proof -
+                have tri: "norm (f y - f x) \<le> norm (f y - f v) + norm (f v - f x)"
+                proof -
+                  have "f y - f x = (f y - f v) + (f v - f x)" by simp
+                  then show ?thesis using norm_triangle_ineq[of "f y - f v" "f v - f x"] by simp
+                qed
+                have "norm (f y - f v) \<ge> norm (f y - f x) - norm (f v - f x)"
+                  using tri by linarith
+                then have "norm (f y - f v) > 3 * M * (x - y) - M * (x - y)"
+                  using ylip' fv_bound by linarith
+                then have "norm (f y - f v) > 2 * M * (x - y)" by linarith
+                then show ?thesis by (simp add: norm_minus_commute)
+              qed
+              have "M * \<bar>v - y\<bar> \<le> norm (f y - f v)"
+              proof -
+                have "v - y < 2 * (x - y)" using vy_bound .
+                then have "M * (v - y) < M * (2 * (x - y))"
+                  using \<open>0 < M\<close> by auto
+                then have "M * (v - y) < 2 * M * (x - y)" by linarith
+                also have "2 * M * (x - y) < norm (f v - f y)" using key by linarith
+                finally have "M * (v - y) < norm (f v - f y)" .
+                moreover have "\<bar>v - y\<bar> = v - y" using yx xv by auto
+                ultimately show ?thesis by (simp add: norm_minus_commute)
+              qed
+              then show ?thesis
+                using yab' vab' yxv by (intro exI[of _ y] exI[of _ v]) auto
+            qed
+          qed
+        qed
+        then obtain u v where uv: "\<And>x. x \<in> t \<Longrightarrow> u x \<in> {a..b} \<and> v x \<in> {a..b} \<and> x \<in> {u x <..< v x}
+                             \<and> M * \<bar>v x - u x\<bar> \<le> norm (f (u x) - f (v x))"
+          by metis
+        let ?UVT = "(\<lambda>x. box (u x) (v x)) ` t"
+        obtain \<F> where "\<F> \<subseteq> ?UVT" "countable \<F>" "\<Union>\<F> = \<Union>?UVT"
+          by (smt (verit, best) Lindelof imageE open_box)
+        then obtain c where "countable c" and "c \<subseteq> t" 
+          and c: "\<Union>((\<lambda>x. box (u x) (v x)) ` c) = \<Union> ?UVT"
+          by (metis (lifting) countable_subset_image)
+        show "\<exists>T. t \<subseteq> T \<and> T \<in> lmeasurable \<and> Sigma_Algebra.measure lebesgue T \<le> \<epsilon>"
+        proof (rule ccontr)
+          assume non: "\<nexists>T. t \<subseteq> T \<and> T \<in> lmeasurable \<and> Sigma_Algebra.measure lebesgue T \<le> \<epsilon>"
+          let ?\<C> =  "(\<lambda>x. cbox (u x) (v x)) ` c"
+          have cnt: "countable ?\<C>"
+            using \<open>countable c\<close> by auto
+          have meas: "\<And>D. D \<in> ?\<C> \<Longrightarrow> D \<in> lmeasurable"
+            by (auto intro: lmeasurable_cbox)
+          have tsub: "t \<subseteq> \<Union>?\<C>"
+          proof
+            fix x assume "x \<in> t"
+            then obtain z where "z \<in> c" "x \<in> box (u z) (v z)"
+              using c uv by fastforce
+            then have "x \<in> cbox (u z) (v z)" using box_subset_cbox by blast
+            moreover have "cbox (u z) (v z) \<in> ?\<C>" 
+              using \<open>z \<in> c\<close> by auto
+            ultimately show "x \<in> \<Union>?\<C>" by blast
+          qed
+          have "\<exists>P. finite P \<and> P \<subseteq> ?\<C> \<and> \<epsilon> < measure lebesgue (\<Union>P)"
+          proof (rule ccontr)
+            assume "\<not> (\<exists>p. finite p \<and> p \<subseteq> ?\<C> \<and> \<epsilon> < measure lebesgue (\<Union>p))"
+            then have bound: "\<And>\<E>. \<E> \<subseteq> ?\<C> \<Longrightarrow> finite \<E> \<Longrightarrow> measure lebesgue (\<Union>\<E>) \<le> \<epsilon>"
+              by (meson linorder_not_less)
+            have "measure lebesgue (\<Union>?\<C>) \<le> \<epsilon>"
+              by (rule measure_Union_bound[OF cnt meas bound])
+            moreover have "\<Union>?\<C> \<in> lmeasurable"
+              by (rule fmeasurable_Union_bound[OF cnt meas bound])
+            ultimately have "\<exists>T. t \<subseteq> T \<and> T \<in> lmeasurable \<and> measure lebesgue T \<le> \<epsilon>"
+              using tsub by auto
+            then show False using non by auto
+          qed
+          then obtain p where "finite p" "p \<subseteq> c"
+            and p: "\<epsilon> < measure lebesgue (Union ((\<lambda>x. cbox (u x) (v x)) ` p))"
+            by (metis (no_types, lifting) finite_subset_image)
+          show False
+          proof -
+            define \<D> where "\<D> = (\<lambda>x. cbox (u x) (v x)) ` p"
+            have fin\<D>: "finite \<D>" unfolding \<D>_def using \<open>finite p\<close> by auto
+            have cube: "\<exists>k a' b'. D = cbox a' b' \<and> (\<forall>i\<in>Basis. b' \<bullet> i - a' \<bullet> i = k)"
+              if "D \<in> \<D>" for D
+            proof -
+              from that obtain x where "x \<in> p" "D = cbox (u x) (v x)"
+                unfolding \<D>_def by auto
+              then show ?thesis
+                by (intro exI[of _ "v x - u x"] exI[of _ "u x"] exI[of _ "v x"])
+                   (auto simp: Basis_real_def inner_real_def)
+            qed
+            obtain \<C> where "\<C> \<subseteq> \<D>" "disjoint \<C>"
+              and \<C>meas: "measure lebesgue (\<Union>\<D>) / 3 ^ DIM(real) \<le> measure lebesgue (\<Union>\<C>)"
+              using Austin_Lemma[OF fin\<D> cube] by auto
+            have "\<epsilon> / 3 < measure lebesgue (\<Union>\<C>)"
+            proof -
+              have "\<epsilon> / 3 < measure lebesgue (\<Union>\<D>) / 3"
+                using p unfolding \<D>_def by auto
+              also have "\<dots> = measure lebesgue (\<Union>\<D>) / 3 ^ DIM(real)"
+                by (simp add: DIM_real)
+              also have "\<dots> \<le> measure lebesgue (\<Union>\<C>)" by (rule \<C>meas)
+              finally show ?thesis .
+            qed
+            moreover obtain p' where "p' \<subseteq> p" and \<C>_eq: "\<C> = (\<lambda>x. cbox (u x) (v x)) ` p'"
+              and inj: "inj_on (\<lambda>x. cbox (u x) (v x)) p'"
+            proof -
+              let ?f = "\<lambda>x. cbox (u x) (v x)"
+              have Csub_im: "\<C> \<subseteq> ?f ` p"
+                using \<open>\<C> \<subseteq> \<D>\<close> unfolding \<D>_def by auto
+              define p' where "p' = inv_into p ?f ` \<C>"
+              have p'_sub: "p' \<subseteq> p"
+                unfolding p'_def using Csub_im by (auto intro: inv_into_into)
+              have C_eq: "\<C> = ?f ` p'"
+                unfolding p'_def using image_inv_into_cancel[of ?f p "?f ` p" \<C>]
+                  Csub_im by auto
+              have "inj_on ?f p'"
+              proof (rule inj_onI)
+                fix x y assume "x \<in> p'" "y \<in> p'" "?f x = ?f y"
+                from \<open>x \<in> p'\<close> obtain K1 where "K1 \<in> \<C>" "x = inv_into p ?f K1"
+                  unfolding p'_def by auto
+                from \<open>y \<in> p'\<close> obtain K2 where "K2 \<in> \<C>" "y = inv_into p ?f K2"
+                  unfolding p'_def by auto
+                have "K1 = ?f (inv_into p ?f K1)"
+                  using f_inv_into_f[of K1 ?f p] \<open>K1 \<in> \<C>\<close> Csub_im by auto
+                also have "\<dots> = ?f x" using \<open>x = inv_into p ?f K1\<close> by simp
+                also have "\<dots> = ?f y" using \<open>?f x = ?f y\<close> by simp
+                also have "\<dots> = ?f (inv_into p ?f K2)" using \<open>y = inv_into p ?f K2\<close> by simp
+                also have "\<dots> = K2"
+                  using f_inv_into_f[of K2 ?f p] \<open>K2 \<in> \<C>\<close> Csub_im by auto
+                finally have "K1 = K2" .
+                then show "x = y" using \<open>x = inv_into p ?f K1\<close> \<open>y = inv_into p ?f K2\<close> by simp
+              qed
+              then show ?thesis using that p'_sub C_eq by blast
+            qed
+            have finp': "finite p'" using \<open>p' \<subseteq> p\<close> \<open>finite p\<close> finite_subset by blast
+            have p'sub: "p' \<subseteq> t" using \<open>p' \<subseteq> p\<close> \<open>p \<subseteq> c\<close> \<open>c \<subseteq> t\<close> by auto
+            have "measure lebesgue (\<Union>\<C>) \<le> (\<Sum>x\<in>p'. measure lebesgue (cbox (u x) (v x)))"
+            proof -
+              have "measure lebesgue (\<Union>\<C>) \<le> (\<Sum>D\<in>\<C>. measure lebesgue D)"
+              proof (rule measure_Union_le)
+                show "finite \<C>" using finp' unfolding \<C>_eq by auto
+                fix D assume "D \<in> \<C>"
+                then obtain x where "x \<in> p'" "D = cbox (u x) (v x)" unfolding \<C>_eq by auto
+                then show "D \<in> sets lebesgue"
+                  using fmeasurableD[OF fmeasurable_cbox] by auto
+              qed
+              also have "\<dots> \<le> (\<Sum>x\<in>p'. measure lebesgue (cbox (u x) (v x)))"
+              proof -
+                have "sum (measure lebesgue) ((\<lambda>x. cbox (u x) (v x)) ` p')
+                      \<le> sum (measure lebesgue \<circ> (\<lambda>x. cbox (u x) (v x))) p'"
+                  using finp' by (rule sum_image_le) (auto intro: measure_nonneg)
+                also have "\<dots> = (\<Sum>x\<in>p'. measure lebesgue (cbox (u x) (v x)))"
+                  by (simp add: comp_def)
+                finally show ?thesis unfolding \<C>_eq .
+              qed
+              finally show ?thesis .
+            qed
+            also have "\<dots> = (\<Sum>x\<in>p'. content (cbox (u x) (v x)))"
+              by (simp add: measure_lborel_cbox_eq)
+            also have "\<dots> = (\<Sum>x\<in>p'. v x - u x)"
+            proof (intro sum.cong refl)
+              fix x assume "x \<in> p'"
+              then have "x \<in> t" using p'sub by auto
+              then have "u x < v x" using uv[of x] by auto
+              then show "content (cbox (u x) (v x)) = v x - u x"
+                by (simp add: content_real)
+            qed
+            also have "\<dots> \<le> (\<Sum>x\<in>p'. norm (f (u x) - f (v x))) / M"
+            proof -
+              have "(\<Sum>x\<in>p'. v x - u x) = (\<Sum>x\<in>p'. \<bar>v x - u x\<bar>)"
+              proof (intro sum.cong refl)
+                fix x assume "x \<in> p'"
+                then have "x \<in> t" using p'sub by auto
+                then have "u x < v x" using uv[of x] by auto
+                then show "v x - u x = \<bar>v x - u x\<bar>" by auto
+              qed
+              also have "\<dots> \<le> (\<Sum>x\<in>p'. norm (f (u x) - f (v x)) / M)"
+              proof (intro sum_mono)
+                fix x assume "x \<in> p'"
+                then have "x \<in> t" using p'sub by auto
+                then have "M * \<bar>v x - u x\<bar> \<le> norm (f (u x) - f (v x))" using uv by auto
+                then show "\<bar>v x - u x\<bar> \<le> norm (f (u x) - f (v x)) / M"
+                  using \<open>0 < M\<close> by (simp add: field_simps)
+              qed
+              also have "\<dots> = (\<Sum>x\<in>p'. norm (f (u x) - f (v x))) / M"
+                by (simp add: sum_divide_distrib)
+              finally show ?thesis .
+            qed
+            also have "\<dots> \<le> B / M"
+            proof -
+              have "(\<Sum>x\<in>p'. norm (f (u x) - f (v x))) \<le> B"
+              proof -
+                have ux_less_vx: "u x < v x" if "x \<in> p'" for x
+                  using uv[of x] p'sub that by auto
+
+                have div: "\<C> division_of \<Union>\<C>"
+                  unfolding division_of_def
+                proof (intro conjI)
+                  show "finite \<C>"
+                    using finp' unfolding \<C>_eq by auto
+                next
+                  show "\<forall>K\<in>\<C>. K \<subseteq> \<Union>\<C> \<and> K \<noteq> {} \<and> (\<exists>a b. K = cbox a b)"
+                  proof
+                    fix K assume "K \<in> \<C>"
+                    then obtain x where "x \<in> p'" "K = cbox (u x) (v x)"
+                      unfolding \<C>_eq by auto
+                    then show "K \<subseteq> \<Union>\<C> \<and> K \<noteq> {} \<and> (\<exists>a b. K = cbox a b)"
+                      using ux_less_vx[of x] \<open>K \<in> \<C>\<close> by auto
+                  qed
+                next
+                  show "\<forall>K1\<in>\<C>. \<forall>K2\<in>\<C>. K1 \<noteq> K2 \<longrightarrow> interior K1 \<inter> interior K2 = {}"
+                  proof (intro ballI impI)
+                    fix K1 K2
+                    assume "K1 \<in> \<C>" "K2 \<in> \<C>" "K1 \<noteq> K2"
+                    then show "interior K1 \<inter> interior K2 = {}"
+                      using \<open>disjoint \<C>\<close> unfolding disjoint_def
+                      by (metis disjoint_iff interior_subset subsetD)
+                  qed
+                next
+                  show "\<Union>\<C> = \<Union>\<C>" by simp
+                qed
+                have Csub: "\<Union>\<C> \<subseteq> {a..b}"
+                proof
+                  fix x assume "x \<in> \<Union>\<C>"
+                  then obtain K where "K \<in> \<C>" "x \<in> K" by auto
+                  then obtain z where "z \<in> p'" "K = cbox (u z) (v z)"
+                    unfolding \<C>_eq by auto
+                  then have "u z \<in> {a..b}" "v z \<in> {a..b}"
+                    using uv[of z] p'sub by auto
+                  then show "x \<in> {a..b}"
+                    using \<open>x \<in> K\<close> \<open>K = cbox (u z) (v z)\<close> by auto
+                qed
+                have "(\<Sum>x\<in>p'. norm (f (u x) - f (v x)))
+                    = (\<Sum>x\<in>p'. norm (f (v x) - f (u x)))"
+                  by (simp add: norm_minus_commute)
+                also have "\<dots> = (\<Sum>x\<in>p'. norm (f (Sup (cbox (u x) (v x))) - f (Inf (cbox (u x) (v x)))))"
+                proof (intro sum.cong refl)
+                  fix x assume "x \<in> p'"
+                  then have "u x \<le> v x" using ux_less_vx
+                  by (simp add: less_imp_le)
+                  then show "norm (f (v x) - f (u x)) 
+                           = norm (f (Sup (cbox (u x) (v x))) - f (Inf (cbox (u x) (v x))))"
+                    by simp
+                qed
+                also have "\<dots> = (\<Sum>K\<in>\<C>. norm (f (Sup K) - f (Inf K)))"
+                  unfolding \<C>_eq using sum.reindex[OF inj, of "\<lambda>K. norm (f (Sup K) - f (Inf K))"]
+                  by (simp add: comp_def)
+                also have "\<dots> \<le> B"
+                  using B[OF div Csub] .
+                finally show ?thesis .
+              qed
+              then show ?thesis using \<open>0 < M\<close> by (simp add: divide_right_mono)
+            qed
+            also have "\<dots> = B * \<epsilon> / (3 * (\<bar>B\<bar> + 1))"
+              unfolding M_def using \<open>0 < \<epsilon>\<close> by (simp add: field_simps)
+            also have "\<dots> < \<epsilon> / 3"
+            proof -
+              have "B < \<bar>B\<bar> + 1" by linarith
+              then have "B * \<epsilon> < (\<bar>B\<bar> + 1) * \<epsilon>" using \<open>0 < \<epsilon>\<close> by auto
+              then have "B * \<epsilon> / (3 * (\<bar>B\<bar> + 1)) < \<epsilon> / 3"
+                by (simp add: field_simps)
+              then show ?thesis .
+            qed
+            ultimately show False by linarith
+          qed
+        qed
+      qed
+    qed auto
+  qed (auto simp: t_def)
+  then obtain T where tn: "negligible T" and
+    tc: "\<And>x. x \<in> {a..b} - T \<Longrightarrow> isCont f x \<Longrightarrow>
+       \<exists>B>0. eventually (\<lambda>y. norm (f y - f x) \<le> B * norm (y - x)) (at x)"
+    by auto
+  define D where "D = {x \<in> {a..b}. \<not> isCont f x}"
+  have "countable D"
+    unfolding D_def using has_bounded_variation_countable_discontinuities[OF assms] .
+  hence "negligible D"
+    using countable_imp_negligible by blast
+  have "negligible (T \<union> D)"
+    using tn \<open>negligible D\<close> negligible_Un by blast
+  moreover have "\<forall>x \<in> {a..b} - (T \<union> D).
+      \<exists>B>0. eventually (\<lambda>y. norm (f y - f x) \<le> B * norm (y - x)) (at x)"
+  proof
+    fix x assume "x \<in> {a..b} - (T \<union> D)"
+    then have "x \<in> {a..b} - T" and "isCont f x"
+      unfolding D_def by auto
+    thus "\<exists>B>0. eventually (\<lambda>y. norm (f y - f x) \<le> B * norm (y - x)) (at x)"
+      using tc by blast
+  qed
+  ultimately show ?thesis by blast
+qed
+
+
+lemma lemma2:
+  fixes f :: "real \<Rightarrow> real" and a b k :: real
+  assumes "has_bounded_variation_on f {a..b}" "a < b" "0 < k"
+  shows "negligible
+           {x \<in> {a..b}.
+              \<forall>S. open S \<and> x \<in> S \<longrightarrow>
+                (\<exists>u v. u \<in> {a..b} \<and> u \<in> S \<and>
+                       v \<in> {a..b} \<and> v \<in> S \<and>
+                       x \<in> {u<..<v} \<and>
+                       k \<le> (f v - f u) / (v - u)) \<and>
+                (\<exists>u v. u \<in> {a..b} \<and> u \<in> S \<and>
+                       v \<in> {a..b} \<and> v \<in> S \<and>
+                       x \<in> {u<..<v} \<and>
+                       (f v - f u) / (v - u) \<le> -k)}"
+proof -
+  define t' where "t' \<equiv> {x \<in> {a..b}.
+              \<forall>S. open S \<and> x \<in> S \<longrightarrow>
+                (\<exists>u v. u \<in> {a..b} \<and> u \<in> S \<and>
+                       v \<in> {a..b} \<and> v \<in> S \<and>
+                       x \<in> {u<..<v} \<and>
+                       k \<le> (f v - f u) / (v - u)) \<and>
+                (\<exists>u v. u \<in> {a..b} \<and> u \<in> S \<and>
+                       v \<in> {a..b} \<and> v \<in> S \<and>
+                       x \<in> {u<..<v} \<and>
+                       (f v - f u) / (v - u) \<le> -k)}"
+  have neg_iff: "negligible t' \<longleftrightarrow>
+    (\<forall>e>0. \<exists>T. t' \<subseteq> T \<and> T \<in> lmeasurable \<and> measure lebesgue T \<le> e)"
+    by (rule negligible_outer_le)
+  have "negligible t'"
+    unfolding neg_iff
+  proof (intro allI impI)
+    fix e :: real assume "e > 0"
+    have ke3_pos: "0 < k * e / 3"
+      using \<open>0 < k\<close> \<open>e > 0\<close> by auto
+    \<comment> \<open>Get a division D of [a,b] whose sum exceeds vector_variation - k*e/3\<close>
+    have vv_eq: "vector_variation {a..b} f =
+          Sup {\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k)) |d. d division_of {a..b}}"
+      using assms(1) by (rule vector_variation_on_interval)
+    define S where "S \<equiv> {\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k)) |d. d division_of {a..b}}"
+    have S_ne: "S \<noteq> {}"
+      by (metis (mono_tags, lifting) S_def box_real(2) elementary_interval empty_Collect_eq)
+    have "vector_variation {a..b} f - k * e / 3 < Sup S"
+      using ke3_pos vv_eq unfolding S_def by linarith
+    then obtain x where "x \<in> S" "vector_variation {a..b} f - k * e / 3 < x"
+      using less_cSupD[OF S_ne] by auto
+    then obtain D where D_div: "D division_of {a..b}"
+      and D_sum: "vector_variation {a..b} f - k * e / 3 < (\<Sum>K\<in>D. norm (f (Sup K) - f (Inf K)))"
+      unfolding S_def by auto
+    show "\<exists>T. t' \<subseteq> T \<and> T \<in> lmeasurable \<and> measure lebesgue T \<le> e"
+    proof -
+      have fin_D: "finite D"
+        using D_div division_of_finite by blast
+      define t where "t \<equiv> t' - \<Union>(frontier ` D)"
+      \<comment> \<open>Frontiers of division elements are negligible\<close>
+      have neg_frontiers: "negligible (\<Union>(frontier ` D))"
+      proof (rule negligible_Union)
+        show "finite (frontier ` D)" using fin_D by auto
+      next
+        fix T assume "T \<in> frontier ` D"
+        then show "negligible T"
+          using negligible_convex_frontier
+          by (metis D_div cbox_division_memE image_iff convex_box(1))
+      qed
+      \<comment> \<open>For each x in t, find division element and witnessing u, v\<close>
+      have key: "\<exists>c d u v. {c..d} \<in> D \<and> x \<in> {c<..<d} \<and> u \<in> {c<..<d} \<and> v \<in> {c<..<d} \<and>
+                  x \<in> {u<..<v} \<and>
+                  (f c \<le> f d \<longrightarrow> f v - f u \<le> -k * (v - u)) \<and>
+                  (f d < f c \<longrightarrow> k * (v - u) \<le> f v - f u)" if "x \<in> t" for x
+      proof -
+        have xt': "x \<in> t'" and xnf: "x \<notin> \<Union>(frontier ` D)" and xab: "x \<in> {a..b}"
+          using that unfolding t_def t'_def by auto
+        \<comment> \<open>Find the division element containing x\<close>
+        have "x \<in> \<Union>D" using xab division_ofD(6)[OF D_div] by auto
+        then obtain K c d where "K \<in> D" "x \<in> K" and Kcd: "K = {c..d}"
+          by (metis D_div UnionE box_real(2) division_ofD(4))
+        then obtain KD: "{c..d} \<in> D" and xK: "x \<in> {c..d}" 
+          by blast
+        have "x \<notin> frontier K" using xnf \<open>K \<in> D\<close> by auto
+        then have "x \<notin> {c..d} - {c<..<d}"
+          by (simp add: Kcd frontier_def)
+        then have x_int: "x \<in> {c<..<d}" using xK by auto
+        \<comment> \<open>Apply the t' property with open set {c<..<d}\<close>
+        have "open {c<..<d}" by auto
+        with x_int xt' have both:
+          "(\<exists>u v. u \<in> {a..b} \<and> u \<in> {c<..<d} \<and> v \<in> {a..b} \<and> v \<in> {c<..<d} \<and>
+                  x \<in> {u<..<v} \<and> k \<le> (f v - f u) / (v - u)) \<and>
+           (\<exists>u v. u \<in> {a..b} \<and> u \<in> {c<..<d} \<and> v \<in> {a..b} \<and> v \<in> {c<..<d} \<and>
+                  x \<in> {u<..<v} \<and> (f v - f u) / (v - u) \<le> -k)"
+          using t'_def by blast
+        \<comment> \<open>Case split on whether f c \<le> f d\<close>
+        show "\<exists>c d u v. {c..d} \<in> D \<and> x \<in> {c<..<d} \<and> u \<in> {c<..<d} \<and> v \<in> {c<..<d} \<and>
+                        x \<in> {u<..<v} \<and>
+                        (f c \<le> f d \<longrightarrow> f v - f u \<le> -k * (v - u)) \<and>
+                        (f d < f c \<longrightarrow> k * (v - u) \<le> f v - f u)"
+        proof (cases "f c \<le> f d")
+          case True
+          \<comment> \<open>Use the pair with negative slope\<close>
+          from both obtain u v where
+            uv: "u \<in> {c<..<d}" "v \<in> {c<..<d}" "x \<in> {u<..<v}"
+                "(f v - f u) / (v - u) \<le> -k"
+            by auto
+          have "u < v" using uv(3) by auto
+          then have "v - u > 0" by auto
+          from uv(4) have "f v - f u \<le> -k * (v - u)"
+            using pos_divide_le_eq[OF \<open>v - u > 0\<close>] by (auto simp: mult.commute)
+          then show ?thesis
+            by (smt (verit, ccfv_SIG) KD True uv x_int)
+        next
+          case False
+          then have "f d < f c" by auto
+          \<comment> \<open>Use the pair with positive slope\<close>
+          from both obtain u v where
+            uv: "u \<in> {c<..<d}" "v \<in> {c<..<d}" "x \<in> {u<..<v}"
+                "k \<le> (f v - f u) / (v - u)"
+            by auto
+          have "u < v" using uv(3) by auto
+          then have "v - u > 0" by auto
+          from uv(4) have "k * (v - u) \<le> f v - f u"
+            using pos_le_divide_eq[OF \<open>v - u > 0\<close>] by (auto simp: mult.commute)
+          then show ?thesis
+            using False Kcd \<open>K \<in> D\<close> uv x_int by blast
+        qed
+      qed
+      then obtain cx dx ux vx where
+        key_fn: "\<And>x. x \<in> t \<Longrightarrow> {cx x..dx x} \<in> D \<and> x \<in> {cx x<..<dx x} \<and>
+                   ux x \<in> {cx x<..<dx x} \<and> vx x \<in> {cx x<..<dx x} \<and>
+                   x \<in> {ux x<..<vx x} \<and>
+                   (f (cx x) \<le> f (dx x) \<longrightarrow> f (vx x) - f (ux x) \<le> -k * (vx x - ux x)) \<and>
+                   (f (dx x) < f (cx x) \<longrightarrow> k * (vx x - ux x) \<le> f (vx x) - f (ux x))"
+        by metis
+      \<comment> \<open>Reduce to finding a cover for t\<close>
+      have cover_t: "\<exists>c. t \<subseteq> c \<and> c \<in> lmeasurable \<and> measure lebesgue c \<le> e"
+      proof (rule ccontr)
+        assume non: "\<not> (\<exists>c. t \<subseteq> c \<and> c \<in> lmeasurable \<and> measure lebesgue c \<le> e)"
+        \<comment> \<open>Apply Lindelöf to the family of open intervals {ux x<..<vx x}\<close>
+        let ?UVT = "(\<lambda>x. {ux x<..<vx x}) ` t"
+        obtain \<F> where "\<F> \<subseteq> ?UVT" "countable \<F>" "\<Union>\<F> = \<Union>?UVT"
+          by (smt (verit, best) Lindelof imageE open_greaterThanLessThan)
+        then obtain c where "countable c" and "c \<subseteq> t"
+          and c_union: "\<Union>((\<lambda>x. {ux x<..<vx x}) ` c) = \<Union>?UVT"
+          by (metis (lifting) countable_subset_image)
+        \<comment> \<open>Find a finite subset with measure exceeding e\<close>
+        have "\<exists>p. finite p \<and> p \<subseteq> (\<lambda>x. {ux x..vx x}) ` c \<and> e < measure lebesgue (\<Union>p)"
+        proof (rule ccontr)
+          assume "\<not> (\<exists>p. finite p \<and> p \<subseteq> (\<lambda>x. {ux x..vx x}) ` c \<and> e < measure lebesgue (\<Union>p))"
+          then have le_e: "\<And>p. p \<subseteq> (\<lambda>x. {ux x..vx x}) ` c \<Longrightarrow> finite p \<Longrightarrow>
+              measure lebesgue (\<Union>p) \<le> e"
+            by (meson linorder_not_less)
+          \<comment> \<open>From le_e, the full countable union has measure \<le> e\<close>
+          have union_le: "measure lebesgue (\<Union>((\<lambda>x. {ux x..vx x}) ` c)) \<le> e"
+          proof (rule measure_Union_bound)
+            show "countable ((\<lambda>x. {ux x..vx x}) ` c)"
+              using \<open>countable c\<close> by auto
+          next
+            fix D assume "D \<in> (\<lambda>x. {ux x..vx x}) ` c"
+            then show "D \<in> lmeasurable"
+              using lmeasurable_cbox by (auto simp: cbox_interval)
+          next
+            fix \<E> assume "\<E> \<subseteq> (\<lambda>x. {ux x..vx x}) ` c" "finite \<E>"
+            then show "measure lebesgue (\<Union>\<E>) \<le> e"
+              using le_e by auto
+          qed
+          \<comment> \<open>But t \<subseteq> \<Union>((\<lambda>x. {ux x..vx x}) ` c), so e < measure\<close>
+          have t_sub_meas: "t \<subseteq> \<Union>((\<lambda>x. {ux x..vx x}) ` c) \<and>
+              \<Union>((\<lambda>x. {ux x..vx x}) ` c) \<in> lmeasurable"
+          proof (intro conjI)
+            show "t \<subseteq> \<Union>((\<lambda>x. {ux x..vx x}) ` c)"
+            proof
+              fix x assume "x \<in> t"
+              then have "x \<in> \<Union>((\<lambda>x. {ux x<..<vx x}) ` t)" using key_fn \<open>x \<in> t\<close> by auto
+              then show "x \<in> \<Union>((\<lambda>x. {ux x..vx x}) ` c)"
+                using c_union by force
+            qed
+          next
+            show "\<Union>((\<lambda>x. {ux x..vx x}) ` c) \<in> lmeasurable"
+              using \<open>countable c\<close> le_e
+              by (intro fmeasurable_Union_bound[where B=e]) auto
+          qed
+          then have "e < measure lebesgue (\<Union>((\<lambda>x. {ux x..vx x}) ` c))"
+            using non by (simp add: not_le)
+          with union_le show False by linarith
+        qed
+        then obtain q where "finite q" "q \<subseteq> (\<lambda>x. {ux x..vx x}) ` c"
+          "e < measure lebesgue (\<Union>q)" by auto
+        from finite_subset_image[OF \<open>finite q\<close> \<open>q \<subseteq> (\<lambda>x. {ux x..vx x}) ` c\<close>]
+        obtain p where "p \<subseteq> c" "finite p" "q = (\<lambda>x. {ux x..vx x}) ` p" by auto
+        then have fin_p: "finite p" and p_sub: "p \<subseteq> c"
+          and p_meas: "e < measure lebesgue (\<Union>((\<lambda>x. {ux x..vx x}) ` p))"
+          using \<open>e < measure lebesgue (\<Union>q)\<close> by auto
+
+        \<comment> \<open>Apply Austin's lemma to the finite collection of intervals\<close>
+        define \<D> where "\<D> = (\<lambda>x. {ux x..vx x}) ` p"
+        have fin\<D>: "finite \<D>" unfolding \<D>_def using fin_p by auto
+        have cube: "\<exists>k a b. D = cbox a b \<and> (\<forall>i\<in>Basis. b \<bullet> i - a \<bullet> i = k)"
+          if "D \<in> \<D>" for D
+        proof -
+          from that obtain x where "x \<in> p" "D = {ux x..vx x}"
+            unfolding \<D>_def by auto
+          then show ?thesis
+            by (intro exI[of _ "vx x - ux x"] exI[of _ "ux x"] exI[of _ "vx x"])
+               (auto simp: Basis_real_def inner_real_def cbox_interval)
+        qed
+        obtain d where "d \<subseteq> \<D>" "disjoint d"
+          and d_meas: "measure lebesgue (\<Union>\<D>) / 3 ^ DIM(real) \<le> measure lebesgue (\<Union>d)"
+          using Austin_Lemma[OF fin\<D> cube] by auto
+        have d_sub: "d \<subseteq> (\<lambda>x. {ux x..vx x}) ` p"
+          using \<open>d \<subseteq> \<D>\<close> unfolding \<D>_def by auto
+        have d_meas': "measure lebesgue (\<Union>((\<lambda>x. {ux x..vx x}) ` p)) / 3 \<le> measure lebesgue (\<Union>d)"
+          using d_meas unfolding \<D>_def by (simp add: DIM_real)
+
+        \<comment> \<open>Decompose \<Union>d by division elements\<close>
+        have d_decomp: "\<Union>d = (\<Union>j\<in>D. \<Union>{i \<in> d. i \<subseteq> j})"
+        proof -
+          \<comment> \<open>Each i \<in> d is a subset of some j \<in> D\<close>
+          have sub_D: "\<exists>j. j \<in> D \<and> i \<subseteq> j" if "i \<in> d" for i
+          proof -
+            from that d_sub obtain x where "x \<in> p" "i = {ux x..vx x}" by auto
+            then have "x \<in> t" using p_sub \<open>c \<subseteq> t\<close> by auto
+            from key_fn[OF this] have "{cx x..dx x} \<in> D"
+              and "ux x \<in> {cx x<..<dx x}" "vx x \<in> {cx x<..<dx x}" by auto
+            then have "{ux x..vx x} \<subseteq> {cx x..dx x}"
+              by (auto simp: atLeastatMost_subset_iff greaterThanLessThan_iff)
+            then show ?thesis using \<open>{cx x..dx x} \<in> D\<close> \<open>i = {ux x..vx x}\<close> by auto
+          qed
+          show ?thesis
+          proof (intro set_eqI iffI)
+            fix x assume "x \<in> \<Union>d"
+            then obtain i where "i \<in> d" "x \<in> i" by auto
+            from sub_D[OF \<open>i \<in> d\<close>] obtain j where "j \<in> D" "i \<subseteq> j" by auto
+            then show "x \<in> (\<Union>j\<in>D. \<Union>{i \<in> d. i \<subseteq> j})" using \<open>i \<in> d\<close> \<open>x \<in> i\<close> by auto
+          next
+            fix x assume "x \<in> (\<Union>j\<in>D. \<Union>{i \<in> d. i \<subseteq> j})"
+            then show "x \<in> \<Union>d" by auto
+          qed
+        qed
+        have d_bound: "measure lebesgue (\<Union>d) < e / 3"
+        proof -
+          let ?F = "(\<lambda>j. \<Union>{i \<in> d. i \<subseteq> j}) ` D"
+          have fin_F: "finite ?F"
+            using fin_D by auto
+          have fin_d: "finite d" using finite_subset[OF \<open>d \<subseteq> \<D>\<close> fin\<D>] .
+          have meas_F: "\<And>s. s \<in> ?F \<Longrightarrow> s \<in> sets lebesgue"
+          proof -
+            fix s assume "s \<in> ?F"
+            then obtain j where "j \<in> D" "s = \<Union>{i \<in> d. i \<subseteq> j}" by auto
+            have "finite {i \<in> d. i \<subseteq> j}" using fin_d by auto
+            moreover have "i \<in> sets lebesgue" if "i \<in> d" "i \<subseteq> j" for i
+              using fmeasurableD[OF fmeasurable_cbox[of "ux x" "vx x"]] d_sub that(1) 
+              by auto
+            ultimately show "s \<in> sets lebesgue"
+              unfolding \<open>s = \<Union>{i \<in> d. i \<subseteq> j}\<close>
+              by (intro sets.finite_Union) auto
+          qed
+          have "measure lebesgue (\<Union>d) = measure lebesgue (\<Union>?F)"
+            using d_decomp by (simp add: image_UN)
+          also have "\<dots> \<le> sum (measure lebesgue) ?F"
+            using measure_Union_le[OF fin_F meas_F] .
+          also have "\<dots> \<le> (\<Sum>j\<in>D. measure lebesgue (\<Union>{i \<in> d. i \<subseteq> j}))"
+          proof -
+            have "sum (measure lebesgue) ((\<lambda>j. \<Union>{i \<in> d. i \<subseteq> j}) ` D)
+                  \<le> (\<Sum>j\<in>D. (measure lebesgue \<circ> (\<lambda>j. \<Union>{i \<in> d. i \<subseteq> j})) j)"
+              by (rule sum_image_le[OF fin_D]) (auto intro: measure_nonneg)
+            then show ?thesis by (simp add: o_def)
+          qed
+          also have "\<dots> < e / 3"
+          proof -
+            have per_elt: "measure lebesgue (\<Union>{i \<in> d. i \<subseteq> K}) * k \<le> vector_variation K f - norm (f (Sup K) - f (Inf K))"
+              if "K \<in> D" for K
+            proof -
+              obtain l r where K_eq: "K = {l..r}" and "l \<le> r"
+                using division_ofD[OF D_div] \<open>K \<in> D\<close>
+                by (metis atLeastatMost_empty_iff2 box_real(2))
+              have meas_i: "i \<in> sets lebesgue" if "i \<in> d" "i \<subseteq> {l..r}" for i
+                  using fmeasurableD[OF fmeasurable_cbox[of "ux x" "vx x"]]
+                  using \<D>_def \<open>d \<subseteq> \<D>\<close> that(1) by auto
+              define d' where "d' = {i \<in> d. i \<subseteq> {l..r}}"
+              have disj_d': "disjoint d'"
+                using \<open>disjoint d\<close> d'_def pairwise_subset by force
+              have d'_div: "d' division_of \<Union>d'"
+                unfolding division_of_def
+              proof (intro conjI ballI impI allI)
+                show "finite d'" 
+                  unfolding d'_def using fin_d by auto
+              next
+                fix K assume "K \<in> d'"
+                then obtain x where "x \<in> p" "K = {ux x..vx x}"
+                  using d_sub unfolding d'_def by auto
+                then have "x \<in> t" using p_sub \<open>c \<subseteq> t\<close> by auto
+                from key_fn[OF this] have "x \<in> {ux x<..<vx x}" by auto
+                then show "K \<noteq> {}" using \<open>K = {ux x..vx x}\<close> by auto
+              next
+                fix K assume "K \<in> d'"
+                then show "\<exists>a b. K = cbox a b"
+                  using \<open>d \<subseteq> \<D>\<close> cube d'_def by auto
+              next
+                fix K1 K2 assume "K1 \<in> d'" "K2 \<in> d'" "K1 \<noteq> K2"
+                then have "K1 \<inter> K2 = {}"
+                  using disj_d' unfolding disjoint_def by auto
+                then show "interior K1 \<inter> interior K2 = {}"
+                  using interior_subset by blast
+              qed auto
+              have d'_sub_lr: "\<Union>d' \<subseteq> {l..r}"
+                unfolding d'_def by auto
+              obtain d'' where d'_sub_d'': "d' \<subseteq> d''" and d''_div: "d'' division_of {l..r}" and "finite d''"
+                by (metis box_real(2) d'_div d'_sub_lr division_of_finite partial_division_extend_interval)
+
+              have "measure lebesgue (\<Union> d') \<le> (\<Sum>i\<in>d'. measure lebesgue i)"
+                using meas_i d'_div by (intro measure_Union_le) (auto simp: d'_def)
+              also have "\<dots> \<le> (vector_variation {l..r} f - \<bar>f r - f l\<bar>) / k"
+              proof (cases "f l \<le> f r")
+                case True
+                have "(\<Sum>i\<in>d'. measure lebesgue i) * k
+                    \<le> (\<Sum>i\<in>d''. \<bar>f (Sup i) - f (Inf i)\<bar> - (f (Sup i) - f (Inf i)))"
+                proof -
+                  have elt_bound: "measure lebesgue i * k
+                      \<le> \<bar>f (Sup i) - f (Inf i)\<bar> - (f (Sup i) - f (Inf i))"
+                    if i_in_d': "i \<in> d'" for i
+                  proof -
+                    from i_in_d' obtain x where "x \<in> p" "i = {ux x..vx x}"
+                      using d_sub unfolding d'_def by auto
+                    have "x \<in> t" using \<open>x \<in> p\<close> p_sub \<open>c \<subseteq> t\<close> by auto
+                    from key_fn[OF this]
+                    have cd_in_D: "{cx x..dx x} \<in> D"
+                      and x_in_uv: "x \<in> {ux x<..<vx x}"
+                      and ux_in_cd: "ux x \<in> {cx x<..<dx x}"
+                      and vx_in_cd: "vx x \<in> {cx x<..<dx x}"
+                      and bound_neg: "f (cx x) \<le> f (dx x) \<Longrightarrow> f (vx x) - f (ux x) \<le> -k * (vx x - ux x)"
+                      by auto
+                    \<comment> \<open>Show {cx x..dx x} = {l..r} since both are in D and share x in their interiors\<close>
+                    have uv_lt: "ux x < vx x" using x_in_uv by auto
+                    have uv_le: "ux x \<le> vx x" using uv_lt by auto
+                    have i_sub_lr: "{ux x..vx x} \<subseteq> {l..r}"
+                      using i_in_d' unfolding d'_def \<open>i = {ux x..vx x}\<close> by auto
+                    have "l \<le> ux x" "vx x \<le> r"
+                      using i_sub_lr uv_le by auto
+                    have x_in_lr: "x \<in> {l<..<r}"
+                      using x_in_uv \<open>l \<le> ux x\<close> \<open>vx x \<le> r\<close> by auto
+                    have x_in_cd: "x \<in> {cx x<..<dx x}"
+                      using key_fn[OF \<open>x \<in> t\<close>] by auto
+                    have int_ne: "interior {l..r} \<inter> interior {cx x..dx x} \<noteq> {}"
+                      using x_in_lr x_in_cd by auto
+                    have cd_eq_lr: "{cx x..dx x} = {l..r}"
+                      using D_div K_eq \<open>K \<in> D\<close> cd_in_D int_ne by blast
+                    have cx_dx_le: "cx x \<le> dx x" using ux_in_cd by auto
+                    have "cx x = l" "dx x = r"
+                      using cd_eq_lr cx_dx_le \<open>l \<le> r\<close>
+                      by (auto simp: Icc_eq_Icc)
+                    \<comment> \<open>Apply the key bound\<close>
+                    have fvu_bound: "f (vx x) - f (ux x) \<le> - k * (vx x - ux x)"
+                      using bound_neg True \<open>cx x = l\<close> \<open>dx x = r\<close> by auto
+                    also have "\<dots> \<le> 0"
+                      using \<open>0 < k\<close> uv_le by fastforce
+                    finally have fvu_neg: "f (vx x) - f (ux x) \<le> 0" .
+                    \<comment> \<open>Express measure in terms of content\<close>
+                    have meas_eq: "measure lebesgue i = vx x - ux x"
+                      unfolding \<open>i = {ux x..vx x}\<close>
+                      using uv_lt by (simp add: measure_lborel_cbox_eq content_real less_imp_le cbox_interval)
+                    \<comment> \<open>The bound: measure * k \<le> |f(Sup i) - f(Inf i)| - (f(Sup i) - f(Inf i))\<close>
+                    have sup_eq: "Sup i = vx x" unfolding \<open>i = {ux x..vx x}\<close>
+                      using uv_le by (simp add: cSup_atLeastAtMost)
+                    have inf_eq: "Inf i = ux x" unfolding \<open>i = {ux x..vx x}\<close>
+                      using uv_le by (simp add: cInf_atLeastAtMost)
+                    have "measure lebesgue i * k = k * (vx x - ux x)"
+                      using meas_eq by (simp add: mult.commute)
+                    then show ?thesis unfolding sup_eq inf_eq
+                      using fvu_bound by linarith
+                  qed
+                  have "(\<Sum>i\<in>d'. measure lebesgue i) * k = (\<Sum>i\<in>d'. measure lebesgue i * k)"
+                    by (simp add: sum_distrib_right)
+                  also have "\<dots> \<le> (\<Sum>i\<in>d'. \<bar>f (Sup i) - f (Inf i)\<bar> - (f (Sup i) - f (Inf i)))"
+                    by (rule sum_mono) (use elt_bound in auto)
+                  also have "\<dots> \<le> (\<Sum>i\<in>d''. \<bar>f (Sup i) - f (Inf i)\<bar> - (f (Sup i) - f (Inf i)))"
+                    using \<open>finite d''\<close> d'_sub_d'' by (intro sum_mono2) auto
+                  finally show ?thesis .
+                qed
+                also have "\<dots> \<le> vector_variation {l..r} f - \<bar>f r - f l\<bar>"
+                proof -
+                  have bv_lr: "has_bounded_variation_on f {l..r}"
+                    by (rule has_bounded_variation_on_subset[OF \<open>has_bounded_variation_on f {a..b}\<close>
+                          division_ofD(2)[OF D_div \<open>K \<in> D\<close>[unfolded K_eq]]])
+                  have sum_abs_le: "(\<Sum>i\<in>d''. \<bar>f (Sup i) - f (Inf i)\<bar>) \<le> vector_variation {l..r} f"
+                    using has_bounded_variation_works(1)[OF bv_lr d''_div order_refl]
+                    by (simp add: real_norm_def)
+                  have sum_telesc: "(\<Sum>i\<in>d''. f (Sup i) - f (Inf i)) = f r - f l"
+                    using division_telescope_eq[OF d''_div \<open>l \<le> r\<close>] .
+                  have abs_eq: "\<bar>f r - f l\<bar> = f r - f l"
+                    using True by simp
+                  have "(\<Sum>i\<in>d''. \<bar>f (Sup i) - f (Inf i)\<bar> - (f (Sup i) - f (Inf i)))
+                      = (\<Sum>i\<in>d''. \<bar>f (Sup i) - f (Inf i)\<bar>) - (\<Sum>i\<in>d''. f (Sup i) - f (Inf i))"
+                    by (rule sum_subtractf)
+                  also have "\<dots> = (\<Sum>i\<in>d''. \<bar>f (Sup i) - f (Inf i)\<bar>) - (f r - f l)"
+                    by (simp add: sum_telesc)
+                  also have "\<dots> \<le> vector_variation {l..r} f - (f r - f l)"
+                    using sum_abs_le by linarith
+                  also have "\<dots> = vector_variation {l..r} f - \<bar>f r - f l\<bar>"
+                    using sum_abs_le by (simp add: sum_telesc abs_eq)
+                  finally show ?thesis .
+                qed
+                finally show ?thesis using \<open>0 < k\<close>
+                  by (simp add: divide_simps)
+              next
+              case False
+              have elt_bound: "measure lebesgue i * k
+                  \<le> \<bar>f (Sup i) - f (Inf i)\<bar> + (f (Sup i) - f (Inf i))"
+                if i_in_d': "i \<in> d'" for i
+              proof -
+                from i_in_d' obtain x where "x \<in> p" "i = {ux x..vx x}"
+                  using d_sub unfolding d'_def by auto
+                have "x \<in> t" using \<open>x \<in> p\<close> p_sub \<open>c \<subseteq> t\<close> by auto
+                from key_fn[OF this]
+                have cd_in_D: "{cx x..dx x} \<in> D"
+                  and x_in_uv: "x \<in> {ux x<..<vx x}"
+                  by auto
+                have uv_le: "ux x \<le> vx x" 
+                  using x_in_uv by auto
+                have i_sub_lr: "{ux x..vx x} \<subseteq> {l..r}"
+                  using i_in_d' unfolding d'_def \<open>i = {ux x..vx x}\<close> by auto
+                have "x \<in> {l<..<r}"
+                  using x_in_uv i_sub_lr uv_le by auto
+                then have int_ne: "interior {l..r} \<inter> interior {cx x..dx x} \<noteq> {}"
+                  using key_fn[OF \<open>x \<in> t\<close>] by auto
+                have "cx x = l" "dx x = r"
+                  using \<open>l \<le> r\<close> using key_fn[OF \<open>x \<in> t\<close>]
+                  by (metis D_div Icc_eq_Icc K_eq \<open>K \<in> D\<close> division_ofD(5) int_ne)+
+                \<comment> \<open>Apply the key bound\<close>
+                have "0 \<le> k * (vx x - ux x)"
+                  using \<open>k>0\<close> uv_le by auto
+                also have fvu_bound: "\<dots> \<le> f (vx x) - f (ux x)"
+                  using key_fn[OF \<open>x\<in>t\<close>] False \<open>cx x = l\<close> \<open>dx x = r\<close> by auto
+                finally have fvu_pos: "0 \<le> f (vx x) - f (ux x)" .
+                \<comment> \<open>Express measure in terms of content\<close>
+                have meas_eq: "measure lebesgue i = vx x - ux x"
+                  by (simp add: \<open>i = {ux x..vx x}\<close> uv_le)
+                \<comment> \<open>The bound: measure * k \<le> |f(Sup i) - f(Inf i)| + (f(Sup i) - f(Inf i))\<close>
+                have "measure lebesgue i * k = k * (vx x - ux x)"
+                  using meas_eq by (simp add: mult.commute)
+                also have "\<dots> \<le> \<bar>f (vx x) - f (ux x)\<bar> + (f (vx x) - f (ux x))"
+                  using fvu_bound fvu_pos by linarith
+                finally show ?thesis
+                  by (simp add: \<open>i = {ux x..vx x}\<close> uv_le)
+              qed
+              have "(\<Sum>i\<in>d'. measure lebesgue i) * k = (\<Sum>i\<in>d'. measure lebesgue i * k)"
+                by (simp add: sum_distrib_right)
+              also have "\<dots> \<le> (\<Sum>i\<in>d'. \<bar>f (Sup i) - f (Inf i)\<bar> + (f (Sup i) - f (Inf i)))"
+                by (rule sum_mono) (use elt_bound in auto)
+              also have "\<dots> \<le> (\<Sum>i\<in>d''. \<bar>f (Sup i) - f (Inf i)\<bar> + (f (Sup i) - f (Inf i)))"
+                using \<open>finite d''\<close> d'_sub_d'' by (intro sum_mono2) auto
+              also have "\<dots> \<le> vector_variation {l..r} f - (f l - f r)"
+              proof -
+                have bv_lr: "has_bounded_variation_on f {l..r}"
+                  by (metis D_div K_eq assms(1) division_ofD(2) has_bounded_variation_on_subset that)
+                have sum_abs_le: "(\<Sum>i\<in>d''. \<bar>f (Sup i) - f (Inf i)\<bar>) \<le> vector_variation {l..r} f"
+                  using has_bounded_variation_works(1)[OF bv_lr d''_div order_refl]
+                  by (simp add: real_norm_def)
+                have sum_telesc: "(\<Sum>i\<in>d''. f (Sup i) - f (Inf i)) = f r - f l"
+                  using division_telescope_eq[OF d''_div \<open>l \<le> r\<close>] .
+                have "(\<Sum>i\<in>d''. \<bar>f (Sup i) - f (Inf i)\<bar> + (f (Sup i) - f (Inf i)))
+                    = (\<Sum>i\<in>d''. \<bar>f (Sup i) - f (Inf i)\<bar>) + (\<Sum>i\<in>d''. f (Sup i) - f (Inf i))"
+                  by (rule sum.distrib)
+                also have "\<dots> = (\<Sum>i\<in>d''. \<bar>f (Sup i) - f (Inf i)\<bar>) + (f r - f l)"
+                  by (simp add: sum_telesc)
+                also have "\<dots> \<le> vector_variation {l..r} f + (f r - f l)"
+                  using sum_abs_le by linarith
+                also have "\<dots> = vector_variation {l..r} f - (f l - f r)"
+                  by linarith
+                finally show ?thesis .
+              qed
+              also have "\<dots> = (vector_variation {l..r} f - \<bar>f r - f l\<bar>)"
+                using False by simp
+              finally show ?thesis using \<open>0 < k\<close>
+                by (simp add: divide_simps)
+            qed
+            finally show ?thesis using \<open>l \<le> r\<close> \<open>k>0\<close>
+              by (simp add: K_eq d'_def divide_simps)
+          qed
+            have "(\<Sum>j\<in>D. measure lebesgue (\<Union>{i \<in> d. i \<subseteq> j})) * k
+                = (\<Sum>j\<in>D. measure lebesgue (\<Union>{i \<in> d. i \<subseteq> j}) * k)"
+              by (simp add: sum_distrib_right)
+            also have "\<dots> \<le> (\<Sum>j\<in>D. vector_variation j f - norm (f (Sup j) - f (Inf j)))"
+              by (rule sum_mono) (rule per_elt)
+            also have "\<dots> = (\<Sum>j\<in>D. vector_variation j f) - (\<Sum>K\<in>D. norm (f (Sup K) - f (Inf K)))"
+              by (simp add: sum_subtractf)
+            also have "\<dots> \<le> vector_variation {a..b} f - (\<Sum>K\<in>D. norm (f (Sup K) - f (Inf K)))"
+            proof -
+              have "(\<Sum>j\<in>E. vector_variation j f) \<le> vector_variation (\<Union>E) f"
+                if  "finite E" "E \<subseteq> D" for E
+                using that 
+              proof (induction rule: finite_induct)
+                case empty
+                then show ?case
+                  by (simp add: vector_variation_def set_variation_def)
+              next
+                case (insert K F)
+                then have "F \<subseteq> D" and K_in_D: "K \<in> D" by auto
+                have IH: "(\<Sum>j\<in>F. vector_variation j f) \<le> vector_variation (\<Union>F) f"
+                  using insert(3)[OF \<open>F \<subseteq> D\<close>] .
+                have disj_int: "interior K \<inter> interior (\<Union>F) = {}"
+                proof (rule Int_interior_Union_intervals)
+                  fix T assume "T \<in> F"
+                  then have "T \<in> D" using \<open>F \<subseteq> D\<close> by auto
+                  show "\<exists>a b. T = cbox a b"
+                    using division_ofD(4)[OF D_div \<open>T \<in> D\<close>] by auto
+                  have "K \<noteq> T" using insert \<open>T \<in> F\<close> by auto
+                  show "interior K \<inter> interior T = {}"
+                    using division_ofD(5)[OF D_div K_in_D \<open>T \<in> D\<close> \<open>K \<noteq> T\<close>] .
+                qed (use insert in auto)
+                have  "K \<union> \<Union>F \<subseteq> {a..b}"
+                  using division_ofD(2)[OF D_div] insert(4) by auto
+                then have bv_KF: "has_bounded_variation_on f (K \<union> \<Union>F)"
+                  using has_bounded_variation_on_subset[OF assms(1)] by metis
+                have "(\<Sum>j\<in>insert K F. vector_variation j f)
+                    = vector_variation K f + (\<Sum>j\<in>F. vector_variation j f)"
+                  using insert by auto
+                also have "\<dots> \<le> vector_variation (K \<union> \<Union>F) f"
+                  using vector_variation_le_Un[OF bv_KF disj_int] IH by linarith
+                also have "K \<union> \<Union>F = \<Union>(insert K F)" by auto
+                finally show ?case by simp
+              qed
+              then show ?thesis
+                by (metis (lifting) ext D_div diff_mono division_ofD(6) fin_D order.refl)
+            qed
+            finally have sum_k_le: "(\<Sum>j\<in>D. measure lebesgue (\<Union>{i \<in> d. i \<subseteq> j})) * k
+                \<le> vector_variation {a..b} f - (\<Sum>K\<in>D. norm (f (Sup K) - f (Inf K)))" .
+            with D_sum have "(\<Sum>j\<in>D. measure lebesgue (\<Union>{i \<in> d. i \<subseteq> j})) * k < k * e / 3"
+              by linarith
+            then show ?thesis
+              using \<open>0 < k\<close> by (simp add: field_simps)
+          qed
+          finally show ?thesis .
+        qed
+        show False
+          using p_meas d_meas' d_bound by linarith
+      qed
+      then obtain c where c_sub: "t \<subseteq> c" and c_meas: "c \<in> lmeasurable"
+        and c_bound: "measure lebesgue c \<le> e" by auto
+      define T where "T \<equiv> c \<union> \<Union>(frontier ` D)"
+      have "t' \<subseteq> T" unfolding T_def using c_sub unfolding t_def by auto
+      moreover have "T \<in> lmeasurable"
+        using T_def c_meas neg_frontiers negligible_imp_measurable by blast
+      moreover have "measure lebesgue T \<le> e"
+      proof -
+        have "measure lebesgue T \<le> measure lebesgue c + measure lebesgue (\<Union>(frontier ` D))"
+          unfolding T_def
+          by (meson c_meas fmeasurableD measure_Un_le neg_frontiers negligible_iff_measure)
+        also have "measure lebesgue (\<Union>(frontier ` D)) = 0"
+          using neg_frontiers negligible_imp_measure0 by auto
+        finally show ?thesis using c_bound by linarith
+      qed
+      ultimately show ?thesis by blast
+    qed
+  qed
+  then show ?thesis
+    by (simp add: t'_def)
+qed
+
+
+
+
 lemma Lebesgue_differentiation_theorem_compact:
   fixes f :: "real \<Rightarrow> 'a::euclidean_space"
   assumes "has_bounded_variation_on f (cbox a b)"
@@ -708,31 +1765,23 @@ lemma has_integral_substitution_strong:
     and "a \<le> b" and "c \<le> d" and "g a \<le> g b"
   shows "((\<lambda>x. g' x *\<^sub>R f (g x)) has_integral integral {g a..g b} f) {a..b}"
 proof -
-  \<comment> \<open>Define the indefinite integral ff\<close>
   define ff where "ff \<equiv> \<lambda>x. integral {c..x} f"
-  \<comment> \<open>ff is continuous on {c..d}\<close>
   have ff_cont: "continuous_on {c..d} ff"
     unfolding ff_def using indefinite_integral_continuous_1[OF assms(2)] .
-  \<comment> \<open>ff \<circ> g is continuous on {a..b}\<close>
   have fg_cont: "continuous_on {a..b} (ff \<circ> g)"
     using continuous_on_compose2[OF ff_cont contg] g unfolding comp_def by blast
-  \<comment> \<open>g maps {a..b} into {c..d}\<close>
-  \<comment> \<open>Apply FTC interior strong to ff \<circ> g\<close>
   have ftc: "((\<lambda>x. g' x *\<^sub>R f (g x)) has_integral ((ff \<circ> g) b - (ff \<circ> g) a)) {a..b}"
   proof (rule fundamental_theorem_of_calculus_interior_strong[where S = k])
     show "countable k" by fact
     show "a \<le> b" by fact
     show "continuous_on {a..b} (ff \<circ> g)" by fact
     fix x assume xk: "x \<in> {a<..<b} - k"
-    \<comment> \<open>Get derivative of g and continuity of f at g(x)\<close>
     have g_deriv: "(g has_vector_derivative g' x) (at x within {a..b})"
       and f_cont: "continuous (at (g x) within {c..d}) f"
       using derg xk by auto
-    \<comment> \<open>Get derivative of ff at g(x) within {c..d}\<close>
     have ff_deriv: "(ff has_vector_derivative f (g x)) (at (g x) within {c..d})"
       unfolding ff_def
       using integral_has_vector_derivative_pointwise[OF assms(2) _ f_cont] 
-    \<comment> \<open>Weaken to derivative within g ` {a..b}\<close>
       using g xk by (auto simp: Pi_iff)
     have ff_deriv': "(ff has_vector_derivative f (g x)) (at (g x) within g ` {a..b})"
       using has_vector_derivative_within_subset[OF ff_deriv] g by (simp add: funcset_image)
@@ -742,12 +1791,10 @@ proof -
     \<comment> \<open>x is in the interior, so at x within {a..b} = at x\<close>
     have "x \<in> interior {a..b}"
       using xk by (simp add: interior_atLeastAtMost_real)
-    then have "at x within {a..b} = at x"
-      by (rule at_within_interior)
-    with chain show "((ff \<circ> g) has_vector_derivative g' x *\<^sub>R f (g x)) (at x)"
-      by simp
+    with chain at_within_interior 
+    show "((ff \<circ> g) has_vector_derivative g' x *\<^sub>R f (g x)) (at x)"
+      by metis
   qed
-  \<comment> \<open>Now show (ff \<circ> g) b - (ff \<circ> g) a = integral {g a..g b} f\<close>
   have "(ff \<circ> g) b - (ff \<circ> g) a = integral {g a..g b} f"
   proof -
     obtain c_ga: "c \<le> g a" and "c \<le> g b" "g b \<le> d"
@@ -792,16 +1839,15 @@ proof -
       show "0 < \<delta>" by fact
     next
       fix d :: "real set set" and T
-      assume hyp: "d division_of T \<and> T \<subseteq> {a..b} \<and>
-        (\<Sum>k\<in>d. content k) < \<delta>"
+      assume hyp: "d division_of T \<and> T \<subseteq> {a..b} \<and> (\<Sum>k\<in>d. content k) < \<delta>"
       then have divi: "d division_of T" and sub: "T \<subseteq> {a..b}"
         and cont: "(\<Sum>k\<in>d. content k) < \<delta>"
         by auto
       have K_in: "\<Squnion> K \<in> {a..b}" "\<Sqinter> K \<in> {a..b}" if Kd: "K \<in> d" for K
       proof -
-        obtain u v where Kuv: "K = cbox u v" and Kne: "K \<noteq> {}" and ne: "u \<le> v"
-          by (metis Kd atLeastatMost_empty_iff box_real(2) cbox_division_memE hyp)
-        obtain uv_in: "u \<in> {a..b}" "v \<in> {a..b}" using Kuv ne
+        obtain u v where Kuv: "K = cbox u v" and ne: "u \<le> v"
+          by (metis Kd atLeastatMost_empty_iff box_real(2) cbox_division_memE divi)
+        then obtain uv_in: "u \<in> {a..b}" "v \<in> {a..b}" 
           by (smt (verit, best) Kd divi division_of_def in_mono mem_box_real(2) sub)
         moreover have "\<Squnion> K = v" "\<Sqinter> K = u"
           unfolding Kuv box_real using ne interval_bounds_real by auto
@@ -843,49 +1889,38 @@ lemma has_integral_substitution_ac:
     and mono: "\<And>x y. x \<in> {a..b} \<Longrightarrow> y \<in> {a..b} \<Longrightarrow> x \<le> y \<Longrightarrow> \<phi> x \<le> \<phi> y"
   shows "((\<lambda>t. \<phi>' t * f (\<phi> t)) has_integral (integral {\<phi> a..\<phi> b} f)) {a..b}"
 proof -
-  \<comment> \<open>Define the antiderivative\<close>
   define ff where "ff \<equiv> \<lambda>x. integral {\<phi> a..x} f"
-  \<comment> \<open>f is integrable on {\<phi> a..\<phi> b}\<close>
   have f_int: "f integrable_on {\<phi> a..\<phi> b}"
     using integrable_continuous_real contf by blast
-  \<comment> \<open>f is bounded on {\<phi> a..\<phi> b} — needed for Lipschitz property of ff\<close>
+  \<comment> \<open>f is bounded — needed for Lipschitz property of ff\<close>
   obtain M where M_pos: "0 \<le> M" and M_bound: "\<And>t. t \<in> {\<phi> a..\<phi> b} \<Longrightarrow> \<bar>f t\<bar> \<le> M"
     using continuous_on_compact_bound[of "{\<phi> a..\<phi> b}" f, OF _ contf]
     by (auto simp: norm_real)
-  \<comment> \<open>ff is Lipschitz on {\<phi> a..\<phi> b}\<close>
+  \<comment> \<open>ff is Lipschitz\<close>
   have ff_lip_half: "norm (ff x - ff y) \<le> M * \<bar>x - y\<bar>"
-    if "x \<in> {\<phi> a..\<phi> b}" "y \<in> {\<phi> a..\<phi> b}" "x \<le> y" for x y
+    if x: "x \<in> {\<phi> a..\<phi> b}" and y: "y \<in> {\<phi> a..\<phi> b}" "x \<le> y" for x y
   proof -
-    have x_le: "\<phi> a \<le> x" "x \<le> \<phi> b" using that(1) by auto
-    have y_le: "\<phi> a \<le> y" "y \<le> \<phi> b" using that(2) by auto
-    have f_int_xy: "f integrable_on {x..y}"
-      using integrable_on_subinterval[OF f_int] x_le y_le by auto
-    have "ff y - ff x = integral {x..y} f"
-    proof -
-      have "f integrable_on {\<phi> a..y}"
-        using integrable_on_subinterval[OF f_int] y_le by auto
-      then have "integral {\<phi> a..x} f + integral {x..y} f = integral {\<phi> a..y} f"
-        using Henstock_Kurzweil_Integration.integral_combine[OF x_le(1) \<open>x \<le> y\<close>] by auto
-      then show ?thesis by (simp add: ff_def algebra_simps)
-    qed
+    obtain f_int: "f integrable_on {x..y}" "f integrable_on {\<phi> a..y}"
+      using integrable_on_subinterval[OF f_int] x y by auto
+    then have "ff y - ff x = integral {x..y} f"
+      unfolding ff_def
+      using Henstock_Kurzweil_Integration.integral_combine that by fastforce
     also have "norm \<dots> \<le> M * (y - x)"
-      using integral_bound[OF \<open>x \<le> y\<close> continuous_on_subset[OF contf] _]
-        x_le y_le M_bound by (auto simp: norm_real)
+      using integral_bound[OF \<open>x \<le> y\<close> continuous_on_subset[OF contf]]
+              that M_bound by (auto simp: norm_real)
     finally show ?thesis
       by (simp add: \<open>x \<le> y\<close>)
   qed
   have ff_lip: "norm (ff x - ff y) \<le> M * \<bar>x - y\<bar>"
     if "x \<in> {\<phi> a..\<phi> b}" "y \<in> {\<phi> a..\<phi> b}" for x y
     by (metis ff_lip_half linorder_class.linear norm_minus_commute real_norm_def that)
-  \<comment> \<open>Monotonicity: \<phi> maps {a..b} into {\<phi> a..\<phi> b}\<close>
   have \<phi>_range: "\<phi> t \<in> {\<phi> a..\<phi> b}" if "t \<in> {a..b}" for t
     using mono[of a t] mono[of t b] that by auto
-  \<comment> \<open>ff \<circ> \<phi> is AC on {a..b}\<close>
   have ac_comp: "absolutely_continuous_on {a..b} (ff \<circ> \<phi>)"
   proof (rule absolutely_continuous_on_Lipschitz_compose[OF \<phi> _ M_pos])
   qed (use \<phi>_range ff_lip in auto)
-  have deriv: "((ff \<circ> \<phi>) has_vector_derivative \<phi>' t *\<^sub>R f (\<phi> t))
-    (at t within {a..b})" if "t \<in> {a..b} - S" for t
+  have deriv: "((ff \<circ> \<phi>) has_vector_derivative \<phi>' t *\<^sub>R f (\<phi> t)) (at t within {a..b})" 
+    if "t \<in> {a..b} - S" for t
   proof -
     have \<phi>_deriv: "(\<phi> has_vector_derivative \<phi>' t) (at t within {a..b})"
       using vec[OF that] has_vector_derivative_at_within by blast
@@ -901,13 +1936,12 @@ proof -
     then show ?thesis using vector_diff_chain_within[OF \<phi>_deriv]
       by (metis ff_deriv has_vector_derivative_within_subset) 
   qed
-  \<comment> \<open>Apply FTC for absolutely continuous functions\<close>
   have ftc: "((\<lambda>t. \<phi>' t *\<^sub>R f (\<phi> t)) has_integral ((ff \<circ> \<phi>) b - (ff \<circ> \<phi>) a)) {a..b}"
-    using fundamental_theorem_of_calculus_absolutely_continuous
-      [OF \<open>negligible S\<close> \<open>a \<le> b\<close> ac_comp] deriv by auto
+    using fundamental_theorem_of_calculus_absolutely_continuous [OF \<open>negligible S\<close> \<open>a \<le> b\<close> ac_comp] 
+    using deriv by auto
   have "(ff \<circ> \<phi>) b - (ff \<circ> \<phi>) a = integral {\<phi> a..\<phi> b} f"
     using ff_def by auto
-  \<comment> \<open>Combine: for real-valued functions, scaleR equals multiplication\<close>
+  \<comment> \<open>Combine\<close>
   with ftc show ?thesis by (simp add: real_scaleR_def)
 qed
 
@@ -921,7 +1955,7 @@ proof (rule lborel_eqI[symmetric])
   assume basis: "\<And>b. b \<in> Basis \<Longrightarrow> l \<bullet> b \<le> u \<bullet> b"
   have meas_C: "?C \<in> lborel \<rightarrow>\<^sub>M borel"
   proof -
-    have "continuous_on UNIV (\<lambda>p :: real \<times> real. Complex (fst p) (snd p))"
+    have "continuous_on UNIV (\<lambda>p. Complex (fst p) (snd p))"
       by (intro continuous_on_Complex continuous_on_fst continuous_on_snd continuous_on_id)
     then have "?C \<in> borel_measurable borel"
       by (simp add: borel_measurable_continuous_onI case_prod_unfold)
@@ -932,8 +1966,7 @@ proof (rule lborel_eqI[symmetric])
   also have "?C -` box l u = box (Re l, Im l) (Re u, Im u)"
     by (auto simp: mem_box Basis_complex_def Basis_prod_def inner_complex_def
           inner_Pair_0 complex.sel split: prod.splits)
-  also have "emeasure lborel (box (Re l, Im l) (Re u, Im u)) =
-             ennreal (\<Prod>b\<in>Basis. (u - l) \<bullet> b)"
+  also have "emeasure lborel (box (Re l, Im l) (Re u, Im u)) = ennreal (\<Prod>b\<in>Basis. (u - l) \<bullet> b)"
   proof -
     have "emeasure lborel (box (Re l, Im l) (Re u, Im u)) =
           ennreal (\<Prod>b\<in>(Basis :: (real \<times> real) set). ((Re u, Im u) - (Re l, Im l)) \<bullet> b)"
@@ -1225,9 +2258,9 @@ proof -
       = distr lborel lborel ?inv"
     using distr_completion[OF inv_lborel] by simp
   also have "\<dots> = lborel"
-  proof -
-    have "continuous_on UNIV (\<lambda>p :: real \<times> real. Complex (fst p) (snd p))"
-      by (intro continuous_on_Complex continuous_on_fst continuous_on_snd continuous_on_id)
+    proof -
+      have "continuous_on UNIV (\<lambda>p :: real \<times> real. Complex (fst p) (snd p))"
+        by (intro continuous_on_Complex continuous_on_fst continuous_on_snd continuous_on_id)
     then have C_meas: "?C \<in> lborel \<rightarrow>\<^sub>M borel"
       by (simp add: borel_measurable_continuous_onI case_prod_beta)
     have inv_borel: "?inv \<in> borel \<rightarrow>\<^sub>M lborel"
@@ -1358,10 +2391,10 @@ proof -
         using compact_continuous_image compact_Times by blast 
     qed
     with lmeasurable_compact have S'_meas: "S' \<in> lmeasurable" by blast
-    have S_eq: "S = (\<lambda>(x,y). Complex x y) ` S'"
+      have S_eq: "S = (\<lambda>(x,y). Complex x y) ` S'"
       by (force simp: S_def S'_def image_iff)
     then have meas_eq: "measure lebesgue S = measure lebesgue S'"
-      using measure_Complex_image(2)[OF S'_meas] by simp
+        using measure_Complex_image(2)[OF S'_meas] by simp
     \<comment> \<open>Step 2: compute measure of S' using Fubini\<close>
     have "measure lebesgue S' = integral {a..b} f"
     proof -
