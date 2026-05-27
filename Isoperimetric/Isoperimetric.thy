@@ -1226,83 +1226,40 @@ proof -
     using distr_completion[OF inv_lborel] by simp
   also have "\<dots> = lborel"
   proof -
-    \<comment> \<open>Use distr_distr with ?C and ?inv: ?inv \<circ> ?C = id\<close>
-    have C_meas: "?C \<in> (lborel :: (real \<times> real) measure) \<rightarrow>\<^sub>M (borel :: complex measure)"
-    proof -
-      have "continuous_on UNIV (\<lambda>p :: real \<times> real. Complex (fst p) (snd p))"
-        by (intro continuous_on_Complex continuous_on_fst continuous_on_snd continuous_on_id)
-      then have "continuous_on UNIV ?C"
-        by (simp add: case_prod_unfold)
-      then have "?C \<in> borel_measurable borel"
-        by (rule borel_measurable_continuous_onI)
-      then show ?thesis by (simp add: measurable_lborel1)
-    qed
-    have inv_borel: "?inv \<in> (borel :: complex measure) \<rightarrow>\<^sub>M (lborel :: (real \<times> real) measure)"
+    have "continuous_on UNIV (\<lambda>p :: real \<times> real. Complex (fst p) (snd p))"
+      by (intro continuous_on_Complex continuous_on_fst continuous_on_snd continuous_on_id)
+    then have C_meas: "?C \<in> lborel \<rightarrow>\<^sub>M borel"
+      by (simp add: borel_measurable_continuous_onI case_prod_beta)
+    have inv_borel: "?inv \<in> borel \<rightarrow>\<^sub>M lborel"
       using inv_lborel by (simp add: measurable_def sets_lborel)
-    have "distr (lborel :: complex measure) lborel ?inv
-        = distr (distr lborel borel ?C) lborel ?inv"
-      using lborel_distr_complex_pair by simp
-    also have "\<dots> = distr lborel lborel (?inv \<circ> ?C)"
-      using distr_distr[OF inv_borel C_meas] by simp
+    have "distr lborel lborel ?inv =  distr lborel lborel (?inv \<circ> ?C)"
+      using lborel_distr_complex_pair distr_distr[OF inv_borel C_meas] by simp
     also have "?inv \<circ> ?C = (\<lambda>x. x)"
       by (auto simp: fun_eq_iff complex.sel split: prod.splits)
-    also have "distr lborel lborel \<dots> = lborel"
-      by (rule distr_id)
-    finally show ?thesis .
+    finally show ?thesis
+      by simp
   qed
-  finally have distr_eq: "distr (lebesgue :: complex measure) lborel ?inv
-      = (lborel :: (real \<times> real) measure)"
+  finally have distr_eq: "distr lebesgue lborel ?inv = lborel"
     by simp
-  then have null_eq: "null_sets (lborel :: (real \<times> real) measure)
-      \<subseteq> null_sets (distr (lebesgue :: complex measure) lborel ?inv)"
+  then have null_eq: "null_sets lborel \<subseteq> null_sets (distr lebesgue lborel ?inv)"
     by simp
   \<comment> \<open>Lift target to completion\<close>
   have inv_lebesgue: "?inv \<in> (lebesgue :: complex measure) \<rightarrow>\<^sub>M (lebesgue :: (real \<times> real) measure)"
     using completion.measurable_completion2[OF inv_compl null_eq] by simp
-  \<comment> \<open>distr lebesgue lebesgue ?inv = lebesgue, via completion_distr_eq\<close>
-  have distr_lebesgue_eq:
-    "distr (lebesgue :: complex measure) (lebesgue :: (real \<times> real) measure) ?inv
-     = (lebesgue :: (real \<times> real) measure)"
-  proof -
-    have "null_sets (distr (lebesgue :: complex measure) lborel ?inv) = null_sets lborel"
-      using distr_eq by simp
-    then have "completion (distr (lebesgue :: complex measure) lborel ?inv)
-        = distr (lebesgue :: complex measure) lebesgue ?inv"
-      using completion.completion_distr_eq[OF inv_compl] by simp
-    then show ?thesis using distr_eq by simp
-  qed
-  \<comment> \<open>?C ` S = ?inv⁻¹(S) since ?C is a bijection\<close>
   have image_eq: "?C ` S = ?inv -` S \<inter> space (lebesgue :: complex measure)"
-  proof (intro set_eqI iffI)
-    fix z :: complex
-    assume "z \<in> ?C ` S"
-    then obtain p where "p \<in> S" "z = ?C p" by auto
-    then show "z \<in> ?inv -` S \<inter> space lebesgue"
-      by (auto simp: complex.sel split: prod.splits)
-  next
-    fix z :: complex
-    assume "z \<in> ?inv -` S \<inter> space lebesgue"
-    then have "?inv z \<in> S" by auto
-    moreover have "?C (?inv z) = z"
-      by (simp add: complex_eq_iff)
-    ultimately show "z \<in> ?C ` S" by (metis image_eqI)
-  qed
-  \<comment> \<open>Measurability of ?C ` S\<close>
+    by (force simp: complex.sel complex_eq_iff image_iff split: prod.splits)
   have sets_S: "S \<in> sets (lebesgue :: (real \<times> real) measure)"
     using assms by (simp add: fmeasurable_def)
   show "?C ` S \<in> lmeasurable"
   proof -
-    have "?C ` S \<in> sets (lebesgue :: complex measure)"
+    have "?C ` S \<in> sets lebesgue"
       using image_eq measurable_sets[OF inv_lebesgue sets_S] by simp
-    moreover have "emeasure (lebesgue :: complex measure) (?C ` S) < \<infinity>"
+    moreover have "emeasure lebesgue (?C ` S) < \<infinity>"
     proof -
-      have "emeasure (lebesgue :: complex measure) (?C ` S)
-          = emeasure (lebesgue :: complex measure) (?inv -` S \<inter> space lebesgue)"
-        using image_eq by simp
-      also have "\<dots> = emeasure (distr (lebesgue :: complex measure) lebesgue ?inv) S"
-        using emeasure_distr[OF inv_lebesgue sets_S] by simp
+      have "emeasure lebesgue (?C ` S) = emeasure (distr lebesgue lebesgue ?inv) S"
+        using image_eq emeasure_distr[OF inv_lebesgue sets_S] by simp
       also have "\<dots> = emeasure (lebesgue :: (real \<times> real) measure) S"
-        using distr_lebesgue_eq by simp
+        by (metis (lifting) completion.completion_distr_eq distr_eq inv_compl)
       finally show ?thesis
         using assms by (auto simp: fmeasurable_def)
     qed
@@ -1311,13 +1268,13 @@ proof -
   \<comment> \<open>Measure equality\<close>
   show "measure lebesgue (?C ` S) = measure lebesgue S"
   proof -
-    have "emeasure (lebesgue :: complex measure) (?C ` S)
-        = emeasure (lebesgue :: complex measure) (?inv -` S \<inter> space lebesgue)"
+    have "emeasure lebesgue (?C ` S)
+        = emeasure lebesgue (?inv -` S \<inter> space lebesgue)"
       using image_eq by simp
-    also have "\<dots> = emeasure (distr (lebesgue :: complex measure) lebesgue ?inv) S"
+    also have "\<dots> = emeasure (distr lebesgue lebesgue ?inv) S"
       using emeasure_distr[OF inv_lebesgue sets_S] by simp
     also have "\<dots> = emeasure (lebesgue :: (real \<times> real) measure) S"
-      using distr_lebesgue_eq by simp
+      by (metis (lifting) completion.completion_distr_eq distr_eq inv_compl)
     finally show ?thesis by (simp add: measure_def)
   qed
 qed
@@ -1344,7 +1301,7 @@ proof -
       by (intro continuous_intros continuous_on_compose2[OF cont_g] continuous_on_fst) auto
     have img: "\<phi> ` ({a..b} \<times> {0..1}) = S"
     proof (rule set_eqI)
-      fix z :: complex
+      fix z
       show "z \<in> \<phi> ` ({a..b} \<times> {0..1}) \<longleftrightarrow> z \<in> S"
       proof
         assume "z \<in> \<phi> ` ({a..b} \<times> {0..1})"
@@ -1362,11 +1319,9 @@ proof -
             unfolding \<phi>_def by (force simp: complex_eq_iff)
         next
           case False
-          define t where "t \<equiv> Im z / f (Re z)"
-          have "0 < f (Re z)" using False hz(3,4) assms(3) hz(1,2) by linarith
-          then have "t \<in> {0..1}" unfolding t_def using hz(3,4) by (auto simp: field_simps)
-          moreover have "z = \<phi> (Re z, t)"
-            unfolding \<phi>_def t_def using False by (simp add: complex_eq_iff)
+          then have "Im z / f (Re z) \<in> {0..1}" using hz(3,4) by (auto simp: field_simps)
+          moreover have "z = \<phi> (Re z, Im z / f (Re z))"
+            unfolding \<phi>_def using False by (simp add: complex_eq_iff)
           ultimately show ?thesis using hz(1,2) by auto
         qed
       qed
@@ -1403,18 +1358,10 @@ proof -
         using compact_continuous_image compact_Times by blast 
     qed
     with lmeasurable_compact have S'_meas: "S' \<in> lmeasurable" by blast
-    have meas_eq: "measure lebesgue S = measure lebesgue S'"
-    proof -
-      have S_eq: "S = (\<lambda>(x,y). Complex x y) ` S'"
-      proof (rule set_eqI)
-        fix z :: complex
-        show "z \<in> S \<longleftrightarrow> z \<in> (\<lambda>(x,y). Complex x y) ` S'"
-          unfolding S_def S'_def image_iff
-          by (auto simp: complex.sel complex_eq_iff intro!: exI[of _ "Re z"] exI[of _ "Im z"])
-      qed
-      then show ?thesis
-        using measure_Complex_image(2)[OF S'_meas] by simp
-    qed
+    have S_eq: "S = (\<lambda>(x,y). Complex x y) ` S'"
+      by (force simp: S_def S'_def image_iff)
+    then have meas_eq: "measure lebesgue S = measure lebesgue S'"
+      using measure_Complex_image(2)[OF S'_meas] by simp
     \<comment> \<open>Step 2: compute measure of S' using Fubini\<close>
     have "measure lebesgue S' = integral {a..b} f"
     proof -
