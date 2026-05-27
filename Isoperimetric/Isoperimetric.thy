@@ -1969,7 +1969,7 @@ proof (rule lborel_eqI[symmetric])
   also have "emeasure lborel (box (Re l, Im l) (Re u, Im u)) = ennreal (\<Prod>b\<in>Basis. (u - l) \<bullet> b)"
   proof -
     have "emeasure lborel (box (Re l, Im l) (Re u, Im u)) =
-          ennreal (\<Prod>b\<in>(Basis :: (real \<times> real) set). ((Re u, Im u) - (Re l, Im l)) \<bullet> b)"
+          ennreal (\<Prod>b\<in>Basis. ((Re u, Im u) - (Re l, Im l)) \<bullet> b)"
     proof (rule emeasure_lborel_box)
       fix b :: "real \<times> real"
       assume "b \<in> Basis"
