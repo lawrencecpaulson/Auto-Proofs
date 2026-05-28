@@ -1,6 +1,6 @@
 theory Isoperimetric
   imports Arc_Length_Reparametrization "Fourier.Fourier" "Green.Green" "../Euclidean_Space_Transfer"
-    "HOL-ex.Sketch_and_Explore" 
+    "HOL-ex.Sketch_and_Explore" Isar_Explore
 begin
 
 hide_const (open) Polynomial.content
@@ -1084,7 +1084,320 @@ proof -
     by (simp add: t'_def)
 qed
 
-
+lemma lemma3:
+  fixes f :: "real \<Rightarrow> real" and a b k :: real
+  assumes "has_bounded_variation_on f {a..b}" "a < b" "0 < k"
+  shows "negligible
+           {x \<in> {a..b}.
+              \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
+                             v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
+                             u \<noteq> x \<and> v \<noteq> x \<and>
+                             k \<le> (f v - f x) / (v - x) \<and>
+                             (f u - f x) / (u - x) \<le> -k}"
+proof -
+  define T where "T \<equiv> {x \<in> {a..b}.
+              \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
+                             v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
+                             u \<noteq> x \<and> v \<noteq> x \<and>
+                             k \<le> (f v - f x) / (v - x) \<and>
+                             (f u - f x) / (u - x) \<le> -k}"
+  \<comment> \<open>The superset: endpoints \<union> discontinuities \<union> lemma2-set is negligible\<close>
+  define L2 where "L2 \<equiv> {x \<in> {a..b}.
+      \<forall>S. open S \<and> x \<in> S \<longrightarrow>
+        (\<exists>u v. u \<in> {a..b} \<and> u \<in> S \<and> v \<in> {a..b} \<and> v \<in> S \<and>
+               x \<in> {u<..<v} \<and> k/2 \<le> (f v - f u) / (v - u)) \<and>
+        (\<exists>u v. u \<in> {a..b} \<and> u \<in> S \<and> v \<in> {a..b} \<and> v \<in> S \<and>
+               x \<in> {u<..<v} \<and> (f v - f u) / (v - u) \<le> -(k/2))}"
+  have neg_endpts: "negligible {a, b}"
+    by (rule negligible_finite) simp
+  have neg_discont: "negligible {x \<in> {a..b}. \<not> isCont f x}"
+    using countable_imp_negligible[OF has_bounded_variation_countable_discontinuities[OF assms(1)]] .
+  have neg_L2: "negligible L2"
+    unfolding L2_def using lemma2[OF assms(1,2), of "k/2"] assms(3) by simp
+  have neg_super: "negligible (({a, b} \<union> {x \<in> {a..b}. \<not> isCont f x}) \<union> L2)"
+    by (rule negligible_Un[OF negligible_Un[OF neg_endpts neg_discont] neg_L2])
+  show "negligible T"
+  proof (rule negligible_subset[OF neg_super])
+    show "T \<subseteq> ({a, b} \<union> {x \<in> {a..b}. \<not> isCont f x}) \<union> L2"
+    proof (rule subsetI)
+      fix x assume "x \<in> T"
+      then obtain xab: "x \<in> {a..b}" and
+        xprop: "\<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
+                               v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
+                               u \<noteq> x \<and> v \<noteq> x \<and>
+                               k \<le> (f v - f x) / (v - x) \<and>
+                               (f u - f x) / (u - x) \<le> -k"
+        unfolding T_def by blast
+      show "x \<in> ({a, b} \<union> {x \<in> {a..b}. \<not> isCont f x}) \<union> L2"
+      proof (cases "x = a \<or> x = b \<or> \<not> isCont f x")
+        case True
+        with xab show ?thesis by auto
+      next
+        case False
+          \<comment> \<open>x is interior, continuous, and has the oscillation property\<close>
+        have "x \<in> L2"
+          unfolding L2_def
+        proof (intro CollectI conjI strip)
+          show "x \<in> {a..b}"
+            using xab by blast
+        next
+          fix S :: "real set"
+          assume "open S \<and> x \<in> S"
+          then have "open S" "x \<in> S" by auto
+          have "x \<in> {a<..<b}"
+            using xab False by auto
+          have "open (S \<inter> {a<..<b})"
+            using \<open>open S\<close> open_real_greaterThanLessThan by blast
+          then have "\<exists>e>0. ball x e \<subseteq> S \<inter> {a<..<b}"
+            using \<open>x \<in> S\<close> \<open>x \<in> {a<..<b}\<close>
+            by (simp add: open_contains_ball)
+          then obtain e where "e > 0" "ball x e \<subseteq> S \<inter> {a<..<b}"
+            by auto
+          obtain n :: nat where n_pos: "n \<noteq> 0" and inv_lt: "inverse (real n) < e"
+            using real_arch_invD[OF \<open>e > 0\<close>] by blast
+          have inv_n1_lt: "inverse (real n + 1) < e"
+          proof (rule le_less_trans[OF _ inv_lt])
+            show "inverse (real n + 1) \<le> inverse (real n)"
+              using n_pos by (intro le_imp_inverse_le) auto
+          qed
+          have ball_sub: "ball x (inverse (real n + 1)) \<subseteq> S \<inter> {a<..<b}"
+            using subset_ball[OF less_imp_le[OF inv_n1_lt]] \<open>ball x e \<subseteq> S \<inter> {a<..<b}\<close>
+            by (rule subset_trans)
+          from xprop obtain u v where
+            uv: "u \<in> ball x (inverse (real n + 1))" "u \<in> {a..b}"
+                "v \<in> ball x (inverse (real n + 1))" "v \<in> {a..b}"
+                "u \<noteq> x" "v \<noteq> x"
+                "k \<le> (f v - f x) / (v - x)"
+                "(f u - f x) / (u - x) \<le> -k"
+            by blast
+          have uS: "u \<in> S" and u_int: "u \<in> {a<..<b}"
+            using uv(1) ball_sub by auto
+          have vS: "v \<in> S" and v_int: "v \<in> {a<..<b}"
+            using uv(3) ball_sub by auto
+          have uab: "u \<in> {a..b}" and vab: "v \<in> {a..b}"
+            using uv(2,4) by auto
+          have fx_cont: "isCont f x" using False by simp
+          have cont_slope: "isCont (\<lambda>y. (f v - f y) / (v - y)) x"
+          proof (rule isCont_divide)
+            have "isCont (\<lambda>y. f v) x"
+              by (simp add: isCont_def tendsto_const)
+            then show "isCont (\<lambda>y. f v - f y) x"
+              by (rule isCont_diff[OF _ fx_cont])
+          next
+            have "isCont (\<lambda>y. v) x"
+              by (simp add: isCont_def tendsto_const)
+            moreover have "isCont (\<lambda>y. y) x"
+              using Lim_at_id[of x] by (simp add: isCont_def id_def)
+            ultimately show "isCont (\<lambda>y. v - y) x"
+              by (rule isCont_diff)
+          next
+            show "v - x \<noteq> 0" using uv(6) by auto
+          qed
+          then have eps_delta: "\<forall>\<epsilon>>0. \<exists>\<delta>>0. \<forall>y. \<bar>y - x\<bar> < \<delta> \<longrightarrow>
+              \<bar>(f v - f y) / (v - y) - (f v - f x) / (v - x)\<bar> < \<epsilon>"
+            by (simp add: continuous_at_real_range real_norm_def)
+          from this[rule_format, OF half_gt_zero[OF assms(3)]]
+          obtain d where "d > 0" and
+            d_prop: "\<forall>y. \<bar>y - x\<bar> < d \<longrightarrow>
+              \<bar>(f v - f y) / (v - y) - (f v - f x) / (v - x)\<bar> < k / 2"
+            by auto
+          have min_pos: "min d (inverse (real n + 1)) > 0"
+            using \<open>d > 0\<close> by (simp add: min_def)
+          show "\<exists>u v. u \<in> {a..b} \<and> u \<in> S \<and> v \<in> {a..b} \<and> v \<in> S \<and> x \<in> {u<..<v} \<and> k / 2 \<le> (f v - f u) / (v - u)"
+          proof (cases "v < x")
+            case True
+            \<comment> \<open>v < x; witness y = x + min d (inv(n+1)) / 2 to the right of x\<close>
+            define y where "y = x + min d (inverse (real n + 1)) / 2"
+            have y_gt_x: "x < y"
+              unfolding y_def using min_pos by simp
+            have y_dist: "\<bar>y - x\<bar> < inverse (real n + 1)"
+              unfolding y_def using \<open>d > 0\<close> min_pos by (auto simp: min_def)
+            have y_dist_d: "\<bar>y - x\<bar> < d"
+              unfolding y_def using \<open>d > 0\<close> min_pos by (auto simp: min_def)
+            have y_in_ball: "y \<in> ball x (inverse (real n + 1))"
+              using y_dist by (simp add: dist_real_def ball_def)
+            have yS: "y \<in> S" and y_int: "y \<in> {a<..<b}"
+              using y_in_ball ball_sub by auto
+            have yab: "y \<in> {a..b}"
+              using y_int by auto
+            have x_between: "x \<in> {v<..<y}"
+              using True y_gt_x by auto
+            have v_lt_y: "v < y" using True y_gt_x by linarith
+            \<comment> \<open>Slope bound: use d_prop and uv(7)\<close>
+            have slope_close: "\<bar>(f v - f y) / (v - y) - (f v - f x) / (v - x)\<bar> < k / 2"
+              using d_prop y_dist_d by auto
+            have orig_slope: "(f v - f x) / (v - x) \<ge> k"
+              using uv(7) by linarith
+            have slope_lower: "(f v - f y) / (v - y) > k / 2"
+            proof -
+              from slope_close
+              have "(f v - f y) / (v - y) > (f v - f x) / (v - x) - k / 2"
+                by linarith
+              thus ?thesis using orig_slope by linarith
+            qed
+            \<comment> \<open>Rewrite: (f v - f y)/(v - y) = (f y - f v)/(y - v) since v < y\<close>
+            have "(f y - f v) / (y - v) = (f v - f y) / (v - y)"
+              using v_lt_y by (simp add: field_simps)
+            hence "k / 2 \<le> (f y - f v) / (y - v)"
+              using slope_lower by linarith
+            show ?thesis
+              using vab vS yab yS x_between \<open>k / 2 \<le> (f y - f v) / (y - v)\<close>
+              by (rule_tac x="v" in exI, rule_tac x="y" in exI) auto
+          next
+            case False
+            \<comment> \<open>x < v; witness y = x - min d (inv(n+1)) / 2 to the left of x\<close>
+            hence xv: "x < v" using uv(6) by linarith
+            define y where "y = x - min d (inverse (real n + 1)) / 2"
+            have y_lt_x: "y < x"
+              unfolding y_def using min_pos by simp
+            have y_dist: "\<bar>y - x\<bar> < inverse (real n + 1)"
+              unfolding y_def using \<open>d > 0\<close> min_pos by (auto simp: min_def)
+            have y_dist_d: "\<bar>y - x\<bar> < d"
+              unfolding y_def using \<open>d > 0\<close> min_pos by (auto simp: min_def)
+            have y_in_ball: "y \<in> ball x (inverse (real n + 1))"
+              using y_dist by (simp add: dist_real_def ball_def)
+            have yS: "y \<in> S" and y_int: "y \<in> {a<..<b}"
+              using y_in_ball ball_sub by auto
+            have yab: "y \<in> {a..b}"
+              using y_int by auto
+            have x_between: "x \<in> {y<..<v}"
+              using y_lt_x xv by auto
+            have y_lt_v: "y < v" using y_lt_x xv by linarith
+            \<comment> \<open>Slope bound: (f v - f y)/(v - y) is close to (f v - f x)/(v - x) \<ge> k\<close>
+            have slope_close: "\<bar>(f v - f y) / (v - y) - (f v - f x) / (v - x)\<bar> < k / 2"
+              using d_prop y_dist_d by auto
+            have orig_slope: "(f v - f x) / (v - x) \<ge> k"
+              using uv(7) by linarith
+            have slope_lower: "(f v - f y) / (v - y) > k / 2"
+            proof -
+              from slope_close
+              have "(f v - f y) / (v - y) > (f v - f x) / (v - x) - k / 2"
+                by linarith
+              thus ?thesis using orig_slope by linarith
+            qed
+            show ?thesis
+              using yab yS vab vS x_between slope_lower
+              by (rule_tac x="y" in exI, rule_tac x="v" in exI) auto
+          qed
+          show "\<exists>u v. u \<in> {a..b} \<and> u \<in> S \<and> v \<in> {a..b} \<and> v \<in> S \<and> x \<in> {u<..<v} \<and> (f v - f u) / (v - u) \<le> - (k / 2)"
+          proof -
+            \<comment> \<open>Continuity of slope function through u\<close>
+            have cont_slope_u: "isCont (\<lambda>y. (f u - f y) / (u - y)) x"
+            proof (rule isCont_divide)
+              have "isCont (\<lambda>y. f u) x"
+                by (simp add: isCont_def tendsto_const)
+              then show "isCont (\<lambda>y. f u - f y) x"
+                by (rule isCont_diff[OF _ fx_cont])
+            next
+              have "isCont (\<lambda>y. u) x"
+                by (simp add: isCont_def tendsto_const)
+              moreover have "isCont (\<lambda>y. y) x"
+                using Lim_at_id[of x] by (simp add: isCont_def id_def)
+              ultimately show "isCont (\<lambda>y. u - y) x"
+                by (rule isCont_diff)
+            next
+              show "u - x \<noteq> 0" using uv(5) by auto
+            qed
+            then have eps_delta_u: "\<forall>\<epsilon>>0. \<exists>\<delta>>0. \<forall>y. \<bar>y - x\<bar> < \<delta> \<longrightarrow>
+                \<bar>(f u - f y) / (u - y) - (f u - f x) / (u - x)\<bar> < \<epsilon>"
+              by (simp add: continuous_at_real_range real_norm_def)
+            from this[rule_format, OF half_gt_zero[OF assms(3)]]
+            obtain d' where "d' > 0" and
+              d'_prop: "\<forall>y. \<bar>y - x\<bar> < d' \<longrightarrow>
+                \<bar>(f u - f y) / (u - y) - (f u - f x) / (u - x)\<bar> < k / 2"
+              by auto
+            have min_pos': "min d' (inverse (real n + 1)) > 0"
+              using \<open>d' > 0\<close> by (simp add: min_def)
+            show ?thesis
+            proof (cases "u < x")
+              case True
+              \<comment> \<open>u < x; witness y = x + min d' (inv(n+1)) / 2 to the right of x\<close>
+              define y where "y = x + min d' (inverse (real n + 1)) / 2"
+              have y_gt_x: "x < y"
+                unfolding y_def using min_pos' by simp
+              have y_dist: "\<bar>y - x\<bar> < inverse (real n + 1)"
+                unfolding y_def using \<open>d' > 0\<close> min_pos' by (auto simp: min_def)
+              have y_dist_d: "\<bar>y - x\<bar> < d'"
+                unfolding y_def using \<open>d' > 0\<close> min_pos' by (auto simp: min_def)
+              have y_in_ball: "y \<in> ball x (inverse (real n + 1))"
+                using y_dist by (simp add: dist_real_def ball_def)
+              have yS: "y \<in> S" and y_int: "y \<in> {a<..<b}"
+                using y_in_ball ball_sub by auto
+              have yab: "y \<in> {a..b}"
+                using y_int by auto
+              have x_between: "x \<in> {u<..<y}"
+                using True y_gt_x by auto
+              have u_lt_y: "u < y" using True y_gt_x by linarith
+              \<comment> \<open>Slope bound: (f u - f y)/(u - y) close to (f u - f x)/(u - x) \<le> -k\<close>
+              have slope_close: "\<bar>(f u - f y) / (u - y) - (f u - f x) / (u - x)\<bar> < k / 2"
+                using d'_prop y_dist_d by auto
+              have orig_slope: "(f u - f x) / (u - x) \<le> -k"
+                using uv(8) by linarith
+              have slope_upper: "(f u - f y) / (u - y) < - (k / 2)"
+              proof -
+                from slope_close
+                have "(f u - f y) / (u - y) < (f u - f x) / (u - x) + k / 2"
+                  by linarith
+                thus ?thesis using orig_slope by linarith
+              qed
+              \<comment> \<open>Rewrite: (f u - f y)/(u - y) = (f y - f u)/(y - u) negated\<close>
+              have "(f y - f u) / (y - u) = (f u - f y) / (u - y)"
+                using u_lt_y by (simp add: field_simps)
+              hence "(f y - f u) / (y - u) < - (k / 2)"
+                using slope_upper by linarith
+              hence "(f y - f u) / (y - u) \<le> - (k / 2)"
+                by linarith
+              then show ?thesis
+                using uab uS yab yS x_between
+                by (rule_tac x="u" in exI, rule_tac x="y" in exI) auto
+            next
+              case False
+              \<comment> \<open>x < u; witness y = x - min d' (inv(n+1)) / 2 to the left of x\<close>
+              hence xu: "x < u" using uv(5) by linarith
+              define y where "y = x - min d' (inverse (real n + 1)) / 2"
+              have y_lt_x: "y < x"
+                unfolding y_def using min_pos' by simp
+              have y_dist: "\<bar>y - x\<bar> < inverse (real n + 1)"
+                unfolding y_def using \<open>d' > 0\<close> min_pos' by (auto simp: min_def)
+              have y_dist_d: "\<bar>y - x\<bar> < d'"
+                unfolding y_def using \<open>d' > 0\<close> min_pos' by (auto simp: min_def)
+              have y_in_ball: "y \<in> ball x (inverse (real n + 1))"
+                using y_dist by (simp add: dist_real_def ball_def)
+              have yS: "y \<in> S" and y_int: "y \<in> {a<..<b}"
+                using y_in_ball ball_sub by auto
+              have yab: "y \<in> {a..b}"
+                using y_int by auto
+              have x_between: "x \<in> {y<..<u}"
+                using y_lt_x xu by auto
+              have y_lt_u: "y < u" using y_lt_x xu by linarith
+              \<comment> \<open>Slope bound: (f u - f y)/(u - y) close to (f u - f x)/(u - x) \<le> -k\<close>
+              have slope_close: "\<bar>(f u - f y) / (u - y) - (f u - f x) / (u - x)\<bar> < k / 2"
+                using d'_prop y_dist_d by auto
+              have orig_slope: "(f u - f x) / (u - x) \<le> -k"
+                using uv(8) by linarith
+              have slope_upper: "(f u - f y) / (u - y) < - (k / 2)"
+              proof -
+                from slope_close
+                have "(f u - f y) / (u - y) < (f u - f x) / (u - x) + k / 2"
+                  by linarith
+                thus ?thesis using orig_slope by linarith
+              qed
+              \<comment> \<open>(f u - f y)/(u - y) = (f u - f y)/(u - y); goal needs (f v - f u)/(v - u) form\<close>
+              \<comment> \<open>Here v=u, u=y in the goal: need (f u - f y)/(u - y) \<le> -(k/2)\<close>
+              have "(f u - f y) / (u - y) \<le> - (k / 2)"
+                using slope_upper by linarith
+              then show ?thesis
+                using yab yS uab uS x_between
+                by (rule_tac x="y" in exI, rule_tac x="u" in exI) auto
+            qed
+          qed
+        qed
+        then show ?thesis
+          by fastforce 
+      qed
+    qed
+  qed
+qed
 
 
 lemma Lebesgue_differentiation_theorem_compact:
