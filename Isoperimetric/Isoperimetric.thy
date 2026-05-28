@@ -1399,6 +1399,112 @@ proof -
   qed
 qed
 
+lemma lemma4:
+  fixes f :: "real \<Rightarrow> real" and a b k :: real
+  assumes "has_bounded_variation_on f {a..b}" "a < b" "0 < k"
+  shows "negligible
+           {x \<in> {a..b}.
+              \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
+                             v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
+                             u \<noteq> x \<and> v \<noteq> x \<and>
+                             k \<le> (f v - f x) / (v - x) -
+                                  (f u - f x) / (u - x)}"
+proof -
+  define T where "T \<equiv> {x \<in> {a..b}.
+              \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
+                             v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
+                             u \<noteq> x \<and> v \<noteq> x \<and>
+                             k \<le> (f v - f x) / (v - x) -
+                                  (f u - f x) / (u - x)}"
+  \<comment> \<open>From lemma1 we get a negligible set outside which f has a local Lipschitz bound\<close>
+  from lemma1[OF assms(1)]
+  obtain U where neg_U: "negligible U" and
+    U_prop: "\<forall>x \<in> {a..b} - U.
+       \<exists>B>0. eventually (\<lambda>y. norm (f y - f x) \<le> B * norm (y - x)) (at x)"
+    by auto
+
+  \<comment> \<open>Define the rational-indexed family: for each q \<in> \<rat>, the set of x where
+      the v-quotient is \<ge> q + k/3 and the u-quotient is \<le> q - k/3\<close>
+  define S where "S q \<equiv> {x \<in> {a..b}.
+              \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
+                             v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
+                             u \<noteq> x \<and> v \<noteq> x \<and>
+                             k / 3 \<le> (f v - f x) / (v - x) - q \<and>
+                             (f u - f x) / (u - x) - q \<le> -(k / 3)}" for q :: real
+  \<comment> \<open>The target set T is a subset of U \<union> \<Union>{S q | q \<in> \<rat>}\<close>
+  have neg_super: "negligible (U \<union> \<Union>(S ` \<rat>))"
+  proof (rule negligible_Un[OF neg_U])
+    show "negligible (\<Union>(S ` \<rat>))"
+    proof (rule negligible_countable_Union)
+      show "countable (S ` \<rat>)"
+        using countable_rat by (rule countable_image)
+    next
+      fix Sq assume "Sq \<in> S ` \<rat>"
+      then obtain q where "q \<in> \<rat>" and "Sq = S q" by auto
+      \<comment> \<open>Each S q is negligible by lemma3 applied to (\<lambda>x. f x - q * x) with constant k/3\<close>
+      show "negligible Sq"
+      proof -
+        define g where "g x = f x - q * x" for x
+        have bv_g: "has_bounded_variation_on g {a..b}"
+        proof -
+          have bv_id: "has_bounded_variation_on id {a..b}"
+            by (rule increasing_bounded_variation) (auto simp: mono_on_def)
+          have "has_bounded_variation_on (\<lambda>x. q *\<^sub>R x) {a..b}"
+            using has_bounded_variation_on_cmul[OF bv_id] by simp
+          from has_bounded_variation_on_sub[OF assms(1) this]
+          show ?thesis unfolding g_def by simp
+        qed
+        have k3_pos: "0 < k / 3" using assms(3) by auto
+        have Sq_eq: "S q = {x \<in> {a..b}.
+              \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
+                             v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
+                             u \<noteq> x \<and> v \<noteq> x \<and>
+                             k / 3 \<le> (g v - g x) / (v - x) \<and>
+                             (g u - g x) / (u - x) \<le> -(k / 3)}"
+          unfolding S_def
+            apply (intro arg_cong[where f="\<lambda>P. {x \<in> {a..b}. P x}"] ext all_cong1 ex_cong1)
+            by (auto simp: g_def algebra_simps divide_simps)
+        qed
+        show ?thesis unfolding \<open>Sq = S q\<close> Sq_eq
+          using lemma3[OF bv_g assms(2) k3_pos] by simp
+      qed
+  qed
+
+
+
+  show "negligible T"
+  proof (rule negligible_subset[OF neg_super])
+    show "T \<subseteq> U \<union> \<Union>(S ` \<rat>)"
+    proof (rule subsetI)
+      fix x assume "x \<in> T"
+      then obtain xab: "x \<in> {a..b}" and
+        xprop: "\<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
+                               v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
+                               u \<noteq> x \<and> v \<noteq> x \<and>
+                               k \<le> (f v - f x) / (v - x) -
+                                    (f u - f x) / (u - x)"
+        unfolding T_def by blast
+      show "x \<in> U \<union> \<Union>(S ` \<rat>)"
+      proof (cases "x \<in> U")
+        case True then show ?thesis by auto
+      next
+        case False
+        \<comment> \<open>x \<notin> U, so f has a local Lipschitz bound at x\<close>
+        have "x \<in> {a..b} - U" using xab False by auto
+        from U_prop[rule_format, OF this]
+        obtain B where "B > 0" and
+          B_ev: "eventually (\<lambda>y. norm (f y - f x) \<le> B * norm (y - x)) (at x)"
+          by auto
+
+        \<comment> \<open>The difference quotients are bounded near x, so we can find a rational
+            between them that separates by k/3\<close>
+        show ?thesis sorry
+
+      qed
+    qed
+  qed
+qed
+
 
 lemma Lebesgue_differentiation_theorem_compact:
   fixes f :: "real \<Rightarrow> 'a::euclidean_space"
