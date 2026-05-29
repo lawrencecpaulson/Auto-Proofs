@@ -51,6 +51,73 @@ proof -
     using countable_subset discont_within by (meson countable_Un countable_insert countable_empty)
 qed
 
+lemma vector_variation_isometric:
+  fixes f g :: "real \<Rightarrow> 'a::euclidean_space"
+  assumes "\<And>x y. dist (f x) (f y) = dist (g x) (g y)"
+  shows "vector_variation s f = vector_variation s g"
+proof -
+  have "\<And>k. norm (f (\<Squnion> k) - f (\<Sqinter> k)) = norm (g (\<Squnion> k) - g (\<Sqinter> k))"
+    using assms by (simp add: dist_norm)
+  then show ?thesis
+    unfolding vector_variation_def set_variation_def by (simp cong: sum.cong)
+qed
+
+
+lemma vector_variation_isometric_compose:
+  fixes f :: "'a::euclidean_space \<Rightarrow> 'a" and g :: "real \<Rightarrow> 'a"
+  assumes "\<And>x y. dist (f x) (f y) = dist x y"
+  shows "vector_variation s (f \<circ> g) = vector_variation s g"
+  by (rule vector_variation_isometric) (metis assms comp_apply dist_norm)
+
+lemma has_bounded_variation_on_translation:
+  fixes f :: "real \<Rightarrow> 'a::euclidean_space"
+  shows "has_bounded_variation_on (\<lambda>x. a + f x) s \<longleftrightarrow> has_bounded_variation_on f s"
+  unfolding has_bounded_variation_on_def by simp
+
+lemma vector_variation_translation:
+  fixes f :: "real \<Rightarrow> 'a::euclidean_space"
+  shows "vector_variation s (\<lambda>x. a + f x) = vector_variation s f"
+  unfolding vector_variation_def set_variation_def by simp
+
+lemma has_bounded_variation_on_componentwise:
+  fixes f :: "real \<Rightarrow> 'a::euclidean_space"
+  shows "has_bounded_variation_on f s \<longleftrightarrow> (\<forall>i\<in>Basis. has_bounded_variation_on (\<lambda>x. f x \<bullet> i) s)"
+proof
+  assume "has_bounded_variation_on f s"
+  then show "\<forall>i\<in>Basis. has_bounded_variation_on (\<lambda>x. f x \<bullet> i) s"
+    using has_bounded_variation_on_inner_left by blast
+next
+  assume comp: "\<forall>i\<in>Basis. has_bounded_variation_on (\<lambda>x. f x \<bullet> i) s"
+  show "has_bounded_variation_on f s"
+    unfolding has_bounded_variation_on_def has_bounded_setvariation_on_def
+  proof (intro exI allI impI)
+    fix d T assume "d division_of T \<and> T \<subseteq> s"
+    then have dT: "d division_of T" "T \<subseteq> s" by auto
+    have "(\<Sum>k\<in>d. norm (f (\<Squnion> k) - f (\<Sqinter> k)))
+        \<le> (\<Sum>k\<in>d. \<Sum>b\<in>Basis. \<bar>(f (\<Squnion> k) - f (\<Sqinter> k)) \<bullet> b\<bar>)"
+      by (rule sum_mono) (rule norm_le_l1)
+    also have "\<dots> = (\<Sum>b\<in>Basis. \<Sum>k\<in>d. \<bar>f (\<Squnion> k) \<bullet> b - f (\<Sqinter> k) \<bullet> b\<bar>)"
+      by (subst sum.swap) (auto simp: inner_diff_left)
+    also have "\<dots> \<le> (\<Sum>b\<in>Basis. vector_variation s (\<lambda>x. f x \<bullet> b))"
+    proof (rule sum_mono)
+      fix b :: 'a assume "b \<in> Basis"
+      with comp have bv: "has_bounded_variation_on (\<lambda>x. f x \<bullet> b) s" by auto
+      have "(\<Sum>k\<in>d. \<bar>f (\<Squnion> k) \<bullet> b - f (\<Sqinter> k) \<bullet> b\<bar>)
+          = (\<Sum>k\<in>d. norm (f (\<Squnion> k) \<bullet> b - f (\<Sqinter> k) \<bullet> b))"
+        by (simp add: real_norm_def)
+      also have "\<dots> \<le> vector_variation s (\<lambda>x. f x \<bullet> b)"
+        using has_bounded_variation_works(1)[OF bv dT(1) dT(2)]
+        unfolding vector_variation_def by simp
+      finally show "(\<Sum>k\<in>d. \<bar>f (\<Squnion> k) \<bullet> b - f (\<Sqinter> k) \<bullet> b\<bar>)
+          \<le> vector_variation s (\<lambda>x. f x \<bullet> b)" .
+    qed
+    finally show "(\<Sum>k\<in>d. norm (f (\<Squnion> k) - f (\<Sqinter> k)))
+        \<le> (\<Sum>b\<in>Basis. vector_variation s (\<lambda>x. f x \<bullet> b))" .
+  qed
+qed
+
+
+
 lemma lemma0:
   fixes x y k :: real
   assumes "k \<le> y - x" "0 < k"
@@ -67,6 +134,7 @@ proof -
   ultimately show ?thesis
     using q(1) by auto
 qed
+
 
 lemma lemma1:
   fixes f :: "real \<Rightarrow> 'a::euclidean_space" and a b :: real
