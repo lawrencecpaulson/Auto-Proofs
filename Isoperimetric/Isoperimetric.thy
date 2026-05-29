@@ -952,10 +952,7 @@ proof -
           obtain n :: nat where n_pos: "n \<noteq> 0" and inv_lt: "inverse (real n) < e"
             using real_arch_invD[OF \<open>e > 0\<close>] by blast
           have inv_n1_lt: "inverse (real n + 1) < e"
-          proof (rule le_less_trans[OF _ inv_lt])
-            show "inverse (real n + 1) \<le> inverse (real n)"
-              using n_pos by (intro le_imp_inverse_le) auto
-          qed
+            by (smt (verit) inv_lt less_imp_inverse_less n_pos of_nat_0_eq_iff of_nat_less_0_iff)
           have ball_sub: "ball x (inverse (real n + 1)) \<subseteq> S \<inter> {a<..<b}"
             using subset_ball[OF less_imp_le[OF inv_n1_lt]] \<open>ball x e \<subseteq> S \<inter> {a<..<b}\<close>
             by (rule subset_trans)
@@ -1266,9 +1263,6 @@ proof -
       qed
     qed
   qed
-
-
-
   show "negligible T"
   proof (rule negligible_subset[OF neg_super])
     show "T \<subseteq> U \<union> \<Union>(S ` \<rat>)"
@@ -1292,10 +1286,132 @@ proof -
         obtain B where "B > 0" and
           B_ev: "eventually (\<lambda>y. norm (f y - f x) \<le> B * norm (y - x)) (at x)"
           by auto
-
         \<comment> \<open>The difference quotients are bounded near x, so we can find a rational
             between them that separates by k/3\<close>
-        show ?thesis sorry
+
+        \<comment> \<open>From the eventually-Lipschitz bound, extract a uniform bound on difference quotients
+            in sufficiently small balls around x\<close>
+        obtain N where dq_bound: "\<And>n u. N \<le> n \<Longrightarrow> u \<in> ball x (inverse (real n + 1)) \<Longrightarrow> u \<noteq> x
+            \<Longrightarrow> \<bar>(f u - f x) / (u - x)\<bar> \<le> B"
+        proof -
+          from B_ev obtain d :: real where "d > 0" and
+            d_prop: "\<And>y. y \<noteq> x \<Longrightarrow> dist y x < d \<Longrightarrow> norm (f y - f x) \<le> B * norm (y - x)"
+            unfolding eventually_at by auto
+          from real_arch_invD[OF \<open>d > 0\<close>]
+          obtain N :: nat where "N \<noteq> 0" and "inverse (real N) < d" by auto
+          show thesis
+          proof (rule that[of N])
+            fix n :: nat and u :: real
+            assume "N \<le> n" "u \<in> ball x (inverse (real n + 1))" "u \<noteq> x"
+            have "dist u x < inverse (real n + 1)"
+              using \<open>u \<in> ball x (inverse (real n + 1))\<close> by (simp add: mem_ball dist_commute)
+            also have "inverse (real n + 1) \<le> inverse (real N)"
+              by (rule le_imp_inverse_le) (use \<open>N \<le> n\<close> \<open>N \<noteq> 0\<close> in auto)
+            also have "\<dots> < d" by fact
+            finally have "dist u x < d" .
+            from d_prop[OF \<open>u \<noteq> x\<close> this]
+            have "\<bar>f u - f x\<bar> \<le> B * \<bar>u - x\<bar>"
+              by (simp add: real_norm_def)
+            moreover have "\<bar>u - x\<bar> > 0" using \<open>u \<noteq> x\<close> by auto
+            ultimately show "\<bar>(f u - f x) / (u - x)\<bar> \<le> B"
+              by (simp add: abs_divide divide_le_eq)
+          qed
+        qed
+
+        \<comment> \<open>Every ball around x intersected with [a,b] contains a point \<noteq> x\<close>
+        have balls_nonempty: "\<exists>u. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and> u \<noteq> x"
+          for n :: nat
+        proof -
+          have "at x within {a..b} \<noteq> \<bottom>"
+            using islimpt_Icc[OF \<open>a < b\<close>] xab
+            by (simp add: trivial_limit_within)
+          then have ne: "{a..b} \<inter> ball x \<epsilon> - {x} \<noteq> {}" if "\<epsilon> > 0" for \<epsilon>
+            using that by (simp add: not_trivial_limit_within_ball)
+          have "inverse (real n + 1) > (0::real)" by simp
+          from ne[OF this] show ?thesis by fastforce
+        qed
+
+        \<comment> \<open>The infimum of difference quotients over shrinking balls converges\<close>
+        define S where "S n = {(f u - f x) / (u - x) | u.
+          u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and> u \<noteq> x}" for n
+        have S_nonempty: "S n \<noteq> {}" for n
+          using balls_nonempty[of n] unfolding S_def by blast
+        have S_bdd: "bdd_below (S n)" if "N \<le> n" for n
+        proof -
+          have "- B \<le> y" if "y \<in> S n" for y
+          proof -
+            from that obtain u where u: "u \<in> ball x (inverse (real n + 1))" "u \<in> {a..b}" "u \<noteq> x"
+              and yeq: "y = (f u - f x) / (u - x)" unfolding S_def by auto
+            from abs_le_D2[OF dq_bound[OF \<open>N \<le> n\<close> u(1) u(3)]]
+            show ?thesis unfolding yeq by linarith
+          qed
+          then show ?thesis unfolding bdd_below_def by auto
+        qed
+        have S_upper: "y \<le> B" if "N \<le> n" "y \<in> S n" for n y
+        proof -
+          from that(2) obtain u where u: "u \<in> ball x (inverse (real n + 1))" "u \<in> {a..b}" "u \<noteq> x"
+            and yeq: "y = (f u - f x) / (u - x)" unfolding S_def by auto
+          from abs_le_D1[OF dq_bound[OF that(1) u(1) u(3)]]
+          show ?thesis unfolding yeq .
+        qed
+        have S_subset: "S n \<subseteq> S m" if "m \<le> n" for m n
+        proof -
+          have "inverse (real n + 1) \<le> inverse (real m + 1)"
+            by (rule le_imp_inverse_le) (use that in auto)
+          then have "ball x (inverse (real n + 1)) \<subseteq> ball x (inverse (real m + 1))"
+            by (rule subset_ball)
+          then show ?thesis unfolding S_def by fastforce
+        qed
+        define g where "g n = Inf (S n)" for n
+        have g_mono: "g m \<le> g n" if "N \<le> m" "m \<le> n" for m n
+        proof -
+          have "Inf (S m) \<le> Inf (S n)"
+            by (rule cInf_superset_mono[OF S_nonempty S_bdd[OF that(1)] S_subset[OF that(2)]])
+          then show ?thesis unfolding g_def .
+        qed
+        have g_bounded: "norm (g (n + N)) \<le> B" for n
+        proof -
+          have nN: "N \<le> n + N" by simp
+          have upper: "g (n + N) \<le> B"
+          proof -
+            obtain u where u: "u \<in> ball x (inverse (real (n + N) + 1))" "u \<in> {a..b}" "u \<noteq> x"
+              using balls_nonempty[of "n + N"] by auto
+            have mem: "(f u - f x) / (u - x) \<in> S (n + N)" unfolding S_def using u by auto
+            have "g (n + N) \<le> (f u - f x) / (u - x)"
+              unfolding g_def by (rule cInf_lower[OF mem S_bdd[OF nN]])
+            also have "\<dots> \<le> B"
+              using abs_le_D1[OF dq_bound[OF nN u(1) u(3)]] .
+            finally show ?thesis .
+          qed
+          have lower: "- B \<le> g (n + N)"
+          proof -
+            have "\<forall>y \<in> S (n + N). - B \<le> y"
+            proof
+              fix y assume "y \<in> S (n + N)"
+              then obtain u where u: "u \<in> ball x (inverse (real (n + N) + 1))" "u \<in> {a..b}" "u \<noteq> x"
+                and yeq: "y = (f u - f x) / (u - x)" unfolding S_def by auto
+              from abs_le_D2[OF dq_bound[OF nN u(1) u(3)]]
+              show "- B \<le> y" unfolding yeq by linarith
+            qed
+            then have "- B \<le> Inf (S (n + N))"
+              using le_cInf_iff[OF S_nonempty S_bdd[OF nN]] by auto
+            then show ?thesis unfolding g_def .
+          qed
+          from upper lower show ?thesis
+            by (simp add: abs_le_iff real_norm_def)
+        qed
+        have bseq: "Bseq (\<lambda>n. g (n + N))"
+          unfolding Bseq_def using \<open>B > 0\<close> g_bounded by auto
+        have "convergent g"
+        proof (rule Bseq_monoseq_convergent'_inc[OF bseq])
+          fix m n :: nat assume "N \<le> m" "m \<le> n"
+          then show "g m \<le> g n" by (rule g_mono)
+        qed
+        then obtain l where l_conv: "g \<longlonglongrightarrow> l" using convergentD by auto
+
+        show ?thesis
+          sorry
+
 
       qed
     qed
