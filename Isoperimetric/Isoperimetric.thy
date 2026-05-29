@@ -1637,6 +1637,178 @@ proof -
   qed
 qed
 
+lemma lemma5:
+  fixes f :: "real \<Rightarrow> real" and a b k :: real
+  assumes "has_bounded_variation_on f {a..b}" "a < b" "0 < k"
+  shows "negligible
+           {x \<in> {a..b}.
+              \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
+                             v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
+                             u \<noteq> x \<and> v \<noteq> x \<and>
+                             k \<le> \<bar>(f v - f x) / (v - x) -
+                                  (f u - f x) / (u - x)\<bar>}"
+proof -
+  \<comment> \<open>Apply lemma4 to f\<close>
+  have neg1: "negligible
+           {x \<in> {a..b}.
+              \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
+                             v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
+                             u \<noteq> x \<and> v \<noteq> x \<and>
+                             k \<le> (f v - f x) / (v - x) -
+                                  (f u - f x) / (u - x)}"
+    by (rule lemma4[OF assms])
+  \<comment> \<open>Apply lemma4 to (\<lambda>x. -f x)\<close>
+  have neg2: "negligible
+           {x \<in> {a..b}.
+              \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
+                             v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
+                             u \<noteq> x \<and> v \<noteq> x \<and>
+                             k \<le> ((-f v) - (-f x)) / (v - x) -
+                                  ((-f u) - (-f x)) / (u - x)}"
+    by (rule lemma4[OF has_bounded_variation_on_neg[OF assms(1)] assms(2,3)])
+  \<comment> \<open>The union of these two negligible sets is negligible\<close>
+  have neg_union: "negligible (
+           {x \<in> {a..b}.
+              \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
+                             v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
+                             u \<noteq> x \<and> v \<noteq> x \<and>
+                             k \<le> (f v - f x) / (v - x) -
+                                  (f u - f x) / (u - x)} \<union>
+           {x \<in> {a..b}.
+              \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
+                             v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
+                             u \<noteq> x \<and> v \<noteq> x \<and>
+                             k \<le> ((-f v) - (-f x)) / (v - x) -
+                                  ((-f u) - (-f x)) / (u - x)})"
+    by (rule negligible_Un[OF neg1 neg2])
+  \<comment> \<open>The target set is a subset of the union\<close>
+  show ?thesis
+  proof (rule negligible_subset[OF neg_union])
+    show "{x \<in> {a..b}.
+              \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
+                             v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
+                             u \<noteq> x \<and> v \<noteq> x \<and>
+                             k \<le> \<bar>(f v - f x) / (v - x) -
+                                  (f u - f x) / (u - x)\<bar>} \<subseteq>
+           {x \<in> {a..b}.
+              \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
+                             v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
+                             u \<noteq> x \<and> v \<noteq> x \<and>
+                             k \<le> (f v - f x) / (v - x) -
+                                  (f u - f x) / (u - x)} \<union>
+           {x \<in> {a..b}.
+              \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
+                             v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
+                             u \<noteq> x \<and> v \<noteq> x \<and>
+                             k \<le> ((-f v) - (-f x)) / (v - x) -
+                                  ((-f u) - (-f x)) / (u - x)}"
+    proof (rule subsetI)
+      fix x assume x_in: "x \<in> {x \<in> {a..b}.
+              \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
+                             v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
+                             u \<noteq> x \<and> v \<noteq> x \<and>
+                             k \<le> \<bar>(f v - f x) / (v - x) -
+                                  (f u - f x) / (u - x)\<bar>}"
+      then have xab: "x \<in> {a..b}" and
+        H: "\<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
+                           v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
+                           u \<noteq> x \<and> v \<noteq> x \<and>
+                           k \<le> \<bar>(f v - f x) / (v - x) - (f u - f x) / (u - x)\<bar>"
+        by auto
+      \<comment> \<open>For any m, n, use m+n to get witnesses in the smaller ball\<close>
+      have key: "\<forall>m n::nat.
+        (\<exists>u v. u \<in> ball x (inverse (real m + 1)) \<and> u \<in> {a..b} \<and>
+               v \<in> ball x (inverse (real m + 1)) \<and> v \<in> {a..b} \<and>
+               u \<noteq> x \<and> v \<noteq> x \<and>
+               k \<le> (f v - f x) / (v - x) - (f u - f x) / (u - x)) \<or>
+        (\<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
+               v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
+               u \<noteq> x \<and> v \<noteq> x \<and>
+               k \<le> ((-f v) - (-f x)) / (v - x) - ((-f u) - (-f x)) / (u - x))"
+      proof (intro allI)
+        fix m n :: nat
+        from H[rule_format, of "m + n"]
+        obtain u v where uv: "u \<in> ball x (inverse (real (m+n) + 1))" "u \<in> {a..b}"
+          "v \<in> ball x (inverse (real (m+n) + 1))" "v \<in> {a..b}"
+          "u \<noteq> x" "v \<noteq> x"
+          "k \<le> \<bar>(f v - f x) / (v - x) - (f u - f x) / (u - x)\<bar>"
+          by auto
+        have ball_m: "ball x (inverse (real (m+n) + 1)) \<subseteq> ball x (inverse (real m + 1))"
+          by (intro subset_ball le_imp_inverse_le) linarith+
+        have ball_n: "ball x (inverse (real (m+n) + 1)) \<subseteq> ball x (inverse (real n + 1))"
+          by (intro subset_ball le_imp_inverse_le) linarith+
+        from uv(7) have "k \<le> (f v - f x) / (v - x) - (f u - f x) / (u - x) \<or>
+                         k \<le> -((f v - f x) / (v - x) - (f u - f x) / (u - x))"
+          by linarith
+        then show "(\<exists>u v. u \<in> ball x (inverse (real m + 1)) \<and> u \<in> {a..b} \<and>
+               v \<in> ball x (inverse (real m + 1)) \<and> v \<in> {a..b} \<and>
+               u \<noteq> x \<and> v \<noteq> x \<and>
+               k \<le> (f v - f x) / (v - x) - (f u - f x) / (u - x)) \<or>
+        (\<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
+               v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
+               u \<noteq> x \<and> v \<noteq> x \<and>
+               k \<le> ((-f v) - (-f x)) / (v - x) - ((-f u) - (-f x)) / (u - x))"
+        proof
+          assume "k \<le> (f v - f x) / (v - x) - (f u - f x) / (u - x)"
+          then show ?thesis
+            using uv(2,4,5,6) ball_m uv(1,3) by (intro disjI1 exI[of _ u] exI[of _ v]) auto
+        next
+          assume neg: "k \<le> -((f v - f x) / (v - x) - (f u - f x) / (u - x))"
+          have arith: "(- f v - (- f x)) / (v - x) - (- f u - (- f x)) / (u - x) =
+                       -((f v - f x) / (v - x) - (f u - f x) / (u - x))"
+            by (simp add: diff_divide_distrib)
+          have "k \<le> (- f v - (- f x)) / (v - x) - (- f u - (- f x)) / (u - x)"
+            using neg arith by linarith
+          then show ?thesis
+            using uv(2,4,5,6) ball_n uv(1,3)
+            by (intro disjI2 exI[of _ u] exI[of _ v]) auto
+        qed
+      qed
+      \<comment> \<open>From \<forall>m n. P m \<or> Q n, deduce (\<forall>m. P m) \<or> (\<forall>n. Q n)\<close>
+      show "x \<in> {x \<in> {a..b}.
+              \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
+                             v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
+                             u \<noteq> x \<and> v \<noteq> x \<and>
+                             k \<le> (f v - f x) / (v - x) -
+                                  (f u - f x) / (u - x)} \<union>
+           {x \<in> {a..b}.
+              \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
+                             v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
+                             u \<noteq> x \<and> v \<noteq> x \<and>
+                             k \<le> ((-f v) - (-f x)) / (v - x) -
+                                  ((-f u) - (-f x)) / (u - x)}"
+      proof (cases "\<forall>m. \<exists>u v. u \<in> ball x (inverse (real m + 1)) \<and> u \<in> {a..b} \<and>
+               v \<in> ball x (inverse (real m + 1)) \<and> v \<in> {a..b} \<and>
+               u \<noteq> x \<and> v \<noteq> x \<and>
+               k \<le> (f v - f x) / (v - x) - (f u - f x) / (u - x)")
+        case True
+        then show ?thesis using xab by auto
+      next
+        case False
+        then obtain m0 where m0: "\<not>(\<exists>u v. u \<in> ball x (inverse (real m0 + 1)) \<and> u \<in> {a..b} \<and>
+               v \<in> ball x (inverse (real m0 + 1)) \<and> v \<in> {a..b} \<and>
+               u \<noteq> x \<and> v \<noteq> x \<and>
+               k \<le> (f v - f x) / (v - x) - (f u - f x) / (u - x))" by auto
+        have "\<forall>n. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
+               v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
+               u \<noteq> x \<and> v \<noteq> x \<and>
+               k \<le> ((-f v) - (-f x)) / (v - x) - ((-f u) - (-f x)) / (u - x)"
+        proof
+          fix n
+          from key[rule_format, of m0 n] m0
+          show "\<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
+               v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
+               u \<noteq> x \<and> v \<noteq> x \<and>
+               k \<le> ((-f v) - (-f x)) / (v - x) - ((-f u) - (-f x)) / (u - x)"
+            by auto
+        qed
+        then show ?thesis using xab by auto
+      qed
+    qed
+  qed
+qed
+
+
 
 lemma Lebesgue_differentiation_theorem_compact:
   fixes f :: "real \<Rightarrow> 'a::euclidean_space"
