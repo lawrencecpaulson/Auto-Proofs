@@ -1409,6 +1409,78 @@ proof -
         qed
         then obtain l where l_conv: "g \<longlonglongrightarrow> l" using convergentD by auto
 
+        \<comment> \<open>The supremum of difference quotients over shrinking balls converges\<close>
+        have S_bdd_above: "bdd_above (S n)" if "N \<le> n" for n
+        proof -
+          have "y \<le> B" if "y \<in> S n" for y
+            using S_upper[OF \<open>N \<le> n\<close> that] .
+          then show ?thesis unfolding bdd_above_def by auto
+        qed
+        define h where "h n = Sup (S n)" for n
+        have h_mono: "h n \<le> h m" if "N \<le> m" "m \<le> n" for m n
+        proof -
+          have "Sup (S n) \<le> Sup (S m)"
+            by (rule cSup_subset_mono[OF S_nonempty S_bdd_above[OF that(1)] S_subset[OF that(2)]])
+          then show ?thesis unfolding h_def .
+        qed
+        have h_bounded: "norm (h (n + N)) \<le> B" for n
+        proof -
+          have nN: "N \<le> n + N" by simp
+          have upper: "h (n + N) \<le> B"
+          proof -
+            have "\<forall>y \<in> S (n + N). y \<le> B"
+              using S_upper[OF nN] by auto
+            then have "Sup (S (n + N)) \<le> B"
+              using cSup_le_iff[OF S_nonempty S_bdd_above[OF nN]] by auto
+            then show ?thesis unfolding h_def .
+          qed
+          have lower: "- B \<le> h (n + N)"
+          proof -
+            obtain u where u: "u \<in> ball x (inverse (real (n + N) + 1))" "u \<in> {a..b}" "u \<noteq> x"
+              using balls_nonempty[of "n + N"] by auto
+            have mem: "(f u - f x) / (u - x) \<in> S (n + N)" unfolding S_def using u by auto
+            have "(f u - f x) / (u - x) \<le> h (n + N)"
+              unfolding h_def by (rule cSup_upper[OF mem S_bdd_above[OF nN]])
+            moreover have "- B \<le> (f u - f x) / (u - x)"
+              using abs_le_D2[OF dq_bound[OF nN u(1) u(3)]] by linarith
+            ultimately show ?thesis by linarith
+          qed
+          from upper lower show ?thesis
+            by (simp add: abs_le_iff real_norm_def)
+        qed
+        have bseq_h: "Bseq (\<lambda>n. h (n + N))"
+          unfolding Bseq_def using \<open>B > 0\<close> h_bounded by auto
+        have "convergent h"
+        proof (rule Bseq_monoseq_convergent'_dec[OF bseq_h])
+          fix m n :: nat assume "N \<le> m" "m \<le> n"
+          then show "h n \<le> h m" by (rule h_mono)
+        qed
+        then obtain m where m_conv: "h \<longlonglongrightarrow> m" using convergentD by auto
+
+        \<comment> \<open>Show k \<le> m - l using the limit bound\<close>
+        have k_le: "k \<le> m - l"
+        proof -
+          have diff_conv: "(\<lambda>n. h n - g n) \<longlonglongrightarrow> m - l"
+            by (rule tendsto_diff[OF m_conv l_conv])
+          have "\<forall>n\<ge>N. k \<le> (\<lambda>n. h n - g n) n"
+          proof (intro allI impI)
+            fix n :: nat assume "N \<le> n"
+            from xprop[rule_format, of n]
+            obtain u v where uv: "u \<in> ball x (inverse (real n + 1))" "u \<in> {a..b}"
+              "v \<in> ball x (inverse (real n + 1))" "v \<in> {a..b}" "u \<noteq> x" "v \<noteq> x"
+              and kle: "k \<le> (f v - f x) / (v - x) - (f u - f x) / (u - x)" by auto
+            have u_mem: "(f u - f x) / (u - x) \<in> S n" unfolding S_def using uv by auto
+            have v_mem: "(f v - f x) / (v - x) \<in> S n" unfolding S_def using uv by auto
+            have "g n \<le> (f u - f x) / (u - x)"
+              unfolding g_def by (rule cInf_lower[OF u_mem S_bdd[OF \<open>N \<le> n\<close>]])
+            moreover have "(f v - f x) / (v - x) \<le> h n"
+              unfolding h_def by (rule cSup_upper[OF v_mem S_bdd_above[OF \<open>N \<le> n\<close>]])
+            ultimately show "k \<le> (\<lambda>n. h n - g n) n" using kle by linarith
+          qed
+          from Lim_bounded2[OF diff_conv this]
+          show ?thesis .
+        qed
+
         show ?thesis
           sorry
 
