@@ -7,6 +7,57 @@ hide_const (open) Polynomial.content
 
 section \<open>Library material\<close>
 
+corollary vector_differentiable:
+  "f differentiable net \<longleftrightarrow> (\<exists>f'. (f has_vector_derivative f') net)"
+  using differentiableI_vector vector_derivative_works by blast
+
+lemma convergent_eq_Cauchy_within:
+  fixes f :: "'a::metric_space \<Rightarrow> 'b::complete_space"
+  shows "(\<exists>l. (f \<longlongrightarrow> l) (at a within s)) \<longleftrightarrow>
+         (\<forall>e>0. \<exists>d>0. \<forall>x\<in>s. \<forall>x'\<in>s.
+            x \<noteq> a \<and> dist x a < d \<and> x' \<noteq> a \<and> dist x' a < d \<longrightarrow> dist (f x) (f x') < e)"
+proof -
+  have "(\<exists>l. (f \<longlongrightarrow> l) (at a within s)) \<longleftrightarrow> convergent_filter (filtermap f (at a within s))"
+    unfolding filterlim_def convergent_filter_iff by auto
+  also have "\<dots> \<longleftrightarrow> cauchy_filter (filtermap f (at a within s))"
+    by (rule convergent_filter_iff_cauchy)
+  also have "\<dots> \<longleftrightarrow> (\<forall>e>0. \<exists>P. eventually P (at a within s) \<and> (\<forall>x y. P x \<and> P y \<longrightarrow> dist (f x) (f y) < e))"
+    by (rule cauchy_filter_metric_filtermap)
+  also have "\<dots> \<longleftrightarrow> (\<forall>e>0. \<exists>d>0. \<forall>x\<in>s. \<forall>x'\<in>s.
+      x \<noteq> a \<and> dist x a < d \<and> x' \<noteq> a \<and> dist x' a < d \<longrightarrow> dist (f x) (f x') < e)"
+    (is "?L \<longleftrightarrow> ?R")
+  proof
+    assume ?L
+    show ?R
+    proof (intro allI impI)
+      fix e :: real assume "e > 0"
+      with \<open>?L\<close> obtain P where ev: "eventually P (at a within s)"
+        and P: "\<And>x y. P x \<Longrightarrow> P y \<Longrightarrow> dist (f x) (f y) < e" by auto
+      from ev obtain d where "d > 0" and d: "\<And>x. x \<in> s \<Longrightarrow> x \<noteq> a \<Longrightarrow> dist x a < d \<Longrightarrow> P x"
+        unfolding eventually_at by auto
+      then show "\<exists>d>0. \<forall>x\<in>s. \<forall>x'\<in>s. x \<noteq> a \<and> dist x a < d \<and> x' \<noteq> a \<and> dist x' a < d \<longrightarrow> dist (f x) (f x') < e"
+        using P by (intro exI[of _ d]) auto
+    qed
+  next
+    assume ?R
+    show ?L
+    proof (intro allI impI)
+      fix e :: real assume "e > 0"
+      with \<open>?R\<close> obtain d where "d > 0"
+        and d: "\<And>x x'. x \<in> s \<Longrightarrow> x' \<in> s \<Longrightarrow> x \<noteq> a \<Longrightarrow> dist x a < d \<Longrightarrow> x' \<noteq> a \<Longrightarrow> dist x' a < d \<Longrightarrow> dist (f x) (f x') < e"
+        by auto
+      let ?P = "\<lambda>x. x \<in> s \<and> x \<noteq> a \<and> dist x a < d"
+      have "eventually ?P (at a within s)"
+        unfolding eventually_at using \<open>d > 0\<close> by auto
+      moreover have "\<And>x y. ?P x \<Longrightarrow> ?P y \<Longrightarrow> dist (f x) (f y) < e"
+        using d by auto
+      ultimately show "\<exists>P. eventually P (at a within s) \<and> (\<forall>x y. P x \<and> P y \<longrightarrow> dist (f x) (f y) < e)"
+        by blast
+    qed
+  qed
+  finally show ?thesis .
+qed
+
 (*All added to Absolute_Continuity 2026-05*)
 declare absolutely_continuous_on_const [continuous_intros] 
 declare absolutely_continuous_on_neg [continuous_intros] 
@@ -1808,32 +1859,6 @@ proof -
   qed
 qed
 
-
-
-lemma Lebesgue_differentiation_theorem_compact:
-  fixes f :: "real \<Rightarrow> 'a::euclidean_space"
-  assumes "has_bounded_variation_on f (cbox a b)"
-  shows "negligible {x \<in> cbox a b. \<not> f differentiable (at x)}"
-  sorry (*PROVED ELSEWHERE; ASSUMED HERE*)
-
-(*FIXME move these elsewhere*)
-
-lemma le_iff_forall_rat_less_imp:
-  fixes x y :: real
-  shows "x \<le> y \<longleftrightarrow> (\<forall>q \<in> \<rat>. y < q \<longrightarrow> x < q)"
-  by (meson Rats_dense_in_real less_asym less_le_trans not_less)
-
-lemma limpt_of_convex:
-  fixes S :: "'a::real_normed_vector set"
-  assumes "convex S" "x \<in> S"
-  shows "x islimpt S \<longleftrightarrow> S \<noteq> {x}"
-proof -
-  have "\<And>u. \<lbrakk>\<not> x islimpt S; u \<in> S\<rbrakk> \<Longrightarrow> u = x"
-  using assms connected_imp_perfect convex_connected by blast
-  with assms show ?thesis
-    by (auto simp: islimpt_finite)
-qed
-
 lemma Zfun_cong: "eventually (\<lambda>x. f x = g x) F \<Longrightarrow> Zfun f F = Zfun g F"
   by (smt (verit) Zfun_ssubst eventually_mono)
 
@@ -1866,6 +1891,120 @@ proof -
       using bounded_linear_scaleR_left by auto
   qed
 qed
+
+
+lemma lemma6:
+  fixes f :: "real \<Rightarrow> real"
+  assumes "has_bounded_variation_on f {a..b}" "a < b"
+  shows "negligible {x \<in> {a..b}. \<not> f differentiable (at x within {a..b})}"
+proof -
+
+  have "negligible {x \<in> {a..b}. \<not> (\<exists>f'. ((\<lambda>y. (f y - f x) / (y - x)) \<longlongrightarrow> f') (at x within {a..b}))}"
+  proof -
+    define S where "S m = {x \<in> {a..b}.
+      \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
+                     v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
+                     u \<noteq> x \<and> v \<noteq> x \<and>
+                     inverse (real m + 1) \<le> \<bar>(f v - f x) / (v - x) - (f u - f x) / (u - x)\<bar>}" for m
+    have neg: "negligible (S m)" for m
+      unfolding S_def by (rule lemma5[OF assms]) auto
+    have "negligible (\<Union>(range S))"
+      by (rule negligible_Union_nat[OF neg])
+    moreover have "{x \<in> {a..b}. \<not> (\<exists>f'. ((\<lambda>y. (f y - f x) / (y - x)) \<longlongrightarrow> f') (at x within {a..b}))} \<subseteq> \<Union>(range S)"
+    proof (rule subsetI)
+      fix x assume x_in: "x \<in> {x \<in> {a..b}. \<not> (\<exists>f'. ((\<lambda>y. (f y - f x) / (y - x)) \<longlongrightarrow> f') (at x within {a..b}))}"
+      then have xab: "x \<in> {a..b}" and nc: "\<not> (\<exists>f'. ((\<lambda>y. (f y - f x) / (y - x)) \<longlongrightarrow> f') (at x within {a..b}))"
+        by auto
+      from nc have nc': "\<not> (\<forall>e>0. \<exists>d>0. \<forall>u\<in>{a..b}. \<forall>v\<in>{a..b}.
+          u \<noteq> x \<and> dist u x < d \<and> v \<noteq> x \<and> dist v x < d \<longrightarrow>
+          dist ((f u - f x) / (u - x)) ((f v - f x) / (v - x)) < e)"
+        unfolding convergent_eq_Cauchy_within by auto
+      then obtain e where "e > 0" and osc: "\<forall>d>0. \<exists>u\<in>{a..b}. \<exists>v\<in>{a..b}.
+          u \<noteq> x \<and> dist u x < d \<and> v \<noteq> x \<and> dist v x < d \<and>
+          e \<le> dist ((f u - f x) / (u - x)) ((f v - f x) / (v - x))"
+      proof -
+        from nc' obtain e where "e > 0"
+          and h: "\<not> (\<exists>d>0. \<forall>u\<in>{a..b}. \<forall>v\<in>{a..b}.
+            u \<noteq> x \<and> dist u x < d \<and> v \<noteq> x \<and> dist v x < d \<longrightarrow>
+            dist ((f u - f x) / (u - x)) ((f v - f x) / (v - x)) < e)"
+          by auto
+        have "\<forall>d>0. \<exists>u\<in>{a..b}. \<exists>v\<in>{a..b}.
+            u \<noteq> x \<and> dist u x < d \<and> v \<noteq> x \<and> dist v x < d \<and>
+            e \<le> dist ((f u - f x) / (u - x)) ((f v - f x) / (v - x))"
+        proof (intro allI impI)
+          fix d :: real assume "d > 0"
+          from h \<open>d > 0\<close> have "\<not> (\<forall>u\<in>{a..b}. \<forall>v\<in>{a..b}.
+              u \<noteq> x \<and> dist u x < d \<and> v \<noteq> x \<and> dist v x < d \<longrightarrow>
+              dist ((f u - f x) / (u - x)) ((f v - f x) / (v - x)) < e)"
+            by auto
+          then show "\<exists>u\<in>{a..b}. \<exists>v\<in>{a..b}.
+              u \<noteq> x \<and> dist u x < d \<and> v \<noteq> x \<and> dist v x < d \<and>
+              e \<le> dist ((f u - f x) / (u - x)) ((f v - f x) / (v - x))"
+            by (auto simp: not_less)
+        qed
+        with \<open>e > 0\<close> show thesis using that by blast
+      qed
+      obtain m where m: "inverse (real m + 1) < e"
+        using reals_Archimedean[OF \<open>e > 0\<close>] by (metis add.commute of_nat_Suc)
+      have "x \<in> S m"
+        unfolding S_def
+      proof (intro CollectI conjI allI)
+        show "x \<in> {a..b}" by fact
+        fix n :: nat
+        have "inverse (real n + 1) > 0" by auto
+        with osc obtain u v where "u \<in> {a..b}" "v \<in> {a..b}" "u \<noteq> x" "dist u x < inverse (real n + 1)"
+          "v \<noteq> x" "dist v x < inverse (real n + 1)"
+          "e \<le> dist ((f u - f x) / (u - x)) ((f v - f x) / (v - x))"
+          by blast
+        then have "inverse (real m + 1) \<le> \<bar>(f v - f x) / (v - x) - (f u - f x) / (u - x)\<bar>"
+          using m by (simp add: dist_real_def)
+        moreover have "u \<in> ball x (inverse (real n + 1))" "v \<in> ball x (inverse (real n + 1))"
+          using \<open>dist u x < inverse (real n + 1)\<close> \<open>dist v x < inverse (real n + 1)\<close>
+          by (simp_all add: dist_commute)
+        ultimately show "\<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
+                     v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
+                     u \<noteq> x \<and> v \<noteq> x \<and>
+                     inverse (real m + 1) \<le> \<bar>(f v - f x) / (v - x) - (f u - f x) / (u - x)\<bar>"
+          using \<open>u \<in> {a..b}\<close> \<open>v \<in> {a..b}\<close> \<open>u \<noteq> x\<close> \<open>v \<noteq> x\<close> by blast
+      qed
+      then show "x \<in> \<Union>(range S)" by auto
+    qed
+    ultimately show ?thesis by (rule negligible_subset)
+  qed
+  moreover
+  have "\<And>x. f differentiable (at x within {a..b}) \<longleftrightarrow>
+            (\<exists>D. ((\<lambda>y. (f y - f x) / (y - x)) \<longlongrightarrow> D) (at x within {a..b}))"
+    unfolding vector_differentiable has_vector_derivative_within_1D
+    by (simp add: real_scaleR_def mult.commute[of "inverse _"] divide_inverse[symmetric])
+  ultimately show ?thesis by simp
+qed
+
+
+lemma Lebesgue_differentiation_theorem_compact:
+  fixes f :: "real \<Rightarrow> 'a::euclidean_space"
+  assumes "has_bounded_variation_on f (cbox a b)"
+  shows "negligible {x \<in> cbox a b. \<not> f differentiable (at x)}"
+  sorry (*PROVED ELSEWHERE; ASSUMED HERE*)
+
+(*FIXME move these elsewhere*)
+
+lemma le_iff_forall_rat_less_imp:
+  fixes x y :: real
+  shows "x \<le> y \<longleftrightarrow> (\<forall>q \<in> \<rat>. y < q \<longrightarrow> x < q)"
+  by (meson Rats_dense_in_real less_asym less_le_trans not_less)
+
+lemma limpt_of_convex:
+  fixes S :: "'a::real_normed_vector set"
+  assumes "convex S" "x \<in> S"
+  shows "x islimpt S \<longleftrightarrow> S \<noteq> {x}"
+proof -
+  have "\<And>u. \<lbrakk>\<not> x islimpt S; u \<in> S\<rbrakk> \<Longrightarrow> u = x"
+  using assms connected_imp_perfect convex_connected by blast
+  with assms show ?thesis
+    by (auto simp: islimpt_finite)
+qed
+
+
 
 lemma norm_vector_derivatives_le_within:
   fixes f :: "real \<Rightarrow> 'a::real_normed_vector" and g :: "real \<Rightarrow> 'b::real_normed_vector"
