@@ -2013,13 +2013,29 @@ next
   qed
 qed
 
-
-
-lemma Lebesgue_differentiation_theorem_compact:
+theorem Lebesgue_differentiation_theorem_compact:
   fixes f :: "real \<Rightarrow> 'a::euclidean_space"
   assumes "has_bounded_variation_on f (cbox a b)"
   shows "negligible {x \<in> cbox a b. \<not> f differentiable (at x)}"
-  sorry (*PROVED ELSEWHERE; ASSUMED HERE*)
+proof -
+  have cw: "(f differentiable at x) = (\<forall>i\<in>Basis. (\<lambda>x. f x \<bullet> i) differentiable at x)" for x
+  proof -
+    have "at x within UNIV = at x" by (rule at_within_open[OF UNIV_I open_UNIV])
+    then show ?thesis using differentiable_componentwise_within[where S=UNIV and a=x and f=f]
+      by simp
+  qed
+  have eq: "{x \<in> cbox a b. \<not> f differentiable (at x)} =
+            (\<Union>i\<in>Basis. {x \<in> cbox a b. \<not> (\<lambda>x. f x \<bullet> i) differentiable (at x)})"
+    by (auto simp: cw)
+  show ?thesis unfolding eq
+  proof (rule negligible_Union[OF finite_imageI[OF finite_Basis]], clarsimp)
+    fix i :: 'a assume "i \<in> Basis"
+    show "negligible {x. a \<le> x \<and> x \<le> b \<and> \<not> (\<lambda>x. f x \<bullet> i) differentiable (at x)}"
+      using lemma7[OF has_bounded_variation_on_inner_left[OF assms[unfolded cbox_interval]]]
+      by simp
+  qed
+qed
+
 
 (*FIXME move these elsewhere*)
 
