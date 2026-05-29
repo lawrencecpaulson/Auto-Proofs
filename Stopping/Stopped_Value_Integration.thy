@@ -72,7 +72,7 @@ proof -
     have "Measurable.pred (F i) (\<lambda>\<omega>. \<tau> \<omega> = i)"
       by (rule stopping_time_measurable_eq[OF \<tau>_st]) simp_all
     then have "{\<omega> \<in> space M. \<tau> \<omega> = i} \<in> sets (F i)"
-      using space_F[of i] by (metis bot_nat_0.extremum predE)
+      by (metis predE subalg subalgebra_def)
     then show "{\<omega> \<in> space M. \<tau> \<omega> = i} \<in> sets M"
       using sets_F_subset[of i] by blast
   qed
