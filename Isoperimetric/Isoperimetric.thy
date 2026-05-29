@@ -2017,9 +2017,8 @@ proof (cases "interior S = {}")
   then show ?thesis using \<open>a \<noteq> 0\<close> by blast
 next
   case False
-  then have "rel_frontier S = frontier S"
-    using rel_frontier_nonempty_interior by blast
-  then have "x \<in> rel_frontier S" using assms(2) by simp
+  then have "x \<in> rel_frontier S"
+    by (simp add: assms(2) rel_frontier_nonempty_interior)
   then obtain a where "a \<noteq> 0" "\<forall>y \<in> closure S. a \<bullet> x \<le> a \<bullet> y"
     using supporting_hyperplane_rel_frontier[OF assms(1)] by blast
   then show ?thesis by blast
@@ -2050,29 +2049,14 @@ proof -
                 "d' \<bullet> ((1 - u) *\<^sub>R a + u *\<^sub>R b) \<le> d' \<bullet> b"
     using abc d'_clo rel_frontier_def u by auto
   then have "d' \<bullet> a = e'"
-    using \<open>0 < u\<close> \<open>u < 1\<close>
+    using \<open>0 < u\<close> \<open>u < 1\<close> 
     apply (simp add: e'_def u algebra_simps)
-    by (metis affine_ineq eucl_less_le_not_le nle_le real_scaleR_def scaleR_eq_iff)
-
+    by (smt (verit) scaleR_eq_iff affine_ineq real_scaleR_def)
   have "d' \<bullet> b = e'"
-  proof -
-    have ineq1: "(1 - u) * (d' \<bullet> a) + u * (d' \<bullet> b) \<le> d' \<bullet> b"
-      using ineqs(2) by (simp add: inner_simps)
-    have ineq2: "(1 - u) * (d' \<bullet> a) + u * (d' \<bullet> b) \<le> d' \<bullet> a"
-      using ineqs(1) by (simp add: inner_simps)
-    have "d' \<bullet> a \<le> d' \<bullet> b"
-    proof (rule mult_left_le_imp_le[of "1 - u"])
-      have "(1 - u) * (d' \<bullet> a) + u * (d' \<bullet> b) \<le> d' \<bullet> b" by fact
-      then show "(1 - u) * (d' \<bullet> a) \<le> (1 - u) * (d' \<bullet> b)"
-        by (simp add: algebra_simps)
-      show "0 < 1 - u" using \<open>u < 1\<close> by linarith
-    qed
-    moreover have "d' \<bullet> b \<le> d' \<bullet> a"
-      using ineq2 mult_left_le_imp_le[of u]
-      by (smt (verit, best) \<open>0 < u\<close> \<open>u < 1\<close> segment_bound_lemma)
-    ultimately have "d' \<bullet> a = d' \<bullet> b" by linarith
-    then show ?thesis using \<open>d' \<bullet> a = e'\<close> by simp
-  qed
+    using \<open>0 < u\<close> \<open>u < 1\<close> 
+    apply (simp add: e'_def u algebra_simps)
+    by (smt (verit, ccfv_SIG) inner_add_right ineqs inner_mult_right
+        mult_le_cancel_left_pos scaleR_conv_of_real segment_bound_lemma)
   have hyp_eq: "{x. d' \<bullet> x = e'} = {x. d \<bullet> x = e}"
   proof -
     have abc_in_d': "{a, b, c} \<subseteq> {x. d' \<bullet> x = e'}"
@@ -2084,26 +2068,15 @@ proof -
     then have aff_abc: "aff_dim {a, b, c} = 1"
       using aff_dim_insert[of c "{a, b}"] aff_dim_2[of a b] \<open>a \<noteq> b\<close>
       by (simp add: insert_commute hull_inc)
-    have "affine hull {a, b, c} = {x. d' \<bullet> x = e'}"
-    proof -
-      have "aff_dim {x::complex. d' \<bullet> x = e'} = 1"
-        using aff_dim_hyperplane[OF \<open>d' \<noteq> 0\<close>] by simp
-      then have "affine hull {a, b, c} = affine hull {x::complex. d' \<bullet> x = e'}"
-        using aff_dim_eq_full_gen[OF abc_in_d'] aff_abc by auto
-      also have "\<dots> = {x. d' \<bullet> x = e'}"
-        by (simp add: affine_hull_eq affine_hyperplane)
-      finally show ?thesis .
-    qed
-    moreover have "affine hull {a, b, c} = {x. d \<bullet> x = e}"
-    proof -
-      have "aff_dim {x::complex. d \<bullet> x = e} = 1"
-        using aff_dim_hyperplane[OF \<open>d \<noteq> 0\<close>] by simp
-      then have "affine hull {a, b, c} = affine hull {x::complex. d \<bullet> x = e}"
-        using aff_dim_eq_full_gen[OF abc_in_d] aff_abc by auto
-      also have "\<dots> = {x. d \<bullet> x = e}"
-        by (simp add: affine_hull_eq affine_hyperplane)
-      finally show ?thesis .
-    qed
+    have "affine hull {a, b, c} = affine hull {x::complex. d' \<bullet> x = e'}"
+      using aff_dim_hyperplane[OF \<open>d' \<noteq> 0\<close>] aff_dim_eq_full_gen[OF abc_in_d'] aff_abc by auto
+    then have "affine hull {a, b, c} = {x. d' \<bullet> x = e'}"
+      by (simp add: affine_hyperplane)
+    moreover 
+    have "affine hull {a, b, c} = affine hull {x::complex. d \<bullet> x = e}"
+      using aff_dim_hyperplane[OF \<open>d \<noteq> 0\<close>] aff_dim_eq_full_gen[OF abc_in_d] aff_abc by auto
+    then have "affine hull {a, b, c} = {x. d \<bullet> x = e}"
+      by (simp add: affine_hyperplane)
     ultimately show ?thesis by simp
   qed
   have "rel_interior S \<subseteq> {x. d \<bullet> x < e} \<or> rel_interior S \<subseteq> {x. e < d \<bullet> x}"
@@ -2113,30 +2086,16 @@ proof -
     have disj: "{x. d \<bullet> x < e} \<inter> {x. e < d \<bullet> x} \<inter> rel_interior S = {}"
       by auto
     have sub: "rel_interior S \<subseteq> {x. d \<bullet> x < e} \<union> {x. e < d \<bullet> x}"
-    proof (rule subsetI)
-      fix y assume "y \<in> rel_interior S"
-      then have "d' \<bullet> y > e'" using d'_int e'_def by auto
-      then have "y \<notin> {x. d' \<bullet> x = e'}" by auto
-      then have "y \<notin> {x. d \<bullet> x = e}" using hyp_eq by simp
-      then show "y \<in> {x. d \<bullet> x < e} \<union> {x. e < d \<bullet> x}" by auto
-    qed
+      by (smt (verit) UnCI d'_int e'_def hyp_eq mem_Collect_eq subsetI)
     have "{x. d \<bullet> x < e} \<inter> rel_interior S = {} \<or>
           {x::complex. e < d \<bullet> x} \<inter> rel_interior S = {}"
       using connectedD[OF conn open_halfspace_lt open_halfspace_gt disj sub] .
     then show ?thesis using sub by blast
   qed
   then show ?thesis
-  proof 
-    assume h: "rel_interior S \<subseteq> {x. d \<bullet> x < e}"
-    then show ?thesis
-      using closure_mono[OF h] convex_closure_rel_interior[OF \<open>convex S\<close>] 
-      using closure_subset closure_halfspace_lt[OF \<open>d \<noteq> 0\<close>] by blast
-  next
-    assume h: "rel_interior S \<subseteq> {x. e < d \<bullet> x}"
-    then show ?thesis
-      using closure_mono[OF h] convex_closure_rel_interior[OF \<open>convex S\<close>] 
-      using closure_subset closure_halfspace_gt[OF \<open>d \<noteq> 0\<close>] by blast
-  qed
+      using closure_mono convex_closure_rel_interior[OF \<open>convex S\<close>] \<open>d \<noteq> 0\<close>
+      by (metis (no_types, lifting) ext closure_halfspace_gt closure_halfspace_lt 
+          closure_subset order.trans)
 qed
 
 lemma convex_triple_relative_frontier:
@@ -2170,12 +2129,11 @@ lemma lebesgue_measurable_Times_UNIV:
   assumes "A \<in> sets lebesgue"
   shows "A \<times> (UNIV :: real set) \<in> sets lebesgue"
 proof -
-  have mp_borel: "main_part lborel A \<in> sets borel"
-    using main_part_sets[OF assms] by (simp add: sets_lborel)
   have UNIV_borel: "(UNIV :: real set) \<in> sets borel"
     using sets.top[of "borel :: real measure"] by (simp add: space_borel)
   have mp_leb: "main_part lborel A \<times> (UNIV :: real set) \<in> sets lebesgue"
-    using sets_completionI_sets by (simp add: borel_Times mp_borel)
+    using sets_completionI_sets
+    by (metis UNIV_borel assms borel_Times main_part_sets sets_lborel)
   obtain N :: "real set" where N: "N \<in> null_sets lborel" "null_part lborel A \<subseteq> N"
     using null_part[OF assms] by auto
   then have "N \<times> (UNIV :: real set) \<in> null_sets lborel"
