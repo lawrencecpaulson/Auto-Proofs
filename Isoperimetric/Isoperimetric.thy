@@ -1979,6 +1979,41 @@ proof -
   ultimately show ?thesis by simp
 qed
 
+lemma lemma7:
+  fixes f :: "real \<Rightarrow> real"
+  assumes "has_bounded_variation_on f {a..b}"
+  shows "negligible {x \<in> {a..b}. \<not> f differentiable (at x)}"
+proof (cases "a < b")
+  case True
+  have sub: "{x \<in> {a..b}. \<not> f differentiable (at x)} \<subseteq>
+             insert a (insert b {x \<in> {a..b}. \<not> f differentiable (at x within {a..b})})"
+  proof (intro subsetI, clarsimp)
+    fix x assume H: "a \<le> x" "x \<le> b" "\<not> f differentiable (at x)"
+                    "f differentiable (at x within {a..b})" "x \<noteq> a" "x \<noteq> b"
+    have "x \<in> interior {a..b}"
+      using H by (simp add: interior_atLeastAtMost_real)
+    then have "at x within {a..b} = at x" by (rule at_within_interior)
+    with H show False by simp
+  qed
+  have "negligible (insert a (insert b {x \<in> {a..b}. \<not> f differentiable (at x within {a..b})}))"
+    using lemma6[OF assms True] by (simp add: negligible_insert)
+  with sub show ?thesis by (rule negligible_subset[rotated])
+next
+  case False
+  then have "a \<ge> b" by simp
+  then show ?thesis
+  proof (cases "a = b")
+    case True
+    then show ?thesis
+      by (intro negligible_subset[OF negligible_sing[of a]]) auto
+  next
+    case False
+    with \<open>a \<ge> b\<close> have "{a..b} = {}" by auto
+    then show ?thesis by simp
+  qed
+qed
+
+
 
 lemma Lebesgue_differentiation_theorem_compact:
   fixes f :: "real \<Rightarrow> 'a::euclidean_space"
