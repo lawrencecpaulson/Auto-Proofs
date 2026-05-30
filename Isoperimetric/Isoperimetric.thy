@@ -2036,6 +2036,103 @@ proof -
   qed
 qed
 
+lemma Lebesgue_differentiation_theorem_open:
+  fixes f :: "real \<Rightarrow> 'a::euclidean_space"
+  assumes "open s" "has_bounded_variation_on f s"
+  shows "negligible {x \<in> s. \<not> f differentiable (at x)}"
+proof -
+  obtain \<D> where cnt: "countable \<D>" and sub: "\<D> \<subseteq> Pow s"
+    and boxes: "\<And>X. X \<in> \<D> \<Longrightarrow> \<exists>a b. X = cbox a b" and cov: "\<Union> \<D> = s"
+    using open_countable_Union_open_cbox[OF assms(1)] by metis
+  have eq: "{x \<in> s. \<not> f differentiable (at x)} = \<Union> ((\<lambda>T. {x \<in> T. \<not> f differentiable (at x)}) ` \<D>)"
+    using cov by auto
+  have "negligible (\<Union> ((\<lambda>T. {x \<in> T. \<not> f differentiable (at x)}) ` \<D>))"
+  proof (rule negligible_countable_Union)
+    show "countable ((\<lambda>T. {x \<in> T. \<not> f differentiable (at x)}) ` \<D>)"
+      using cnt by (rule countable_image)
+  next
+    fix S assume "S \<in> (\<lambda>T. {x \<in> T. \<not> f differentiable (at x)}) ` \<D>"
+    then obtain T where T: "T \<in> \<D>" and Seq: "S = {x \<in> T. \<not> f differentiable (at x)}"
+      by auto
+    obtain a b where Tab: "T = cbox a b" using boxes[OF T] by auto
+    have "has_bounded_variation_on f T"
+      using has_bounded_variation_on_subset[OF assms(2)] sub T by auto
+    then show "negligible S"
+      unfolding Seq Tab
+      by (rule Lebesgue_differentiation_theorem_compact)
+  qed
+  then show ?thesis using eq by simp
+qed
+
+
+corollary Lebesgue_differentiation_theorem:
+  fixes f :: "real \<Rightarrow> 'a::euclidean_space"
+  assumes "is_interval s" "has_bounded_variation_on f s"
+  shows "negligible {x \<in> s. \<not> f differentiable (at x)}"
+proof -
+  have sub: "{x \<in> s. \<not> f differentiable (at x)} \<subseteq>
+             {x \<in> frontier s. \<not> f differentiable (at x)} \<union>
+             {x \<in> interior s. \<not> f differentiable (at x)}"
+    using closure_subset[of s] by (auto simp: frontier_def)
+  have fr: "negligible {x \<in> frontier s. \<not> f differentiable (at x)}"
+  proof (rule negligible_subset[OF negligible_finite])
+    show "finite (frontier s)"
+      using finite_frontier_interval_real[OF assms(1)] by blast
+    show "{x \<in> frontier s. \<not> f differentiable (at x)} \<subseteq> frontier s"
+      by auto
+  qed
+  have int: "negligible {x \<in> interior s. \<not> f differentiable (at x)}"
+  proof -
+    have bv: "has_bounded_variation_on f (interior s)"
+      using has_bounded_variation_on_subset[OF assms(2) interior_subset] .
+    have op: "open (interior s)" by (rule open_interior)
+    \<comment> \<open>Reduces to the open-set case, proved below\<close>
+    show ?thesis using Lebesgue_differentiation_theorem_open[OF op bv] .
+  qed
+
+  show ?thesis
+    using negligible_subset[OF negligible_Un[OF fr int] sub] .
+qed
+
+corollary Lebesgue_differentiation_theorem_alt:
+  fixes f :: "real \<Rightarrow> 'a::euclidean_space"
+  assumes "is_interval s" "has_bounded_variation_on f s"
+  shows "\<exists>t. t \<subseteq> s \<and> negligible t \<and> (\<forall>x \<in> s - t. f differentiable (at x))"
+proof -
+  let ?t = "{x \<in> s. \<not> f differentiable (at x)}"
+  have "?t \<subseteq> s" "negligible ?t"
+    using Lebesgue_differentiation_theorem[OF assms] by auto
+  moreover have "\<forall>x \<in> s - ?t. f differentiable (at x)" by auto
+  ultimately show ?thesis by blast
+qed
+
+corollary Lebesgue_differentiation_theorem_gen:
+  fixes f :: "real \<Rightarrow> 'a::euclidean_space"
+  assumes "countable (components s)" "has_bounded_variation_on f s"
+  shows "negligible {x \<in> s. \<not> f differentiable (at x)}"
+proof -
+  have eq: "{x \<in> s. \<not> f differentiable (at x)} =
+            \<Union> ((\<lambda>C. {x \<in> C. \<not> f differentiable (at x)}) ` components s)"
+    using Union_components in_components_subset 
+    apply (auto simp: )
+    apply (metis UnionE Union_components)
+    done
+  show ?thesis unfolding eq
+  proof (rule negligible_countable_Union)
+    show "countable ((\<lambda>C. {x \<in> C. \<not> f differentiable (at x)}) ` components s)"
+      using assms(1) by (rule countable_image)
+  next
+    fix S assume "S \<in> (\<lambda>C. {x \<in> C. \<not> f differentiable (at x)}) ` components s"
+    then obtain C where C: "C \<in> components s" and Seq: "S = {x \<in> C. \<not> f differentiable (at x)}"
+      by auto
+    have "is_interval C"
+      using in_components_connected[OF C] is_interval_connected_1 by auto
+    moreover have "has_bounded_variation_on f C"
+      using has_bounded_variation_on_subset[OF assms(2) in_components_subset[OF C]] .
+    ultimately show "negligible S"
+      unfolding Seq by (rule Lebesgue_differentiation_theorem)
+  qed
+qed
 
 (*FIXME move these elsewhere*)
 
