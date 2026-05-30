@@ -242,7 +242,7 @@ proof -
     unfolding a_def by (simp add: that)
   have b_comp: "b \<bullet> i = hi i" if "i \<in> Basis" for i
     unfolding b_def by (simp add: that)
-  \<comment> \<open>Define the delta\<close>
+
   define dl where "dl = Min ((\<lambda>i. if a \<bullet> i < x \<bullet> i then x \<bullet> i - a \<bullet> i else 1) ` Basis)"
   define dh where "dh = Min ((\<lambda>i. if x \<bullet> i < b \<bullet> i then b \<bullet> i - x \<bullet> i else 1) ` Basis)"
   define d where "d = min dl dh"
@@ -254,7 +254,7 @@ proof -
     by (smt (verit) diff_gt_0_iff_gt zero_less_one)
   have d_pos: "0 < d"
     unfolding d_def using dl_pos dh_pos by auto
-  \<comment> \<open>Show x \<in> cbox a b\<close>
+
   have x_in_box: "x \<in> cbox a b"
     unfolding mem_box
     by (metis a_comp b_comp eucl_less_le_not_le hi lo)
@@ -262,11 +262,11 @@ proof -
      by (metis a_comp imageI lo mem_box_componentwiseI [OF \<open>is_interval S\<close>])
   have b_in_s: "b \<in> S"
      by (metis b_comp imageI hi mem_box_componentwiseI [OF \<open>is_interval S\<close>])
-  \<comment> \<open>Show cbox a b \<subseteq> S\<close>
+
   have box_sub: "cbox a b \<subseteq> S"
     using interval_subset_is_interval[OF assms(1)] a_in_s b_in_s x_in_box
     by (auto simp: mem_box)
-  \<comment> \<open>Show ball x d \<inter> S \<subseteq> cbox a b\<close>
+
   have ball_sub: "ball x d \<inter> S \<subseteq> cbox a b"
   proof (intro subsetI)
     fix y assume "y \<in> ball x d \<inter> S"
@@ -789,7 +789,7 @@ proof -
     fix e :: real assume "e > 0"
     have ke3_pos: "0 < k * e / 3"
       using \<open>0 < k\<close> \<open>e > 0\<close> by auto
-    \<comment> \<open>Get a division D of [a,b] whose sum exceeds vector_variation - k*e/3\<close>
+    \<comment> \<open>Get a division D of @{term \<open>{a..b}\<close>} whose sum exceeds $\text{vector\_variation} - k\varepsilon/3$\<close>
     have vv_eq: "vector_variation {a..b} f =
           Sup {\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k)) |d. d division_of {a..b}}"
       using assms(1) by (rule vector_variation_on_interval)
@@ -808,7 +808,7 @@ proof -
       have fin_D: "finite D"
         using D_div division_of_finite by blast
       define t where "t \<equiv> t' - \<Union>(frontier ` D)"
-      \<comment> \<open>Frontiers of division elements are negligible\<close>
+
       have neg_frontiers: "negligible (\<Union>(frontier ` D))"
       proof (rule negligible_Union)
         show "finite (frontier ` D)" using fin_D by auto
@@ -844,7 +844,7 @@ proof -
            (\<exists>u v. u \<in> {a..b} \<and> u \<in> {c<..<d} \<and> v \<in> {a..b} \<and> v \<in> {c<..<d} \<and>
                   x \<in> {u<..<v} \<and> (f v - f u) / (v - u) \<le> -k)"
           using t'_def by blast
-        \<comment> \<open>Case split on whether f c \<le> f d\<close>
+
         show "\<exists>c d u v. {c..d} \<in> D \<and> x \<in> {c<..<d} \<and> u \<in> {c<..<d} \<and> v \<in> {c<..<d} \<and>
                         x \<in> {u<..<v} \<and>
                         (f c \<le> f d \<longrightarrow> f v - f u \<le> -k * (v - u)) \<and>
@@ -888,14 +888,14 @@ proof -
         then obtain c where "countable c" and "c \<subseteq> t"
           and c_union: "\<Union>((\<lambda>x. {ux x<..<vx x}) ` c) = \<Union>?UVT"
           by (metis (lifting) countable_subset_image)
-        \<comment> \<open>Find a finite subset with measure exceeding e\<close>
+        \<comment> \<open>Find a finite subset with measure exceeding $\varepsilon$\<close>
         have "\<exists>p. finite p \<and> p \<subseteq> (\<lambda>x. {ux x..vx x}) ` c \<and> e < measure lebesgue (\<Union>p)"
         proof (rule ccontr)
           assume "\<not> (\<exists>p. finite p \<and> p \<subseteq> (\<lambda>x. {ux x..vx x}) ` c \<and> e < measure lebesgue (\<Union>p))"
           then have le_e: "\<And>p. p \<subseteq> (\<lambda>x. {ux x..vx x}) ` c \<Longrightarrow> finite p \<Longrightarrow>
               measure lebesgue (\<Union>p) \<le> e"
             by (meson linorder_not_less)
-          \<comment> \<open>From le_e, the full countable union has measure \<le> e\<close>
+          \<comment> \<open>From le_e, the full countable union has measure $\le \varepsilon$\<close>
           have union_le: "measure lebesgue (\<Union>((\<lambda>x. {ux x..vx x}) ` c)) \<le> e"
             by (rule measure_Union_bound)
                (use \<open>countable c\<close> le_e lmeasurable_cbox in \<open>auto simp: cbox_interval\<close>)
@@ -942,7 +942,7 @@ proof -
         \<comment> \<open>Decompose \<Union>d by division elements\<close>
         have d_decomp: "\<Union>d = (\<Union>j\<in>D. \<Union>{i \<in> d. i \<subseteq> j})"
         proof -
-          \<comment> \<open>Each i \<in> d is a subset of some j \<in> D\<close>
+
           have sub_D: "\<exists>j. j \<in> D \<and> i \<subseteq> j" if "i \<in> d" for i
           proof -
             from that d_sub obtain x where "x \<in> p" "i = {ux x..vx x}" by auto
@@ -1341,7 +1341,7 @@ proof -
             have x_between: "x \<in> {v<..<y}"
               using True y_gt_x by auto
             have v_lt_y: "v < y" using True y_gt_x by linarith
-            \<comment> \<open>Slope bound: use d_prop and uv(7)\<close>
+
             have slope_close: "\<bar>(f v - f y) / (v - y) - (f v - f x) / (v - x)\<bar> < k / 2"
               using d_prop y_dist_d by auto
             have orig_slope: "(f v - f x) / (v - x) \<ge> k"
@@ -1353,7 +1353,7 @@ proof -
                 by linarith
               thus ?thesis using orig_slope by linarith
             qed
-            \<comment> \<open>Rewrite: (f v - f y)/(v - y) = (f y - f v)/(y - v) since v < y\<close>
+
             have "(f y - f v) / (y - v) = (f v - f y) / (v - y)"
               using v_lt_y by (simp add: field_simps)
             hence "k / 2 \<le> (f y - f v) / (y - v)"
@@ -1381,7 +1381,7 @@ proof -
             have x_between: "x \<in> {y<..<v}"
               using y_lt_x xv by auto
             have y_lt_v: "y < v" using y_lt_x xv by linarith
-            \<comment> \<open>Slope bound: (f v - f y)/(v - y) is close to (f v - f x)/(v - x) \<ge> k\<close>
+
             have slope_close: "\<bar>(f v - f y) / (v - y) - (f v - f x) / (v - x)\<bar> < k / 2"
               using d_prop y_dist_d by auto
             have orig_slope: "(f v - f x) / (v - x) \<ge> k"
@@ -1399,7 +1399,7 @@ proof -
           qed
           show "\<exists>u v. u \<in> {a..b} \<and> u \<in> S \<and> v \<in> {a..b} \<and> v \<in> S \<and> x \<in> {u<..<v} \<and> (f v - f u) / (v - u) \<le> - (k / 2)"
           proof -
-            \<comment> \<open>Continuity of slope function through u\<close>
+
             have cont_slope_u: "isCont (\<lambda>y. (f u - f y) / (u - y)) x"
             proof (rule isCont_divide)
               have "isCont (\<lambda>y. f u) x"
@@ -1446,7 +1446,7 @@ proof -
               have x_between: "x \<in> {u<..<y}"
                 using True y_gt_x by auto
               have u_lt_y: "u < y" using True y_gt_x by linarith
-              \<comment> \<open>Slope bound: (f u - f y)/(u - y) close to (f u - f x)/(u - x) \<le> -k\<close>
+
               have slope_close: "\<bar>(f u - f y) / (u - y) - (f u - f x) / (u - x)\<bar> < k / 2"
                 using d'_prop y_dist_d by auto
               have orig_slope: "(f u - f x) / (u - x) \<le> -k"
@@ -1458,7 +1458,7 @@ proof -
                   by linarith
                 thus ?thesis using orig_slope by linarith
               qed
-              \<comment> \<open>Rewrite: (f u - f y)/(u - y) = (f y - f u)/(y - u) negated\<close>
+
               have "(f y - f u) / (y - u) = (f u - f y) / (u - y)"
                 using u_lt_y by (simp add: field_simps)
               hence "(f y - f u) / (y - u) < - (k / 2)"
@@ -1488,7 +1488,7 @@ proof -
               have x_between: "x \<in> {y<..<u}"
                 using y_lt_x xu by auto
               have y_lt_u: "y < u" using y_lt_x xu by linarith
-              \<comment> \<open>Slope bound: (f u - f y)/(u - y) close to (f u - f x)/(u - x) \<le> -k\<close>
+
               have slope_close: "\<bar>(f u - f y) / (u - y) - (f u - f x) / (u - x)\<bar> < k / 2"
                 using d'_prop y_dist_d by auto
               have orig_slope: "(f u - f x) / (u - x) \<le> -k"
@@ -1500,8 +1500,7 @@ proof -
                   by linarith
                 thus ?thesis using orig_slope by linarith
               qed
-              \<comment> \<open>(f u - f y)/(u - y) = (f u - f y)/(u - y); goal needs (f v - f u)/(v - u) form\<close>
-              \<comment> \<open>Here v=u, u=y in the goal: need (f u - f y)/(u - y) \<le> -(k/2)\<close>
+
               have "(f u - f y) / (u - y) \<le> - (k / 2)"
                 using slope_upper by linarith
               then show ?thesis
@@ -1611,11 +1610,8 @@ proof -
         obtain B where "B > 0" and
           B_ev: "eventually (\<lambda>y. norm (f y - f x) \<le> B * norm (y - x)) (at x)"
           by auto
-        \<comment> \<open>The difference quotients are bounded near x, so we can find a rational
-            between them that separates by k/3\<close>
-
-        \<comment> \<open>From the eventually-Lipschitz bound, extract a uniform bound on difference quotients
-            in sufficiently small balls around x\<close>
+        \<comment> \<open>The difference quotients are bounded near x; extract a uniform bound on
+            difference quotients in sufficiently small balls, then find a rational separator\<close>
         obtain N where dq_bound: "\<And>n u. N \<le> n \<Longrightarrow> u \<in> ball x (inverse (real n + 1)) \<Longrightarrow> u \<noteq> x
             \<Longrightarrow> \<bar>(f u - f x) / (u - x)\<bar> \<le> B"
         proof -
@@ -1643,7 +1639,7 @@ proof -
           qed
         qed
 
-        \<comment> \<open>Every ball around x intersected with [a,b] contains a point \<noteq> x\<close>
+
         have balls_nonempty: "\<exists>u. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and> u \<noteq> x"
           for n :: nat
         proof -
@@ -1782,7 +1778,6 @@ proof -
         qed
         then obtain m where m_conv: "h \<longlonglongrightarrow> m" using convergentD by auto
 
-        \<comment> \<open>Show k \<le> m - l using the limit bound\<close>
         have k_le: "k \<le> m - l"
         proof -
           have diff_conv: "(\<lambda>n. h n - g n) \<longlonglongrightarrow> m - l"
@@ -1822,7 +1817,7 @@ proof -
             proof (rule notI)
               assume A: "\<forall>u. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and> u \<noteq> x
                   \<longrightarrow> q - k / 3 \<le> (f u - f x) / (u - x)"
-              \<comment> \<open>From A and S_subset, all elements of DQ p are \<ge> q - k/3 for p \<ge> n\<close>
+
               have lb: "q - k / 3 \<le> y" if "y \<in> DQ p" "n \<le> p" for y p
               proof -
                 from S_subset[OF that(2)] that(1) have "y \<in> DQ n" by auto
@@ -1830,7 +1825,7 @@ proof -
                   and yeq: "y = (f u - f x) / (u - x)" unfolding DQ_def by auto
                 from A u show ?thesis unfolding yeq by auto
               qed
-              \<comment> \<open>For p \<ge> max n N, Inf (DQ p) \<ge> q - k/3\<close>
+
               have "q - k / 3 \<le> g p" if "max n N \<le> p" for p
               proof -
                 have "q - k / 3 \<le> Inf (DQ p)"
@@ -1839,11 +1834,11 @@ proof -
                   by auto
                 then show ?thesis unfolding g_def .
               qed
-              \<comment> \<open>By Lim_bounded2, q - k/3 \<le> l\<close>
+
               then have "\<forall>p \<ge> max n N. q - k / 3 \<le> g p" by auto
               from Lim_bounded2[OF l_conv this]
               have "q - k / 3 \<le> l" .
-              \<comment> \<open>But q_l says k/3 < q - l, i.e., l < q - k/3\<close>
+
               with q_l show False by linarith
             qed
             \<comment> \<open>Second reduction: not all dq's in DQ n are \<le> q + k/3\<close>
@@ -1852,7 +1847,7 @@ proof -
             proof (rule notI)
               assume A: "\<forall>v. v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and> v \<noteq> x
                   \<longrightarrow> (f v - f x) / (v - x) \<le> k / 3 + q"
-              \<comment> \<open>From A and S_subset, all elements of DQ p are \<le> k/3 + q for p \<ge> n\<close>
+
               have ub: "y \<le> k / 3 + q" if "y \<in> DQ p" "n \<le> p" for y p
               proof -
                 from S_subset[OF that(2)] that(1) have "y \<in> DQ n" by auto
@@ -1860,7 +1855,7 @@ proof -
                   and yeq: "y = (f v - f x) / (v - x)" unfolding DQ_def by auto
                 from A v show ?thesis unfolding yeq by auto
               qed
-              \<comment> \<open>For p \<ge> max n N, Sup (DQ p) \<le> k/3 + q\<close>
+
               have "h p \<le> k / 3 + q" if "max n N \<le> p" for p
               proof -
                 have "Sup (DQ p) \<le> k / 3 + q"
@@ -1869,11 +1864,11 @@ proof -
                   by auto
                 then show ?thesis unfolding h_def .
               qed
-              \<comment> \<open>By Lim_bounded, m \<le> k/3 + q\<close>
+
               then have "\<forall>p \<ge> max n N. h p \<le> k / 3 + q" by auto
               from Lim_bounded[OF m_conv this]
               have "m \<le> k / 3 + q" .
-              \<comment> \<open>But q_m says k/3 < m - q, i.e., m > k/3 + q\<close>
+
               with q_m show False by linarith
             qed
             \<comment> \<open>Extract witnesses from the negations\<close>
@@ -1905,7 +1900,7 @@ lemma lemma5:
                              k \<le> \<bar>(f v - f x) / (v - x) -
                                   (f u - f x) / (u - x)\<bar>}"
 proof -
-  \<comment> \<open>Apply lemma4 to f\<close>
+
   have neg1: "negligible
            {x \<in> {a..b}.
               \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
@@ -1914,7 +1909,7 @@ proof -
                              k \<le> (f v - f x) / (v - x) -
                                   (f u - f x) / (u - x)}"
     by (rule lemma4[OF assms])
-  \<comment> \<open>Apply lemma4 to (\<lambda>x. -f x)\<close>
+
   have neg2: "negligible
            {x \<in> {a..b}.
               \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
@@ -2784,12 +2779,12 @@ next
           using k_ball k_eq \<open>u \<le> v\<close> by auto
         then have du: "\<bar>u - x\<bar> < d x" and dv: "\<bar>v - x\<bar> < d x"
           by (auto simp: mem_ball dist_real_def)
-        \<comment> \<open>Apply the continuity bound d_bound\<close>
+
         have bnd_v: "norm (f v - f x) \<le> \<epsilon> / 2^(4 + n x)"
           using d_bound[OF x_ab x_img, rule_format, of v] dv v_ab by auto
         have bnd_u: "norm (f u - f x) \<le> \<epsilon> / 2^(4 + n x)"
           using d_bound[OF x_ab x_img, rule_format, of u] du u_ab by auto
-        \<comment> \<open>Triangle inequality and arithmetic\<close>
+
         have bnd_xu: "norm (f x - f u) \<le> \<epsilon> / 2^(4 + n x)"
           using bnd_u by (subst norm_minus_commute) 
         have bound: "norm (-(f (\<Squnion> k) - f (\<Sqinter> k))) \<le> \<epsilon>/2 ^ (3 + n x)"
@@ -3029,7 +3024,7 @@ proof -
       using g xk by (auto simp: Pi_iff)
     have ff_deriv': "(ff has_vector_derivative f (g x)) (at (g x) within g ` {a..b})"
       using has_vector_derivative_within_subset[OF ff_deriv] g by (simp add: funcset_image)
-    \<comment> \<open>Apply chain rule\<close>
+
     have chain: "((ff \<circ> g) has_vector_derivative g' x *\<^sub>R f (g x)) (at x within {a..b})"
       using vector_diff_chain_within[OF g_deriv ff_deriv'] .
     \<comment> \<open>x is in the interior, so at x within {a..b} = at x\<close>
@@ -3185,7 +3180,7 @@ proof -
     using deriv by auto
   have "(ff \<circ> \<phi>) b - (ff \<circ> \<phi>) a = integral {\<phi> a..\<phi> b} f"
     using ff_def by auto
-  \<comment> \<open>Combine\<close>
+
   with ftc show ?thesis by (simp add: real_scaleR_def)
 qed
 
@@ -3449,13 +3444,13 @@ proof -
             complex.sel inner_complex_def inner_Pair_0)
     ultimately show ?thesis unfolding a b by simp
   qed
-  \<comment> \<open>?inv is measurable from complex lborel to (real \<times> real) lborel\<close>
+
   have inv_lborel: "?inv \<in> lborel \<rightarrow>\<^sub>M lborel"
     by simp
   \<comment> \<open>Lift source to completion\<close>
   have inv_compl: "?inv \<in> lebesgue \<rightarrow>\<^sub>M lborel"
     using measurable_completion[OF inv_lborel] by simp
-  \<comment> \<open>Compute distr lebesgue lborel ?inv = lborel\<close>
+
   have "distr (lebesgue :: complex measure) lborel ?inv
       = distr lborel lborel ?inv"
     using distr_completion[OF inv_lborel] by simp
@@ -3500,7 +3495,7 @@ proof -
     qed
     ultimately show ?thesis by (simp add: fmeasurable_def)
   qed
-  \<comment> \<open>Measure equality\<close>
+
   show "measure lebesgue (?C ` S) = measure lebesgue S"
   proof -
     have "emeasure lebesgue (?C ` S)
@@ -3570,8 +3565,7 @@ proof -
   proof -
     define S' :: "(real \<times> real) set"
       where "S' \<equiv> {(x, y). a \<le> x \<and> x \<le> b \<and> 0 \<le> y \<and> y \<le> f x}"
-    \<comment> \<open>Step 1: measure of complex S = measure of pair S'\<close>
-    \<comment> \<open>We use the fact that Complex is a measure-preserving bijection\<close>
+    \<comment> \<open>Step 1: @{term Complex} is measure-preserving, so $\mu(S) = \mu(S')$\<close>
     have S'_compact: "compact S'"
     proof -
       have "continuous_on ({a..b} \<times> {0..1}) (\<lambda>(x,t). (x, t * f x) :: real \<times> real)"
@@ -3715,7 +3709,7 @@ proof -
     show "{(x, y). f x < q \<longrightarrow> y < q} \<in> sets (lebesgue :: (real \<times> real) measure)"
       using decomp A B sets.Un by metis
   qed
-  \<comment> \<open>Step 3: countable intersection\<close>
+
   show ?thesis
     unfolding eq
   proof (rule sets.countable_INT'[OF countable_rat])
@@ -3754,7 +3748,7 @@ proof -
         sets.Int[of "_ \<times> UNIV" _ "UNIV \<times> {y. y < q}"]
       by (simp add: Times_Int_Times)
   qed
-  \<comment> \<open>Countable union\<close>
+
   show ?thesis
     unfolding eq
     by (intro sets.countable_UN''[OF countable_rat]) (use meas_q in auto)
@@ -3809,7 +3803,7 @@ proof -
     unfolding h_def by (simp add: borel_measurable_lim_metric g_borel)
   have h_eq: "\<And>x. x \<notin> N \<Longrightarrow> h x = f x"
     unfolding h_def using g_conv limI by blast
-  \<comment> \<open>The graph of f is contained in graph(h) \<union> (N \<times> UNIV)\<close>
+
   have graph_sub: "{(x, y). f x = y} \<subseteq> {(x, y). h x = y} \<union> N \<times> UNIV"
     by (force simp: h_eq)
   \<comment> \<open>The graph of h is in @{term \<open>sets (lborel \<Otimes>\<^sub>M lborel)\<close>} and null by Fubini\<close>
@@ -3984,7 +3978,7 @@ proof -
     by (simp add: indicator_def)
   have to_lebesgue_on: "\<And>g::real\<Rightarrow>real. (LINT x|lebesgue. indicator S x * g x) = integral\<^sup>L (lebesgue_on S) g"
     using assms(1) by (simp add: ind_if Lebesgue_Measure.integral_restrict_UNIV)
-  \<comment> \<open>Convert to lebesgue_on S integrals\<close>
+
   have f_meas_on: "f \<in> borel_measurable (lebesgue_on S)"
     using assms(3) measurable_restrict_space1 by blast
   have f_sq_integ: "integrable (lebesgue_on S) (\<lambda>x. (f x)\<^sup>2)"
@@ -3993,14 +3987,13 @@ proof -
   have f_sq_int: "f square_integrable S"
     unfolding square_integrable_def using assms(1) f_meas_on f_sq_integ by blast
 
-  \<comment> \<open>(\<lambda>x. 1) is square integrable since S has finite measure\<close>
   have one_sq_int: "(\<lambda>x. 1::real) square_integrable S"
     unfolding square_integrable_def 
     using finite_measure_lebesgue_on assms finite_measure.integrable_const by blast
-  \<comment> \<open>Schwartz inequality: |l2product S f 1| \<le> l2norm S f * l2norm S 1\<close>
+
   have schwartz: "\<bar>l2product S f (\<lambda>x. 1)\<bar> \<le> l2norm S f * l2norm S (\<lambda>x. 1)"
     by (rule Schwartz_inequality_abs[OF f_sq_int one_sq_int])
-  \<comment> \<open>Rewrite goal in terms of l2product\<close>
+
   have "(l2norm S (\<lambda>x. 1))\<^sup>2 = l2product S (\<lambda>x. 1) (\<lambda>x. 1)"
     by (rule l2norm_pow_2[OF one_sq_int])
   also have "\<dots> = measure lebesgue S"
