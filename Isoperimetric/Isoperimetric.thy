@@ -58,6 +58,8 @@ proof -
   finally show ?thesis .
 qed
 
+
+
 (*All added to Absolute_Continuity 2026-05*)
 declare absolutely_continuous_on_const [continuous_intros] 
 declare absolutely_continuous_on_neg [continuous_intros] 
@@ -167,6 +169,177 @@ next
   qed
 qed
 
+lemma locally_compact_diff_finite:
+  fixes S :: "'a :: t1_space set"
+  assumes "locally compact S" "finite t"
+  shows "locally compact (S - t)"
+  using assms(2,1)
+proof (induction t arbitrary: S)
+  case empty
+  then show ?case 
+    by auto
+next
+  case (insert t T)
+  then have "locally compact (S - {t})"
+    using locally_compact_delete by blast
+  then show ?case
+    by (metis Diff_insert2 local.insert(3))
+qed
+
+lemma interval_contains_compact_neighbourhood:
+  fixes s :: "'a::euclidean_space set"
+  assumes "is_interval s" "x \<in> s"
+  shows "\<exists>a b d. 0 < d \<and> x \<in> cbox a b \<and> cbox a b \<subseteq> s \<and> ball x d \<inter> s \<subseteq> cbox a b"
+proof -
+  have claim_lo: "\<And>i. i \<in> Basis \<Longrightarrow>
+    \<exists>a. (\<exists>y\<in>s. y \<bullet> i = a) \<and> (a < x \<bullet> i \<or> a = x \<bullet> i \<and> (\<forall>y\<in>s. a \<le> y \<bullet> i))"
+    by (metis assms(2) leI)
+  then obtain lo where lo: "\<And>i. i \<in> Basis \<Longrightarrow>
+    (\<exists>y\<in>s. y \<bullet> i = lo i) \<and> (lo i < x \<bullet> i \<or> lo i = x \<bullet> i \<and> (\<forall>y\<in>s. lo i \<le> y \<bullet> i))"
+    by metis
+  have claim_hi: "\<And>i. i \<in> Basis \<Longrightarrow>
+    \<exists>b. (\<exists>y\<in>s. y \<bullet> i = b) \<and> (x \<bullet> i < b \<or> b = x \<bullet> i \<and> (\<forall>y\<in>s. y \<bullet> i \<le> b))"
+    by (metis assms(2) leI)
+  then obtain hi where hi: "\<And>i. i \<in> Basis \<Longrightarrow>
+    (\<exists>y\<in>s. y \<bullet> i = hi i) \<and> (hi i > x \<bullet> i \<or> hi i = x \<bullet> i \<and> (\<forall>y\<in>s. y \<bullet> i \<le> hi i))"
+    by metis
+  define a where "a = (\<Sum>i\<in>Basis. lo i *\<^sub>R i)"
+  define b where "b = (\<Sum>i\<in>Basis. hi i *\<^sub>R i)"
+  have a_comp: "a \<bullet> i = lo i" if "i \<in> Basis" for i
+    unfolding a_def by (simp add: that)
+  have b_comp: "b \<bullet> i = hi i" if "i \<in> Basis" for i
+    unfolding b_def by (simp add: that)
+  \<comment> \<open>Define the delta\<close>
+  define dl where "dl = Min ((\<lambda>i. if a \<bullet> i < x \<bullet> i then x \<bullet> i - a \<bullet> i else 1) ` Basis)"
+  define dh where "dh = Min ((\<lambda>i. if x \<bullet> i < b \<bullet> i then b \<bullet> i - x \<bullet> i else 1) ` Basis)"
+  define d where "d = min dl dh"
+  have dl_pos: "0 < dl"
+    unfolding dl_def using  obtains_MIN [OF finite_Basis nonempty_Basis]
+    by (smt (verit) diff_gt_0_iff_gt zero_less_one)
+  have dh_pos: "0 < dh"
+    unfolding dh_def using  obtains_MIN [OF finite_Basis nonempty_Basis]
+    by (smt (verit) diff_gt_0_iff_gt zero_less_one)
+  have d_pos: "0 < d"
+    unfolding d_def using dl_pos dh_pos by auto
+  \<comment> \<open>Show x \<in> cbox a b\<close>
+  have x_in_box: "x \<in> cbox a b"
+    unfolding mem_box
+    by (metis a_comp b_comp eucl_less_le_not_le hi lo)
+  have a_in_s: "a \<in> s"
+     by (metis a_comp imageI lo mem_box_componentwiseI [OF \<open>is_interval s\<close>])
+  have b_in_s: "b \<in> s"
+     by (metis b_comp imageI hi mem_box_componentwiseI [OF \<open>is_interval s\<close>])
+  \<comment> \<open>Show cbox a b \<subseteq> s\<close>
+  have box_sub: "cbox a b \<subseteq> s"
+    using interval_subset_is_interval[OF assms(1)] a_in_s b_in_s x_in_box
+    by (auto simp: mem_box)
+  \<comment> \<open>Show ball x d \<inter> s \<subseteq> cbox a b\<close>
+  have ball_sub: "ball x d \<inter> s \<subseteq> cbox a b"
+  proof (intro subsetI)
+    fix y assume "y \<in> ball x d \<inter> s"
+    then have y_in: "y \<in> s" and y_ball: "dist x y < d"
+      by auto
+    have dist_coord: "\<bar>x \<bullet> i - y \<bullet> i\<bar> < d" if "i \<in> Basis" for i
+      using Euclidean_dist_upper[OF that, of x y] y_ball
+      by (auto simp: dist_real_def)
+    have lo_bound: "a \<bullet> i \<le> y \<bullet> i" if "i \<in> Basis" for i
+    proof (cases "a \<bullet> i < x \<bullet> i")
+      case True
+      then have "d \<le> x \<bullet> i - a \<bullet> i"
+        unfolding d_def dl_def using that finite_Basis
+        by (simp add: min_le_iff_disj)
+      then show ?thesis using dist_coord[OF that] by linarith
+    next
+      case False
+      then show ?thesis using a_comp lo that y_in by auto
+    qed
+    have hi_bound: "y \<bullet> i \<le> b \<bullet> i" if "i \<in> Basis" for i
+    proof (cases "x \<bullet> i < b \<bullet> i")
+      case True
+      then have "d \<le> b \<bullet> i - x \<bullet> i"
+        unfolding d_def dh_def using that finite_Basis
+        by (simp add: min_le_iff_disj)
+      then show ?thesis using dist_coord[OF that] by linarith
+    next
+      case False then show ?thesis using b_comp hi that y_in by auto
+    qed
+    show "y \<in> cbox a b"
+      unfolding mem_box using lo_bound hi_bound by auto
+  qed
+  show ?thesis
+    using d_pos x_in_box box_sub ball_sub
+    by (intro exI[of _ a] exI[of _ b] exI[of _ d]) auto
+qed
+
+lemma is_interval_locally_compact_interval:
+  fixes s :: "'a::euclidean_space set"
+  assumes "is_interval s"
+  shows "locally (\<lambda>k. \<exists>a b. k = cbox a b) s"
+proof (clarsimp simp: locally_def)
+  fix w x
+  assume ow: "openin (top_of_set s) w" and xw: "x \<in> w"
+  then obtain t where "open t" and wst: "w = s \<inter> t"
+    by (auto simp: openin_open)
+  then have "x \<in> s" "x \<in> t" using xw by auto
+  obtain a b e where "0 < e" "x \<in> cbox a b" "cbox a b \<subseteq> s" "ball x e \<inter> s \<subseteq> cbox a b"
+    using interval_contains_compact_neighbourhood[OF assms \<open>x \<in> s\<close>] by blast
+
+  obtain c d where "x \<in> box c d" "cbox c d \<subseteq> t" "\<forall>i\<in>Basis. c \<bullet> i < d \<bullet> i"
+    using open_contains_cbox[OF \<open>open t\<close> \<open>x \<in> t\<close>] by metis
+  \<comment> \<open>The three witnesses\<close>
+  define U where "U = s \<inter> ball x e \<inter> box c d"
+  define V where "V = cbox a b \<inter> cbox c d"
+  have U_open: "openin (top_of_set s) U"
+    unfolding U_def Int_assoc
+    by (intro openin_open_Int open_Int open_ball open_box)
+  have V_cbox: "\<exists>a' b'. V = cbox a' b'"
+    unfolding V_def Int_interval by blast
+  have xU: "x \<in> U"
+    unfolding U_def using \<open>x \<in> s\<close> \<open>0 < e\<close> \<open>x \<in> box c d\<close> by auto
+  have UV: "U \<subseteq> V"
+  proof -
+    have "U \<subseteq> ball x e \<inter> s" unfolding U_def by auto
+    also have "\<dots> \<subseteq> cbox a b" using \<open>ball x e \<inter> s \<subseteq> cbox a b\<close> by auto
+    finally have 1: "U \<subseteq> cbox a b" .
+    have 2: "U \<subseteq> cbox c d" unfolding U_def using box_subset_cbox by auto
+    from 1 2 show ?thesis unfolding V_def by auto
+  qed
+  have Vw: "V \<subseteq> w"
+  proof -
+    have "V \<subseteq> cbox a b" unfolding V_def by auto
+    also have "\<dots> \<subseteq> s" by fact
+    finally have 1: "V \<subseteq> s" .
+    have "V \<subseteq> cbox c d" unfolding V_def by auto
+    also have "\<dots> \<subseteq> t" by fact
+    finally have 2: "V \<subseteq> t" .
+    from 1 2 show ?thesis unfolding wst by auto
+  qed
+  show "\<exists>U. openin (top_of_set s) U \<and>
+               (\<exists>V. (\<exists>a b. V = cbox a b) \<and> x \<in> U \<and> U \<subseteq> V \<and> V \<subseteq> w)"
+    using U_open V_cbox xU UV Vw by blast
+qed
+
+lemma is_interval_imp_locally_compact:
+  fixes S :: "real set"
+  assumes "is_interval S"
+  shows "locally compact S"
+proof -
+  have "closed (closure S)" by simp
+  then have lc: "locally compact (closure S)"
+    by (rule closed_imp_locally_compact)
+  have "S = closure S - (frontier S - S)"
+  proof
+    show "S \<subseteq> closure S - (frontier S - S)"
+      using closure_subset by auto
+    show "closure S - (frontier S - S) \<subseteq> S"
+      unfolding frontier_def
+      using interior_subset by fastforce
+  qed
+  moreover have "finite (frontier S - S)"
+    using finite_frontier_interval_real[OF assms] by (auto intro: finite_subset)
+  ultimately show ?thesis
+    using locally_compact_diff_finite[OF lc] by metis
+qed
 
 
 lemma lemma0:
@@ -2109,14 +2282,15 @@ qed
 corollary Lebesgue_differentiation_theorem_gen:
   fixes f :: "real \<Rightarrow> 'a::euclidean_space"
   assumes "countable (components s)" "has_bounded_variation_on f s"
-  shows "negligible {x \<in> s. \<not> f differentiable (at x)}"
-proof -
-  have eq: "{x \<in> s. \<not> f differentiable (at x)} =
+  shows "negligible {x \<in> s. \<not> f differentiable (at x)}" proof -
+  have "\<exists>y\<in>components s. x \<in> y"
+    if "x \<in> s" and "\<not> f differentiable at x"
+    for x
+    using that
+    by (metis UnionE Union_components)
+  then have eq: "{x \<in> s. \<not> f differentiable (at x)} =
             \<Union> ((\<lambda>C. {x \<in> C. \<not> f differentiable (at x)}) ` components s)"
-    using Union_components in_components_subset 
-    apply (auto simp: )
-    apply (metis UnionE Union_components)
-    done
+    using in_components_subset by blast
   show ?thesis unfolding eq
   proof (rule negligible_countable_Union)
     show "countable ((\<lambda>C. {x \<in> C. \<not> f differentiable (at x)}) ` components s)"
@@ -2133,6 +2307,21 @@ proof -
       unfolding Seq by (rule Lebesgue_differentiation_theorem)
   qed
 qed
+
+corollary Lebesgue_differentiation_theorem_increasing:
+  fixes f :: "real \<Rightarrow> real"
+  assumes "is_interval s" "mono_on s f"
+  shows "negligible {x \<in> s. \<not> f differentiable (at x)}"
+proof -
+  have "locally (\<lambda>k. \<exists> a b. k = {a..b}) s"
+    using \<open>is_interval s\<close> is_interval_locally_compact_interval by fastforce
+  then
+  show ?thesis
+    apply (subst locally_negligible_alt)
+    apply (clarsimp simp: locally_def)
+    sorry
+qed
+
 
 (*FIXME move these elsewhere*)
 
