@@ -1,6 +1,6 @@
 theory Isoperimetric
   imports Arc_Length_Reparametrization "Fourier.Square_Integrable" "Green.Integrals" "../Euclidean_Space_Transfer"
-    "HOL-ex.Sketch_and_Explore" Isar_Explore
+    "HOL-ex.Sketch_and_Explore" 
 begin
 
 hide_const (open) Polynomial.content
@@ -13,17 +13,15 @@ corollary vector_differentiable:
 
 lemma convergent_eq_Cauchy_within:
   fixes f :: "'a::metric_space \<Rightarrow> 'b::complete_space"
-  shows "(\<exists>l. (f \<longlongrightarrow> l) (at a within s)) \<longleftrightarrow>
-         (\<forall>e>0. \<exists>d>0. \<forall>x\<in>s. \<forall>x'\<in>s.
-            x \<noteq> a \<and> dist x a < d \<and> x' \<noteq> a \<and> dist x' a < d \<longrightarrow> dist (f x) (f x') < e)"
+  shows "(\<exists>l. (f \<longlongrightarrow> l) (at a within S)) \<longleftrightarrow>
+         (\<forall>e>0. \<exists>d>0. \<forall>x\<in>S. \<forall>y\<in>S.
+            x \<noteq> a \<and> dist x a < d \<and> y \<noteq> a \<and> dist y a < d \<longrightarrow> dist (f x) (f y) < e)"
 proof -
-  have "(\<exists>l. (f \<longlongrightarrow> l) (at a within s)) \<longleftrightarrow> convergent_filter (filtermap f (at a within s))"
+  have "(\<exists>l. (f \<longlongrightarrow> l) (at a within S)) \<longleftrightarrow> convergent_filter (filtermap f (at a within S))"
     unfolding filterlim_def convergent_filter_iff by auto
-  also have "\<dots> \<longleftrightarrow> cauchy_filter (filtermap f (at a within s))"
-    by (rule convergent_filter_iff_cauchy)
-  also have "\<dots> \<longleftrightarrow> (\<forall>e>0. \<exists>P. eventually P (at a within s) \<and> (\<forall>x y. P x \<and> P y \<longrightarrow> dist (f x) (f y) < e))"
-    by (rule cauchy_filter_metric_filtermap)
-  also have "\<dots> \<longleftrightarrow> (\<forall>e>0. \<exists>d>0. \<forall>x\<in>s. \<forall>x'\<in>s.
+  also have "\<dots> \<longleftrightarrow> (\<forall>e>0. \<exists>P. eventually P (at a within S) \<and> (\<forall>x y. P x \<and> P y \<longrightarrow> dist (f x) (f y) < e))"
+    by (simp add: cauchy_filter_metric_filtermap convergent_filter_iff_cauchy)
+  also have "\<dots> \<longleftrightarrow> (\<forall>e>0. \<exists>d>0. \<forall>x\<in>S. \<forall>x'\<in>S.
       x \<noteq> a \<and> dist x a < d \<and> x' \<noteq> a \<and> dist x' a < d \<longrightarrow> dist (f x) (f x') < e)"
     (is "?L \<longleftrightarrow> ?R")
   proof
@@ -31,12 +29,10 @@ proof -
     show ?R
     proof (intro allI impI)
       fix e :: real assume "e > 0"
-      with \<open>?L\<close> obtain P where ev: "eventually P (at a within s)"
+      with \<open>?L\<close> obtain P where ev: "eventually P (at a within S)"
         and P: "\<And>x y. P x \<Longrightarrow> P y \<Longrightarrow> dist (f x) (f y) < e" by auto
-      from ev obtain d where "d > 0" and d: "\<And>x. x \<in> s \<Longrightarrow> x \<noteq> a \<Longrightarrow> dist x a < d \<Longrightarrow> P x"
-        unfolding eventually_at by auto
-      then show "\<exists>d>0. \<forall>x\<in>s. \<forall>x'\<in>s. x \<noteq> a \<and> dist x a < d \<and> x' \<noteq> a \<and> dist x' a < d \<longrightarrow> dist (f x) (f x') < e"
-        using P by (intro exI[of _ d]) auto
+      then show "\<exists>d>0. \<forall>x\<in>S. \<forall>x'\<in>S. x \<noteq> a \<and> dist x a < d \<and> x' \<noteq> a \<and> dist x' a < d \<longrightarrow> dist (f x) (f x') < e"
+        by (metis eventually_at)
     qed
   next
     assume ?R
@@ -44,14 +40,11 @@ proof -
     proof (intro allI impI)
       fix e :: real assume "e > 0"
       with \<open>?R\<close> obtain d where "d > 0"
-        and d: "\<And>x x'. x \<in> s \<Longrightarrow> x' \<in> s \<Longrightarrow> x \<noteq> a \<Longrightarrow> dist x a < d \<Longrightarrow> x' \<noteq> a \<Longrightarrow> dist x' a < d \<Longrightarrow> dist (f x) (f x') < e"
+        and d: "\<And>x x'. x \<in> S \<Longrightarrow> x' \<in> S \<Longrightarrow> x \<noteq> a \<Longrightarrow> dist x a < d \<Longrightarrow> x' \<noteq> a \<Longrightarrow> dist x' a < d \<Longrightarrow> dist (f x) (f x') < e"
         by auto
-      let ?P = "\<lambda>x. x \<in> s \<and> x \<noteq> a \<and> dist x a < d"
-      have "eventually ?P (at a within s)"
+      have "\<forall>\<^sub>F x in at a within S. x \<in> S \<and> x \<noteq> a \<and> dist x a < d"
         unfolding eventually_at using \<open>d > 0\<close> by auto
-      moreover have "\<And>x y. ?P x \<Longrightarrow> ?P y \<Longrightarrow> dist (f x) (f y) < e"
-        using d by auto
-      ultimately show "\<exists>P. eventually P (at a within s) \<and> (\<forall>x y. P x \<and> P y \<longrightarrow> dist (f x) (f y) < e)"
+      with d show "\<exists>P. eventually P (at a within S) \<and> (\<forall>x y. P x \<and> P y \<longrightarrow> dist (f x) (f y) < e)"
         by blast
     qed
   qed
