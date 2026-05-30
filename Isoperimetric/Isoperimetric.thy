@@ -11,19 +11,52 @@ corollary vector_differentiable:
   "f differentiable net \<longleftrightarrow> (\<exists>f'. (f has_vector_derivative f') net)"
   using differentiableI_vector vector_derivative_works by blast
 
+lemma Zfun_cong: "eventually (\<lambda>x. f x = g x) F \<Longrightarrow> Zfun f F = Zfun g F"
+  by (smt (verit) Zfun_ssubst eventually_mono)
+
+lemma has_vector_derivative_within_1D:
+  fixes f :: "real \<Rightarrow> 'a::real_normed_vector"
+  shows "(f has_vector_derivative f') (at x within S) \<longleftrightarrow>
+         ((\<lambda>y. (f y - f x) /\<^sub>R (y - x)) \<longlongrightarrow> f') (at x within S)"
+proof -
+  have ev_eq: "\<forall>\<^sub>F y in at x within S. (f y - f x) /\<^sub>R (y - x) - f' = (f y - f x - (y - x) *\<^sub>R f') /\<^sub>R (y - x)"
+    unfolding eventually_at_filter by (simp add: scaleR_diff_right scaleR_scaleR)
+  show ?thesis
+  proof
+    assume "(f has_vector_derivative f') (at x within S)"
+    then have "Zfun (\<lambda>y. (f y - f x - (y - x) *\<^sub>R f') /\<^sub>R \<bar>y - x\<bar>) (at x within S)"
+      unfolding has_vector_derivative_def has_derivative_at_within tendsto_Zfun_iff by auto
+    then have "Zfun (\<lambda>y. norm ((f y - f x - (y - x) *\<^sub>R f') /\<^sub>R \<bar>y - x\<bar>)) (at x within S)"
+      using Zfun_norm_iff by fastforce
+    then show "((\<lambda>y. (f y - f x) /\<^sub>R (y - x)) \<longlongrightarrow> f') (at x within S)"
+      using Zfun_norm_iff Zfun_ssubst ev_eq tendsto_Zfun_iff by fastforce
+  next
+    assume R: "((\<lambda>y. (f y - f x) /\<^sub>R (y - x)) \<longlongrightarrow> f') (at x within S)"
+    have "Zfun (\<lambda>y. (f y - f x) /\<^sub>R (y - x) - f') (at x within S)"
+      using R by (simp add: tendsto_Zfun_iff)
+    then have "Zfun (\<lambda>y. (f y - f x - (y - x) *\<^sub>R f') /\<^sub>R (y - x)) (at x within S)"
+      by (smt (verit, del_insts) Zfun_ssubst ev_eq eventually_mono)
+    then have "Zfun (\<lambda>y. (f y - f x - (y - x) *\<^sub>R f') /\<^sub>R \<bar>y - x\<bar>) (at x within S)"
+      using Zfun_norm_iff by (fastforce simp add: Zfun_le)
+    then show "(f has_vector_derivative f') (at x within S)"
+      unfolding has_vector_derivative_def has_derivative_at_within tendsto_Zfun_iff
+      using bounded_linear_scaleR_left by auto
+  qed
+qed
+
 lemma convergent_eq_Cauchy_within:
   fixes f :: "'a::metric_space \<Rightarrow> 'b::complete_space"
-  shows "(\<exists>l. (f \<longlongrightarrow> l) (at a within s)) \<longleftrightarrow>
-         (\<forall>e>0. \<exists>d>0. \<forall>x\<in>s. \<forall>x'\<in>s.
+  shows "(\<exists>l. (f \<longlongrightarrow> l) (at a within S)) \<longleftrightarrow>
+         (\<forall>e>0. \<exists>d>0. \<forall>x\<in>S. \<forall>x'\<in>S.
             x \<noteq> a \<and> dist x a < d \<and> x' \<noteq> a \<and> dist x' a < d \<longrightarrow> dist (f x) (f x') < e)"
 proof -
-  have "(\<exists>l. (f \<longlongrightarrow> l) (at a within s)) \<longleftrightarrow> convergent_filter (filtermap f (at a within s))"
+  have "(\<exists>l. (f \<longlongrightarrow> l) (at a within S)) \<longleftrightarrow> convergent_filter (filtermap f (at a within S))"
     unfolding filterlim_def convergent_filter_iff by auto
-  also have "\<dots> \<longleftrightarrow> cauchy_filter (filtermap f (at a within s))"
+  also have "\<dots> \<longleftrightarrow> cauchy_filter (filtermap f (at a within S))"
     by (rule convergent_filter_iff_cauchy)
-  also have "\<dots> \<longleftrightarrow> (\<forall>e>0. \<exists>P. eventually P (at a within s) \<and> (\<forall>x y. P x \<and> P y \<longrightarrow> dist (f x) (f y) < e))"
+  also have "\<dots> \<longleftrightarrow> (\<forall>e>0. \<exists>P. eventually P (at a within S) \<and> (\<forall>x y. P x \<and> P y \<longrightarrow> dist (f x) (f y) < e))"
     by (rule cauchy_filter_metric_filtermap)
-  also have "\<dots> \<longleftrightarrow> (\<forall>e>0. \<exists>d>0. \<forall>x\<in>s. \<forall>x'\<in>s.
+  also have "\<dots> \<longleftrightarrow> (\<forall>e>0. \<exists>d>0. \<forall>x\<in>S. \<forall>x'\<in>S.
       x \<noteq> a \<and> dist x a < d \<and> x' \<noteq> a \<and> dist x' a < d \<longrightarrow> dist (f x) (f x') < e)"
     (is "?L \<longleftrightarrow> ?R")
   proof
@@ -31,11 +64,11 @@ proof -
     show ?R
     proof (intro allI impI)
       fix e :: real assume "e > 0"
-      with \<open>?L\<close> obtain P where ev: "eventually P (at a within s)"
+      with \<open>?L\<close> obtain P where ev: "eventually P (at a within S)"
         and P: "\<And>x y. P x \<Longrightarrow> P y \<Longrightarrow> dist (f x) (f y) < e" by auto
-      from ev obtain d where "d > 0" and d: "\<And>x. x \<in> s \<Longrightarrow> x \<noteq> a \<Longrightarrow> dist x a < d \<Longrightarrow> P x"
+      from ev obtain d where "d > 0" and d: "\<And>x. x \<in> S \<Longrightarrow> x \<noteq> a \<Longrightarrow> dist x a < d \<Longrightarrow> P x"
         unfolding eventually_at by auto
-      then show "\<exists>d>0. \<forall>x\<in>s. \<forall>x'\<in>s. x \<noteq> a \<and> dist x a < d \<and> x' \<noteq> a \<and> dist x' a < d \<longrightarrow> dist (f x) (f x') < e"
+      then show "\<exists>d>0. \<forall>x\<in>S. \<forall>x'\<in>S. x \<noteq> a \<and> dist x a < d \<and> x' \<noteq> a \<and> dist x' a < d \<longrightarrow> dist (f x) (f x') < e"
         using P by (intro exI[of _ d]) auto
     qed
   next
@@ -44,14 +77,14 @@ proof -
     proof (intro allI impI)
       fix e :: real assume "e > 0"
       with \<open>?R\<close> obtain d where "d > 0"
-        and d: "\<And>x x'. x \<in> s \<Longrightarrow> x' \<in> s \<Longrightarrow> x \<noteq> a \<Longrightarrow> dist x a < d \<Longrightarrow> x' \<noteq> a \<Longrightarrow> dist x' a < d \<Longrightarrow> dist (f x) (f x') < e"
+        and d: "\<And>x x'. x \<in> S \<Longrightarrow> x' \<in> S \<Longrightarrow> x \<noteq> a \<Longrightarrow> dist x a < d \<Longrightarrow> x' \<noteq> a \<Longrightarrow> dist x' a < d \<Longrightarrow> dist (f x) (f x') < e"
         by auto
-      let ?P = "\<lambda>x. x \<in> s \<and> x \<noteq> a \<and> dist x a < d"
-      have "eventually ?P (at a within s)"
+      let ?P = "\<lambda>x. x \<in> S \<and> x \<noteq> a \<and> dist x a < d"
+      have "eventually ?P (at a within S)"
         unfolding eventually_at using \<open>d > 0\<close> by auto
       moreover have "\<And>x y. ?P x \<Longrightarrow> ?P y \<Longrightarrow> dist (f x) (f y) < e"
         using d by auto
-      ultimately show "\<exists>P. eventually P (at a within s) \<and> (\<forall>x y. P x \<and> P y \<longrightarrow> dist (f x) (f y) < e)"
+      ultimately show "\<exists>P. eventually P (at a within S) \<and> (\<forall>x y. P x \<and> P y \<longrightarrow> dist (f x) (f y) < e)"
         by blast
     qed
   qed
@@ -107,7 +140,7 @@ qed
 lemma vector_variation_isometric:
   fixes f g :: "real \<Rightarrow> 'a::euclidean_space"
   assumes "\<And>x y. dist (f x) (f y) = dist (g x) (g y)"
-  shows "vector_variation s f = vector_variation s g"
+  shows "vector_variation S f = vector_variation S g"
 proof -
   have "\<And>k. norm (f (\<Squnion> k) - f (\<Sqinter> k)) = norm (g (\<Squnion> k) - g (\<Sqinter> k))"
     using assms by (simp add: dist_norm)
@@ -119,53 +152,53 @@ qed
 lemma vector_variation_isometric_compose:
   fixes f :: "'a::euclidean_space \<Rightarrow> 'a" and g :: "real \<Rightarrow> 'a"
   assumes "\<And>x y. dist (f x) (f y) = dist x y"
-  shows "vector_variation s (f \<circ> g) = vector_variation s g"
+  shows "vector_variation S (f \<circ> g) = vector_variation S g"
   by (rule vector_variation_isometric) (metis assms comp_apply dist_norm)
 
 lemma has_bounded_variation_on_translation:
   fixes f :: "real \<Rightarrow> 'a::euclidean_space"
-  shows "has_bounded_variation_on (\<lambda>x. a + f x) s \<longleftrightarrow> has_bounded_variation_on f s"
+  shows "has_bounded_variation_on (\<lambda>x. a + f x) S \<longleftrightarrow> has_bounded_variation_on f S"
   unfolding has_bounded_variation_on_def by simp
 
 lemma vector_variation_translation:
   fixes f :: "real \<Rightarrow> 'a::euclidean_space"
-  shows "vector_variation s (\<lambda>x. a + f x) = vector_variation s f"
+  shows "vector_variation S (\<lambda>x. a + f x) = vector_variation S f"
   unfolding vector_variation_def set_variation_def by simp
 
 lemma has_bounded_variation_on_componentwise:
   fixes f :: "real \<Rightarrow> 'a::euclidean_space"
-  shows "has_bounded_variation_on f s \<longleftrightarrow> (\<forall>i\<in>Basis. has_bounded_variation_on (\<lambda>x. f x \<bullet> i) s)"
+  shows "has_bounded_variation_on f S \<longleftrightarrow> (\<forall>i\<in>Basis. has_bounded_variation_on (\<lambda>x. f x \<bullet> i) S)"
 proof
-  assume "has_bounded_variation_on f s"
-  then show "\<forall>i\<in>Basis. has_bounded_variation_on (\<lambda>x. f x \<bullet> i) s"
+  assume "has_bounded_variation_on f S"
+  then show "\<forall>i\<in>Basis. has_bounded_variation_on (\<lambda>x. f x \<bullet> i) S"
     using has_bounded_variation_on_inner_left by blast
 next
-  assume comp: "\<forall>i\<in>Basis. has_bounded_variation_on (\<lambda>x. f x \<bullet> i) s"
-  show "has_bounded_variation_on f s"
+  assume comp: "\<forall>i\<in>Basis. has_bounded_variation_on (\<lambda>x. f x \<bullet> i) S"
+  show "has_bounded_variation_on f S"
     unfolding has_bounded_variation_on_def has_bounded_setvariation_on_def
   proof (intro exI allI impI)
-    fix d T assume "d division_of T \<and> T \<subseteq> s"
-    then have dT: "d division_of T" "T \<subseteq> s" by auto
+    fix d T assume "d division_of T \<and> T \<subseteq> S"
+    then have dT: "d division_of T" "T \<subseteq> S" by auto
     have "(\<Sum>k\<in>d. norm (f (\<Squnion> k) - f (\<Sqinter> k)))
         \<le> (\<Sum>k\<in>d. \<Sum>b\<in>Basis. \<bar>(f (\<Squnion> k) - f (\<Sqinter> k)) \<bullet> b\<bar>)"
       by (rule sum_mono) (rule norm_le_l1)
     also have "\<dots> = (\<Sum>b\<in>Basis. \<Sum>k\<in>d. \<bar>f (\<Squnion> k) \<bullet> b - f (\<Sqinter> k) \<bullet> b\<bar>)"
       by (subst sum.swap) (auto simp: inner_diff_left)
-    also have "\<dots> \<le> (\<Sum>b\<in>Basis. vector_variation s (\<lambda>x. f x \<bullet> b))"
+    also have "\<dots> \<le> (\<Sum>b\<in>Basis. vector_variation S (\<lambda>x. f x \<bullet> b))"
     proof (rule sum_mono)
       fix b :: 'a assume "b \<in> Basis"
-      with comp have bv: "has_bounded_variation_on (\<lambda>x. f x \<bullet> b) s" by auto
+      with comp have bv: "has_bounded_variation_on (\<lambda>x. f x \<bullet> b) S" by auto
       have "(\<Sum>k\<in>d. \<bar>f (\<Squnion> k) \<bullet> b - f (\<Sqinter> k) \<bullet> b\<bar>)
           = (\<Sum>k\<in>d. norm (f (\<Squnion> k) \<bullet> b - f (\<Sqinter> k) \<bullet> b))"
         by (simp add: real_norm_def)
-      also have "\<dots> \<le> vector_variation s (\<lambda>x. f x \<bullet> b)"
+      also have "\<dots> \<le> vector_variation S (\<lambda>x. f x \<bullet> b)"
         using has_bounded_variation_works(1)[OF bv dT(1) dT(2)]
         unfolding vector_variation_def by simp
       finally show "(\<Sum>k\<in>d. \<bar>f (\<Squnion> k) \<bullet> b - f (\<Sqinter> k) \<bullet> b\<bar>)
-          \<le> vector_variation s (\<lambda>x. f x \<bullet> b)" .
+          \<le> vector_variation S (\<lambda>x. f x \<bullet> b)" .
     qed
     finally show "(\<Sum>k\<in>d. norm (f (\<Squnion> k) - f (\<Sqinter> k)))
-        \<le> (\<Sum>b\<in>Basis. vector_variation s (\<lambda>x. f x \<bullet> b))" .
+        \<le> (\<Sum>b\<in>Basis. vector_variation S (\<lambda>x. f x \<bullet> b))" .
   qed
 qed
 
@@ -187,21 +220,21 @@ next
 qed
 
 lemma interval_contains_compact_neighbourhood:
-  fixes s :: "'a::euclidean_space set"
-  assumes "is_interval s" "x \<in> s"
-  shows "\<exists>a b d. 0 < d \<and> x \<in> cbox a b \<and> cbox a b \<subseteq> s \<and> ball x d \<inter> s \<subseteq> cbox a b"
+  fixes S :: "'a::euclidean_space set"
+  assumes "is_interval S" "x \<in> S"
+  shows "\<exists>a b d. 0 < d \<and> x \<in> cbox a b \<and> cbox a b \<subseteq> S \<and> ball x d \<inter> S \<subseteq> cbox a b"
 proof -
   have claim_lo: "\<And>i. i \<in> Basis \<Longrightarrow>
-    \<exists>a. (\<exists>y\<in>s. y \<bullet> i = a) \<and> (a < x \<bullet> i \<or> a = x \<bullet> i \<and> (\<forall>y\<in>s. a \<le> y \<bullet> i))"
+    \<exists>a. (\<exists>y\<in>S. y \<bullet> i = a) \<and> (a < x \<bullet> i \<or> a = x \<bullet> i \<and> (\<forall>y\<in>S. a \<le> y \<bullet> i))"
     by (metis assms(2) leI)
   then obtain lo where lo: "\<And>i. i \<in> Basis \<Longrightarrow>
-    (\<exists>y\<in>s. y \<bullet> i = lo i) \<and> (lo i < x \<bullet> i \<or> lo i = x \<bullet> i \<and> (\<forall>y\<in>s. lo i \<le> y \<bullet> i))"
+    (\<exists>y\<in>S. y \<bullet> i = lo i) \<and> (lo i < x \<bullet> i \<or> lo i = x \<bullet> i \<and> (\<forall>y\<in>S. lo i \<le> y \<bullet> i))"
     by metis
   have claim_hi: "\<And>i. i \<in> Basis \<Longrightarrow>
-    \<exists>b. (\<exists>y\<in>s. y \<bullet> i = b) \<and> (x \<bullet> i < b \<or> b = x \<bullet> i \<and> (\<forall>y\<in>s. y \<bullet> i \<le> b))"
+    \<exists>b. (\<exists>y\<in>S. y \<bullet> i = b) \<and> (x \<bullet> i < b \<or> b = x \<bullet> i \<and> (\<forall>y\<in>S. y \<bullet> i \<le> b))"
     by (metis assms(2) leI)
   then obtain hi where hi: "\<And>i. i \<in> Basis \<Longrightarrow>
-    (\<exists>y\<in>s. y \<bullet> i = hi i) \<and> (hi i > x \<bullet> i \<or> hi i = x \<bullet> i \<and> (\<forall>y\<in>s. y \<bullet> i \<le> hi i))"
+    (\<exists>y\<in>S. y \<bullet> i = hi i) \<and> (hi i > x \<bullet> i \<or> hi i = x \<bullet> i \<and> (\<forall>y\<in>S. y \<bullet> i \<le> hi i))"
     by metis
   define a where "a = (\<Sum>i\<in>Basis. lo i *\<^sub>R i)"
   define b where "b = (\<Sum>i\<in>Basis. hi i *\<^sub>R i)"
@@ -225,19 +258,19 @@ proof -
   have x_in_box: "x \<in> cbox a b"
     unfolding mem_box
     by (metis a_comp b_comp eucl_less_le_not_le hi lo)
-  have a_in_s: "a \<in> s"
-     by (metis a_comp imageI lo mem_box_componentwiseI [OF \<open>is_interval s\<close>])
-  have b_in_s: "b \<in> s"
-     by (metis b_comp imageI hi mem_box_componentwiseI [OF \<open>is_interval s\<close>])
-  \<comment> \<open>Show cbox a b \<subseteq> s\<close>
-  have box_sub: "cbox a b \<subseteq> s"
+  have a_in_s: "a \<in> S"
+     by (metis a_comp imageI lo mem_box_componentwiseI [OF \<open>is_interval S\<close>])
+  have b_in_s: "b \<in> S"
+     by (metis b_comp imageI hi mem_box_componentwiseI [OF \<open>is_interval S\<close>])
+  \<comment> \<open>Show cbox a b \<subseteq> S\<close>
+  have box_sub: "cbox a b \<subseteq> S"
     using interval_subset_is_interval[OF assms(1)] a_in_s b_in_s x_in_box
     by (auto simp: mem_box)
-  \<comment> \<open>Show ball x d \<inter> s \<subseteq> cbox a b\<close>
-  have ball_sub: "ball x d \<inter> s \<subseteq> cbox a b"
+  \<comment> \<open>Show ball x d \<inter> S \<subseteq> cbox a b\<close>
+  have ball_sub: "ball x d \<inter> S \<subseteq> cbox a b"
   proof (intro subsetI)
-    fix y assume "y \<in> ball x d \<inter> s"
-    then have y_in: "y \<in> s" and y_ball: "dist x y < d"
+    fix y assume "y \<in> ball x d \<inter> S"
+    then have y_in: "y \<in> S" and y_ball: "dist x y < d"
       by auto
     have dist_coord: "\<bar>x \<bullet> i - y \<bullet> i\<bar> < d" if "i \<in> Basis" for i
       using Euclidean_dist_upper[OF that, of x y] y_ball
@@ -272,34 +305,34 @@ proof -
 qed
 
 lemma is_interval_locally_compact_interval:
-  fixes s :: "'a::euclidean_space set"
-  assumes "is_interval s"
-  shows "locally (\<lambda>k. \<exists>a b. k = cbox a b) s"
+  fixes S :: "'a::euclidean_space set"
+  assumes "is_interval S"
+  shows "locally (\<lambda>k. \<exists>a b. k = cbox a b) S"
 proof (clarsimp simp: locally_def)
   fix w x
-  assume ow: "openin (top_of_set s) w" and xw: "x \<in> w"
-  then obtain t where "open t" and wst: "w = s \<inter> t"
+  assume ow: "openin (top_of_set S) w" and xw: "x \<in> w"
+  then obtain t where "open t" and wst: "w = S \<inter> t"
     by (auto simp: openin_open)
-  then have "x \<in> s" "x \<in> t" using xw by auto
-  obtain a b e where "0 < e" "x \<in> cbox a b" "cbox a b \<subseteq> s" "ball x e \<inter> s \<subseteq> cbox a b"
-    using interval_contains_compact_neighbourhood[OF assms \<open>x \<in> s\<close>] by blast
+  then have "x \<in> S" "x \<in> t" using xw by auto
+  obtain a b e where "0 < e" "x \<in> cbox a b" "cbox a b \<subseteq> S" "ball x e \<inter> S \<subseteq> cbox a b"
+    using interval_contains_compact_neighbourhood[OF assms \<open>x \<in> S\<close>] by blast
 
   obtain c d where "x \<in> box c d" "cbox c d \<subseteq> t" "\<forall>i\<in>Basis. c \<bullet> i < d \<bullet> i"
     using open_contains_cbox[OF \<open>open t\<close> \<open>x \<in> t\<close>] by metis
   \<comment> \<open>The three witnesses\<close>
-  define U where "U = s \<inter> ball x e \<inter> box c d"
+  define U where "U = S \<inter> ball x e \<inter> box c d"
   define V where "V = cbox a b \<inter> cbox c d"
-  have U_open: "openin (top_of_set s) U"
+  have U_open: "openin (top_of_set S) U"
     unfolding U_def Int_assoc
     by (intro openin_open_Int open_Int open_ball open_box)
   have V_cbox: "\<exists>a' b'. V = cbox a' b'"
     unfolding V_def Int_interval by blast
   have xU: "x \<in> U"
-    unfolding U_def using \<open>x \<in> s\<close> \<open>0 < e\<close> \<open>x \<in> box c d\<close> by auto
+    unfolding U_def using \<open>x \<in> S\<close> \<open>0 < e\<close> \<open>x \<in> box c d\<close> by auto
   have UV: "U \<subseteq> V"
   proof -
-    have "U \<subseteq> ball x e \<inter> s" unfolding U_def by auto
-    also have "\<dots> \<subseteq> cbox a b" using \<open>ball x e \<inter> s \<subseteq> cbox a b\<close> by auto
+    have "U \<subseteq> ball x e \<inter> S" unfolding U_def by auto
+    also have "\<dots> \<subseteq> cbox a b" using \<open>ball x e \<inter> S \<subseteq> cbox a b\<close> by auto
     finally have 1: "U \<subseteq> cbox a b" .
     have 2: "U \<subseteq> cbox c d" unfolding U_def using box_subset_cbox by auto
     from 1 2 show ?thesis unfolding V_def by auto
@@ -307,14 +340,14 @@ proof (clarsimp simp: locally_def)
   have Vw: "V \<subseteq> w"
   proof -
     have "V \<subseteq> cbox a b" unfolding V_def by auto
-    also have "\<dots> \<subseteq> s" by fact
-    finally have 1: "V \<subseteq> s" .
+    also have "\<dots> \<subseteq> S" by fact
+    finally have 1: "V \<subseteq> S" .
     have "V \<subseteq> cbox c d" unfolding V_def by auto
     also have "\<dots> \<subseteq> t" by fact
     finally have 2: "V \<subseteq> t" .
     from 1 2 show ?thesis unfolding wst by auto
   qed
-  show "\<exists>U. openin (top_of_set s) U \<and>
+  show "\<exists>U. openin (top_of_set S) U \<and>
                (\<exists>V. (\<exists>a b. V = cbox a b) \<and> x \<in> U \<and> U \<subseteq> V \<and> V \<subseteq> w)"
     using U_open V_cbox xU UV Vw by blast
 qed
@@ -937,9 +970,9 @@ proof -
           have fin_F: "finite ?F"
             using fin_D by auto
           have fin_d: "finite d" using finite_subset[OF \<open>d \<subseteq> \<D>\<close> fin\<D>] .
-          have meas_F: "s \<in> sets lebesgue" if "s \<in> ?F" for s
+          have meas_F: "S \<in> sets lebesgue" if "S \<in> ?F" for S
           proof -
-            from that obtain j where "j \<in> D" "s = \<Union>{i \<in> d. i \<subseteq> j}" by auto
+            from that obtain j where "j \<in> D" "S = \<Union>{i \<in> d. i \<subseteq> j}" by auto
             then show ?thesis using fin_d d_sub fmeasurableD[OF fmeasurable_cbox]
               by (auto intro!: sets.finite_Union simp: \<D>_def cbox_interval)
           qed
@@ -2032,40 +2065,6 @@ proof -
   qed
 qed
 
-lemma Zfun_cong: "eventually (\<lambda>x. f x = g x) F \<Longrightarrow> Zfun f F = Zfun g F"
-  by (smt (verit) Zfun_ssubst eventually_mono)
-
-lemma has_vector_derivative_within_1D:
-  fixes f :: "real \<Rightarrow> 'a::real_normed_vector"
-  shows "(f has_vector_derivative f') (at x within s) \<longleftrightarrow>
-         ((\<lambda>y. (f y - f x) /\<^sub>R (y - x)) \<longlongrightarrow> f') (at x within s)"
-proof -
-  have ev_eq: "\<forall>\<^sub>F y in at x within s. (f y - f x) /\<^sub>R (y - x) - f' = (f y - f x - (y - x) *\<^sub>R f') /\<^sub>R (y - x)"
-    unfolding eventually_at_filter by (simp add: scaleR_diff_right scaleR_scaleR)
-  show ?thesis
-  proof
-    assume "(f has_vector_derivative f') (at x within s)"
-    then have "Zfun (\<lambda>y. (f y - f x - (y - x) *\<^sub>R f') /\<^sub>R \<bar>y - x\<bar>) (at x within s)"
-      unfolding has_vector_derivative_def has_derivative_at_within tendsto_Zfun_iff by auto
-    then have "Zfun (\<lambda>y. norm ((f y - f x - (y - x) *\<^sub>R f') /\<^sub>R \<bar>y - x\<bar>)) (at x within s)"
-      using Zfun_norm_iff by fastforce
-    then show "((\<lambda>y. (f y - f x) /\<^sub>R (y - x)) \<longlongrightarrow> f') (at x within s)"
-      using Zfun_norm_iff Zfun_ssubst ev_eq tendsto_Zfun_iff by fastforce
-  next
-    assume R: "((\<lambda>y. (f y - f x) /\<^sub>R (y - x)) \<longlongrightarrow> f') (at x within s)"
-    have "Zfun (\<lambda>y. (f y - f x) /\<^sub>R (y - x) - f') (at x within s)"
-      using R by (simp add: tendsto_Zfun_iff)
-    then have "Zfun (\<lambda>y. (f y - f x - (y - x) *\<^sub>R f') /\<^sub>R (y - x)) (at x within s)"
-      by (smt (verit, del_insts) Zfun_ssubst ev_eq eventually_mono)
-    then have "Zfun (\<lambda>y. (f y - f x - (y - x) *\<^sub>R f') /\<^sub>R \<bar>y - x\<bar>) (at x within s)"
-      using Zfun_norm_iff by (fastforce simp add: Zfun_le)
-    then show "(f has_vector_derivative f') (at x within s)"
-      unfolding has_vector_derivative_def has_derivative_at_within tendsto_Zfun_iff
-      using bounded_linear_scaleR_left by auto
-  qed
-qed
-
-
 lemma lemma6:
   fixes f :: "real \<Rightarrow> real"
   assumes "has_bounded_variation_on f {a..b}" "a < b"
@@ -2211,26 +2210,26 @@ qed
 
 lemma Lebesgue_differentiation_theorem_open:
   fixes f :: "real \<Rightarrow> 'a::euclidean_space"
-  assumes "open s" "has_bounded_variation_on f s"
-  shows "negligible {x \<in> s. \<not> f differentiable (at x)}"
+  assumes "open S" "has_bounded_variation_on f S"
+  shows "negligible {x \<in> S. \<not> f differentiable (at x)}"
 proof -
-  obtain \<D> where cnt: "countable \<D>" and sub: "\<D> \<subseteq> Pow s"
-    and boxes: "\<And>X. X \<in> \<D> \<Longrightarrow> \<exists>a b. X = cbox a b" and cov: "\<Union> \<D> = s"
+  obtain \<D> where cnt: "countable \<D>" and sub: "\<D> \<subseteq> Pow S"
+    and boxes: "\<And>X. X \<in> \<D> \<Longrightarrow> \<exists>a b. X = cbox a b" and cov: "\<Union> \<D> = S"
     using open_countable_Union_open_cbox[OF assms(1)] by metis
-  have eq: "{x \<in> s. \<not> f differentiable (at x)} = \<Union> ((\<lambda>T. {x \<in> T. \<not> f differentiable (at x)}) ` \<D>)"
+  have eq: "{x \<in> S. \<not> f differentiable (at x)} = \<Union> ((\<lambda>T. {x \<in> T. \<not> f differentiable (at x)}) ` \<D>)"
     using cov by auto
   have "negligible (\<Union> ((\<lambda>T. {x \<in> T. \<not> f differentiable (at x)}) ` \<D>))"
   proof (rule negligible_countable_Union)
     show "countable ((\<lambda>T. {x \<in> T. \<not> f differentiable (at x)}) ` \<D>)"
       using cnt by (rule countable_image)
   next
-    fix S assume "S \<in> (\<lambda>T. {x \<in> T. \<not> f differentiable (at x)}) ` \<D>"
-    then obtain T where T: "T \<in> \<D>" and Seq: "S = {x \<in> T. \<not> f differentiable (at x)}"
+    fix U assume "U \<in> (\<lambda>T. {x \<in> T. \<not> f differentiable (at x)}) ` \<D>"
+    then obtain T where T: "T \<in> \<D>" and Seq: "U = {x \<in> T. \<not> f differentiable (at x)}"
       by auto
     obtain a b where Tab: "T = cbox a b" using boxes[OF T] by auto
     have "has_bounded_variation_on f T"
       using has_bounded_variation_on_subset[OF assms(2)] sub T by auto
-    then show "negligible S"
+    then show "negligible U"
       unfolding Seq Tab
       by (rule Lebesgue_differentiation_theorem_compact)
   qed
@@ -2240,88 +2239,134 @@ qed
 
 corollary Lebesgue_differentiation_theorem:
   fixes f :: "real \<Rightarrow> 'a::euclidean_space"
-  assumes "is_interval s" "has_bounded_variation_on f s"
-  shows "negligible {x \<in> s. \<not> f differentiable (at x)}"
+  assumes "is_interval S" "has_bounded_variation_on f S"
+  shows "negligible {x \<in> S. \<not> f differentiable (at x)}"
 proof -
-  have sub: "{x \<in> s. \<not> f differentiable (at x)} \<subseteq>
-             {x \<in> frontier s. \<not> f differentiable (at x)} \<union>
-             {x \<in> interior s. \<not> f differentiable (at x)}"
-    using closure_subset[of s] by (auto simp: frontier_def)
-  have fr: "negligible {x \<in> frontier s. \<not> f differentiable (at x)}"
+  have sub: "{x \<in> S. \<not> f differentiable (at x)} \<subseteq>
+             {x \<in> frontier S. \<not> f differentiable (at x)} \<union>
+             {x \<in> interior S. \<not> f differentiable (at x)}"
+    using closure_subset[of S] by (auto simp: frontier_def)
+  have fr: "negligible {x \<in> frontier S. \<not> f differentiable (at x)}"
   proof (rule negligible_subset[OF negligible_finite])
-    show "finite (frontier s)"
+    show "finite (frontier S)"
       using finite_frontier_interval_real[OF assms(1)] by blast
-    show "{x \<in> frontier s. \<not> f differentiable (at x)} \<subseteq> frontier s"
+    show "{x \<in> frontier S. \<not> f differentiable (at x)} \<subseteq> frontier S"
       by auto
   qed
-  have int: "negligible {x \<in> interior s. \<not> f differentiable (at x)}"
+  have int: "negligible {x \<in> interior S. \<not> f differentiable (at x)}"
   proof -
-    have bv: "has_bounded_variation_on f (interior s)"
+    have bv: "has_bounded_variation_on f (interior S)"
       using has_bounded_variation_on_subset[OF assms(2) interior_subset] .
-    have op: "open (interior s)" by (rule open_interior)
+    have op: "open (interior S)" by (rule open_interior)
     \<comment> \<open>Reduces to the open-set case, proved below\<close>
     show ?thesis using Lebesgue_differentiation_theorem_open[OF op bv] .
   qed
-
   show ?thesis
     using negligible_subset[OF negligible_Un[OF fr int] sub] .
 qed
 
 corollary Lebesgue_differentiation_theorem_alt:
   fixes f :: "real \<Rightarrow> 'a::euclidean_space"
-  assumes "is_interval s" "has_bounded_variation_on f s"
-  shows "\<exists>t. t \<subseteq> s \<and> negligible t \<and> (\<forall>x \<in> s - t. f differentiable (at x))"
+  assumes "is_interval S" "has_bounded_variation_on f S"
+  shows "\<exists>t. t \<subseteq> S \<and> negligible t \<and> (\<forall>x \<in> S - t. f differentiable (at x))"
 proof -
-  let ?t = "{x \<in> s. \<not> f differentiable (at x)}"
-  have "?t \<subseteq> s" "negligible ?t"
+  let ?t = "{x \<in> S. \<not> f differentiable (at x)}"
+  have "?t \<subseteq> S" "negligible ?t"
     using Lebesgue_differentiation_theorem[OF assms] by auto
-  moreover have "\<forall>x \<in> s - ?t. f differentiable (at x)" by auto
+  moreover have "\<forall>x \<in> S - ?t. f differentiable (at x)" by auto
   ultimately show ?thesis by blast
 qed
 
 corollary Lebesgue_differentiation_theorem_gen:
   fixes f :: "real \<Rightarrow> 'a::euclidean_space"
-  assumes "countable (components s)" "has_bounded_variation_on f s"
-  shows "negligible {x \<in> s. \<not> f differentiable (at x)}" proof -
-  have "\<exists>y\<in>components s. x \<in> y"
-    if "x \<in> s" and "\<not> f differentiable at x"
+  assumes "countable (components S)" "has_bounded_variation_on f S"
+  shows "negligible {x \<in> S. \<not> f differentiable (at x)}" proof -
+  have "\<exists>y\<in>components S. x \<in> y"
+    if "x \<in> S" and "\<not> f differentiable at x"
     for x
     using that
     by (metis UnionE Union_components)
-  then have eq: "{x \<in> s. \<not> f differentiable (at x)} =
-            \<Union> ((\<lambda>C. {x \<in> C. \<not> f differentiable (at x)}) ` components s)"
+  then have eq: "{x \<in> S. \<not> f differentiable (at x)} =
+            \<Union> ((\<lambda>C. {x \<in> C. \<not> f differentiable (at x)}) ` components S)"
     using in_components_subset by blast
   show ?thesis unfolding eq
   proof (rule negligible_countable_Union)
-    show "countable ((\<lambda>C. {x \<in> C. \<not> f differentiable (at x)}) ` components s)"
+    show "countable ((\<lambda>C. {x \<in> C. \<not> f differentiable (at x)}) ` components S)"
       using assms(1) by (rule countable_image)
   next
-    fix S assume "S \<in> (\<lambda>C. {x \<in> C. \<not> f differentiable (at x)}) ` components s"
-    then obtain C where C: "C \<in> components s" and Seq: "S = {x \<in> C. \<not> f differentiable (at x)}"
+    fix U assume "U \<in> (\<lambda>C. {x \<in> C. \<not> f differentiable (at x)}) ` components S"
+    then obtain C where C: "C \<in> components S" and Seq: "U = {x \<in> C. \<not> f differentiable (at x)}"
       by auto
     have "is_interval C"
       using in_components_connected[OF C] is_interval_connected_1 by auto
     moreover have "has_bounded_variation_on f C"
       using has_bounded_variation_on_subset[OF assms(2) in_components_subset[OF C]] .
-    ultimately show "negligible S"
+    ultimately show "negligible U"
       unfolding Seq by (rule Lebesgue_differentiation_theorem)
   qed
 qed
 
 corollary Lebesgue_differentiation_theorem_increasing:
   fixes f :: "real \<Rightarrow> real"
-  assumes "is_interval s" "mono_on s f"
-  shows "negligible {x \<in> s. \<not> f differentiable (at x)}"
+  assumes "is_interval S" "mono_on S f"
+  shows "negligible {x \<in> S. \<not> f differentiable (at x)}"
 proof -
-  have "locally (\<lambda>k. \<exists> a b. k = {a..b}) s"
-    using \<open>is_interval s\<close> is_interval_locally_compact_interval by fastforce
-  then
-  show ?thesis
-    apply (subst locally_negligible_alt)
-    apply (clarsimp simp: locally_def)
-    sorry
+  let ?N = "{x \<in> S. \<not> f differentiable (at x)}"
+  have "locally negligible ?N"
+    unfolding locally_def
+  proof (intro allI impI)
+    fix w x assume wx: "openin (top_of_set ?N) w \<and> x \<in> w"
+    then have xN: "x \<in> ?N" using openin_imp_subset by blast
+    then have "x \<in> S" by simp
+    from interval_contains_compact_neighbourhood[OF \<open>is_interval S\<close> this]
+    obtain a b d where "0 < d" "x \<in> cbox a b" "cbox a b \<subseteq> S"
+      and ball_sub: "ball x d \<inter> S \<subseteq> cbox a b"
+      by auto
+    have mono_ab: "mono_on {a..b} f"
+      using mono_on_subset[OF \<open>mono_on S f\<close> \<open>cbox a b \<subseteq> S\<close>] by (simp add: cbox_interval)
+    have neg: "negligible {y \<in> cbox a b. \<not> f differentiable (at y)}"
+      by (rule Lebesgue_differentiation_theorem_compact[OF
+            increasing_bounded_variation[OF mono_ab, folded cbox_interval]])
+    let ?U = "w \<inter> ball x d"
+    let ?V = "{y \<in> cbox a b. \<not> f differentiable (at y)} \<inter> w"
+    have U_open: "openin (top_of_set ?N) ?U"
+      using wx by (auto intro!: openin_Int_open[OF _ open_ball])
+    have "x \<in> ?U" using wx \<open>0 < d\<close> by auto
+    moreover have "?U \<subseteq> ?V"
+    proof
+      fix y assume "y \<in> ?U"
+      then have "y \<in> w" "y \<in> ball x d" by auto
+      from \<open>y \<in> w\<close> wx have "y \<in> ?N" using openin_imp_subset by blast
+      then have "y \<in> S" "\<not> f differentiable (at y)" by auto
+      from \<open>y \<in> ball x d\<close> \<open>y \<in> S\<close> ball_sub have "y \<in> cbox a b" by auto
+      with \<open>\<not> f differentiable (at y)\<close> \<open>y \<in> w\<close> show "y \<in> ?V" by auto
+    qed
+    moreover have "negligible ?V"
+      by (rule negligible_subset[OF neg]) auto
+    moreover have "?V \<subseteq> w" by auto
+    ultimately show "\<exists>U V. openin (top_of_set ?N) U \<and> negligible V \<and> x \<in> U \<and> U \<subseteq> V \<and> V \<subseteq> w"
+      using U_open by blast
+  qed
+  then show ?thesis by (simp add: locally_negligible)
 qed
 
+corollary Lebesgue_differentiation_theorem_decreasing:
+  fixes f :: "real \<Rightarrow> real"
+  assumes "is_interval S" "antimono_on S f"
+  shows "negligible {x \<in> S. \<not> f differentiable (at x)}"
+proof -
+  have mono: "mono_on S (\<lambda>x. - f x)"
+    using assms(2) by (auto simp: monotone_on_def)
+  have sub: "{x \<in> S. \<not> f differentiable (at x)} \<subseteq> {x \<in> S. \<not> (\<lambda>x. - f x) differentiable (at x)}"
+  proof -
+    have "\<And>x. (\<lambda>x. - f x) differentiable (at x) \<Longrightarrow> f differentiable (at x)"
+      using differentiable_minus[of "(\<lambda>x. - f x)"] by simp
+    then show ?thesis by auto
+  qed
+  moreover have "negligible {x \<in> S. \<not> (\<lambda>x. - f x) differentiable (at x)}"
+    by (rule Lebesgue_differentiation_theorem_increasing[OF assms(1) mono])
+  ultimately show ?thesis by (rule negligible_subset[rotated])
+qed
 
 (*FIXME move these elsewhere*)
 
@@ -2345,20 +2390,20 @@ qed
 
 lemma norm_vector_derivatives_le_within:
   fixes f :: "real \<Rightarrow> 'a::real_normed_vector" and g :: "real \<Rightarrow> 'b::real_normed_vector"
-  assumes limpt: "x islimpt s"
-    and fderiv: "(f has_vector_derivative f') (at x within s)"
-    and gderiv: "(g has_vector_derivative g') (at x within s)"
-    and ev: "eventually (\<lambda>y. norm (f y - f x) \<le> norm (g y - g x)) (at x within s)"
+  assumes limpt: "x islimpt S"
+    and fderiv: "(f has_vector_derivative f') (at x within S)"
+    and gderiv: "(g has_vector_derivative g') (at x within S)"
+    and ev: "eventually (\<lambda>y. norm (f y - f x) \<le> norm (g y - g x)) (at x within S)"
   shows "norm f' \<le> norm g'"
 proof (rule tendsto_le)
-  show nontrivial: "at x within s \<noteq> \<bottom>"
+  show nontrivial: "at x within S \<noteq> \<bottom>"
     using limpt trivial_limit_within by blast
   let ?f = "\<lambda>y. norm(inverse(y - x) *\<^sub>R (f y - f x))"
   let ?g = "\<lambda>y. norm(inverse(y - x) *\<^sub>R (g y - g x))"
-  show "(?f \<longlongrightarrow> norm f') (at x within s)" 
-       "(?g \<longlongrightarrow> norm g') (at x within s)"
+  show "(?f \<longlongrightarrow> norm f') (at x within S)" 
+       "(?g \<longlongrightarrow> norm g') (at x within S)"
     using fderiv gderiv has_vector_derivative_within_1D tendsto_norm by blast+
-  show "\<forall>\<^sub>F x in at x within s. ?f x \<le> ?g x"
+  show "\<forall>\<^sub>F x in at x within S. ?f x \<le> ?g x"
     using eventually_mono [OF ev] by (simp add: norm_scaleR abs_ge_zero mult_left_mono)
 qed
 
@@ -2373,18 +2418,18 @@ proof (cases "S = {}")
 qed (simp add: diameter_def)
 
 lemma diameter_eq_0:
-  fixes s :: "'a::metric_space set"
-  assumes "bounded s"
-  shows "diameter s = 0 \<longleftrightarrow> s = {} \<or> (\<exists>a. s = {a})"
+  fixes S :: "'a::metric_space set"
+  assumes "bounded S"
+  shows "diameter S = 0 \<longleftrightarrow> S = {} \<or> (\<exists>a. S = {a})"
 proof
-  assume "diameter s = 0"
-  then have "\<And>x y. x \<in> s \<Longrightarrow> y \<in> s \<Longrightarrow> x = y"
+  assume "diameter S = 0"
+  then have "\<And>x y. x \<in> S \<Longrightarrow> y \<in> S \<Longrightarrow> x = y"
     using diameter_bounded_bound[OF assms] by auto
-  then show "s = {} \<or> (\<exists>a. s = {a})"
+  then show "S = {} \<or> (\<exists>a. S = {a})"
     by (metis empty_iff insertI1 set_eq_iff singletonD)
 next
-  assume "s = {} \<or> (\<exists>a. s = {a})"
-  then show "diameter s = 0"
+  assume "S = {} \<or> (\<exists>a. S = {a})"
+  then show "diameter S = 0"
     using diameter_empty diameter_singleton by auto
 qed
 
@@ -3187,12 +3232,12 @@ qed
 
 (*DELETE the old supporting_hyperplane_relative_frontier since it lacks rel_frontier!*)
 lemma supporting_hyperplane_rel_frontier:
-  fixes s :: "'a::euclidean_space set"
-  assumes "convex s" "x \<in> rel_frontier s"
-  shows "\<exists>a. a \<noteq> 0 \<and> (\<forall>y \<in> closure s. a \<bullet> x \<le> a \<bullet> y) \<and>
-             (\<forall>y \<in> rel_interior s. a \<bullet> x < a \<bullet> y)"
+  fixes S :: "'a::euclidean_space set"
+  assumes "convex S" "x \<in> rel_frontier S"
+  shows "\<exists>a. a \<noteq> 0 \<and> (\<forall>y \<in> closure S. a \<bullet> x \<le> a \<bullet> y) \<and>
+             (\<forall>y \<in> rel_interior S. a \<bullet> x < a \<bullet> y)"
 proof -
-  have "x \<in> closure s" "x \<notin> rel_interior s"
+  have "x \<in> closure S" "x \<notin> rel_interior S"
     using assms(2) unfolding rel_frontier_def by auto
   then show ?thesis
     using supporting_hyperplane_rel_boundary[OF convex_closure[OF assms(1)]]
@@ -5988,7 +6033,6 @@ lemma not_all_above:
 proof -
   have seg_infinite: "\<not> finite (open_segment a b)"
     using Reb assms by force
-
   have Im_b: "Im b = 0" using b(3) assms by simp
   have seg_Im0: "open_segment a b \<subseteq> {z. Im z = 0}"
     using assms Im_b by (auto simp: in_segment complex_eq_iff)
