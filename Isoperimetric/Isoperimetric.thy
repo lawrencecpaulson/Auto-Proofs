@@ -361,7 +361,7 @@ proof -
 qed
 
 
-lemma lemma0:
+lemma Lebesgue_diff_aux0:
   fixes x y k :: real
   assumes "k \<le> y - x" "0 < k"
   shows "\<exists>q\<in>\<rat>. k / 3 < q - x \<and> k / 3 < y - q"
@@ -379,7 +379,7 @@ proof -
 qed
 
 
-lemma lemma1:
+lemma Lebesgue_diff_aux1:
   fixes f :: "real \<Rightarrow> 'a::euclidean_space" and a b :: real
   assumes "has_bounded_variation_on f {a..b}"
   shows "\<exists>t. negligible t \<and>
@@ -741,7 +741,7 @@ proof -
 qed
 
 
-lemma lemma2:
+lemma Lebesgue_diff_aux2:
   fixes f :: "real \<Rightarrow> real" and a b k :: real
   assumes "has_bounded_variation_on f {a..b}" "a < b" "0 < k"
   shows "negligible
@@ -1191,7 +1191,7 @@ proof -
     by (simp add: t'_def)
 qed
 
-lemma lemma3:
+lemma Lebesgue_diff_aux3:
   fixes f :: "real \<Rightarrow> real" and a b k :: real
   assumes "has_bounded_variation_on f {a..b}" "a < b" "0 < k"
   shows "negligible
@@ -1208,7 +1208,7 @@ proof -
                              u \<noteq> x \<and> v \<noteq> x \<and>
                              k \<le> (f v - f x) / (v - x) \<and>
                              (f u - f x) / (u - x) \<le> -k}"
-  \<comment> \<open>The superset: endpoints \<union> discontinuities \<union> lemma2-set is negligible\<close>
+  \<comment> \<open>The superset: endpoints \<union> discontinuities \<union> previous set is negligible\<close>
   define L2 where "L2 \<equiv> {x \<in> {a..b}.
       \<forall>S. open S \<and> x \<in> S \<longrightarrow>
         (\<exists>u v. u \<in> {a..b} \<and> u \<in> S \<and> v \<in> {a..b} \<and> v \<in> S \<and>
@@ -1220,7 +1220,7 @@ proof -
   have neg_discont: "negligible {x \<in> {a..b}. \<not> isCont f x}"
     using countable_imp_negligible[OF has_bounded_variation_countable_discontinuities[OF assms(1)]] .
   have neg_L2: "negligible L2"
-    unfolding L2_def using lemma2[OF assms(1,2), of "k/2"] assms(3) by simp
+    unfolding L2_def using Lebesgue_diff_aux2[OF assms(1,2), of "k/2"] assms(3) by simp
   have neg_super: "negligible (({a, b} \<union> {x \<in> {a..b}. \<not> isCont f x}) \<union> L2)"
     by (rule negligible_Un[OF negligible_Un[OF neg_endpts neg_discont] neg_L2])
   show "negligible T"
@@ -1502,7 +1502,7 @@ proof -
   qed
 qed
 
-lemma lemma4:
+lemma Lebesgue_diff_aux4:
   fixes f :: "real \<Rightarrow> real" and a b k :: real
   assumes "has_bounded_variation_on f {a..b}" "a < b" "0 < k"
   shows "negligible
@@ -1519,8 +1519,8 @@ proof -
                              u \<noteq> x \<and> v \<noteq> x \<and>
                              k \<le> (f v - f x) / (v - x) -
                                   (f u - f x) / (u - x)}"
-  \<comment> \<open>From lemma1 we get a negligible set outside which f has a local Lipschitz bound\<close>
-  from lemma1[OF assms(1)]
+  \<comment> \<open>we get a negligible set outside which f has a local Lipschitz bound\<close>
+  from Lebesgue_diff_aux1[OF assms(1)]
   obtain U where neg_U: "negligible U" and
     U_prop: "\<forall>x \<in> {a..b} - U.
        \<exists>B>0. eventually (\<lambda>y. norm (f y - f x) \<le> B * norm (y - x)) (at x)"
@@ -1544,7 +1544,6 @@ proof -
     next
       fix Sq assume "Sq \<in> S ` \<rat>"
       then obtain q where "q \<in> \<rat>" and "Sq = S q" by auto
-      \<comment> \<open>Each S q is negligible by lemma3 applied to (\<lambda>x. f x - q * x) with constant k/3\<close>
       show "negligible Sq"
       proof -
         define g where "g x = f x - q * x" for x
@@ -1569,7 +1568,7 @@ proof -
             by (auto simp: g_def algebra_simps divide_simps)
 
         show ?thesis unfolding \<open>Sq = S q\<close> Sq_eq
-          using lemma3[OF bv_g assms(2) k3_pos] by simp
+          using Lebesgue_diff_aux3[OF bv_g assms(2) k3_pos] by simp
       qed
     qed
   qed
@@ -1786,9 +1785,9 @@ proof -
           from Lim_bounded2[OF diff_conv this]
           show ?thesis .
         qed
-          \<comment> \<open>Use lemma0 to find a rational witness q\<close>
+          \<comment> \<open>find a rational witness q\<close>
         obtain q where "q \<in> \<rat>" and q_l: "k / 3 < q - l" and q_m: "k / 3 < m - q"
-          using lemma0[OF k_le \<open>0 < k\<close>] by auto
+          using Lebesgue_diff_aux0[OF k_le \<open>0 < k\<close>] by auto
         have "x \<in> S q"
         proof -
           have main: "\<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
@@ -1875,7 +1874,7 @@ proof -
   qed
 qed
 
-lemma lemma5:
+lemma Lebesgue_diff_aux5:
   fixes f :: "real \<Rightarrow> real" and a b k :: real
   assumes "has_bounded_variation_on f {a..b}" "a < b" "0 < k"
   shows "negligible
@@ -1894,7 +1893,7 @@ proof -
                              u \<noteq> x \<and> v \<noteq> x \<and>
                              k \<le> (f v - f x) / (v - x) -
                                   (f u - f x) / (u - x)}"
-    by (rule lemma4[OF assms])
+    by (rule Lebesgue_diff_aux4[OF assms])
 
   have neg2: "negligible
            {x \<in> {a..b}.
@@ -1903,7 +1902,7 @@ proof -
                              u \<noteq> x \<and> v \<noteq> x \<and>
                              k \<le> ((-f v) - (-f x)) / (v - x) -
                                   ((-f u) - (-f x)) / (u - x)}"
-    by (rule lemma4[OF has_bounded_variation_on_neg[OF assms(1)] assms(2,3)])
+    by (rule Lebesgue_diff_aux4[OF has_bounded_variation_on_neg[OF assms(1)] assms(2,3)])
   \<comment> \<open>The union of these two negligible sets is negligible\<close>
   have neg_union: "negligible (
            {x \<in> {a..b}.
@@ -2046,7 +2045,7 @@ proof -
   qed
 qed
 
-lemma lemma6:
+lemma Lebesgue_diff_aux6:
   fixes f :: "real \<Rightarrow> real"
   assumes "has_bounded_variation_on f {a..b}" "a < b"
   shows "negligible {x \<in> {a..b}. \<not> f differentiable (at x within {a..b})}"
@@ -2060,7 +2059,7 @@ proof -
                      u \<noteq> x \<and> v \<noteq> x \<and>
                      inverse (real m + 1) \<le> \<bar>(f v - f x) / (v - x) - (f u - f x) / (u - x)\<bar>}" for m
     have neg: "negligible (S m)" for m
-      unfolding S_def by (rule lemma5[OF assms]) auto
+      unfolding S_def by (rule Lebesgue_diff_aux5[OF assms]) auto
     have "negligible (\<Union>(range S))"
       by (rule negligible_Union_nat[OF neg])
     moreover have "{x \<in> {a..b}. \<not> (\<exists>f'. ((\<lambda>y. (f y - f x) / (y - x)) \<longlongrightarrow> f') (at x within {a..b}))} \<subseteq> \<Union>(range S)"
@@ -2132,7 +2131,7 @@ proof -
   ultimately show ?thesis by simp
 qed
 
-lemma lemma7:
+lemma Lebesgue_diff_aux7:
   fixes f :: "real \<Rightarrow> real"
   assumes "has_bounded_variation_on f {a..b}"
   shows "negligible {x \<in> {a..b}. \<not> f differentiable (at x)}"
@@ -2149,7 +2148,7 @@ proof (cases "a < b")
     with H show False by simp
   qed
   have "negligible (insert a (insert b {x \<in> {a..b}. \<not> f differentiable (at x within {a..b})}))"
-    using lemma6[OF assms True] by (simp add: negligible_insert)
+    using Lebesgue_diff_aux6[OF assms True] by (simp add: negligible_insert)
   with sub show ?thesis by (rule negligible_subset[rotated])
 next
   case False
@@ -2184,7 +2183,7 @@ proof -
   proof (rule negligible_Union[OF finite_imageI[OF finite_Basis]], clarsimp)
     fix i :: 'a assume "i \<in> Basis"
     show "negligible {x. a \<le> x \<and> x \<le> b \<and> \<not> (\<lambda>x. f x \<bullet> i) differentiable (at x)}"
-      using lemma7[OF has_bounded_variation_on_inner_left] assms 
+      using Lebesgue_diff_aux7[OF has_bounded_variation_on_inner_left] assms 
       by (auto simp: cbox_interval)
   qed
 qed
