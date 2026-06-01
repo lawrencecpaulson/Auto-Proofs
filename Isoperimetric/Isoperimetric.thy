@@ -7,6 +7,239 @@ hide_const (open) Polynomial.content
 
 section \<open>Library material\<close>
 
+thm exists_double_arc
+lemma exists_double_arc_explicit:
+  fixes g :: "real \<Rightarrow> 'a::real_normed_vector"
+  assumes "simple_path g" and loop: "pathfinish g = pathstart g"
+    and "a \<in> {0..1}" "b \<in> {0..1}" "a \<le> b" "g a \<noteq> g b"
+  obtains u d where "arc u" "arc d" "pathstart u = g a" "pathfinish u = g b"
+                    "pathstart d = g b" "pathfinish d = g a"
+                    "path_image u = g ` {a..b}"
+                    "path_image d = g ` ({0..1} - {a<..<b})"
+                    "(path_image u) \<inter> (path_image d) = {g a, g b}"
+                    "(path_image u) \<union> (path_image d) = path_image g"
+proof -
+  have lf: "loop_free g" using assms by (simp add: simple_path_def)
+  have g01: "g 0 = g 1" using loop by (simp add: path_defs)
+  have inj: "\<And>s t. s \<in> {0..1} \<Longrightarrow> t \<in> {0..1} \<Longrightarrow> g s = g t \<Longrightarrow> s = t \<or> s = 0 \<and> t = 1 \<or> s = 1 \<and> t = 0"
+    using lf by (simp add: loop_free_def)
+  show ?thesis
+  proof (cases "a=0")
+    case a [simp]: True
+    show thesis
+    proof
+      show "arc (subpath 0 b g)" "arc (subpath b 1 g)"
+        using assms by (auto simp: arc_simple_path_subpath path_defs)
+      show "pathstart (subpath 0 b g) = g a" 
+        by (simp add: pathstart_subpath)
+      show "pathfinish (subpath 0 b g) = g b"
+        using assms by (simp add: pathfinish_subpath)
+      show "pathstart (subpath b 1 g) = g b"
+        using assms by (simp add: pathstart_subpath)
+      show "pathfinish (subpath b 1 g) = g a"
+        by (metis a loop path_defs(2,3) pathfinish_subpath)
+      show "path_image (subpath 0 b g) = g ` {a..b}"
+        by (metis a \<open>a \<le> b\<close> path_image_subpath)
+      show img_d: "path_image (subpath b 1 g) = g ` ({0..1} - {a<..<b})"
+      proof -
+        have "path_image (subpath b 1 g) = g ` {b..1}"
+          using assms by (simp add: path_image_subpath)
+        also have "\<dots> = g ` ({0..1} - {a<..<b})"
+          using g01 assms by force
+        finally show ?thesis .
+      qed
+      show "path_image (subpath 0 b g) \<inter> path_image (subpath b 1 g) = {g a, g b}"
+      proof -
+        have img1: "path_image (subpath 0 b g) = g ` {0..b}"
+          using assms by (simp add: path_image_subpath)
+        have img2: "path_image (subpath b 1 g) = g ` {b..1}"
+          using assms by (simp add: path_image_subpath)
+        have "g ` {0..b} \<inter> g ` {b..1} = {g 0, g b}"
+        proof (intro equalityI subsetI)
+          fix x assume "x \<in> g ` {0..b} \<inter> g ` {b..1}"
+          then obtain s t where st: "s \<in> {0..b}" "t \<in> {b..1}" "g s = x" "g t = x" "g s = g t"
+            by auto
+          then have "s = t \<or> s = 0 \<and> t = 1 \<or> s = 1 \<and> t = 0"
+            using inj st assms by auto
+          then show "x \<in> {g 0, g b}" using st by auto
+        next
+          fix x assume "x \<in> {g 0, g b}"
+          then show "x \<in> g ` {0..b} \<inter> g ` {b..1}"
+            using assms g01 by (auto intro: rev_image_eqI)
+        qed
+        then show ?thesis using img1 img2 by (simp add: a)
+      qed
+      show "path_image (subpath 0 b g) \<union> path_image (subpath b 1 g) = path_image g"
+      proof -
+        have "path_image (subpath 0 b g) = g ` {0..b}" "path_image (subpath b 1 g) = g ` {b..1}"
+          using assms by (auto simp add: path_image_subpath)
+        moreover have "g ` {0..b} \<union> g ` {b..1} = g ` {0..1}"
+          using assms by (auto simp: image_Un[symmetric] ivl_disj_un_two_touch)
+        ultimately show ?thesis by (simp add: path_image_def path_defs)
+      qed
+    qed
+  next
+    case a_nonzero: False
+    show thesis
+    proof (cases "b=1")
+      case b [simp]: True
+      show thesis
+      proof
+        show "arc (subpath a b g)" "arc (subpath 0 a g)"
+          using assms a_nonzero by (auto simp: arc_simple_path_subpath path_defs)
+        show "pathstart (subpath a b g) = g a"
+          using assms by (simp add: pathstart_subpath)
+        show "pathfinish (subpath a b g) = g b"
+          using assms by (simp add: pathfinish_subpath)
+        show "pathstart (subpath 0 a g) = g b"
+          using g01 by (simp add: pathstart_subpath)
+        show "pathfinish (subpath 0 a g) = g a"
+          using assms by (simp add: pathfinish_subpath)
+        show "path_image (subpath a b g) = g ` {a..b}"
+          using assms by (simp add: path_image_subpath)
+        show "path_image (subpath 0 a g) = g ` ({0..1} - {a<..<b})"
+        proof -
+          have "0 \<le> a \<Longrightarrow> \<exists>x\<in>{0..a}. g 1 = g x"
+            by (metis g01 atLeastAtMost_iff order_refl)
+          then have "path_image (subpath 0 a g) = g ` ({0..a} \<union> {1})"
+            using assms by (auto simp: path_image_subpath image_iff)
+          also have "\<dots> = g ` ({0..1} - {a<..<b})"
+            using assms a_nonzero by auto
+          finally show ?thesis .
+        qed
+        show "path_image (subpath a b g) \<inter> path_image (subpath 0 a g) = {g a, g b}"
+        proof -
+          have img: "path_image (subpath a b g) = g ` {a..1}" "path_image (subpath 0 a g) = g ` {0..a}"
+            using assms by (simp_all add: path_image_subpath)
+          have "g ` {a..1} \<inter> g ` {0..a} = {g a, g 1}"
+          proof (intro equalityI subsetI)
+            fix x assume "x \<in> g ` {a..1} \<inter> g ` {0..a}"
+            then obtain s t where st: "s \<in> {a..1}" "t \<in> {0..a}" "g s = x" "g t = x" "g s = g t"
+              by auto
+            then have "s = t \<or> s = 0 \<and> t = 1 \<or> s = 1 \<and> t = 0"
+              using inj st assms by auto
+            then show "x \<in> {g a, g 1}" using st by auto
+          next
+            fix x assume "x \<in> {g a, g 1}"
+            then show "x \<in> g ` {a..1} \<inter> g ` {0..a}"
+              using assms g01 by (auto intro: rev_image_eqI)
+          qed
+          then show ?thesis using img by (simp add: b path_defs)
+        qed
+        show "path_image (subpath a b g) \<union> path_image (subpath 0 a g) = path_image g"
+        proof -
+          have "path_image (subpath a b g) = g ` {a..1}" "path_image (subpath 0 a g) = g ` {0..a}"
+            using assms by (simp_all add: path_image_subpath)
+          moreover have "g ` {a..1} \<union> g ` {0..a} = g ` {0..1}"
+            using assms by (auto simp: image_Un[symmetric] ivl_disj_un_two_touch)
+          ultimately show ?thesis by (simp add: path_image_def path_defs)
+        qed
+      qed
+    next
+      case b_nonzero: False
+      let ?d = "subpath b 1 g +++ subpath 0 a g"
+      have join: "pathfinish (subpath b 1 g) = pathstart (subpath 0 a g)"
+        by (simp add: g01)
+      show thesis
+      proof
+        show "arc (subpath a b g)"
+          using assms a_nonzero b_nonzero
+          by (intro arc_simple_path_subpath_interior) (auto simp: path_defs)
+        show "arc ?d"
+        proof -
+          have arcs: "arc (subpath b 1 g)" "arc (subpath 0 a g)"
+            using assms a_nonzero b_nonzero
+            by (auto intro!: arc_simple_path_subpath_interior simp: path_defs)
+          have "path_image (subpath b 1 g) \<inter> path_image (subpath 0 a g) \<subseteq> {pathstart (subpath 0 a g)}"
+          proof (intro subsetI)
+            fix x assume "x \<in> path_image (subpath b 1 g) \<inter> path_image (subpath 0 a g)"
+            then obtain s t where s: "s \<in> {b..1}" "g s = x" and t: "t \<in> {0..a}" "g t = x" "g s = g t"
+              using assms by (auto simp: path_image_subpath)
+            then have "s = t \<or> s = 0 \<and> t = 1 \<or> s = 1 \<and> t = 0"
+              using inj s t assms by auto
+            then have "t = 0"
+              using s t assms by (metis atLeastAtMost_iff nle_le order.trans)
+            then show "x \<in> {pathstart (subpath 0 a g)}"
+              using t by simp
+          qed
+          then show ?thesis
+            using arcs join by (simp add: arc_join_eq [OF join])
+        qed
+        show "pathstart (subpath a b g) = g a"
+          by (simp add: pathstart_subpath)
+        show "pathfinish (subpath a b g) = g b"
+          using assms by (simp add: pathfinish_subpath)
+        show "pathstart ?d = g b"
+          by (simp add: pathstart_join pathstart_subpath)
+        show "pathfinish ?d = g a"
+          using assms by (simp add: pathfinish_join pathfinish_subpath join)
+        show "path_image (subpath a b g) = g ` {a..b}"
+          using assms by (simp add: path_image_subpath)
+        show "path_image ?d = g ` ({0..1} - {a<..<b})"
+        proof -
+          have eq: "{0..a} \<union> {b..(1::real)} = {0..1} - {a<..<b}"
+            using assms a_nonzero b_nonzero by auto
+          have "path_image ?d = g ` {b..1} \<union> g ` {0..a}"
+            using assms join by (simp add: path_image_join path_image_subpath)
+          also have "\<dots> = g ` ({0..a} \<union> {b..1})"
+            by (simp add: image_Un Un_commute)
+          also have "\<dots> = g ` ({0..1} - {a<..<b})"
+            by (simp add: eq)
+          finally show ?thesis .
+        qed
+        show "path_image (subpath a b g) \<inter> path_image ?d = {g a, g b}"
+        proof -
+          have img1: "path_image (subpath a b g) = g ` {a..b}"
+            using assms by (simp add: path_image_subpath)
+          have img2: "path_image ?d = g ` {b..1} \<union> g ` {0..a}"
+            using assms join by (simp add: path_image_join path_image_subpath)
+          have "g ` {a..b} \<inter> (g ` {b..1} \<union> g ` {0..a}) = {g a, g b}"
+          proof (intro equalityI subsetI)
+            fix x assume x: "x \<in> g ` {a..b} \<inter> (g ` {b..1} \<union> g ` {0..a})"
+            then obtain s where s: "s \<in> {a..b}" "g s = x"
+              by auto
+            from x consider (right) "x \<in> g ` {b..1}" | (left) "x \<in> g ` {0..a}"
+              by auto
+            then show "x \<in> {g a, g b}"
+            proof cases
+              case right
+              then obtain t where t: "t \<in> {b..1}" "g t = x" by auto
+              have "g s = g t" using s t by simp
+              then have "s = t \<or> s = 0 \<and> t = 1 \<or> s = 1 \<and> t = 0"
+                using inj s t assms by auto
+              then show ?thesis using s t assms a_nonzero b_nonzero by auto
+            next
+              case left
+              then obtain t where t: "t \<in> {0..a}" "g t = x" by auto
+              have "g s = g t" using s t by simp
+              then have "s = t \<or> s = 0 \<and> t = 1 \<or> s = 1 \<and> t = 0"
+                using inj s t assms by auto
+              then show ?thesis using s t assms a_nonzero b_nonzero by auto
+            qed
+          next
+            fix x assume "x \<in> {g a, g b}"
+            then show "x \<in> g ` {a..b} \<inter> (g ` {b..1} \<union> g ` {0..a})"
+              using assms by (auto intro: rev_image_eqI)
+          qed
+          then show ?thesis using img1 img2 by simp
+        qed
+        show "path_image (subpath a b g) \<union> path_image ?d = path_image g"
+        proof -
+          have img1: "path_image (subpath a b g) = g ` {a..b}"
+            using assms by (simp add: path_image_subpath)
+          have img2: "path_image ?d = g ` {b..1} \<union> g ` {0..a}"
+            using assms join by (simp add: path_image_join path_image_subpath)
+          have "{a..b} \<union> {b..(1::real)} \<union> {0..a} = {0..1}"
+            using assms by auto
+          then have "g ` {a..b} \<union> (g ` {b..1} \<union> g ` {0..a}) = g ` {0..1}"
+            by (auto simp: image_Un)
+          then show ?thesis using img1 img2 by (simp add: path_image_def path_defs sup_assoc)
+        qed
+      qed
+    qed
+  qed
+qed
+
 (*added to Derivative 2026-05*)
 corollary vector_differentiable:
   "f differentiable net \<longleftrightarrow> (\<exists>f'. (f has_vector_derivative f') net)"
@@ -1223,14 +1456,9 @@ lemma Lebesgue_diff_aux4:
                              v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
                              u \<noteq> x \<and> v \<noteq> x \<and>
                              k \<le> (f v - f x) / (v - x) -
-                                  (f u - f x) / (u - x)}"
+                                  (f u - f x) / (u - x)}" (is "negligible ?T")
 proof -
-  define T where "T \<equiv> {x \<in> {a..b}.
-              \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
-                             v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
-                             u \<noteq> x \<and> v \<noteq> x \<and>
-                             k \<le> (f v - f x) / (v - x) -
-                                  (f u - f x) / (u - x)}"
+  define T where "T \<equiv> ?T"
   \<comment> \<open>we get a negligible set outside which f has a local Lipschitz bound\<close>
   from Lebesgue_diff_aux1[OF assms(1)]
   obtain U where neg_U: "negligible U" and
@@ -1335,8 +1563,6 @@ proof -
               by (simp add: abs_divide divide_le_eq)
           qed
         qed
-
-
         have balls_nonempty: "\<exists>u. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and> u \<noteq> x"
           for n :: nat
         proof -
