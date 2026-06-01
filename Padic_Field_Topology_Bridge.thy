@@ -104,11 +104,16 @@ subsection \<open>$\mathbb{Q}_p$ is a Metric\_space\<close>
 lemma padic_dist_nonneg: "0 \<le> padic_dist x y"
   by (simp add: padic_dist_def padic_norm_def)
 
+lemma padic_dist_commute_aux: 
+  assumes "x \<in> carrier Q\<^sub>p" and "y \<in> carrier Q\<^sub>p"
+    shows"real_of_int p powr - real_of_int (ord (x \<ominus> y)) = real_of_int p powr - real_of_int (ord (y \<ominus> x))"
+    using assms
+    by (metis Qp.not_eq_diff_nonzero Qp.not_nonzero_memI Qp.plus_diff_simp 
+        Qp.r_right_minus_eq diff_ord_nonzero)
+
 lemma padic_dist_commute:
   shows "padic_dist x y = padic_dist y x"
-  apply (simp add: padic_dist_def padic_norm_def)
-  by (metis Qp.nonzero_memE(2) Qp.not_eq_diff_nonzero Qp.plus_diff_simp Qp.r_right_minus_eq
-      diff_ord_nonzero)
+  using padic_dist_commute_aux Qp.r_right_minus_eq padic_dist_def padic_norm_def by presburger
 
 lemma padic_dist_zero:
   assumes "x \<in> carrier Q\<^sub>p" "y \<in> carrier Q\<^sub>p"
@@ -176,7 +181,6 @@ next
     using assms unfolding padic_dist_def by auto
 qed
 
-
 text \<open>The ultrametric inequality implies the triangle inequality.\<close>
 lemma padic_dist_triangle:
   assumes "x \<in> carrier Q\<^sub>p" "y \<in> carrier Q\<^sub>p" "z \<in> carrier Q\<^sub>p"
@@ -236,8 +240,7 @@ proof (rule Set.set_eqI)
         have "val (x \<ominus> c) = eint (ord (x \<ominus> c))" using val_ord xc_nz by auto
         then have ord_ge: "n \<le> ord (x \<ominus> c)" using val_ge by simp
         have "padic_dist c x = padic_norm (x \<ominus> c)"
-          using padic_dist_commute[of c x] padic_dist_as_norm[OF x_car assms]
-                padic_dist_as_norm[OF assms x_car] by simp
+          by (metis assms padic_dist_as_norm padic_dist_commute x_car)
         also have "\<dots> = p powr (- real_of_int (ord (x \<ominus> c)))"
           using padic_norm_def Qp.nonzero_memE(2)[OF xc_nz] by auto
         also have "\<dots> \<le> p powr (- real_of_int n)"
@@ -294,10 +297,8 @@ proof (rule Set.set_eqI)
         using x_car assms Qp.not_eq_diff_nonzero by auto
       have "padic_dist c x = padic_norm (x \<ominus> c)"
         by (metis assms padic.commute padic_dist_as_norm x_car)
-      then have "padic_norm (x \<ominus> c) < p powr (- real_of_int n)"
-        using dist_lt by linarith
       then have "p powr (- real_of_int (ord (x \<ominus> c))) < p powr (- real_of_int n)"
-        using padic_norm_def Qp.nonzero_memE(2)[OF xc_nz] by auto
+        using dist_lt padic_norm_def Qp.nonzero_memE(2)[OF xc_nz] by auto
       then have "- real_of_int (ord (x \<ominus> c)) < - real_of_int n"
         using powr_less_cancel_iff[OF p_gt_1_real] by auto
       then show ?thesis using val_ord xc_nz c_ballI x_car by auto
@@ -348,7 +349,6 @@ proof
   show "is_open U"
   proof (rule is_openI[OF U_sub])
     fix c assume c_in: "c \<in> U"
-    then have c_car: "c \<in> carrier Q\<^sub>p" using U_sub by auto
     obtain r where r_pos: "r > 0" and r_sub: "padic.mball c r \<subseteq> U"
       using U_ball c_in by auto
     (* Choose n large enough that p powr (-n) < r.
@@ -356,10 +356,9 @@ proof
     obtain n :: int where n_large: "p powr (- real_of_int n) < r"
       by (meson ex_less_of_int less_log_iff minus_less_iff p_gt_1_real r_pos)
     have "c_ball (n + 1) c = padic.mball c (p powr (- real_of_int n))"
-      using mball_eq_c_ball[OF c_car] by auto
-    then have "c_ball (n + 1) c \<subseteq> U"
-      using r_sub padic.mball_subset_concentric n_large by auto
-    then show "\<exists>k. c_ball k c \<subseteq> U" by blast
+      using mball_eq_c_ball U_sub by (simp add: c_in in_mono)
+    then show "\<exists>k. c_ball k c \<subseteq> U" 
+      using r_sub padic.mball_subset_concentric n_large by fastforce
   qed
 next
   assume U_open: "is_open U"
@@ -377,8 +376,7 @@ next
     have r_pos: "0 < p powr (- real_of_int (n - 1))"
       using p_gt_1_real by simp
     show "\<exists>r>0. padic.mball x r \<subseteq> U"
-      using ball_eq n_sub r_pos
-      by blast
+      using ball_eq n_sub r_pos by blast
   qed
 qed
 
@@ -409,7 +407,7 @@ next
       using padic_dist_ultrametric[OF assms(1) y_car z_car] by auto
     also have "\<dots> \<le> r" using dy dyz by simp
     finally show "z \<in> padic.mcball c r"
-      using padic.in_mcball assms(1) z_car by auto
+      by (simp add: assms z_car)
   qed
 qed
 
