@@ -1,6 +1,6 @@
 theory Isoperimetric
   imports Arc_Length_Reparametrization "Fourier.Square_Integrable" "Green.Integrals" "../Euclidean_Space_Transfer"
-    "HOL-ex.Sketch_and_Explore" 
+    "HOL-ex.Sketch_and_Explore" Isar_Explore
 begin
 
 hide_const (open) Polynomial.content
@@ -359,25 +359,6 @@ proof -
   ultimately show ?thesis
     using locally_compact_diff_finite[OF lc] by metis
 qed
-
-
-lemma Lebesgue_diff_aux0:
-  fixes x y k :: real
-  assumes "k \<le> y - x" "0 < k"
-  shows "\<exists>q\<in>\<rat>. k / 3 < q - x \<and> k / 3 < y - q"
-proof -
-  have mid: "(x + y) / 2 - k / 6 < (x + y) / 2 + k / 6"
-    using assms by auto
-  then obtain q where q: "q \<in> \<rat>" "(x + y) / 2 - k / 6 < q" "q < (x + y) / 2 + k / 6"
-    using Rats_dense_in_real by blast
-  have "k / 3 < q - x"
-    using q(2) assms by (simp add: field_simps)
-  moreover have "k / 3 < y - q"
-    using q(3) assms by (simp add: field_simps)
-  ultimately show ?thesis
-    using q(1) by auto
-qed
-
 
 lemma Lebesgue_diff_aux1:
   fixes f :: "real \<Rightarrow> 'a::euclidean_space" and a b :: real
@@ -1638,8 +1619,12 @@ proof -
           show ?thesis .
         qed
           \<comment> \<open>find a rational witness q\<close>
-        obtain q where "q \<in> \<rat>" and q_l: "k / 3 < q - l" and q_m: "k / 3 < m - q"
-          using Lebesgue_diff_aux0[OF k_le \<open>0 < k\<close>] by auto
+        have mid: "(l + m) / 2 - k / 6 < (l + m) / 2 + k / 6"
+          using assms by auto
+        then obtain q where q: "q \<in> \<rat>" "(l + m) / 2 - k / 6 < q" "q < (l + m) / 2 + k / 6"
+          using Rats_dense_in_real by blast
+        with k_le \<open>0 < k\<close>  have q_l: "k / 3 < q - l" and q_m: "k / 3 < m - q"
+          by (auto simp add: field_simps)
         have "x \<in> S q"
         proof -
           have main: "\<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
