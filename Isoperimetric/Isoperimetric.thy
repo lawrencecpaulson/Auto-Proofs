@@ -3193,6 +3193,83 @@ proof (cases "d=0")
     using assms by blast
 qed auto
 
+\<comment> \<open>HOL Light: RECTIFIABLE_LOOP_RELATIVE_FRONTIER_CONVEX\<close>
+lemma rectifiable_loop_relative_frontier_convex:
+  fixes S :: "complex set"
+  assumes "bounded S" "convex S" "aff_dim S = 2"
+  shows "\<exists>g. simple_path g \<and> rectifiable_path g \<and>
+             pathfinish g = pathstart g \<and>
+             path_image g = rel_frontier S"
+  sorry
+
+\<comment> \<open>HOL Light: RECTIFIABLE_LOOP_FRONTIER_CONVEX\<close>
+lemma rectifiable_loop_frontier_convex:
+  fixes S :: "complex set"
+  assumes "bounded S" "convex S" "interior S \<noteq> {}"
+  shows "\<exists>g. simple_path g \<and> rectifiable_path g \<and>
+             pathfinish g = pathstart g \<and>
+             path_image g = frontier S"
+  using rectifiable_loop_relative_frontier_convex[OF assms(1,2)]
+        rel_frontier_nonempty_interior[OF assms(3)]
+        aff_dim_nonempty_interior[OF assms(3)]
+  by simp
+
+\<comment> \<open>HOL Light: RECTIFIABLE_PATH_FRONTIER_CONVEX\<close>
+lemma rectifiable_path_frontier_convex:
+  fixes S :: "complex set"
+  assumes "bounded S" "convex S" "S \<noteq> {}"
+  shows "\<exists>g. rectifiable_path g \<and>
+             pathfinish g = pathstart g \<and>
+             path_image g = frontier S"
+proof -
+  have fr_eq: "frontier S = frontier (closure S)"
+    using convex_interior_closure[OF assms(2)] closure_closure[of S]
+    by (simp add: frontier_def)
+  have cS: "bounded (closure S)" "convex (closure S)" "closure S \<noteq> {}"
+    using assms by (auto simp: convex_closure compact_closure closure_eq_empty
+                         intro: bounded_closure)
+  show ?thesis
+  proof (cases "interior (closure S) = {}")
+    case False
+    then obtain g where "simple_path g" "rectifiable_path g"
+      "pathfinish g = pathstart g" "path_image g = frontier (closure S)"
+      using rectifiable_loop_frontier_convex[OF cS(1,2)] by auto
+    then show ?thesis using fr_eq by blast
+  next
+    case True
+    have compact_cS: "compact (closure S)"
+      using assms(1) compact_closure by auto
+    have "aff_dim (closure S) \<noteq> int DIM(complex)"
+    proof
+      assume "aff_dim (closure S) = int DIM(complex)"
+      then have "interior (closure S) = rel_interior (closure S)"
+        using interior_rel_interior[of "closure S"] by simp
+      moreover have "rel_interior (closure S) \<noteq> {}"
+        using rel_interior_eq_empty cS(2,3) by auto
+      ultimately show False using True by auto
+    qed
+    then have "aff_dim (closure S) \<le> 1"
+      using aff_dim_le_DIM[of "closure S"] by (simp add: DIM_complex)
+    then have col: "collinear (closure S)"
+      by (simp add: collinear_aff_dim)
+    obtain a b where ab: "closure S = closed_segment a b"
+      using compact_convex_collinear_segment[OF cS(3) compact_cS cS(2) col]
+      by auto
+    have "frontier (closure S) = closed_segment a b"
+      using interior_closed_segment_ge2[of a b]
+            closure_closed_segment[of a b]
+      by (simp add: frontier_def ab)
+    moreover have "rectifiable_path (linepath a b +++ linepath b a)"
+      by (simp add: rectifiable_path_join rectifiable_path_linepath)
+    moreover have "pathfinish (linepath a b +++ linepath b a) =
+                   pathstart (linepath a b +++ linepath b a)"
+      by simp
+    moreover have "path_image (linepath a b +++ linepath b a) = closed_segment a b"
+      by (simp add: path_image_join path_image_linepath closed_segment_commute)
+    ultimately show ?thesis using fr_eq by blast
+  qed
+qed
+
 
 section \<open>Lebesgue measurability of ordinate sets\<close>
 
@@ -8307,7 +8384,124 @@ next
       show "convex hull (path_image g) \<subseteq> convex hull (closed_segment (g a) (g b) \<union> g ` ({0..1} - {a<..<b}))"
         by (metis Un_commute Un_upper1 hull_eq hull_mono)
     qed
-    show ?thesis sorry
+  \<comment> \<open>Step 1: Double arc decomposition of g\<close>
+    obtain g0 g1 where arcs:
+      "arc g0" "arc g1"
+      "pathstart g0 = g a" "pathfinish g0 = g b"
+      "pathstart g1 = g b" "pathfinish g1 = g a"
+      "path_image g0 = g ` {a..b}"
+      "path_image g1 = g ` ({0..1} - {a<..<b})"
+      "(path_image g0) \<inter> (path_image g1) = {g a, g b}"
+      "(path_image g0) \<union> (path_image g1) = path_image g"
+      using exists_double_arc_explicit[OF \<open>simple_path g\<close> \<open>pathfinish g = pathstart g\<close>
+          ab01(1) ab01(2) less_imp_le[OF \<open>a < b\<close>] False] by blast
+
+    \<comment> \<open>Step 2: The frontier of the convex hull admits a rectifiable simple loop parametrization\<close>
+    \<comment> \<open>(This corresponds to HOL Light's RECTIFIABLE_LOOP_RELATIVE_FRONTIER_CONVEX)\<close>
+    have frontier_eq_rel: "rel_frontier (convex hull (path_image g)) = frontier (convex hull (path_image g))"
+      using rel_frontier_nonempty_interior[OF interior_ne] by simp
+    obtain d where d_props:
+      "simple_path d" "pathfinish d = pathstart d" "rectifiable_path d"
+      "path_image d = frontier (convex hull (path_image g))"
+    proof -
+      have "convex (convex hull (path_image g))" by (rule convex_convex_hull)
+      moreover have "bounded (convex hull (path_image g))"
+        by (intro bounded_convex_hull compact_imp_bounded compact_simple_path_image \<open>simple_path g\<close>)
+      moreover have "interior (convex hull (path_image g)) \<noteq> {}"
+        by (rule interior_ne)
+      moreover note frontier_eq_rel
+      ultimately show ?thesis using that rectifiable_loop_relative_frontier_convex
+        by (meson rectifiable_loop_frontier_convex)
+    qed
+
+\<comment> \<open>Step 4: Double arc decomposition of the frontier loop d, with inside decomposition\<close>
+    have ga_ne_gb: "g a \<noteq> g b" using False .
+    obtain d0 d1 where d_split:
+      "arc d0" "arc d1"
+      "pathstart d0 = g a" "pathfinish d0 = g b"
+      "pathstart d1 = g b" "pathfinish d1 = g a"
+      "path_image d0 \<inter> path_image d1 = {g a, g b}"
+      "path_image d0 \<union> path_image d1 = path_image d"
+      "inside (path_image d0 \<union> path_image g0) \<inter>
+       inside (path_image d1 \<union> path_image g0) = {}"
+      "inside (path_image d0 \<union> path_image g0) \<union>
+       inside (path_image d1 \<union> path_image g0) \<union>
+       (path_image g0 - {g a, g b}) =
+       interior (convex hull (path_image g))"
+      "(path_image g1 - {g b, g a}) \<inter> path_image d0 = {}"
+    proof -
+      show thesis
+        sorry
+    qed
+
+
+
+    \<comment> \<open>Step 3: g(a) and g(b) are on the path_image of d\<close>
+    have ga_in_d: "g a \<in> path_image d" and gb_in_d: "g b \<in> path_image d"
+      using d_props(4) assms(7,8) by auto
+    \<comment> \<open>Get an arc on the frontier from g(a) to g(b)\<close>
+    obtain front_arc where front_arc_props:
+
+      "arc front_arc" 
+      "pathstart front_arc = g a" "pathfinish front_arc = g b"
+      "path_image front_arc \<subseteq> frontier (convex hull (path_image g))"
+    proof -
+      \<comment> \<open>The frontier is path-connected (it's the rel_frontier of a 2D bounded convex set)\<close>
+      have "path_connected (frontier (convex hull (path_image g)))"
+      proof -
+        have "path_connected (rel_frontier (convex hull (path_image g)))"
+          by (intro path_connected_sphere_gen convex_convex_hull)
+            (auto intro: bounded_convex_hull compact_imp_bounded compact_simple_path_image[OF \<open>simple_path g\<close>]
+              simp: aff_dim_nonempty_interior[OF interior_ne])
+        then show ?thesis using frontier_eq_rel by simp
+      qed
+      then show ?thesis using ga_in_d gb_in_d ga_ne_gb that
+        by (metis path_connected_arcwise subsetD d_props(4))
+    qed
+
+    \<comment> \<open>Step 5: Reparametrize front_arc to domain {a..b} and define h\<close>
+    \<comment> \<open>h agrees with g outside {a<..<b} and follows front_arc on {a..b}\<close>
+    define h where "h \<equiv> \<lambda>t. if t \<in> {a..b} then front_arc ((t - a) / (b - a)) else g t"
+
+    \<comment> \<open>Step 6: Verify all properties of h\<close>
+    show ?thesis
+    proof 
+      \<comment> \<open>h maps {a..b} into the frontier\<close>
+      show "h ` {a..b} \<subseteq> frontier (convex hull (path_image g))"
+        using front_arc_props(4) \<open>a < b\<close> unfolding h_def path_image_def
+        by (auto simp: h_def path_defs)
+
+      \<comment> \<open>h agrees with g outside {a<..<b}\<close>
+      show "\<And>x. x \<notin> {a<..<b} \<Longrightarrow> h x = g x"
+        using front_arc_props by (auto simp: h_def path_defs)
+      \<comment> \<open>convex hull (path_image h) = convex hull (path_image g)\<close>
+      show "convex hull (path_image h) = convex hull (path_image g)"
+        using front_arc_props
+
+apply (auto simp: h_def)
+        sorry
+
+      \<comment> \<open>h is simple\<close>
+      show "simple_path h"
+        using front_arc_props
+
+        sorry
+
+      \<comment> \<open>h starts and ends at pathstart g\<close>
+      show "pathstart h = pathstart g"
+        unfolding h_def pathstart_def sorry
+      show "pathfinish h = pathstart g"
+        unfolding h_def pathfinish_def sorry
+
+      \<comment> \<open>h is Lipschitz with constant L\<close>
+      show "\<And>x y. x \<in> {0..1} \<Longrightarrow> y \<in> {0..1} \<Longrightarrow> dist (h x) (h y) \<le> L * dist x y"
+        sorry
+
+      \<comment> \<open>path_length h < path_length g\<close>
+      \<comment> \<open>Key: g on {a..b} passes through interior (strictly longer than frontier path)\<close>
+      show "path_length h < path_length g"
+        sorry
+    qed
   qed
 qed
 
