@@ -8278,42 +8278,165 @@ lemma step_lemma:
   assumes "simple_path g" "pathfinish g = pathstart g"
     and "\<And>x y. x \<in> {0..1} \<Longrightarrow> y \<in> {0..1} \<Longrightarrow> dist (g x) (g y) \<le> L * dist x y"
     and "a < b"
-    and "a \<in> {0..1}" "b \<in> {0..1}"
+    and ab01: "a \<in> {0..1}" "b \<in> {0..1}"
     and "g a \<in> frontier (convex hull (path_image g))"
     and "g b \<in> frontier (convex hull (path_image g))"
     and "g ` {a<..<b} \<inter> frontier (convex hull (path_image g)) = {}"
-  shows "\<exists>h. simple_path h \<and>
-    pathstart h = pathstart g \<and> pathfinish h = pathstart g \<and>
-    (\<forall>x \<in> {0..1}. \<forall>y \<in> {0..1}. dist (h x) (h y) \<le> L * dist x y) \<and>
-    path_length h < path_length g \<and>
-    convex hull (path_image h) = convex hull (path_image g) \<and>
-    (\<forall>x. x \<notin> {a<..<b} \<longrightarrow> h x = g x) \<and>
-    h ` {a..b} \<subseteq> frontier (convex hull (path_image g))"
-  sorry
+  obtains h where "simple_path h"
+    and "pathstart h = pathstart g" and "pathfinish h = pathstart g"
+    and "\<And>x y. x \<in> {0..1} \<Longrightarrow> y \<in> {0..1} \<Longrightarrow> dist (h x) (h y) \<le> L * dist x y"
+    and "path_length h < path_length g"
+    and "convex hull (path_image h) = convex hull (path_image g)"
+    and "\<And>x. x \<notin> {a<..<b} \<Longrightarrow> h x = g x"
+    and "h ` {a..b} \<subseteq> frontier (convex hull (path_image g))"
+proof (cases "box a b = {}")
+  case True
+  with \<open>a<b\<close> show ?thesis by auto
+next
+  case False
+  have interior_subset: "g ` {a<..<b} \<subseteq> interior (convex hull (path_image g))"
+  proof -
+    have "g ` {a<..<b} \<subseteq> path_image g"
+      using ab01 unfolding path_image_def
+      by (intro image_mono) (auto simp: greaterThanLessThan_subseteq_atLeastAtMost_iff)
+    also have "\<dots> \<subseteq> convex hull (path_image g)"
+      by (rule hull_subset)
+    finally have sub: "g ` {a<..<b} \<subseteq> convex hull (path_image g)" .
+    have closed: "closed (convex hull (path_image g))"
+      using compact_convex_hull[OF compact_simple_path_image[OF \<open>simple_path g\<close>]]
+      by (rule compact_imp_closed)
+    with sub have "g ` {a<..<b} \<subseteq> frontier (convex hull (path_image g)) \<union> interior (convex hull (path_image g))"
+      unfolding frontier_def by auto
+    with assms(9) show ?thesis by auto
+  qed
+  have interior_ne: "interior (convex hull (path_image g)) \<noteq> {}"
+    using interior_subset \<open>a<b\<close> by fastforce
+
+  show ?thesis
+  proof (cases "g a = g b")
+    case True
+    then show ?thesis
+    proof -
+      have ab_eq: "a = 0" "b = 1"
+      proof -
+        from True have "g a = g b" .
+        with \<open>simple_path g\<close> ab01 have "a = b \<or> a = 0 \<and> b = 1 \<or> a = 1 \<and> b = 0"
+          unfolding simple_path_def loop_free_def by auto
+        with \<open>a < b\<close> show "a = 0" "b = 1" by auto
+      qed
+      have g01: "g 0 = g 1"
+        using assms(2) by (simp add: pathfinish_def pathstart_def)
+      have pi_eq: "path_image g = {g 0} \<union> g ` {0<..<1}"
+        using g01 by (fastforce simp: path_image_def image_iff)
+      have int_sub: "g ` {0<..<1} \<subseteq> interior (convex hull (path_image g))"
+        using interior_subset ab_eq by simp
+      \<comment> \<open>Every extreme point of the convex hull lies in path_image g but not in the interior\<close>
+      have ext_sub: "{x. x extreme_point_of (convex hull (path_image g))} \<subseteq> {g 0}"
+      proof (rule subsetI, clarsimp)
+        fix x assume ext: "x extreme_point_of convex hull (path_image g)"
+        then have "x \<in> path_image g"
+          using extreme_point_of_convex_hull by blast
+        moreover have "x \<notin> interior (convex hull (path_image g))"
+          using extreme_point_not_in_interior[OF ext] .
+        ultimately show "x = g 0"
+          using int_sub pi_eq by auto
+      qed
+      \<comment> \<open>By Krein-Milman, the convex hull collapses to a single point\<close>
+      have compact_hull: "compact (convex hull (path_image g))"
+        by (rule compact_convex_hull[OF compact_simple_path_image[OF \<open>simple_path g\<close>]])
+      have "convex hull (path_image g) = convex hull {x. x extreme_point_of (convex hull (path_image g))}"
+        using Krein_Milman_Minkowski[OF compact_hull convex_convex_hull] by simp
+      also have "\<dots> \<subseteq> convex hull {g 0}"
+        using ext_sub by (intro hull_mono)
+      also have "\<dots> = {g 0}" by (simp add: convex_hull_singleton)
+      finally have "convex hull (path_image g) \<subseteq> {g 0}" .
+      then have "interior (convex hull (path_image g)) \<subseteq> interior {g 0}"
+        by (rule interior_mono)
+      then have "interior (convex hull (path_image g)) = {}"
+        by (simp add: interior_singleton)
+      with interior_ne show ?thesis by contradiction
+    qed
+  next
+    case False
+    have hull_eq: "convex hull (g ` ({0..1} - {a<..<b})) = convex hull (path_image g)"
+    proof
+      show "convex hull (g ` ({0..1} - {a<..<b})) \<subseteq> convex hull (path_image g)"
+        by (intro hull_mono image_mono) (auto simp: path_image_def)
+          \<comment> \<open>For \<supseteq>, use extreme points: they lie in path_image g but not in interior\<close>
+      have compact_hull: "compact (convex hull (path_image g))"
+        by (rule compact_convex_hull[OF compact_simple_path_image[OF \<open>simple_path g\<close>]])
+      have ext_in_rest: "{x. x extreme_point_of (convex hull (path_image g))} \<subseteq> g ` ({0..1} - {a<..<b})"
+      proof (rule subsetI, clarsimp)
+        fix x assume ext: "x extreme_point_of convex hull (path_image g)"
+        then have "x \<in> path_image g"
+          using extreme_point_of_convex_hull by blast
+        moreover have "x \<notin> interior (convex hull (path_image g))"
+          using extreme_point_not_in_interior[OF ext] .
+        moreover have "g ` {a<..<b} \<subseteq> interior (convex hull (path_image g))"
+          using interior_subset .
+        ultimately have "x \<in> path_image g" "x \<notin> g ` {a<..<b}"
+          by blast+
+        then show "x \<in> g ` ({0..1} - {a<..<b})"
+          unfolding path_image_def by blast
+      qed
+      show "convex hull (path_image g) \<subseteq> convex hull (g ` ({0..1} - {a<..<b}))"
+      proof -
+        have "convex hull (path_image g) = convex hull {x. x extreme_point_of (convex hull (path_image g))}"
+          using Krein_Milman_Minkowski[OF compact_hull convex_convex_hull] by simp
+        also have "\<dots> \<subseteq> convex hull (g ` ({0..1} - {a<..<b}))"
+          using ext_in_rest by (intro hull_mono)
+        finally show ?thesis .
+      qed
+    qed
+    have hull_seg_eq: "convex hull (closed_segment (g a) (g b) \<union> g ` ({0..1} - {a<..<b})) = convex hull (path_image g)"
+    proof
+      have "g a \<in> g ` ({0..1} - {a<..<b})" "g b \<in> g ` ({0..1} - {a<..<b})"
+        using ab01 \<open>a < b\<close> by auto
+      then have seg_sub: "closed_segment (g a) (g b) \<subseteq> convex hull (g ` ({0..1} - {a<..<b}))"
+        by (meson closed_segment_subset convex_convex_hull hull_inc)
+      show "convex hull (closed_segment (g a) (g b) \<union> g ` ({0..1} - {a<..<b})) \<subseteq> convex hull (path_image g)"
+        by (metis hull_eq convex_convex_hull hull_subset le_supI seg_sub subset_hull)
+      show "convex hull (path_image g) \<subseteq> convex hull (closed_segment (g a) (g b) \<union> g ` ({0..1} - {a<..<b}))"
+        by (metis Un_commute Un_upper1 hull_eq hull_mono)
+    qed
+    show ?thesis sorry
+  qed
+qed
+
+
+
+
+
 
 theorem isoperimetric_convexification:
   fixes g :: "real \<Rightarrow> complex"
   assumes "rectifiable_path g" "simple_path g"
     "pathfinish g = pathstart g"
-  shows "\<exists>h. rectifiable_path h \<and> simple_path h \<and>
-    pathfinish h = pathstart h \<and>
-    path_length h \<le> path_length g \<and>
-    convex hull (path_image h) = convex hull (path_image g) \<and>
-    path_image h = frontier (convex hull (path_image g))"
-  sorry
+  obtains h where "rectifiable_path h" and "simple_path h"
+    and "pathfinish h = pathstart h"
+    and "path_length h \<le> path_length g"
+    and "convex hull (path_image h) = convex hull (path_image g)"
+    and "path_image h = frontier (convex hull (path_image g))"
+proof -
+  show ?thesis
+    sorry
+qed
 
 theorem isoperimetric_convexification_strict:
   fixes g :: "real \<Rightarrow> complex"
   assumes "rectifiable_path g" "simple_path g"
     "pathfinish g = pathstart g"
     "\<not> convex (inside (path_image g))"
-  shows "\<exists>h. rectifiable_path h \<and> simple_path h \<and>
-    pathfinish h = pathstart h \<and>
-    path_length h \<le> path_length g \<and>
-    convex hull (path_image h) = convex hull (path_image g) \<and>
-    path_image h = frontier (convex hull (path_image g)) \<and>
-    measure lebesgue (inside (path_image g)) < measure lebesgue (inside (path_image h))"
-  sorry
+  obtains h where "rectifiable_path h" and "simple_path h"
+    and "pathfinish h = pathstart h"
+    and "path_length h \<le> path_length g"
+    and "convex hull (path_image h) = convex hull (path_image g)"
+    and "path_image h = frontier (convex hull (path_image g))"
+    and "measure lebesgue (inside (path_image g)) < measure lebesgue (inside (path_image h))"
+proof -
+  show ?thesis
+    sorry
+qed
 
 section \<open>Part 5: The isoperimetric theorem\<close>
 
@@ -8339,7 +8462,7 @@ proof -
       "convex hull (path_image h) = convex hull (path_image g)"
       "path_image h = frontier (convex hull (path_image g))"
       "measure lebesgue (inside (path_image g)) < measure lebesgue (inside (path_image h))"
-      using isoperimetric_convexification_strict[OF assms(1-3) False] by blast
+      by (rule isoperimetric_convexification_strict[OF assms(1-3) False])
     have bounded_hull: "bounded (convex hull (path_image g))"
       by (intro bounded_convex_hull compact_imp_bounded compact_simple_path_image assms(2))
     have eq_int: "inside (path_image h) = interior (convex hull (path_image g))"
@@ -8367,7 +8490,7 @@ proof -
       "convex hull (path_image h) = convex hull (path_image g)"
       "path_image h = frontier (convex hull (path_image g))"
       "measure lebesgue (inside (path_image g)) < measure lebesgue (inside (path_image h))"
-      using isoperimetric_convexification_strict[OF assms(1-3) False] by blast
+      by (rule isoperimetric_convexification_strict[OF assms(1-3) False])
     have bounded_hull: "bounded (convex hull (path_image g))"
       by (intro bounded_convex_hull compact_imp_bounded compact_simple_path_image assms(2))
     have eq_int: "inside (path_image h) = interior (convex hull (path_image g))"
