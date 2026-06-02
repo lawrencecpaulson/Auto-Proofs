@@ -1,6 +1,6 @@
 theory Isoperimetric
   imports Arc_Length_Reparametrization "Fourier.Square_Integrable" "Green.Integrals" "../Euclidean_Space_Transfer"
-    "HOL-ex.Sketch_and_Explore" 
+    "HOL-ex.Sketch_and_Explore" Isar_Explore
 begin
 
 hide_const (open) Polynomial.content
@@ -3192,6 +3192,685 @@ proof (cases "d=0")
   with False convex_triple_relative_frontier_between show ?thesis
     using assms by blast
 qed auto
+
+\<comment> \<open>HOL Light: LIPSCHITZ_CONVEX_SPHERICAL_PROJECTION_EXPLICIT\<close>
+lemma lipschitz_convex_spherical_projection_explicit:
+  fixes r :: real and S :: "'a::euclidean_space set"
+  assumes "convex S" "0 < r" "0 \<in> S"
+    and ball_sub: "ball 0 r \<inter> affine hull S \<subseteq> rel_interior S"
+    and x_rf: "x \<in> rel_frontier S" and y_rf: "y \<in> rel_frontier S"
+  shows "dist (x /\<^sub>R norm x) (y /\<^sub>R norm y) \<le> inverse r * dist x y"
+proof -
+  have x_ne: "x \<noteq> 0" and y_ne: "y \<noteq> 0"
+  proof -
+    have "0 \<in> ball 0 r" using \<open>0 < r\<close> by simp
+    moreover have "0 \<in> affine hull S" using \<open>0 \<in> S\<close> by (rule hull_inc)
+    ultimately have "0 \<in> rel_interior S" using ball_sub by auto
+    moreover have "x \<notin> rel_interior S" "y \<notin> rel_interior S"
+      using x_rf y_rf by (auto simp: rel_frontier_def)
+    ultimately show "x \<noteq> 0" "y \<noteq> 0" by auto
+  qed
+  have x_aff: "x \<in> affine hull S" and y_aff: "y \<in> affine hull S"
+    using x_rf y_rf rel_frontier_affine_hull by auto
+  have norm_x: "norm x \<ge> r" and norm_y: "norm y \<ge> r"
+  proof -
+    have x_not_ri: "x \<notin> rel_interior S" and y_not_ri: "y \<notin> rel_interior S"
+      using x_rf y_rf by (auto simp: rel_frontier_def)
+    have "\<not> (norm x < r)"
+    proof
+      assume "norm x < r"
+      then have "x \<in> ball 0 r" by (simp add: mem_ball_0)
+      then have "x \<in> ball 0 r \<inter> affine hull S" using x_aff by auto
+      then have "x \<in> rel_interior S" using ball_sub by auto
+      with x_not_ri show False by contradiction
+    qed
+    then show "norm x \<ge> r" by linarith
+    have "\<not> (norm y < r)"
+    proof
+      assume "norm y < r"
+      then have "y \<in> ball 0 r" by (simp add: mem_ball_0)
+      then have "y \<in> ball 0 r \<inter> affine hull S" using y_aff by auto
+      then have "y \<in> rel_interior S" using ball_sub by auto
+      with y_not_ri show False by contradiction
+    qed
+    then show "norm y \<ge> r" by linarith
+  qed
+  \<comment> \<open>Key inequality: min(\<Parallel>x\<Parallel>, \<Parallel>y\<Parallel>) * dist(x/\<Parallel>x\<Parallel>, y/\<Parallel>y\<Parallel>) \<le> dist(x, y)\<close>
+  have descale: "min (norm x) (norm y) * dist (x /\<^sub>R norm x) (y /\<^sub>R norm y) \<le> dist x y"
+  proof -
+    have nx: "norm x > 0" and ny: "norm y > 0"
+      using x_ne y_ne by auto
+    let ?u = "x /\<^sub>R norm x" and ?v = "y /\<^sub>R norm y"
+    have nu: "norm ?u = 1" and nv: "norm ?v = 1"
+      using nx ny by simp_all
+    \<comment> \<open>Express dist(x,y)² and (min * dist(u,v))² in terms of inner products\<close>
+    have expand_xy: "(dist x y)\<^sup>2 = (norm x)\<^sup>2 + (norm y)\<^sup>2 - 2 * (norm x) * (norm y) * (?u \<bullet> ?v)"
+    proof -
+      have "x = norm x *\<^sub>R ?u" using nx by simp
+      moreover have "y = norm y *\<^sub>R ?v" using ny by simp
+      ultimately have "(dist x y)\<^sup>2 = (norm (norm x *\<^sub>R ?u - norm y *\<^sub>R ?v))\<^sup>2"
+        by (simp add: dist_norm)
+      also have "\<dots> = (norm x *\<^sub>R ?u - norm y *\<^sub>R ?v) \<bullet> (norm x *\<^sub>R ?u - norm y *\<^sub>R ?v)"
+        by (rule power2_norm_eq_inner)
+      also have "\<dots> = (norm x)\<^sup>2 * (?u \<bullet> ?u) - 2 * norm x * norm y * (?u \<bullet> ?v) + (norm y)\<^sup>2 * (?v \<bullet> ?v)"
+        by (simp add: inner_diff_left inner_diff_right inner_scaleR_left inner_scaleR_right
+                      algebra_simps power2_eq_square inner_commute)
+      also have "\<dots> = (norm x)\<^sup>2 + (norm y)\<^sup>2 - 2 * norm x * norm y * (?u \<bullet> ?v)"
+        using nu nv by (simp add: power2_norm_eq_inner[symmetric])
+      finally show ?thesis .
+    qed
+    have expand_uv: "(dist ?u ?v)\<^sup>2 = 2 - 2 * (?u \<bullet> ?v)"
+    proof -
+      have "(dist ?u ?v)\<^sup>2 = (norm (?u - ?v))\<^sup>2" by (simp add: dist_norm)
+      also have "\<dots> = (?u - ?v) \<bullet> (?u - ?v)" by (rule power2_norm_eq_inner)
+      also have "\<dots> = ?u \<bullet> ?u - 2 * (?u \<bullet> ?v) + ?v \<bullet> ?v"
+        by (simp add: inner_diff_left inner_diff_right algebra_simps inner_commute)
+      also have "\<dots> = 2 - 2 * (?u \<bullet> ?v)"
+        using nu nv by (simp add: power2_norm_eq_inner[symmetric])
+      finally show ?thesis .
+    qed
+    \<comment> \<open>Show (min * dist(u,v))² \<le> dist(x,y)²\<close>
+    have sq_ineq: "(min (norm x) (norm y) * dist ?u ?v)\<^sup>2 \<le> (dist x y)\<^sup>2"
+    proof -
+      let ?m = "min (norm x) (norm y)"
+      let ?M = "max (norm x) (norm y)"
+      have m_pos: "?m > 0" using nx ny by simp
+      have M_pos: "?M > 0" using nx ny by linarith
+      have m_le_M: "?m \<le> ?M" by simp
+      have uv_bound: "?u \<bullet> ?v \<le> 1"
+        using norm_cauchy_schwarz[of ?u ?v] nu nv by simp
+      have "(?m * dist ?u ?v)\<^sup>2 = ?m\<^sup>2 * (dist ?u ?v)\<^sup>2"
+        by (simp add: power_mult_distrib)
+      also have "\<dots> = ?m\<^sup>2 * (2 - 2 * (?u \<bullet> ?v))"
+        using expand_uv by simp
+      also have "\<dots> \<le> ?m * ?M * (2 - 2 * (?u \<bullet> ?v))"
+      proof -
+        have "?m\<^sup>2 \<le> ?m * ?M"
+          using m_pos m_le_M by (simp add: power2_eq_square mult_left_mono)
+        moreover have "2 - 2 * (?u \<bullet> ?v) \<ge> 0" using uv_bound by linarith
+        ultimately show ?thesis by (intro mult_right_mono) auto
+      qed
+      also have "\<dots> = (norm x) * (norm y) * (2 - 2 * (?u \<bullet> ?v))"
+        by (auto simp: min_def max_def field_simps)
+      also have "\<dots> = 2 * norm x * norm y - 2 * norm x * norm y * (?u \<bullet> ?v)"
+        by algebra
+      also have "\<dots> \<le> (norm x)\<^sup>2 + (norm y)\<^sup>2 - 2 * norm x * norm y * (?u \<bullet> ?v)"
+      proof -
+        have "2 * norm x * norm y \<le> (norm x)\<^sup>2 + (norm y)\<^sup>2"
+          by (metis sum_squares_bound)
+        then show ?thesis by linarith
+      qed
+      also have "\<dots> = (dist x y)\<^sup>2" using expand_xy by simp
+      finally show ?thesis .
+    qed
+    \<comment> \<open>Conclude from squared inequality\<close>
+    have "min (norm x) (norm y) * dist ?u ?v \<ge> 0"
+      using nx ny by (simp add: min_def zero_le_dist)
+    then show ?thesis
+      using sq_ineq
+      by (meson pos2 power_mono_iff zero_le_dist)
+  qed
+  \<comment> \<open>Combine descale with norm bounds\<close>
+  have "min (norm x) (norm y) \<ge> r"
+    using norm_x norm_y by linarith
+  moreover have "dist (x /\<^sub>R norm x) (y /\<^sub>R norm y) \<ge> 0"
+    by (simp add: zero_le_dist)
+  ultimately have "r * dist (x /\<^sub>R norm x) (y /\<^sub>R norm y) \<le> 
+                   min (norm x) (norm y) * dist (x /\<^sub>R norm x) (y /\<^sub>R norm y)"
+    by (simp add: mult_right_mono)
+  also have "\<dots> \<le> dist x y" by (rule descale)
+  finally have "r * dist (x /\<^sub>R norm x) (y /\<^sub>R norm y) \<le> dist x y" .
+  then show ?thesis
+    using \<open>0 < r\<close> by (simp add: field_simps)
+qed
+
+
+\<comment> \<open>HOL Light: LIPSCHITZ_CONVEX_SPHERICAL_PROJECTION\<close>
+lemma lipschitz_convex_spherical_projection:
+  fixes S :: "'a::euclidean_space set"
+  assumes "convex S" "0 \<in> rel_interior S"
+  shows "\<exists>B. \<forall>x y. x \<in> rel_frontier S \<longrightarrow> y \<in> rel_frontier S \<longrightarrow>
+              dist (x /\<^sub>R norm x) (y /\<^sub>R norm y) \<le> B * dist x y"
+proof -
+  from assms(2) obtain r where "r > 0" and
+    sub: "ball 0 r \<inter> affine hull S \<subseteq> S"
+    using mem_rel_interior_ball by (auto simp: mem_rel_interior_ball)
+  have "0 \<in> S" using assms(2) rel_interior_subset by auto
+  have ball_ri: "ball 0 r \<inter> affine hull S \<subseteq> rel_interior S"
+  proof -
+    have "openin (top_of_set (affine hull S)) (affine hull S \<inter> ball 0 r)"
+      by (intro openin_open_Int open_ball)
+    then have "openin (top_of_set (affine hull S)) (ball 0 r \<inter> affine hull S)"
+      by (simp add: Int_commute)
+    then show ?thesis
+      using sub openin_subset_relative_interior by blast
+  qed
+  show ?thesis
+  proof (intro exI allI impI)
+    fix x y assume "x \<in> rel_frontier S" "y \<in> rel_frontier S"
+    show "dist (x /\<^sub>R norm x) (y /\<^sub>R norm y) \<le> inverse r * dist x y"
+      by (rule lipschitz_convex_spherical_projection_explicit
+            [OF \<open>convex S\<close> \<open>r > 0\<close> \<open>0 \<in> S\<close> ball_ri
+             \<open>x \<in> rel_frontier S\<close> \<open>y \<in> rel_frontier S\<close>])
+  qed
+qed
+
+(*lemma0*)
+lemma norm_le_norm_add_orthogonal:
+  assumes "orthogonal x y"
+  shows "norm x \<le> norm (x + y)"
+proof -
+  have "(norm x)\<^sup>2 \<le> (norm x)\<^sup>2 + (norm y)\<^sup>2"
+    by simp
+  also have "\<dots> = (norm (x + y))\<^sup>2"
+    using norm_add_Pythagorean[OF assms] by simp
+  finally show ?thesis
+    by (rule power2_le_imp_le) simp
+qed
+
+(*lemma1*)
+lemma dist_scaleR_ge_min:
+  fixes x y :: "'a::real_inner"
+  assumes "0 \<le> a" "0 \<le> b" "x \<bullet> y \<le> 0"
+  shows "min a b * dist x y \<le> dist (a *\<^sub>R x) (b *\<^sub>R y)"
+proof -
+  have minab: "0 \<le> min a b" using assms(1,2) by simp
+  have sq: "(min a b)\<^sup>2 * ((x - y) \<bullet> (x - y)) \<le> (a *\<^sub>R x - b *\<^sub>R y) \<bullet> (a *\<^sub>R x - b *\<^sub>R y)"
+  proof -
+    have expand_rhs: "(a *\<^sub>R x - b *\<^sub>R y) \<bullet> (a *\<^sub>R x - b *\<^sub>R y) =
+        a\<^sup>2 * (x \<bullet> x) + b\<^sup>2 * (y \<bullet> y) - 2 * a * b * (x \<bullet> y)"
+      by (simp add: inner_diff_left inner_diff_right
+                    inner_scaleR_left inner_scaleR_right
+                    inner_commute[of y x] power2_eq_square algebra_simps)
+    have expand_lhs: "(min a b)\<^sup>2 * ((x - y) \<bullet> (x - y)) =
+        (min a b)\<^sup>2 * (x \<bullet> x) + (min a b)\<^sup>2 * (y \<bullet> y) - 2 * (min a b)\<^sup>2 * (x \<bullet> y)"
+      by (simp add: inner_diff_left inner_diff_right
+                    inner_commute[of y x] power2_eq_square algebra_simps)
+    have 1: "(min a b)\<^sup>2 * (x \<bullet> x) \<le> a\<^sup>2 * (x \<bullet> x)"
+      by (intro mult_right_mono power_mono minab min.cobounded1 assms inner_ge_zero)
+    have 2: "(min a b)\<^sup>2 * (y \<bullet> y) \<le> b\<^sup>2 * (y \<bullet> y)"
+      by (intro mult_right_mono power_mono minab min.cobounded2 assms inner_ge_zero)
+    have ab_ge: "(min a b)\<^sup>2 \<le> a * b"
+      using assms(1,2) by (auto simp: power2_eq_square min_def intro: mult_mono)
+    have nxy: "0 \<le> - (x \<bullet> y)" using assms(3) by simp
+    have 3: "(min a b)\<^sup>2 * (- (x \<bullet> y)) \<le> a * b * (- (x \<bullet> y))"
+      by (intro mult_right_mono ab_ge nxy)
+    show ?thesis
+      unfolding expand_lhs expand_rhs
+      using 1 2 3 by (simp add: algebra_simps)
+  qed
+  have "(min a b * dist x y)\<^sup>2 = (min a b)\<^sup>2 * (dist x y)\<^sup>2"
+    by (simp add: power_mult_distrib)
+  also have "\<dots> = (min a b)\<^sup>2 * ((x - y) \<bullet> (x - y))"
+    by (simp add: dist_norm power2_norm_eq_inner)
+  also have "\<dots> \<le> (a *\<^sub>R x - b *\<^sub>R y) \<bullet> (a *\<^sub>R x - b *\<^sub>R y)"
+    by (rule sq)
+  also have "\<dots> = (dist (a *\<^sub>R x) (b *\<^sub>R y))\<^sup>2"
+    by (simp add: dist_norm power2_norm_eq_inner)
+  finally show ?thesis
+    by (rule power2_le_imp_le) (simp add: mult_nonneg_nonneg minab zero_le_dist)
+qed
+
+(*lemma2*)
+lemma dist_scaleR_ge_min_between:
+  fixes x y w :: "'a::real_inner"
+  assumes "0 \<le> a" "0 \<le> b" "between (x, y) w" "orthogonal w (x - y)"
+  shows "min a b * dist x y \<le> dist (a *\<^sub>R x) (b *\<^sub>R y)"
+proof -
+  from assms(3) obtain u where u: "0 \<le> u" "u \<le> 1" "w = (1 - u) *\<^sub>R x + u *\<^sub>R y"
+    by (auto simp: between_mem_segment closed_segment_def)
+  have xw: "x - w = u *\<^sub>R (x - y)"
+    by (simp add: u(3) algebra_simps)
+  have yw: "y - w = (u - 1) *\<^sub>R (x - y)"
+    by (simp add: u(3) algebra_simps)
+  have dot_le: "(x - w) \<bullet> (y - w) \<le> 0"
+  proof -
+    have "(x - w) \<bullet> (y - w) = u * (u - 1) * ((x - y) \<bullet> (x - y))"
+      by (simp add: xw yw inner_scaleR_left inner_scaleR_right)
+    also have "\<dots> \<le> 0"
+    proof -
+      have "u * (u - 1) \<le> 0"
+        using u by (intro mult_nonneg_nonpos) linarith+
+      then show ?thesis
+        by (rule mult_nonpos_nonneg[OF _ inner_ge_zero])
+    qed
+    finally show ?thesis .
+  qed
+  have dist_eq: "dist (x - w) (y - w) = dist x y"
+    by (simp add: dist_norm)
+  have step1: "min a b * dist x y \<le> dist (a *\<^sub>R (x - w)) (b *\<^sub>R (y - w))"
+    using dist_scaleR_ge_min[OF assms(1,2) dot_le] dist_eq by simp
+  have decomp: "a *\<^sub>R x - b *\<^sub>R y = (a *\<^sub>R (x - w) - b *\<^sub>R (y - w)) + (a - b) *\<^sub>R w"
+    by (simp add: algebra_simps)
+  have orth: "orthogonal (a *\<^sub>R (x - w) - b *\<^sub>R (y - w)) ((a - b) *\<^sub>R w)"
+  proof -
+    have "orthogonal w (x - w)"
+      unfolding xw using assms(4) by (simp add: orthogonal_def inner_scaleR_right)
+    then have "orthogonal (x - w) w"
+      by (simp add: orthogonal_commute)
+    moreover have "orthogonal w (y - w)"
+      unfolding yw using assms(4) by (simp add: orthogonal_def inner_scaleR_right)
+    then have "orthogonal (y - w) w"
+      by (simp add: orthogonal_commute)
+    ultimately have "orthogonal (a *\<^sub>R (x - w) - b *\<^sub>R (y - w)) w"
+      using orthogonal_clauses(7)[of "x - w" w a]
+            orthogonal_clauses(7)[of "y - w" w b]
+            orthogonal_clauses(10)[of "a *\<^sub>R (x - w)" w "b *\<^sub>R (y - w)"]
+      by blast
+    then show ?thesis
+      using orthogonal_clauses(2)[of _ w "a - b"] by blast
+  qed
+  have "dist (a *\<^sub>R (x - w)) (b *\<^sub>R (y - w)) \<le> dist (a *\<^sub>R x) (b *\<^sub>R y)"
+  proof -
+    have "norm (a *\<^sub>R (x - w) - b *\<^sub>R (y - w)) \<le>
+          norm ((a *\<^sub>R (x - w) - b *\<^sub>R (y - w)) + (a - b) *\<^sub>R w)"
+      by (rule norm_le_norm_add_orthogonal[OF orth])
+    also have "\<dots> = norm (a *\<^sub>R x - b *\<^sub>R y)"
+      by (simp add: decomp)
+    finally show ?thesis
+      by (simp add: dist_norm)
+  qed
+  with step1 show ?thesis by linarith
+qed
+
+
+
+(*mainlemma_2d*)
+lemma collinear_orthogonal_dist_product:
+  fixes z x x' w y :: "'a::euclidean_space"
+  assumes "collinear {z, x, x'}" "collinear {w, x, y}"
+    "orthogonal (z - w) (x - y)" "orthogonal (y - x') (z - x')"
+    "x' \<noteq> z" "y \<noteq> w"
+  shows "dist z w * dist x y = dist y x' * dist z x"
+proof -
+  \<comment> \<open>Translate so that x is at the origin. All conditions are translation-invariant.\<close>
+  define u v where "u = x' - x" and "v = y - x"
+  have col1: "collinear {0, z - x, u}" 
+    using assms(1) collinear_3[of z x x'] by (simp add: u_def)
+  have col2: "collinear {0, w - x, v}" 
+    using assms(2) collinear_3[of w x y] by (simp add: v_def)
+  have orth1: "(z - x) \<bullet> v - (w - x) \<bullet> v = 0"
+    using assms(3) by (simp add: orthogonal_def v_def inner_diff_left algebra_simps)
+  have orth2: "v \<bullet> (z - x) - v \<bullet> u - u \<bullet> (z - x) + u \<bullet> u = 0"
+    using assms(4) by (simp add: orthogonal_def u_def v_def inner_diff_left inner_diff_right algebra_simps)
+  show "dist z w * dist x y = dist y x' * dist z x"
+  proof (cases "u = 0")
+    case True
+    \<comment> \<open>When x' = x, the orthogonality conditions force w = x (or y = x), 
+        and the conclusion holds trivially.\<close>
+    then have xeq: "x' = x" by (simp add: u_def)
+    show ?thesis
+    proof (cases "v = 0")
+      case True
+      \<comment> \<open>If also y = x, both sides are 0.\<close>
+      then have "y = x" by (simp add: v_def)
+      with xeq show ?thesis by simp
+    next
+      case False
+      \<comment> \<open>If y \<noteq> x, orthogonality forces w = x.\<close>
+      from orth2 \<open>u = 0\<close> have "v \<bullet> (z - x) = 0" by simp
+      from orth1 have "(z - x) \<bullet> v = (w - x) \<bullet> v" by simp
+      then have "(w - x) \<bullet> v = 0" using \<open>v \<bullet> (z - x) = 0\<close> by (simp add: inner_commute)
+      \<comment> \<open>From collinearity, w - x is proportional to v (or zero).\<close>
+      from col2 have "w - x = 0 \<or> v = 0 \<or> (\<exists>c. v = c *\<^sub>R (w - x))"
+        by (simp add: collinear_lemma)
+      then have "w = x"
+      proof (elim disjE exE)
+        assume "w - x = 0" then show "w = x" by simp
+      next
+        assume "v = 0" with False show "w = x" by contradiction
+      next
+        fix c assume vc: "v = c *\<^sub>R (w - x)"
+        from \<open>(w - x) \<bullet> v = 0\<close> vc have "(w - x) \<bullet> (c *\<^sub>R (w - x)) = 0" by simp
+        then have "c * ((w - x) \<bullet> (w - x)) = 0"
+          by (simp add: inner_scaleR_right)
+        then have "c = 0 \<or> w - x = 0"
+          using inner_eq_zero_iff[of "w - x"] by auto
+        with vc False show "w = x" by auto
+      qed
+      \<comment> \<open>Now dist z w = dist z x and dist y x' = dist y x, so both sides are equal.\<close>
+      from \<open>w = x\<close> xeq show ?thesis
+        by (metis dist_commute mult.commute)
+    qed
+  next
+    case False
+    \<comment> \<open>Main case: u \<noteq> 0. Use collinearity and orthogonality for algebraic computation.\<close>
+    then have u_ne: "u \<noteq> 0" .
+    \<comment> \<open>From collinearity, z - x is a scalar multiple of u, and w - x of v.\<close>
+    have col1': "collinear {0, u, z - x}" 
+      using col1 by (simp add: insert_commute)
+    then have "u = 0 \<or> (z - x) = 0 \<or> (\<exists>c. z - x = c *\<^sub>R u)"
+      by (simp add: collinear_lemma)
+    then obtain a where za: "z - x = a *\<^sub>R u"
+      using u_ne by (auto intro: exI[of _ 0])
+    have v_ne: "v \<noteq> 0" 
+    proof
+      assume v0: "v = 0"
+      \<comment> \<open>If y = x, orthogonality (y-x')\<cdot>(z-x') = 0 forces z = x', contradicting x' \<noteq> z.\<close>
+      from orth2 v0 have "u \<bullet> (z - x) = u \<bullet> u" by simp
+      with za have "a * (u \<bullet> u) = u \<bullet> u" by (simp add: inner_scaleR_right)
+      then have "(a - 1) * (u \<bullet> u) = 0" by (simp add: algebra_simps)
+      then have "a = 1" using u_ne inner_eq_zero_iff[of u] by auto
+      with za have "z - x = u" by simp
+      then have "z = x'" by (simp add: u_def)
+      with assms(5) show False by simp
+    qed
+    have col2': "collinear {0, v, w - x}"
+      using col2 by (simp add: insert_commute)
+    from col2' have "v = 0 \<or> (w - x) = 0 \<or> (\<exists>c. w - x = c *\<^sub>R v)"
+      by (simp add: collinear_lemma)
+    then obtain b where wb: "w - x = b *\<^sub>R v"
+      using v_ne by (auto intro: exI[of _ 0])
+    \<comment> \<open>Orthogonality condition 1: (z-x)\<cdot>v = (w-x)\<cdot>v, i.e., a*(u\<cdot>v) = b*(v\<cdot>v)\<close>
+    from orth1 za wb have eq1: "a * (u \<bullet> v) = b * (v \<bullet> v)"
+      by (simp add: inner_scaleR_left)
+    \<comment> \<open>Orthogonality condition 2: (v-u)\<cdot>((z-x)-u) = 0, i.e., (a-1)*(v\<cdot>u) = (a-1)*(u\<cdot>u)\<close>
+    from orth2 za have eq2: "(a - 1) * (v \<bullet> u) = (a - 1) * (u \<bullet> u)"
+      by (simp add: inner_scaleR_right inner_scaleR_left algebra_simps)
+    \<comment> \<open>So either a = 1 or v\<cdot>u = u\<cdot>u\<close>
+    \<comment> \<open>Reduce to showing squares are equal (both sides non-negative).\<close>
+    have lhs_nn: "dist z w * dist x y \<ge> 0" by (simp add: zero_le_dist)
+    have rhs_nn: "dist y x' * dist z x \<ge> 0" by (simp add: zero_le_dist)
+    have "(dist z w * dist x y)\<^sup>2 = (dist y x' * dist z x)\<^sup>2"
+    proof -
+      \<comment> \<open>Express distances in terms of norms.\<close>
+      have dzw: "dist z w = norm (a *\<^sub>R u - b *\<^sub>R v)"
+        using za wb by (simp add: dist_norm algebra_simps)
+      have dxy: "dist x y = norm v"
+        by (simp add: dist_norm v_def norm_minus_commute)
+      have dyx': "dist y x' = norm (v - u)"
+        by (simp add: dist_norm u_def v_def algebra_simps norm_minus_commute)
+      have dzx: "dist z x = norm (a *\<^sub>R u)"
+        using za by (simp add: dist_norm norm_minus_commute)
+      \<comment> \<open>Abbreviate inner products for readability.\<close>
+      define uu where "uu = u \<bullet> u"
+      define uv where "uv = u \<bullet> v"
+      define vv where "vv = v \<bullet> v"
+      have vv_pos: "vv > 0" using v_ne by (simp add: vv_def inner_gt_zero_iff)
+      have uu_pos: "uu > 0" using u_ne by (simp add: uu_def inner_gt_zero_iff)
+      \<comment> \<open>Restate eq1, eq2 in terms of abbreviations.\<close>
+      have E1: "a * uv = b * vv" using eq1 by (simp add: uv_def vv_def inner_commute)
+      have E2': "(a - 1) * uv = (a - 1) * uu" 
+        using eq2 by (simp add: uv_def uu_def inner_commute)
+      \<comment> \<open>Compute LHS² = \<Parallel>a*u - b*v\<Parallel>² * \<Parallel>v\<Parallel>²\<close>
+      have lhs_sq: "(dist z w * dist x y)\<^sup>2 = 
+            (a\<^sup>2 * uu - 2 * a * b * uv + b\<^sup>2 * vv) * vv"
+      proof -
+        have norm_sub: "(norm (a *\<^sub>R u - b *\<^sub>R v))\<^sup>2 = 
+              a\<^sup>2 * uu - 2 * a * b * uv + b\<^sup>2 * vv"
+        proof -
+          have "(norm (a *\<^sub>R u - b *\<^sub>R v))\<^sup>2 = (a *\<^sub>R u - b *\<^sub>R v) \<bullet> (a *\<^sub>R u - b *\<^sub>R v)"
+            by (rule power2_norm_eq_inner)
+          also have "\<dots> = a * a * (u \<bullet> u) - 2 * (a * b) * (u \<bullet> v) + b * b * (v \<bullet> v)"
+            by (simp add: inner_diff_left inner_diff_right 
+                  inner_scaleR_left inner_scaleR_right inner_commute algebra_simps)
+          finally show ?thesis
+            by (simp add: uu_def uv_def vv_def power2_eq_square)
+        qed
+        have norm_v: "(norm v)\<^sup>2 = vv"
+          by (simp del: dot_square_norm add: power2_norm_eq_inner vv_def)
+        have "(dist z w * dist x y)\<^sup>2 = (norm (a *\<^sub>R u - b *\<^sub>R v))\<^sup>2 * (norm v)\<^sup>2"
+          by (simp add: dzw dxy power_mult_distrib)
+        also have "\<dots> = (a\<^sup>2 * uu - 2 * a * b * uv + b\<^sup>2 * vv) * vv"
+          using norm_sub norm_v by simp
+        finally show ?thesis .
+      qed
+      have rhs_sq: "(dist y x' * dist z x)\<^sup>2 = 
+            a\<^sup>2 * uu * (vv - 2 * uv + uu)"
+      proof -
+        have norm_au: "(norm (a *\<^sub>R u))\<^sup>2 = a\<^sup>2 * uu"
+          by (simp del: dot_square_norm 
+                add: norm_scaleR power_mult_distrib power2_abs 
+                power2_norm_eq_inner uu_def)
+        have norm_vu: "(norm (v - u))\<^sup>2 = vv - 2 * uv + uu"
+          by (simp del: dot_square_norm 
+                add: power2_norm_eq_inner inner_diff_left inner_diff_right
+                uu_def uv_def vv_def inner_commute algebra_simps)
+        have "(dist y x' * dist z x)\<^sup>2 = (norm (v - u))\<^sup>2 * (norm (a *\<^sub>R u))\<^sup>2"
+          by (simp add: dyx' dzx power_mult_distrib)
+        also have "\<dots> = (vv - 2 * uv + uu) * (a\<^sup>2 * uu)"
+          using norm_vu norm_au by simp
+        finally show ?thesis by (simp add: algebra_simps)
+      qed
+      \<comment> \<open>Now show LHS² = RHS² using E1 and E2'.\<close>
+      \<comment> \<open>First, a \<noteq> 1 (otherwise z = x', contradicting assumption).\<close>
+      have a_ne1: "a \<noteq> 1"
+      proof
+        assume "a = 1"
+        then have "z - x = u" using za by simp
+        then have "z = x'" by (simp add: u_def)
+        with assms(5) show False by simp
+      qed
+      \<comment> \<open>From E2' and a \<noteq> 1: uv = uu.\<close>
+      from E2' a_ne1 have uv_eq: "uv = uu" by auto
+      \<comment> \<open>From E1 and uv = uu: b = a * uu / vv.\<close>
+      from E1 uv_eq have bval: "b = a * uu / vv" 
+        using vv_pos by (simp add: field_simps)
+      \<comment> \<open>Key derived facts.\<close>
+      have bvv: "b * vv = a * uu" using E1 uv_eq by simp
+      \<comment> \<open>Show LHS² = RHS² directly.\<close>
+      show ?thesis
+      proof -
+        have rhs_simp: "(dist y x' * dist z x)\<^sup>2 = a\<^sup>2 * uu * (vv - uu)"
+          using rhs_sq uv_eq by simp
+        \<comment> \<open>For LHS, substitute uv = uu and use b*vv = a*uu.\<close>
+        have lhs_eq: "(dist z w * dist x y)\<^sup>2 = 
+              (a\<^sup>2 * uu - 2 * a * b * uu + b\<^sup>2 * vv) * vv"
+          using lhs_sq uv_eq by simp
+        \<comment> \<open>Now b² * vv = b * (b*vv) = b * (a*uu), and 
+            (a²*uu - 2*a*b*uu + b*a*uu)*vv = (a²*uu - a*b*uu)*vv 
+            = a*uu*(a - b)*vv = a*uu*(a*vv - a*uu)/vv * ... \<close>
+        have "b\<^sup>2 * vv = b * (a * uu)"
+          using bvv by (simp add: power2_eq_square algebra_simps)
+        hence "(a\<^sup>2 * uu - 2 * a * b * uu + b\<^sup>2 * vv) * vv = 
+               (a\<^sup>2 * uu - 2 * a * b * uu + b * (a * uu)) * vv"
+          by simp
+        also have "\<dots> = (a * uu * a - a * uu * b) * vv"
+          by (simp add: power2_eq_square algebra_simps)
+        also have "\<dots> = a * uu * (a * vv - b * vv)"
+          by (simp add: algebra_simps)
+        also have "a * vv - b * vv = a * vv - a * uu"
+          using bvv by simp
+        also have "a * uu * (a * vv - a * uu) = a\<^sup>2 * uu * (vv - uu)"
+          by (simp add: algebra_simps power2_eq_square)
+        finally have "(a\<^sup>2 * uu - 2 * a * b * uu + b\<^sup>2 * vv) * vv = 
+                      a\<^sup>2 * uu * (vv - uu)" .
+        with lhs_eq have "(dist z w * dist x y)\<^sup>2 = a\<^sup>2 * uu * (vv - uu)"
+          by simp
+        with rhs_simp show ?thesis by simp
+      qed
+    qed
+    with lhs_nn rhs_nn show ?thesis
+      by (simp add: power2_eq_iff_nonneg)
+  qed
+qed
+
+\<comment> \<open>HOL Light: INVERSE_LIPSCHITZ_CONVEX_SPHERICAL_PROJECTION_EXPLICIT\<close>
+lemma inverse_lipschitz_convex_spherical_projection_explicit:
+  fixes x y :: "'a::euclidean_space"
+  assumes "convex s" "0 < r" "0 \<in> s"
+    "ball 0 r \<inter> affine hull s \<subseteq> rel_interior s"
+    "s \<subseteq> cball 0 R"
+    "x \<in> rel_frontier s" "y \<in> rel_frontier s"
+  shows "r / R\<^sup>2 * dist x y \<le> dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
+  sorry
+
+
+
+
+\<comment> \<open>HOL Light: INVERSE_LIPSCHITZ_CONVEX_SPHERICAL_PROJECTION\<close>
+lemma inverse_lipschitz_convex_spherical_projection:
+  fixes s :: "'a::euclidean_space set"
+  assumes "convex s" "bounded s" "0 \<in> rel_interior s"
+  shows "\<exists>B>0. \<forall>x y. x \<in> rel_frontier s \<longrightarrow> y \<in> rel_frontier s \<longrightarrow>
+         B * dist x y \<le> dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
+proof -
+  obtain R where "R > 0" and R: "\<forall>x\<in>s. norm x \<le> R"
+    using assms(2) bounded_pos by blast
+  then have s_cball: "s \<subseteq> cball 0 R"
+    by (auto simp: mem_cball_0)
+  obtain r where "r > 0" and r: "ball 0 r \<inter> affine hull s \<subseteq> s"
+    using assms(3) by (auto simp: mem_rel_interior_ball)
+  have ball_sub: "ball 0 r \<inter> affine hull s \<subseteq> rel_interior s"
+  proof -
+    have "openin (top_of_set (affine hull s)) (affine hull s \<inter> ball 0 r)"
+      by (intro openin_open_Int open_ball)
+    then have "openin (top_of_set (affine hull s)) (ball 0 r \<inter> affine hull s)"
+      by (simp add: Int_commute)
+    then show ?thesis
+      using r openin_subset_relative_interior by blast
+  qed
+  have "0 \<in> s"
+    using assms(3) rel_interior_subset by blast
+  have "0 < r / R\<^sup>2"
+    using \<open>r > 0\<close> \<open>R > 0\<close> by (auto intro: divide_pos_pos zero_less_power)
+  moreover have "\<forall>x y. x \<in> rel_frontier s \<longrightarrow> y \<in> rel_frontier s \<longrightarrow>
+      r / R\<^sup>2 * dist x y \<le> dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
+  proof (intro allI impI)
+    fix x y assume "x \<in> rel_frontier s" "y \<in> rel_frontier s"
+    then show "r / R\<^sup>2 * dist x y \<le> dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
+      using inverse_lipschitz_convex_spherical_projection_explicit
+        [OF assms(1) \<open>r > 0\<close> \<open>0 \<in> s\<close> ball_sub s_cball]
+      by blast
+  qed
+  ultimately show ?thesis by blast
+qed
+
+\<comment> \<open>HOL Light: BILIPSCHITZ_HOMEOMORPHISM_SPHERICAL_PROJECTION\<close>
+lemma bilipschitz_homeomorphism_spherical_projection:
+  fixes s :: "'a::euclidean_space set"
+  assumes "convex s" "bounded s" "0 \<in> rel_interior s"
+  shows "\<exists>g. homeomorphism (rel_frontier s) (sphere 0 1 \<inter> affine hull s)
+               (\<lambda>x. x /\<^sub>R norm x) g \<and>
+             (\<exists>B. \<forall>x y. x \<in> rel_frontier s \<longrightarrow> y \<in> rel_frontier s \<longrightarrow>
+                   norm (x /\<^sub>R norm x - y /\<^sub>R norm y) \<le> B * norm (x - y)) \<and>
+             (\<exists>B. \<forall>x y. x \<in> sphere 0 1 \<inter> affine hull s \<longrightarrow>
+                         y \<in> sphere 0 1 \<inter> affine hull s \<longrightarrow>
+                   norm (g x - g y) \<le> B * norm (x - y))"
+proof -
+  \<comment> \<open>Get Lipschitz bound for the spherical projection\<close>
+  obtain B where B: "\<And>x y. x \<in> rel_frontier s \<Longrightarrow> y \<in> rel_frontier s \<Longrightarrow>
+      dist (x /\<^sub>R norm x) (y /\<^sub>R norm y) \<le> B * dist x y"
+    using lipschitz_convex_spherical_projection[OF assms(1,3)] by blast
+  \<comment> \<open>Get inverse Lipschitz bound\<close>
+  obtain b where "b > 0" and b: "\<And>x y. x \<in> rel_frontier s \<Longrightarrow> y \<in> rel_frontier s \<Longrightarrow>
+      b * dist x y \<le> dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
+    using inverse_lipschitz_convex_spherical_projection[OF assms] by blast
+  \<comment> \<open>The projection is continuous on rel_frontier s\<close>
+  have cont: "continuous_on (rel_frontier s) (\<lambda>x. x /\<^sub>R norm x)"
+  proof -
+    have "0 \<notin> rel_frontier s"
+      using assms(3) by (auto simp: rel_frontier_def)
+    then show ?thesis
+      using continuous_on_Borsuk_map[of 0 "rel_frontier s"] by simp
+  qed
+
+  \<comment> \<open>The image equals sphere 0 1 \<inter> affine hull s\<close>
+  have zero_in_s: "0 \<in> s"
+    using assms(3) rel_interior_subset by blast
+  have zero_aff: "0 \<in> affine hull s"
+    using zero_in_s hull_subset[of s affine] by blast
+
+  have aff_eq_span: "affine hull s = span s"
+    using affine_hull_span_0[OF zero_aff] .
+  have image_eq: "(\<lambda>x. x /\<^sub>R norm x) ` rel_frontier s = sphere 0 1 \<inter> affine hull s"
+  proof (rule set_eqI, rule iffI)
+    fix u assume "u \<in> (\<lambda>x. x /\<^sub>R norm x) ` rel_frontier s"
+    then obtain x where x_rf: "x \<in> rel_frontier s" and u_eq: "u = x /\<^sub>R norm x"
+      by auto
+    have "x \<noteq> 0"
+      using x_rf assms(3) by (auto simp: rel_frontier_def)
+    then have "norm u = 1"
+      by (simp add: u_eq)
+    moreover have "u \<in> affine hull s"
+    proof -
+      have "x \<in> affine hull s"
+        using x_rf rel_frontier_affine_hull by blast
+      then have "x \<in> span s" using aff_eq_span by simp
+      then have "inverse (norm x) *\<^sub>R x \<in> span s"
+        by (rule subspace_mul[OF real_vector.subspace_span])
+      then show ?thesis
+        using aff_eq_span u_eq by (simp add: field_simps)
+    qed
+    ultimately show "u \<in> sphere 0 1 \<inter> affine hull s"
+      by (simp add: sphere_def)
+  next
+    fix u assume u_in: "u \<in> sphere 0 1 \<inter> affine hull s"
+    then have "norm u = 1" and "u \<in> affine hull s"
+      by (auto simp: sphere_def)
+    then have "u \<noteq> 0" by auto
+    have "0 + u \<in> affine hull s"
+      using \<open>u \<in> affine hull s\<close> by simp
+    from ray_to_rel_frontier[OF assms(2) assms(3) this \<open>u \<noteq> 0\<close>]
+    obtain d where "d > 0" and d_rf: "0 + d *\<^sub>R u \<in> rel_frontier s"
+      by blast
+    then have du_rf: "d *\<^sub>R u \<in> rel_frontier s" by simp
+    have "(d *\<^sub>R u) /\<^sub>R norm (d *\<^sub>R u) = u"
+      using \<open>d > 0\<close> \<open>norm u = 1\<close> by (simp add: norm_scaleR)
+    then show "u \<in> (\<lambda>x. x /\<^sub>R norm x) ` rel_frontier s"
+      using du_rf by force
+
+  qed
+
+  \<comment> \<open>Injectivity from inverse Lipschitz\<close>
+  have x_ne: "\<And>x. x \<in> rel_frontier s \<Longrightarrow> x \<noteq> 0"
+    using assms(3) by (auto simp: rel_frontier_def)
+  have inj: "inj_on (\<lambda>x. x /\<^sub>R norm x) (rel_frontier s)"
+  proof (rule inj_onI)
+    fix x y assume mem: "x \<in> rel_frontier s" "y \<in> rel_frontier s"
+      and eq: "x /\<^sub>R norm x = y /\<^sub>R norm y"
+    have "b * dist x y \<le> dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
+      using b[OF mem] .
+    also have "\<dots> = dist (x /\<^sub>R norm x) (y /\<^sub>R norm y)"
+      using x_ne[OF mem(1)] x_ne[OF mem(2)] by (simp add: field_simps)
+    also have "\<dots> = 0" using eq by simp
+    finally show "x = y" using \<open>b > 0\<close> by (simp add: mult_le_0_iff dist_le_zero_iff)
+  qed
+
+  \<comment> \<open>Apply homeomorphism_compact\<close>
+  have "compact (rel_frontier s)"
+    using compact_rel_frontier_bounded assms(2) by blast
+  then obtain g where homeo: "homeomorphism (rel_frontier s)
+      (sphere 0 1 \<inter> affine hull s) (\<lambda>x. x /\<^sub>R norm x) g"
+    using homeomorphism_compact[OF _ cont image_eq inj] by blast
+  \<comment> \<open>Lipschitz bound for the projection (first conjunct)\<close>
+  have lip_f: "\<exists>B. \<forall>x y. x \<in> rel_frontier s \<longrightarrow> y \<in> rel_frontier s \<longrightarrow>
+        norm (x /\<^sub>R norm x - y /\<^sub>R norm y) \<le> B * norm (x - y)"
+  proof (intro exI allI impI)
+    fix x y assume "x \<in> rel_frontier s" "y \<in> rel_frontier s"
+    then show "norm (x /\<^sub>R norm x - y /\<^sub>R norm y) \<le> B * norm (x - y)"
+      using B[of x y] by (simp add: dist_norm)
+  qed
+  \<comment> \<open>Lipschitz bound for g (from inverse Lipschitz of f)\<close>
+  have lip_g: "\<exists>B. \<forall>x y. x \<in> sphere 0 1 \<inter> affine hull s \<longrightarrow>
+                          y \<in> sphere 0 1 \<inter> affine hull s \<longrightarrow>
+        norm (g x - g y) \<le> B * norm (x - y)"
+  proof (intro exI allI impI)
+    fix u v assume uv: "u \<in> sphere 0 1 \<inter> affine hull s"
+                       "v \<in> sphere 0 1 \<inter> affine hull s"
+    have u_img: "u \<in> (\<lambda>x. x /\<^sub>R norm x) ` rel_frontier s"
+      and v_img: "v \<in> (\<lambda>x. x /\<^sub>R norm x) ` rel_frontier s"
+      using uv image_eq by auto
+    have gu: "g u \<in> rel_frontier s" and gv: "g v \<in> rel_frontier s"
+      using homeomorphism_image2[OF homeo] uv by auto
+    have fu: "(g u) /\<^sub>R norm (g u) = u" and fv: "(g v) /\<^sub>R norm (g v) = v"
+      using homeomorphism_apply2[OF homeo uv(1)] homeomorphism_apply2[OF homeo uv(2)] by auto
+    have "b * dist (g u) (g v) \<le> dist ((1 / norm (g u)) *\<^sub>R (g u)) ((1 / norm (g v)) *\<^sub>R (g v))"
+      using b[OF gu gv] .
+    also have "dist ((1 / norm (g u)) *\<^sub>R (g u)) ((1 / norm (g v)) *\<^sub>R (g v)) = dist u v"
+      using fu fv by (simp add: field_simps)
+    finally have "b * dist (g u) (g v) \<le> dist u v" .
+    then have "dist (g u) (g v) \<le> (1/b) * dist u v"
+      using \<open>b > 0\<close> by (simp add: field_simps)
+    then show "norm (g u - g v) \<le> (1/b) * norm (u - v)"
+      by (simp add: dist_norm)
+  qed
+  show ?thesis
+    using homeo lip_f lip_g by blast
+qed
+
+
+
 
 \<comment> \<open>HOL Light: RECTIFIABLE_LOOP_RELATIVE_FRONTIER_CONVEX\<close>
 lemma rectifiable_loop_relative_frontier_convex:
