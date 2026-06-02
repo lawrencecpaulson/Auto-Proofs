@@ -170,6 +170,75 @@ proof -
     by (simp add: orthogonal_def inner_commute)
 qed
 
+lemma orthogonal_any_closest_point:
+  fixes s :: "('a::euclidean_space) set"
+  assumes "b \<in> s" "\<And>x. x \<in> s \<Longrightarrow> orthogonal (x - b) (a - b)"
+  shows "\<And>x. x \<in> s \<Longrightarrow> dist a b \<le> dist a x"
+proof -
+  fix x assume "x \<in> s"
+  have orth: "orthogonal (x - b) (a - b)"
+    using assms(2)[OF \<open>x \<in> s\<close>] .
+  have "orthogonal (a - b) (x - b)"
+    using orth by (simp add: orthogonal_commute)
+  then have "orthogonal (a - b) (b - x)"
+    using orthogonal_clauses(3)[of "a - b" "x - b"] by (simp add: algebra_simps)
+
+  then have "(norm ((a - b) + (b - x)))\<^sup>2 = (norm (a - b))\<^sup>2 + (norm (b - x))\<^sup>2"
+    by (rule norm_add_Pythagorean)
+  then have "(norm (a - x))\<^sup>2 = (norm (a - b))\<^sup>2 + (norm (b - x))\<^sup>2"
+    by (simp add: algebra_simps)
+  then have "(norm (a - x))\<^sup>2 \<ge> (norm (a - b))\<^sup>2"
+    by simp
+  then have "norm (a - x) \<ge> norm (a - b)"
+    by (simp add: power2_le_iff_abs_le)
+  then show "dist a b \<le> dist a x"
+    by (simp add: dist_norm)
+qed
+
+lemma closest_point_affine_orthogonal:
+  fixes s :: "('a::euclidean_space) set"
+  assumes "affine s" "s \<noteq> {}" "x \<in> s"
+  shows "orthogonal (x - closest_point s a) (a - closest_point s a)"
+proof -
+  have "closed s" using assms(1) affine_closed by blast
+  have "closest_point s a \<in> s"
+    using closest_point_in_set[OF \<open>closed s\<close> assms(2)] .
+  have "\<And>y. y \<in> s \<Longrightarrow> dist a (closest_point s a) \<le> dist a y"
+    using closest_point_le[OF \<open>closed s\<close>] by (simp add: dist_commute)
+  then show ?thesis
+    using any_closest_point_affine_orthogonal[OF assms(1) \<open>closest_point s a \<in> s\<close>] assms(3)
+    by blast
+qed
+
+lemma closest_point_affine_orthogonal_eq:
+  fixes s :: "('a::euclidean_space) set"
+  assumes "affine s" "b \<in> s"
+  shows "(closest_point s a = b) \<longleftrightarrow> (\<forall>x. x \<in> s \<longrightarrow> orthogonal (x - b) (a - b))"
+proof (rule iffI)
+  assume eq: "closest_point s a = b"
+  show "\<forall>x. x \<in> s \<longrightarrow> orthogonal (x - b) (a - b)"
+  proof (intro allI impI)
+    fix x assume "x \<in> s"
+    have "s \<noteq> {}" using assms(2) by blast
+    have "orthogonal (x - closest_point s a) (a - closest_point s a)"
+      by (rule closest_point_affine_orthogonal[OF assms(1) \<open>s \<noteq> {}\<close> \<open>x \<in> s\<close>])
+    then show "orthogonal (x - b) (a - b)"
+      using eq by simp
+  qed
+
+next
+  assume orth: "\<forall>x. x \<in> s \<longrightarrow> orthogonal (x - b) (a - b)"
+  have closS: "closed s" using assms(1) affine_closed by blast
+  have convS: "convex s" using assms(1) affine_imp_convex by blast
+  have "\<forall>z\<in>s. dist a b \<le> dist a z"
+    using orthogonal_any_closest_point[OF assms(2)] orth by blast
+  then have "b = closest_point s a"
+    using closest_point_unique[OF convS closS assms(2)] by blast
+  then show "closest_point s a = b" by simp
+qed
+
+
+
 
 (*added to Derivative 2026-05*)
 corollary vector_differentiable:
