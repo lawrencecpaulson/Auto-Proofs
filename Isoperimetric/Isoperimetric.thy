@@ -148,6 +148,29 @@ proof -
   qed
 qed
 
+lemma any_closest_point_affine_orthogonal:
+  fixes s :: "('a::euclidean_space) set"
+  assumes "affine s" "b \<in> s" "\<And>x. x \<in> s \<Longrightarrow> dist a b \<le> dist a x"
+  shows "\<And>x. x \<in> s \<Longrightarrow> orthogonal (x - b) (a - b)"
+proof -
+  fix x assume "x \<in> s"
+  have convS: "convex s" using assms(1) affine_imp_convex by blast
+  have closS: "closed s" using assms(1) affine_closed by blast
+  have le1: "(a - b) \<bullet> (x - b) \<le> 0"
+    using any_closest_point_dot[OF convS closS assms(2) \<open>x \<in> s\<close>] assms(3) by blast
+  have "2 *\<^sub>R b - x \<in> s"
+    by (metis \<open>x \<in> s\<close> assms(1,2) diff_diff_eq2 mem_affine_3_minus2 scaleR_2 scaleR_one)
+  then have le2: "(a - b) \<bullet> ((2 *\<^sub>R b - x) - b) \<le> 0"
+    using any_closest_point_dot[OF convS closS assms(2)] assms(3) by blast
+  have "(a - b) \<bullet> ((2 *\<^sub>R b - x) - b) = - ((a - b) \<bullet> (x - b))"
+    by (simp add: inner_diff_right algebra_simps)
+  with le2 have "(a - b) \<bullet> (x - b) \<ge> 0" by linarith
+  with le1 have "(a - b) \<bullet> (x - b) = 0" by linarith
+  then show "orthogonal (x - b) (a - b)"
+    by (simp add: orthogonal_def inner_commute)
+qed
+
+
 (*added to Derivative 2026-05*)
 corollary vector_differentiable:
   "f differentiable net \<longleftrightarrow> (\<exists>f'. (f has_vector_derivative f') net)"
@@ -3693,7 +3716,110 @@ lemma inverse_lipschitz_convex_spherical_projection_explicit:
     "s \<subseteq> cball 0 R"
     "x \<in> rel_frontier s" "y \<in> rel_frontier s"
   shows "r / R\<^sup>2 * dist x y \<le> dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
-  sorry
+proof (cases "R<0")
+  case True
+  have "0 \<in> cball (0::'a) R" using assms(3,5) by (meson subsetD)
+  then have "0 \<le> R" by simp
+  with True show ?thesis by linarith
+next
+  case False
+  then have "R \<ge> 0"
+    by simp
+
+  have "0 \<in> rel_interior s"
+  proof -
+    have "0 \<in> ball 0 r"
+      using assms(2) by (simp add: centre_in_ball)
+    moreover have "0 \<in> affine hull s"
+      by (rule hull_inc[OF assms(3)])
+    ultimately have "0 \<in> ball 0 r \<inter> affine hull s"
+      by blast
+    then show ?thesis
+      using assms(4) by blast
+  qed
+  have x_ne: "x \<noteq> 0" and y_ne: "y \<noteq> 0"
+  proof -
+    have "0 \<notin> rel_frontier s"
+      using \<open>0 \<in> rel_interior s\<close> by (simp add: rel_frontier_def)
+    then show "x \<noteq> 0" "y \<noteq> 0"
+      using assms(6,7) by auto
+  qed
+  have r_le: "\<And>z. z \<in> rel_frontier s \<Longrightarrow> r \<le> norm z"
+  proof -
+    fix z assume z: "z \<in> rel_frontier s"
+    then have z_clos: "z \<in> closure s" and z_not_ri: "z \<notin> rel_interior s"
+      by (simp_all add: rel_frontier_def)
+    have "z \<in> affine hull s"
+      using z_clos closure_affine_hull by blast
+    show "r \<le> norm z"
+    proof (rule ccontr)
+      assume "\<not> r \<le> norm z"
+      then have "norm z < r" by simp
+      then have "z \<in> ball 0 r"
+        by (simp add: mem_ball_0)
+      then have "z \<in> ball 0 r \<inter> affine hull s"
+        using \<open>z \<in> affine hull s\<close> by blast
+      then have "z \<in> rel_interior s"
+        using assms(4) by blast
+      then show False using z_not_ri by contradiction
+    qed
+  qed
+  have r_le_x: "r \<le> norm x" using r_le[OF assms(6)] .
+  have r_le_y: "r \<le> norm y" using r_le[OF assms(7)] .
+  have norm_le: "\<And>z. z \<in> rel_frontier s \<Longrightarrow> norm z \<le> R"
+  proof -
+    fix z assume z: "z \<in> rel_frontier s"
+    then have "z \<in> closure s"
+      by (simp add: rel_frontier_def)
+    moreover have "closure s \<subseteq> cball 0 R"
+      using assms(5) closed_cball closure_minimal by blast
+    ultimately have "z \<in> cball 0 R" by blast
+    then show "norm z \<le> R"
+      by (simp add: mem_cball_0)
+  qed
+  have x_le_R: "norm x \<le> R" using norm_le[OF assms(6)] .
+  have y_le_R: "norm y \<le> R" using norm_le[OF assms(7)] .
+  have "r \<le> R" and "0 < R"
+    using r_le_x x_le_R assms(2) by linarith+
+  show ?thesis 
+  proof (cases "x \<bullet> y \<le> 0")
+    case True
+    have inv_x: "0 \<le> 1 / norm x" using x_ne by simp
+    have inv_y: "0 \<le> 1 / norm y" using y_ne by simp
+    have key: "min (1 / norm x) (1 / norm y) * dist x y
+               \<le> dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
+      by (rule dist_scaleR_ge_min[OF inv_x inv_y True])
+    have rR2_le_invR: "r / R\<^sup>2 \<le> 1 / R"
+    proof -
+      have "r / R\<^sup>2 = r / (R * R)"
+        by (simp add: power2_eq_square)
+      also have "\<dots> \<le> R / (R * R)"
+        using \<open>r \<le> R\<close> \<open>0 < R\<close> by (intro divide_right_mono) auto
+      also have "\<dots> = 1 / R"
+        using \<open>0 < R\<close> by (simp add: field_simps)
+      finally show ?thesis .
+    qed
+    have invR_le_invx: "1 / R \<le> 1 / norm x"
+      using x_le_R r_le_x assms(2) \<open>0 < R\<close>
+      by (intro frac_le) linarith+
+    have invR_le_invy: "1 / R \<le> 1 / norm y"
+      using y_le_R r_le_y assms(2) \<open>0 < R\<close>
+      by (intro frac_le) linarith+
+    have "r / R\<^sup>2 \<le> min (1 / norm x) (1 / norm y)"
+      using rR2_le_invR invR_le_invx invR_le_invy by simp
+    then have "r / R\<^sup>2 * dist x y \<le> min (1 / norm x) (1 / norm y) * dist x y"
+      by (intro mult_right_mono) (simp_all add: zero_le_dist)
+    also have "\<dots> \<le> dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
+      by (rule key)
+    finally show ?thesis .
+  next
+    case False
+    then have "x \<bullet> y > 0"
+      by auto
+    then show ?thesis sorry
+  qed
+
+qed
 
 
 
@@ -4055,14 +4181,29 @@ proof -
     fix z :: complex assume z: "z \<in> sphere 0 1"
     then have "z \<noteq> 0" by auto
     define t where "t = (if Arg z \<ge> 0 then Arg z else Arg z + 2*pi) / (2*pi)"
-    have "t \<in> {0..1}" and "\<gamma> t = z"
-       apply (auto simp: t_def \<gamma>_def)
-         apply (smt (verit) Arg_bounded)
-        apply (smt (verit) divide_nonneg_nonneg mpi_less_Arg)
-       apply (metis cis_rcis_eq dist_0_norm mem_sphere rcis_cmod_Arg z)
-      by (metis add_0 cis_2pi cis_mult diff_conv_add_uminus dist_norm mem_sphere
-          mult.right_neutral norm_minus_cancel of_real_1 rcis_cmod_Arg rcis_def z)
-    then show "z \<in> \<gamma> ` {0..1}" by auto
+    have "t \<in> {0..1}"
+      using Arg_correct [of z] \<open>z \<noteq> 0\<close> by (auto simp: t_def)
+    moreover have "\<gamma> t = z"
+    proof -
+      have nz: "cmod z = 1" using z by simp
+      have "sgn z = z" using nz by (simp add: complex_sgn_def)
+      moreover have "cis (Arg z) = sgn z" using \<open>z \<noteq> 0\<close> by (rule cis_Arg)
+      ultimately have cis_arg: "cis (Arg z) = z" by simp
+      show ?thesis
+      proof (cases "0 \<le> Arg z")
+        case True
+        then have "\<gamma> t = cis (2 * pi * (Arg z / (2 * pi)))" by (simp add: t_def \<gamma>_def)
+        also have "\<dots> = z" using pi_gt_zero by (simp add: cis_arg)
+        finally show ?thesis .
+      next
+        case False
+        then have "\<gamma> t = cis (2 * pi * ((Arg z + 2 * pi) / (2 * pi)))" by (simp add: t_def \<gamma>_def)
+        also have "\<dots> = cis (Arg z) * cis (2 * pi)" by (simp add: cis_mult mult.commute)
+        also have "\<dots> = z" by (simp add: cis_arg)
+        finally show ?thesis .
+      qed
+    qed
+    ultimately show "z \<in> \<gamma> ` {0..1}" by auto
   qed
   have \<gamma>_start: "\<gamma> 0 = 1" unfolding \<gamma>_def by simp
   have \<gamma>_end: "\<gamma> 1 = 1" unfolding \<gamma>_def using cis_2pi by simp
