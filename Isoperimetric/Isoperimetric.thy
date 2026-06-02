@@ -3869,17 +3869,333 @@ proof -
     using homeo lip_f lip_g by blast
 qed
 
+\<comment> \<open>HOL Light: lemma1 (bilipschitz homeomorphism between relative frontiers)\<close>
+lemma bilipschitz_homeomorphism_rel_frontiers:
+  fixes s t :: "'a::euclidean_space set"
+  assumes "convex s" "bounded s" "convex t" "bounded t"
+    "0 \<in> rel_interior s" "0 \<in> rel_interior t"
+    "affine hull s = affine hull t"
+  shows "\<exists>f g. homeomorphism (rel_frontier s) (rel_frontier t) f g \<and>
+               (\<exists>B. \<forall>x y. x \<in> rel_frontier s \<longrightarrow> y \<in> rel_frontier s \<longrightarrow>
+                     norm (f x - f y) \<le> B * norm (x - y)) \<and>
+               (\<exists>B. \<forall>x y. x \<in> rel_frontier t \<longrightarrow> y \<in> rel_frontier t \<longrightarrow>
+                     norm (g x - g y) \<le> B * norm (x - y))"
+proof -
+  let ?n = "\<lambda>x::'a. x /\<^sub>R norm x"
+  \<comment> \<open>Get bilipschitz homeomorphisms for s and t\<close>
+  obtain gs where homeo_s: "homeomorphism (rel_frontier s) (sphere 0 1 \<inter> affine hull s) ?n gs"
+    and lip_ns: "\<exists>B. \<forall>x y. x \<in> rel_frontier s \<longrightarrow> y \<in> rel_frontier s \<longrightarrow>
+          norm (?n x - ?n y) \<le> B * norm (x - y)"
+    and lip_gs: "\<exists>B. \<forall>x y. x \<in> sphere 0 1 \<inter> affine hull s \<longrightarrow>
+                            y \<in> sphere 0 1 \<inter> affine hull s \<longrightarrow>
+          norm (gs x - gs y) \<le> B * norm (x - y)"
+    using bilipschitz_homeomorphism_spherical_projection[OF assms(1,2,5)] by blast
+  obtain gt where homeo_t: "homeomorphism (rel_frontier t) (sphere 0 1 \<inter> affine hull t) ?n gt"
+    and lip_nt: "\<exists>B. \<forall>x y. x \<in> rel_frontier t \<longrightarrow> y \<in> rel_frontier t \<longrightarrow>
+          norm (?n x - ?n y) \<le> B * norm (x - y)"
+    and lip_gt: "\<exists>B. \<forall>x y. x \<in> sphere 0 1 \<inter> affine hull t \<longrightarrow>
+                            y \<in> sphere 0 1 \<inter> affine hull t \<longrightarrow>
+          norm (gt x - gt y) \<le> B * norm (x - y)"
+    using bilipschitz_homeomorphism_spherical_projection[OF assms(3,4,6)] by blast
+  \<comment> \<open>Since affine hull s = affine hull t, the intermediate spaces are the same\<close>
+  have mid_eq: "sphere 0 1 \<inter> affine hull s = sphere 0 1 \<inter> affine hull t"
+    using assms(7) by simp
+  \<comment> \<open>Flip the t-homeomorphism: gt maps sphere \<inter> aff to rel_frontier t\<close>
+  have homeo_t': "homeomorphism (sphere 0 1 \<inter> affine hull s) (rel_frontier t) gt ?n"
+    using homeomorphism_symD[OF homeo_t] mid_eq by simp
+  \<comment> \<open>Compose: gt \<circ> n maps rel_frontier s \<rightarrow> rel_frontier t\<close>
+  have homeo_comp: "homeomorphism (rel_frontier s) (rel_frontier t) (gt \<circ> ?n) (gs \<circ> ?n)"
+    using homeomorphism_compose[OF homeo_s homeo_t'] by simp
+  \<comment> \<open>Lipschitz bound for gt \<circ> n on rel_frontier s\<close>
+  have lip_f: "\<exists>B. \<forall>x y. x \<in> rel_frontier s \<longrightarrow> y \<in> rel_frontier s \<longrightarrow>
+        norm ((gt \<circ> ?n) x - (gt \<circ> ?n) y) \<le> B * norm (x - y)"
+  proof -
+    obtain Bn where Bn: "\<And>x y. x \<in> rel_frontier s \<Longrightarrow> y \<in> rel_frontier s \<Longrightarrow>
+        norm (?n x - ?n y) \<le> Bn * norm (x - y)"
+      using lip_ns by blast
+    obtain Bg where Bg: "\<And>x y. x \<in> sphere 0 1 \<inter> affine hull s \<Longrightarrow>
+        y \<in> sphere 0 1 \<inter> affine hull s \<Longrightarrow>
+        norm (gt x - gt y) \<le> Bg * norm (x - y)"
+      using lip_gt mid_eq by auto
+    have img_s: "?n ` rel_frontier s = sphere 0 1 \<inter> affine hull s"
+      using homeomorphism_image1[OF homeo_s] .
+    \<comment> \<open>Convert to lipschitz_on form\<close>
+    have lip_n: "(max Bn 0)-lipschitz_on (rel_frontier s) ?n"
+    proof (rule lipschitz_onI)
+      fix x y assume "x \<in> rel_frontier s" "y \<in> rel_frontier s"
+      then have "dist (?n x) (?n y) \<le> Bn * dist x y"
+        using Bn by (simp add: dist_norm)
+      also have "\<dots> \<le> max Bn 0 * dist x y"
+        by (intro mult_right_mono) auto
+      finally show "dist (?n x) (?n y) \<le> max Bn 0 * dist x y" .
+    qed simp
+    have lip_g: "(max Bg 0)-lipschitz_on (sphere 0 1 \<inter> affine hull s) gt"
+    proof (rule lipschitz_onI)
+      fix x y assume "x \<in> sphere 0 1 \<inter> affine hull s" "y \<in> sphere 0 1 \<inter> affine hull s"
+      then have "dist (gt x) (gt y) \<le> Bg * dist x y"
+        using Bg by (simp add: dist_norm)
+      also have "\<dots> \<le> max Bg 0 * dist x y"
+        by (intro mult_right_mono) auto
+      finally show "dist (gt x) (gt y) \<le> max Bg 0 * dist x y" .
+    qed simp
+    have "?n ` rel_frontier s = sphere 0 1 \<inter> affine hull s"
+      using img_s .
+    then have lip_comp: "(max Bg 0 * max Bn 0)-lipschitz_on (rel_frontier s) (gt \<circ> ?n)"
+      using lipschitz_on_compose[OF lip_n lip_g[unfolded img_s[symmetric]]]
+      by (simp add: img_s)
+    show ?thesis
+    proof (intro exI allI impI)
+      fix x y assume "x \<in> rel_frontier s" "y \<in> rel_frontier s"
+      then show "norm ((gt \<circ> ?n) x - (gt \<circ> ?n) y) \<le> (max Bg 0 * max Bn 0) * norm (x - y)"
+        using lipschitz_onD[OF lip_comp] by (simp add: dist_norm)
+    qed
+  qed
+  \<comment> \<open>Lipschitz bound for gs \<circ> n on rel_frontier t\<close>
+  have lip_g: "\<exists>B. \<forall>x y. x \<in> rel_frontier t \<longrightarrow> y \<in> rel_frontier t \<longrightarrow>
+        norm ((gs \<circ> ?n) x - (gs \<circ> ?n) y) \<le> B * norm (x - y)"
+  proof -
+    obtain Bn where Bn: "\<And>x y. x \<in> rel_frontier t \<Longrightarrow> y \<in> rel_frontier t \<Longrightarrow>
+        norm (?n x - ?n y) \<le> Bn * norm (x - y)"
+      using lip_nt by blast
+    obtain Bg where Bg: "\<And>x y. x \<in> sphere 0 1 \<inter> affine hull s \<Longrightarrow>
+        y \<in> sphere 0 1 \<inter> affine hull s \<Longrightarrow>
+        norm (gs x - gs y) \<le> Bg * norm (x - y)"
+      using lip_gs by blast
+    have img_t: "?n ` rel_frontier t = sphere 0 1 \<inter> affine hull t"
+      using homeomorphism_image1[OF homeo_t] .
+    \<comment> \<open>Convert to lipschitz_on form\<close>
+    have lip_n: "(max Bn 0)-lipschitz_on (rel_frontier t) ?n"
+    proof (rule lipschitz_onI)
+      fix x y assume "x \<in> rel_frontier t" "y \<in> rel_frontier t"
+      then have "dist (?n x) (?n y) \<le> Bn * dist x y"
+        using Bn by (simp add: dist_norm)
+      also have "\<dots> \<le> max Bn 0 * dist x y"
+        by (intro mult_right_mono) auto
+      finally show "dist (?n x) (?n y) \<le> max Bn 0 * dist x y" .
+    qed simp
+    have lip_gs': "(max Bg 0)-lipschitz_on (sphere 0 1 \<inter> affine hull s) gs"
+    proof (rule lipschitz_onI)
+      fix x y assume "x \<in> sphere 0 1 \<inter> affine hull s" "y \<in> sphere 0 1 \<inter> affine hull s"
+      then have "dist (gs x) (gs y) \<le> Bg * dist x y"
+        using Bg by (simp add: dist_norm)
+      also have "\<dots> \<le> max Bg 0 * dist x y"
+        by (intro mult_right_mono) auto
+      finally show "dist (gs x) (gs y) \<le> max Bg 0 * dist x y" .
+    qed simp
+    have lip_comp: "(max Bg 0 * max Bn 0)-lipschitz_on (rel_frontier t) (gs \<circ> ?n)"
+      using lipschitz_on_compose[OF lip_n lip_gs'[unfolded mid_eq img_t[symmetric]]]
+      by simp
+    show ?thesis
+    proof (intro exI allI impI)
+      fix x y assume "x \<in> rel_frontier t" "y \<in> rel_frontier t"
+      then show "norm ((gs \<circ> ?n) x - (gs \<circ> ?n) y) \<le> (max Bg 0 * max Bn 0) * norm (x - y)"
+        using lipschitz_onD[OF lip_comp] by (simp add: dist_norm)
+    qed
+  qed
+  show ?thesis
+    using homeo_comp lip_f lip_g by blast
+qed
 
+
+\<comment> \<open>HOL Light: BILIPSCHITZ_HOMEOMORPHISM_RELATIVE_FRONTIERS\<close>
+lemma bilipschitz_homeomorphism_relative_frontiers:
+  fixes s t :: "'a::euclidean_space set"
+  assumes "convex s" "bounded s" "convex t" "bounded t" "aff_dim s = aff_dim t"
+  shows "\<exists>f g. homeomorphism (rel_frontier s) (rel_frontier t) f g \<and>
+               (\<exists>B. \<forall>x y. x \<in> rel_frontier s \<longrightarrow> y \<in> rel_frontier s \<longrightarrow>
+                     norm (f x - f y) \<le> B * norm (x - y)) \<and>
+               (\<exists>B. \<forall>x y. x \<in> rel_frontier t \<longrightarrow> y \<in> rel_frontier t \<longrightarrow>
+                     norm (g x - g y) \<le> B * norm (x - y))"
+  sorry
 
 
 \<comment> \<open>HOL Light: RECTIFIABLE_LOOP_RELATIVE_FRONTIER_CONVEX\<close>
-lemma rectifiable_loop_relative_frontier_convex:
+lemma rectifiable_loop_rel_frontier_convex:
   fixes S :: "complex set"
   assumes "bounded S" "convex S" "aff_dim S = 2"
   shows "\<exists>g. simple_path g \<and> rectifiable_path g \<and>
              pathfinish g = pathstart g \<and>
              path_image g = rel_frontier S"
-  sorry
+proof -
+  \<comment> \<open>The unit disk in \<complex> has aff_dim = 2\<close>
+  have int_cball: "interior (cball (0::complex) 1) \<noteq> {}"
+    by (auto simp: interior_cball)
+  have aff_cball: "aff_dim (cball (0::complex) 1) = 2"
+    using aff_dim_nonempty_interior[OF int_cball] DIM_complex by simp
+  have fr_cball: "rel_frontier (cball (0::complex) 1) = sphere 0 1"
+    using rel_frontier_nonempty_interior[OF int_cball] frontier_cball by simp
+  \<comment> \<open>Apply bilipschitz homeomorphism between relative frontiers\<close>
+  obtain f g where homeo: "homeomorphism (sphere 0 1) (rel_frontier S) f g"
+    and lip_f: "\<exists>B. \<forall>x y. x \<in> sphere (0::complex) 1 \<longrightarrow> y \<in> sphere 0 1 \<longrightarrow>
+                    norm (f x - f y) \<le> B * norm (x - y)"
+    and lip_g: "\<exists>B. \<forall>x y. x \<in> rel_frontier S \<longrightarrow> y \<in> rel_frontier S \<longrightarrow>
+                    norm (g x - g y) \<le> B * norm (x - y)"
+  proof -
+    have eq: "aff_dim (cball (0::complex) 1) = aff_dim S"
+      using aff_cball assms(3) by simp
+    obtain f g where h: "homeomorphism (rel_frontier (cball (0::complex) 1)) (rel_frontier S) f g"
+      and lf: "\<exists>B. \<forall>x y. x \<in> rel_frontier (cball (0::complex) 1) \<longrightarrow>
+                      y \<in> rel_frontier (cball (0::complex) 1) \<longrightarrow>
+                      norm (f x - f y) \<le> B * norm (x - y)"
+      and lg: "\<exists>B. \<forall>x y. x \<in> rel_frontier S \<longrightarrow> y \<in> rel_frontier S \<longrightarrow>
+                      norm (g x - g y) \<le> B * norm (x - y)"
+      using bilipschitz_homeomorphism_relative_frontiers
+              [OF convex_cball bounded_cball assms(2) assms(1) eq]
+      by blast
+    show thesis using that[of f g] h lf lg fr_cball by simp
+  qed
+  \<comment> \<open>Define the unit circle parametrization\<close>
+  define \<gamma> :: "real \<Rightarrow> complex" where "\<gamma> \<equiv> \<lambda>t. cis (2 * pi * t)"
+  \<comment> \<open>Basic properties of \<gamma>\<close>
+  have \<gamma>_img: "\<gamma> ` {0..1} = sphere 0 1"
+  proof (intro set_eqI iffI)
+    fix z :: complex assume "z \<in> \<gamma> ` {0..1}"
+    then show "z \<in> sphere 0 1" unfolding \<gamma>_def by (auto simp: norm_cis)
+  next
+    fix z :: complex assume z: "z \<in> sphere 0 1"
+    then have "z \<noteq> 0" by auto
+    define t where "t = (if Arg z \<ge> 0 then Arg z else Arg z + 2*pi) / (2*pi)"
+    have "t \<in> {0..1}" and "\<gamma> t = z"
+       apply (auto simp: t_def \<gamma>_def)
+         apply (smt (verit) Arg_bounded)
+        apply (smt (verit) divide_nonneg_nonneg mpi_less_Arg)
+       apply (metis cis_rcis_eq dist_0_norm mem_sphere rcis_cmod_Arg z)
+      by (metis add_0 cis_2pi cis_mult diff_conv_add_uminus dist_norm mem_sphere
+          mult.right_neutral norm_minus_cancel of_real_1 rcis_cmod_Arg rcis_def z)
+    then show "z \<in> \<gamma> ` {0..1}" by auto
+  qed
+  have \<gamma>_start: "\<gamma> 0 = 1" unfolding \<gamma>_def by simp
+  have \<gamma>_end: "\<gamma> 1 = 1" unfolding \<gamma>_def using cis_2pi by simp
+  have \<gamma>_cont: "continuous_on {0..1} \<gamma>"
+    unfolding \<gamma>_def by (intro continuous_on_cis continuous_intros)
+  have \<gamma>_loop_free: "loop_free \<gamma>"
+  proof (unfold loop_free_def, intro ballI impI)
+    fix x y assume x: "x \<in> {0..1}" and y: "y \<in> {0..1}" and eq: "\<gamma> x = \<gamma> y"
+    have cis_eq: "cis (2 * pi * x) = cis (2 * pi * y)" using eq unfolding \<gamma>_def .
+    have cos_eq: "cos (2 * pi * x) = cos (2 * pi * y)"
+      using arg_cong[OF cis_eq, of Re] by simp
+    have sin_eq: "sin (2 * pi * x) = sin (2 * pi * y)"
+      using arg_cong[OF cis_eq, of Im] by simp
+    have "cos (2 * pi * x - 2 * pi * y) = 
+          cos (2 * pi * x) * cos (2 * pi * y) + sin (2 * pi * x) * sin (2 * pi * y)"
+      by (rule cos_diff)
+    also have "\<dots> = (cos (2 * pi * x))\<^sup>2 + (sin (2 * pi * x))\<^sup>2"
+      using cos_eq sin_eq by (simp add: power2_eq_square)
+    also have "\<dots> = 1" by (rule sin_cos_squared_add2)
+    finally have "cos (2 * pi * (x - y)) = 1"
+      by (simp add: algebra_simps)
+    then obtain n :: int where n: "2 * pi * (x - y) = real_of_int n * 2 * pi"
+      using cos_one_2pi_int by blast
+    then have xy: "x - y = real_of_int n"
+      by auto
+    have "real_of_int n \<in> {-1..1}" using x y xy by auto
+    then have "n \<in> {-1..1}" by auto
+    then have "n = 0 \<or> n = 1 \<or> n = -1" by auto
+    then show "x = y \<or> x = 0 \<and> y = 1 \<or> x = 1 \<and> y = 0"
+      using xy x y by auto
+  qed
+  \<comment> \<open>\<gamma> is Lipschitz on {0..1}\<close>
+  have \<gamma>_lip: "\<forall>x\<in>{0..1}. \<forall>y\<in>{0..1}. norm (\<gamma> x - \<gamma> y) \<le> (2*pi) * norm (x - y)"
+  proof (intro ballI)
+    fix x y :: real assume x: "x \<in> {0..1}" and y: "y \<in> {0..1}"
+    have deriv: "\<forall>t\<in>{0..1}. (\<gamma> has_derivative (\<lambda>h. (2*pi*h) *\<^sub>R (\<i> * cis (2*pi*t)))) (at t within {0..1})"
+    proof (intro ballI)
+      fix t :: real assume "t \<in> {0..1}"
+      have "((\<lambda>t. 2*pi*t) has_derivative (\<lambda>h. 2*pi*h)) (at t within {0..1})"
+        by (auto intro!: derivative_eq_intros)
+      then show "(\<gamma> has_derivative (\<lambda>h. (2*pi*h) *\<^sub>R (\<i> * cis (2*pi*t)))) (at t within {0..1})"
+        unfolding \<gamma>_def using has_derivative_cis by blast
+    qed
+    have bound: "\<forall>t\<in>{0..1}. onorm (\<lambda>h. (2*pi*h) *\<^sub>R (\<i> * cis (2*pi*t))) \<le> 2*pi"
+    proof (intro ballI)
+      fix t :: real assume "t \<in> {0..1}"
+      show "onorm (\<lambda>h. (2*pi*h) *\<^sub>R (\<i> * cis (2*pi*t))) \<le> 2*pi"
+      proof (rule onorm_le)
+        fix h :: real
+        have "norm ((2*pi*h) *\<^sub>R (\<i> * cis (2*pi*t))) = \<bar>2*pi*h\<bar> * norm (\<i> * cis (2*pi*t))"
+          by (simp add: norm_scaleR)
+        also have "\<dots> = 2*pi * \<bar>h\<bar>" by (simp add: abs_mult norm_mult norm_cis)
+        also have "\<dots> = 2*pi * norm h" by simp
+        finally show "norm ((2*pi*h) *\<^sub>R (\<i> * cis (2*pi*t))) \<le> 2*pi * norm h" by simp
+      qed
+    qed
+    show "norm (\<gamma> x - \<gamma> y) \<le> (2*pi) * norm (x - y)"
+    proof -
+      have d: "\<And>t. t \<in> {0..1} \<Longrightarrow> (\<gamma> has_derivative (\<lambda>h. (2*pi*h) *\<^sub>R (\<i> * cis (2*pi*t)))) (at t within {0..1})"
+        using deriv by auto
+      have b: "\<And>t. t \<in> {0..1} \<Longrightarrow> onorm (\<lambda>h. (2*pi*h) *\<^sub>R (\<i> * cis (2*pi*t))) \<le> 2*pi"
+        using bound by auto
+      show ?thesis using differentiable_bound[OF convex_real_interval(5) d b x y] .
+    qed
+  qed
+  \<comment> \<open>\<gamma> is rectifiable\<close>
+  have \<gamma>_rect: "has_bounded_variation_on \<gamma> {0..1}"
+  proof (rule Lipschitz_imp_has_bounded_variation)
+    show "bounded {0::real..1}" using bounded_cbox[of 0 1] by (simp add: cbox_interval)
+  next
+    fix x y :: real assume "x \<in> {0..1}" "y \<in> {0..1}"
+    then show "norm (\<gamma> x - \<gamma> y) \<le> (2*pi) * norm (x - y)" using \<gamma>_lip by auto
+  qed
+  \<comment> \<open>Compose f with \<gamma>\<close>
+  define p where "p \<equiv> f \<circ> \<gamma>"
+  \<comment> \<open>p is a path\<close>
+  have p_path: "path p"
+    unfolding path_def p_def
+    using continuous_on_compose[OF \<gamma>_cont] homeo
+    unfolding homeomorphism_def using \<gamma>_img by auto
+  \<comment> \<open>p is a closed loop\<close>
+  have p_loop: "pathfinish p = pathstart p"
+    unfolding pathfinish_def pathstart_def p_def comp_def \<gamma>_start \<gamma>_end by simp
+  \<comment> \<open>path_image p = rel_frontier S\<close>
+  have p_img: "path_image p = rel_frontier S"
+    unfolding path_image_def p_def image_comp \<gamma>_img
+    using homeo unfolding homeomorphism_def
+    by (metis \<gamma>_img image_comp)
+  \<comment> \<open>p is loop_free (hence simple_path)\<close>
+  have p_loop_free: "loop_free p"
+  proof (unfold loop_free_def, intro ballI impI)
+    fix x y assume x: "x \<in> {0..1}" and y: "y \<in> {0..1}" and eq: "p x = p y"
+    have "f (\<gamma> x) = f (\<gamma> y)" using eq unfolding p_def comp_def .
+    moreover have "\<gamma> x \<in> sphere 0 1" "\<gamma> y \<in> sphere 0 1"
+      using x y \<gamma>_img by auto
+    ultimately have "\<gamma> x = \<gamma> y"
+      using homeo unfolding homeomorphism_def by (metis imageI)
+    then show "x = y \<or> x = 0 \<and> y = 1 \<or> x = 1 \<and> y = 0"
+      using \<gamma>_loop_free x y unfolding loop_free_def by auto
+  qed
+  have p_simple: "simple_path p"
+    unfolding simple_path_def using p_path p_loop_free by auto
+  \<comment> \<open>p is rectifiable\<close>
+  have p_rect: "rectifiable_path p"
+  proof -
+    obtain B where B: "\<And>x y. x \<in> sphere (0::complex) 1 \<longrightarrow> y \<in> sphere 0 1 \<longrightarrow>
+                         norm (f x - f y) \<le> B * norm (x - y)"
+      using lip_f by blast
+    have "\<forall>x\<in>{0..1}. \<forall>y\<in>{0..1}. norm (p x - p y) \<le> (B * (2*pi)) * norm (x - y)"
+    proof (intro ballI)
+      fix x y :: real assume x: "x \<in> {0..1}" and y: "y \<in> {0..1}"
+      have gx: "\<gamma> x \<in> sphere 0 1" and gy: "\<gamma> y \<in> sphere 0 1"
+        using x y \<gamma>_img by auto
+      have "norm (p x - p y) = norm (f (\<gamma> x) - f (\<gamma> y))"
+        unfolding p_def comp_def by simp
+      also have "\<dots> \<le> B * norm (\<gamma> x - \<gamma> y)"
+        using B gx gy by auto
+      also have "\<dots> \<le> B * (2*pi * norm (x - y))"
+      proof (intro mult_left_mono)
+        show "norm (\<gamma> x - \<gamma> y) \<le> 2*pi * norm (x - y)"
+          using \<gamma>_lip x y by auto
+        show "0 \<le> B"
+          using B[of 1 "-1"] by simp (smt (verit) norm_ge_zero)
+      qed
+      also have "\<dots> = (B * (2*pi)) * norm (x - y)" by (simp add: algebra_simps)
+      finally show "norm (p x - p y) \<le> (B * (2*pi)) * norm (x - y)" .
+    qed
+    then show ?thesis
+      using lipschitz_imp_rectifiable_path by (metis bspec)
+  qed
+  show ?thesis
+    using p_simple p_rect p_loop p_img by blast
+qed
 
 \<comment> \<open>HOL Light: RECTIFIABLE_LOOP_FRONTIER_CONVEX\<close>
 lemma rectifiable_loop_frontier_convex:
