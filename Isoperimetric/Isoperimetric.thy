@@ -1,6 +1,6 @@
 theory Isoperimetric
   imports Arc_Length_Reparametrization "Fourier.Square_Integrable" "Green.Integrals" "../Euclidean_Space_Transfer"
-    "HOL-ex.Sketch_and_Explore" Isar_Explore
+    "HOL-ex.Sketch_and_Explore" 
 begin
 
 hide_const (open) Polynomial.content
@@ -516,10 +516,10 @@ proof -
       (\<Sum>k\<in>d. norm (f (Sup k) - f (Inf k))) \<le> B"
     using assms unfolding has_bounded_variation_on_def has_bounded_setvariation_on_def
     by blast
-  have claim: "\<exists>T. negligible T \<and>
-       (\<forall>x. x \<in> {a..b} - T \<longrightarrow> isCont f x \<longrightarrow>
-          (\<exists>B>0. eventually (\<lambda>y. norm (f y - f x) \<le> B * norm (y - x)) (at x)))"
-  proof (intro exI [where x = "_ \<union> t"] conjI strip)
+  obtain T where tn: "negligible T" and
+    tc: "\<And>x. x \<in> {a..b} - T \<Longrightarrow> isCont f x \<Longrightarrow>
+       \<exists>B>0. eventually (\<lambda>y. norm (f y - f x) \<le> B * norm (y - x)) (at x)"
+  proof 
     show "negligible ({a, b} \<union> t)"
     proof (rule negligible_Un)
       show "negligible t"
@@ -539,8 +539,8 @@ proof -
             unfolding t_def by auto
           from xab obtain d where "d > 0" and dsub: "\<And>x'. \<bar>x' - x\<bar> < d \<Longrightarrow> x' \<in> {a<..<b}"
             by (meson open_greaterThanLessThan open_real)
-          have False if "d > 0" and hd: "\<And>x'. 0 < dist x' x \<Longrightarrow> dist x' x < d \<Longrightarrow>
-                norm (f x' - f x) \<le> (3 * M) * norm (x' - x)" for d
+          have False if "d > 0" 
+            and hd: "\<And>y. 0 < dist y x \<Longrightarrow> dist y x < d \<Longrightarrow> norm (f y - f x) \<le> (3*M) * norm (y-x)" for d
           proof -
             have "eventually (\<lambda>y. norm (f y - f x) \<le> (3 * M) * norm (y - x)) (at x)"
               unfolding eventually_at using \<open>d > 0\<close> hd by auto
@@ -585,22 +585,14 @@ proof -
           have gap_bound: "\<bar>max y z - min y z\<bar> < 2 * \<delta>"
             by (smt (verit) \<delta>_def dist_real_def dist_zx)
           have key: "norm (f z - f y) > 2 * M * \<delta>"
-          proof -
-            have "norm (f y - f x) \<le> norm (f y - f z) + norm (f z - f x)"
-              using norm_triangle_ineq[of "f y - f z" "f z - f x"] by simp
-            then have "norm (f y - f z) \<ge> norm (f y - f x) - norm (f z - f x)"
-              by linarith
-            then have "norm (f y - f z) > 3 * M * \<delta> - M * \<delta>"
-              using ylip' fz_bound by linarith
-            then show ?thesis by (simp add: norm_minus_commute)
-          qed
+            using norm_triangle_ineq[of "f y - f z" "f z - f x"] ylip' fz_bound
+            by (simp add: norm_minus_commute)
           have "M * \<bar>max y z - min y z\<bar> < norm (f (min y z) - f (max y z))"
           proof -
             have "M * \<bar>max y z - min y z\<bar> < M * (2 * \<delta>)"
               using gap_bound \<open>0 < M\<close> by auto
-            also have "\<dots> < norm (f z - f y)" using key by linarith
-            also have "\<dots> = norm (f (min y z) - f (max y z))"
-              by (simp add: min_def norm_minus_commute)
+            also have "\<dots> < norm (f (min y z) - f (max y z))"
+              using key by (simp add: min_def norm_minus_commute)
             finally show ?thesis .
           qed
           then show ?thesis
@@ -634,12 +626,12 @@ proof -
           qed
           have "\<exists>P. finite P \<and> P \<subseteq> ?\<C> \<and> \<epsilon> < measure lebesgue (\<Union>P)"
           proof (rule ccontr)
-            assume "\<not> (\<exists>p. finite p \<and> p \<subseteq> ?\<C> \<and> \<epsilon> < measure lebesgue (\<Union>p))"
+            assume "\<not> ?thesis"
             then have bound: "\<And>\<E>. \<E> \<subseteq> ?\<C> \<Longrightarrow> finite \<E> \<Longrightarrow> measure lebesgue (\<Union>\<E>) \<le> \<epsilon>"
               by (meson linorder_not_less)
             then have "\<exists>T. t \<subseteq> T \<and> T \<in> lmeasurable \<and> measure lebesgue T \<le> \<epsilon>"
               using tsub
-              by (smt (verit, del_insts) cnt fmeasurable_Union_bound meas measure_Union_bound)
+              by (metis (no_types, lifting) cnt fmeasurable_Union_bound meas measure_Union_bound)
             then show False using non by auto
           qed
           then obtain p where "finite p" "p \<subseteq> c"
@@ -673,25 +665,22 @@ proof -
               have p'_sub: "p' \<subseteq> p"
                 unfolding p'_def using Csub_im by (auto intro: inv_into_into)
               have C_eq: "\<C> = ?f ` p'"
-                unfolding p'_def using image_inv_into_cancel[of ?f p "?f ` p" \<C>]
-                  Csub_im by auto
+                by (metis Csub_im image_inv_into_cancel p'_def)
               have "inj_on ?f p'"
               proof (rule inj_onI)
-                fix x y assume "x \<in> p'" "y \<in> p'" "?f x = ?f y"
-                from \<open>x \<in> p'\<close> obtain K1 where "K1 \<in> \<C>" "x = inv_into p ?f K1"
+                fix x y assume "x \<in> p'" "y \<in> p'" and eq: "?f x = ?f y"
+                from \<open>x \<in> p'\<close> obtain K1 where "K1 \<in> \<C>" and K1: "x = inv_into p ?f K1"
                   unfolding p'_def by auto
-                from \<open>y \<in> p'\<close> obtain K2 where "K2 \<in> \<C>" "y = inv_into p ?f K2"
+                from \<open>y \<in> p'\<close> obtain K2 where "K2 \<in> \<C>" and K2: "y = inv_into p ?f K2"
                   unfolding p'_def by auto
                 have "K1 = ?f (inv_into p ?f K1)"
                   using f_inv_into_f[of K1 ?f p] \<open>K1 \<in> \<C>\<close> Csub_im by auto
-                also have "\<dots> = ?f x" using \<open>x = inv_into p ?f K1\<close> by simp
-                also have "\<dots> = ?f y" using \<open>?f x = ?f y\<close> by simp
                 also have "\<dots> = ?f (inv_into p ?f K2)" 
-                  using \<open>y = inv_into p ?f K2\<close> by simp
+                  using eq K1 K2 by fastforce
                 also have "\<dots> = K2"
                   using f_inv_into_f[of K2 ?f p] \<open>K2 \<in> \<C>\<close> Csub_im by auto
                 finally have "K1 = K2" .
-                then show "x = y" using \<open>x = inv_into p ?f K1\<close> \<open>y = inv_into p ?f K2\<close> by simp
+                then show "x = y" using K1 K2 by simp
               qed
               then show ?thesis using that p'_sub C_eq by blast
             qed
@@ -702,13 +691,8 @@ proof -
             have "measure lebesgue (\<Union>\<C>) \<le> (\<Sum>x\<in>p'. v x - u x)"
             proof -
               have "measure lebesgue (\<Union>\<C>) \<le> (\<Sum>D\<in>\<C>. measure lebesgue D)"
-              proof (rule measure_Union_le)
-                show "finite \<C>" using finp' unfolding \<C>_eq by auto
-                fix D assume "D \<in> \<C>"
-                then obtain x where "x \<in> p'" "D = cbox (u x) (v x)" unfolding \<C>_eq by auto
-                then show "D \<in> sets lebesgue"
-                  using fmeasurableD[OF fmeasurable_cbox] by auto
-              qed
+                by (metis (no_types, lifting) \<C>_eq \<open>\<C> \<subseteq> \<D>\<close> cbox_borel fin\<D> finite_subset 
+                    imageE measure_Union_le sets_completionI_sets sets_lborel)
               also have "\<dots> \<le> (\<Sum>x\<in>p'. measure lebesgue (cbox (u x) (v x)))"
                 by (metis (no_types, lifting) \<C>_eq dual_order.eq_iff inj sum.reindex_cong)
               also have "\<dots> = (\<Sum>x\<in>p'. v x - u x)"
@@ -731,49 +715,26 @@ proof -
             qed
             also have "\<dots> \<le> B / M"
             proof -
-              have "(\<Sum>x\<in>p'. norm (f (u x) - f (v x))) \<le> B"
-              proof -
-                have div: "\<C> division_of \<Union>\<C>"
-                  unfolding division_of_def
-                proof (intro conjI)
-                  show "finite \<C>"
-                    using finp' unfolding \<C>_eq by auto
-                next
-                  show "\<forall>K\<in>\<C>. K \<subseteq> \<Union>\<C> \<and> K \<noteq> {} \<and> (\<exists>a b. K = cbox a b)"
-                  proof
-                    fix K assume "K \<in> \<C>"
-                    then obtain x where "x \<in> p'" "K = cbox (u x) (v x)"
-                      unfolding \<C>_eq by auto
-                    then show "K \<subseteq> \<Union>\<C> \<and> K \<noteq> {} \<and> (\<exists>a b. K = cbox a b)"
-                      using ux_less_vx[of x] \<open>K \<in> \<C>\<close> by auto
-                  qed
-                next
-                  show "\<forall>K1\<in>\<C>. \<forall>K2\<in>\<C>. K1 \<noteq> K2 \<longrightarrow> interior K1 \<inter> interior K2 = {}"
-                    by (metis \<open>disjoint \<C>\<close> disjointD interior_Int interior_empty)
-                qed auto
-                have Csub: "\<Union>\<C> \<subseteq> {a..b}"
-                proof
-                  fix x assume "x \<in> \<Union>\<C>"
-                  then obtain K where "K \<in> \<C>" "x \<in> K" by auto
-                  then obtain z where "z \<in> p'" "K = cbox (u z) (v z)"
-                    unfolding \<C>_eq by auto
-                  then have "u z \<in> {a..b}" "v z \<in> {a..b}"
-                    using uv[of z] p'sub by auto
-                  then show "x \<in> {a..b}"
-                    using \<open>x \<in> K\<close> \<open>K = cbox (u z) (v z)\<close> by auto
-                qed
-                have "(\<Sum>x\<in>p'. norm (f (u x) - f (v x)))
-                    = (\<Sum>x\<in>p'. norm (f (v x) - f (u x)))"
-                  by (simp add: norm_minus_commute)
-                also have "\<dots> = (\<Sum>x\<in>p'. norm (f (Sup (cbox (u x) (v x))) - f (Inf (cbox (u x) (v x)))))"
-                  by (simp add: less_imp_le ux_less_vx)
-                also have "\<dots> = (\<Sum>K\<in>\<C>. norm (f (Sup K) - f (Inf K)))"
-                  unfolding \<C>_eq using sum.reindex[OF inj, of "\<lambda>K. norm (f (Sup K) - f (Inf K))"]
-                  by (simp add: comp_def)
-                also have "\<dots> \<le> B"
-                  using B[OF div Csub] .
-                finally show ?thesis .
-              qed
+              have div: "\<C> division_of \<Union>\<C>"
+                unfolding division_of_def
+              proof (intro conjI)
+                show "finite \<C>"
+                  using finp' unfolding \<C>_eq by auto
+                show "\<forall>K\<in>\<C>. K \<subseteq> \<Union>\<C> \<and> K \<noteq> {} \<and> (\<exists>a b. K = cbox a b)"
+                  unfolding \<C>_eq using p'sub uv by fastforce
+                show "\<forall>K1\<in>\<C>. \<forall>K2\<in>\<C>. K1 \<noteq> K2 \<longrightarrow> interior K1 \<inter> interior K2 = {}"
+                  by (metis \<open>disjoint \<C>\<close> disjointD interior_Int interior_empty)
+              qed auto
+              have Csub: "\<Union>\<C> \<subseteq> {a..b}"
+                unfolding \<C>_eq using p'sub uv by fastforce
+              have "(\<Sum>x\<in>p'. norm (f (u x) - f (v x)))
+                    = (\<Sum>x\<in>p'. norm (f (Sup (cbox (u x) (v x))) - f (Inf (cbox (u x) (v x)))))"
+                by (simp add: less_imp_le ux_less_vx norm_minus_commute)
+              also have "\<dots> = (\<Sum>K\<in>\<C>. norm (f (Sup K) - f (Inf K)))"
+                unfolding \<C>_eq using sum.reindex[OF inj, of "\<lambda>K. norm (f (Sup K) - f (Inf K))"]
+                by (simp add: comp_def)
+              also have "\<dots> \<le> B" using B[OF div Csub] .
+              finally have "(\<Sum>x\<in>p'. norm (f (u x) - f (v x))) \<le> B" .
               then show ?thesis using \<open>0 < M\<close> by (simp add: divide_right_mono)
             qed
             also have "\<dots> < \<epsilon> / 3"
@@ -784,18 +745,13 @@ proof -
       qed
     qed auto
   qed (auto simp: t_def)
-  then obtain T where tn: "negligible T" and
-    tc: "\<And>x. x \<in> {a..b} - T \<Longrightarrow> isCont f x \<Longrightarrow>
-       \<exists>B>0. eventually (\<lambda>y. norm (f y - f x) \<le> B * norm (y - x)) (at x)"
-    by auto
   define D where "D = {x \<in> {a..b}. \<not> isCont f x}"
   have "countable D"
     unfolding D_def using has_bounded_variation_countable_discontinuities[OF assms] .
   hence "negligible (T \<union> D)"
     using tn negligible_Un countable_imp_negligible by blast
-  moreover have "\<forall>x \<in> {a..b} - (T \<union> D). \<exists>B>0. eventually (\<lambda>y. norm (f y - f x) \<le> B * norm (y - x)) (at x)"
-    using D_def tc by auto
-  ultimately show ?thesis by blast
+  then show ?thesis
+    using D_def tc by blast
 qed
 
 lemma cover_T:
