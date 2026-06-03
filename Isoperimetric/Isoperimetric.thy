@@ -1396,15 +1396,14 @@ lemma Lebesgue_diff_aux4:
               \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
                              v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
                              u \<noteq> x \<and> v \<noteq> x \<and>
-                             k \<le> (f v - f x) / (v - x) -
-                                  (f u - f x) / (u - x)}" (is "negligible ?T")
+                             k \<le> (f v - f x) / (v - x) - (f u - f x) / (u - x)}" 
+     (is "negligible ?T")
 proof -
   define T where "T \<equiv> ?T"
   \<comment> \<open>we get a negligible set outside which f has a local Lipschitz bound\<close>
   from Lebesgue_diff_aux1[OF assms(1)]
-  obtain U where neg_U: "negligible U" and
-    U_prop: "\<forall>x \<in> {a..b} - U.
-       \<exists>B>0. eventually (\<lambda>y. norm (f y - f x) \<le> B * norm (y - x)) (at x)"
+  obtain U where neg_U: "negligible U" 
+    and U_prop: "\<forall>x \<in> {a..b} - U. \<exists>B>0. \<forall>\<^sub>F y in at x. norm (f y - f x) \<le> B * norm (y - x)"
     by auto
   \<comment> \<open>Define the rational-indexed family: for each q \<in> \<rat>, the set of x where
       the v-quotient is \<ge> q + k/3 and the u-quotient is \<le> q - k/3\<close>
@@ -1414,7 +1413,7 @@ proof -
                              u \<noteq> x \<and> v \<noteq> x \<and>
                              k / 3 \<le> (f v - f x) / (v - x) - q \<and>
                              (f u - f x) / (u - x) - q \<le> -(k / 3)}" for q :: real
-  \<comment> \<open>The target set T is a subset of U \<union> \<Union>{S q | q \<in> \<rat>}\<close>
+  \<comment> \<open>The target set T is a subset of this\<close>
   have neg_super: "negligible (U \<union> \<Union>(S ` \<rat>))"
   proof (rule negligible_Un[OF neg_U])
     show "negligible (\<Union>(S ` \<rat>))"
@@ -1479,11 +1478,11 @@ proof -
           from real_arch_invD[OF \<open>d > 0\<close>]
           obtain N :: nat where "N \<noteq> 0" and "inverse (real N) < d" by auto
           show thesis
-          proof (rule that[of N])
-            fix n :: nat and u :: real
+          proof 
+            fix n u
             assume "N \<le> n" "u \<in> ball x (inverse (real n + 1))" "u \<noteq> x"
-            have "dist u x < inverse (real n + 1)"
-              using \<open>u \<in> ball x (inverse (real n + 1))\<close> by (simp add: mem_ball dist_commute)
+            then have "dist u x < inverse (real n + 1)"
+              by (simp add: mem_ball dist_commute)
             also have "inverse (real n + 1) \<le> inverse (real N)"
               using \<open>N \<le> n\<close> \<open>N \<noteq> 0\<close> by auto
             also have "\<dots> < d" by fact
@@ -1493,16 +1492,8 @@ proof -
               by (simp add: \<open>dist u x < d\<close> pos_divide_le_eq)
           qed
         qed
-        have balls_nonempty: "\<exists>u. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and> u \<noteq> x"
-          for n 
-        proof -
-          have "at x within {a..b} \<noteq> \<bottom>"
-            using islimpt_Icc[OF \<open>a < b\<close>] xab by (simp add: trivial_limit_within)
-          then have ne: "{a..b} \<inter> ball x \<epsilon> - {x} \<noteq> {}" if "\<epsilon> > 0" for \<epsilon>
-            using that by (simp add: not_trivial_limit_within_ball)
-          have "inverse (real n + 1) > (0::real)" by simp
-          from ne[OF this] show ?thesis by fastforce
-        qed
+        have balls_nonempty: "\<And>n. \<exists>u. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and> u \<noteq> x"
+          using xprop by blast 
         \<comment> \<open>The infimum of difference quotients over shrinking balls converges\<close>
         define DQ where "DQ n = {(f u - f x) / (u - x) | u.
           u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and> u \<noteq> x}" for n
@@ -1528,12 +1519,7 @@ proof -
             using abs_le_D1[OF dq_bound[OF nN u(1) u(3)]] .
           finally have upper: "g (n + N) \<le> B" .
           have "- B \<le> y" if y: "y \<in> DQ (n + N)" for y
-          proof -
-            obtain u where u: "u \<in> ball x (inverse (real (n + N) + 1))" "u \<in> {a..b}" "u \<noteq> x"
-              and yeq: "y = (f u - f x) / (u - x)" using y unfolding DQ_def by auto
-            then show "- B \<le> y" unfolding yeq
-              by (smt (verit, best) dq_bound nN)
-          qed
+            by (smt (verit, best) DQ_def dq_bound mem_Collect_eq nN y)
           then have "- B \<le> Inf (DQ (n + N))"
             using le_cInf_iff[OF S_nonempty S_bdd[OF nN]] by auto
           with upper show ?thesis
@@ -1542,12 +1528,8 @@ proof -
         have bseq: "Bseq (\<lambda>n. g (n + N))"
           unfolding Bseq_def using \<open>B > 0\<close> g_bounded by auto
         have "convergent g"
-        proof (rule Bseq_monoseq_convergent'_inc[OF bseq])
-          fix m n :: nat assume "N \<le> m" "m \<le> n"
-          then show "g m \<le> g n" by (rule g_mono)
-        qed
+          using Bseq_monoseq_convergent'_inc bseq g_mono by blast
         then obtain l where l_conv: "g \<longlonglongrightarrow> l" using convergentD by auto
-
         \<comment> \<open>The supremum of difference quotients over shrinking balls converges\<close>
         have S_upper: "y \<le> B" if "N \<le> n" "y \<in> DQ n" for n y
           using abs_le_D1[OF dq_bound] DQ_def that by auto 
@@ -1562,17 +1544,14 @@ proof -
           have upper: "h (n + N) \<le> B"
             using cSup_le_iff[OF S_nonempty S_bdd_above[OF nN]]
             by (metis S_upper add.commute h_def le_add1)
-          have lower: "- B \<le> h (n + N)"
-          proof -
-            obtain u where u: "u \<in> ball x (inverse (real (n + N) + 1))" "u \<in> {a..b}" "u \<noteq> x"
-              using balls_nonempty[of "n + N"] by auto
-            have mem: "(f u - f x) / (u - x) \<in> DQ (n + N)" unfolding DQ_def using u by auto
-            have "(f u - f x) / (u - x) \<le> h (n + N)"
-              unfolding h_def by (rule cSup_upper[OF mem S_bdd_above[OF nN]])
-            moreover have "- B \<le> (f u - f x) / (u - x)"
-              using abs_le_D2[OF dq_bound[OF nN u(1) u(3)]] by linarith
-            ultimately show ?thesis by linarith
-          qed
+          obtain u where u: "u \<in> ball x (inverse (real (n + N) + 1))" "u \<in> {a..b}" "u \<noteq> x"
+            using balls_nonempty[of "n + N"] by auto
+          have mem: "(f u - f x) / (u - x) \<in> DQ (n + N)" unfolding DQ_def using u by auto
+          have "(f u - f x) / (u - x) \<le> h (n + N)"
+            unfolding h_def by (rule cSup_upper[OF mem S_bdd_above[OF nN]])
+          moreover have "- B \<le> (f u - f x) / (u - x)"
+            using abs_le_D2[OF dq_bound[OF nN u(1) u(3)]] by linarith
+          ultimately have lower: "- B \<le> h (n + N)" by linarith
           from upper lower show ?thesis
             by (simp add: abs_le_iff real_norm_def)
         qed
@@ -1580,109 +1559,78 @@ proof -
           unfolding Bseq_def using \<open>B > 0\<close> h_bounded by auto
         obtain m where m_conv: "h \<longlonglongrightarrow> m" 
           using convergentD Bseq_monoseq_convergent'_dec bseq_h h_mono by blast 
-        have k_le: "k \<le> m - l"
+        have diff_conv: "(\<lambda>n. h n - g n) \<longlonglongrightarrow> m - l"
+          by (rule tendsto_diff[OF m_conv l_conv])
+        have "k \<le> (\<lambda>n. h n - g n) n" if "N \<le> n" for n
         proof -
-          have diff_conv: "(\<lambda>n. h n - g n) \<longlonglongrightarrow> m - l"
-            by (rule tendsto_diff[OF m_conv l_conv])
-          have "k \<le> (\<lambda>n. h n - g n) n" if "N \<le> n" for n
-          proof -
-            obtain u v where uv: "u \<in> ball x (inverse (real n + 1))" "u \<in> {a..b}"
-              "v \<in> ball x (inverse (real n + 1))" "v \<in> {a..b}" "u \<noteq> x" "v \<noteq> x"
-              and kle: "k \<le> (f v - f x) / (v - x) - (f u - f x) / (u - x)"
-              by (meson xab xprop)
-            have *: "(f u - f x) / (u - x) \<in> DQ n"  "(f v - f x) / (v - x) \<in> DQ n"
-              unfolding DQ_def using uv by auto
-            have "g n \<le> (f u - f x) / (u - x)"
-              by (simp add: "*" S_bdd g_def cInf_lower that)
-            moreover have "(f v - f x) / (v - x) \<le> h n"
-              by (simp add: "*" S_bdd_above h_def cSup_upper that)
-            ultimately show "k \<le> (\<lambda>n. h n - g n) n" using kle by linarith
-          qed
-          then show ?thesis using Lim_bounded2[OF diff_conv]
-            by blast
+          obtain u v where uv: "u \<in> ball x (inverse (real n + 1))" "u \<in> {a..b}"
+            "v \<in> ball x (inverse (real n + 1))" "v \<in> {a..b}" "u \<noteq> x" "v \<noteq> x"
+            and kle: "k \<le> (f v - f x) / (v - x) - (f u - f x) / (u - x)"
+            by (meson xab xprop)
+          have *: "(f u - f x) / (u - x) \<in> DQ n"  "(f v - f x) / (v - x) \<in> DQ n"
+            unfolding DQ_def using uv by auto
+          have "g n \<le> (f u - f x) / (u - x)"
+            by (simp add: "*" S_bdd g_def cInf_lower that)
+          moreover have "(f v - f x) / (v - x) \<le> h n"
+            by (simp add: "*" S_bdd_above h_def cSup_upper that)
+          ultimately show "k \<le> (\<lambda>n. h n - g n) n" using kle by linarith
         qed
-          \<comment> \<open>find a rational witness q\<close>
+        then have k_le: "k \<le> m - l" using Lim_bounded2[OF diff_conv]
+          by blast
+            \<comment> \<open>find a rational witness q\<close>
         have mid: "(l + m) / 2 - k / 6 < (l + m) / 2 + k / 6"
           using assms by auto
         then obtain q where q: "q \<in> \<rat>" "(l + m) / 2 - k / 6 < q" "q < (l + m) / 2 + k / 6"
           using Rats_dense_in_real by blast
         with k_le \<open>0 < k\<close>  have q_l: "k / 3 < q - l" and q_m: "k / 3 < m - q"
           by (auto simp add: field_simps)
-        have "x \<in> S q"
-        proof -
-          have main: "\<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
+        have main: "\<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
                             v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
                             u \<noteq> x \<and> v \<noteq> x \<and>
                             k / 3 \<le> (f v - f x) / (v - x) - q \<and>
                             (f u - f x) / (u - x) - q \<le> - (k / 3)" for n
+        proof -
+          \<comment> \<open>First reduction: not all dq's in DQ n are \<ge> q - k/3\<close>
+          have neg_lower: False 
+            if A: "\<forall>u. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and> u \<noteq> x
+                \<longrightarrow> q - k / 3 \<le> (f u - f x) / (u - x)"
           proof -
-            \<comment> \<open>First reduction: not all dq's in DQ n are \<ge> q - k/3\<close>
-            have neg_lower: "\<not> (\<forall>u. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and> u \<noteq> x
-                \<longrightarrow> q - k / 3 \<le> (f u - f x) / (u - x))"
-            proof (rule notI)
-              assume A: "\<forall>u. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and> u \<noteq> x
-                  \<longrightarrow> q - k / 3 \<le> (f u - f x) / (u - x)"
-
-              have lb: "q - k / 3 \<le> y" if "y \<in> DQ p" "n \<le> p" for y p
-              proof -
-                from S_subset[OF that(2)] that(1) have "y \<in> DQ n" by auto
-                then obtain u where u: "u \<in> ball x (inverse (real n + 1))" "u \<in> {a..b}" "u \<noteq> x"
-                  and yeq: "y = (f u - f x) / (u - x)" unfolding DQ_def by auto
-                from A u show ?thesis unfolding yeq by auto
-              qed
-              have "q - k / 3 \<le> g p" if "max n N \<le> p" for p
-              proof -
-                have "q - k / 3 \<le> Inf (DQ p)"
-                  using le_cInf_iff[OF S_nonempty S_bdd[OF max.cobounded2[THEN le_trans[OF _ that]]]]
-                    lb[OF _ max.cobounded1[THEN le_trans[OF _ that]]]
-                  by auto
-                then show ?thesis unfolding g_def .
-              qed
-              with Lim_bounded2[OF l_conv]
-              have "q - k / 3 \<le> l" by blast
-              with q_l show False by linarith
+            have lb: "q - k / 3 \<le> y" if "y \<in> DQ p" "n \<le> p" for y p
+              using S_subset[OF that(2)] that(1) using A DQ_def by auto
+            have "q - k / 3 \<le> g p" if "max n N \<le> p" for p
+            proof -
+              have "q - k / 3 \<le> Inf (DQ p)"
+                using le_cInf_iff[OF S_nonempty S_bdd[OF max.cobounded2[THEN le_trans[OF _ that]]]]
+                  lb[OF _ max.cobounded1[THEN le_trans[OF _ that]]]
+                by auto
+              then show ?thesis unfolding g_def .
             qed
-            \<comment> \<open>Second reduction: not all dq's in DQ n are \<le> q + k/3\<close>
-            have neg_upper: "\<not> (\<forall>v. v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and> v \<noteq> x
-                \<longrightarrow> (f v - f x) / (v - x) \<le> k / 3 + q)"
-            proof (rule notI)
-              assume A: "\<forall>v. v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and> v \<noteq> x
-                  \<longrightarrow> (f v - f x) / (v - x) \<le> k / 3 + q"
-
-              have ub: "y \<le> k / 3 + q" if "y \<in> DQ p" "n \<le> p" for y p
-              proof -
-                from S_subset[OF that(2)] that(1) have "y \<in> DQ n" by auto
-                then obtain v where v: "v \<in> ball x (inverse (real n + 1))" "v \<in> {a..b}" "v \<noteq> x"
-                  and yeq: "y = (f v - f x) / (v - x)" unfolding DQ_def by auto
-                from A v show ?thesis unfolding yeq by auto
-              qed
-
-              have "h p \<le> k / 3 + q" if "max n N \<le> p" for p
-              proof -
-                have "Sup (DQ p) \<le> k / 3 + q"
-                  using cSup_le_iff[OF S_nonempty S_bdd_above[OF max.cobounded2[THEN le_trans[OF _ that]]]]
-                    ub[OF _ max.cobounded1[THEN le_trans[OF _ that]]]
-                  by auto
-                then show ?thesis unfolding h_def .
-              qed
-
-              then have "\<forall>p \<ge> max n N. h p \<le> k / 3 + q" by auto
-              from Lim_bounded[OF m_conv this]
-              have "m \<le> k / 3 + q" .
-
-              with q_m show False by linarith
-            qed
-            \<comment> \<open>Extract witnesses from the negations\<close>
-            from neg_lower obtain u where u: "u \<in> ball x (inverse (real n + 1))" "u \<in> {a..b}" "u \<noteq> x"
-              and u_bound: "\<not> q - k / 3 \<le> (f u - f x) / (u - x)" by auto
-            from neg_upper obtain v where v: "v \<in> ball x (inverse (real n + 1))" "v \<in> {a..b}" "v \<noteq> x"
-              and v_bound: "\<not> (f v - f x) / (v - x) \<le> k / 3 + q" by auto
-            show ?thesis
-              using u u_bound v v_bound by (intro exI[of _ u] exI[of _ v]) linarith
+            with Lim_bounded2[OF l_conv] have "q - k / 3 \<le> l" by blast
+            with q_l show False by linarith
           qed
-          show ?thesis unfolding S_def using xab main by auto
-
+            \<comment> \<open>Second reduction: not all dq's in DQ n are \<le> q + k/3\<close>
+          have neg_upper: False
+            if A: "\<forall>v. v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and> v \<noteq> x
+                  \<longrightarrow> (f v - f x) / (v - x) \<le> k / 3 + q"
+          proof -
+            have ub: "y \<le> k / 3 + q" if "y \<in> DQ p" "n \<le> p" for y p
+              using S_subset[OF that(2)] that(1) using A DQ_def by auto 
+            have "h p \<le> k / 3 + q" if "max n N \<le> p" for p
+            proof -
+              have "Sup (DQ p) \<le> k / 3 + q"
+                using cSup_le_iff[OF S_nonempty S_bdd_above[OF max.cobounded2[THEN le_trans[OF _ that]]]]
+                  ub[OF _ max.cobounded1[THEN le_trans[OF _ that]]]
+                by auto
+              then show ?thesis unfolding h_def .
+            qed
+            then have "\<forall>p \<ge> max n N. h p \<le> k / 3 + q" by auto
+            with Lim_bounded[OF m_conv] have "m \<le> k / 3 + q" .
+            with q_m show False by linarith
+          qed
+          show ?thesis
+            by (smt (verit) neg_lower neg_upper)
         qed
+        have "x \<in> S q" unfolding S_def using xab main by auto
         with \<open>q \<in> \<rat>\<close> q_l show ?thesis
           by blast
       qed
