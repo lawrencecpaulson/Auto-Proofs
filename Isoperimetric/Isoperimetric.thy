@@ -944,8 +944,7 @@ proof (rule ccontr)
         from that obtain x where "x \<in> p" "K = {ux x..vx x}"
           using \<open>d \<subseteq> \<D>\<close> unfolding d'_def \<D>_def by auto
         then have "x \<in> T" using p_sub \<open>c \<subseteq> T\<close> by auto
-        from key_fn[OF this] have "ux x < vx x" by auto
-        then show ?thesis using \<open>K = {ux x..vx x}\<close> by auto
+        from key_fn[OF this]  show ?thesis using \<open>K = {ux x..vx x}\<close> by auto
       qed
       have fin_d': "finite d'" unfolding d'_def using fin_d by auto
       have d'_div: "d' division_of \<Union>d'"
@@ -979,8 +978,7 @@ proof (rule ccontr)
           by (simp add: real_norm_def)
         have sum_telesc: "(\<Sum>i\<in>d''. f (Sup i) - f (Inf i)) = f r - f l"
           using division_telescope_eq[OF d''_div \<open>l \<le> r\<close>] .
-        have elt_bound: "measure lebesgue i * k
-                    \<le> \<bar>f (Sup i) - f (Inf i)\<bar> - s * (f (Sup i) - f (Inf i))"
+        have elt_bound: "measure lebesgue i * k \<le> \<bar>f (Sup i) - f (Inf i)\<bar> - s * (f (Sup i) - f (Inf i))"
           if i_in_d': "i \<in> d'" for i
         proof -
           from i_in_d' obtain x where "x \<in> p" "i = {ux x..vx x}"
@@ -989,22 +987,17 @@ proof (rule ccontr)
           have uv_lt: "ux x < vx x" using key_fn[OF \<open>x \<in> T\<close>] by auto
           have i_sub_lr: "{ux x..vx x} \<subseteq> {l..r}"
             using i_in_d' unfolding d'_def \<open>i = {ux x..vx x}\<close> by auto
-          have "cx x = l" "dx x = r"
-          proof -
-            have "interior {l..r} \<inter> interior {cx x..dx x} \<noteq> {}"
-              using key_fn[OF \<open>x \<in> T\<close>] i_sub_lr by auto
-            then have "{cx x..dx x} = {l..r}"
-              using D_div K_eq \<open>K \<in> D\<close> key_fn[OF \<open>x \<in> T\<close>] by blast
-            then show "cx x = l" "dx x = r"
-              using key_fn[OF \<open>x \<in> T\<close>] \<open>l \<le> r\<close> by (auto simp: Icc_eq_Icc)
-          qed
+          have "interior {l..r} \<inter> interior {cx x..dx x} \<noteq> {}"
+            using key_fn[OF \<open>x \<in> T\<close>] i_sub_lr by auto
+          then have "{cx x..dx x} = {l..r}"
+            using D_div K_eq \<open>K \<in> D\<close> key_fn[OF \<open>x \<in> T\<close>] by blast
+          then have "cx x = l" "dx x = r"
+            using key_fn[OF \<open>x \<in> T\<close>] \<open>l \<le> r\<close> by (auto simp: Icc_eq_Icc)
           have meas_eq: "measure lebesgue i = vx x - ux x"
             unfolding \<open>i = {ux x..vx x}\<close>
             using uv_lt by (simp add: measure_lborel_cbox_eq content_real less_imp_le cbox_interval)
-          have sup_eq: "Sup i = vx x" unfolding \<open>i = {ux x..vx x}\<close>
-            using uv_lt by (simp add: cSup_atLeastAtMost less_imp_le)
-          have inf_eq: "Inf i = ux x" unfolding \<open>i = {ux x..vx x}\<close>
-            using uv_lt by (simp add: cInf_atLeastAtMost less_imp_le)
+          have eq: "Sup i = vx x" "Inf i = ux x" unfolding \<open>i = {ux x..vx x}\<close>
+            using uv_lt by (simp_all add: less_imp_le)
           show ?thesis
           proof (cases "f l \<le> f r")
             case True
@@ -1013,7 +1006,7 @@ proof (rule ccontr)
             with True uv_lt \<open>0 < k\<close>
             have fvu_neg: "f (vx x) - f (ux x) \<le> 0"
               by (smt (verit, ccfv_threshold) mult_neg_pos)
-            then show ?thesis unfolding sup_eq inf_eq meas_eq s_def
+            then show ?thesis unfolding eq meas_eq s_def
               using \<open>f (vx x) - f (ux x) \<le> - k * (vx x - ux x)\<close> uv_lt \<open>0 < k\<close> True
               by (simp add: mult.commute)
           next
@@ -1023,7 +1016,7 @@ proof (rule ccontr)
             with False uv_lt \<open>0 < k\<close>
             have fvu_pos: "f (vx x) - f (ux x) \<ge> 0"
               by (metis order.trans ge_iff_diff_ge_0 less_le zero_le_mult_iff)
-            then show ?thesis unfolding sup_eq inf_eq meas_eq s_def
+            then show ?thesis unfolding eq meas_eq s_def
               using \<open>k * (vx x - ux x) \<le> f (vx x) - f (ux x)\<close> uv_lt \<open>0 < k\<close>
               by (simp add: False mult.commute)
           qed
@@ -1110,12 +1103,10 @@ lemma Lebesgue_diff_aux2:
               \<forall>S. open S \<and> x \<in> S \<longrightarrow>
                 (\<exists>u v. u \<in> {a..b} \<and> u \<in> S \<and>
                        v \<in> {a..b} \<and> v \<in> S \<and>
-                       x \<in> {u<..<v} \<and>
-                       k \<le> (f v - f u) / (v - u)) \<and>
+                       x \<in> {u<..<v} \<and> k \<le> (f v - f u) / (v - u)) \<and>
                 (\<exists>u v. u \<in> {a..b} \<and> u \<in> S \<and>
                        v \<in> {a..b} \<and> v \<in> S \<and>
-                       x \<in> {u<..<v} \<and>
-                       (f v - f u) / (v - u) \<le> -k)}" (is "negligible ?N")
+                       x \<in> {u<..<v} \<and> (f v - f u) / (v - u) \<le> -k)}" (is "negligible ?N")
 proof -
   define N where "N \<equiv> ?N"
   have "negligible N"
@@ -1171,8 +1162,8 @@ proof -
           by (smt (verit, ccfv_SIG) KD True uv x_int)
       next
         case False
-        from x_int xN obtain u v where
-          uv: "u \<in> {c<..<d}" "v \<in> {c<..<d}" "x \<in> {u<..<v}" "k \<le> (f v - f u) / (v - u)"
+        from x_int xN obtain u v where uv: "u \<in> {c<..<d}" "v \<in> {c<..<d}" 
+                    "x \<in> {u<..<v}" "k \<le> (f v - f u) / (v - u)"
           using N_def by auto
         then have "k * (v - u) \<le> f v - f u" by (simp add: pos_le_divide_eq mult.commute)
         then show ?thesis using False KD uv x_int by blast
@@ -1193,14 +1184,8 @@ proof -
     moreover have "T \<in> lmeasurable"
       using T_def C_meas neg_frontiers negligible_imp_measurable by blast
     moreover have "measure lebesgue T \<le> e"
-    proof -
-      have "measure lebesgue T \<le> measure lebesgue C + measure lebesgue (\<Union>(frontier ` D))"
-        unfolding T_def
-        by (meson C_meas fmeasurableD measure_Un_le neg_frontiers negligible_iff_measure)
-      also have "measure lebesgue (\<Union>(frontier ` D)) = 0"
-        using neg_frontiers negligible_imp_measure0 by auto
-      finally show ?thesis using C_bound by linarith
-    qed
+      by (simp add: C_bound C_meas T_def measure_Un2 neg_frontiers negligible_diff
+          negligible_imp_measurable negligible_imp_measure0)
     ultimately show "\<exists>T. N \<subseteq> T \<and> T \<in> lmeasurable \<and> measure lebesgue T \<le> e"
       by blast
   qed
@@ -1405,7 +1390,7 @@ qed
 
 lemma Lebesgue_diff_aux4:
   fixes f :: "real \<Rightarrow> real" and a b k :: real
-  assumes "has_bounded_variation_on f {a..b}" "a < b" "0 < k"
+  assumes f: "has_bounded_variation_on f {a..b}" and "a < b" "0 < k"
   shows "negligible
            {x \<in> {a..b}.
               \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
@@ -1421,7 +1406,6 @@ proof -
     U_prop: "\<forall>x \<in> {a..b} - U.
        \<exists>B>0. eventually (\<lambda>y. norm (f y - f x) \<le> B * norm (y - x)) (at x)"
     by auto
-
   \<comment> \<open>Define the rational-indexed family: for each q \<in> \<rat>, the set of x where
       the v-quotient is \<ge> q + k/3 and the u-quotient is \<le> q - k/3\<close>
   define S where "S q \<equiv> {x \<in> {a..b}.
@@ -1442,29 +1426,23 @@ proof -
       then obtain q where "q \<in> \<rat>" and "Sq = S q" by auto
       show "negligible Sq"
       proof -
-        define g where "g x = f x - q * x" for x
-        have bv_g: "has_bounded_variation_on g {a..b}"
-        proof -
-          have bv_id: "has_bounded_variation_on id {a..b}"
-            by (rule increasing_bounded_variation) (auto simp: mono_on_def)
-          have "has_bounded_variation_on (\<lambda>x. q *\<^sub>R x) {a..b}"
-            using has_bounded_variation_on_cmul[OF bv_id] by simp
-          from has_bounded_variation_on_sub[OF assms(1) this]
-          show ?thesis unfolding g_def by simp
-        qed
-        have k3_pos: "0 < k / 3" using assms(3) by auto
+        define g where "g \<equiv> \<lambda>x. f x - q * x"
+        have bv_id: "has_bounded_variation_on id {a..b}"
+          by (rule increasing_bounded_variation) (auto simp: mono_on_def)
+        have "has_bounded_variation_on (\<lambda>x. q *\<^sub>R x) {a..b}"
+          using has_bounded_variation_on_cmul[OF bv_id] by simp
+        then have bv_g: "has_bounded_variation_on g {a..b}"
+          unfolding g_def using f has_bounded_variation_on_sub by force
         have Sq_eq: "S q = {x \<in> {a..b}.
               \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
                              v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
                              u \<noteq> x \<and> v \<noteq> x \<and>
-                             k / 3 \<le> (g v - g x) / (v - x) \<and>
-                             (g u - g x) / (u - x) \<le> -(k / 3)}"
+                             k / 3 \<le> (g v - g x) / (v - x) \<and> (g u - g x) / (u - x) \<le> -(k / 3)}"
           unfolding S_def
             apply (intro arg_cong[where f="\<lambda>P. {x \<in> {a..b}. P x}"] ext all_cong1 ex_cong1)
             by (auto simp: g_def algebra_simps divide_simps)
-
         show ?thesis unfolding \<open>Sq = S q\<close> Sq_eq
-          using Lebesgue_diff_aux3[OF bv_g assms(2) k3_pos] by simp
+          using Lebesgue_diff_aux3[OF bv_g \<open>a<b\<close>, of "k/3"] \<open>k>0\<close> by simp
       qed
     qed
   qed
@@ -1477,8 +1455,7 @@ proof -
         xprop: "\<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
                                v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
                                u \<noteq> x \<and> v \<noteq> x \<and>
-                               k \<le> (f v - f x) / (v - x) -
-                                    (f u - f x) / (u - x)"
+                               k \<le> (f v - f x) / (v - x) - (f u - f x) / (u - x)"
         unfolding T_def by blast
       show "x \<in> U \<union> \<Union>(S ` \<rat>)"
       proof (cases "x \<in> U")
@@ -1508,97 +1485,59 @@ proof -
             have "dist u x < inverse (real n + 1)"
               using \<open>u \<in> ball x (inverse (real n + 1))\<close> by (simp add: mem_ball dist_commute)
             also have "inverse (real n + 1) \<le> inverse (real N)"
-              by (rule le_imp_inverse_le) (use \<open>N \<le> n\<close> \<open>N \<noteq> 0\<close> in auto)
+              using \<open>N \<le> n\<close> \<open>N \<noteq> 0\<close> by auto
             also have "\<dots> < d" by fact
             finally have "dist u x < d" .
-            from d_prop[OF \<open>u \<noteq> x\<close> this]
-            have "\<bar>f u - f x\<bar> \<le> B * \<bar>u - x\<bar>"
-              by (simp add: real_norm_def)
-            moreover have "\<bar>u - x\<bar> > 0" using \<open>u \<noteq> x\<close> by auto
-            ultimately show "\<bar>(f u - f x) / (u - x)\<bar> \<le> B"
-              by (simp add: abs_divide divide_le_eq)
+            have "\<bar>u - x\<bar> > 0" using \<open>u \<noteq> x\<close> by auto
+            with d_prop[OF \<open>u \<noteq> x\<close>] show "\<bar>(f u - f x) / (u - x)\<bar> \<le> B"
+              by (simp add: \<open>dist u x < d\<close> pos_divide_le_eq)
           qed
         qed
         have balls_nonempty: "\<exists>u. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and> u \<noteq> x"
-          for n :: nat
+          for n 
         proof -
           have "at x within {a..b} \<noteq> \<bottom>"
-            using islimpt_Icc[OF \<open>a < b\<close>] xab
-            by (simp add: trivial_limit_within)
+            using islimpt_Icc[OF \<open>a < b\<close>] xab by (simp add: trivial_limit_within)
           then have ne: "{a..b} \<inter> ball x \<epsilon> - {x} \<noteq> {}" if "\<epsilon> > 0" for \<epsilon>
             using that by (simp add: not_trivial_limit_within_ball)
           have "inverse (real n + 1) > (0::real)" by simp
           from ne[OF this] show ?thesis by fastforce
         qed
-
         \<comment> \<open>The infimum of difference quotients over shrinking balls converges\<close>
         define DQ where "DQ n = {(f u - f x) / (u - x) | u.
           u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and> u \<noteq> x}" for n
         have S_nonempty: "DQ n \<noteq> {}" for n
           using balls_nonempty[of n] unfolding DQ_def by blast
         have S_bdd: "bdd_below (DQ n)" if "N \<le> n" for n
-        proof -
-          have "- B \<le> y" if "y \<in> DQ n" for y
-          proof -
-            from that obtain u where u: "u \<in> ball x (inverse (real n + 1))" "u \<in> {a..b}" "u \<noteq> x"
-              and yeq: "y = (f u - f x) / (u - x)" unfolding DQ_def by auto
-            from abs_le_D2[OF dq_bound[OF \<open>N \<le> n\<close> u(1) u(3)]]
-            show ?thesis unfolding yeq by linarith
-          qed
-          then show ?thesis unfolding bdd_below_def by auto
-        qed
-        have S_upper: "y \<le> B" if "N \<le> n" "y \<in> DQ n" for n y
-        proof -
-          from that(2) obtain u where u: "u \<in> ball x (inverse (real n + 1))" "u \<in> {a..b}" "u \<noteq> x"
-            and yeq: "y = (f u - f x) / (u - x)" unfolding DQ_def by auto
-          from abs_le_D1[OF dq_bound[OF that(1) u(1) u(3)]]
-          show ?thesis unfolding yeq .
-        qed
+          using DQ_def abs_le_D2[OF dq_bound[OF \<open>N \<le> n\<close>]] that 
+          by (auto simp: bdd_below.unfold minus_le_iff)
         have S_subset: "DQ n \<subseteq> DQ m" if "m \<le> n" for m n
-        proof -
-          have "inverse (real n + 1) \<le> inverse (real m + 1)"
-            by (rule le_imp_inverse_le) (use that in auto)
-          then have "ball x (inverse (real n + 1)) \<subseteq> ball x (inverse (real m + 1))"
-            by (rule subset_ball)
-          then show ?thesis unfolding DQ_def by fastforce
-        qed
-        define g where "g n = Inf (DQ n)" for n
+          unfolding DQ_def using less_le_trans that by fastforce
+        define g where "g \<equiv> \<lambda>n. Inf (DQ n)"
         have g_mono: "g m \<le> g n" if "N \<le> m" "m \<le> n" for m n
-        proof -
-          have "Inf (DQ m) \<le> Inf (DQ n)"
-            by (rule cInf_superset_mono[OF S_nonempty S_bdd[OF that(1)] S_subset[OF that(2)]])
-          then show ?thesis unfolding g_def .
-        qed
+          by (simp add: S_bdd S_nonempty S_subset cInf_superset_mono g_def that)
         have g_bounded: "norm (g (n + N)) \<le> B" for n
         proof -
           have nN: "N \<le> n + N" by simp
-          have upper: "g (n + N) \<le> B"
+          obtain u where u: "u \<in> ball x (inverse (real (n + N) + 1))" "u \<in> {a..b}" "u \<noteq> x"
+            using balls_nonempty[of "n + N"] by auto
+          have mem: "(f u - f x) / (u - x) \<in> DQ (n + N)" unfolding DQ_def using u by auto
+          have "g (n + N) \<le> (f u - f x) / (u - x)"
+            unfolding g_def by (rule cInf_lower[OF mem S_bdd[OF nN]])
+          also have "\<dots> \<le> B"
+            using abs_le_D1[OF dq_bound[OF nN u(1) u(3)]] .
+          finally have upper: "g (n + N) \<le> B" .
+          have "- B \<le> y" if y: "y \<in> DQ (n + N)" for y
           proof -
             obtain u where u: "u \<in> ball x (inverse (real (n + N) + 1))" "u \<in> {a..b}" "u \<noteq> x"
-              using balls_nonempty[of "n + N"] by auto
-            have mem: "(f u - f x) / (u - x) \<in> DQ (n + N)" unfolding DQ_def using u by auto
-            have "g (n + N) \<le> (f u - f x) / (u - x)"
-              unfolding g_def by (rule cInf_lower[OF mem S_bdd[OF nN]])
-            also have "\<dots> \<le> B"
-              using abs_le_D1[OF dq_bound[OF nN u(1) u(3)]] .
-            finally show ?thesis .
+              and yeq: "y = (f u - f x) / (u - x)" using y unfolding DQ_def by auto
+            then show "- B \<le> y" unfolding yeq
+              by (smt (verit, best) dq_bound nN)
           qed
-          have lower: "- B \<le> g (n + N)"
-          proof -
-            have "\<forall>y \<in> DQ (n + N). - B \<le> y"
-            proof
-              fix y assume "y \<in> DQ (n + N)"
-              then obtain u where u: "u \<in> ball x (inverse (real (n + N) + 1))" "u \<in> {a..b}" "u \<noteq> x"
-                and yeq: "y = (f u - f x) / (u - x)" unfolding DQ_def by auto
-              from abs_le_D2[OF dq_bound[OF nN u(1) u(3)]]
-              show "- B \<le> y" unfolding yeq by linarith
-            qed
-            then have "- B \<le> Inf (DQ (n + N))"
-              using le_cInf_iff[OF S_nonempty S_bdd[OF nN]] by auto
-            then show ?thesis unfolding g_def .
-          qed
-          from upper lower show ?thesis
-            by (simp add: abs_le_iff real_norm_def)
+          then have "- B \<le> Inf (DQ (n + N))"
+            using le_cInf_iff[OF S_nonempty S_bdd[OF nN]] by auto
+          with upper show ?thesis
+            by (simp add: g_def abs_le_iff)
         qed
         have bseq: "Bseq (\<lambda>n. g (n + N))"
           unfolding Bseq_def using \<open>B > 0\<close> g_bounded by auto
@@ -1610,30 +1549,19 @@ proof -
         then obtain l where l_conv: "g \<longlonglongrightarrow> l" using convergentD by auto
 
         \<comment> \<open>The supremum of difference quotients over shrinking balls converges\<close>
+        have S_upper: "y \<le> B" if "N \<le> n" "y \<in> DQ n" for n y
+          using abs_le_D1[OF dq_bound] DQ_def that by auto 
         have S_bdd_above: "bdd_above (DQ n)" if "N \<le> n" for n
-        proof -
-          have "y \<le> B" if "y \<in> DQ n" for y
-            using S_upper[OF \<open>N \<le> n\<close> that] .
-          then show ?thesis unfolding bdd_above_def by auto
-        qed
-        define h where "h n = Sup (DQ n)" for n
+          using S_upper[OF \<open>N \<le> n\<close>] by fastforce
+        define h where "h \<equiv> \<lambda>n. Sup (DQ n)" 
         have h_mono: "h n \<le> h m" if "N \<le> m" "m \<le> n" for m n
-        proof -
-          have "Sup (DQ n) \<le> Sup (DQ m)"
-            by (rule cSup_subset_mono[OF S_nonempty S_bdd_above[OF that(1)] S_subset[OF that(2)]])
-          then show ?thesis unfolding h_def .
-        qed
+          by (simp add: S_bdd_above S_nonempty S_subset cSup_subset_mono h_def that)
         have h_bounded: "norm (h (n + N)) \<le> B" for n
         proof -
           have nN: "N \<le> n + N" by simp
           have upper: "h (n + N) \<le> B"
-          proof -
-            have "\<forall>y \<in> DQ (n + N). y \<le> B"
-              using S_upper[OF nN] by auto
-            then have "Sup (DQ (n + N)) \<le> B"
-              using cSup_le_iff[OF S_nonempty S_bdd_above[OF nN]] by auto
-            then show ?thesis unfolding h_def .
-          qed
+            using cSup_le_iff[OF S_nonempty S_bdd_above[OF nN]]
+            by (metis S_upper add.commute h_def le_add1)
           have lower: "- B \<le> h (n + N)"
           proof -
             obtain u where u: "u \<in> ball x (inverse (real (n + N) + 1))" "u \<in> {a..b}" "u \<noteq> x"
@@ -1650,34 +1578,28 @@ proof -
         qed
         have bseq_h: "Bseq (\<lambda>n. h (n + N))"
           unfolding Bseq_def using \<open>B > 0\<close> h_bounded by auto
-        have "convergent h"
-        proof (rule Bseq_monoseq_convergent'_dec[OF bseq_h])
-          fix m n :: nat assume "N \<le> m" "m \<le> n"
-          then show "h n \<le> h m" by (rule h_mono)
-        qed
-        then obtain m where m_conv: "h \<longlonglongrightarrow> m" using convergentD by auto
-
+        obtain m where m_conv: "h \<longlonglongrightarrow> m" 
+          using convergentD Bseq_monoseq_convergent'_dec bseq_h h_mono by blast 
         have k_le: "k \<le> m - l"
         proof -
           have diff_conv: "(\<lambda>n. h n - g n) \<longlonglongrightarrow> m - l"
             by (rule tendsto_diff[OF m_conv l_conv])
-          have "\<forall>n\<ge>N. k \<le> (\<lambda>n. h n - g n) n"
-          proof (intro allI impI)
-            fix n :: nat assume "N \<le> n"
-            from xprop[rule_format, of n]
+          have "k \<le> (\<lambda>n. h n - g n) n" if "N \<le> n" for n
+          proof -
             obtain u v where uv: "u \<in> ball x (inverse (real n + 1))" "u \<in> {a..b}"
               "v \<in> ball x (inverse (real n + 1))" "v \<in> {a..b}" "u \<noteq> x" "v \<noteq> x"
-              and kle: "k \<le> (f v - f x) / (v - x) - (f u - f x) / (u - x)" by auto
-            have u_mem: "(f u - f x) / (u - x) \<in> DQ n" unfolding DQ_def using uv by auto
-            have v_mem: "(f v - f x) / (v - x) \<in> DQ n" unfolding DQ_def using uv by auto
+              and kle: "k \<le> (f v - f x) / (v - x) - (f u - f x) / (u - x)"
+              by (meson xab xprop)
+            have *: "(f u - f x) / (u - x) \<in> DQ n"  "(f v - f x) / (v - x) \<in> DQ n"
+              unfolding DQ_def using uv by auto
             have "g n \<le> (f u - f x) / (u - x)"
-              unfolding g_def by (rule cInf_lower[OF u_mem S_bdd[OF \<open>N \<le> n\<close>]])
+              by (simp add: "*" S_bdd g_def cInf_lower that)
             moreover have "(f v - f x) / (v - x) \<le> h n"
-              unfolding h_def by (rule cSup_upper[OF v_mem S_bdd_above[OF \<open>N \<le> n\<close>]])
+              by (simp add: "*" S_bdd_above h_def cSup_upper that)
             ultimately show "k \<le> (\<lambda>n. h n - g n) n" using kle by linarith
           qed
-          from Lim_bounded2[OF diff_conv this]
-          show ?thesis .
+          then show ?thesis using Lim_bounded2[OF diff_conv]
+            by blast
         qed
           \<comment> \<open>find a rational witness q\<close>
         have mid: "(l + m) / 2 - k / 6 < (l + m) / 2 + k / 6"
@@ -1708,7 +1630,6 @@ proof -
                   and yeq: "y = (f u - f x) / (u - x)" unfolding DQ_def by auto
                 from A u show ?thesis unfolding yeq by auto
               qed
-
               have "q - k / 3 \<le> g p" if "max n N \<le> p" for p
               proof -
                 have "q - k / 3 \<le> Inf (DQ p)"
@@ -1717,11 +1638,8 @@ proof -
                   by auto
                 then show ?thesis unfolding g_def .
               qed
-
-              then have "\<forall>p \<ge> max n N. q - k / 3 \<le> g p" by auto
-              from Lim_bounded2[OF l_conv this]
-              have "q - k / 3 \<le> l" .
-
+              with Lim_bounded2[OF l_conv]
+              have "q - k / 3 \<le> l" by blast
               with q_l show False by linarith
             qed
             \<comment> \<open>Second reduction: not all dq's in DQ n are \<le> q + k/3\<close>
