@@ -3885,11 +3885,115 @@ next
     case False
     then have "x \<bullet> y > 0"
       by auto
-    then show ?thesis sorry
+    show ?thesis
+    proof (cases "x=y")
+      case True
+      then show ?thesis
+        by auto
+    next
+      case False
+      show ?thesis
+      proof -
+        \<comment> \<open>Project the origin onto the affine hull of {x, y}\<close>
+        define w where "w = closest_point (affine hull {x, y}) 0"
+        have aff_closed: "closed (affine hull {x, y})" by (rule closed_affine_hull)
+        have aff_ne: "affine hull {x, y} \<noteq> {}" by (simp add: affine_hull_eq_empty)
+        have w_in: "w \<in> affine hull {x, y}"
+          unfolding w_def by (rule closest_point_in_set[OF aff_closed aff_ne])
+        have w_dist: "dist 0 w \<le> dist 0 z" if "z \<in> affine hull {x, y}" for z
+        proof -
+          have "dist 0 (closest_point (affine hull {x, y}) 0) \<le> dist 0 z"
+            by (metis closest_point_le[OF aff_closed that] dist_commute)
+          then show ?thesis unfolding w_def .
+        qed
+        have w_orth: "orthogonal (v - w) w" if "v \<in> affine hull {x, y}" for v
+        proof -
+          have "orthogonal (v - closest_point (affine hull {x, y}) 0)
+                           (0 - closest_point (affine hull {x, y}) 0)"
+            by (rule closest_point_affine_orthogonal[OF affine_affine_hull aff_ne that])
+          then have "orthogonal (v - w) (0 - w)"
+            unfolding w_def .
+          then show "orthogonal (v - w) w"
+            by (simp add: orthogonal_def inner_diff_right)
+        qed
+        have x_in_aff: "x \<in> affine hull {x, y}" by (rule hull_inc) simp
+        have y_in_aff: "y \<in> affine hull {x, y}" by (rule hull_inc) simp
+        have orth_x: "orthogonal (x - w) w" by (rule w_orth[OF x_in_aff])
+        have orth_y: "orthogonal (y - w) w" by (rule w_orth[OF y_in_aff])
+        have norm_w_le_x: "norm w \<le> norm x"
+          using w_dist[OF x_in_aff] by (simp add: dist_norm)
+        have norm_w_le_y: "norm w \<le> norm y"
+          using w_dist[OF y_in_aff] by (simp add: dist_norm)
+        \<comment> \<open>Derive orthogonality of (x - y) and w\<close>
+        have orth_xy_w: "orthogonal (x - y) w"
+          using orthogonal_clauses(10)[OF orth_x orth_y] by (simp add: algebra_simps)
+        \<comment> \<open>Collinearity and case analysis\<close>
+        have collinear_wxy: "collinear {w, x, y}"
+        proof -
+          have "collinear {x, y, w}"
+            by (rule affine_hull_3_imp_collinear[OF w_in])
+          then show ?thesis
+            by (simp add: insert_commute)
+        qed
+        have betw_cases: "between (x, y) w \<or> between (y, w) x \<or> between (w, x) y"
+          using collinear_wxy[unfolded collinear_between_cases] by blast
+        show ?thesis
+        proof (cases "between (x,y) w")
+          case True
+          show ?thesis
+          proof -
+            have orth_w: "orthogonal w (x - y)"
+              using orth_xy_w by (simp add: orthogonal_commute)
+            have step: "min (1 / norm x) (1 / norm y) * dist x y
+                          \<le> dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
+              by (rule dist_scaleR_ge_min_between)
+                (auto simp: x_ne y_ne intro: True orth_w)
+            have "r / R\<^sup>2 \<le> min (1 / norm x) (1 / norm y)"
+            proof -
+              have pos_x: "0 < norm x" using r_le_x \<open>0 < r\<close> by linarith
+              have pos_y: "0 < norm y" using r_le_y \<open>0 < r\<close> by linarith
+              have "r / R\<^sup>2 \<le> 1 / R"
+                using \<open>0 < R\<close> \<open>r \<le> R\<close> by (simp add: power2_eq_square field_simps)
+              moreover have "1 / R \<le> 1 / norm x"
+                using pos_x x_le_R by (intro frac_le) auto
+              moreover have "1 / R \<le> 1 / norm y"
+                using pos_y y_le_R by (intro frac_le) auto
+              ultimately show ?thesis by simp
+            qed
+            then have "r / R\<^sup>2 * dist x y \<le> min (1 / norm x) (1 / norm y) * dist x y"
+              using mult_right_mono[of "r / R\<^sup>2" "min (1 / norm x) (1 / norm y)" "dist x y"]
+              by (simp add: zero_le_dist)
+            also note step
+            finally show ?thesis .
+          qed
+        next
+          case False
+          then have *: "between (y, w) x \<or> between (w, x) y"
+            using betw_cases by blast
+          show ?thesis
+          proof -
+            \<comment> \<open>Extract a lemma that works for either orientation\<close>
+            have betw_lemma:
+              "r / R\<^sup>2 * dist a b \<le> dist ((1 / norm a) *\<^sub>R a) ((1 / norm b) *\<^sub>R b)"
+              if "between (b, w) a" "orthogonal (a - w) w"
+                 "r \<le> norm a" "norm w \<le> norm a" "norm a \<le> R"
+               for a b :: "'a"
+            proof (cases "w \<in> {a,b}")
+              case True
+              then show ?thesis sorry
+            next
+              case False
+              then show ?thesis sorry
+            qed
+
+            show ?thesis using *
+              by (smt (verit) betw_lemma between dist_commute norm_w_le_x norm_w_le_y orth_x orth_y r_le_x r_le_y x_le_R y_le_R) 
+          qed
+        qed
+    qed
   qed
-
+  qed
 qed
-
 
 
 
@@ -9635,8 +9739,7 @@ next
        interior (convex hull (path_image g))"
       "(path_image g1 - {g b, g a}) \<inter> path_image d0 = {}"
     proof -
-      show thesis
-        sorry
+      show thesis sorry
     qed
 
 
