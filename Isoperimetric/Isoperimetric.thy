@@ -148,6 +148,98 @@ proof -
   qed
 qed
 
+lemma any_closest_point_affine_orthogonal:
+  fixes s :: "('a::euclidean_space) set"
+  assumes "affine s" "b \<in> s" "\<And>x. x \<in> s \<Longrightarrow> dist a b \<le> dist a x"
+  shows "\<And>x. x \<in> s \<Longrightarrow> orthogonal (x - b) (a - b)"
+proof -
+  fix x assume "x \<in> s"
+  have convS: "convex s" using assms(1) affine_imp_convex by blast
+  have closS: "closed s" using assms(1) affine_closed by blast
+  have le1: "(a - b) \<bullet> (x - b) \<le> 0"
+    using any_closest_point_dot[OF convS closS assms(2) \<open>x \<in> s\<close>] assms(3) by blast
+  have "2 *\<^sub>R b - x \<in> s"
+    by (metis \<open>x \<in> s\<close> assms(1,2) diff_diff_eq2 mem_affine_3_minus2 scaleR_2 scaleR_one)
+  then have le2: "(a - b) \<bullet> ((2 *\<^sub>R b - x) - b) \<le> 0"
+    using any_closest_point_dot[OF convS closS assms(2)] assms(3) by blast
+  have "(a - b) \<bullet> ((2 *\<^sub>R b - x) - b) = - ((a - b) \<bullet> (x - b))"
+    by (simp add: inner_diff_right algebra_simps)
+  with le2 have "(a - b) \<bullet> (x - b) \<ge> 0" by linarith
+  with le1 have "(a - b) \<bullet> (x - b) = 0" by linarith
+  then show "orthogonal (x - b) (a - b)"
+    by (simp add: orthogonal_def inner_commute)
+qed
+
+lemma orthogonal_any_closest_point:
+  fixes s :: "('a::euclidean_space) set"
+  assumes "b \<in> s" "\<And>x. x \<in> s \<Longrightarrow> orthogonal (x - b) (a - b)"
+  shows "\<And>x. x \<in> s \<Longrightarrow> dist a b \<le> dist a x"
+proof -
+  fix x assume "x \<in> s"
+  have orth: "orthogonal (x - b) (a - b)"
+    using assms(2)[OF \<open>x \<in> s\<close>] .
+  have "orthogonal (a - b) (x - b)"
+    using orth by (simp add: orthogonal_commute)
+  then have "orthogonal (a - b) (b - x)"
+    using orthogonal_clauses(3)[of "a - b" "x - b"] by (simp add: algebra_simps)
+
+  then have "(norm ((a - b) + (b - x)))\<^sup>2 = (norm (a - b))\<^sup>2 + (norm (b - x))\<^sup>2"
+    by (rule norm_add_Pythagorean)
+  then have "(norm (a - x))\<^sup>2 = (norm (a - b))\<^sup>2 + (norm (b - x))\<^sup>2"
+    by (simp add: algebra_simps)
+  then have "(norm (a - x))\<^sup>2 \<ge> (norm (a - b))\<^sup>2"
+    by simp
+  then have "norm (a - x) \<ge> norm (a - b)"
+    by (simp add: power2_le_iff_abs_le)
+  then show "dist a b \<le> dist a x"
+    by (simp add: dist_norm)
+qed
+
+lemma closest_point_affine_orthogonal:
+  fixes s :: "('a::euclidean_space) set"
+  assumes "affine s" "s \<noteq> {}" "x \<in> s"
+  shows "orthogonal (x - closest_point s a) (a - closest_point s a)"
+proof -
+  have "closed s" using assms(1) affine_closed by blast
+  have "closest_point s a \<in> s"
+    using closest_point_in_set[OF \<open>closed s\<close> assms(2)] .
+  have "\<And>y. y \<in> s \<Longrightarrow> dist a (closest_point s a) \<le> dist a y"
+    using closest_point_le[OF \<open>closed s\<close>] by (simp add: dist_commute)
+  then show ?thesis
+    using any_closest_point_affine_orthogonal[OF assms(1) \<open>closest_point s a \<in> s\<close>] assms(3)
+    by blast
+qed
+
+lemma closest_point_affine_orthogonal_eq:
+  fixes s :: "('a::euclidean_space) set"
+  assumes "affine s" "b \<in> s"
+  shows "(closest_point s a = b) \<longleftrightarrow> (\<forall>x. x \<in> s \<longrightarrow> orthogonal (x - b) (a - b))"
+proof (rule iffI)
+  assume eq: "closest_point s a = b"
+  show "\<forall>x. x \<in> s \<longrightarrow> orthogonal (x - b) (a - b)"
+  proof (intro allI impI)
+    fix x assume "x \<in> s"
+    have "s \<noteq> {}" using assms(2) by blast
+    have "orthogonal (x - closest_point s a) (a - closest_point s a)"
+      by (rule closest_point_affine_orthogonal[OF assms(1) \<open>s \<noteq> {}\<close> \<open>x \<in> s\<close>])
+    then show "orthogonal (x - b) (a - b)"
+      using eq by simp
+  qed
+
+next
+  assume orth: "\<forall>x. x \<in> s \<longrightarrow> orthogonal (x - b) (a - b)"
+  have closS: "closed s" using assms(1) affine_closed by blast
+  have convS: "convex s" using assms(1) affine_imp_convex by blast
+  have "\<forall>z\<in>s. dist a b \<le> dist a z"
+    using orthogonal_any_closest_point[OF assms(2)] orth by blast
+  then have "b = closest_point s a"
+    using closest_point_unique[OF convS closS assms(2)] by blast
+  then show "closest_point s a = b" by simp
+qed
+
+
+
+
 (*added to Derivative 2026-05*)
 corollary vector_differentiable:
   "f differentiable net \<longleftrightarrow> (\<exists>f'. (f has_vector_derivative f') net)"
@@ -3649,8 +3741,231 @@ lemma inverse_lipschitz_convex_spherical_projection_explicit:
     "s \<subseteq> cball 0 R"
     "x \<in> rel_frontier s" "y \<in> rel_frontier s"
   shows "r / R\<^sup>2 * dist x y \<le> dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
-  sorry
+proof (cases "R<0")
+  case True
+  have "0 \<in> cball (0::'a) R" using assms(3,5) by (meson subsetD)
+  then have "0 \<le> R" by simp
+  with True show ?thesis by linarith
+next
+  case False
+  then have "R \<ge> 0"
+    by simp
 
+  have "0 \<in> rel_interior s"
+  proof -
+    have "0 \<in> ball 0 r"
+      using assms(2) by (simp add: centre_in_ball)
+    moreover have "0 \<in> affine hull s"
+      by (rule hull_inc[OF assms(3)])
+    ultimately have "0 \<in> ball 0 r \<inter> affine hull s"
+      by blast
+    then show ?thesis
+      using assms(4) by blast
+  qed
+  have x_ne: "x \<noteq> 0" and y_ne: "y \<noteq> 0"
+  proof -
+    have "0 \<notin> rel_frontier s"
+      using \<open>0 \<in> rel_interior s\<close> by (simp add: rel_frontier_def)
+    then show "x \<noteq> 0" "y \<noteq> 0"
+      using assms(6,7) by auto
+  qed
+  have r_le: "\<And>z. z \<in> rel_frontier s \<Longrightarrow> r \<le> norm z"
+  proof -
+    fix z assume z: "z \<in> rel_frontier s"
+    then have z_clos: "z \<in> closure s" and z_not_ri: "z \<notin> rel_interior s"
+      by (simp_all add: rel_frontier_def)
+    have "z \<in> affine hull s"
+      using z_clos closure_affine_hull by blast
+    show "r \<le> norm z"
+    proof (rule ccontr)
+      assume "\<not> r \<le> norm z"
+      then have "norm z < r" by simp
+      then have "z \<in> ball 0 r"
+        by (simp add: mem_ball_0)
+      then have "z \<in> ball 0 r \<inter> affine hull s"
+        using \<open>z \<in> affine hull s\<close> by blast
+      then have "z \<in> rel_interior s"
+        using assms(4) by blast
+      then show False using z_not_ri by contradiction
+    qed
+  qed
+  have r_le_x: "r \<le> norm x" using r_le[OF assms(6)] .
+  have r_le_y: "r \<le> norm y" using r_le[OF assms(7)] .
+  have norm_le: "\<And>z. z \<in> rel_frontier s \<Longrightarrow> norm z \<le> R"
+  proof -
+    fix z assume z: "z \<in> rel_frontier s"
+    then have "z \<in> closure s"
+      by (simp add: rel_frontier_def)
+    moreover have "closure s \<subseteq> cball 0 R"
+      using assms(5) closed_cball closure_minimal by blast
+    ultimately have "z \<in> cball 0 R" by blast
+    then show "norm z \<le> R"
+      by (simp add: mem_cball_0)
+  qed
+  have x_le_R: "norm x \<le> R" using norm_le[OF assms(6)] .
+  have y_le_R: "norm y \<le> R" using norm_le[OF assms(7)] .
+  have "r \<le> R" and "0 < R"
+    using r_le_x x_le_R assms(2) by linarith+
+  show ?thesis 
+  proof (cases "x \<bullet> y \<le> 0")
+    case True
+    have inv_x: "0 \<le> 1 / norm x" using x_ne by simp
+    have inv_y: "0 \<le> 1 / norm y" using y_ne by simp
+    have key: "min (1 / norm x) (1 / norm y) * dist x y
+               \<le> dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
+      by (rule dist_scaleR_ge_min[OF inv_x inv_y True])
+    have rR2_le_invR: "r / R\<^sup>2 \<le> 1 / R"
+    proof -
+      have "r / R\<^sup>2 = r / (R * R)"
+        by (simp add: power2_eq_square)
+      also have "\<dots> \<le> R / (R * R)"
+        using \<open>r \<le> R\<close> \<open>0 < R\<close> by (intro divide_right_mono) auto
+      also have "\<dots> = 1 / R"
+        using \<open>0 < R\<close> by (simp add: field_simps)
+      finally show ?thesis .
+    qed
+    have invR_le_invx: "1 / R \<le> 1 / norm x"
+      using x_le_R r_le_x assms(2) \<open>0 < R\<close>
+      by (intro frac_le) linarith+
+    have invR_le_invy: "1 / R \<le> 1 / norm y"
+      using y_le_R r_le_y assms(2) \<open>0 < R\<close>
+      by (intro frac_le) linarith+
+    have "r / R\<^sup>2 \<le> min (1 / norm x) (1 / norm y)"
+      using rR2_le_invR invR_le_invx invR_le_invy by simp
+    then have "r / R\<^sup>2 * dist x y \<le> min (1 / norm x) (1 / norm y) * dist x y"
+      by (intro mult_right_mono) (simp_all add: zero_le_dist)
+    also have "\<dots> \<le> dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
+      by (rule key)
+    finally show ?thesis .
+  next
+    case False
+    then have "x \<bullet> y > 0"
+      by auto
+    show ?thesis
+    proof (cases "x=y")
+      case True
+      then show ?thesis
+        by auto
+    next
+      case False
+      show ?thesis
+      proof -
+        \<comment> \<open>Project the origin onto the affine hull of {x, y}\<close>
+        define w where "w = closest_point (affine hull {x, y}) 0"
+        have aff_closed: "closed (affine hull {x, y})" by (rule closed_affine_hull)
+        have aff_ne: "affine hull {x, y} \<noteq> {}" by (simp add: affine_hull_eq_empty)
+        have w_in: "w \<in> affine hull {x, y}"
+          unfolding w_def by (rule closest_point_in_set[OF aff_closed aff_ne])
+        have w_dist: "dist 0 w \<le> dist 0 z" if "z \<in> affine hull {x, y}" for z
+          using closest_point_le that w_def by blast
+        have w_orth: "orthogonal (v - w) w" if "v \<in> affine hull {x, y}" for v
+          using closest_point_affine_orthogonal[OF affine_affine_hull aff_ne]
+          by (metis add_diff_cancel_left' diff_0 diff_minus_eq_add orthogonal_clauses(5) that w_def)
+        have x_in_aff: "x \<in> affine hull {x, y}" by (rule hull_inc) simp
+        have y_in_aff: "y \<in> affine hull {x, y}" by (rule hull_inc) simp
+        have orth_x: "orthogonal (x - w) w" by (rule w_orth[OF x_in_aff])
+        have orth_y: "orthogonal (y - w) w" by (rule w_orth[OF y_in_aff])
+        have norm_w_le_x: "norm w \<le> norm x"
+          using w_dist[OF x_in_aff] by (simp add: dist_norm)
+        have norm_w_le_y: "norm w \<le> norm y"
+          using w_dist[OF y_in_aff] by (simp add: dist_norm)
+        \<comment> \<open>Derive orthogonality of (x - y) and w\<close>
+        have orth_xy_w: "orthogonal (x - y) w"
+          using orthogonal_clauses(10)[OF orth_x orth_y] by (simp add: algebra_simps)
+        \<comment> \<open>Collinearity and case analysis\<close>
+        have collinear_wxy: "collinear {w, x, y}"
+        proof -
+          have "collinear {x, y, w}"
+            by (rule affine_hull_3_imp_collinear[OF w_in])
+          then show ?thesis
+            by (simp add: insert_commute)
+        qed
+        have betw_cases: "between (x, y) w \<or> between (y, w) x \<or> between (w, x) y"
+          using collinear_wxy[unfolded collinear_between_cases] by blast
+        show ?thesis
+        proof (cases "between (x,y) w")
+          case True
+          show ?thesis
+          proof -
+            have orth_w: "orthogonal w (x - y)"
+              using orth_xy_w by (simp add: orthogonal_commute)
+            have step: "min (1 / norm x) (1 / norm y) * dist x y
+                          \<le> dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
+              by (rule dist_scaleR_ge_min_between)
+                (auto simp: x_ne y_ne intro: True orth_w)
+            have "r / R\<^sup>2 \<le> min (1 / norm x) (1 / norm y)"
+            proof -
+              have pos_x: "0 < norm x" using r_le_x \<open>0 < r\<close> by linarith
+              have pos_y: "0 < norm y" using r_le_y \<open>0 < r\<close> by linarith
+              have "r / R\<^sup>2 \<le> 1 / R"
+                using \<open>0 < R\<close> \<open>r \<le> R\<close> by (simp add: power2_eq_square field_simps)
+              moreover have "1 / R \<le> 1 / norm x"
+                using pos_x x_le_R by (intro frac_le) auto
+              moreover have "1 / R \<le> 1 / norm y"
+                using pos_y y_le_R by (intro frac_le) auto
+              ultimately show ?thesis by simp
+            qed
+            then have "r / R\<^sup>2 * dist x y \<le> min (1 / norm x) (1 / norm y) * dist x y"
+              using mult_right_mono[of "r / R\<^sup>2" "min (1 / norm x) (1 / norm y)" "dist x y"]
+              by (simp add: zero_le_dist)
+            also note step
+            finally show ?thesis .
+          qed
+        next
+          case False
+          then have *: "between (y, w) x \<or> between (w, x) y"
+            using betw_cases by blast
+          show ?thesis
+          proof -
+            \<comment> \<open>Extract a lemma that works for either orientation\<close>
+            have betw_lemma:
+              "r / R\<^sup>2 * dist x y \<le> dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
+              if "between (y, w) x" "orthogonal (x - w) w" "r \<le> norm x" "norm w \<le> norm x" "norm x \<le> R"
+               for x y :: "'a"
+            proof (cases "w \<in> {x,y}")
+              case True
+              then show ?thesis sorry
+            next
+              case False
+              \<comment> \<open>Project y onto the line through 0 and x\<close>
+              define x' where "x' = closest_point (affine hull {0, x}) y"
+              have aff_ne': "affine hull {(0::'a), x} \<noteq> {}"
+                by (simp add: affine_hull_eq_empty)
+              have aff_closed': "closed (affine hull {(0::'a), x})"
+                by (rule closed_affine_hull)
+              have x'_in: "x' \<in> affine hull {0, x}"
+                unfolding x'_def
+                using closest_point_in_set[OF aff_closed' aff_ne'] .
+              have x'_orth: "orthogonal (v - x') (y - x')"
+                if "v \<in> affine hull {0, x}" for v
+              proof -
+                have "orthogonal (v - closest_point (affine hull {0, x}) y)
+                                 (y - closest_point (affine hull {0, x}) y)"
+                  by (rule closest_point_affine_orthogonal
+                        [OF affine_affine_hull aff_ne' that])
+                then show ?thesis unfolding x'_def .
+              qed
+              have orth_0: "orthogonal (0 - x') (y - x')"
+                by (rule x'_orth[OF hull_inc]) simp
+              have orth_x: "orthogonal (x - x') (y - x')"
+                by (rule x'_orth[OF hull_inc]) simp
+              have "r / R\<^sup>2 * dist x y \<le> dist y x'"
+                sorry
+              also have "\<dots> \<le> dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
+              proof -
+                show ?thesis
+                  sorry
+              qed
+              finally show ?thesis .
+            qed
+            show ?thesis using *
+              by (smt (verit) betw_lemma between dist_commute norm_w_le_x norm_w_le_y orth_x orth_y r_le_x r_le_y x_le_R y_le_R) 
+          qed
+        qed
+    qed
+  qed
+  qed
+qed
 
 
 
@@ -4011,14 +4326,29 @@ proof -
     fix z :: complex assume z: "z \<in> sphere 0 1"
     then have "z \<noteq> 0" by auto
     define t where "t = (if Arg z \<ge> 0 then Arg z else Arg z + 2*pi) / (2*pi)"
-    have "t \<in> {0..1}" and "\<gamma> t = z"
-       apply (auto simp: t_def \<gamma>_def)
-         apply (smt (verit) Arg_bounded)
-        apply (smt (verit) divide_nonneg_nonneg mpi_less_Arg)
-       apply (metis cis_rcis_eq dist_0_norm mem_sphere rcis_cmod_Arg z)
-      by (metis add_0 cis_2pi cis_mult diff_conv_add_uminus dist_norm mem_sphere
-          mult.right_neutral norm_minus_cancel of_real_1 rcis_cmod_Arg rcis_def z)
-    then show "z \<in> \<gamma> ` {0..1}" by auto
+    have "t \<in> {0..1}"
+      using Arg_correct [of z] \<open>z \<noteq> 0\<close> by (auto simp: t_def)
+    moreover have "\<gamma> t = z"
+    proof -
+      have nz: "cmod z = 1" using z by simp
+      have "sgn z = z" using nz by (simp add: complex_sgn_def)
+      moreover have "cis (Arg z) = sgn z" using \<open>z \<noteq> 0\<close> by (rule cis_Arg)
+      ultimately have cis_arg: "cis (Arg z) = z" by simp
+      show ?thesis
+      proof (cases "0 \<le> Arg z")
+        case True
+        then have "\<gamma> t = cis (2 * pi * (Arg z / (2 * pi)))" by (simp add: t_def \<gamma>_def)
+        also have "\<dots> = z" using pi_gt_zero by (simp add: cis_arg)
+        finally show ?thesis .
+      next
+        case False
+        then have "\<gamma> t = cis (2 * pi * ((Arg z + 2 * pi) / (2 * pi)))" by (simp add: t_def \<gamma>_def)
+        also have "\<dots> = cis (Arg z) * cis (2 * pi)" by (simp add: cis_mult mult.commute)
+        also have "\<dots> = z" by (simp add: cis_arg)
+        finally show ?thesis .
+      qed
+    qed
+    ultimately show "z \<in> \<gamma> ` {0..1}" by auto
   qed
   have \<gamma>_start: "\<gamma> 0 = 1" unfolding \<gamma>_def by simp
   have \<gamma>_end: "\<gamma> 1 = 1" unfolding \<gamma>_def using cis_2pi by simp
@@ -9381,8 +9711,7 @@ next
        interior (convex hull (path_image g))"
       "(path_image g1 - {g b, g a}) \<inter> path_image d0 = {}"
     proof -
-      show thesis
-        sorry
+      show thesis sorry
     qed
 
 
