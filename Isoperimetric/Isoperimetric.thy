@@ -3901,21 +3901,10 @@ next
         have w_in: "w \<in> affine hull {x, y}"
           unfolding w_def by (rule closest_point_in_set[OF aff_closed aff_ne])
         have w_dist: "dist 0 w \<le> dist 0 z" if "z \<in> affine hull {x, y}" for z
-        proof -
-          have "dist 0 (closest_point (affine hull {x, y}) 0) \<le> dist 0 z"
-            by (metis closest_point_le[OF aff_closed that] dist_commute)
-          then show ?thesis unfolding w_def .
-        qed
+          using closest_point_le that w_def by blast
         have w_orth: "orthogonal (v - w) w" if "v \<in> affine hull {x, y}" for v
-        proof -
-          have "orthogonal (v - closest_point (affine hull {x, y}) 0)
-                           (0 - closest_point (affine hull {x, y}) 0)"
-            by (rule closest_point_affine_orthogonal[OF affine_affine_hull aff_ne that])
-          then have "orthogonal (v - w) (0 - w)"
-            unfolding w_def .
-          then show "orthogonal (v - w) w"
-            by (simp add: orthogonal_def inner_diff_right)
-        qed
+          using closest_point_affine_orthogonal[OF affine_affine_hull aff_ne]
+          by (metis add_diff_cancel_left' diff_0 diff_minus_eq_add orthogonal_clauses(5) that w_def)
         have x_in_aff: "x \<in> affine hull {x, y}" by (rule hull_inc) simp
         have y_in_aff: "y \<in> affine hull {x, y}" by (rule hull_inc) simp
         have orth_x: "orthogonal (x - w) w" by (rule w_orth[OF x_in_aff])
@@ -3974,18 +3963,45 @@ next
           proof -
             \<comment> \<open>Extract a lemma that works for either orientation\<close>
             have betw_lemma:
-              "r / R\<^sup>2 * dist a b \<le> dist ((1 / norm a) *\<^sub>R a) ((1 / norm b) *\<^sub>R b)"
-              if "between (b, w) a" "orthogonal (a - w) w"
-                 "r \<le> norm a" "norm w \<le> norm a" "norm a \<le> R"
-               for a b :: "'a"
-            proof (cases "w \<in> {a,b}")
+              "r / R\<^sup>2 * dist x y \<le> dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
+              if "between (y, w) x" "orthogonal (x - w) w" "r \<le> norm x" "norm w \<le> norm x" "norm x \<le> R"
+               for x y :: "'a"
+            proof (cases "w \<in> {x,y}")
               case True
               then show ?thesis sorry
             next
               case False
-              then show ?thesis sorry
+              \<comment> \<open>Project y onto the line through 0 and x\<close>
+              define x' where "x' = closest_point (affine hull {0, x}) y"
+              have aff_ne': "affine hull {(0::'a), x} \<noteq> {}"
+                by (simp add: affine_hull_eq_empty)
+              have aff_closed': "closed (affine hull {(0::'a), x})"
+                by (rule closed_affine_hull)
+              have x'_in: "x' \<in> affine hull {0, x}"
+                unfolding x'_def
+                using closest_point_in_set[OF aff_closed' aff_ne'] .
+              have x'_orth: "orthogonal (v - x') (y - x')"
+                if "v \<in> affine hull {0, x}" for v
+              proof -
+                have "orthogonal (v - closest_point (affine hull {0, x}) y)
+                                 (y - closest_point (affine hull {0, x}) y)"
+                  by (rule closest_point_affine_orthogonal
+                        [OF affine_affine_hull aff_ne' that])
+                then show ?thesis unfolding x'_def .
+              qed
+              have orth_0: "orthogonal (0 - x') (y - x')"
+                by (rule x'_orth[OF hull_inc]) simp
+              have orth_x: "orthogonal (x - x') (y - x')"
+                by (rule x'_orth[OF hull_inc]) simp
+              have "r / R\<^sup>2 * dist x y \<le> dist y x'"
+                sorry
+              also have "\<dots> \<le> dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
+              proof -
+                show ?thesis
+                  sorry
+              qed
+              finally show ?thesis .
             qed
-
             show ?thesis using *
               by (smt (verit) betw_lemma between dist_commute norm_w_le_x norm_w_le_y orth_x orth_y r_le_x r_le_y x_le_R y_le_R) 
           qed
