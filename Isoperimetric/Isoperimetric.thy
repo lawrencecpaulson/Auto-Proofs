@@ -1630,31 +1630,13 @@ qed
 
 lemma Lebesgue_diff_aux5:
   fixes f :: "real \<Rightarrow> real" and a b k :: real
-  assumes "has_bounded_variation_on f {a..b}" "a < b" "0 < k"
-  defines "I \<equiv> \<lambda>n x. ball x (inverse (real n + 1)) \<inter> {a..b}"
+  assumes f: "has_bounded_variation_on f {a..b}" and "a < b" "0 < k"
+  defines "I n x \<equiv> ball x (inverse (real n + 1)) \<inter> {a..b}" 
   shows "negligible
            {x \<in> {a..b}.
-              \<forall>n::nat. \<exists>u v. u \<in> I n x \<and>
-                             v \<in> I n x \<and>
-                             u \<noteq> x \<and> v \<noteq> x \<and>
-                             k \<le> \<bar>(f v - f x) / (v - x) -
-                                  (f u - f x) / (u - x)\<bar>}"
+              \<forall>n::nat. \<exists>u v. u \<in> I n x \<and> v \<in> I n x \<and> u \<noteq> x \<and> v \<noteq> x \<and>
+                             k \<le> \<bar>(f v - f x) / (v - x) - (f u - f x) / (u - x)\<bar>}"
 proof -
-
-  have neg1: "negligible
-           {x \<in> {a..b}.
-              \<forall>n::nat. \<exists>u v. u \<in> I n x \<and> v \<in> I n x \<and>
-                             u \<noteq> x \<and> v \<noteq> x \<and>
-                             k \<le> (f v - f x) / (v - x) - (f u - f x) / (u - x)}"
-    using Lebesgue_diff_aux4 assms by simp
-  have neg2: "negligible
-           {x \<in> {a..b}.
-              \<forall>n::nat. \<exists>u v. u \<in> I n x \<and> v \<in> I n x \<and>
-                             u \<noteq> x \<and> v \<noteq> x \<and>
-                             k \<le> ((-f v) - (-f x)) / (v - x) - ((-f u) - (-f x)) / (u - x)}"
-    using Lebesgue_diff_aux4[OF has_bounded_variation_on_neg[OF assms(1)] assms(2,3)]
-    by (simp add: I_def)
-  \<comment> \<open>The union of these two negligible sets is negligible\<close>
   have neg_union: "negligible (
            {x \<in> {a..b}.
               \<forall>n::nat. \<exists>u v. u \<in> I n x \<and> v \<in> I n x \<and>
@@ -1664,20 +1646,19 @@ proof -
               \<forall>n::nat. \<exists>u v. u \<in> I n x \<and> v \<in> I n x \<and>
                              u \<noteq> x \<and> v \<noteq> x \<and>
                              k \<le> ((-f v) - (-f x)) / (v - x) - ((-f u) - (-f x)) / (u - x)})"
-    by (rule negligible_Un[OF neg1 neg2])
+    using Lebesgue_diff_aux4 assms unfolding I_def
+    by (blast intro: negligible_Un has_bounded_variation_on_neg[OF f])+
   \<comment> \<open>The target set is a subset of the union\<close>
-  show ?thesis
-  proof (rule negligible_subset[OF neg_union])
+  then show ?thesis
+  proof (rule negligible_subset)
     show "{x \<in> {a..b}.
               \<forall>n::nat. \<exists>u v. u \<in> I n x \<and> v \<in> I n x \<and>
                              u \<noteq> x \<and> v \<noteq> x \<and>
                              k \<le> \<bar>(f v - f x) / (v - x) - (f u - f x) / (u - x)\<bar>} \<subseteq>
-           {x \<in> {a..b}.
-              \<forall>n::nat. \<exists>u v. u \<in> I n x \<and> v \<in> I n x \<and>
+           {x \<in> {a..b}. \<forall>n::nat. \<exists>u v. u \<in> I n x \<and> v \<in> I n x \<and>
                              u \<noteq> x \<and> v \<noteq> x \<and>
                              k \<le> (f v - f x) / (v - x) - (f u - f x) / (u - x)} \<union>
-           {x \<in> {a..b}.
-              \<forall>n::nat. \<exists>u v. u \<in> I n x \<and> v \<in> I n x \<and>
+           {x \<in> {a..b}. \<forall>n::nat. \<exists>u v. u \<in> I n x \<and> v \<in> I n x \<and>
                              u \<noteq> x \<and> v \<noteq> x \<and>
                              k \<le> ((-f v) - (-f x)) / (v - x) - ((-f u) - (-f x)) / (u - x)}"
     proof (rule subsetI)
@@ -1686,15 +1667,11 @@ proof -
                              u \<noteq> x \<and> v \<noteq> x \<and>
                              k \<le> \<bar>(f v - f x) / (v - x) - (f u - f x) / (u - x)\<bar>}"
       \<comment> \<open>For any m, n, use m+n to get witnesses in the smaller ball\<close>
-      have key: "\<forall>m n::nat.
-        (\<exists>u v. u \<in> I m x \<and> v \<in> I m x \<and>
-               u \<noteq> x \<and> v \<noteq> x \<and>
-               k \<le> (f v - f x) / (v - x) - (f u - f x) / (u - x)) \<or>
-        (\<exists>u v. u \<in> I n x \<and> v \<in> I n x \<and>
-               u \<noteq> x \<and> v \<noteq> x \<and>
-               k \<le> ((-f v) - (-f x)) / (v - x) - ((-f u) - (-f x)) / (u - x))"
-      proof (intro allI)
-        fix m n :: nat
+      have key: "\<exists>u v. (u \<in> I m x \<and> v \<in> I m x \<and> u \<noteq> x \<and> v \<noteq> x \<and>
+                         k \<le> (f v - f x) / (v - x) - (f u - f x) / (u - x)) \<or>
+                       (u \<in> I n x \<and> v \<in> I n x \<and> u \<noteq> x \<and> v \<noteq> x \<and>
+                         k \<le> ((-f v) - (-f x)) / (v - x) - ((-f u) - (-f x)) / (u - x))" for m n
+      proof -
         from x
         obtain u v where uv: "u \<in> I (m+n) x" "v \<in> I (m+n) x" "u \<noteq> x" "v \<noteq> x"
           "k \<le> \<bar>(f v - f x) / (v - x) - (f u - f x) / (u - x)\<bar>"
@@ -1706,28 +1683,16 @@ proof -
         from uv have "k \<le> (f v - f x) / (v - x) - (f u - f x) / (u - x) \<or>
                          k \<le> -((f v - f x) / (v - x) - (f u - f x) / (u - x))"
           by linarith
-        then show "(\<exists>u v. u \<in> I m x \<and> v \<in> I m x \<and> u \<noteq> x \<and> v \<noteq> x \<and>
-                          k \<le> (f v - f x) / (v - x) - (f u - f x) / (u - x)) \<or>
-                   (\<exists>u v. u \<in> I n x \<and> v \<in> I n x \<and> u \<noteq> x \<and> v \<noteq> x \<and>
-                          k \<le> ((-f v) - (-f x)) / (v - x) - ((-f u) - (-f x)) / (u - x))"
-        proof
-          assume "k \<le> (f v - f x) / (v - x) - (f u - f x) / (u - x)"
-          then show ?thesis
-            using uv ball_m x by simp (smt (verit, ccfv_SIG))
-        next
-          assume neg: "k \<le> -((f v - f x) / (v - x) - (f u - f x) / (u - x))"
-          then have "k \<le> (- f v - (- f x)) / (v - x) - (- f u - (- f x)) / (u - x)"
-            by argo
-          then show ?thesis
-            using uv ball_n x by simp (smt (verit, ccfv_SIG)) 
-        qed
+        then show ?thesis
+          using uv ball_m ball_n x unfolding I_def
+          by (smt (verit, ccfv_threshold) mem_Collect_eq)
       qed
       \<comment> \<open>From \<forall>m n. P m \<or> Q n, deduce (\<forall>m. P m) \<or> (\<forall>n. Q n)\<close>
       show "x \<in> {x \<in> {a..b}. \<forall>n::nat. \<exists>u v. u \<in> I n x \<and> v \<in> I n x \<and> u \<noteq> x \<and> v \<noteq> x \<and>
                              k \<le> (f v - f x) / (v - x) - (f u - f x) / (u - x)} \<union>
                 {x \<in> {a..b}. \<forall>n::nat. \<exists>u v. u \<in> I n x \<and> v \<in> I n x \<and> u \<noteq> x \<and> v \<noteq> x \<and>
                              k \<le> ((-f v) - (-f x)) / (v - x) - ((-f u) - (-f x)) / (u - x)}"
-        using x key by auto
+        using x key by simp metis
     qed
   qed
 qed
