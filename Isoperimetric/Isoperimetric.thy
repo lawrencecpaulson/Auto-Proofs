@@ -1196,12 +1196,11 @@ qed
 lemma Lebesgue_diff_aux3:
   fixes f :: "real \<Rightarrow> real" and a b k :: real
   assumes "has_bounded_variation_on f {a..b}" "a < b" "0 < k"
+  defines "I \<equiv> \<lambda>n x. ball x (inverse (real n + 1)) \<inter> {a..b}"
   shows "negligible
            {x \<in> {a..b}.
-              \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
-                             v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
-                             u \<noteq> x \<and> v \<noteq> x \<and>
-                             k \<le> (f v - f x) / (v - x) \<and>
+              \<forall>n::nat. \<exists>u v. u \<in> I n x \<and> v \<in> I n x \<and>
+                             u \<noteq> x \<and> v \<noteq> x \<and> k \<le> (f v - f x) / (v - x) \<and>
                              (f u - f x) / (u - x) \<le> -k}" (is "negligible ?T")
 proof -
   define T where "T \<equiv> ?T"
@@ -1257,15 +1256,12 @@ proof -
           have ball_sub: "ball x (inverse (real n + 1)) \<subseteq> S \<inter> {a<..<b}"
             using \<open>ball x e \<subseteq> S \<inter> {a<..<b}\<close> inv_n1_lt by auto
           from \<open>x \<in> T\<close> obtain u v where
-            uv: "u \<in> ball x (inverse (real n + 1))" "u \<in> {a..b}"
-                "v \<in> ball x (inverse (real n + 1))" "v \<in> {a..b}"
-                "u \<noteq> x" "v \<noteq> x"
-                "k \<le> (f v - f x) / (v - x)"
-                "(f u - f x) / (u - x) \<le> -k"
-            by (force simp: T_def)
+            uv: "u \<in> I n x" "v \<in> I n x" "u \<noteq> x" "v \<noteq> x" 
+                "k \<le> (f v - f x) / (v - x)" "(f u - f x) / (u - x) \<le> -k"
+            by (force simp add: T_def)
           have uS: "u \<in> S" and u_int: "u \<in> {a<..<b}" and vS: "v \<in> S" and v_int: "v \<in> {a<..<b}"
             and uab: "u \<in> {a..b}" and vab: "v \<in> {a..b}"
-            using uv ball_sub by auto
+            using uv ball_sub by (auto simp: I_def)
           have fx_cont: "isCont f x" using False by simp
           have cont_slope: "isCont (\<lambda>y. (f v - f y) / (v - y)) x"
             by (intro fx_cont continuous_intros) (auto simp: uv)
@@ -1293,7 +1289,7 @@ proof -
               using True y_gt_x by auto
             have "(f v - f y) / (v - y) > (f v - f x) / (v - x) - k / 2"
               using d_prop y_dist_d by (smt (verit))
-            with uv(7) have "(f v - f y) / (v - y) > k / 2"
+            with uv have "(f v - f y) / (v - y) > k / 2"
               by linarith
             hence "k / 2 \<le> (f y - f v) / (y - v)"
               using True y_gt_x by (simp add: field_simps)
@@ -1309,13 +1305,13 @@ proof -
             have yS: "y \<in> S" and y_int: "y \<in> {a<..<b}"
               using y_in_ball ball_sub by auto
             have x_between: "x \<in> {y<..<v}"
-              using y_def min_pos False uv(6) by fastforce
+              using y_def min_pos False uv by (fastforce simp: I_def)
             have slope_close: "(f v - f y) / (v - y) > (f v - f x) / (v - x) - k / 2"
               using d_prop y_dist_d by (smt (verit))
-            with uv(7) have "(f v - f y) / (v - y) > k / 2"
+            with uv have "(f v - f y) / (v - y) > k / 2"
               by linarith
             then show ?thesis
-              using less_le uv(4) vS x_between yS y_int by fastforce
+              using less_le uv vS x_between yS y_int by (fastforce simp: I_def)
           qed
           have cont_slope_u: "isCont (\<lambda>y. (f u - f y) / (u - y)) x"
             by (intro fx_cont continuous_intros) (auto simp: uv)
@@ -1346,17 +1342,17 @@ proof -
             have "\<bar>(f u - f y) / (u - y) - (f u - f x) / (u - x)\<bar> < k / 2"
               using d'_prop y_dist_d by auto
             then have slope_upper: "(f u - f y) / (u - y) < - (k / 2)"
-              using uv(8) by linarith
+              using uv by linarith
             have "(f y - f u) / (y - u) = (f u - f y) / (u - y)"
               using True y_gt_x by (simp add: field_simps)
             hence "(f y - f u) / (y - u) \<le> - (k / 2)"
               using slope_upper by linarith
             then show ?thesis
-              using uS uv(2) x_between yS y_int less_le_not_le by force
+              using uS uv x_between yS y_int less_le_not_le by (force simp: I_def)
           next
             case False
               \<comment> \<open>x < u; witness y is to the left of x\<close>
-            hence xu: "x < u" using uv(5) by linarith
+            hence xu: "x < u" using uv by linarith
             define y where "y = x - min d' (inverse (real n + 1)) / 2"
             have y_lt_x: "y < x"
               unfolding y_def using min_pos' by simp
@@ -1375,10 +1371,10 @@ proof -
             have y_lt_u: "y < u" using y_lt_x xu by linarith
             have "\<bar>(f u - f y) / (u - y) - (f u - f x) / (u - x)\<bar> < k / 2"
               using d'_prop y_dist_d by auto
-            with uv(8) have slope_upper: "(f u - f y) / (u - y) \<le> - (k / 2)"
+            with uv have slope_upper: "(f u - f y) / (u - y) \<le> - (k / 2)"
               by linarith
             then show ?thesis
-              using uS uv(2) x_between yS yab by blast
+              using uS uv x_between yS yab unfolding I_def by blast
           qed
         qed
         then show ?thesis
@@ -1391,10 +1387,10 @@ qed
 lemma Lebesgue_diff_aux4:
   fixes f :: "real \<Rightarrow> real" and a b k :: real
   assumes f: "has_bounded_variation_on f {a..b}" and "a < b" "0 < k"
+  defines "I \<equiv> \<lambda>n x. ball x (inverse (real n + 1)) \<inter> {a..b}"
   shows "negligible
            {x \<in> {a..b}.
-              \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
-                             v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
+              \<forall>n::nat. \<exists>u v. u \<in> I n x \<and> v \<in> I n x \<and>
                              u \<noteq> x \<and> v \<noteq> x \<and>
                              k \<le> (f v - f x) / (v - x) - (f u - f x) / (u - x)}" 
      (is "negligible ?T")
@@ -1408,9 +1404,7 @@ proof -
   \<comment> \<open>Define the rational-indexed family: for each q \<in> \<rat>, the set of x where
       the v-quotient is \<ge> q + k/3 and the u-quotient is \<le> q - k/3\<close>
   define S where "S q \<equiv> {x \<in> {a..b}.
-              \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
-                             v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
-                             u \<noteq> x \<and> v \<noteq> x \<and>
+              \<forall>n::nat. \<exists>u v. u \<in> I n x \<and> v \<in> I n x \<and> u \<noteq> x \<and> v \<noteq> x \<and>
                              k / 3 \<le> (f v - f x) / (v - x) - q \<and>
                              (f u - f x) / (u - x) - q \<le> -(k / 3)}" for q :: real
   \<comment> \<open>The target set T is a subset of this\<close>
@@ -1433,15 +1427,13 @@ proof -
         then have bv_g: "has_bounded_variation_on g {a..b}"
           unfolding g_def using f has_bounded_variation_on_sub by force
         have Sq_eq: "S q = {x \<in> {a..b}.
-              \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
-                             v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
-                             u \<noteq> x \<and> v \<noteq> x \<and>
+              \<forall>n::nat. \<exists>u v. u \<in> I n x \<and> v \<in> I n x \<and> u \<noteq> x \<and> v \<noteq> x \<and>
                              k / 3 \<le> (g v - g x) / (v - x) \<and> (g u - g x) / (u - x) \<le> -(k / 3)}"
           unfolding S_def
             apply (intro arg_cong[where f="\<lambda>P. {x \<in> {a..b}. P x}"] ext all_cong1 ex_cong1)
             by (auto simp: g_def algebra_simps divide_simps)
         show ?thesis unfolding \<open>Sq = S q\<close> Sq_eq
-          using Lebesgue_diff_aux3[OF bv_g \<open>a<b\<close>, of "k/3"] \<open>k>0\<close> by simp
+          using Lebesgue_diff_aux3[OF bv_g \<open>a<b\<close>, of "k/3"] \<open>k>0\<close> by (simp add: I_def)
       qed
     qed
   qed
@@ -1451,9 +1443,7 @@ proof -
     proof (rule subsetI)
       fix x assume "x \<in> T"
       then obtain xab: "x \<in> {a..b}" and
-        xprop: "\<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
-                               v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
-                               u \<noteq> x \<and> v \<noteq> x \<and>
+        xprop: "\<forall>n::nat. \<exists>u v. u \<in> I n x \<and> v \<in> I n x \<and> u \<noteq> x \<and> v \<noteq> x \<and>
                                k \<le> (f v - f x) / (v - x) - (f u - f x) / (u - x)"
         unfolding T_def by blast
       show "x \<in> U \<union> \<Union>(S ` \<rat>)"
@@ -1492,18 +1482,18 @@ proof -
               by (simp add: \<open>dist u x < d\<close> pos_divide_le_eq)
           qed
         qed
-        have balls_nonempty: "\<And>n. \<exists>u. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and> u \<noteq> x"
+        have balls_nonempty: "\<And>n. \<exists>u. u \<in> I n x \<and> u \<noteq> x"
           using xprop by blast 
         \<comment> \<open>The infimum of difference quotients over shrinking balls converges\<close>
         define DQ where "DQ n = {(f u - f x) / (u - x) | u.
-          u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and> u \<noteq> x}" for n
+          u \<in> I n x \<and> u \<noteq> x}" for n
         have S_nonempty: "DQ n \<noteq> {}" for n
           using balls_nonempty[of n] unfolding DQ_def by blast
         have S_bdd: "bdd_below (DQ n)" if "N \<le> n" for n
           using DQ_def abs_le_D2[OF dq_bound[OF \<open>N \<le> n\<close>]] that 
-          by (auto simp: bdd_below.unfold minus_le_iff)
+          by (auto simp: bdd_below.unfold minus_le_iff I_def)
         have S_subset: "DQ n \<subseteq> DQ m" if "m \<le> n" for m n
-          unfolding DQ_def using less_le_trans that by fastforce
+          unfolding DQ_def I_def using less_le_trans that by fastforce
         define g where "g \<equiv> \<lambda>n. Inf (DQ n)"
         have g_mono: "g m \<le> g n" if "N \<le> m" "m \<le> n" for m n
           by (simp add: S_bdd S_nonempty S_subset cInf_superset_mono g_def that)
@@ -1511,15 +1501,17 @@ proof -
         proof -
           have nN: "N \<le> n + N" by simp
           obtain u where u: "u \<in> ball x (inverse (real (n + N) + 1))" "u \<in> {a..b}" "u \<noteq> x"
-            using balls_nonempty[of "n + N"] by auto
-          have mem: "(f u - f x) / (u - x) \<in> DQ (n + N)" unfolding DQ_def using u by auto
+            using balls_nonempty[of "n + N"] I_def by auto
+          have mem: "(f u - f x) / (u - x) \<in> DQ (n + N)" 
+            unfolding DQ_def I_def using u by auto
           have "g (n + N) \<le> (f u - f x) / (u - x)"
             unfolding g_def by (rule cInf_lower[OF mem S_bdd[OF nN]])
           also have "\<dots> \<le> B"
             using abs_le_D1[OF dq_bound[OF nN u(1) u(3)]] .
           finally have upper: "g (n + N) \<le> B" .
           have "- B \<le> y" if y: "y \<in> DQ (n + N)" for y
-            by (smt (verit, best) DQ_def dq_bound mem_Collect_eq nN y)
+            using dq_bound nN y  
+            by (simp add: DQ_def I_def) (metis of_nat_add abs_divide abs_le_D2 add.commute le_add1 minus_le_iff)
           then have "- B \<le> Inf (DQ (n + N))"
             using le_cInf_iff[OF S_nonempty S_bdd[OF nN]] by auto
           with upper show ?thesis
@@ -1532,7 +1524,7 @@ proof -
         then obtain l where l_conv: "g \<longlonglongrightarrow> l" using convergentD by auto
         \<comment> \<open>The supremum of difference quotients over shrinking balls converges\<close>
         have S_upper: "y \<le> B" if "N \<le> n" "y \<in> DQ n" for n y
-          using abs_le_D1[OF dq_bound] DQ_def that by auto 
+          using abs_le_D1[OF dq_bound] DQ_def I_def that by auto 
         have S_bdd_above: "bdd_above (DQ n)" if "N \<le> n" for n
           using S_upper[OF \<open>N \<le> n\<close>] by fastforce
         define h where "h \<equiv> \<lambda>n. Sup (DQ n)" 
@@ -1545,8 +1537,9 @@ proof -
             using cSup_le_iff[OF S_nonempty S_bdd_above[OF nN]]
             by (metis S_upper add.commute h_def le_add1)
           obtain u where u: "u \<in> ball x (inverse (real (n + N) + 1))" "u \<in> {a..b}" "u \<noteq> x"
-            using balls_nonempty[of "n + N"] by auto
-          have mem: "(f u - f x) / (u - x) \<in> DQ (n + N)" unfolding DQ_def using u by auto
+            using balls_nonempty[of "n + N"] I_def by auto
+          have mem: "(f u - f x) / (u - x) \<in> DQ (n + N)" 
+            unfolding DQ_def I_def using u by auto
           have "(f u - f x) / (u - x) \<le> h (n + N)"
             unfolding h_def by (rule cSup_upper[OF mem S_bdd_above[OF nN]])
           moreover have "- B \<le> (f u - f x) / (u - x)"
@@ -1563,8 +1556,7 @@ proof -
           by (rule tendsto_diff[OF m_conv l_conv])
         have "k \<le> (\<lambda>n. h n - g n) n" if "N \<le> n" for n
         proof -
-          obtain u v where uv: "u \<in> ball x (inverse (real n + 1))" "u \<in> {a..b}"
-            "v \<in> ball x (inverse (real n + 1))" "v \<in> {a..b}" "u \<noteq> x" "v \<noteq> x"
+          obtain u v where uv: "u \<in> I n x" "v \<in> I n x" "u \<noteq> x" "v \<noteq> x"
             and kle: "k \<le> (f v - f x) / (v - x) - (f u - f x) / (u - x)"
             by (meson xab xprop)
           have *: "(f u - f x) / (u - x) \<in> DQ n"  "(f v - f x) / (v - x) \<in> DQ n"
@@ -1584,15 +1576,13 @@ proof -
           using Rats_dense_in_real by blast
         with k_le \<open>0 < k\<close>  have q_l: "k / 3 < q - l" and q_m: "k / 3 < m - q"
           by (auto simp add: field_simps)
-        have main: "\<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
-                            v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
-                            u \<noteq> x \<and> v \<noteq> x \<and>
+        have main: "\<exists>u v. u \<in> I n x \<and> v \<in> I n x \<and> u \<noteq> x \<and> v \<noteq> x \<and>
                             k / 3 \<le> (f v - f x) / (v - x) - q \<and>
                             (f u - f x) / (u - x) - q \<le> - (k / 3)" for n
         proof -
           \<comment> \<open>First reduction: not all dq's in DQ n are \<ge> q - k/3\<close>
           have neg_lower: False 
-            if A: "\<forall>u. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and> u \<noteq> x
+            if A: "\<forall>u. u \<in> I n x \<and> u \<noteq> x
                 \<longrightarrow> q - k / 3 \<le> (f u - f x) / (u - x)"
           proof -
             have lb: "q - k / 3 \<le> y" if "y \<in> DQ p" "n \<le> p" for y p
@@ -1610,7 +1600,7 @@ proof -
           qed
             \<comment> \<open>Second reduction: not all dq's in DQ n are \<le> q + k/3\<close>
           have neg_upper: False
-            if A: "\<forall>v. v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and> v \<noteq> x
+            if A: "\<forall>v. v \<in> I n x \<and> v \<noteq> x
                   \<longrightarrow> (f v - f x) / (v - x) \<le> k / 3 + q"
           proof -
             have ub: "y \<le> k / 3 + q" if "y \<in> DQ p" "n \<le> p" for y p
@@ -1641,10 +1631,11 @@ qed
 lemma Lebesgue_diff_aux5:
   fixes f :: "real \<Rightarrow> real" and a b k :: real
   assumes "has_bounded_variation_on f {a..b}" "a < b" "0 < k"
+  defines "I \<equiv> \<lambda>n x. ball x (inverse (real n + 1)) \<inter> {a..b}"
   shows "negligible
            {x \<in> {a..b}.
-              \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
-                             v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
+              \<forall>n::nat. \<exists>u v. u \<in> I n x \<and>
+                             v \<in> I n x \<and>
                              u \<noteq> x \<and> v \<noteq> x \<and>
                              k \<le> \<bar>(f v - f x) / (v - x) -
                                   (f u - f x) / (u - x)\<bar>}"
@@ -1652,159 +1643,91 @@ proof -
 
   have neg1: "negligible
            {x \<in> {a..b}.
-              \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
-                             v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
+              \<forall>n::nat. \<exists>u v. u \<in> I n x \<and> v \<in> I n x \<and>
                              u \<noteq> x \<and> v \<noteq> x \<and>
-                             k \<le> (f v - f x) / (v - x) -
-                                  (f u - f x) / (u - x)}"
-    by (rule Lebesgue_diff_aux4[OF assms])
-
+                             k \<le> (f v - f x) / (v - x) - (f u - f x) / (u - x)}"
+    using Lebesgue_diff_aux4 assms by simp
   have neg2: "negligible
            {x \<in> {a..b}.
-              \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
-                             v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
+              \<forall>n::nat. \<exists>u v. u \<in> I n x \<and> v \<in> I n x \<and>
                              u \<noteq> x \<and> v \<noteq> x \<and>
-                             k \<le> ((-f v) - (-f x)) / (v - x) -
-                                  ((-f u) - (-f x)) / (u - x)}"
-    by (rule Lebesgue_diff_aux4[OF has_bounded_variation_on_neg[OF assms(1)] assms(2,3)])
+                             k \<le> ((-f v) - (-f x)) / (v - x) - ((-f u) - (-f x)) / (u - x)}"
+    using Lebesgue_diff_aux4[OF has_bounded_variation_on_neg[OF assms(1)] assms(2,3)]
+    by (simp add: I_def)
   \<comment> \<open>The union of these two negligible sets is negligible\<close>
   have neg_union: "negligible (
            {x \<in> {a..b}.
-              \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
-                             v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
+              \<forall>n::nat. \<exists>u v. u \<in> I n x \<and> v \<in> I n x \<and>
                              u \<noteq> x \<and> v \<noteq> x \<and>
-                             k \<le> (f v - f x) / (v - x) -
-                                  (f u - f x) / (u - x)} \<union>
+                             k \<le> (f v - f x) / (v - x) - (f u - f x) / (u - x)} \<union>
            {x \<in> {a..b}.
-              \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
-                             v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
+              \<forall>n::nat. \<exists>u v. u \<in> I n x \<and> v \<in> I n x \<and>
                              u \<noteq> x \<and> v \<noteq> x \<and>
-                             k \<le> ((-f v) - (-f x)) / (v - x) -
-                                  ((-f u) - (-f x)) / (u - x)})"
+                             k \<le> ((-f v) - (-f x)) / (v - x) - ((-f u) - (-f x)) / (u - x)})"
     by (rule negligible_Un[OF neg1 neg2])
   \<comment> \<open>The target set is a subset of the union\<close>
   show ?thesis
   proof (rule negligible_subset[OF neg_union])
     show "{x \<in> {a..b}.
-              \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
-                             v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
+              \<forall>n::nat. \<exists>u v. u \<in> I n x \<and> v \<in> I n x \<and>
                              u \<noteq> x \<and> v \<noteq> x \<and>
-                             k \<le> \<bar>(f v - f x) / (v - x) -
-                                  (f u - f x) / (u - x)\<bar>} \<subseteq>
+                             k \<le> \<bar>(f v - f x) / (v - x) - (f u - f x) / (u - x)\<bar>} \<subseteq>
            {x \<in> {a..b}.
-              \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
-                             v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
+              \<forall>n::nat. \<exists>u v. u \<in> I n x \<and> v \<in> I n x \<and>
                              u \<noteq> x \<and> v \<noteq> x \<and>
-                             k \<le> (f v - f x) / (v - x) -
-                                  (f u - f x) / (u - x)} \<union>
+                             k \<le> (f v - f x) / (v - x) - (f u - f x) / (u - x)} \<union>
            {x \<in> {a..b}.
-              \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
-                             v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
+              \<forall>n::nat. \<exists>u v. u \<in> I n x \<and> v \<in> I n x \<and>
                              u \<noteq> x \<and> v \<noteq> x \<and>
-                             k \<le> ((-f v) - (-f x)) / (v - x) -
-                                  ((-f u) - (-f x)) / (u - x)}"
+                             k \<le> ((-f v) - (-f x)) / (v - x) - ((-f u) - (-f x)) / (u - x)}"
     proof (rule subsetI)
-      fix x assume x_in: "x \<in> {x \<in> {a..b}.
-              \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
-                             v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
+      fix x assume x: "x \<in> {x \<in> {a..b}.
+              \<forall>n::nat. \<exists>u v. u \<in> I n x \<and> v \<in> I n x \<and>
                              u \<noteq> x \<and> v \<noteq> x \<and>
-                             k \<le> \<bar>(f v - f x) / (v - x) -
-                                  (f u - f x) / (u - x)\<bar>}"
-      then have xab: "x \<in> {a..b}" and
-        H: "\<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
-                           v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
-                           u \<noteq> x \<and> v \<noteq> x \<and>
-                           k \<le> \<bar>(f v - f x) / (v - x) - (f u - f x) / (u - x)\<bar>"
-        by auto
+                             k \<le> \<bar>(f v - f x) / (v - x) - (f u - f x) / (u - x)\<bar>}"
       \<comment> \<open>For any m, n, use m+n to get witnesses in the smaller ball\<close>
       have key: "\<forall>m n::nat.
-        (\<exists>u v. u \<in> ball x (inverse (real m + 1)) \<and> u \<in> {a..b} \<and>
-               v \<in> ball x (inverse (real m + 1)) \<and> v \<in> {a..b} \<and>
+        (\<exists>u v. u \<in> I m x \<and> v \<in> I m x \<and>
                u \<noteq> x \<and> v \<noteq> x \<and>
                k \<le> (f v - f x) / (v - x) - (f u - f x) / (u - x)) \<or>
-        (\<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
-               v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
+        (\<exists>u v. u \<in> I n x \<and> v \<in> I n x \<and>
                u \<noteq> x \<and> v \<noteq> x \<and>
                k \<le> ((-f v) - (-f x)) / (v - x) - ((-f u) - (-f x)) / (u - x))"
       proof (intro allI)
         fix m n :: nat
-        from H[rule_format, of "m + n"]
-        obtain u v where uv: "u \<in> ball x (inverse (real (m+n) + 1))" "u \<in> {a..b}"
-          "v \<in> ball x (inverse (real (m+n) + 1))" "v \<in> {a..b}"
-          "u \<noteq> x" "v \<noteq> x"
+        from x
+        obtain u v where uv: "u \<in> I (m+n) x" "v \<in> I (m+n) x" "u \<noteq> x" "v \<noteq> x"
           "k \<le> \<bar>(f v - f x) / (v - x) - (f u - f x) / (u - x)\<bar>"
-          by auto
+          by blast
         have ball_m: "ball x (inverse (real (m+n) + 1)) \<subseteq> ball x (inverse (real m + 1))"
           by (intro subset_ball le_imp_inverse_le) linarith+
         have ball_n: "ball x (inverse (real (m+n) + 1)) \<subseteq> ball x (inverse (real n + 1))"
           by (intro subset_ball le_imp_inverse_le) linarith+
-        from uv(7) have "k \<le> (f v - f x) / (v - x) - (f u - f x) / (u - x) \<or>
+        from uv have "k \<le> (f v - f x) / (v - x) - (f u - f x) / (u - x) \<or>
                          k \<le> -((f v - f x) / (v - x) - (f u - f x) / (u - x))"
           by linarith
-        then show "(\<exists>u v. u \<in> ball x (inverse (real m + 1)) \<and> u \<in> {a..b} \<and>
-               v \<in> ball x (inverse (real m + 1)) \<and> v \<in> {a..b} \<and>
-               u \<noteq> x \<and> v \<noteq> x \<and>
-               k \<le> (f v - f x) / (v - x) - (f u - f x) / (u - x)) \<or>
-        (\<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
-               v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
-               u \<noteq> x \<and> v \<noteq> x \<and>
-               k \<le> ((-f v) - (-f x)) / (v - x) - ((-f u) - (-f x)) / (u - x))"
+        then show "(\<exists>u v. u \<in> I m x \<and> v \<in> I m x \<and> u \<noteq> x \<and> v \<noteq> x \<and>
+                          k \<le> (f v - f x) / (v - x) - (f u - f x) / (u - x)) \<or>
+                   (\<exists>u v. u \<in> I n x \<and> v \<in> I n x \<and> u \<noteq> x \<and> v \<noteq> x \<and>
+                          k \<le> ((-f v) - (-f x)) / (v - x) - ((-f u) - (-f x)) / (u - x))"
         proof
           assume "k \<le> (f v - f x) / (v - x) - (f u - f x) / (u - x)"
           then show ?thesis
-            using uv(2,4,5,6) ball_m uv(1,3) by (intro disjI1 exI[of _ u] exI[of _ v]) auto
+            using uv ball_m x by simp (smt (verit, ccfv_SIG))
         next
           assume neg: "k \<le> -((f v - f x) / (v - x) - (f u - f x) / (u - x))"
-          have arith: "(- f v - (- f x)) / (v - x) - (- f u - (- f x)) / (u - x) =
-                       -((f v - f x) / (v - x) - (f u - f x) / (u - x))"
-            by (simp add: diff_divide_distrib)
-          have "k \<le> (- f v - (- f x)) / (v - x) - (- f u - (- f x)) / (u - x)"
-            using neg arith by linarith
+          then have "k \<le> (- f v - (- f x)) / (v - x) - (- f u - (- f x)) / (u - x)"
+            by argo
           then show ?thesis
-            using uv(2,4,5,6) ball_n uv(1,3)
-            by (intro disjI2 exI[of _ u] exI[of _ v]) auto
+            using uv ball_n x by simp (smt (verit, ccfv_SIG)) 
         qed
       qed
       \<comment> \<open>From \<forall>m n. P m \<or> Q n, deduce (\<forall>m. P m) \<or> (\<forall>n. Q n)\<close>
-      show "x \<in> {x \<in> {a..b}.
-              \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
-                             v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
-                             u \<noteq> x \<and> v \<noteq> x \<and>
-                             k \<le> (f v - f x) / (v - x) -
-                                  (f u - f x) / (u - x)} \<union>
-           {x \<in> {a..b}.
-              \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
-                             v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
-                             u \<noteq> x \<and> v \<noteq> x \<and>
-                             k \<le> ((-f v) - (-f x)) / (v - x) -
-                                  ((-f u) - (-f x)) / (u - x)}"
-      proof (cases "\<forall>m. \<exists>u v. u \<in> ball x (inverse (real m + 1)) \<and> u \<in> {a..b} \<and>
-               v \<in> ball x (inverse (real m + 1)) \<and> v \<in> {a..b} \<and>
-               u \<noteq> x \<and> v \<noteq> x \<and>
-               k \<le> (f v - f x) / (v - x) - (f u - f x) / (u - x)")
-        case True
-        then show ?thesis using xab by auto
-      next
-        case False
-        then obtain m0 where m0: "\<not>(\<exists>u v. u \<in> ball x (inverse (real m0 + 1)) \<and> u \<in> {a..b} \<and>
-               v \<in> ball x (inverse (real m0 + 1)) \<and> v \<in> {a..b} \<and>
-               u \<noteq> x \<and> v \<noteq> x \<and>
-               k \<le> (f v - f x) / (v - x) - (f u - f x) / (u - x))" by auto
-        have "\<forall>n. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
-               v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
-               u \<noteq> x \<and> v \<noteq> x \<and>
-               k \<le> ((-f v) - (-f x)) / (v - x) - ((-f u) - (-f x)) / (u - x)"
-        proof
-          fix n
-          from key[rule_format, of m0 n] m0
-          show "\<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
-               v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
-               u \<noteq> x \<and> v \<noteq> x \<and>
-               k \<le> ((-f v) - (-f x)) / (v - x) - ((-f u) - (-f x)) / (u - x)"
-            by auto
-        qed
-        then show ?thesis using xab by auto
-      qed
+      show "x \<in> {x \<in> {a..b}. \<forall>n::nat. \<exists>u v. u \<in> I n x \<and> v \<in> I n x \<and> u \<noteq> x \<and> v \<noteq> x \<and>
+                             k \<le> (f v - f x) / (v - x) - (f u - f x) / (u - x)} \<union>
+                {x \<in> {a..b}. \<forall>n::nat. \<exists>u v. u \<in> I n x \<and> v \<in> I n x \<and> u \<noteq> x \<and> v \<noteq> x \<and>
+                             k \<le> ((-f v) - (-f x)) / (v - x) - ((-f u) - (-f x)) / (u - x)}"
+        using x key by auto
     qed
   qed
 qed
@@ -1812,60 +1735,30 @@ qed
 lemma Lebesgue_diff_aux6:
   fixes f :: "real \<Rightarrow> real"
   assumes "has_bounded_variation_on f {a..b}" "a < b"
+  defines "I \<equiv> \<lambda>n x. ball x (inverse (real n + 1)) \<inter> {a..b}"
   shows "negligible {x \<in> {a..b}. \<not> f differentiable (at x within {a..b})}"
 proof -
-
   have "negligible {x \<in> {a..b}. \<not> (\<exists>f'. ((\<lambda>y. (f y - f x) / (y - x)) \<longlongrightarrow> f') (at x within {a..b}))}"
   proof -
     define S where "S m = {x \<in> {a..b}.
-      \<forall>n::nat. \<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
-                     v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
-                     u \<noteq> x \<and> v \<noteq> x \<and>
+      \<forall>n::nat. \<exists>u v. u \<in> I n x \<and> v \<in> I n x \<and> u \<noteq> x \<and> v \<noteq> x \<and>
                      inverse (real m + 1) \<le> \<bar>(f v - f x) / (v - x) - (f u - f x) / (u - x)\<bar>}" for m
     have neg: "negligible (S m)" for m
-      unfolding S_def by (rule Lebesgue_diff_aux5[OF assms]) auto
+      unfolding S_def using Lebesgue_diff_aux5 assms by auto
     have "negligible (\<Union>(range S))"
       by (rule negligible_Union_nat[OF neg])
     moreover have "{x \<in> {a..b}. \<not> (\<exists>f'. ((\<lambda>y. (f y - f x) / (y - x)) \<longlongrightarrow> f') (at x within {a..b}))} \<subseteq> \<Union>(range S)"
     proof (rule subsetI)
-      fix x assume x_in: "x \<in> {x \<in> {a..b}. \<not> (\<exists>f'. ((\<lambda>y. (f y - f x) / (y - x)) \<longlongrightarrow> f') (at x within {a..b}))}"
-      then have xab: "x \<in> {a..b}" and nc: "\<not> (\<exists>f'. ((\<lambda>y. (f y - f x) / (y - x)) \<longlongrightarrow> f') (at x within {a..b}))"
-        by auto
-      from nc have nc': "\<not> (\<forall>e>0. \<exists>d>0. \<forall>u\<in>{a..b}. \<forall>v\<in>{a..b}.
-          u \<noteq> x \<and> dist u x < d \<and> v \<noteq> x \<and> dist v x < d \<longrightarrow>
-          dist ((f u - f x) / (u - x)) ((f v - f x) / (v - x)) < e)"
-        unfolding convergent_eq_Cauchy_within by auto
+      fix x assume x: "x \<in> {x \<in> {a..b}. \<not> (\<exists>f'. ((\<lambda>y. (f y - f x) / (y - x)) \<longlongrightarrow> f') (at x within {a..b}))}"
       then obtain e where "e > 0" and osc: "\<forall>d>0. \<exists>u\<in>{a..b}. \<exists>v\<in>{a..b}.
           u \<noteq> x \<and> dist u x < d \<and> v \<noteq> x \<and> dist v x < d \<and>
           e \<le> dist ((f u - f x) / (u - x)) ((f v - f x) / (v - x))"
-      proof -
-        from nc' obtain e where "e > 0"
-          and h: "\<not> (\<exists>d>0. \<forall>u\<in>{a..b}. \<forall>v\<in>{a..b}.
-            u \<noteq> x \<and> dist u x < d \<and> v \<noteq> x \<and> dist v x < d \<longrightarrow>
-            dist ((f u - f x) / (u - x)) ((f v - f x) / (v - x)) < e)"
-          by auto
-        have "\<forall>d>0. \<exists>u\<in>{a..b}. \<exists>v\<in>{a..b}.
-            u \<noteq> x \<and> dist u x < d \<and> v \<noteq> x \<and> dist v x < d \<and>
-            e \<le> dist ((f u - f x) / (u - x)) ((f v - f x) / (v - x))"
-        proof (intro allI impI)
-          fix d :: real assume "d > 0"
-          from h \<open>d > 0\<close> have "\<not> (\<forall>u\<in>{a..b}. \<forall>v\<in>{a..b}.
-              u \<noteq> x \<and> dist u x < d \<and> v \<noteq> x \<and> dist v x < d \<longrightarrow>
-              dist ((f u - f x) / (u - x)) ((f v - f x) / (v - x)) < e)"
-            by auto
-          then show "\<exists>u\<in>{a..b}. \<exists>v\<in>{a..b}.
-              u \<noteq> x \<and> dist u x < d \<and> v \<noteq> x \<and> dist v x < d \<and>
-              e \<le> dist ((f u - f x) / (u - x)) ((f v - f x) / (v - x))"
-            by (auto simp: not_less)
-        qed
-        with \<open>e > 0\<close> show thesis using that by blast
-      qed
+        unfolding convergent_eq_Cauchy_within by (force simp: not_less)
       obtain m where m: "inverse (real m + 1) < e"
         using reals_Archimedean[OF \<open>e > 0\<close>] by (metis add.commute of_nat_Suc)
       have "x \<in> S m"
         unfolding S_def
       proof (intro CollectI conjI allI)
-        show "x \<in> {a..b}" by fact
         fix n :: nat
         have "inverse (real n + 1) > 0" by auto
         with osc obtain u v where "u \<in> {a..b}" "v \<in> {a..b}" "u \<noteq> x" "dist u x < inverse (real n + 1)"
@@ -1877,12 +1770,11 @@ proof -
         moreover have "u \<in> ball x (inverse (real n + 1))" "v \<in> ball x (inverse (real n + 1))"
           using \<open>dist u x < inverse (real n + 1)\<close> \<open>dist v x < inverse (real n + 1)\<close>
           by (simp_all add: dist_commute)
-        ultimately show "\<exists>u v. u \<in> ball x (inverse (real n + 1)) \<and> u \<in> {a..b} \<and>
-                     v \<in> ball x (inverse (real n + 1)) \<and> v \<in> {a..b} \<and>
-                     u \<noteq> x \<and> v \<noteq> x \<and>
+        ultimately show "\<exists>u v. u \<in> I n x \<and> v \<in> I n x \<and> u \<noteq> x \<and> v \<noteq> x \<and>
                      inverse (real m + 1) \<le> \<bar>(f v - f x) / (v - x) - (f u - f x) / (u - x)\<bar>"
-          using \<open>u \<in> {a..b}\<close> \<open>v \<in> {a..b}\<close> \<open>u \<noteq> x\<close> \<open>v \<noteq> x\<close> by blast
-      qed
+          using \<open>u \<in> {a..b}\<close> \<open>v \<in> {a..b}\<close> \<open>u \<noteq> x\<close> \<open>v \<noteq> x\<close>
+          using I_def by blast
+      qed (use x in auto)
       then show "x \<in> \<Union>(range S)" by auto
     qed
     ultimately show ?thesis by (rule negligible_subset)
@@ -1895,60 +1787,38 @@ proof -
   ultimately show ?thesis by simp
 qed
 
-lemma Lebesgue_diff_aux7:
-  fixes f :: "real \<Rightarrow> real"
-  assumes "has_bounded_variation_on f {a..b}"
-  shows "negligible {x \<in> {a..b}. \<not> f differentiable (at x)}"
-proof (cases "a < b")
-  case True
-  have sub: "{x \<in> {a..b}. \<not> f differentiable (at x)} \<subseteq>
-             insert a (insert b {x \<in> {a..b}. \<not> f differentiable (at x within {a..b})})"
-  proof clarsimp
-    fix x assume H: "a \<le> x" "x \<le> b" "\<not> f differentiable (at x)"
-                    "f differentiable (at x within {a..b})" "x \<noteq> a" "x \<noteq> b"
-    have "x \<in> interior {a..b}"
-      using H by (simp add: interior_atLeastAtMost_real)
-    then have "at x within {a..b} = at x" by (rule at_within_interior)
-    with H show False by simp
-  qed
-  have "negligible (insert a (insert b {x \<in> {a..b}. \<not> f differentiable (at x within {a..b})}))"
-    using Lebesgue_diff_aux6[OF assms True] by (simp add: negligible_insert)
-  with sub show ?thesis by (rule negligible_subset[rotated])
-next
-  case False
-  then have "a \<ge> b" by simp
-  then show ?thesis
-  proof (cases "a = b")
-    case True
-    then show ?thesis
-      by (intro negligible_subset[OF negligible_sing[of a]]) auto
-  next
-    case False
-    with \<open>a \<ge> b\<close> have "{a..b} = {}" by auto
-    then show ?thesis by simp
-  qed
-qed
-
 theorem Lebesgue_differentiation_theorem_compact:
   fixes f :: "real \<Rightarrow> 'a::euclidean_space"
   assumes "has_bounded_variation_on f (cbox a b)"
   shows "negligible {x \<in> cbox a b. \<not> f differentiable (at x)}"
 proof -
-  have cw: "(f differentiable at x) = (\<forall>i\<in>Basis. (\<lambda>x. f x \<bullet> i) differentiable at x)" for x
+  let ?g = "\<lambda>i. (\<lambda>x. f x \<bullet> i)"
+  have cw: "(f differentiable at x) = (\<forall>i\<in>Basis. ?g i differentiable at x)" for x
   proof -
     have "at x within UNIV = at x" by (rule at_within_open[OF UNIV_I open_UNIV])
     then show ?thesis using differentiable_componentwise_within[where S=UNIV and a=x and f=f]
       by simp
   qed
   have eq: "{x \<in> cbox a b. \<not> f differentiable (at x)} =
-            (\<Union>i\<in>Basis. {x \<in> cbox a b. \<not> (\<lambda>x. f x \<bullet> i) differentiable (at x)})"
+            (\<Union>i\<in>Basis. {x \<in> cbox a b. \<not> ?g i differentiable (at x)})"
     by (auto simp: cw)
   show ?thesis unfolding eq
   proof (rule negligible_Union[OF finite_imageI[OF finite_Basis]], clarsimp)
     fix i :: 'a assume "i \<in> Basis"
-    show "negligible {x. a \<le> x \<and> x \<le> b \<and> \<not> (\<lambda>x. f x \<bullet> i) differentiable (at x)}"
-      using Lebesgue_diff_aux7[OF has_bounded_variation_on_inner_left] assms 
-      by (auto simp: cbox_interval)
+    show "negligible {x. a \<le> x \<and> x \<le> b \<and> \<not> ?g i differentiable (at x)}"
+    proof (cases "a < b")
+      case True
+      have sub: "{x \<in> {a..b}. \<not> ?g i differentiable (at x)} \<subseteq>
+             insert a (insert b {x \<in> {a..b}. \<not> ?g i differentiable (at x within {a..b})})"
+        by (auto simp: at_within_Icc_at)
+      have "negligible (insert a (insert b {x \<in> {a..b}. \<not> ?g i differentiable (at x within {a..b})}))"
+        using Lebesgue_diff_aux6 [OF has_bounded_variation_on_inner_left] assms True by auto
+      with negligible_subset [OF _ sub] show ?thesis by simp
+    next
+      case False
+      then show ?thesis
+        by (force intro: negligible_subset[OF negligible_sing[of a]])
+    qed
   qed
 qed
 
