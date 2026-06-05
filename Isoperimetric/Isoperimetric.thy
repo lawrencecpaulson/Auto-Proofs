@@ -3551,7 +3551,7 @@ next
       case False
       show ?thesis
       proof -
-        \<comment> \<open>Project the origin onto the affine hull of {x, y}\<close>
+        \<comment> \<open>Project the origin onto the affine hull of @{term \<open>{x, y}\<close>}\<close>
         define w where "w = closest_point (affine hull {x, y}) 0"
         have aff_closed: "closed (affine hull {x, y})" by (rule closed_affine_hull)
         have aff_ne: "affine hull {x, y} \<noteq> {}" by (simp add: affine_hull_eq_empty)
@@ -3570,7 +3570,7 @@ next
           using w_dist[OF x_in_aff] by (simp add: dist_norm)
         have norm_w_le_y: "norm w \<le> norm y"
           using w_dist[OF y_in_aff] by (simp add: dist_norm)
-            \<comment> \<open>Derive orthogonality of (x - y) and w\<close>
+            \<comment> \<open>Derive orthogonality of @{term \<open>x - y\<close>} and @{term w}\<close>
         have orth_xy_w: "orthogonal (x - y) w"
           using orthogonal_clauses(10)[OF orth_x orth_y] by (simp add: algebra_simps)
             \<comment> \<open>Collinearity and case analysis\<close>
@@ -3600,13 +3600,12 @@ next
           qed
         next
           case False
-          then have *: "between (y, w) x \<or> between (w, x) y"
-            using betw_cases by blast
+          then have *: "between (y,w) x \<or> between (x,w) y"
+            by (metis betw_cases between_commute)
           show ?thesis
           proof -
             \<comment> \<open>Extract a lemma that works for either orientation\<close>
-            have betw_lemma:
-              "r / R\<^sup>2 * dist x y \<le> dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
+            have "r / R\<^sup>2 * dist x y \<le> dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
               if betx: "between (y, w) x" and orthw: "orthogonal (x - w) w" 
                 and nbetw: "\<not> between (x,y) w"
                 and xfr: "x \<in> rel_frontier s" and yfr: "y \<in> rel_frontier s"
@@ -3619,7 +3618,7 @@ next
             proof -
               obtain "w\<noteq>x" "w\<noteq>y"
                 using nbetw by fastforce
-                  \<comment> \<open>Project y onto the line through 0 and x\<close>
+                  \<comment> \<open>Project @{term y} onto the line through @{term \<open>0::'a\<close>} and @{term x}\<close>
               define x' where "x' = closest_point (affine hull {0, x}) y"
               have aff_ne': "affine hull {(0::'a), x} \<noteq> {}"
                 by (simp add: affine_hull_eq_empty)
@@ -3691,17 +3690,21 @@ next
               ultimately have "r / R\<^sup>2 * dist x y \<le> \<bar>inverse (norm y)\<bar> * dist ((norm y / norm x) *\<^sub>R x) y"
                 by (metis abs_inverse abs_norm_cancel divide_divide_eq_left' divide_inverse_commute frac_le
                     power2_eq_square yR yne times_divide_eq_left zero_le_dist zero_less_norm_iff)
-              also have "\<dots> \<le> dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
-                apply (simp add: divide_simps)
-                by (smt (verit) abs_norm_cancel dist_norm divide_inverse_commute inner_commute inner_real_def
-                    left_inverse norm_eq_zero norm_scaleR scaleR_one scaleR_scaleR scaleR_simps(6)
-                    verit_comp_simplify1(2))
+              also have "\<dots> = dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
+              proof -
+                have "(1 / norm x) *\<^sub>R x = inverse (norm y) *\<^sub>R ((norm y / norm x) *\<^sub>R x)"
+                  using yne by (simp add: scaleR_scaleR)
+                then have "dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y) =
+                    \<bar>inverse (norm y)\<bar> * dist ((norm y / norm x) *\<^sub>R x) y"
+                  by (metis (mono_tags, lifting) dist_norm inverse_eq_divide norm_scaleR
+                      scaleR_right_diff_distrib)
+                then show ?thesis by simp
+              qed
               finally show ?thesis .
             qed
-            show ?thesis using *
-              by (smt (verit) False \<open>0 < x \<bullet> y\<close> x y betw_lemma between_commute
-                  dist_commute dist_self inner_commute inner_real_def inner_simps(3) norm_w_le_x
-                  norm_w_le_y orth_x orth_y r_le_x r_le_y x_le_R x_ne y_le_R y_ne)
+            then show ?thesis using * False \<open>0 < x \<bullet> y\<close> x y
+              by (metis between_commute dist_commute dist_self inner_commute less_eq_real_def local.norm_le
+                  norm_w_le_x norm_w_le_y orth_x orth_y r_le real_scaleR_def scaleR_zero_right x_ne y_ne)
           qed
         qed
       qed
