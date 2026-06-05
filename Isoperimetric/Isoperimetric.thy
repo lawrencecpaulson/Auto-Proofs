@@ -3570,10 +3570,10 @@ next
           using w_dist[OF x_in_aff] by (simp add: dist_norm)
         have norm_w_le_y: "norm w \<le> norm y"
           using w_dist[OF y_in_aff] by (simp add: dist_norm)
-        \<comment> \<open>Derive orthogonality of (x - y) and w\<close>
+            \<comment> \<open>Derive orthogonality of (x - y) and w\<close>
         have orth_xy_w: "orthogonal (x - y) w"
           using orthogonal_clauses(10)[OF orth_x orth_y] by (simp add: algebra_simps)
-        \<comment> \<open>Collinearity and case analysis\<close>
+            \<comment> \<open>Collinearity and case analysis\<close>
         have collinear_wxy: "collinear {w, x, y}"
           by (meson False collinear_3_affine_hull collinear_between_cases w_in)
         have betw_cases: "between (x, y) w \<or> between (y, w) x \<or> between (w, x) y"
@@ -3615,11 +3615,11 @@ next
                 and nwx: "norm w \<le> norm x" and xR: "norm x \<le> R"
                 and yR: "norm y \<le> R"
                 and dot_pos: "0 < x \<bullet> y" and xy_ne: "x \<noteq> y"
-               for x y :: "'a"
+              for x y :: "'a"
             proof -
               obtain "w\<noteq>x" "w\<noteq>y"
                 using nbetw by fastforce
-              \<comment> \<open>Project y onto the line through 0 and x\<close>
+                  \<comment> \<open>Project y onto the line through 0 and x\<close>
               define x' where "x' = closest_point (affine hull {0, x}) y"
               have aff_ne': "affine hull {(0::'a), x} \<noteq> {}"
                 by (simp add: affine_hull_eq_empty)
@@ -3664,22 +3664,19 @@ next
                   also have "\<dots> = dist y x' * dist 0 x"
                   proof (intro collinear_orthogonal_dist_product)
                     show "collinear {0, x, x'}"
-                      sorry
-                  next
+                      using affine_hull_3_imp_collinear[OF x'_in] .
                     show "collinear {w, x, y}"
-                      sorry
-                  next
+                      by (simp add: collinear_between_cases that(1))
                     show "orthogonal (0 - w) (x - y)"
-                      sorry
-                  next
+                      by (smt (verit, ccfv_SIG) \<open>w \<noteq> x\<close> arith_simps(56) between_implies_scaled_diff between_triv2
+                          minus_diff_eq orthogonal_clauses(3) orthogonal_commute orthogonal_scaleR right_minus_eq
+                          scaleR_zero_left that(1,14,2))
                     show "orthogonal (y - x') (0 - x')"
-                      sorry
-                  next
+                      using orth_0 by (simp add: orthogonal_commute)
                     show "x' \<noteq> 0"
-                      sorry
-                  next
+                      using orth_x orthogonal_def that(13) by force
                     show "y \<noteq> w"
-                      sorry
+                      using \<open>w \<noteq> y\<close> by auto
                   qed
                   also have "\<dots> \<le> dist y x' * R"
                     by (simp add: mult_left_mono that(11))
@@ -3694,45 +3691,22 @@ next
               ultimately have "r / R\<^sup>2 * dist x y \<le> \<bar>inverse (norm y)\<bar> * dist ((norm y / norm x) *\<^sub>R x) y"
                 by (metis abs_inverse abs_norm_cancel divide_divide_eq_left' divide_inverse_commute frac_le
                     power2_eq_square that(12,7) times_divide_eq_left zero_le_dist zero_less_norm_iff)
-              also have "\<dots> \<le> dist y ((norm y * inverse (norm x)) *\<^sub>R x)"
-                sorry
-              also have "\<dots> \<le> inverse (norm y) * dist ((norm y / norm x) *\<^sub>R x) y"
-                using dist_ge ny_pos sorry
-              finally have "r / R * dist x y \<le> inverse (norm y) * dist ((norm y / norm x) *\<^sub>R x) y".
-              moreover have "r / R\<^sup>2 * dist x y \<le> dist (inverse (norm x) *\<^sub>R x) (inverse (norm y) *\<^sub>R y)"
-              proof -
-                have "r / R\<^sup>2 \<le> min (1 / norm x) (1 / norm y)"
-                  by (metis \<open>0 < R\<close> \<open>r \<le> R\<close> divide_divide_eq_left' divide_le_eq_1 frac_le le_numeral_extra(1)
-                      min.bounded_iff nx_pos ny_pos power2_eq_square that(11,12))
-                moreover have "min (1 / norm x) (1 / norm y) * dist x y
-                      \<le> dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
-                  using dist_scaleR_ge_min_between[OF _ _ betx]
-                  by (rule dist_scaleR_ge_min_between[OF _ _ betx])
-                    (auto simp: nx_pos ny_pos orthw orthogonal_commute
-                      intro!: divide_nonneg_nonneg)
-                ultimately show ?thesis
-                  by (simp add: inverse_eq_divide mult_left_mono zero_le_dist)
-              qed
-              ultimately show ?thesis using abs_inv sorry
+              also have "\<dots> \<le> dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
+                apply (simp add: divide_simps)
+                by (smt (verit) abs_norm_cancel dist_norm divide_inverse_commute inner_commute inner_real_def
+                    left_inverse norm_eq_zero norm_scaleR scaleR_one scaleR_scaleR scaleR_simps(6)
+                    verit_comp_simplify1(2))
+              finally show ?thesis .
             qed
-
-            also have "\<dots> \<le> norm ((1 / norm x) *\<^sub>R x - (1 / norm y) *\<^sub>R y)"
-              using \<open>y\<noteq>0\<close>
-              by (smt (verit, ccfv_threshold) dist_norm inverse_eq_divide left_inverse norm_eq_zero norm_scaleR
-                  scaleR_right_diff_distrib scaleR_scaleR times_divide_eq_right)
-            also have "\<dots> = dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
-              by (simp add: dist_norm)
-            finally show ?thesis by simp
+            show ?thesis using *
+              by (smt (verit) False \<open>0 < x \<bullet> y\<close> assms(6,7) betw_lemma between_commute
+                  dist_commute dist_self inner_commute inner_real_def inner_simps(3) norm_w_le_x
+                  norm_w_le_y orth_x orth_y r_le_x r_le_y x_le_R x_ne y_le_R y_ne)
           qed
-          show ?thesis using *
-            by (smt (verit) False \<open>0 < x \<bullet> y\<close> assms(6,7) betw_lemma between_commute
-                dist_commute dist_self inner_commute inner_real_def inner_simps(3) norm_w_le_x
-                norm_w_le_y orth_x orth_y r_le_x r_le_y x_le_R x_ne y_le_R y_ne)
         qed
       qed
     qed
   qed
-qed
 qed
 
 
