@@ -7,7 +7,7 @@ hide_const (open) Polynomial.content
 
 section \<open>Library material\<close>
 
-thm exists_double_arc
+(*added to Jordan_Curve 2026-06*)
 lemma exists_double_arc_explicit:
   fixes g :: "real \<Rightarrow> 'a::real_normed_vector"
   assumes "simple_path g" and loop: "pathfinish g = pathstart g"
@@ -35,9 +35,9 @@ proof -
       moreover have "g ` {0..b} \<inter> g ` {b..1} = {g 0, g b}"
       proof (intro equalityI subsetI)
         fix x assume "x \<in> g ` {0..b} \<inter> g ` {b..1}"
-        then obtain s t where st: "s \<in> {0..b}" "t \<in> {b..1}" "g s = x" "g t = x" "g s = g t"
+        then obtain S t where st: "S \<in> {0..b}" "t \<in> {b..1}" "g S = x" "g t = x" "g S = g t"
           by auto
-        then have "s = t \<or> s = 0 \<and> t = 1 \<or> s = 1 \<and> t = 0"
+        then have "S = t \<or> S = 0 \<and> t = 1 \<or> S = 1 \<and> t = 0"
           using lf st assms by (auto simp: loop_free_def)
         then show "x \<in> {g 0, g b}" using st by auto
       next
@@ -82,9 +82,9 @@ proof -
           have "g ` {a..1} \<inter> g ` {0..a} = {g a, g 1}"
           proof (intro equalityI subsetI)
             fix x assume "x \<in> g ` {a..1} \<inter> g ` {0..a}"
-            then obtain s t where st: "s \<in> {a..1}" "t \<in> {0..a}" "g s = x" "g t = x" "g s = g t"
+            then obtain S t where st: "S \<in> {a..1}" "t \<in> {0..a}" "g S = x" "g t = x" "g S = g t"
               by auto
-            then have "s = t \<or> s = 0 \<and> t = 1 \<or> s = 1 \<and> t = 0"
+            then have "S = t \<or> S = 0 \<and> t = 1 \<or> S = 1 \<and> t = 0"
               using lf st assms by (auto simp: loop_free_def)
             then show "x \<in> {g a, g 1}" using st by auto
           next
@@ -114,12 +114,12 @@ proof -
         have "path_image (subpath b 1 g) \<inter> path_image (subpath 0 a g) \<subseteq> {pathstart (subpath 0 a g)}"
         proof (intro subsetI)
           fix x assume "x \<in> path_image (subpath b 1 g) \<inter> path_image (subpath 0 a g)"
-          then obtain s t where s: "s \<in> {b..1}" "g s = x" and t: "t \<in> {0..a}" "g t = x" "g s = g t"
+          then obtain S t where S: "S \<in> {b..1}" "g S = x" and t: "t \<in> {0..a}" "g t = x" "g S = g t"
             using assms by (auto simp: path_image_subpath)
-          then have "s = t \<or> s = 0 \<and> t = 1 \<or> s = 1 \<and> t = 0"
+          then have "S = t \<or> S = 0 \<and> t = 1 \<or> S = 1 \<and> t = 0"
             using lf assms by (auto simp: loop_free_def)
           then have "t = 0"
-            using s t assms by (metis atLeastAtMost_iff nle_le order.trans)
+            using S t assms by (metis atLeastAtMost_iff nle_le order.trans)
           then show "x \<in> {pathstart (subpath 0 a g)}"
             using t by simp
         qed
@@ -129,115 +129,94 @@ proof -
           by (metis *(1))
         show "path_image ?d = g ` ({0..1} - {a<..<b})"
           using assms g01 by (auto simp add: path_image_join path_image_subpath)
-        show "path_image (subpath a b g) \<inter> path_image ?d = {g a, g b}"
-        proof -
-          have "g ` {a..b} \<inter> (g ` {b..1} \<union> g ` {0..a}) = {g a, g b}"
-            using lf assms by (force simp: image_iff loop_free_def)
-          with * show ?thesis by simp
-        qed
-        show "path_image (subpath a b g) \<union> path_image ?d = path_image g"
-        proof -
-          have "{a..b} \<union> {b..(1::real)} \<union> {0..a} = {0..1}"
-            using assms by auto
-          then have "g ` {a..b} \<union> (g ` {b..1} \<union> g ` {0..a}) = g ` {0..1}"
-            by (auto simp: image_Un)
-          with * show ?thesis by (simp add: path_image_def path_defs sup_assoc)
-        qed
+        have "g ` {a..b} \<inter> (g ` {b..1} \<union> g ` {0..a}) = {g a, g b}"
+          using lf assms by (force simp: image_iff loop_free_def)
+        with * show "path_image (subpath a b g) \<inter> path_image ?d = {g a, g b}"
+          by simp
+        have "g ` {a..b} \<union> (g ` {b..1} \<union> g ` {0..a}) = g ` {0..1}"
+          using a01 b01 by fastforce
+        with * show "path_image (subpath a b g) \<union> path_image ?d = path_image g"
+          by (simp add: path_image_def sup_assoc)
       qed (use g01 in auto)
     qed
   qed
 qed
 
+(*added to Convex_Euclidean_Space 2026-06*)
 lemma any_closest_point_affine_orthogonal:
-  fixes s :: "('a::euclidean_space) set"
-  assumes "affine s" "b \<in> s" "\<And>x. x \<in> s \<Longrightarrow> dist a b \<le> dist a x"
-  shows "\<And>x. x \<in> s \<Longrightarrow> orthogonal (x - b) (a - b)"
+  fixes S :: "('a::euclidean_space) set"
+  assumes "affine S" "b \<in> S" "\<And>x. x \<in> S \<Longrightarrow> dist a b \<le> dist a x"
+  shows "\<And>x. x \<in> S \<Longrightarrow> orthogonal (x - b) (a - b)"
 proof -
-  fix x assume "x \<in> s"
-  have convS: "convex s" using assms(1) affine_imp_convex by blast
-  have closS: "closed s" using assms(1) affine_closed by blast
+  fix x assume "x \<in> S"
+  have convS: "convex S" using assms(1) affine_imp_convex by blast
+  have closS: "closed S" using assms(1) affine_closed by blast
   have le1: "(a - b) \<bullet> (x - b) \<le> 0"
-    using any_closest_point_dot[OF convS closS assms(2) \<open>x \<in> s\<close>] assms(3) by blast
-  have "2 *\<^sub>R b - x \<in> s"
-    by (metis \<open>x \<in> s\<close> assms(1,2) diff_diff_eq2 mem_affine_3_minus2 scaleR_2 scaleR_one)
+    using any_closest_point_dot[OF convS closS assms(2) \<open>x \<in> S\<close>] assms(3) by blast
+  have "2 *\<^sub>R b - x \<in> S"
+    by (metis \<open>x \<in> S\<close> assms(1,2) diff_diff_eq2 mem_affine_3_minus2 scaleR_2 scaleR_one)
   then have le2: "(a - b) \<bullet> ((2 *\<^sub>R b - x) - b) \<le> 0"
     using any_closest_point_dot[OF convS closS assms(2)] assms(3) by blast
-  have "(a - b) \<bullet> ((2 *\<^sub>R b - x) - b) = - ((a - b) \<bullet> (x - b))"
-    by (simp add: inner_diff_right algebra_simps)
-  with le2 have "(a - b) \<bullet> (x - b) \<ge> 0" by linarith
-  with le1 have "(a - b) \<bullet> (x - b) = 0" by linarith
   then show "orthogonal (x - b) (a - b)"
-    by (simp add: orthogonal_def inner_commute)
+    using le1 by (simp add: inner_diff_right algebra_simps orthogonal_def inner_commute)
 qed
 
+(*added to Convex_Euclidean_Space 2026-06*)
 lemma orthogonal_any_closest_point:
-  fixes s :: "('a::euclidean_space) set"
-  assumes "b \<in> s" "\<And>x. x \<in> s \<Longrightarrow> orthogonal (x - b) (a - b)"
-  shows "\<And>x. x \<in> s \<Longrightarrow> dist a b \<le> dist a x"
+  fixes S :: "('a::euclidean_space) set"
+  assumes "b \<in> S" "\<And>x. x \<in> S \<Longrightarrow> orthogonal (x - b) (a - b)"
+  shows "\<And>x. x \<in> S \<Longrightarrow> dist a b \<le> dist a x"
 proof -
-  fix x assume "x \<in> s"
+  fix x assume "x \<in> S"
   have orth: "orthogonal (x - b) (a - b)"
-    using assms(2)[OF \<open>x \<in> s\<close>] .
+    using assms(2)[OF \<open>x \<in> S\<close>] .
   have "orthogonal (a - b) (x - b)"
     using orth by (simp add: orthogonal_commute)
   then have "orthogonal (a - b) (b - x)"
     using orthogonal_clauses(3)[of "a - b" "x - b"] by (simp add: algebra_simps)
-
   then have "(norm ((a - b) + (b - x)))\<^sup>2 = (norm (a - b))\<^sup>2 + (norm (b - x))\<^sup>2"
     by (rule norm_add_Pythagorean)
-  then have "(norm (a - x))\<^sup>2 = (norm (a - b))\<^sup>2 + (norm (b - x))\<^sup>2"
-    by (simp add: algebra_simps)
   then have "(norm (a - x))\<^sup>2 \<ge> (norm (a - b))\<^sup>2"
-    by simp
+    by (simp add: algebra_simps)
   then have "norm (a - x) \<ge> norm (a - b)"
     by (simp add: power2_le_iff_abs_le)
   then show "dist a b \<le> dist a x"
     by (simp add: dist_norm)
 qed
 
+(*added to Convex_Euclidean_Space 2026-06*)
 lemma closest_point_affine_orthogonal:
-  fixes s :: "('a::euclidean_space) set"
-  assumes "affine s" "s \<noteq> {}" "x \<in> s"
-  shows "orthogonal (x - closest_point s a) (a - closest_point s a)"
+  fixes S :: "('a::euclidean_space) set"
+  assumes "affine S" "S \<noteq> {}" "x \<in> S"
+  shows "orthogonal (x - closest_point S a) (a - closest_point S a)"
 proof -
-  have "closed s" using assms(1) affine_closed by blast
-  have "closest_point s a \<in> s"
-    using closest_point_in_set[OF \<open>closed s\<close> assms(2)] .
-  have "\<And>y. y \<in> s \<Longrightarrow> dist a (closest_point s a) \<le> dist a y"
-    using closest_point_le[OF \<open>closed s\<close>] by (simp add: dist_commute)
+  have "closed S" using assms(1) affine_closed by blast
+  have "closest_point S a \<in> S"
+    using closest_point_in_set[OF \<open>closed S\<close> assms(2)] .
+  have "\<And>y. y \<in> S \<Longrightarrow> dist a (closest_point S a) \<le> dist a y"
+    using closest_point_le[OF \<open>closed S\<close>] by (simp add: dist_commute)
   then show ?thesis
-    using any_closest_point_affine_orthogonal[OF assms(1) \<open>closest_point s a \<in> s\<close>] assms(3)
+    using any_closest_point_affine_orthogonal[OF assms(1) \<open>closest_point S a \<in> S\<close>] assms(3)
     by blast
 qed
 
+(*added to Convex_Euclidean_Space 2026-06*)
 lemma closest_point_affine_orthogonal_eq:
-  fixes s :: "('a::euclidean_space) set"
-  assumes "affine s" "b \<in> s"
-  shows "(closest_point s a = b) \<longleftrightarrow> (\<forall>x. x \<in> s \<longrightarrow> orthogonal (x - b) (a - b))"
+  fixes S :: "('a::euclidean_space) set"
+  assumes "affine S" "b \<in> S"
+  shows "(closest_point S a = b) \<longleftrightarrow> (\<forall>x. x \<in> S \<longrightarrow> orthogonal (x - b) (a - b))"
 proof (rule iffI)
-  assume eq: "closest_point s a = b"
-  show "\<forall>x. x \<in> s \<longrightarrow> orthogonal (x - b) (a - b)"
-  proof (intro allI impI)
-    fix x assume "x \<in> s"
-    have "s \<noteq> {}" using assms(2) by blast
-    have "orthogonal (x - closest_point s a) (a - closest_point s a)"
-      by (rule closest_point_affine_orthogonal[OF assms(1) \<open>s \<noteq> {}\<close> \<open>x \<in> s\<close>])
-    then show "orthogonal (x - b) (a - b)"
-      using eq by simp
-  qed
-
+  assume eq: "closest_point S a = b"
+  show "\<forall>x. x \<in> S \<longrightarrow> orthogonal (x - b) (a - b)"
+    using assms(1) closest_point_affine_orthogonal eq by blast
 next
-  assume orth: "\<forall>x. x \<in> s \<longrightarrow> orthogonal (x - b) (a - b)"
-  have closS: "closed s" using assms(1) affine_closed by blast
-  have convS: "convex s" using assms(1) affine_imp_convex by blast
-  have "\<forall>z\<in>s. dist a b \<le> dist a z"
+  assume orth: "\<forall>x. x \<in> S \<longrightarrow> orthogonal (x - b) (a - b)"
+  have "\<forall>z\<in>S. dist a b \<le> dist a z"
     using orthogonal_any_closest_point[OF assms(2)] orth by blast
-  then have "b = closest_point s a"
-    using closest_point_unique[OF convS closS assms(2)] by blast
-  then show "closest_point s a = b" by simp
+  then have "b = closest_point S a"
+    by (simp add: affine_closed affine_imp_convex assms closest_point_unique)
+  then show "closest_point S a = b" by simp
 qed
-
-
 
 
 (*added to Derivative 2026-05*)
@@ -593,6 +572,7 @@ proof -
     using locally_compact_diff_finite[OF lc] by metis
 qed
 
+(*added to Lebesgue_diff_thm 2026-06*)
 lemma Lebesgue_diff_aux1:
   fixes f :: "real \<Rightarrow> 'a::euclidean_space" and a b :: real
   assumes "has_bounded_variation_on f {a..b}"
@@ -846,6 +826,7 @@ proof -
     using D_def tc by blast
 qed
 
+(*added to Lebesgue_diff_thm 2026-06*)
 lemma cover_T:
   fixes f :: "real \<Rightarrow> real" and a b k :: real
   assumes f: "has_bounded_variation_on f {a..b}" and "0 < k"
@@ -1095,6 +1076,7 @@ proof (rule ccontr)
     using p_meas d_meas d_bound unfolding \<D>_def by auto
 qed
 
+(*added to Lebesgue_diff_thm 2026-06*)
 lemma Lebesgue_diff_aux2:
   fixes f :: "real \<Rightarrow> real" and a b k :: real
   assumes f: "has_bounded_variation_on f {a..b}" and "a < b" "0 < k"
@@ -1193,6 +1175,7 @@ proof -
     by (simp add: N_def)
 qed
 
+(*added to Lebesgue_diff_thm 2026-06*)
 lemma Lebesgue_diff_aux3:
   fixes f :: "real \<Rightarrow> real" and a b k :: real
   assumes "has_bounded_variation_on f {a..b}" "a < b" "0 < k"
@@ -1384,14 +1367,14 @@ proof -
   qed
 qed
 
+(*added to Lebesgue_diff_thm 2026-06*)
 lemma Lebesgue_diff_aux4:
   fixes f :: "real \<Rightarrow> real" and a b k :: real
   assumes f: "has_bounded_variation_on f {a..b}" and "a < b" "0 < k"
   defines "I \<equiv> \<lambda>n x. ball x (inverse (real n + 1)) \<inter> {a..b}"
   shows "negligible
            {x \<in> {a..b}.
-              \<forall>n::nat. \<exists>u v. u \<in> I n x \<and> v \<in> I n x \<and>
-                             u \<noteq> x \<and> v \<noteq> x \<and>
+              \<forall>n::nat. \<exists>u v. u \<in> I n x \<and> v \<in> I n x \<and> u \<noteq> x \<and> v \<noteq> x \<and>
                              k \<le> (f v - f x) / (v - x) - (f u - f x) / (u - x)}" 
      (is "negligible ?T")
 proof -
@@ -1628,6 +1611,7 @@ proof -
   qed
 qed
 
+(*added to Lebesgue_diff_thm 2026-06*)
 lemma Lebesgue_diff_aux5:
   fixes f :: "real \<Rightarrow> real" and a b k :: real
   assumes f: "has_bounded_variation_on f {a..b}" and "a < b" "0 < k"
@@ -1697,6 +1681,7 @@ proof -
   qed
 qed
 
+(*added to Lebesgue_diff_thm 2026-06*)
 lemma Lebesgue_diff_aux6:
   fixes f :: "real \<Rightarrow> real"
   assumes "has_bounded_variation_on f {a..b}" "a < b"
@@ -1752,6 +1737,7 @@ proof -
   ultimately show ?thesis by simp
 qed
 
+(*added to Lebesgue_diff_thm 2026-06*)
 theorem Lebesgue_differentiation_theorem_compact:
   fixes f :: "real \<Rightarrow> 'a::euclidean_space"
   assumes "has_bounded_variation_on f (cbox a b)"
@@ -1787,6 +1773,7 @@ proof -
   qed
 qed
 
+(*added to Lebesgue_diff_thm 2026-06*)
 lemma Lebesgue_differentiation_theorem_open:
   fixes f :: "real \<Rightarrow> 'a::euclidean_space"
   assumes "open S" "has_bounded_variation_on f S"
@@ -1815,7 +1802,7 @@ proof -
   then show ?thesis using eq by simp
 qed
 
-
+(*added to Lebesgue_diff_thm 2026-06*)
 corollary Lebesgue_differentiation_theorem:
   fixes f :: "real \<Rightarrow> 'a::euclidean_space"
   assumes "is_interval S" "has_bounded_variation_on f S"
@@ -1844,6 +1831,7 @@ proof -
     using negligible_subset[OF negligible_Un[OF fr int] sub] .
 qed
 
+(*added to Lebesgue_diff_thm 2026-06*)
 corollary Lebesgue_differentiation_theorem_alt:
   fixes f :: "real \<Rightarrow> 'a::euclidean_space"
   assumes "is_interval S" "has_bounded_variation_on f S"
@@ -1856,6 +1844,7 @@ proof -
   ultimately show ?thesis by blast
 qed
 
+(*added to Lebesgue_diff_thm 2026-06*)
 corollary Lebesgue_differentiation_theorem_gen:
   fixes f :: "real \<Rightarrow> 'a::euclidean_space"
   assumes "countable (components S)" "has_bounded_variation_on f S"
@@ -1885,6 +1874,7 @@ corollary Lebesgue_differentiation_theorem_gen:
   qed
 qed
 
+(*added to Lebesgue_diff_thm 2026-06*)
 corollary Lebesgue_differentiation_theorem_increasing:
   fixes f :: "real \<Rightarrow> real"
   assumes "is_interval S" "mono_on S f"
@@ -1929,6 +1919,7 @@ proof -
   then show ?thesis by (simp add: locally_negligible)
 qed
 
+(*added to Lebesgue_diff_thm 2026-06*)
 corollary Lebesgue_differentiation_theorem_decreasing:
   fixes f :: "real \<Rightarrow> real"
   assumes "is_interval S" "antimono_on S f"
@@ -9537,7 +9528,6 @@ next
   qed
   have interior_ne: "interior (convex hull (path_image g)) \<noteq> {}"
     using interior_subset \<open>a<b\<close> by fastforce
-
   show ?thesis
   proof (cases "g a = g b")
     case True
