@@ -126,7 +126,7 @@ proof -
         then show "arc ?d"
           using arcs g01 by (simp add: arc_join_eq)
         show "path_image (subpath a b g) = g ` {a..b}"
-          by (metis *)
+          by (metis *(1))
         show "path_image ?d = g ` ({0..1} - {a<..<b})"
           using assms g01 by (auto simp add: path_image_join path_image_subpath)
         show "path_image (subpath a b g) \<inter> path_image ?d = {g a, g b}"
@@ -383,7 +383,7 @@ lemma vector_variation_isometric_compose:
   fixes f :: "'a::euclidean_space \<Rightarrow> 'a" and g :: "real \<Rightarrow> 'a"
   assumes "\<And>x y. dist (f x) (f y) = dist x y"
   shows "vector_variation S (f \<circ> g) = vector_variation S g"
-  by (rule vector_variation_isometric) (metis assms comp_apply dist_norm)
+  by (rule vector_variation_isometric) (metis assms comp_apply)
 
 (*added to bounded_variation 2026-05*)
 lemma has_bounded_variation_on_translation:
@@ -957,7 +957,7 @@ proof (rule ccontr)
       next
         fix K1 K2 assume "K1 \<in> d'" "K2 \<in> d'" "K1 \<noteq> K2"
         then show "interior K1 \<inter> interior K2 = {}"
-          using disj_d' interior_subset by (metis disjointD interior_Int interior_empty)
+          using disj_d' by (metis disjointD interior_Int interior_empty)
       qed (use fin_d' d'_ne in auto)
       have d'_sub_lr: "\<Union>d' \<subseteq> {l..r}"
         unfolding d'_def by auto
@@ -2107,11 +2107,11 @@ proof -
     by (simp add: negligible_subset subset_iff)
 qed
 
-(*All added to Complex 2026-05*)
+\<comment> \<open>All added to \<open>Complex\<close> 2026-05.\<close>
 lemma dist_cnj [simp]: "dist (cnj a) (cnj b) = dist a b"
   by (metis complex_cnj_diff complex_mod_cnj dist_norm)
 
-(*Added to Elementary_Metric_Spaces 2026-05*)
+\<comment> \<open>Added to \<open>Elementary_Metric_Spaces\<close> 2026-05.\<close>
 lemma diameter_image_cnj: "diameter (cnj ` S) = diameter S"
 proof -
   have "(\<lambda>(x,y). dist x y) ` (cnj ` S \<times> cnj ` S) = (\<lambda>(x,y). dist x y) ` (S \<times> S)"
@@ -2166,7 +2166,7 @@ next
   with convex_open_segment_cases[OF assms] show ?thesis by simp
 qed
 
-(*Added to Absolute_Continuity 2026-05*)
+\<comment> \<open>Added to \<open>Absolute_Continuity\<close> 2026-05.\<close>
 lemma absolutely_continuous_on_reflect:
   assumes "absolutely_continuous_on {S - b..S - a} f"
   shows "absolutely_continuous_on {a..b} (f \<circ> (-) S)"
@@ -2228,7 +2228,7 @@ proof -
   qed
 qed
 
-(*Added to Absolute_Continuity 2026-05*)
+\<comment> \<open>Added to \<open>Absolute_Continuity\<close> 2026-05.\<close>
 lemma fundamental_theorem_of_calculus_strong:
   fixes f :: "real \<Rightarrow> 'a::banach" and f' :: "real \<Rightarrow> 'a"
   assumes "countable S"
@@ -2545,7 +2545,7 @@ next
   qed
 qed
 
-(*Added to Absolute_Continuity 2026-05*)
+\<comment> \<open>Added to \<open>Absolute_Continuity\<close> 2026-05.\<close>
 lemma fundamental_theorem_of_calculus_interior_strong:
   fixes f :: "real \<Rightarrow> 'a::banach" and f' :: "real \<Rightarrow> 'a"
   assumes "countable S"
@@ -2809,7 +2809,7 @@ proof (rule lborel_eqI[symmetric])
   finally show "emeasure (distr lborel borel ?C) (box l u) = ennreal (\<Prod>b\<in>Basis. (u - l) \<bullet> b)" .
 qed
 
-(*DELETE the old supporting_hyperplane_relative_frontier since it lacks rel_frontier!*)
+\<comment> \<open>TODO: delete the old \<open>supporting_hyperplane_relative_frontier\<close> since it lacks \<open>rel_frontier\<close>.\<close>
 lemma supporting_hyperplane_rel_frontier:
   fixes S :: "'a::euclidean_space set"
   assumes "convex S" "x \<in> rel_frontier S"
@@ -3104,7 +3104,6 @@ proof -
   qed
 qed
 
-(*lemma0*)
 lemma norm_le_norm_add_orthogonal:
   assumes "orthogonal x y"
   shows "norm x \<le> norm (x + y)"
@@ -3117,7 +3116,6 @@ proof -
     by (rule power2_le_imp_le) simp
 qed
 
-(*lemma1*)
 lemma dist_scaleR_ge_min:
   fixes x y :: "'a::real_inner"
   assumes "0 \<le> a" "0 \<le> b" "x \<bullet> y \<le> 0"
@@ -3160,7 +3158,6 @@ proof -
     by (rule power2_le_imp_le) (simp add: mult_nonneg_nonneg minab zero_le_dist)
 qed
 
-(*lemma2*)
 lemma dist_scaleR_ge_min_between:
   fixes x y w :: "'a::real_inner"
   assumes "0 \<le> a" "0 \<le> b" "between (x, y) w" "orthogonal w (x - y)"
@@ -3222,9 +3219,6 @@ proof -
   with step1 show ?thesis by linarith
 qed
 
-
-
-(*mainlemma_2d*)
 lemma collinear_orthogonal_dist_product:
   fixes z x x' w y :: "'a::euclidean_space"
   assumes "collinear {z, x, x'}" "collinear {w, x, y}"
@@ -3667,7 +3661,7 @@ next
                     show "collinear {w, x, y}"
                       by (simp add: collinear_between_cases betx)
                     show "orthogonal (0 - w) (x - y)"
-                      by (smt (verit, ccfv_SIG) \<open>w \<noteq> x\<close> arith_simps(56) between_implies_scaled_diff between_triv2
+                      by (smt (verit, ccfv_SIG) \<open>w \<noteq> x\<close> diff_0 between_implies_scaled_diff between_triv2
                           minus_diff_eq orthogonal_clauses(3) orthogonal_commute orthogonal_scaleR right_minus_eq
                           scaleR_zero_left betx xy_ne orthw)
                     show "orthogonal (y - x') (0 - x')"
@@ -4033,7 +4027,7 @@ proof -
     and hk: "\<And>y. y \<in> span t \<Longrightarrow> h (k y) = y"
     using isometries_subspaces [of "span s" "span t"] \<open>dim s = dim t\<close> by auto
   have aff_h: "h ` (affine hull s) = affine hull t"
-    by (metis assms(5,6) conic_hull_eq_span_affine_hull im_h)
+    by (metis \<open>0 \<in> rel_interior s\<close> \<open>0 \<in> rel_interior t\<close> conic_hull_eq_span_affine_hull im_h)
   have rel_frontier_h: "rel_frontier (h ` s) = h ` rel_frontier s"
   proof -
     have inj_h: "inj_on h (span s)"
@@ -4049,14 +4043,14 @@ proof -
     also have "h ` closure s - h ` rel_interior s = h ` (closure s - rel_interior s)"
       using inj_on_image_set_diff [OF inj_h]
         cls_span rel_interior_subset [of s] span_superset [of s]
-      by (metis Diff_subset order_trans subset_trans)
+      by (metis Diff_subset order_trans)
     also have "closure s - rel_interior s = rel_frontier s"
       by (simp add: rel_frontier_def)
     finally show ?thesis .
   qed
   have aff_hs: "affine hull (h ` s) = affine hull t"
-    by (metis affine_hull_span_0 assms(5,6) hull_inc im_h lin_h linear_0 linear_span_image
-        mem_rel_interior_ball rev_image_eqI)
+    by (metis affine_hull_span_0 \<open>0 \<in> rel_interior s\<close> \<open>0 \<in> rel_interior t\<close> hull_inc im_h lin_h
+        linear_0 linear_span_image mem_rel_interior_ball rev_image_eqI)
   have bdd_hs: "bounded (h ` s)"
     using bounded_linear_image[OF \<open>bounded s\<close>] lin_h linear_linear by blast
   have ri_hs: "0 \<in> rel_interior (h ` s)"
@@ -4114,7 +4108,7 @@ proof -
         have hx: "h x \<in> rel_frontier (h ` s)" using x rel_frontier_h by auto
         have hy: "h y \<in> rel_frontier (h ` s)" using y rel_frontier_h by auto
         have xs: "x \<in> span s"
-          using assms(5) conic_hull_eq_span_affine_hull rel_frontier_affine_hull x by fastforce
+          using \<open>0 \<in> rel_interior s\<close> conic_hull_eq_span_affine_hull rel_frontier_affine_hull x by fastforce
         have ys: "y \<in> span s"
           using affine_hull_subset_span closure_affine_hull rel_frontier_def y by fastforce
         show "norm ((f \<circ> h) x - (f \<circ> h) y) \<le> B * norm (x - y)"
@@ -4148,14 +4142,14 @@ lemma bilipschitz_homeomorphism_rel_frontiers:
 proof (cases "s={} \<or> t={}")
   case True
   then show ?thesis
-    by (metis that aff_dim_negative_iff assms(5) empty_iff homeomorphism_empty rel_frontier_empty)
+    by (metis that aff_dim_negative_iff eq empty_iff homeomorphism_empty rel_frontier_empty)
 next
   case False
   obtain a b where a: "a \<in> rel_interior s" and b: "b \<in> rel_interior t"
     using False rel_interior_eq_empty[OF \<open>convex s\<close>] rel_interior_eq_empty[OF \<open>convex t\<close>]
     by blast
   have dim_eq: "dim ((+) (-a) ` s) = dim ((+) (-b) ` t)"
-    by (metis a aff_dim_eq_dim assms(5) b hull_inc mem_rel_interior_ball of_nat_eq_iff)
+    by (metis a aff_dim_eq_dim eq b hull_inc mem_rel_interior_ball of_nat_eq_iff)
   have ri_s: "0 \<in> rel_interior ((+) (-a) ` s)"
     using a rel_interior_translation[of "-a" s] by (auto simp: image_iff)
   have ri_t: "0 \<in> rel_interior ((+) (-b) ` t)"
@@ -4171,16 +4165,16 @@ next
           convex_translation[OF \<open>convex t\<close>] bounded_translation[OF \<open>bounded t\<close>]
           ri_s ri_t dim_eq]
     by blast
+  have rfs: "rel_frontier ((+) (-a) ` s) = (+) (-a) ` rel_frontier s"
+    by (rule rel_frontier_translation)
+  have rft: "rel_frontier ((+) (-b) ` t) = (+) (-b) ` rel_frontier t"
+    by (rule rel_frontier_translation)
   obtain B B' where
     lip_fs: "\<And>x y. x \<in> rel_frontier s \<Longrightarrow> y \<in> rel_frontier s \<Longrightarrow>
                     norm (f (-a + x) - f (-a + y)) \<le> B * norm (x - y)"
     and lip_gt: "\<And>x y. x \<in> rel_frontier t \<Longrightarrow> y \<in> rel_frontier t \<Longrightarrow>
                     norm (g (-b + x) - g (-b + y)) \<le> B' * norm (x - y)"
   proof -
-    have rfs: "rel_frontier ((+) (-a) ` s) = (+) (-a) ` rel_frontier s"
-      by (rule rel_frontier_translation)
-    have rft: "rel_frontier ((+) (-b) ` t) = (+) (-b) ` rel_frontier t"
-      by (rule rel_frontier_translation)
     obtain B where B: "\<forall>x\<in>rel_frontier ((+) (-a) ` s). \<forall>y\<in>rel_frontier ((+) (-a) ` s).
                         norm (f x - f y) \<le> B * norm (x - y)"
       using lip_f by blast
@@ -4188,7 +4182,7 @@ next
                           norm (g x - g y) \<le> B' * norm (x - y)"
       using lip_g by blast
     show thesis
-    proof (rule that[of B B'])
+    proof
       fix x y assume "x \<in> rel_frontier s" "y \<in> rel_frontier s"
       then have xy: "-a + x \<in> rel_frontier ((+) (-a) ` s)" "-a + y \<in> rel_frontier ((+) (-a) ` s)"
         unfolding rfs by (auto simp: image_iff)
@@ -4208,18 +4202,10 @@ next
   proof
     show "homeomorphism (rel_frontier s) (rel_frontier t) ?f ?g"
     proof -
-      have rfs: "rel_frontier ((+) (-a) ` s) = (+) (-a) ` rel_frontier s"
-        by (rule rel_frontier_translation)
-      have rft: "rel_frontier ((+) (-b) ` t) = (+) (-b) ` rel_frontier t"
-        by (rule rel_frontier_translation)
       note homeo_parts = homeo[unfolded homeomorphism_def rfs rft]
       have cf: "continuous_on ((+) (-a) ` rel_frontier s) f"
         using homeo_parts by blast
       have cg: "continuous_on ((+) (-b) ` rel_frontier t) g"
-        using homeo_parts by blast
-      have im_f0: "f ` ((+) (-a) ` rel_frontier s) = (+) (-b) ` rel_frontier t"
-        using homeo_parts by blast
-      have im_g0: "g ` ((+) (-b) ` rel_frontier t) = (+) (-a) ` rel_frontier s"
         using homeo_parts by blast
       have gf0: "\<And>x. x \<in> (+) (-a) ` rel_frontier s \<Longrightarrow> g (f x) = x"
         using homeo_parts by blast
@@ -4230,85 +4216,26 @@ next
       have fg: "\<And>y. y \<in> rel_frontier t \<Longrightarrow> ?f (?g y) = y"
         using fg0[of "-b + _"] by (auto simp: algebra_simps image_iff)
       have im_f: "?f ` rel_frontier s = rel_frontier t"
-      proof safe
-        fix x assume "x \<in> rel_frontier s"
-        then have "f (-a + x) \<in> f ` ((+) (-a) ` rel_frontier s)"
-          by (auto simp: image_iff)
-        then have "f (-a + x) \<in> (+) (-b) ` rel_frontier t"
-          using im_f0 by simp
-        then show "b + f (-a + x) \<in> rel_frontier t"
-          by (auto simp: algebra_simps)
-      next
-        fix y assume "y \<in> rel_frontier t"
-        then have "-b + y \<in> (+) (-b) ` rel_frontier t"
-          by (auto simp: image_iff)
-        then have "-b + y \<in> f ` ((+) (-a) ` rel_frontier s)"
-          using im_f0 by simp
-        then obtain x where "x \<in> rel_frontier s" "f (-a + x) = -b + y"
-          by (auto simp: image_iff algebra_simps)
-        then show "y \<in> ?f ` rel_frontier s"
-          by (rule_tac x=x in image_eqI) (auto simp: algebra_simps)
-      qed
+        by (metis homeo_parts image_image translation_galois)
       have im_g: "?g ` rel_frontier t = rel_frontier s"
-      proof safe
-        fix y assume "y \<in> rel_frontier t"
-        then have "g (-b + y) \<in> g ` ((+) (-b) ` rel_frontier t)"
-          by (auto simp: image_iff)
-        then have "g (-b + y) \<in> (+) (-a) ` rel_frontier s"
-          using im_g0 by simp
-        then show "a + g (-b + y) \<in> rel_frontier s"
-          by (auto simp: algebra_simps)
-      next
-        fix x assume "x \<in> rel_frontier s"
-        then have "-a + x \<in> (+) (-a) ` rel_frontier s"
-          by (auto simp: image_iff)
-        then have "-a + x \<in> g ` ((+) (-b) ` rel_frontier t)"
-          using im_g0 by simp
-        then obtain y where "y \<in> rel_frontier t" "g (-b + y) = -a + x"
-          by (auto simp: image_iff algebra_simps)
-        then show "x \<in> ?g ` rel_frontier t"
-          by (rule_tac x=y in image_eqI) (auto simp: algebra_simps)
-      qed
+        by (metis homeo_parts image_image translation_galois)
       have cont_f: "continuous_on (rel_frontier s) ?f"
-      proof -
-        have "continuous_on (rel_frontier s) ((+) (-a))"
-          using continuous_on_translation_eq[of "rel_frontier s" "-a" id]
-            continuous_on_id' by (simp add: o_def)
-        then have "continuous_on (rel_frontier s) (f \<circ> (+) (-a))"
-          using cf by (rule continuous_on_compose)
-        then show ?thesis
-          using continuous_on_translation_eq[of "rel_frontier s" b "f \<circ> (+) (-a)"]
-          by (simp add: o_def)
-      qed
+        using continuous_on_compose[OF _ cf]
+          continuous_on_translation_eq[of _ "-a" id] continuous_on_translation_eq[of _ b "f \<circ> (+) (-a)"]
+        by (simp add: o_def)
       have cont_g: "continuous_on (rel_frontier t) ?g"
-      proof -
-        have "continuous_on (rel_frontier t) ((+) (-b))"
-          using continuous_on_translation_eq[of "rel_frontier t" "-b" id]
-            continuous_on_id' by (simp add: o_def)
-        then have "continuous_on (rel_frontier t) (g \<circ> (+) (-b))"
-          using cg by (rule continuous_on_compose)
-        then show ?thesis
-          using continuous_on_translation_eq[of "rel_frontier t" a "g \<circ> (+) (-b)"]
-          by (simp add: o_def)
-      qed
+        using continuous_on_compose[OF _ cg]
+          continuous_on_translation_eq[of _ "-b" id] continuous_on_translation_eq[of _ a "g \<circ> (+) (-b)"]
+        by (simp add: o_def)
       show ?thesis
         unfolding homeomorphism_def
         using gf fg im_f im_g cont_f cont_g by blast
     qed
   next
     show "\<exists>B. \<forall>x y. x \<in> rel_frontier s \<longrightarrow> y \<in> rel_frontier s \<longrightarrow> norm ((?f x::'a) - ?f y) \<le> B * norm (x - y)"
-    proof (intro exI allI impI)
-      fix x y assume "x \<in> rel_frontier s" "y \<in> rel_frontier s"
-      then show "norm (?f x - ?f y) \<le> B * norm (x - y)"
-        using lip_fs by (simp add: algebra_simps)
-    qed
-  next
+        using lip_fs by (force simp: algebra_simps)
     show "\<exists>B. \<forall>x y. x \<in> rel_frontier t \<longrightarrow> y \<in> rel_frontier t \<longrightarrow> norm ((?g x::'a) - ?g y) \<le> B * norm (x - y)"
-    proof (intro exI allI impI)
-      fix x y assume "x \<in> rel_frontier t" "y \<in> rel_frontier t"
-      then show "norm (?g x - ?g y) \<le> B' * norm (x - y)"
-        using lip_gt by (simp add: algebra_simps)
-    qed
+        using lip_gt by (force simp: algebra_simps)
   qed
 qed
 
@@ -4478,7 +4405,7 @@ proof -
     moreover have "\<gamma> x \<in> sphere 0 1" "\<gamma> y \<in> sphere 0 1"
       using x y \<gamma>_img by auto
     ultimately have "\<gamma> x = \<gamma> y"
-      using homeo unfolding homeomorphism_def by (metis imageI)
+      using homeo unfolding homeomorphism_def by metis
     then show "x = y \<or> x = 0 \<and> y = 1 \<or> x = 1 \<and> y = 0"
       using \<gamma>_loop_free x y unfolding loop_free_def by auto
   qed
@@ -4510,7 +4437,7 @@ proof -
       finally show "norm (p x - p y) \<le> (B * (2*pi)) * norm (x - y)" .
     qed
     then show ?thesis
-      using lipschitz_imp_rectifiable_path by (metis bspec)
+      using lipschitz_imp_rectifiable_path by metis
   qed
   show ?thesis
     using p_simple p_rect p_loop p_img by blast
@@ -4523,7 +4450,7 @@ lemma rectifiable_loop_frontier_convex:
   shows "\<exists>g. simple_path g \<and> rectifiable_path g \<and>
              pathfinish g = pathstart g \<and>
              path_image g = frontier S"
-  using rectifiable_loop_relative_frontier_convex[OF assms(1,2)]
+  using rectifiable_loop_rel_frontier_convex[OF assms(1,2)]
         rel_frontier_nonempty_interior[OF assms(3)]
         aff_dim_nonempty_interior[OF assms(3)]
   by simp
@@ -7230,7 +7157,7 @@ proof (rule ccontr)
     \<comment> \<open>Step 5: The "sides" condition for frontier_vertical_at_most_two.\<close>
   have side_left: "\<exists>p \<in> S. Re p < c"
     by (metis S_def assms(5) c_strict hull_inc pathstart_def pathstart_in_path_image
-        zero_complex.simps(1))
+        zero_complex.sel(1))
   have side_right: "\<exists>q \<in> S. c < Re q"
     by (metis S_def b(1) c_strict hull_inc)
     \<comment> \<open>Step 6: Apply frontier_vertical_at_most_two for the contradiction.\<close>
@@ -7475,7 +7402,7 @@ proof -
       have "compact Au" by metis
       then show ?thesis using lmeasurable_compact by blast
     qed
-    have Al_meas: "Al \<in> lmeasurable" (*DUALITY*)
+    have Al_meas: "Al \<in> lmeasurable" \<comment> \<open>duality\<close>
     proof -
       have cont_g_lower: "continuous_on {t..1} g"
         using absolutely_continuous_on_imp_continuous[OF ac_sub'] is_interval_cc by blast
@@ -8311,7 +8238,7 @@ proof -
       proof -
         have "(g' has_integral (g 1 - g 0)) {0..1}"
           using fundamental_theorem_of_calculus_absolutely_continuous[OF U _ cont, of g']
-          by (metis atLeastAtMost_iff le_numeral_extra(1) vder has_vector_derivative_at_within)
+          by (metis le_numeral_extra(1) vder has_vector_derivative_at_within)
         then show ?thesis using g by (simp add: pathstart_def pathfinish_def)
       qed
       have Re_has_int: "((\<lambda>t. Re (g' t)) has_integral 0) {0..1}"
@@ -8530,11 +8457,11 @@ proof -
     have "Re a < Re b"
     proof -
       have "dist a b > 0"
-        using \<open>0 < L\<close> L dist_ab diameter_ge_0 g(1) order_less_le (*TODO UGLY*)
+        using \<open>0 < L\<close> L dist_ab diameter_ge_0 g(1) order_less_le \<comment> \<open>TODO: simplify\<close>
         by (metis path_image_nonempty Diff_cancel ab(1) assms(7,8) bounded_simple_path_image diameter_eq_0
             g(2) insert_absorb nonempty_simple_path_endless singletonD)
       then show ?thesis
-        by (metis Re_complex_of_real assms(14,6) diff_zero minus_complex.simps(1))
+        by (metis Re_complex_of_real assms(14,6) diff_0_right minus_complex.sel(1))
     qed
     moreover have "Im a = Im b"
       using bma by (simp add: complex_of_real_def complex_eq_iff)
@@ -9724,8 +9651,8 @@ next
       moreover have "interior (convex hull (path_image g)) \<noteq> {}"
         by (rule interior_ne)
       moreover note frontier_eq_rel
-      ultimately show ?thesis using that rectifiable_loop_relative_frontier_convex
-        by (meson rectifiable_loop_frontier_convex)
+      ultimately show ?thesis 
+        using rectifiable_loop_frontier_convex that by blast
     qed
 
 \<comment> \<open>Step 4: Double arc decomposition of the frontier loop d, with inside decomposition\<close>
@@ -9769,7 +9696,7 @@ next
         then show ?thesis using frontier_eq_rel by simp
       qed
       then show ?thesis using ga_in_d gb_in_d ga_ne_gb that
-        by (metis path_connected_arcwise subsetD d_props(4))
+        by (metis path_connected_arcwise d_props(4))
     qed
 
     \<comment> \<open>Step 5: Reparametrize front_arc to domain {a..b} and define h\<close>
