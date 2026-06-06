@@ -4139,20 +4139,178 @@ qed
 \<comment> \<open>HOL Light: BILIPSCHITZ_HOMEOMORPHISM_RELATIVE_FRONTIERS\<close>
 lemma bilipschitz_homeomorphism_rel_frontiers:
   fixes s t :: "'a::euclidean_space set"
-  assumes "convex s" "bounded s" "convex t" "bounded t" "aff_dim s = aff_dim t"
-  shows "\<exists>f g. homeomorphism (rel_frontier s) (rel_frontier t) f g \<and>
-               (\<exists>B. \<forall>x y. x \<in> rel_frontier s \<longrightarrow> y \<in> rel_frontier s \<longrightarrow>
-                     norm (f x - f y) \<le> B * norm (x - y)) \<and>
-               (\<exists>B. \<forall>x y. x \<in> rel_frontier t \<longrightarrow> y \<in> rel_frontier t \<longrightarrow>
-                     norm (g x - g y) \<le> B * norm (x - y))"
+  assumes "convex s" "bounded s" "convex t" "bounded t" and eq: "aff_dim s = aff_dim t"
+  obtains f g where "homeomorphism (rel_frontier s) (rel_frontier t) f g"
+               "\<exists>B. \<forall>x y. x \<in> rel_frontier s \<longrightarrow> y \<in> rel_frontier s \<longrightarrow>
+                     norm (f x - f y) \<le> B * norm (x - y)"
+               "\<exists>B. \<forall>x y. x \<in> rel_frontier t \<longrightarrow> y \<in> rel_frontier t \<longrightarrow>
+                     norm (g x - g y) \<le> B * norm (x - y)"
 proof (cases "s={} \<or> t={}")
   case True
-  then show ?thesis sorry
+  then show ?thesis
+    by (metis that aff_dim_negative_iff assms(5) empty_iff homeomorphism_empty rel_frontier_empty)
 next
   case False
-  show ?thesis sorry
+  obtain a b where a: "a \<in> rel_interior s" and b: "b \<in> rel_interior t"
+    using False rel_interior_eq_empty[OF \<open>convex s\<close>] rel_interior_eq_empty[OF \<open>convex t\<close>]
+    by blast
+  have dim_eq: "dim ((+) (-a) ` s) = dim ((+) (-b) ` t)"
+    by (metis a aff_dim_eq_dim assms(5) b hull_inc mem_rel_interior_ball of_nat_eq_iff)
+  have ri_s: "0 \<in> rel_interior ((+) (-a) ` s)"
+    using a rel_interior_translation[of "-a" s] by (auto simp: image_iff)
+  have ri_t: "0 \<in> rel_interior ((+) (-b) ` t)"
+    using b rel_interior_translation[of "-b" t] by (auto simp: image_iff)
+  obtain f g where
+    homeo: "homeomorphism (rel_frontier ((+) (-a) ` s)) (rel_frontier ((+) (-b) ` t)) f g"
+    and lip_f: "\<exists>B. \<forall>x\<in>rel_frontier ((+) (-a) ` s). \<forall>y\<in>rel_frontier ((+) (-a) ` s).
+                     norm (f x - f y) \<le> B * norm (x - y)"
+    and lip_g: "\<exists>B. \<forall>x\<in>rel_frontier ((+) (-b) ` t). \<forall>y\<in>rel_frontier ((+) (-b) ` t).
+                     norm (g x - g y) \<le> B * norm (x - y)"
+    using bilipschitz_homeomorphism_rel_frontiers_aux2
+      [OF convex_translation[OF \<open>convex s\<close>] bounded_translation[OF \<open>bounded s\<close>]
+          convex_translation[OF \<open>convex t\<close>] bounded_translation[OF \<open>bounded t\<close>]
+          ri_s ri_t dim_eq]
+    by blast
+  obtain B B' where
+    lip_fs: "\<And>x y. x \<in> rel_frontier s \<Longrightarrow> y \<in> rel_frontier s \<Longrightarrow>
+                    norm (f (-a + x) - f (-a + y)) \<le> B * norm (x - y)"
+    and lip_gt: "\<And>x y. x \<in> rel_frontier t \<Longrightarrow> y \<in> rel_frontier t \<Longrightarrow>
+                    norm (g (-b + x) - g (-b + y)) \<le> B' * norm (x - y)"
+  proof -
+    have rfs: "rel_frontier ((+) (-a) ` s) = (+) (-a) ` rel_frontier s"
+      by (rule rel_frontier_translation)
+    have rft: "rel_frontier ((+) (-b) ` t) = (+) (-b) ` rel_frontier t"
+      by (rule rel_frontier_translation)
+    obtain B where B: "\<forall>x\<in>rel_frontier ((+) (-a) ` s). \<forall>y\<in>rel_frontier ((+) (-a) ` s).
+                        norm (f x - f y) \<le> B * norm (x - y)"
+      using lip_f by blast
+    obtain B' where B': "\<forall>x\<in>rel_frontier ((+) (-b) ` t). \<forall>y\<in>rel_frontier ((+) (-b) ` t).
+                          norm (g x - g y) \<le> B' * norm (x - y)"
+      using lip_g by blast
+    show thesis
+    proof (rule that[of B B'])
+      fix x y assume "x \<in> rel_frontier s" "y \<in> rel_frontier s"
+      then have xy: "-a + x \<in> rel_frontier ((+) (-a) ` s)" "-a + y \<in> rel_frontier ((+) (-a) ` s)"
+        unfolding rfs by (auto simp: image_iff)
+      then show "norm (f (-a + x) - f (-a + y)) \<le> B * norm (x - y)"
+        using bspec[OF bspec[OF B xy(1)] xy(2)] by simp
+    next
+      fix x y assume "x \<in> rel_frontier t" "y \<in> rel_frontier t"
+      then have xy: "-b + x \<in> rel_frontier ((+) (-b) ` t)" "-b + y \<in> rel_frontier ((+) (-b) ` t)"
+        unfolding rft by (auto simp: image_iff)
+      then show "norm (g (-b + x) - g (-b + y)) \<le> B' * norm (x - y)"
+        using bspec[OF bspec[OF B' xy(1)] xy(2)] by simp
+    qed
+  qed
+  let ?f = "\<lambda>x. b + f (-a + x)"
+  let ?g = "\<lambda>x. a + g (-b + x)"
+  show thesis
+  proof
+    show "homeomorphism (rel_frontier s) (rel_frontier t) ?f ?g"
+    proof -
+      have rfs: "rel_frontier ((+) (-a) ` s) = (+) (-a) ` rel_frontier s"
+        by (rule rel_frontier_translation)
+      have rft: "rel_frontier ((+) (-b) ` t) = (+) (-b) ` rel_frontier t"
+        by (rule rel_frontier_translation)
+      note homeo_parts = homeo[unfolded homeomorphism_def rfs rft]
+      have cf: "continuous_on ((+) (-a) ` rel_frontier s) f"
+        using homeo_parts by blast
+      have cg: "continuous_on ((+) (-b) ` rel_frontier t) g"
+        using homeo_parts by blast
+      have im_f0: "f ` ((+) (-a) ` rel_frontier s) = (+) (-b) ` rel_frontier t"
+        using homeo_parts by blast
+      have im_g0: "g ` ((+) (-b) ` rel_frontier t) = (+) (-a) ` rel_frontier s"
+        using homeo_parts by blast
+      have gf0: "\<And>x. x \<in> (+) (-a) ` rel_frontier s \<Longrightarrow> g (f x) = x"
+        using homeo_parts by blast
+      have fg0: "\<And>y. y \<in> (+) (-b) ` rel_frontier t \<Longrightarrow> f (g y) = y"
+        using homeo_parts by blast
+      have gf: "\<And>x. x \<in> rel_frontier s \<Longrightarrow> ?g (?f x) = x"
+        using gf0[of "-a + _"] by (auto simp: algebra_simps image_iff)
+      have fg: "\<And>y. y \<in> rel_frontier t \<Longrightarrow> ?f (?g y) = y"
+        using fg0[of "-b + _"] by (auto simp: algebra_simps image_iff)
+      have im_f: "?f ` rel_frontier s = rel_frontier t"
+      proof safe
+        fix x assume "x \<in> rel_frontier s"
+        then have "f (-a + x) \<in> f ` ((+) (-a) ` rel_frontier s)"
+          by (auto simp: image_iff)
+        then have "f (-a + x) \<in> (+) (-b) ` rel_frontier t"
+          using im_f0 by simp
+        then show "b + f (-a + x) \<in> rel_frontier t"
+          by (auto simp: algebra_simps)
+      next
+        fix y assume "y \<in> rel_frontier t"
+        then have "-b + y \<in> (+) (-b) ` rel_frontier t"
+          by (auto simp: image_iff)
+        then have "-b + y \<in> f ` ((+) (-a) ` rel_frontier s)"
+          using im_f0 by simp
+        then obtain x where "x \<in> rel_frontier s" "f (-a + x) = -b + y"
+          by (auto simp: image_iff algebra_simps)
+        then show "y \<in> ?f ` rel_frontier s"
+          by (rule_tac x=x in image_eqI) (auto simp: algebra_simps)
+      qed
+      have im_g: "?g ` rel_frontier t = rel_frontier s"
+      proof safe
+        fix y assume "y \<in> rel_frontier t"
+        then have "g (-b + y) \<in> g ` ((+) (-b) ` rel_frontier t)"
+          by (auto simp: image_iff)
+        then have "g (-b + y) \<in> (+) (-a) ` rel_frontier s"
+          using im_g0 by simp
+        then show "a + g (-b + y) \<in> rel_frontier s"
+          by (auto simp: algebra_simps)
+      next
+        fix x assume "x \<in> rel_frontier s"
+        then have "-a + x \<in> (+) (-a) ` rel_frontier s"
+          by (auto simp: image_iff)
+        then have "-a + x \<in> g ` ((+) (-b) ` rel_frontier t)"
+          using im_g0 by simp
+        then obtain y where "y \<in> rel_frontier t" "g (-b + y) = -a + x"
+          by (auto simp: image_iff algebra_simps)
+        then show "x \<in> ?g ` rel_frontier t"
+          by (rule_tac x=y in image_eqI) (auto simp: algebra_simps)
+      qed
+      have cont_f: "continuous_on (rel_frontier s) ?f"
+      proof -
+        have "continuous_on (rel_frontier s) ((+) (-a))"
+          using continuous_on_translation_eq[of "rel_frontier s" "-a" id]
+            continuous_on_id' by (simp add: o_def)
+        then have "continuous_on (rel_frontier s) (f \<circ> (+) (-a))"
+          using cf by (rule continuous_on_compose)
+        then show ?thesis
+          using continuous_on_translation_eq[of "rel_frontier s" b "f \<circ> (+) (-a)"]
+          by (simp add: o_def)
+      qed
+      have cont_g: "continuous_on (rel_frontier t) ?g"
+      proof -
+        have "continuous_on (rel_frontier t) ((+) (-b))"
+          using continuous_on_translation_eq[of "rel_frontier t" "-b" id]
+            continuous_on_id' by (simp add: o_def)
+        then have "continuous_on (rel_frontier t) (g \<circ> (+) (-b))"
+          using cg by (rule continuous_on_compose)
+        then show ?thesis
+          using continuous_on_translation_eq[of "rel_frontier t" a "g \<circ> (+) (-b)"]
+          by (simp add: o_def)
+      qed
+      show ?thesis
+        unfolding homeomorphism_def
+        using gf fg im_f im_g cont_f cont_g by blast
+    qed
+  next
+    show "\<exists>B. \<forall>x y. x \<in> rel_frontier s \<longrightarrow> y \<in> rel_frontier s \<longrightarrow> norm ((?f x::'a) - ?f y) \<le> B * norm (x - y)"
+    proof (intro exI allI impI)
+      fix x y assume "x \<in> rel_frontier s" "y \<in> rel_frontier s"
+      then show "norm (?f x - ?f y) \<le> B * norm (x - y)"
+        using lip_fs by (simp add: algebra_simps)
+    qed
+  next
+    show "\<exists>B. \<forall>x y. x \<in> rel_frontier t \<longrightarrow> y \<in> rel_frontier t \<longrightarrow> norm ((?g x::'a) - ?g y) \<le> B * norm (x - y)"
+    proof (intro exI allI impI)
+      fix x y assume "x \<in> rel_frontier t" "y \<in> rel_frontier t"
+      then show "norm (?g x - ?g y) \<le> B' * norm (x - y)"
+        using lip_gt by (simp add: algebra_simps)
+    qed
+  qed
 qed
-  sorry
 
 
 \<comment> \<open>HOL Light: RECTIFIABLE_LOOP_RELATIVE_FRONTIER_CONVEX\<close>
