@@ -1940,11 +1940,13 @@ qed
 
 (*FIXME move these elsewhere*)
 
+(*added to Real 2026-06*)
 lemma le_iff_forall_rat_less_imp:
   fixes x y :: real
   shows "x \<le> y \<longleftrightarrow> (\<forall>q \<in> \<rat>. y < q \<longrightarrow> x < q)"
   by (meson Rats_dense_in_real less_asym less_le_trans not_less)
 
+(*added to Convex_Euclidean_Space 2026-06*)
 lemma limpt_of_convex:
   fixes S :: "'a::real_normed_vector set"
   assumes "convex S" "x \<in> S"
@@ -1956,8 +1958,7 @@ proof -
     by (auto simp: islimpt_finite)
 qed
 
-
-
+(*added to Deriv 2026-06*)
 lemma norm_vector_derivatives_le_within:
   fixes f :: "real \<Rightarrow> 'a::real_normed_vector" and g :: "real \<Rightarrow> 'b::real_normed_vector"
   assumes limpt: "x islimpt S"
@@ -1974,7 +1975,7 @@ proof (rule tendsto_le)
        "(?g \<longlongrightarrow> norm g') (at x within S)"
     using fderiv gderiv has_vector_derivative_within_1D tendsto_norm by blast+
   show "\<forall>\<^sub>F x in at x within S. ?f x \<le> ?g x"
-    using eventually_mono [OF ev] by (simp add: norm_scaleR abs_ge_zero mult_left_mono)
+    using eventually_mono [OF ev] by (simp add: mult_left_mono)
 qed
 
 (*Added to Elementary_Metric_Spaces 2026-05*)
@@ -2068,6 +2069,7 @@ lemma Im_absolutely_integrable_on:
   using absolutely_integrable_component [OF assms]
   by (metis (lifting) ext complex_inner_i_right)
 
+(*Added to Equivalence_Measurable_On_Borel 2026-06*)
 lemma measurable_bounded_by_integrable_imp_absolutely_integrable_ae:
   fixes f :: "'a::euclidean_space \<Rightarrow> 'b::euclidean_space"
   assumes f_meas: "f \<in> borel_measurable (lebesgue_on S)"
@@ -2111,6 +2113,7 @@ proof -
     by (simp add: diameter_def)
 qed
 
+(*Added to Starlike 2026-06*)
 lemma convex_open_segment_cases:
   fixes S :: "'a::euclidean_space set"
   assumes "convex S" "x \<in> closure S" "y \<in> closure S"
@@ -2143,6 +2146,7 @@ proof -
   qed
 qed
 
+(*Added to Starlike 2026-06*)
 lemma convex_open_segment_cases_alt:
   fixes S :: "'a::euclidean_space set"
   assumes "convex S" "x \<in> closure S" "y \<in> closure S"
@@ -2560,6 +2564,7 @@ proof -
   then show ?thesis .
 qed
 
+(*Added to Henstock 2026-06*)
 lemma integral_has_vector_derivative_pointwise:
   fixes f :: "real \<Rightarrow> 'a::euclidean_space"
   assumes "f integrable_on {a..b}"
@@ -2568,6 +2573,7 @@ lemma integral_has_vector_derivative_pointwise:
   shows "((\<lambda>u. integral {a..u} f) has_vector_derivative f x) (at x within {a..b})"
   using integral_has_vector_derivative_continuous_at[where S="{}", simplified] assms by auto
 
+(*Added to Absolute_Continuity 2026-06*)
 lemma has_integral_substitution_strong:
   fixes f :: "real \<Rightarrow> 'a::euclidean_space" and g g' :: "real \<Rightarrow> real"
   assumes "countable k"
@@ -2626,6 +2632,7 @@ proof -
   with ftc show ?thesis by simp
 qed
 
+(*Added to Absolute_Continuity 2026-06*)
 text \<open>Composition of Lipschitz with absolutely continuous is absolutely continuous.\<close>
 lemma absolutely_continuous_on_Lipschitz_compose: 
   fixes g :: "real \<Rightarrow> 'a::euclidean_space" and \<phi> :: "real \<Rightarrow> real"
@@ -2692,6 +2699,7 @@ proof -
   qed
 qed
 
+(*Added to Absolute_Continuity 2026-06*)
 text \<open>1D substitution for absolutely continuous monotone functions.\<close>
 lemma has_integral_substitution_ac:
   fixes \<phi> :: "real \<Rightarrow> real" and \<phi>' :: "real \<Rightarrow> real" and f :: "real \<Rightarrow> real"
@@ -2759,6 +2767,7 @@ proof -
   with ftc show ?thesis by (simp add: real_scaleR_def)
 qed
 
+(*Added to Lebesgue_Measure 2026-06*)
 lemma lborel_distr_complex_pair:
   "distr (lborel :: (real \<times> real) measure) borel (\<lambda>(x,y). Complex x y) = (lborel :: complex measure)"
 proof (rule lborel_eqI[symmetric])
@@ -2800,7 +2809,7 @@ proof (rule lborel_eqI[symmetric])
   finally show "emeasure (distr lborel borel ?C) (box l u) = ennreal (\<Prod>b\<in>Basis. (u - l) \<bullet> b)" .
 qed
 
-\<comment> \<open>TODO: delete the old \<open>supporting_hyperplane_relative_frontier\<close> since it lacks \<open>rel_frontier\<close>.\<close>
+(*Added to Starlike 2026-06*)
 lemma supporting_hyperplane_rel_frontier:
   fixes S :: "'a::euclidean_space set"
   assumes "convex S" "x \<in> rel_frontier S"
@@ -2814,6 +2823,7 @@ proof -
     by (metis convex_rel_interior_closure[OF assms(1)])
 qed
 
+(*Added to Starlike 2026-06*)
 lemma supporting_hyperplane_frontier:
   fixes S :: "'a::euclidean_space set"
   assumes "convex S" "x \<in> frontier S"
@@ -2838,7 +2848,8 @@ next
   then show ?thesis by blast
 qed
 
-lemma convex_triple_relative_frontier_between:
+(*Added to Path_Connected 2026-06*)
+lemma convex_triple_rel_frontier_between:
   fixes S :: "complex set" and a b c d :: complex and e :: real
   assumes "between (a,b) c"
     and d: "d \<bullet> c = e" "d \<bullet> b = e" "d \<bullet> a = e"
@@ -2912,7 +2923,8 @@ proof -
           closure_subset order.trans)
 qed
 
-lemma convex_triple_relative_frontier:
+(*Added to Path_Connected 2026-06*)
+lemma convex_triple_rel_frontier:
   fixes S :: "complex set" and a b c d :: complex and e :: real
   assumes "convex S"
     and "a \<in> rel_frontier S" "b \<in> rel_frontier S" "c \<in> rel_frontier S"
@@ -2929,11 +2941,11 @@ proof (cases "d=0")
     by (simp add: collinear_aff_dim)
   then have "between (b,c) a \<or> between (c,a) b \<or> between (a,b) c"
     by (simp add: collinear_between_cases)      
-  with False convex_triple_relative_frontier_between show ?thesis
+  with False convex_triple_rel_frontier_between show ?thesis
     using assms by blast
 qed auto
 
-\<comment> \<open>HOL Light: LIPSCHITZ_CONVEX_SPHERICAL_PROJECTION_EXPLICIT\<close>
+(*Added to Path_Connected 2026-06*)
 lemma lipschitz_convex_spherical_projection_explicit:
   fixes r :: real and S :: "'a::euclidean_space set"
   assumes "convex S" "0 < r" "0 \<in> S"
@@ -3064,8 +3076,7 @@ proof -
     using \<open>0 < r\<close> by (simp add: field_simps)
 qed
 
-
-\<comment> \<open>HOL Light: LIPSCHITZ_CONVEX_SPHERICAL_PROJECTION\<close>
+(*Added to Path_Connected 2026-06*)
 lemma lipschitz_convex_spherical_projection:
   fixes S :: "'a::euclidean_space set"
   assumes "convex S" "0 \<in> rel_interior S"
@@ -3095,6 +3106,7 @@ proof -
   qed
 qed
 
+(*Added to Linear_Algebra 2026-06*)
 lemma norm_le_norm_add_orthogonal:
   assumes "orthogonal x y"
   shows "norm x \<le> norm (x + y)"
@@ -3107,19 +3119,18 @@ proof -
     by (rule power2_le_imp_le) simp
 qed
 
+(*Added to Line_Segment 2026-06*)
 lemma dist_scaleR_ge_min:
   fixes x y :: "'a::real_inner"
   assumes "0 \<le> a" "0 \<le> b" "x \<bullet> y \<le> 0"
   shows "min a b * dist x y \<le> dist (a *\<^sub>R x) (b *\<^sub>R y)"
 proof -
-  have minab: "0 \<le> min a b" using assms(1,2) by simp
+  have minab: "0 \<le> min a b" using assms by simp
   have sq: "(min a b)\<^sup>2 * ((x - y) \<bullet> (x - y)) \<le> (a *\<^sub>R x - b *\<^sub>R y) \<bullet> (a *\<^sub>R x - b *\<^sub>R y)"
   proof -
     have expand_rhs: "(a *\<^sub>R x - b *\<^sub>R y) \<bullet> (a *\<^sub>R x - b *\<^sub>R y) =
         a\<^sup>2 * (x \<bullet> x) + b\<^sup>2 * (y \<bullet> y) - 2 * a * b * (x \<bullet> y)"
-      by (simp add: inner_diff_left inner_diff_right
-                    inner_scaleR_left inner_scaleR_right
-                    inner_commute[of y x] power2_eq_square algebra_simps)
+      by (simp add: inner_commute inner_diff_right power2_eq_square)
     have expand_lhs: "(min a b)\<^sup>2 * ((x - y) \<bullet> (x - y)) =
         (min a b)\<^sup>2 * (x \<bullet> x) + (min a b)\<^sup>2 * (y \<bullet> y) - 2 * (min a b)\<^sup>2 * (x \<bullet> y)"
       by (simp add: inner_diff_left inner_diff_right
@@ -3149,67 +3160,33 @@ proof -
     by (rule power2_le_imp_le) (simp add: mult_nonneg_nonneg minab zero_le_dist)
 qed
 
+(*Added to Line_Segment 2026-06*)
 lemma dist_scaleR_ge_min_between:
   fixes x y w :: "'a::real_inner"
-  assumes "0 \<le> a" "0 \<le> b" "between (x, y) w" "orthogonal w (x - y)"
+  assumes "0 \<le> a" "0 \<le> b" and bet: "between (x, y) w" and orth: "orthogonal w (x - y)"
   shows "min a b * dist x y \<le> dist (a *\<^sub>R x) (b *\<^sub>R y)"
 proof -
-  from assms(3) obtain u where u: "0 \<le> u" "u \<le> 1" "w = (1 - u) *\<^sub>R x + u *\<^sub>R y"
+  from bet obtain u where "0 \<le> u" "u \<le> 1" and u: "w = (1 - u) *\<^sub>R x + u *\<^sub>R y"
     by (auto simp: between_mem_segment closed_segment_def)
-  have xw: "x - w = u *\<^sub>R (x - y)"
-    by (simp add: u(3) algebra_simps)
-  have yw: "y - w = (u - 1) *\<^sub>R (x - y)"
-    by (simp add: u(3) algebra_simps)
+  have \<section>: "x - w = u *\<^sub>R (x - y)" "y - w = (u - 1) *\<^sub>R (x - y)"
+    by (simp_all add: u algebra_simps)
   have dot_le: "(x - w) \<bullet> (y - w) \<le> 0"
-  proof -
-    have "(x - w) \<bullet> (y - w) = u * (u - 1) * ((x - y) \<bullet> (x - y))"
-      by (simp add: xw yw inner_scaleR_left inner_scaleR_right)
-    also have "\<dots> \<le> 0"
-    proof -
-      have "u * (u - 1) \<le> 0"
-        using u by (intro mult_nonneg_nonpos) linarith+
-      then show ?thesis
-        by (rule mult_nonpos_nonneg[OF _ inner_ge_zero])
-    qed
-    finally show ?thesis .
-  qed
+    by (simp add: "\<section>"(1,2) \<open>0 \<le> u\<close> \<open>u \<le> 1\<close> mult_nonpos_nonneg)
   have dist_eq: "dist (x - w) (y - w) = dist x y"
     by (simp add: dist_norm)
   have step1: "min a b * dist x y \<le> dist (a *\<^sub>R (x - w)) (b *\<^sub>R (y - w))"
     using dist_scaleR_ge_min[OF assms(1,2) dot_le] dist_eq by simp
   have decomp: "a *\<^sub>R x - b *\<^sub>R y = (a *\<^sub>R (x - w) - b *\<^sub>R (y - w)) + (a - b) *\<^sub>R w"
     by (simp add: algebra_simps)
-  have orth: "orthogonal (a *\<^sub>R (x - w) - b *\<^sub>R (y - w)) ((a - b) *\<^sub>R w)"
-  proof -
-    have "orthogonal w (x - w)"
-      unfolding xw using assms(4) by (simp add: orthogonal_def inner_scaleR_right)
-    then have "orthogonal (x - w) w"
-      by (simp add: orthogonal_commute)
-    moreover have "orthogonal w (y - w)"
-      unfolding yw using assms(4) by (simp add: orthogonal_def inner_scaleR_right)
-    then have "orthogonal (y - w) w"
-      by (simp add: orthogonal_commute)
-    ultimately have "orthogonal (a *\<^sub>R (x - w) - b *\<^sub>R (y - w)) w"
-      using orthogonal_clauses(7)[of "x - w" w a]
-            orthogonal_clauses(7)[of "y - w" w b]
-            orthogonal_clauses(10)[of "a *\<^sub>R (x - w)" w "b *\<^sub>R (y - w)"]
-      by blast
-    then show ?thesis
-      using orthogonal_clauses(2)[of _ w "a - b"] by blast
-  qed
-  have "dist (a *\<^sub>R (x - w)) (b *\<^sub>R (y - w)) \<le> dist (a *\<^sub>R x) (b *\<^sub>R y)"
-  proof -
-    have "norm (a *\<^sub>R (x - w) - b *\<^sub>R (y - w)) \<le>
-          norm ((a *\<^sub>R (x - w) - b *\<^sub>R (y - w)) + (a - b) *\<^sub>R w)"
-      by (rule norm_le_norm_add_orthogonal[OF orth])
-    also have "\<dots> = norm (a *\<^sub>R x - b *\<^sub>R y)"
-      by (simp add: decomp)
-    finally show ?thesis
-      by (simp add: dist_norm)
-  qed
+  have "orthogonal (a *\<^sub>R (x - w) - b *\<^sub>R (y - w)) ((a - b) *\<^sub>R w)"
+    using orthogonal_clauses orth
+    by (metis "\<section>" orthogonal_commute)
+  then have "dist (a *\<^sub>R (x - w)) (b *\<^sub>R (y - w)) \<le> dist (a *\<^sub>R x) (b *\<^sub>R y)"
+    by (simp add: decomp dist_norm norm_le_norm_add_orthogonal)
   with step1 show ?thesis by linarith
 qed
 
+(*FIXME: not clear where this belongs. Past Starlike.*)
 lemma collinear_orthogonal_dist_product:
   fixes z x x' w y :: "'a::euclidean_space"
   assumes "collinear {z, x, x'}" "collinear {w, x, y}"
@@ -3419,7 +3396,6 @@ proof -
   qed
 qed
 
-\<comment> \<open>HOL Light: INVERSE_LIPSCHITZ_CONVEX_SPHERICAL_PROJECTION_EXPLICIT\<close>
 lemma inverse_lipschitz_convex_spherical_projection_explicit:
   fixes x y :: "'a::euclidean_space"
   assumes "convex s" "r>0" "0 \<in> s"
@@ -7939,7 +7915,7 @@ proof -
           using f_the_inv_into_f[OF inj] sub by (auto simp: image_image)
         finally show ?thesis using sub by auto
       qed
-      \<comment> \<open>Use convex_triple_relative_frontier to show inside is on one side of Im = 0\<close>
+      \<comment> \<open>Use convex_triple_rel_frontier to show inside is on one side of Im = 0\<close>
       have inside_side: "inside (path_image g) \<subseteq> {z. Im z \<le> 0} \<or>
                          inside (path_image g) \<subseteq> {z. 0 \<le> Im z}"
       proof -
@@ -7969,7 +7945,7 @@ proof -
           using Im_b by (simp add: midpoint_def complex_inner_i_left)
         have "inside (path_image g) \<subseteq> {x. \<i> \<bullet> x \<le> 0} \<or>
               inside (path_image g) \<subseteq> {x. \<i> \<bullet> x \<ge> 0}"
-          using convex_triple_relative_frontier[OF conv rf0 rfb rfm ne1 ne2 ne3 ip1 ip2 ip3] .
+          using convex_triple_rel_frontier[OF conv rf0 rfb rfm ne1 ne2 ne3 ip1 ip2 ip3] .
         then show ?thesis by (auto simp: complex_inner_i_left)
       qed
       have pi_sub: "path_image g \<subseteq> closure (inside (path_image g))"
