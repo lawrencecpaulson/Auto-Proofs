@@ -1,6 +1,6 @@
 theory Isoperimetric
   imports Arc_Length_Reparametrization "Fourier.Square_Integrable" "Green.Integrals" "../Euclidean_Space_Transfer"
-    "HOL-ex.Sketch_and_Explore" Isar_Explore
+    "HOL-ex.Sketch_and_Explore" 
 begin
 
 hide_const (open) Polynomial.content
@@ -1938,8 +1938,6 @@ proof -
   ultimately show ?thesis by (rule negligible_subset[rotated])
 qed
 
-(*FIXME move these elsewhere*)
-
 (*added to Real 2026-06*)
 lemma le_iff_forall_rat_less_imp:
   fixes x y :: real
@@ -3213,69 +3211,29 @@ proof -
     show ?thesis
     proof (cases "v = 0")
       case True
-      \<comment> \<open>If also y = x, both sides are 0.\<close>
-      then have "y = x" by (simp add: v_def)
-      with xeq show ?thesis by simp
+      with xeq show ?thesis by (simp add: v_def)
     next
-      case False
-      \<comment> \<open>If y \<noteq> x, orthogonality forces w = x.\<close>
-      from orth2 \<open>u = 0\<close> have "v \<bullet> (z - x) = 0" by simp
-      from orth1 have "(z - x) \<bullet> v = (w - x) \<bullet> v" by simp
-      then have "(w - x) \<bullet> v = 0" using \<open>v \<bullet> (z - x) = 0\<close> by (simp add: inner_commute)
-      \<comment> \<open>From collinearity, w - x is proportional to v (or zero).\<close>
-      from col2 have "w - x = 0 \<or> v = 0 \<or> (\<exists>c. v = c *\<^sub>R (w - x))"
-        by (simp add: collinear_lemma)
-      then have "w = x"
-      proof (elim disjE exE)
-        assume "w - x = 0" then show "w = x" by simp
-      next
-        assume "v = 0" with False show "w = x" by contradiction
-      next
-        fix c assume vc: "v = c *\<^sub>R (w - x)"
-        from \<open>(w - x) \<bullet> v = 0\<close> vc have "(w - x) \<bullet> (c *\<^sub>R (w - x)) = 0" by simp
-        then have "c * ((w - x) \<bullet> (w - x)) = 0"
-          by (simp add: inner_scaleR_right)
-        then have "c = 0 \<or> w - x = 0"
-          using inner_eq_zero_iff[of "w - x"] by auto
-        with vc False show "w = x" by auto
-      qed
-      \<comment> \<open>Now dist z w = dist z x and dist y x' = dist y x, so both sides are equal.\<close>
-      from \<open>w = x\<close> xeq show ?thesis
-        by (metis dist_commute mult.commute)
+      case False then show ?thesis
+        using dist_commute[of x y] True col2 inner_commute[of v "z - x"]
+          norm_cauchy_schwarz_equal[of "w - x" v] orth1 orth2 xeq by force
     qed
   next
     case False
-    \<comment> \<open>Main case: u \<noteq> 0. Use collinearity and orthogonality for algebraic computation.\<close>
+    \<comment> \<open>Main case. Use collinearity and orthogonality for algebraic computation.\<close>
     then have u_ne: "u \<noteq> 0" .
     \<comment> \<open>From collinearity, z - x is a scalar multiple of u, and w - x of v.\<close>
     have col1': "collinear {0, u, z - x}" 
       using col1 by (simp add: insert_commute)
-    then have "u = 0 \<or> (z - x) = 0 \<or> (\<exists>c. z - x = c *\<^sub>R u)"
-      by (simp add: collinear_lemma)
     then obtain a where za: "z - x = a *\<^sub>R u"
-      using u_ne by (auto intro: exI[of _ 0])
-    have v_ne: "v \<noteq> 0" 
-    proof
-      assume v0: "v = 0"
-      \<comment> \<open>If y = x, orthogonality (y-x')\<cdot>(z-x') = 0 forces z = x', contradicting x' \<noteq> z.\<close>
-      from orth2 v0 have "u \<bullet> (z - x) = u \<bullet> u" by simp
-      with za have "a * (u \<bullet> u) = u \<bullet> u" by (simp add: inner_scaleR_right)
-      then have "(a - 1) * (u \<bullet> u) = 0" by (simp add: algebra_simps)
-      then have "a = 1" using u_ne inner_eq_zero_iff[of u] by auto
-      with za have "z - x = u" by simp
-      then have "z = x'" by (simp add: u_def)
-      with assms(5) show False by simp
-    qed
+      by (metis collinear_lemma scaleR_zero_left u_ne)
+    have v_ne: "v \<noteq> 0"
+      using \<open>x' \<noteq> z\<close> orth2 u_def za by force 
     have col2': "collinear {0, v, w - x}"
       using col2 by (simp add: insert_commute)
-    from col2' have "v = 0 \<or> (w - x) = 0 \<or> (\<exists>c. w - x = c *\<^sub>R v)"
-      by (simp add: collinear_lemma)
     then obtain b where wb: "w - x = b *\<^sub>R v"
-      using v_ne by (auto intro: exI[of _ 0])
-    \<comment> \<open>Orthogonality condition 1: (z-x)\<cdot>v = (w-x)\<cdot>v, i.e., a*(u\<cdot>v) = b*(v\<cdot>v)\<close>
+      by (metis collinear_lemma scaleR_zero_left v_ne)
     from orth1 za wb have eq1: "a * (u \<bullet> v) = b * (v \<bullet> v)"
       by (simp add: inner_scaleR_left)
-    \<comment> \<open>Orthogonality condition 2: (v-u)\<cdot>((z-x)-u) = 0, i.e., (a-1)*(v\<cdot>u) = (a-1)*(u\<cdot>u)\<close>
     from orth2 za have eq2: "(a - 1) * (v \<bullet> u) = (a - 1) * (u \<bullet> u)"
       by (simp add: inner_scaleR_right inner_scaleR_left algebra_simps)
     \<comment> \<open>So either a = 1 or v\<cdot>u = u\<cdot>u\<close>
@@ -3297,102 +3255,33 @@ proof -
       define uu where "uu = u \<bullet> u"
       define uv where "uv = u \<bullet> v"
       define vv where "vv = v \<bullet> v"
-      have vv_pos: "vv > 0" using v_ne by (simp add: vv_def inner_gt_zero_iff)
-      have uu_pos: "uu > 0" using u_ne by (simp add: uu_def inner_gt_zero_iff)
       \<comment> \<open>Restate eq1, eq2 in terms of abbreviations.\<close>
       have E1: "a * uv = b * vv" using eq1 by (simp add: uv_def vv_def inner_commute)
       have E2': "(a - 1) * uv = (a - 1) * uu" 
         using eq2 by (simp add: uv_def uu_def inner_commute)
       \<comment> \<open>Compute LHS² = \<Parallel>a*u - b*v\<Parallel>² * \<Parallel>v\<Parallel>²\<close>
-      have lhs_sq: "(dist z w * dist x y)\<^sup>2 = 
-            (a\<^sup>2 * uu - 2 * a * b * uv + b\<^sup>2 * vv) * vv"
-      proof -
-        have norm_sub: "(norm (a *\<^sub>R u - b *\<^sub>R v))\<^sup>2 = 
-              a\<^sup>2 * uu - 2 * a * b * uv + b\<^sup>2 * vv"
-        proof -
-          have "(norm (a *\<^sub>R u - b *\<^sub>R v))\<^sup>2 = (a *\<^sub>R u - b *\<^sub>R v) \<bullet> (a *\<^sub>R u - b *\<^sub>R v)"
-            by (rule power2_norm_eq_inner)
-          also have "\<dots> = a * a * (u \<bullet> u) - 2 * (a * b) * (u \<bullet> v) + b * b * (v \<bullet> v)"
-            by (simp add: inner_diff_left inner_diff_right 
-                  inner_scaleR_left inner_scaleR_right inner_commute algebra_simps)
-          finally show ?thesis
-            by (simp add: uu_def uv_def vv_def power2_eq_square)
-        qed
-        have norm_v: "(norm v)\<^sup>2 = vv"
-          by (simp del: dot_square_norm add: power2_norm_eq_inner vv_def)
-        have "(dist z w * dist x y)\<^sup>2 = (norm (a *\<^sub>R u - b *\<^sub>R v))\<^sup>2 * (norm v)\<^sup>2"
-          by (simp add: dzw dxy power_mult_distrib)
-        also have "\<dots> = (a\<^sup>2 * uu - 2 * a * b * uv + b\<^sup>2 * vv) * vv"
-          using norm_sub norm_v by simp
-        finally show ?thesis .
-      qed
-      have rhs_sq: "(dist y x' * dist z x)\<^sup>2 = 
-            a\<^sup>2 * uu * (vv - 2 * uv + uu)"
-      proof -
-        have norm_au: "(norm (a *\<^sub>R u))\<^sup>2 = a\<^sup>2 * uu"
-          by (simp del: dot_square_norm 
-                add: norm_scaleR power_mult_distrib power2_abs 
-                power2_norm_eq_inner uu_def)
-        have norm_vu: "(norm (v - u))\<^sup>2 = vv - 2 * uv + uu"
-          by (simp del: dot_square_norm 
-                add: power2_norm_eq_inner inner_diff_left inner_diff_right
-                uu_def uv_def vv_def inner_commute algebra_simps)
-        have "(dist y x' * dist z x)\<^sup>2 = (norm (v - u))\<^sup>2 * (norm (a *\<^sub>R u))\<^sup>2"
-          by (simp add: dyx' dzx power_mult_distrib)
-        also have "\<dots> = (vv - 2 * uv + uu) * (a\<^sup>2 * uu)"
-          using norm_vu norm_au by simp
-        finally show ?thesis by (simp add: algebra_simps)
-      qed
-      \<comment> \<open>Now show LHS² = RHS² using E1 and E2'.\<close>
-      \<comment> \<open>First, a \<noteq> 1 (otherwise z = x', contradicting assumption).\<close>
-      have a_ne1: "a \<noteq> 1"
-      proof
-        assume "a = 1"
-        then have "z - x = u" using za by simp
-        then have "z = x'" by (simp add: u_def)
-        with assms(5) show False by simp
-      qed
-      \<comment> \<open>From E2' and a \<noteq> 1: uv = uu.\<close>
-      from E2' a_ne1 have uv_eq: "uv = uu" by auto
-      \<comment> \<open>From E1 and uv = uu: b = a * uu / vv.\<close>
-      from E1 uv_eq have bval: "b = a * uu / vv" 
-        using vv_pos by (simp add: field_simps)
-      \<comment> \<open>Key derived facts.\<close>
-      have bvv: "b * vv = a * uu" using E1 uv_eq by simp
-      \<comment> \<open>Show LHS² = RHS² directly.\<close>
-      show ?thesis
-      proof -
-        have rhs_simp: "(dist y x' * dist z x)\<^sup>2 = a\<^sup>2 * uu * (vv - uu)"
-          using rhs_sq uv_eq by simp
-        \<comment> \<open>For LHS, substitute uv = uu and use b*vv = a*uu.\<close>
-        have lhs_eq: "(dist z w * dist x y)\<^sup>2 = 
-              (a\<^sup>2 * uu - 2 * a * b * uu + b\<^sup>2 * vv) * vv"
-          using lhs_sq uv_eq by simp
-        \<comment> \<open>Now b² * vv = b * (b*vv) = b * (a*uu), and 
-            (a²*uu - 2*a*b*uu + b*a*uu)*vv = (a²*uu - a*b*uu)*vv 
-            = a*uu*(a - b)*vv = a*uu*(a*vv - a*uu)/vv * ... \<close>
-        have "b\<^sup>2 * vv = b * (a * uu)"
-          using bvv by (simp add: power2_eq_square algebra_simps)
-        hence "(a\<^sup>2 * uu - 2 * a * b * uu + b\<^sup>2 * vv) * vv = 
-               (a\<^sup>2 * uu - 2 * a * b * uu + b * (a * uu)) * vv"
-          by simp
-        also have "\<dots> = (a * uu * a - a * uu * b) * vv"
-          by (simp add: power2_eq_square algebra_simps)
-        also have "\<dots> = a * uu * (a * vv - b * vv)"
-          by (simp add: algebra_simps)
-        also have "a * vv - b * vv = a * vv - a * uu"
-          using bvv by simp
-        also have "a * uu * (a * vv - a * uu) = a\<^sup>2 * uu * (vv - uu)"
-          by (simp add: algebra_simps power2_eq_square)
-        finally have "(a\<^sup>2 * uu - 2 * a * b * uu + b\<^sup>2 * vv) * vv = 
-                      a\<^sup>2 * uu * (vv - uu)" .
-        with lhs_eq have "(dist z w * dist x y)\<^sup>2 = a\<^sup>2 * uu * (vv - uu)"
-          by simp
-        with rhs_simp show ?thesis by simp
-      qed
+      have "(norm (a *\<^sub>R u - b *\<^sub>R v))\<^sup>2 = a * a * (u \<bullet> u) - 2 * (a * b) * (u \<bullet> v) + b * b * (v \<bullet> v)"
+        by (simp add: power2_norm_eq_inner inner_commute algebra_simps)
+      then have "(norm (a *\<^sub>R u - b *\<^sub>R v))\<^sup>2 = a\<^sup>2 * uu - 2 * a * b * uv + b\<^sup>2 * vv"
+        by (simp add: uu_def uv_def vv_def power2_eq_square)
+      then have lhs_sq: "(dist z w * dist x y)\<^sup>2 = (a\<^sup>2 * uu - 2 * a * b * uv + b\<^sup>2 * vv) * vv"
+        by (simp add: dxy dzw power2_norm_eq_inner power_mult_distrib vv_def)
+      have rhs_sq: "(dist y x' * dist z x)\<^sup>2 = a\<^sup>2 * uu * (vv - 2 * uv + uu)"
+        by (simp add: dyx' dzx power2_norm_eq_inner uu_def uv_def vv_def inner_commute algebra_simps)
+      have "a \<noteq> 1"
+        using \<open>x' \<noteq> z\<close> u_def za by force
+      with E2' have uv_eq: "uv = uu" by auto
+          \<comment> \<open>Key derived facts.\<close>
+      have lhs_eq: "(dist z w * dist x y)\<^sup>2 = (a\<^sup>2 * uu - 2 * a * b * uu + b\<^sup>2 * vv) * vv"
+        using lhs_sq uv_eq by simp
+      also have "... = a\<^sup>2 * uu * (vv - uu)"
+        using E1 unfolding uv_eq by algebra
+      also have "... = (dist y x' * dist z x)\<^sup>2"
+        using rhs_sq uv_eq by simp
+      finally show ?thesis .
     qed
     with lhs_nn rhs_nn show ?thesis
-      by (simp add: power2_eq_iff_nonneg)
+      by simp
   qed
 qed
 
