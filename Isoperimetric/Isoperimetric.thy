@@ -3287,99 +3287,47 @@ qed
 
 lemma inverse_lipschitz_convex_spherical_projection_explicit:
   fixes x y :: "'a::euclidean_space"
-  assumes "convex s" "r>0" "0 \<in> s"
-    and reli: "ball 0 r \<inter> affine hull s \<subseteq> rel_interior s"
-    and s: "s \<subseteq> cball 0 R"
-    and x: "x \<in> rel_frontier s" and y: "y \<in> rel_frontier s"
+  assumes "convex S" "r>0" "0 \<in> S"
+    and reli: "ball 0 r \<inter> affine hull S \<subseteq> rel_interior S"
+    and S: "S \<subseteq> cball 0 R"
+    and x: "x \<in> rel_frontier S" and y: "y \<in> rel_frontier S"
   shows "r / R\<^sup>2 * dist x y \<le> dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
 proof (cases "R\<le>0")
   case True
-  have "0 \<in> cball (0::'a) R" using \<open>0 \<in> s\<close> s by (meson subsetD)
+  have "0 \<in> cball (0::'a) R" using \<open>0 \<in> S\<close> S by (meson subsetD)
   then have "0 \<le> R" by simp
   with True show ?thesis
     by simp
 next
   case False
-  then have "R > 0"
-    by simp
-  have "0 \<in> rel_interior s"
-  proof -
-    have "0 \<in> ball 0 r"
-      using \<open>r>0\<close> by (simp add: centre_in_ball)
-    moreover have "0 \<in> affine hull s"
-      by (rule hull_inc[OF \<open>0 \<in> s\<close>])
-    ultimately have "0 \<in> ball 0 r \<inter> affine hull s"
-      by blast
-    then show ?thesis
-      using reli by blast
-  qed
-  have x_ne: "x \<noteq> 0" and y_ne: "y \<noteq> 0"
-  proof -
-    have "0 \<notin> rel_frontier s"
-      using \<open>0 \<in> rel_interior s\<close> by (simp add: rel_frontier_def)
-    then show "x \<noteq> 0" "y \<noteq> 0"
-      using x y by auto
-  qed
-  have r_le: "\<And>z. z \<in> rel_frontier s \<Longrightarrow> r \<le> norm z"
-  proof -
-    fix z assume z: "z \<in> rel_frontier s"
-    then have z_clos: "z \<in> closure s" and z_not_ri: "z \<notin> rel_interior s"
-      by (simp_all add: rel_frontier_def)
-    have "z \<in> affine hull s"
-      using z_clos closure_affine_hull by blast
-    show "r \<le> norm z"
-    proof (rule ccontr)
-      assume "\<not> r \<le> norm z"
-      then have "norm z < r" by simp
-      then have "z \<in> ball 0 r"
-        by (simp add: mem_ball_0)
-      then have "z \<in> ball 0 r \<inter> affine hull s"
-        using \<open>z \<in> affine hull s\<close> by blast
-      then have "z \<in> rel_interior s"
-        using reli by blast
-      then show False using z_not_ri by contradiction
-    qed
-  qed
-  have r_le_x: "r \<le> norm x" using r_le[OF x] .
-  have r_le_y: "r \<le> norm y" using r_le[OF y] .
-  have norm_le: "\<And>z. z \<in> rel_frontier s \<Longrightarrow> norm z \<le> R"
-  proof -
-    fix z assume z: "z \<in> rel_frontier s"
-    then have "z \<in> closure s"
-      by (simp add: rel_frontier_def)
-    moreover have "closure s \<subseteq> cball 0 R"
-      using s closed_cball closure_minimal by blast
-    ultimately have "z \<in> cball 0 R" by blast
-    then show "norm z \<le> R"
-      by (simp add: mem_cball_0)
-  qed
-  have x_le_R: "norm x \<le> R" using norm_le[OF x] .
-  have y_le_R: "norm y \<le> R" using norm_le[OF y] .
+  have "0 \<in> rel_interior S"
+    using assms(2,3) hull_subset reli by fastforce
+  obtain x_ne: "x \<noteq> 0" and y_ne: "y \<noteq> 0"
+    using \<open>0 \<in> rel_interior S\<close> x y rel_frontier_def by auto
+  have r_le: "\<And>z. z \<in> rel_frontier S \<Longrightarrow> r \<le> norm z"
+    unfolding rel_frontier_def using closure_affine_hull reli
+    by (smt (verit, del_insts) DiffD1 DiffD2 Int_iff in_mono mem_ball_0) 
+  have norm_le: "\<And>z. z \<in> rel_frontier S \<Longrightarrow> norm z \<le> R"
+    unfolding rel_frontier_def using S closed_cball closure_minimal
+    by (metis Diff_subset mem_cball_0 subset_iff)
   have "r \<le> R" and "0 < R"
-    using r_le_x x_le_R \<open>r>0\<close> by linarith+
+    using r_le[OF x] norm_le[OF x] \<open>r>0\<close> by linarith+
   show ?thesis 
-  proof (cases "x \<bullet> y \<le> 0")
+  proof (cases "x \<bullet> y \<le> 0 \<or> x=y")
     case True
     have inv_x: "0 \<le> 1 / norm x" using x_ne by simp
     have inv_y: "0 \<le> 1 / norm y" using y_ne by simp
     have key: "min (1 / norm x) (1 / norm y) * dist x y
                \<le> dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
-      by (rule dist_scaleR_ge_min[OF inv_x inv_y True])
+      by (metis False True dist_scaleR_ge_min dist_self inv_x inv_y mult_zero_right order_eq_refl)
     have rR2_le_invR: "r / R\<^sup>2 \<le> 1 / R"
-    proof -
-      have "r / R\<^sup>2 = r / (R * R)"
-        by (simp add: power2_eq_square)
-      also have "\<dots> \<le> R / (R * R)"
-        using \<open>r \<le> R\<close> \<open>0 < R\<close> by (intro divide_right_mono) auto
-      also have "\<dots> = 1 / R"
-        using \<open>0 < R\<close> by (simp add: field_simps)
-      finally show ?thesis .
-    qed
+      by (metis \<open>0 < R\<close> \<open>r \<le> R\<close> divide_divide_eq_left divide_le_eq_1_pos frac_le
+          zero_le_one order.refl power2_eq_square)
     have invR_le_invx: "1 / R \<le> 1 / norm x"
-      using x_le_R r_le_x \<open>r>0\<close> \<open>0 < R\<close>
+      using norm_le[OF x] r_le[OF x] \<open>r>0\<close> \<open>0 < R\<close>
       by (intro frac_le) linarith+
     have invR_le_invy: "1 / R \<le> 1 / norm y"
-      using y_le_R r_le_y \<open>r>0\<close> \<open>0 < R\<close>
+      using norm_le[OF y] r_le[OF y] \<open>r>0\<close> \<open>0 < R\<close>
       by (intro frac_le) linarith+
     have "r / R\<^sup>2 \<le> min (1 / norm x) (1 / norm y)"
       using rR2_le_invR invR_le_invx invR_le_invy by simp
@@ -3390,174 +3338,151 @@ next
     finally show ?thesis .
   next
     case False
-    then have "x \<bullet> y > 0"
+    then have "x \<bullet> y > 0" "x\<noteq>y"
       by auto
+        \<comment> \<open>Project the origin onto the affine hull of @{term \<open>{x, y}\<close>}\<close>
+    define w where "w = closest_point (affine hull {x, y}) 0"
+    have aff_closed: "closed (affine hull {x, y})" by (rule closed_affine_hull)
+    have aff_ne: "affine hull {x, y} \<noteq> {}" by (simp add: affine_hull_eq_empty)
+    have w_in: "w \<in> affine hull {x, y}"
+      unfolding w_def by (rule closest_point_in_set[OF aff_closed aff_ne])
+    have w_dist: "dist 0 w \<le> dist 0 z" if "z \<in> affine hull {x, y}" for z
+      using closest_point_le that w_def by blast
+    have w_orth: "orthogonal (v - w) w" if "v \<in> affine hull {x, y}" for v
+      using closest_point_affine_orthogonal[OF affine_affine_hull aff_ne]
+      by (metis add_diff_cancel_left' diff_0 diff_minus_eq_add orthogonal_clauses(5) that w_def)
+    have x_in_aff: "x \<in> affine hull {x, y}" by (rule hull_inc) simp
+    have y_in_aff: "y \<in> affine hull {x, y}" by (rule hull_inc) simp
+    have orth_x: "orthogonal (x - w) w" by (rule w_orth[OF x_in_aff])
+    have orth_y: "orthogonal (y - w) w" by (rule w_orth[OF y_in_aff])
+    have norm_w_le_x: "norm w \<le> norm x"
+      using w_dist[OF x_in_aff] by (simp add: dist_norm)
+    have norm_w_le_y: "norm w \<le> norm y"
+      using w_dist[OF y_in_aff] by (simp add: dist_norm)
+        \<comment> \<open>Derive orthogonality of @{term \<open>x - y\<close>} and @{term w}\<close>
+    have orth_xy_w: "orthogonal (x - y) w"
+      using orthogonal_clauses(10)[OF orth_x orth_y] by (simp add: algebra_simps)
+        \<comment> \<open>Collinearity and case analysis\<close>
+    have collinear_wxy: "collinear {w, x, y}"
+      by (meson False collinear_3_affine_hull collinear_between_cases w_in)
+    have betw_cases: "between (x, y) w \<or> between (y, w) x \<or> between (w, x) y"
+      using collinear_wxy[unfolded collinear_between_cases] by blast
     show ?thesis
-    proof (cases "x=y \<or> R=0")
+    proof (cases "between (x,y) w")
       case True
+      have orth_w: "orthogonal w (x - y)"
+        using orth_xy_w by (simp add: orthogonal_commute)
+      have step: "min (1 / norm x) (1 / norm y) * dist x y
+                          \<le> dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
+        by (rule dist_scaleR_ge_min_between) (auto simp: x_ne y_ne intro: True orth_w)
+      have "r / R\<^sup>2 \<le> min (1 / norm x) (1 / norm y)"
+        using \<open>R>0\<close> \<open>r \<le> R\<close> norm_le[OF x] norm_le[OF y] x_ne y_ne
+        by (simp add: divide_simps mult_mono power2_eq_square)
+      then have "r / R\<^sup>2 * dist x y \<le> min (1 / norm x) (1 / norm y) * dist x y"
+        using mult_right_mono[of "r / R\<^sup>2" "min (1 / norm x) (1 / norm y)" "dist x y"]
+        by (simp add: zero_le_dist)
       then show ?thesis
-        by auto
+        using step by linarith 
     next
       case False
-      show ?thesis
+      then have *: "between (y,w) x \<or> between (x,w) y"
+        by (metis betw_cases between_commute)
+          \<comment> \<open>Extract a lemma that works for either orientation\<close>
+      have "r / R\<^sup>2 * dist x y \<le> dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
+        if betx: "between (y, w) x" and orthw: "orthogonal (x - w) w" 
+          and nbetw: "\<not> between (x,y) w"
+          and xfr: "x \<in> rel_frontier S" and yfr: "y \<in> rel_frontier S"
+          and xne: "x \<noteq> 0" and yne: "y \<noteq> 0"
+          and rnx: "r \<le> norm x" and rny: "r \<le> norm y"
+          and nwx: "norm w \<le> norm x" and xR: "norm x \<le> R"
+          and yR: "norm y \<le> R"
+          and dot_pos: "0 < x \<bullet> y" and xy_ne: "x \<noteq> y"
+        for x y :: "'a"
       proof -
-        \<comment> \<open>Project the origin onto the affine hull of @{term \<open>{x, y}\<close>}\<close>
-        define w where "w = closest_point (affine hull {x, y}) 0"
-        have aff_closed: "closed (affine hull {x, y})" by (rule closed_affine_hull)
-        have aff_ne: "affine hull {x, y} \<noteq> {}" by (simp add: affine_hull_eq_empty)
-        have w_in: "w \<in> affine hull {x, y}"
-          unfolding w_def by (rule closest_point_in_set[OF aff_closed aff_ne])
-        have w_dist: "dist 0 w \<le> dist 0 z" if "z \<in> affine hull {x, y}" for z
-          using closest_point_le that w_def by blast
-        have w_orth: "orthogonal (v - w) w" if "v \<in> affine hull {x, y}" for v
-          using closest_point_affine_orthogonal[OF affine_affine_hull aff_ne]
-          by (metis add_diff_cancel_left' diff_0 diff_minus_eq_add orthogonal_clauses(5) that w_def)
-        have x_in_aff: "x \<in> affine hull {x, y}" by (rule hull_inc) simp
-        have y_in_aff: "y \<in> affine hull {x, y}" by (rule hull_inc) simp
-        have orth_x: "orthogonal (x - w) w" by (rule w_orth[OF x_in_aff])
-        have orth_y: "orthogonal (y - w) w" by (rule w_orth[OF y_in_aff])
-        have norm_w_le_x: "norm w \<le> norm x"
-          using w_dist[OF x_in_aff] by (simp add: dist_norm)
-        have norm_w_le_y: "norm w \<le> norm y"
-          using w_dist[OF y_in_aff] by (simp add: dist_norm)
-            \<comment> \<open>Derive orthogonality of @{term \<open>x - y\<close>} and @{term w}\<close>
-        have orth_xy_w: "orthogonal (x - y) w"
-          using orthogonal_clauses(10)[OF orth_x orth_y] by (simp add: algebra_simps)
-            \<comment> \<open>Collinearity and case analysis\<close>
-        have collinear_wxy: "collinear {w, x, y}"
-          by (meson False collinear_3_affine_hull collinear_between_cases w_in)
-        have betw_cases: "between (x, y) w \<or> between (y, w) x \<or> between (w, x) y"
-          using collinear_wxy[unfolded collinear_between_cases] by blast
-        show ?thesis
-        proof (cases "between (x,y) w")
-          case True
-          show ?thesis
-          proof -
-            have orth_w: "orthogonal w (x - y)"
-              using orth_xy_w by (simp add: orthogonal_commute)
-            have step: "min (1 / norm x) (1 / norm y) * dist x y
-                          \<le> dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
-              by (rule dist_scaleR_ge_min_between)
-                (auto simp: x_ne y_ne intro: True orth_w)
-            have "r / R\<^sup>2 \<le> min (1 / norm x) (1 / norm y)"
-              using \<open>R>0\<close> \<open>r \<le> R\<close> x_le_R y_le_R x_ne y_ne
-              by (simp add: divide_simps mult_mono power2_eq_square)
-            then have "r / R\<^sup>2 * dist x y \<le> min (1 / norm x) (1 / norm y) * dist x y"
-              using mult_right_mono[of "r / R\<^sup>2" "min (1 / norm x) (1 / norm y)" "dist x y"]
-              by (simp add: zero_le_dist)
-            then show ?thesis
-              using step by linarith 
+        obtain "w\<noteq>x" "w\<noteq>y"
+          using nbetw by fastforce
+            \<comment> \<open>Project @{term y} onto the line through @{term \<open>0::'a\<close>} and @{term x}\<close>
+        define x' where "x' = closest_point (affine hull {0, x}) y"
+        have aff_ne': "affine hull {(0::'a), x} \<noteq> {}"
+          by (simp add: affine_hull_eq_empty)
+        have aff_closed': "closed (affine hull {(0::'a), x})"
+          by (rule closed_affine_hull)
+        have x'_orth: "orthogonal (v - x') (y - x')" if "v \<in> affine hull {0, x}" for v
+          by (simp add: closest_point_affine_orthogonal that x'_def)
+        have orth_0: "orthogonal (0 - x') (y - x')"
+          by (rule x'_orth[OF hull_inc]) simp
+        have orth_x: "orthogonal (x - x') (y - x')"
+          by (rule x'_orth[OF hull_inc]) simp
+        have "inverse R \<le> abs (inverse (norm y))"
+          by (simp add: le_imp_inverse_le yR yne)
+        moreover have "r / R * dist x y \<le> dist ((norm y / norm x) *\<^sub>R x) y"
+        proof -
+          have r_le_w: "r \<le> norm w"
+          proof (rule ccontr)
+            assume "\<not> r \<le> norm w"
+            then have "w \<in> ball 0 r" by (simp add: dist_norm)
+            moreover have "w \<in> affine hull S"
+              by (smt (verit, best) affine_affine_hull x y bot.extremum insert_subset
+                  rel_frontier_affine_hull subset_hull subset_iff w_in)
+            ultimately have "w \<in> rel_interior S"
+              using reli by auto
+            moreover have "y \<in> closure S"
+              using yfr rel_frontier_def by auto
+            ultimately have "open_segment w y \<subseteq> rel_interior S"
+              using rel_interior_closure_convex_segment[OF \<open>convex S\<close>] by auto
+            moreover have "x \<in> open_segment w y"
+              using betx \<open>w \<noteq> x\<close> xy_ne
+              by (simp add: between_mem_segment open_segment_def closed_segment_commute)
+            ultimately have "x \<in> rel_interior S" by auto
+            then show False using xfr rel_frontier_def by auto
           qed
-        next
-          case False
-          then have *: "between (y,w) x \<or> between (x,w) y"
-            by (metis betw_cases between_commute)
-          show ?thesis
-          proof -
-            \<comment> \<open>Extract a lemma that works for either orientation\<close>
-            have "r / R\<^sup>2 * dist x y \<le> dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
-              if betx: "between (y, w) x" and orthw: "orthogonal (x - w) w" 
-                and nbetw: "\<not> between (x,y) w"
-                and xfr: "x \<in> rel_frontier s" and yfr: "y \<in> rel_frontier s"
-                and xne: "x \<noteq> 0" and yne: "y \<noteq> 0"
-                and rnx: "r \<le> norm x" and rny: "r \<le> norm y"
-                and nwx: "norm w \<le> norm x" and xR: "norm x \<le> R"
-                and yR: "norm y \<le> R"
-                and dot_pos: "0 < x \<bullet> y" and xy_ne: "x \<noteq> y"
-              for x y :: "'a"
-            proof -
-              obtain "w\<noteq>x" "w\<noteq>y"
-                using nbetw by fastforce
-                  \<comment> \<open>Project @{term y} onto the line through @{term \<open>0::'a\<close>} and @{term x}\<close>
-              define x' where "x' = closest_point (affine hull {0, x}) y"
-              have aff_ne': "affine hull {(0::'a), x} \<noteq> {}"
-                by (simp add: affine_hull_eq_empty)
-              have aff_closed': "closed (affine hull {(0::'a), x})"
-                by (rule closed_affine_hull)
-              have x'_in: "x' \<in> affine hull {0, x}"
-                unfolding x'_def
-                using closest_point_in_set[OF aff_closed' aff_ne'] .
-              have x'_orth: "orthogonal (v - x') (y - x')" if "v \<in> affine hull {0, x}" for v
-                by (simp add: closest_point_affine_orthogonal that x'_def)
-              have orth_0: "orthogonal (0 - x') (y - x')"
-                by (rule x'_orth[OF hull_inc]) simp
-              have orth_x: "orthogonal (x - x') (y - x')"
-                by (rule x'_orth[OF hull_inc]) simp
-              have "inverse R \<le> abs (inverse (norm y))"
-                by (simp add: le_imp_inverse_le yR yne)
-              moreover have "r / R * dist x y \<le> dist ((norm y / norm x) *\<^sub>R x) y"
-              proof -
-                have "r / R * dist x y \<le> dist y x'"
-                proof -
-                  have r_le_w: "r \<le> norm w"
-                  proof (rule ccontr)
-                    assume "\<not> r \<le> norm w"
-                    then have "w \<in> ball 0 r" by (simp add: dist_norm)
-                    moreover have "w \<in> affine hull s"
-                      by (smt (verit, best) affine_affine_hull x y bot.extremum insert_subset
-                          rel_frontier_affine_hull subset_hull subset_iff w_in)
-                    ultimately have "w \<in> rel_interior s"
-                      using reli by auto
-                    moreover have "y \<in> closure s"
-                      using yfr rel_frontier_def by auto
-                    ultimately have "open_segment w y \<subseteq> rel_interior s"
-                      using rel_interior_closure_convex_segment[OF \<open>convex s\<close>] by auto
-                    moreover have "x \<in> open_segment w y"
-                      using betx \<open>w \<noteq> x\<close> xy_ne
-                      by (simp add: between_mem_segment open_segment_def closed_segment_commute)
-                    ultimately have "x \<in> rel_interior s" by auto
-                    then show False using xfr rel_frontier_def by auto
-                  qed
-                  have "r * dist x y \<le> dist 0 w * dist x y"
-                    using r_le_w by (intro mult_right_mono) auto
-                  also have "\<dots> = dist y x' * dist 0 x"
-                  proof (intro collinear_orthogonal_dist_product)
-                    show "collinear {0, x, x'}"
-                      using affine_hull_3_imp_collinear[OF x'_in] .
-                    show "collinear {w, x, y}"
-                      by (simp add: collinear_between_cases betx)
-                    show "orthogonal (0 - w) (x - y)"
-                      by (smt (verit, ccfv_SIG) \<open>w \<noteq> x\<close> diff_0 between_implies_scaled_diff between_triv2
-                          minus_diff_eq orthogonal_clauses(3) orthogonal_commute orthogonal_scaleR right_minus_eq
-                          scaleR_zero_left betx xy_ne orthw)
-                    show "orthogonal (y - x') (0 - x')"
-                      using orth_0 by (simp add: orthogonal_commute)
-                    show "x' \<noteq> 0"
-                      using orth_x orthogonal_def dot_pos by force
-                    show "y \<noteq> w"
-                      using \<open>w \<noteq> y\<close> by auto
-                  qed
-                  also have "\<dots> \<le> dist y x' * R"
-                    by (simp add: mult_left_mono xR)
-                  finally show ?thesis
-                    by (simp add: \<open>0 < R\<close> mult_imp_div_pos_le)
-                qed 
-                also have "\<dots> \<le> dist ((norm y / norm x) *\<^sub>R x) y"
-                  by (simp add: dist_commute closest_point_le collinear_3_imp_in_affine_hull collinear_lemma xne
-                      x'_def)
-                finally show ?thesis .
-              qed
-              ultimately have "r / R\<^sup>2 * dist x y \<le> \<bar>inverse (norm y)\<bar> * dist ((norm y / norm x) *\<^sub>R x) y"
-                by (metis abs_inverse abs_norm_cancel divide_divide_eq_left' divide_inverse_commute frac_le
-                    power2_eq_square yR yne times_divide_eq_left zero_le_dist zero_less_norm_iff)
-              also have "\<dots> = dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
-              proof -
-                have "(1 / norm x) *\<^sub>R x = inverse (norm y) *\<^sub>R ((norm y / norm x) *\<^sub>R x)"
-                  using yne by (simp add: scaleR_scaleR)
-                then have "dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y) =
-                    \<bar>inverse (norm y)\<bar> * dist ((norm y / norm x) *\<^sub>R x) y"
-                  by (metis (mono_tags, lifting) dist_norm inverse_eq_divide norm_scaleR
-                      scaleR_right_diff_distrib)
-                then show ?thesis by simp
-              qed
-              finally show ?thesis .
-            qed
-            then show ?thesis using * False \<open>0 < x \<bullet> y\<close> x y
-              by (metis between_commute dist_commute dist_self inner_commute less_eq_real_def local.norm_le
-                  norm_w_le_x norm_w_le_y orth_x orth_y r_le real_scaleR_def scaleR_zero_right x_ne y_ne)
+          have "r * dist x y \<le> dist 0 w * dist x y"
+            using r_le_w by (intro mult_right_mono) auto
+          also have "\<dots> = dist y x' * dist 0 x"
+          proof (intro collinear_orthogonal_dist_product)
+            show "collinear {0, x, x'}"
+              using closest_point_in_set[OF aff_closed' aff_ne'] affine_hull_3_imp_collinear
+              unfolding x'_def by blast
+            show "collinear {w, x, y}"
+              by (simp add: collinear_between_cases betx)
+            show "orthogonal (0 - w) (x - y)"
+              by (smt (verit, ccfv_SIG) \<open>w \<noteq> x\<close> diff_0 between_implies_scaled_diff between_triv2
+                  minus_diff_eq orthogonal_clauses(3) orthogonal_commute orthogonal_scaleR right_minus_eq
+                  scaleR_zero_left betx xy_ne orthw)
+            show "orthogonal (y - x') (0 - x')"
+              using orth_0 by (simp add: orthogonal_commute)
+            show "x' \<noteq> 0"
+              using orth_x orthogonal_def dot_pos by force
+            show "y \<noteq> w"
+              using \<open>w \<noteq> y\<close> by auto
           qed
+          also have "\<dots> \<le> dist y x' * R"
+            by (simp add: mult_left_mono xR)
+          finally have "r / R * dist x y \<le> dist y x'"
+            by (simp add: \<open>0 < R\<close> mult_imp_div_pos_le)
+          also have "\<dots> \<le> dist ((norm y / norm x) *\<^sub>R x) y"
+            by (simp add: dist_commute closest_point_le collinear_3_imp_in_affine_hull collinear_lemma xne
+                x'_def)
+          finally show ?thesis .
         qed
+        ultimately have "r / R\<^sup>2 * dist x y \<le> \<bar>inverse (norm y)\<bar> * dist ((norm y / norm x) *\<^sub>R x) y"
+          by (metis abs_inverse abs_norm_cancel divide_divide_eq_left' divide_inverse_commute frac_le
+              power2_eq_square yR yne times_divide_eq_left zero_le_dist zero_less_norm_iff)
+        also have "\<dots> = dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
+        proof -
+          have "(1 / norm x) *\<^sub>R x = inverse (norm y) *\<^sub>R ((norm y / norm x) *\<^sub>R x)"
+            using yne by (simp add: scaleR_scaleR)
+          then have "dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y) =
+                    \<bar>inverse (norm y)\<bar> * dist ((norm y / norm x) *\<^sub>R x) y"
+            by (metis (mono_tags, lifting) dist_norm inverse_eq_divide norm_scaleR
+                scaleR_right_diff_distrib)
+          then show ?thesis by simp
+        qed
+        finally show ?thesis .
       qed
+      then show ?thesis using * False \<open>0 < x \<bullet> y\<close> x y
+        by (metis between_commute dist_commute dist_self inner_commute less_eq_real_def local.norm_le
+            norm_w_le_x norm_w_le_y orth_x orth_y r_le real_scaleR_def scaleR_zero_right x_ne y_ne)
     qed
   qed
 qed
@@ -3566,37 +3491,37 @@ qed
 
 \<comment> \<open>HOL Light: INVERSE_LIPSCHITZ_CONVEX_SPHERICAL_PROJECTION\<close>
 lemma inverse_lipschitz_convex_spherical_projection:
-  fixes s :: "'a::euclidean_space set"
-  assumes "convex s" "bounded s" "0 \<in> rel_interior s"
-  shows "\<exists>B>0. \<forall>x y. x \<in> rel_frontier s \<longrightarrow> y \<in> rel_frontier s \<longrightarrow>
+  fixes S :: "'a::euclidean_space set"
+  assumes "convex S" "bounded S" "0 \<in> rel_interior S"
+  shows "\<exists>B>0. \<forall>x y. x \<in> rel_frontier S \<longrightarrow> y \<in> rel_frontier S \<longrightarrow>
          B * dist x y \<le> dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
 proof -
-  obtain R where "R > 0" and R: "\<forall>x\<in>s. norm x \<le> R"
+  obtain R where "R > 0" and R: "\<forall>x\<in>S. norm x \<le> R"
     using assms(2) bounded_pos by blast
-  then have s_cball: "s \<subseteq> cball 0 R"
+  then have s_cball: "S \<subseteq> cball 0 R"
     by (auto simp: mem_cball_0)
-  obtain r where "r > 0" and r: "ball 0 r \<inter> affine hull s \<subseteq> s"
+  obtain r where "r > 0" and r: "ball 0 r \<inter> affine hull S \<subseteq> S"
     using assms(3) by (auto simp: mem_rel_interior_ball)
-  have ball_sub: "ball 0 r \<inter> affine hull s \<subseteq> rel_interior s"
+  have ball_sub: "ball 0 r \<inter> affine hull S \<subseteq> rel_interior S"
   proof -
-    have "openin (top_of_set (affine hull s)) (affine hull s \<inter> ball 0 r)"
+    have "openin (top_of_set (affine hull S)) (affine hull S \<inter> ball 0 r)"
       by (intro openin_open_Int open_ball)
-    then have "openin (top_of_set (affine hull s)) (ball 0 r \<inter> affine hull s)"
+    then have "openin (top_of_set (affine hull S)) (ball 0 r \<inter> affine hull S)"
       by (simp add: Int_commute)
     then show ?thesis
       using r openin_subset_relative_interior by blast
   qed
-  have "0 \<in> s"
+  have "0 \<in> S"
     using assms(3) rel_interior_subset by blast
   have "0 < r / R\<^sup>2"
     using \<open>r > 0\<close> \<open>R > 0\<close> by (auto intro: divide_pos_pos zero_less_power)
-  moreover have "\<forall>x y. x \<in> rel_frontier s \<longrightarrow> y \<in> rel_frontier s \<longrightarrow>
+  moreover have "\<forall>x y. x \<in> rel_frontier S \<longrightarrow> y \<in> rel_frontier S \<longrightarrow>
       r / R\<^sup>2 * dist x y \<le> dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
   proof (intro allI impI)
-    fix x y assume "x \<in> rel_frontier s" "y \<in> rel_frontier s"
+    fix x y assume "x \<in> rel_frontier S" "y \<in> rel_frontier S"
     then show "r / R\<^sup>2 * dist x y \<le> dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
       using inverse_lipschitz_convex_spherical_projection_explicit
-        [OF assms(1) \<open>r > 0\<close> \<open>0 \<in> s\<close> ball_sub s_cball]
+        [OF assms(1) \<open>r > 0\<close> \<open>0 \<in> S\<close> ball_sub s_cball]
       by blast
   qed
   ultimately show ?thesis by blast
@@ -3604,86 +3529,86 @@ qed
 
 \<comment> \<open>HOL Light: BILIPSCHITZ_HOMEOMORPHISM_SPHERICAL_PROJECTION\<close>
 lemma bilipschitz_homeomorphism_spherical_projection:
-  fixes s :: "'a::euclidean_space set"
-  assumes "convex s" "bounded s" "0 \<in> rel_interior s"
-  shows "\<exists>g. homeomorphism (rel_frontier s) (sphere 0 1 \<inter> affine hull s)
+  fixes S :: "'a::euclidean_space set"
+  assumes "convex S" "bounded S" "0 \<in> rel_interior S"
+  shows "\<exists>g. homeomorphism (rel_frontier S) (sphere 0 1 \<inter> affine hull S)
                (\<lambda>x. x /\<^sub>R norm x) g \<and>
-             (\<exists>B. \<forall>x y. x \<in> rel_frontier s \<longrightarrow> y \<in> rel_frontier s \<longrightarrow>
+             (\<exists>B. \<forall>x y. x \<in> rel_frontier S \<longrightarrow> y \<in> rel_frontier S \<longrightarrow>
                    norm (x /\<^sub>R norm x - y /\<^sub>R norm y) \<le> B * norm (x - y)) \<and>
-             (\<exists>B. \<forall>x y. x \<in> sphere 0 1 \<inter> affine hull s \<longrightarrow>
-                         y \<in> sphere 0 1 \<inter> affine hull s \<longrightarrow>
+             (\<exists>B. \<forall>x y. x \<in> sphere 0 1 \<inter> affine hull S \<longrightarrow>
+                         y \<in> sphere 0 1 \<inter> affine hull S \<longrightarrow>
                    norm (g x - g y) \<le> B * norm (x - y))"
 proof -
   \<comment> \<open>Get Lipschitz bound for the spherical projection\<close>
-  obtain B where B: "\<And>x y. x \<in> rel_frontier s \<Longrightarrow> y \<in> rel_frontier s \<Longrightarrow>
+  obtain B where B: "\<And>x y. x \<in> rel_frontier S \<Longrightarrow> y \<in> rel_frontier S \<Longrightarrow>
       dist (x /\<^sub>R norm x) (y /\<^sub>R norm y) \<le> B * dist x y"
     using lipschitz_convex_spherical_projection[OF assms(1,3)] by blast
   \<comment> \<open>Get inverse Lipschitz bound\<close>
-  obtain b where "b > 0" and b: "\<And>x y. x \<in> rel_frontier s \<Longrightarrow> y \<in> rel_frontier s \<Longrightarrow>
+  obtain b where "b > 0" and b: "\<And>x y. x \<in> rel_frontier S \<Longrightarrow> y \<in> rel_frontier S \<Longrightarrow>
       b * dist x y \<le> dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
     using inverse_lipschitz_convex_spherical_projection[OF assms] by blast
-  \<comment> \<open>The projection is continuous on rel_frontier s\<close>
-  have cont: "continuous_on (rel_frontier s) (\<lambda>x. x /\<^sub>R norm x)"
+  \<comment> \<open>The projection is continuous on rel_frontier S\<close>
+  have cont: "continuous_on (rel_frontier S) (\<lambda>x. x /\<^sub>R norm x)"
   proof -
-    have "0 \<notin> rel_frontier s"
+    have "0 \<notin> rel_frontier S"
       using assms(3) by (auto simp: rel_frontier_def)
     then show ?thesis
-      using continuous_on_Borsuk_map[of 0 "rel_frontier s"] by simp
+      using continuous_on_Borsuk_map[of 0 "rel_frontier S"] by simp
   qed
 
-  \<comment> \<open>The image equals sphere 0 1 \<inter> affine hull s\<close>
-  have zero_in_s: "0 \<in> s"
+  \<comment> \<open>The image equals sphere 0 1 \<inter> affine hull S\<close>
+  have zero_in_s: "0 \<in> S"
     using assms(3) rel_interior_subset by blast
-  have zero_aff: "0 \<in> affine hull s"
-    using zero_in_s hull_subset[of s affine] by blast
+  have zero_aff: "0 \<in> affine hull S"
+    using zero_in_s hull_subset[of S affine] by blast
 
-  have aff_eq_span: "affine hull s = span s"
+  have aff_eq_span: "affine hull S = span S"
     using affine_hull_span_0[OF zero_aff] .
-  have image_eq: "(\<lambda>x. x /\<^sub>R norm x) ` rel_frontier s = sphere 0 1 \<inter> affine hull s"
+  have image_eq: "(\<lambda>x. x /\<^sub>R norm x) ` rel_frontier S = sphere 0 1 \<inter> affine hull S"
   proof (rule set_eqI, rule iffI)
-    fix u assume "u \<in> (\<lambda>x. x /\<^sub>R norm x) ` rel_frontier s"
-    then obtain x where x_rf: "x \<in> rel_frontier s" and u_eq: "u = x /\<^sub>R norm x"
+    fix u assume "u \<in> (\<lambda>x. x /\<^sub>R norm x) ` rel_frontier S"
+    then obtain x where x_rf: "x \<in> rel_frontier S" and u_eq: "u = x /\<^sub>R norm x"
       by auto
     have "x \<noteq> 0"
       using x_rf assms(3) by (auto simp: rel_frontier_def)
     then have "norm u = 1"
       by (simp add: u_eq)
-    moreover have "u \<in> affine hull s"
+    moreover have "u \<in> affine hull S"
     proof -
-      have "x \<in> affine hull s"
+      have "x \<in> affine hull S"
         using x_rf rel_frontier_affine_hull by blast
-      then have "x \<in> span s" using aff_eq_span by simp
-      then have "inverse (norm x) *\<^sub>R x \<in> span s"
+      then have "x \<in> span S" using aff_eq_span by simp
+      then have "inverse (norm x) *\<^sub>R x \<in> span S"
         by (rule subspace_mul[OF real_vector.subspace_span])
       then show ?thesis
         using aff_eq_span u_eq by (simp add: field_simps)
     qed
-    ultimately show "u \<in> sphere 0 1 \<inter> affine hull s"
+    ultimately show "u \<in> sphere 0 1 \<inter> affine hull S"
       by (simp add: sphere_def)
   next
-    fix u assume u_in: "u \<in> sphere 0 1 \<inter> affine hull s"
-    then have "norm u = 1" and "u \<in> affine hull s"
+    fix u assume u_in: "u \<in> sphere 0 1 \<inter> affine hull S"
+    then have "norm u = 1" and "u \<in> affine hull S"
       by (auto simp: sphere_def)
     then have "u \<noteq> 0" by auto
-    have "0 + u \<in> affine hull s"
-      using \<open>u \<in> affine hull s\<close> by simp
+    have "0 + u \<in> affine hull S"
+      using \<open>u \<in> affine hull S\<close> by simp
     from ray_to_rel_frontier[OF assms(2) assms(3) this \<open>u \<noteq> 0\<close>]
-    obtain d where "d > 0" and d_rf: "0 + d *\<^sub>R u \<in> rel_frontier s"
+    obtain d where "d > 0" and d_rf: "0 + d *\<^sub>R u \<in> rel_frontier S"
       by blast
-    then have du_rf: "d *\<^sub>R u \<in> rel_frontier s" by simp
+    then have du_rf: "d *\<^sub>R u \<in> rel_frontier S" by simp
     have "(d *\<^sub>R u) /\<^sub>R norm (d *\<^sub>R u) = u"
       using \<open>d > 0\<close> \<open>norm u = 1\<close> by (simp add: norm_scaleR)
-    then show "u \<in> (\<lambda>x. x /\<^sub>R norm x) ` rel_frontier s"
+    then show "u \<in> (\<lambda>x. x /\<^sub>R norm x) ` rel_frontier S"
       using du_rf by force
 
   qed
 
   \<comment> \<open>Injectivity from inverse Lipschitz\<close>
-  have x_ne: "\<And>x. x \<in> rel_frontier s \<Longrightarrow> x \<noteq> 0"
+  have x_ne: "\<And>x. x \<in> rel_frontier S \<Longrightarrow> x \<noteq> 0"
     using assms(3) by (auto simp: rel_frontier_def)
-  have inj: "inj_on (\<lambda>x. x /\<^sub>R norm x) (rel_frontier s)"
+  have inj: "inj_on (\<lambda>x. x /\<^sub>R norm x) (rel_frontier S)"
   proof (rule inj_onI)
-    fix x y assume mem: "x \<in> rel_frontier s" "y \<in> rel_frontier s"
+    fix x y assume mem: "x \<in> rel_frontier S" "y \<in> rel_frontier S"
       and eq: "x /\<^sub>R norm x = y /\<^sub>R norm y"
     have "b * dist x y \<le> dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
       using b[OF mem] .
@@ -3694,30 +3619,30 @@ proof -
   qed
 
   \<comment> \<open>Apply homeomorphism_compact\<close>
-  have "compact (rel_frontier s)"
+  have "compact (rel_frontier S)"
     using compact_rel_frontier_bounded assms(2) by blast
-  then obtain g where homeo: "homeomorphism (rel_frontier s)
-      (sphere 0 1 \<inter> affine hull s) (\<lambda>x. x /\<^sub>R norm x) g"
+  then obtain g where homeo: "homeomorphism (rel_frontier S)
+      (sphere 0 1 \<inter> affine hull S) (\<lambda>x. x /\<^sub>R norm x) g"
     using homeomorphism_compact[OF _ cont image_eq inj] by blast
   \<comment> \<open>Lipschitz bound for the projection (first conjunct)\<close>
-  have lip_f: "\<exists>B. \<forall>x y. x \<in> rel_frontier s \<longrightarrow> y \<in> rel_frontier s \<longrightarrow>
+  have lip_f: "\<exists>B. \<forall>x y. x \<in> rel_frontier S \<longrightarrow> y \<in> rel_frontier S \<longrightarrow>
         norm (x /\<^sub>R norm x - y /\<^sub>R norm y) \<le> B * norm (x - y)"
   proof (intro exI allI impI)
-    fix x y assume "x \<in> rel_frontier s" "y \<in> rel_frontier s"
+    fix x y assume "x \<in> rel_frontier S" "y \<in> rel_frontier S"
     then show "norm (x /\<^sub>R norm x - y /\<^sub>R norm y) \<le> B * norm (x - y)"
       using B[of x y] by (simp add: dist_norm)
   qed
   \<comment> \<open>Lipschitz bound for g (from inverse Lipschitz of f)\<close>
-  have lip_g: "\<exists>B. \<forall>x y. x \<in> sphere 0 1 \<inter> affine hull s \<longrightarrow>
-                          y \<in> sphere 0 1 \<inter> affine hull s \<longrightarrow>
+  have lip_g: "\<exists>B. \<forall>x y. x \<in> sphere 0 1 \<inter> affine hull S \<longrightarrow>
+                          y \<in> sphere 0 1 \<inter> affine hull S \<longrightarrow>
         norm (g x - g y) \<le> B * norm (x - y)"
   proof (intro exI allI impI)
-    fix u v assume uv: "u \<in> sphere 0 1 \<inter> affine hull s"
-                       "v \<in> sphere 0 1 \<inter> affine hull s"
-    have u_img: "u \<in> (\<lambda>x. x /\<^sub>R norm x) ` rel_frontier s"
-      and v_img: "v \<in> (\<lambda>x. x /\<^sub>R norm x) ` rel_frontier s"
+    fix u v assume uv: "u \<in> sphere 0 1 \<inter> affine hull S"
+                       "v \<in> sphere 0 1 \<inter> affine hull S"
+    have u_img: "u \<in> (\<lambda>x. x /\<^sub>R norm x) ` rel_frontier S"
+      and v_img: "v \<in> (\<lambda>x. x /\<^sub>R norm x) ` rel_frontier S"
       using uv image_eq by auto
-    have gu: "g u \<in> rel_frontier s" and gv: "g v \<in> rel_frontier s"
+    have gu: "g u \<in> rel_frontier S" and gv: "g v \<in> rel_frontier S"
       using homeomorphism_image2[OF homeo] uv by auto
     have fu: "(g u) /\<^sub>R norm (g u) = u" and fv: "(g v) /\<^sub>R norm (g v) = v"
       using homeomorphism_apply2[OF homeo uv(1)] homeomorphism_apply2[OF homeo uv(2)] by auto
@@ -3737,23 +3662,23 @@ qed
 
 \<comment> \<open>HOL Light: lemma1 for (bilipschitz homeomorphism between relative frontiers)\<close>
 lemma bilipschitz_homeomorphism_rel_frontiers_aux:
-  fixes s t :: "'a::euclidean_space set"
-  assumes "convex s" "bounded s" "convex t" "bounded t"
-    "0 \<in> rel_interior s" "0 \<in> rel_interior t"
-    "affine hull s = affine hull t"
-  shows "\<exists>f g. homeomorphism (rel_frontier s) (rel_frontier t) f g \<and>
-               (\<exists>B. \<forall>x y. x \<in> rel_frontier s \<longrightarrow> y \<in> rel_frontier s \<longrightarrow>
+  fixes S t :: "'a::euclidean_space set"
+  assumes "convex S" "bounded S" "convex t" "bounded t"
+    "0 \<in> rel_interior S" "0 \<in> rel_interior t"
+    "affine hull S = affine hull t"
+  shows "\<exists>f g. homeomorphism (rel_frontier S) (rel_frontier t) f g \<and>
+               (\<exists>B. \<forall>x y. x \<in> rel_frontier S \<longrightarrow> y \<in> rel_frontier S \<longrightarrow>
                      norm (f x - f y) \<le> B * norm (x - y)) \<and>
                (\<exists>B. \<forall>x y. x \<in> rel_frontier t \<longrightarrow> y \<in> rel_frontier t \<longrightarrow>
                      norm (g x - g y) \<le> B * norm (x - y))"
 proof -
   let ?n = "\<lambda>x::'a. x /\<^sub>R norm x"
-  \<comment> \<open>Get bilipschitz homeomorphisms for s and t\<close>
-  obtain gs where homeo_s: "homeomorphism (rel_frontier s) (sphere 0 1 \<inter> affine hull s) ?n gs"
-    and lip_ns: "\<exists>B. \<forall>x y. x \<in> rel_frontier s \<longrightarrow> y \<in> rel_frontier s \<longrightarrow>
+  \<comment> \<open>Get bilipschitz homeomorphisms for S and t\<close>
+  obtain gs where homeo_s: "homeomorphism (rel_frontier S) (sphere 0 1 \<inter> affine hull S) ?n gs"
+    and lip_ns: "\<exists>B. \<forall>x y. x \<in> rel_frontier S \<longrightarrow> y \<in> rel_frontier S \<longrightarrow>
           norm (?n x - ?n y) \<le> B * norm (x - y)"
-    and lip_gs: "\<exists>B. \<forall>x y. x \<in> sphere 0 1 \<inter> affine hull s \<longrightarrow>
-                            y \<in> sphere 0 1 \<inter> affine hull s \<longrightarrow>
+    and lip_gs: "\<exists>B. \<forall>x y. x \<in> sphere 0 1 \<inter> affine hull S \<longrightarrow>
+                            y \<in> sphere 0 1 \<inter> affine hull S \<longrightarrow>
           norm (gs x - gs y) \<le> B * norm (x - y)"
     using bilipschitz_homeomorphism_spherical_projection[OF assms(1,2,5)] by blast
   obtain gt where homeo_t: "homeomorphism (rel_frontier t) (sphere 0 1 \<inter> affine hull t) ?n gt"
@@ -3763,55 +3688,55 @@ proof -
                             y \<in> sphere 0 1 \<inter> affine hull t \<longrightarrow>
           norm (gt x - gt y) \<le> B * norm (x - y)"
     using bilipschitz_homeomorphism_spherical_projection[OF assms(3,4,6)] by blast
-  \<comment> \<open>Since affine hull s = affine hull t, the intermediate spaces are the same\<close>
-  have mid_eq: "sphere 0 1 \<inter> affine hull s = sphere 0 1 \<inter> affine hull t"
+  \<comment> \<open>Since affine hull S = affine hull t, the intermediate spaces are the same\<close>
+  have mid_eq: "sphere 0 1 \<inter> affine hull S = sphere 0 1 \<inter> affine hull t"
     using assms(7) by simp
   \<comment> \<open>Flip the t-homeomorphism: gt maps sphere \<inter> aff to rel_frontier t\<close>
-  have homeo_t': "homeomorphism (sphere 0 1 \<inter> affine hull s) (rel_frontier t) gt ?n"
+  have homeo_t': "homeomorphism (sphere 0 1 \<inter> affine hull S) (rel_frontier t) gt ?n"
     using homeomorphism_symD[OF homeo_t] mid_eq by simp
-  \<comment> \<open>Compose: gt \<circ> n maps rel_frontier s \<rightarrow> rel_frontier t\<close>
-  have homeo_comp: "homeomorphism (rel_frontier s) (rel_frontier t) (gt \<circ> ?n) (gs \<circ> ?n)"
+  \<comment> \<open>Compose: gt \<circ> n maps rel_frontier S \<rightarrow> rel_frontier t\<close>
+  have homeo_comp: "homeomorphism (rel_frontier S) (rel_frontier t) (gt \<circ> ?n) (gs \<circ> ?n)"
     using homeomorphism_compose[OF homeo_s homeo_t'] by simp
-  \<comment> \<open>Lipschitz bound for gt \<circ> n on rel_frontier s\<close>
-  have lip_f: "\<exists>B. \<forall>x y. x \<in> rel_frontier s \<longrightarrow> y \<in> rel_frontier s \<longrightarrow>
+  \<comment> \<open>Lipschitz bound for gt \<circ> n on rel_frontier S\<close>
+  have lip_f: "\<exists>B. \<forall>x y. x \<in> rel_frontier S \<longrightarrow> y \<in> rel_frontier S \<longrightarrow>
         norm ((gt \<circ> ?n) x - (gt \<circ> ?n) y) \<le> B * norm (x - y)"
   proof -
-    obtain Bn where Bn: "\<And>x y. x \<in> rel_frontier s \<Longrightarrow> y \<in> rel_frontier s \<Longrightarrow>
+    obtain Bn where Bn: "\<And>x y. x \<in> rel_frontier S \<Longrightarrow> y \<in> rel_frontier S \<Longrightarrow>
         norm (?n x - ?n y) \<le> Bn * norm (x - y)"
       using lip_ns by blast
-    obtain Bg where Bg: "\<And>x y. x \<in> sphere 0 1 \<inter> affine hull s \<Longrightarrow>
-        y \<in> sphere 0 1 \<inter> affine hull s \<Longrightarrow>
+    obtain Bg where Bg: "\<And>x y. x \<in> sphere 0 1 \<inter> affine hull S \<Longrightarrow>
+        y \<in> sphere 0 1 \<inter> affine hull S \<Longrightarrow>
         norm (gt x - gt y) \<le> Bg * norm (x - y)"
       using lip_gt mid_eq by auto
-    have img_s: "?n ` rel_frontier s = sphere 0 1 \<inter> affine hull s"
+    have img_s: "?n ` rel_frontier S = sphere 0 1 \<inter> affine hull S"
       using homeomorphism_image1[OF homeo_s] .
     \<comment> \<open>Convert to lipschitz_on form\<close>
-    have lip_n: "(max Bn 0)-lipschitz_on (rel_frontier s) ?n"
+    have lip_n: "(max Bn 0)-lipschitz_on (rel_frontier S) ?n"
     proof (rule lipschitz_onI)
-      fix x y assume "x \<in> rel_frontier s" "y \<in> rel_frontier s"
+      fix x y assume "x \<in> rel_frontier S" "y \<in> rel_frontier S"
       then have "dist (?n x) (?n y) \<le> Bn * dist x y"
         using Bn by (simp add: dist_norm)
       also have "\<dots> \<le> max Bn 0 * dist x y"
         by (intro mult_right_mono) auto
       finally show "dist (?n x) (?n y) \<le> max Bn 0 * dist x y" .
     qed simp
-    have lip_g: "(max Bg 0)-lipschitz_on (sphere 0 1 \<inter> affine hull s) gt"
+    have lip_g: "(max Bg 0)-lipschitz_on (sphere 0 1 \<inter> affine hull S) gt"
     proof (rule lipschitz_onI)
-      fix x y assume "x \<in> sphere 0 1 \<inter> affine hull s" "y \<in> sphere 0 1 \<inter> affine hull s"
+      fix x y assume "x \<in> sphere 0 1 \<inter> affine hull S" "y \<in> sphere 0 1 \<inter> affine hull S"
       then have "dist (gt x) (gt y) \<le> Bg * dist x y"
         using Bg by (simp add: dist_norm)
       also have "\<dots> \<le> max Bg 0 * dist x y"
         by (intro mult_right_mono) auto
       finally show "dist (gt x) (gt y) \<le> max Bg 0 * dist x y" .
     qed simp
-    have "?n ` rel_frontier s = sphere 0 1 \<inter> affine hull s"
+    have "?n ` rel_frontier S = sphere 0 1 \<inter> affine hull S"
       using img_s .
-    then have lip_comp: "(max Bg 0 * max Bn 0)-lipschitz_on (rel_frontier s) (gt \<circ> ?n)"
+    then have lip_comp: "(max Bg 0 * max Bn 0)-lipschitz_on (rel_frontier S) (gt \<circ> ?n)"
       using lipschitz_on_compose[OF lip_n lip_g[unfolded img_s[symmetric]]]
       by (simp add: img_s)
     show ?thesis
     proof (intro exI allI impI)
-      fix x y assume "x \<in> rel_frontier s" "y \<in> rel_frontier s"
+      fix x y assume "x \<in> rel_frontier S" "y \<in> rel_frontier S"
       then show "norm ((gt \<circ> ?n) x - (gt \<circ> ?n) y) \<le> (max Bg 0 * max Bn 0) * norm (x - y)"
         using lipschitz_onD[OF lip_comp] by (simp add: dist_norm)
     qed
@@ -3823,8 +3748,8 @@ proof -
     obtain Bn where Bn: "\<And>x y. x \<in> rel_frontier t \<Longrightarrow> y \<in> rel_frontier t \<Longrightarrow>
         norm (?n x - ?n y) \<le> Bn * norm (x - y)"
       using lip_nt by blast
-    obtain Bg where Bg: "\<And>x y. x \<in> sphere 0 1 \<inter> affine hull s \<Longrightarrow>
-        y \<in> sphere 0 1 \<inter> affine hull s \<Longrightarrow>
+    obtain Bg where Bg: "\<And>x y. x \<in> sphere 0 1 \<inter> affine hull S \<Longrightarrow>
+        y \<in> sphere 0 1 \<inter> affine hull S \<Longrightarrow>
         norm (gs x - gs y) \<le> Bg * norm (x - y)"
       using lip_gs by blast
     have img_t: "?n ` rel_frontier t = sphere 0 1 \<inter> affine hull t"
@@ -3839,9 +3764,9 @@ proof -
         by (intro mult_right_mono) auto
       finally show "dist (?n x) (?n y) \<le> max Bn 0 * dist x y" .
     qed simp
-    have lip_gs': "(max Bg 0)-lipschitz_on (sphere 0 1 \<inter> affine hull s) gs"
+    have lip_gs': "(max Bg 0)-lipschitz_on (sphere 0 1 \<inter> affine hull S) gs"
     proof (rule lipschitz_onI)
-      fix x y assume "x \<in> sphere 0 1 \<inter> affine hull s" "y \<in> sphere 0 1 \<inter> affine hull s"
+      fix x y assume "x \<in> sphere 0 1 \<inter> affine hull S" "y \<in> sphere 0 1 \<inter> affine hull S"
       then have "dist (gs x) (gs y) \<le> Bg * dist x y"
         using Bg by (simp add: dist_norm)
       also have "\<dots> \<le> max Bg 0 * dist x y"
@@ -3863,109 +3788,109 @@ proof -
 qed
 
 lemma bilipschitz_homeomorphism_rel_frontiers_aux2:
-  fixes s :: "'a::euclidean_space set" and t :: "'b::euclidean_space set"
-  assumes "convex s" "bounded s" "convex t" "bounded t"
-    and "0 \<in> rel_interior s"
+  fixes S :: "'a::euclidean_space set" and t :: "'b::euclidean_space set"
+  assumes "convex S" "bounded S" "convex t" "bounded t"
+    and "0 \<in> rel_interior S"
     and "0 \<in> rel_interior t"
-    and "dim s = dim t"
-  obtains f g where "homeomorphism (rel_frontier s) (rel_frontier t) f g"
-               "\<exists>B. \<forall>x\<in>rel_frontier s. \<forall>y\<in>rel_frontier s.
+    and "dim S = dim t"
+  obtains f g where "homeomorphism (rel_frontier S) (rel_frontier t) f g"
+               "\<exists>B. \<forall>x\<in>rel_frontier S. \<forall>y\<in>rel_frontier S.
                      norm (f x - f y) \<le> B * norm (x - y)"
                "\<exists>B. \<forall>x\<in>rel_frontier t. \<forall>y\<in>rel_frontier t.
                      norm (g x - g y) \<le> B * norm (x - y)"
 proof -
   obtain h k where
     lin_h: "linear h" and lin_k: "linear k"
-    and im_h: "h ` span s = span t" and im_k: "k ` span t = span s"
-    and norm_h: "\<And>x. x \<in> span s \<Longrightarrow> norm (h x) = norm x"
+    and im_h: "h ` span S = span t" and im_k: "k ` span t = span S"
+    and norm_h: "\<And>x. x \<in> span S \<Longrightarrow> norm (h x) = norm x"
     and norm_k: "\<And>y. y \<in> span t \<Longrightarrow> norm (k y) = norm y"
-    and kh: "\<And>x. x \<in> span s \<Longrightarrow> k (h x) = x"
+    and kh: "\<And>x. x \<in> span S \<Longrightarrow> k (h x) = x"
     and hk: "\<And>y. y \<in> span t \<Longrightarrow> h (k y) = y"
-    using isometries_subspaces [of "span s" "span t"] \<open>dim s = dim t\<close> by auto
-  have aff_h: "h ` (affine hull s) = affine hull t"
-    by (metis \<open>0 \<in> rel_interior s\<close> \<open>0 \<in> rel_interior t\<close> conic_hull_eq_span_affine_hull im_h)
-  have rel_frontier_h: "rel_frontier (h ` s) = h ` rel_frontier s"
+    using isometries_subspaces [of "span S" "span t"] \<open>dim S = dim t\<close> by auto
+  have aff_h: "h ` (affine hull S) = affine hull t"
+    by (metis \<open>0 \<in> rel_interior S\<close> \<open>0 \<in> rel_interior t\<close> conic_hull_eq_span_affine_hull im_h)
+  have rel_frontier_h: "rel_frontier (h ` S) = h ` rel_frontier S"
   proof -
-    have inj_h: "inj_on h (span s)"
+    have inj_h: "inj_on h (span S)"
       using kh by (intro inj_onI) (metis)
-    have cls_span: "closure s \<subseteq> span s"
+    have cls_span: "closure S \<subseteq> span S"
       using closure_minimal [OF span_superset closed_span] by blast
-    have "rel_frontier (h ` s) = closure (h ` s) - rel_interior (h ` s)"
+    have "rel_frontier (h ` S) = closure (h ` S) - rel_interior (h ` S)"
       by (simp add: rel_frontier_def)
-    also have "closure (h ` s) = h ` closure s"
-      using closure_bounded_linear_image [OF lin_h \<open>bounded s\<close>] by simp
-    also have "rel_interior (h ` s) = h ` rel_interior s"
-      using rel_interior_convex_linear_image [OF lin_h \<open>convex s\<close>] by simp
-    also have "h ` closure s - h ` rel_interior s = h ` (closure s - rel_interior s)"
+    also have "closure (h ` S) = h ` closure S"
+      using closure_bounded_linear_image [OF lin_h \<open>bounded S\<close>] by simp
+    also have "rel_interior (h ` S) = h ` rel_interior S"
+      using rel_interior_convex_linear_image [OF lin_h \<open>convex S\<close>] by simp
+    also have "h ` closure S - h ` rel_interior S = h ` (closure S - rel_interior S)"
       using inj_on_image_set_diff [OF inj_h]
-        cls_span rel_interior_subset [of s] span_superset [of s]
+        cls_span rel_interior_subset [of S] span_superset [of S]
       by (metis Diff_subset order_trans)
-    also have "closure s - rel_interior s = rel_frontier s"
+    also have "closure S - rel_interior S = rel_frontier S"
       by (simp add: rel_frontier_def)
     finally show ?thesis .
   qed
-  have aff_hs: "affine hull (h ` s) = affine hull t"
-    by (metis affine_hull_span_0 \<open>0 \<in> rel_interior s\<close> \<open>0 \<in> rel_interior t\<close> hull_inc im_h lin_h
+  have aff_hs: "affine hull (h ` S) = affine hull t"
+    by (metis affine_hull_span_0 \<open>0 \<in> rel_interior S\<close> \<open>0 \<in> rel_interior t\<close> hull_inc im_h lin_h
         linear_0 linear_span_image mem_rel_interior_ball rev_image_eqI)
-  have bdd_hs: "bounded (h ` s)"
-    using bounded_linear_image[OF \<open>bounded s\<close>] lin_h linear_linear by blast
-  have ri_hs: "0 \<in> rel_interior (h ` s)"
-    using rel_interior_convex_linear_image[OF lin_h \<open>convex s\<close>] \<open>0 \<in> rel_interior s\<close>
+  have bdd_hs: "bounded (h ` S)"
+    using bounded_linear_image[OF \<open>bounded S\<close>] lin_h linear_linear by blast
+  have ri_hs: "0 \<in> rel_interior (h ` S)"
+    using rel_interior_convex_linear_image[OF lin_h \<open>convex S\<close>] \<open>0 \<in> rel_interior S\<close>
       linear_0[OF lin_h] by (metis image_eqI)
   obtain f g where
-    homeo_fg: "homeomorphism (rel_frontier (h ` s)) (rel_frontier t) f g"
-    and lip_f: "\<exists>B. \<forall>x y. x \<in> rel_frontier (h ` s) \<longrightarrow> y \<in> rel_frontier (h ` s) \<longrightarrow>
+    homeo_fg: "homeomorphism (rel_frontier (h ` S)) (rel_frontier t) f g"
+    and lip_f: "\<exists>B. \<forall>x y. x \<in> rel_frontier (h ` S) \<longrightarrow> y \<in> rel_frontier (h ` S) \<longrightarrow>
                      norm (f x - f y) \<le> B * norm (x - y)"
     and lip_g: "\<exists>B. \<forall>x y. x \<in> rel_frontier t \<longrightarrow> y \<in> rel_frontier t \<longrightarrow>
                      norm (g x - g y) \<le> B * norm (x - y)"
     using bilipschitz_homeomorphism_rel_frontiers_aux
-      [OF convex_linear_image[OF lin_h \<open>convex s\<close>] bdd_hs
+      [OF convex_linear_image[OF lin_h \<open>convex S\<close>] bdd_hs
           \<open>convex t\<close> \<open>bounded t\<close> ri_hs \<open>0 \<in> rel_interior t\<close> aff_hs]
     by blast
   let ?f = "f o h"
   let ?g = "k o g"
   show thesis 
   proof
-    show "homeomorphism (rel_frontier s) (rel_frontier t) ?f ?g"
+    show "homeomorphism (rel_frontier S) (rel_frontier t) ?f ?g"
     proof (rule homeomorphism_compose)
-      show "homeomorphism (rel_frontier s) (h ` rel_frontier s) h k"
+      show "homeomorphism (rel_frontier S) (h ` rel_frontier S) h k"
       proof (unfold homeomorphism_def, intro conjI ballI)
-        have rfs_span: "rel_frontier s \<subseteq> span s"
+        have rfs_span: "rel_frontier S \<subseteq> span S"
           using rel_frontier_affine_hull affine_hull_subset_span order_trans by blast
-        show "h ` rel_frontier s = h ` rel_frontier s" by simp
-        show "continuous_on (rel_frontier s) h"
+        show "h ` rel_frontier S = h ` rel_frontier S" by simp
+        show "continuous_on (rel_frontier S) h"
           using lin_h linear_continuous_on by (metis linear_linear)
-        show "k ` h ` rel_frontier s = rel_frontier s"
+        show "k ` h ` rel_frontier S = rel_frontier S"
           using kh rfs_span by (force simp: image_comp)
-        show "continuous_on (h ` rel_frontier s) k"
+        show "continuous_on (h ` rel_frontier S) k"
           using lin_k linear_continuous_on by (metis linear_linear)
       next
-        fix x assume "x \<in> rel_frontier s"
+        fix x assume "x \<in> rel_frontier S"
         then show "k (h x) = x" using kh rel_frontier_affine_hull affine_hull_subset_span by blast
       next
-        fix y assume "y \<in> h ` rel_frontier s"
-        then obtain x where "x \<in> rel_frontier s" "y = h x" by auto
-        then have "x \<in> span s" using rel_frontier_affine_hull affine_hull_subset_span by blast
+        fix y assume "y \<in> h ` rel_frontier S"
+        then obtain x where "x \<in> rel_frontier S" "y = h x" by auto
+        then have "x \<in> span S" using rel_frontier_affine_hull affine_hull_subset_span by blast
         then have "h x \<in> span t" using im_h by blast
         then show "h (k y) = y" using hk \<open>y = h x\<close> by auto
       qed
     next
-      show "homeomorphism (h ` rel_frontier s) (rel_frontier t) f g"
+      show "homeomorphism (h ` rel_frontier S) (rel_frontier t) f g"
         using homeo_fg rel_frontier_h by simp
     qed
-    show "\<exists>B. \<forall>x\<in>rel_frontier s. \<forall>y\<in>rel_frontier s. norm ((?f x::'b) - ?f y) \<le> B * norm (x - y)"
+    show "\<exists>B. \<forall>x\<in>rel_frontier S. \<forall>y\<in>rel_frontier S. norm ((?f x::'b) - ?f y) \<le> B * norm (x - y)"
     proof -
-      obtain B where B: "\<And>x y. x \<in> rel_frontier (h ` s) \<Longrightarrow> y \<in> rel_frontier (h ` s) \<Longrightarrow>
+      obtain B where B: "\<And>x y. x \<in> rel_frontier (h ` S) \<Longrightarrow> y \<in> rel_frontier (h ` S) \<Longrightarrow>
                           norm (f x - f y) \<le> B * norm (x - y)"
         using lip_f by blast
-      have "\<forall>x\<in>rel_frontier s. \<forall>y\<in>rel_frontier s. norm ((f \<circ> h) x - (f \<circ> h) y) \<le> B * norm (x - y)"
+      have "\<forall>x\<in>rel_frontier S. \<forall>y\<in>rel_frontier S. norm ((f \<circ> h) x - (f \<circ> h) y) \<le> B * norm (x - y)"
       proof (intro ballI)
-        fix x y assume x: "x \<in> rel_frontier s" and y: "y \<in> rel_frontier s"
-        have hx: "h x \<in> rel_frontier (h ` s)" using x rel_frontier_h by auto
-        have hy: "h y \<in> rel_frontier (h ` s)" using y rel_frontier_h by auto
-        have xs: "x \<in> span s"
-          using \<open>0 \<in> rel_interior s\<close> conic_hull_eq_span_affine_hull rel_frontier_affine_hull x by fastforce
-        have ys: "y \<in> span s"
+        fix x y assume x: "x \<in> rel_frontier S" and y: "y \<in> rel_frontier S"
+        have hx: "h x \<in> rel_frontier (h ` S)" using x rel_frontier_h by auto
+        have hy: "h y \<in> rel_frontier (h ` S)" using y rel_frontier_h by auto
+        have xs: "x \<in> span S"
+          using \<open>0 \<in> rel_interior S\<close> conic_hull_eq_span_affine_hull rel_frontier_affine_hull x by fastforce
+        have ys: "y \<in> span S"
           using affine_hull_subset_span closure_affine_hull rel_frontier_def y by fastforce
         show "norm ((f \<circ> h) x - (f \<circ> h) y) \<le> B * norm (x - y)"
           by (smt (verit) B comp_def hx hy lin_h linear_diff norm_h span_diff xs ys)
@@ -3988,50 +3913,50 @@ qed
 
 \<comment> \<open>HOL Light: BILIPSCHITZ_HOMEOMORPHISM_RELATIVE_FRONTIERS\<close>
 lemma bilipschitz_homeomorphism_rel_frontiers:
-  fixes s t :: "'a::euclidean_space set"
-  assumes "convex s" "bounded s" "convex t" "bounded t" and eq: "aff_dim s = aff_dim t"
-  obtains f g where "homeomorphism (rel_frontier s) (rel_frontier t) f g"
-               "\<exists>B. \<forall>x y. x \<in> rel_frontier s \<longrightarrow> y \<in> rel_frontier s \<longrightarrow>
+  fixes S t :: "'a::euclidean_space set"
+  assumes "convex S" "bounded S" "convex t" "bounded t" and eq: "aff_dim S = aff_dim t"
+  obtains f g where "homeomorphism (rel_frontier S) (rel_frontier t) f g"
+               "\<exists>B. \<forall>x y. x \<in> rel_frontier S \<longrightarrow> y \<in> rel_frontier S \<longrightarrow>
                      norm (f x - f y) \<le> B * norm (x - y)"
                "\<exists>B. \<forall>x y. x \<in> rel_frontier t \<longrightarrow> y \<in> rel_frontier t \<longrightarrow>
                      norm (g x - g y) \<le> B * norm (x - y)"
-proof (cases "s={} \<or> t={}")
+proof (cases "S={} \<or> t={}")
   case True
   then show ?thesis
     by (metis that aff_dim_negative_iff eq empty_iff homeomorphism_empty rel_frontier_empty)
 next
   case False
-  obtain a b where a: "a \<in> rel_interior s" and b: "b \<in> rel_interior t"
-    using False rel_interior_eq_empty[OF \<open>convex s\<close>] rel_interior_eq_empty[OF \<open>convex t\<close>]
+  obtain a b where a: "a \<in> rel_interior S" and b: "b \<in> rel_interior t"
+    using False rel_interior_eq_empty[OF \<open>convex S\<close>] rel_interior_eq_empty[OF \<open>convex t\<close>]
     by blast
-  have dim_eq: "dim ((+) (-a) ` s) = dim ((+) (-b) ` t)"
+  have dim_eq: "dim ((+) (-a) ` S) = dim ((+) (-b) ` t)"
     by (metis a aff_dim_eq_dim eq b hull_inc mem_rel_interior_ball of_nat_eq_iff)
-  have ri_s: "0 \<in> rel_interior ((+) (-a) ` s)"
-    using a rel_interior_translation[of "-a" s] by (auto simp: image_iff)
+  have ri_s: "0 \<in> rel_interior ((+) (-a) ` S)"
+    using a rel_interior_translation[of "-a" S] by (auto simp: image_iff)
   have ri_t: "0 \<in> rel_interior ((+) (-b) ` t)"
     using b rel_interior_translation[of "-b" t] by (auto simp: image_iff)
   obtain f g where
-    homeo: "homeomorphism (rel_frontier ((+) (-a) ` s)) (rel_frontier ((+) (-b) ` t)) f g"
-    and lip_f: "\<exists>B. \<forall>x\<in>rel_frontier ((+) (-a) ` s). \<forall>y\<in>rel_frontier ((+) (-a) ` s).
+    homeo: "homeomorphism (rel_frontier ((+) (-a) ` S)) (rel_frontier ((+) (-b) ` t)) f g"
+    and lip_f: "\<exists>B. \<forall>x\<in>rel_frontier ((+) (-a) ` S). \<forall>y\<in>rel_frontier ((+) (-a) ` S).
                      norm (f x - f y) \<le> B * norm (x - y)"
     and lip_g: "\<exists>B. \<forall>x\<in>rel_frontier ((+) (-b) ` t). \<forall>y\<in>rel_frontier ((+) (-b) ` t).
                      norm (g x - g y) \<le> B * norm (x - y)"
     using bilipschitz_homeomorphism_rel_frontiers_aux2
-      [OF convex_translation[OF \<open>convex s\<close>] bounded_translation[OF \<open>bounded s\<close>]
+      [OF convex_translation[OF \<open>convex S\<close>] bounded_translation[OF \<open>bounded S\<close>]
           convex_translation[OF \<open>convex t\<close>] bounded_translation[OF \<open>bounded t\<close>]
           ri_s ri_t dim_eq]
     by blast
-  have rfs: "rel_frontier ((+) (-a) ` s) = (+) (-a) ` rel_frontier s"
+  have rfs: "rel_frontier ((+) (-a) ` S) = (+) (-a) ` rel_frontier S"
     by (rule rel_frontier_translation)
   have rft: "rel_frontier ((+) (-b) ` t) = (+) (-b) ` rel_frontier t"
     by (rule rel_frontier_translation)
   obtain B B' where
-    lip_fs: "\<And>x y. x \<in> rel_frontier s \<Longrightarrow> y \<in> rel_frontier s \<Longrightarrow>
+    lip_fs: "\<And>x y. x \<in> rel_frontier S \<Longrightarrow> y \<in> rel_frontier S \<Longrightarrow>
                     norm (f (-a + x) - f (-a + y)) \<le> B * norm (x - y)"
     and lip_gt: "\<And>x y. x \<in> rel_frontier t \<Longrightarrow> y \<in> rel_frontier t \<Longrightarrow>
                     norm (g (-b + x) - g (-b + y)) \<le> B' * norm (x - y)"
   proof -
-    obtain B where B: "\<forall>x\<in>rel_frontier ((+) (-a) ` s). \<forall>y\<in>rel_frontier ((+) (-a) ` s).
+    obtain B where B: "\<forall>x\<in>rel_frontier ((+) (-a) ` S). \<forall>y\<in>rel_frontier ((+) (-a) ` S).
                         norm (f x - f y) \<le> B * norm (x - y)"
       using lip_f by blast
     obtain B' where B': "\<forall>x\<in>rel_frontier ((+) (-b) ` t). \<forall>y\<in>rel_frontier ((+) (-b) ` t).
@@ -4039,8 +3964,8 @@ next
       using lip_g by blast
     show thesis
     proof
-      fix x y assume "x \<in> rel_frontier s" "y \<in> rel_frontier s"
-      then have xy: "-a + x \<in> rel_frontier ((+) (-a) ` s)" "-a + y \<in> rel_frontier ((+) (-a) ` s)"
+      fix x y assume "x \<in> rel_frontier S" "y \<in> rel_frontier S"
+      then have xy: "-a + x \<in> rel_frontier ((+) (-a) ` S)" "-a + y \<in> rel_frontier ((+) (-a) ` S)"
         unfolding rfs by (auto simp: image_iff)
       then show "norm (f (-a + x) - f (-a + y)) \<le> B * norm (x - y)"
         using bspec[OF bspec[OF B xy(1)] xy(2)] by simp
@@ -4056,26 +3981,26 @@ next
   let ?g = "\<lambda>x. a + g (-b + x)"
   show thesis
   proof
-    show "homeomorphism (rel_frontier s) (rel_frontier t) ?f ?g"
+    show "homeomorphism (rel_frontier S) (rel_frontier t) ?f ?g"
     proof -
       note homeo_parts = homeo[unfolded homeomorphism_def rfs rft]
-      have cf: "continuous_on ((+) (-a) ` rel_frontier s) f"
+      have cf: "continuous_on ((+) (-a) ` rel_frontier S) f"
         using homeo_parts by blast
       have cg: "continuous_on ((+) (-b) ` rel_frontier t) g"
         using homeo_parts by blast
-      have gf0: "\<And>x. x \<in> (+) (-a) ` rel_frontier s \<Longrightarrow> g (f x) = x"
+      have gf0: "\<And>x. x \<in> (+) (-a) ` rel_frontier S \<Longrightarrow> g (f x) = x"
         using homeo_parts by blast
       have fg0: "\<And>y. y \<in> (+) (-b) ` rel_frontier t \<Longrightarrow> f (g y) = y"
         using homeo_parts by blast
-      have gf: "\<And>x. x \<in> rel_frontier s \<Longrightarrow> ?g (?f x) = x"
+      have gf: "\<And>x. x \<in> rel_frontier S \<Longrightarrow> ?g (?f x) = x"
         using gf0[of "-a + _"] by (auto simp: algebra_simps image_iff)
       have fg: "\<And>y. y \<in> rel_frontier t \<Longrightarrow> ?f (?g y) = y"
         using fg0[of "-b + _"] by (auto simp: algebra_simps image_iff)
-      have im_f: "?f ` rel_frontier s = rel_frontier t"
+      have im_f: "?f ` rel_frontier S = rel_frontier t"
         by (metis homeo_parts image_image translation_galois)
-      have im_g: "?g ` rel_frontier t = rel_frontier s"
+      have im_g: "?g ` rel_frontier t = rel_frontier S"
         by (metis homeo_parts image_image translation_galois)
-      have cont_f: "continuous_on (rel_frontier s) ?f"
+      have cont_f: "continuous_on (rel_frontier S) ?f"
         using continuous_on_compose[OF _ cf]
           continuous_on_translation_eq[of _ "-a" id] continuous_on_translation_eq[of _ b "f \<circ> (+) (-a)"]
         by (simp add: o_def)
@@ -4088,7 +4013,7 @@ next
         using gf fg im_f im_g cont_f cont_g by blast
     qed
   next
-    show "\<exists>B. \<forall>x y. x \<in> rel_frontier s \<longrightarrow> y \<in> rel_frontier s \<longrightarrow> norm ((?f x::'a) - ?f y) \<le> B * norm (x - y)"
+    show "\<exists>B. \<forall>x y. x \<in> rel_frontier S \<longrightarrow> y \<in> rel_frontier S \<longrightarrow> norm ((?f x::'a) - ?f y) \<le> B * norm (x - y)"
         using lip_fs by (force simp: algebra_simps)
     show "\<exists>B. \<forall>x y. x \<in> rel_frontier t \<longrightarrow> y \<in> rel_frontier t \<longrightarrow> norm ((?g x::'a) - ?g y) \<le> B * norm (x - y)"
         using lip_gt by (force simp: algebra_simps)
