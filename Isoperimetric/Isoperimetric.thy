@@ -3199,89 +3199,60 @@ proof -
   have col2: "collinear {0, w - x, v}" 
     using assms(2) collinear_3[of w x y] by (simp add: v_def)
   have orth1: "(z - x) \<bullet> v - (w - x) \<bullet> v = 0"
-    using assms(3) by (simp add: orthogonal_def v_def inner_diff_left algebra_simps)
+    using assms(3) by (simp add: orthogonal_def v_def algebra_simps)
   have orth2: "v \<bullet> (z - x) - v \<bullet> u - u \<bullet> (z - x) + u \<bullet> u = 0"
-    using assms(4) by (simp add: orthogonal_def u_def v_def inner_diff_left inner_diff_right algebra_simps)
+    using assms(4) by (simp add: orthogonal_def u_def v_def algebra_simps)
   show "dist z w * dist x y = dist y x' * dist z x"
   proof (cases "u = 0")
     case True
-    \<comment> \<open>When x' = x, the orthogonality conditions force w = x (or y = x), 
-        and the conclusion holds trivially.\<close>
     then have xeq: "x' = x" by (simp add: u_def)
-    show ?thesis
-    proof (cases "v = 0")
-      case True
-      with xeq show ?thesis by (simp add: v_def)
-    next
-      case False then show ?thesis
-        using dist_commute[of x y] True col2 inner_commute[of v "z - x"]
-          norm_cauchy_schwarz_equal[of "w - x" v] orth1 orth2 xeq by force
-    qed
+    then show ?thesis
+      using dist_commute True col2 inner_commute[of v "z - x"]
+        norm_cauchy_schwarz_equal[of "w - x" v] orth1 orth2 v_def by force
   next
     case False
-    \<comment> \<open>Main case. Use collinearity and orthogonality for algebraic computation.\<close>
     then have u_ne: "u \<noteq> 0" .
-    \<comment> \<open>From collinearity, z - x is a scalar multiple of u, and w - x of v.\<close>
-    have col1': "collinear {0, u, z - x}" 
-      using col1 by (simp add: insert_commute)
-    then obtain a where za: "z - x = a *\<^sub>R u"
-      by (metis collinear_lemma scaleR_zero_left u_ne)
+    with col1 obtain a where za: "z - x = a *\<^sub>R u"
+      by (metis (no_types, lifting) collinear_lemma insert_commute scaleR_zero_left)
     have v_ne: "v \<noteq> 0"
       using \<open>x' \<noteq> z\<close> orth2 u_def za by force 
-    have col2': "collinear {0, v, w - x}"
-      using col2 by (simp add: insert_commute)
-    then obtain b where wb: "w - x = b *\<^sub>R v"
-      by (metis collinear_lemma scaleR_zero_left v_ne)
-    from orth1 za wb have eq1: "a * (u \<bullet> v) = b * (v \<bullet> v)"
-      by (simp add: inner_scaleR_left)
-    from orth2 za have eq2: "(a - 1) * (v \<bullet> u) = (a - 1) * (u \<bullet> u)"
-      by (simp add: inner_scaleR_right inner_scaleR_left algebra_simps)
-    \<comment> \<open>So either a = 1 or v\<cdot>u = u\<cdot>u\<close>
-    \<comment> \<open>Reduce to showing squares are equal (both sides non-negative).\<close>
-    have lhs_nn: "dist z w * dist x y \<ge> 0" by (simp add: zero_le_dist)
-    have rhs_nn: "dist y x' * dist z x \<ge> 0" by (simp add: zero_le_dist)
-    have "(dist z w * dist x y)\<^sup>2 = (dist y x' * dist z x)\<^sup>2"
-    proof -
-      \<comment> \<open>Express distances in terms of norms.\<close>
-      have dzw: "dist z w = norm (a *\<^sub>R u - b *\<^sub>R v)"
-        using za wb by (simp add: dist_norm algebra_simps)
-      have dxy: "dist x y = norm v"
-        by (simp add: dist_norm v_def norm_minus_commute)
-      have dyx': "dist y x' = norm (v - u)"
-        by (simp add: dist_norm u_def v_def algebra_simps norm_minus_commute)
-      have dzx: "dist z x = norm (a *\<^sub>R u)"
-        using za by (simp add: dist_norm norm_minus_commute)
-      \<comment> \<open>Abbreviate inner products for readability.\<close>
-      define uu where "uu = u \<bullet> u"
-      define uv where "uv = u \<bullet> v"
-      define vv where "vv = v \<bullet> v"
-      \<comment> \<open>Restate eq1, eq2 in terms of abbreviations.\<close>
-      have E1: "a * uv = b * vv" using eq1 by (simp add: uv_def vv_def inner_commute)
-      have E2': "(a - 1) * uv = (a - 1) * uu" 
-        using eq2 by (simp add: uv_def uu_def inner_commute)
-      \<comment> \<open>Compute LHS² = \<Parallel>a*u - b*v\<Parallel>² * \<Parallel>v\<Parallel>²\<close>
-      have "(norm (a *\<^sub>R u - b *\<^sub>R v))\<^sup>2 = a * a * (u \<bullet> u) - 2 * (a * b) * (u \<bullet> v) + b * b * (v \<bullet> v)"
-        by (simp add: power2_norm_eq_inner inner_commute algebra_simps)
-      then have "(norm (a *\<^sub>R u - b *\<^sub>R v))\<^sup>2 = a\<^sup>2 * uu - 2 * a * b * uv + b\<^sup>2 * vv"
-        by (simp add: uu_def uv_def vv_def power2_eq_square)
-      then have lhs_sq: "(dist z w * dist x y)\<^sup>2 = (a\<^sup>2 * uu - 2 * a * b * uv + b\<^sup>2 * vv) * vv"
-        by (simp add: dxy dzw power2_norm_eq_inner power_mult_distrib vv_def)
-      have rhs_sq: "(dist y x' * dist z x)\<^sup>2 = a\<^sup>2 * uu * (vv - 2 * uv + uu)"
-        by (simp add: dyx' dzx power2_norm_eq_inner uu_def uv_def vv_def inner_commute algebra_simps)
-      have "a \<noteq> 1"
-        using \<open>x' \<noteq> z\<close> u_def za by force
-      with E2' have uv_eq: "uv = uu" by auto
-          \<comment> \<open>Key derived facts.\<close>
-      have lhs_eq: "(dist z w * dist x y)\<^sup>2 = (a\<^sup>2 * uu - 2 * a * b * uu + b\<^sup>2 * vv) * vv"
-        using lhs_sq uv_eq by simp
-      also have "... = a\<^sup>2 * uu * (vv - uu)"
-        using E1 unfolding uv_eq by algebra
-      also have "... = (dist y x' * dist z x)\<^sup>2"
-        using rhs_sq uv_eq by simp
-      finally show ?thesis .
-    qed
-    with lhs_nn rhs_nn show ?thesis
-      by simp
+    with col2 obtain b where wb: "w - x = b *\<^sub>R v"
+      by (metis collinear_lemma doubleton_eq_iff scaleR_zero_left)
+        \<comment> \<open>Express distances in terms of norms.\<close>
+    have dzw: "dist z w = norm (a *\<^sub>R u - b *\<^sub>R v)"
+      using za wb by (simp add: dist_norm algebra_simps)
+    have dxy: "dist x y = norm v"
+      by (simp add: dist_norm v_def norm_minus_commute)
+    have dyx': "dist y x' = norm (v - u)"
+      by (simp add: dist_norm u_def v_def algebra_simps norm_minus_commute)
+    have dzx: "dist z x = norm (a *\<^sub>R u)"
+      using za by (simp add: dist_norm norm_minus_commute)
+    define uu where "uu = u \<bullet> u"
+    define uv where "uv = u \<bullet> v"
+    define vv where "vv = v \<bullet> v"
+    have "(norm (a *\<^sub>R u - b *\<^sub>R v))\<^sup>2 = a * a * (u \<bullet> u) - 2 * (a * b) * (u \<bullet> v) + b * b * (v \<bullet> v)"
+      by (simp add: power2_norm_eq_inner inner_commute algebra_simps)
+    then have "(norm (a *\<^sub>R u - b *\<^sub>R v))\<^sup>2 = a\<^sup>2 * uu - 2 * a * b * uv + b\<^sup>2 * vv"
+      by (simp add: uu_def uv_def vv_def power2_eq_square)
+    then have lhs_sq: "(dist z w * dist x y)\<^sup>2 = (a\<^sup>2 * uu - 2 * a * b * uv + b\<^sup>2 * vv) * vv"
+      by (simp add: dxy dzw power2_norm_eq_inner power_mult_distrib vv_def)
+    have rhs_sq: "(dist y x' * dist z x)\<^sup>2 = a\<^sup>2 * uu * (vv - 2 * uv + uu)"
+      by (simp add: dyx' dzx power2_norm_eq_inner uu_def uv_def vv_def inner_commute algebra_simps)
+    have "(a - 1) * uv = (a - 1) * uu" 
+      using orth2 za by (simp add: uv_def uu_def inner_commute algebra_simps)
+    then have uv_eq: "uv = uu"
+      using orth2 za \<open>x' \<noteq> z\<close> u_def za by auto
+        \<comment> \<open>Key derived facts.\<close>
+    have 1: "a * uv = b * vv"
+      using orth1 uv_def vv_def wb za by force
+    have lhs_eq: "(dist z w * dist x y)\<^sup>2 = (a\<^sup>2 * uu - 2 * a * b * uu + b\<^sup>2 * vv) * vv"
+      using lhs_sq uv_eq by simp
+    also have "\<dots> = a\<^sup>2 * uu * (vv - uu)"
+      using 1 unfolding uv_eq by algebra
+    also have "\<dots> = (dist y x' * dist z x)\<^sup>2"
+      using rhs_sq uv_eq by simp
+    finally have "(dist z w * dist x y)\<^sup>2 = (dist y x' * dist z x)\<^sup>2" .
+    then show ?thesis by simp
   qed
 qed
 
@@ -3315,27 +3286,22 @@ next
   show ?thesis 
   proof (cases "x \<bullet> y \<le> 0 \<or> x=y")
     case True
-    have inv_x: "0 \<le> 1 / norm x" using x_ne by simp
-    have inv_y: "0 \<le> 1 / norm y" using y_ne by simp
-    have key: "min (1 / norm x) (1 / norm y) * dist x y
+    have "0 \<le> 1 / norm x" and "0 \<le> 1 / norm y" using x_ne y_ne by auto
+    then have key: "min (1 / norm x) (1 / norm y) * dist x y
                \<le> dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
-      by (metis False True dist_scaleR_ge_min dist_self inv_x inv_y mult_zero_right order_eq_refl)
+      by (metis True dist_scaleR_ge_min dist_self mult_zero_right order_eq_refl)
     have rR2_le_invR: "r / R\<^sup>2 \<le> 1 / R"
-      by (metis \<open>0 < R\<close> \<open>r \<le> R\<close> divide_divide_eq_left divide_le_eq_1_pos frac_le
-          zero_le_one order.refl power2_eq_square)
+      using \<open>0 < R\<close> \<open>r \<le> R\<close> by (simp add: divide_simps power2_eq_square)
     have invR_le_invx: "1 / R \<le> 1 / norm x"
       using norm_le[OF x] r_le[OF x] \<open>r>0\<close> \<open>0 < R\<close>
       by (intro frac_le) linarith+
-    have invR_le_invy: "1 / R \<le> 1 / norm y"
+    have "1 / R \<le> 1 / norm y"
       using norm_le[OF y] r_le[OF y] \<open>r>0\<close> \<open>0 < R\<close>
       by (intro frac_le) linarith+
-    have "r / R\<^sup>2 \<le> min (1 / norm x) (1 / norm y)"
-      using rR2_le_invR invR_le_invx invR_le_invy by simp
-    then have "r / R\<^sup>2 * dist x y \<le> min (1 / norm x) (1 / norm y) * dist x y"
-      by (intro mult_right_mono) (simp_all add: zero_le_dist)
-    also have "\<dots> \<le> dist ((1 / norm x) *\<^sub>R x) ((1 / norm y) *\<^sub>R y)"
-      by (rule key)
-    finally show ?thesis .
+    then have "r / R\<^sup>2 \<le> min (1 / norm x) (1 / norm y)"
+      using rR2_le_invR invR_le_invx by simp
+    then show ?thesis
+      by (meson key order.trans mult_right_mono zero_le_dist)
   next
     case False
     then have "x \<bullet> y > 0" "x\<noteq>y"
@@ -4328,11 +4294,11 @@ proof -
     using measurable_completion[OF swap_lborel] by simp
   have "distr (lebesgue :: ('a \<times> 'b) measure) lborel prod.swap = distr lborel lborel prod.swap"
     using distr_completion[OF swap_lborel] by simp
-  also have "... = lborel"
+  also have "\<dots> = lborel"
   proof -
     have "distr lborel lborel prod.swap = distr lborel lborel (\<lambda>(x::'a, y::'b). (y, x))"
       by (intro distr_cong) (auto simp: swap_simp)
-    also have "... = lborel"
+    also have "\<dots> = lborel"
       using lborel_pair.distr_pair_swap by (simp add: lborel_prod eq_commute)
     finally show ?thesis .
   qed
@@ -4549,13 +4515,13 @@ proof -
       \<comment> \<open>Apply Fubini\<close>
       have "measure lebesgue S' = integral UNIV (indicat_real S')"
         using lmeasure_integral_UNIV[OF S'_meas] by simp
-      also have "... = integral UNIV (\<lambda>x. integral UNIV (\<lambda>y. indicat_real S' (x, y)))"
+      also have "\<dots> = integral UNIV (\<lambda>x. integral UNIV (\<lambda>y. indicat_real S' (x, y)))"
       proof (rule gauge_integral_Fubini_universe_x(1)[OF integ])
         show "(\<lambda>x. integral UNIV (\<lambda>y. indicat_real S' (x, y))) \<in> borel_measurable lborel"
         proof -
           have "(\<lambda>x. integral UNIV (\<lambda>y. indicat_real S' (x, y))) = (\<lambda>x. if x \<in> {a..b} then f x else 0)"
             by (use slice_eq in auto)
-          also have "... \<in> borel_measurable lborel"
+          also have "\<dots> \<in> borel_measurable lborel"
           proof -
             have "(\<lambda>x::real. if x \<in> {a..b} then f x else 0) \<in> borel_measurable borel"
               by (intro borel_measurable_continuous_on_if continuous_on_const assms(2)) auto
@@ -4564,9 +4530,9 @@ proof -
           finally show ?thesis .
         qed
       qed
-      also have "... = integral UNIV (\<lambda>x. if x \<in> {a..b} then f x else 0)"
+      also have "\<dots> = integral UNIV (\<lambda>x. if x \<in> {a..b} then f x else 0)"
         by (rule integral_cong) (use slice_eq in auto)
-      also have "... = integral {a..b} f"
+      also have "\<dots> = integral {a..b} f"
         by (rule integral_restrict_UNIV)
       finally show ?thesis .
     qed
@@ -8548,7 +8514,7 @@ proof -
             using fundamental_theorem_of_calculus[OF \<open>0 \<le> x\<close> hvd] by simp
           then show ?thesis by (simp add: algebra_simps)
         qed
-        \<comment> \<open>Step 3: integral of the difference = Re(g x) - (-sgn*C*(cos(...) - cos A))\<close>
+        \<comment> \<open>Step 3: integral of the difference = Re(g x) - (-sgn*C*(cos(\<dots>) - cos A))\<close>
         have diff_int: "((\<lambda>t. Re (g' t) - 2 * pi * sgn * C * sin (2 * pi * t - A)) has_integral
           (Re (g x) - (- sgn * C * (cos (2 * pi * x - A) - cos A)))) {0..x}"
           using has_integral_diff[OF Re_g'_int sin_int] by simp
