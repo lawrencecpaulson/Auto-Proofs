@@ -9250,7 +9250,46 @@ lemma connected_subset_segment:
   fixes a b :: "'a::euclidean_space"
   assumes "connected S" "S \<subseteq> closed_segment a b" "a \<in> S" "b \<in> S"
   shows "S = closed_segment a b"
-  sorry
+proof (cases "a = b")
+  case True
+  then show ?thesis using assms by auto
+next
+  case False
+  define f where "f = (\<lambda>x::'a. (b - a) \<bullet> x)"
+  define K where "K = (b - a) \<bullet> (b - a)"
+  have contf: "continuous_on S f" by (auto simp: f_def continuous_intros)
+  have conn_fS: "connected (f ` S)" using assms(1) contf connected_continuous_image by blast
+  have nz: "K > 0" using False by (simp add: K_def inner_gt_zero_iff)
+  have fseg: "\<And>u. f ((1-u) *\<^sub>R a + u *\<^sub>R b) = (b - a) \<bullet> a + u * K"
+    by (simp add: f_def K_def inner_diff_right algebra_simps inner_diff_left inner_commute)
+  have fa: "f a = (b - a) \<bullet> a" by (simp add: f_def)
+  have fb: "f b = (b - a) \<bullet> a + K" using fseg[of 1] by simp
+  show ?thesis
+  proof (rule subset_antisym[OF assms(2)])
+    show "closed_segment a b \<subseteq> S"
+    proof
+      fix x assume "x \<in> closed_segment a b"
+      then obtain u where u: "x = (1 - u) *\<^sub>R a + u *\<^sub>R b" "0 \<le> u" "u \<le> 1"
+        by (auto simp: in_segment)
+      have fx: "f x = (b - a) \<bullet> a + u * K" using u(1) fseg by simp
+      have mem: "f x \<in> closed_segment (f a) (f b)"
+        unfolding closed_segment_eq_real_ivl using nz u(2,3) fa fb fx
+        by (auto simp: mult_left_le_one_le)
+      have "closed_segment (f a) (f b) \<subseteq> f ` S"
+        using conn_fS assms(3,4) connected_contains_Icc
+        by (metis closed_segment_eq_real_ivl image_eqI)
+      then have "f x \<in> f ` S" using mem by blast
+      then obtain s where s: "s \<in> S" "f s = f x" by auto
+      have "s \<in> closed_segment a b" using s(1) assms(2) by blast
+      then obtain v where v: "s = (1 - v) *\<^sub>R a + v *\<^sub>R b" "0 \<le> v" "v \<le> 1"
+        by (auto simp: in_segment)
+      have "(b - a) \<bullet> a + v * K = (b - a) \<bullet> a + u * K"
+        using s(2) v(1) fseg fx by simp
+      then have "v = u" using nz by simp
+      then show "x \<in> S" using s(1) v(1) u(1) by simp
+    qed
+  qed
+qed
 
 text \<open>A connected subset of two arcs joined only at their common endpoints, containing both
   endpoints, must contain one of the two arcs in full. (HOL Light: CONNECTED\_SUBSET\_ARC\_PAIR.)\<close>
@@ -9263,7 +9302,317 @@ lemma connected_subset_arc_pair:
     "connected S" "S \<subseteq> path_image g \<union> path_image h"
     "pathstart g \<in> S" "pathfinish g \<in> S"
   shows "path_image g \<subseteq> S \<or> path_image h \<subseteq> S"
-  sorry
+proof (rule ccontr)
+  assume "\<not> (path_image g \<subseteq> S \<or> path_image h \<subseteq> S)"
+  then have ng: "\<not> path_image g \<subseteq> S" and nh: "\<not> path_image h \<subseteq> S" by auto
+  from ng obtain pg where pg: "pg \<in> path_image g" "pg \<notin> S" by blast
+  then obtain p where p: "p \<in> {0..1}" "g p = pg" by (auto simp: path_image_def)
+  from nh obtain ph where ph: "ph \<in> path_image h" "ph \<notin> S" by blast
+  then obtain q where q: "q \<in> {0..1}" "h q = ph" by (auto simp: path_image_def)
+  have gp: "g p \<notin> S" using p(2) pg(2) by simp
+  have hq: "h q \<notin> S" using q(2) ph(2) by simp
+  have pathg: "path g" and pathh: "path h" using assms(1,2) arc_imp_path by auto
+  have img_g0p: "path_image (subpath 0 p g) = g ` {0..p}" using p(1) by (simp add: path_image_subpath)
+  have img_gp1: "path_image (subpath p 1 g) = g ` {p..1}" using p(1) by (simp add: path_image_subpath)
+  have img_h0q: "path_image (subpath 0 q h) = h ` {0..q}" using q(1) by (simp add: path_image_subpath)
+  have img_hq1: "path_image (subpath q 1 h) = h ` {q..1}" using q(1) by (simp add: path_image_subpath)
+  have comb_g: "g ` {0..p} \<union> g ` {p..1} = path_image g"
+    using p(1) by (simp add: path_image_def image_Un [symmetric]) (metis ivl_disj_un_two_touch(4))
+  have comb_h: "h ` {0..q} \<union> h ` {q..1} = path_image h"
+    using q(1) by (simp add: path_image_def image_Un [symmetric]) (metis ivl_disj_un_two_touch(4))
+  define E1 where "E1 = S - (path_image (subpath p 1 g) \<union> path_image (subpath q 1 h))"
+  define E2 where "E2 = S - (path_image (subpath 0 p g) \<union> path_image (subpath 0 q h))"
+  have cl_gp1: "closed (path_image (subpath p 1 g))"
+    using pathg p(1) by (simp add: closed_path_image path_subpath)
+  have cl_hq1: "closed (path_image (subpath q 1 h))"
+    using pathh q(1) by (simp add: closed_path_image path_subpath)
+  have cl_g0p: "closed (path_image (subpath 0 p g))"
+    using pathg p(1) by (simp add: closed_path_image path_subpath)
+  have cl_h0q: "closed (path_image (subpath 0 q h))"
+    using pathh q(1) by (simp add: closed_path_image path_subpath)
+  have openE1: "openin (top_of_set S) E1"
+  proof -
+    have "E1 = S \<inter> (- (path_image (subpath p 1 g) \<union> path_image (subpath q 1 h)))"
+      unfolding E1_def by blast
+    moreover have "open (- (path_image (subpath p 1 g) \<union> path_image (subpath q 1 h)))"
+      using cl_gp1 cl_hq1 by blast
+    ultimately show ?thesis by (simp add: openin_open_Int)
+  qed
+  have openE2: "openin (top_of_set S) E2"
+  proof -
+    have "E2 = S \<inter> (- (path_image (subpath 0 p g) \<union> path_image (subpath 0 q h)))"
+      unfolding E2_def by blast
+    moreover have "open (- (path_image (subpath 0 p g) \<union> path_image (subpath 0 q h)))"
+      using cl_g0p cl_h0q by blast
+    ultimately show ?thesis by (simp add: openin_open_Int)
+  qed
+  have injg: "inj_on g {0..1}" using assms(1) by (simp add: arc_def)
+  have injh: "inj_on h {0..1}" using assms(2) by (simp add: arc_def)
+  have p_pos: "p > 0"
+  proof (rule ccontr)
+    assume "\<not> p > 0" then have "p = 0" using p(1) by simp
+    then have "g p = pathstart g" by (simp add: pathstart_def)
+    then show False using gp assms(8) by simp
+  qed
+  have q_pos: "q > 0"
+  proof (rule ccontr)
+    assume "\<not> q > 0" then have "q = 0" using q(1) by simp
+    then have "h q = pathstart h" by (simp add: pathstart_def)
+    then show False using hq assms(8) assms(3) by simp
+  qed
+  have p_lt1: "p < 1"
+  proof (rule ccontr)
+    assume "\<not> p < 1" then have "p = 1" using p(1) by simp
+    then have "g p = pathfinish g" by (simp add: pathfinish_def)
+    then show False using gp assms(9) by simp
+  qed
+  have q_lt1: "q < 1"
+  proof (rule ccontr)
+    assume "\<not> q < 1" then have "q = 1" using q(1) by simp
+    then have "h q = pathfinish h" by (simp add: pathfinish_def)
+    then show False using hq assms(9) assms(4) by simp
+  qed
+  have ne_E1: "pathstart g \<in> E1"
+  proof -
+    have "g 0 \<notin> g ` {p..1}"
+    proof
+      assume "g 0 \<in> g ` {p..1}"
+      then obtain t where t: "t \<in> {p..1}" "g 0 = g t" by auto
+      have "0 = t" using injg t p(1) p_pos by (force simp: inj_on_def)
+      then show False using t(1) p_pos by simp
+    qed
+    moreover have "g 0 \<notin> h ` {q..1}"
+    proof
+      assume "g 0 \<in> h ` {q..1}"
+      then have "h 0 \<in> h ` {q..1}" using assms(3) by (simp add: pathstart_def)
+      then obtain t where t: "t \<in> {q..1}" "h 0 = h t" by auto
+      have "0 = t" using injh t q(1) q_pos by (force simp: inj_on_def)
+      then show False using t(1) q_pos by simp
+    qed
+    ultimately show ?thesis
+      unfolding E1_def using assms(8) img_gp1 img_hq1 by (simp add: pathstart_def)
+  qed
+  have ne_E2: "pathfinish g \<in> E2"
+  proof -
+    have "g 1 \<notin> g ` {0..p}"
+    proof
+      assume "g 1 \<in> g ` {0..p}"
+      then obtain t where t: "t \<in> {0..p}" "g 1 = g t" by auto
+      have "1 = t" using injg t p(1) by (force simp: inj_on_def)
+      then show False using t(1) p_lt1 by simp
+    qed
+    moreover have "g 1 \<notin> h ` {0..q}"
+    proof
+      assume "g 1 \<in> h ` {0..q}"
+      then have "h 1 \<in> h ` {0..q}" using assms(4) by (simp add: pathfinish_def)
+      then obtain t where t: "t \<in> {0..q}" "h 1 = h t" by auto
+      have "1 = t" using injh t q(1) by (force simp: inj_on_def)
+      then show False using t(1) q_lt1 by simp
+    qed
+    moreover have "pathfinish g \<in> S" using assms(9) .
+    ultimately show ?thesis
+      unfolding E2_def using img_g0p img_h0q by (simp add: pathfinish_def)
+  qed
+  have ps_g: "pathstart g = g 0" by (simp add: pathstart_def)
+  have pf_g: "pathfinish g = g 1" by (simp add: pathfinish_def)
+  have cross_gh: "\<And>s t. s \<in> {0..1} \<Longrightarrow> t \<in> {0..1} \<Longrightarrow> g s = h t \<Longrightarrow> g s = g 0 \<or> g s = g 1"
+  proof -
+    fix s t assume s: "s \<in> {0..1}" and t: "t \<in> {0..1}" and eq: "g s = h t"
+    have "g s \<in> path_image g" using s by (auto simp: path_image_def)
+    moreover have "g s \<in> path_image h" using t eq by (auto simp: path_image_def)
+    ultimately have "g s \<in> {pathstart g, pathfinish g}" using assms(5) by blast
+    then show "g s = g 0 \<or> g s = g 1" using ps_g pf_g by auto
+  qed
+  have sub_p1: "{p..1} \<subseteq> {0..1}" using p(1) by auto
+  have sub_0p: "{0..p} \<subseteq> {0..1}" using p(1) by auto
+  have sub_q1: "{q..1} \<subseteq> {0..1}" using q(1) by auto
+  have sub_0q: "{0..q} \<subseteq> {0..1}" using q(1) by auto
+  have gh11: "g 1 = h 1" using assms(4) by (simp add: pathfinish_def)
+  have gh00: "g 0 = h 0" using assms(3) by (simp add: pathstart_def)
+  have cover_False: "\<And>x. x \<in> S \<Longrightarrow> x \<in> g ` {p..1} \<union> h ` {q..1} \<Longrightarrow> x \<in> g ` {0..p} \<union> h ` {0..q} \<Longrightarrow> False"
+  proof -
+    fix x assume xS: "x \<in> S" and inR1: "x \<in> g ` {p..1} \<union> h ` {q..1}" and inR2: "x \<in> g ` {0..p} \<union> h ` {0..q}"
+    from inR1 consider (g1) "x \<in> g ` {p..1}" | (h1) "x \<in> h ` {q..1}" by auto
+    then show False
+    proof cases
+      case g1
+      then obtain s where s: "s \<in> {p..1}" "x = g s" by auto
+      from inR2 consider (a) "x \<in> g ` {0..p}" | (b) "x \<in> h ` {0..q}" by auto
+      then show False
+      proof cases
+        case a
+        then obtain t where t: "t \<in> {0..p}" "x = g t" by auto
+        have "s = t" using injg s t sub_p1 sub_0p s(2) t(2) by (force simp: inj_on_def)
+        then have "s = p" using s(1) t(1) by simp
+        then show False using gp xS s(2) by simp
+      next
+        case b
+        then obtain t where t: "t \<in> {0..q}" "x = h t" by auto
+        have eq: "g s = h t" using s(2) t(2) by simp
+        have "g s = g 0 \<or> g s = g 1" using cross_gh s(1) sub_p1 t(1) sub_0q eq by blast
+        then show False
+        proof
+          assume "g s = g 0"
+          then have "s = 0" using injg s(1) sub_p1 by (force simp: inj_on_def)
+          then show False using s(1) p_pos by simp
+        next
+          assume "g s = g 1"
+          then have "h t = h 1" using eq gh11 by simp
+          then have "t = 1" using injh t(1) sub_0q by (force simp: inj_on_def)
+          then show False using t(1) q_lt1 by simp
+        qed
+      qed
+    next
+      case h1
+      then obtain s where s: "s \<in> {q..1}" "x = h s" by auto
+      from inR2 consider (a) "x \<in> g ` {0..p}" | (b) "x \<in> h ` {0..q}" by auto
+      then show False
+      proof cases
+        case a
+        then obtain t where t: "t \<in> {0..p}" "x = g t" by auto
+        have eq: "g t = h s" using s(2) t(2) by simp
+        have "g t = g 0 \<or> g t = g 1" using cross_gh t(1) sub_0p s(1) sub_q1 eq by blast
+        then show False
+        proof
+          assume "g t = g 1"
+          then have "t = 1" using injg t(1) sub_0p by (force simp: inj_on_def)
+          then show False using t(1) p_lt1 by simp
+        next
+          assume "g t = g 0"
+          then have "h s = h 0" using eq gh00 by simp
+          then have "s = 0" using injh s(1) sub_q1 by (force simp: inj_on_def)
+          then show False using s(1) q_pos by simp
+        qed
+      next
+        case b
+        then obtain t where t: "t \<in> {0..q}" "x = h t" by auto
+        have "s = t" using injh s t sub_q1 sub_0q s(2) t(2) by (force simp: inj_on_def)
+        then have "s = q" using s(1) t(1) by simp
+        then show False using hq xS s(2) by simp
+      qed
+    qed
+  qed
+  have cover: "S \<subseteq> E1 \<union> E2"
+  proof
+    fix x assume xS: "x \<in> S"
+    show "x \<in> E1 \<union> E2"
+    proof (rule ccontr)
+      assume "x \<notin> E1 \<union> E2"
+      then have "x \<in> g ` {p..1} \<union> h ` {q..1}" and "x \<in> g ` {0..p} \<union> h ` {0..q}"
+        using xS unfolding E1_def E2_def img_gp1 img_hq1 img_g0p img_h0q by auto
+      then show False using cover_False xS by blast
+    qed
+  qed
+  have disjoint: "E1 \<inter> E2 = {}"
+  proof -
+    have "(g ` {p..1} \<union> h ` {q..1}) \<union> (g ` {0..p} \<union> h ` {0..q}) = path_image g \<union> path_image h"
+      using comb_g comb_h by blast
+    moreover have "S \<subseteq> path_image g \<union> path_image h" using assms(7) .
+    ultimately show ?thesis unfolding E1_def E2_def img_gp1 img_hq1 img_g0p img_h0q by blast
+  qed
+  from assms(6) have "\<not> (\<exists>E1 E2. openin (top_of_set S) E1 \<and> openin (top_of_set S) E2 \<and> S \<subseteq> E1 \<union> E2 \<and> E1 \<inter> E2 = {} \<and> E1 \<noteq> {} \<and> E2 \<noteq> {})"
+    by (simp add: connected_openin)
+  moreover have "openin (top_of_set S) E1 \<and> openin (top_of_set S) E2 \<and> S \<subseteq> E1 \<union> E2 \<and> E1 \<inter> E2 = {} \<and> E1 \<noteq> {} \<and> E2 \<noteq> {}"
+    using openE1 openE2 cover disjoint ne_E1 ne_E2 by auto
+  ultimately show False by blast
+qed
+
+text \<open>If two frontier points of a bounded convex 2D set are joined by a frontier arc whose
+  interior (the arc minus the two points) stays connected and whose convex hull is the whole set,
+  then the straight segment between the two points also lies on the frontier. The connectedness of
+  the arc-minus-endpoints is what rules out the spurious ``chord through the interior'' case.\<close>
+
+lemma seg_frontier_aux:
+  fixes S :: "complex set"
+  assumes cvx: "convex S" and cpt: "compact S" and intne: "interior S \<noteq> {}"
+    and ga_fr: "ga \<in> frontier S" and gb_fr: "gb \<in> frontier S" and ne: "ga \<noteq> gb"
+    and D1fr: "path_image D1 \<subseteq> frontier S"
+    and D1con: "connected (path_image D1 - {ga, gb})"
+    and gaD1: "ga \<in> path_image D1" and gbD1: "gb \<in> path_image D1"
+    and hullD1: "convex hull (path_image D1) = S"
+  shows "closed_segment ga gb \<subseteq> frontier S"
+proof -
+  have clSh: "closed S" using cpt by (rule compact_imp_closed)
+  have relfr: "rel_frontier S = frontier S" using intne by (rule rel_frontier_nonempty_interior)
+  have ga_cl: "ga \<in> closure S" and gb_cl: "gb \<in> closure S"
+    using ga_fr gb_fr by (auto simp: frontier_def)
+  have dich: "open_segment ga gb \<subseteq> frontier S \<or> open_segment ga gb \<subseteq> interior S"
+    using convex_open_segment_cases_alt[OF cvx ga_cl gb_cl] .
+  define A where "A = \<i> * (gb - ga)"
+  have A_nz: "A \<noteq> 0" using ne by (simp add: A_def)
+  define e where "e = inner A ga"
+  have eb: "inner A gb = e"
+  proof -
+    have "inner A (gb - ga) = 0" unfolding A_def inner_complex_def by (simp add: algebra_simps)
+    then show ?thesis using e_def by (simp add: inner_diff_right)
+  qed
+  have opfr: "open_segment ga gb \<subseteq> frontier S"
+  proof (rule ccontr)
+    assume "\<not> open_segment ga gb \<subseteq> frontier S"
+    then have segint: "open_segment ga gb \<subseteq> interior S" using dich by blast
+    have mid_int: "midpoint ga gb \<in> interior S"
+      using segint ne by (simp add: midpoint_in_open_segment subsetD)
+    have mid_e: "inner A (midpoint ga gb) = e"
+      using e_def eb by (simp add: midpoint_def inner_add_right inner_diff_right field_simps)
+    have not_le: "\<not> (path_image D1 \<subseteq> {x. inner A x \<le> e})"
+    proof
+      assume "path_image D1 \<subseteq> {x. inner A x \<le> e}"
+      then have "convex hull (path_image D1) \<subseteq> {x. inner A x \<le> e}"
+        by (simp add: convex_halfspace_le hull_minimal)
+      then have "S \<subseteq> {x. inner A x \<le> e}" using hullD1 by simp
+      then have "interior S \<subseteq> interior {x. inner A x \<le> e}" by (rule interior_mono)
+      also have "interior {x. inner A x \<le> e} = {x. inner A x < e}"
+        using A_nz by (simp add: interior_halfspace_le)
+      finally have "inner A (midpoint ga gb) < e" using mid_int by blast
+      then show False using mid_e by simp
+    qed
+    have not_ge: "\<not> (path_image D1 \<subseteq> {x. e \<le> inner A x})"
+    proof
+      assume "path_image D1 \<subseteq> {x. e \<le> inner A x}"
+      then have "convex hull (path_image D1) \<subseteq> {x. e \<le> inner A x}"
+        by (simp add: convex_halfspace_ge hull_minimal)
+      then have "S \<subseteq> {x. e \<le> inner A x}" using hullD1 by simp
+      then have "interior S \<subseteq> interior {x. e \<le> inner A x}" by (rule interior_mono)
+      also have "interior {x. e \<le> inner A x} = {x. e < inner A x}"
+        using A_nz by (simp add: interior_halfspace_ge)
+      finally have "e < inner A (midpoint ga gb)" using mid_int by blast
+      then show False using mid_e by simp
+    qed
+    from not_le obtain x1 where x1: "x1 \<in> path_image D1" "inner A x1 > e" by force
+    from not_ge obtain x2 where x2: "x2 \<in> path_image D1" "inner A x2 < e" by force
+    have x1ne: "x1 \<notin> {ga, gb}" using x1(2) e_def eb by auto
+    have x2ne: "x2 \<notin> {ga, gb}" using x2(2) e_def eb by auto
+    have x1D: "x1 \<in> path_image D1 - {ga,gb}" using x1(1) x1ne by simp
+    have x2D: "x2 \<in> path_image D1 - {ga,gb}" using x2(1) x2ne by simp
+    obtain w where w: "w \<in> path_image D1 - {ga,gb}" "inner A w = e"
+      using connected_ivt_hyperplane[OF D1con x2D x1D, where a=A and b=e] x1(2) x2(2) by force
+    have w_fr: "w \<in> rel_frontier S" using w(1) D1fr relfr by auto
+    have ga_rf: "ga \<in> rel_frontier S" using ga_fr relfr by simp
+    have gb_rf: "gb \<in> rel_frontier S" using gb_fr relfr by simp
+    have wne: "w \<noteq> ga" "w \<noteq> gb" using w(1) by auto
+    have triple: "S \<subseteq> {x. inner A x \<le> e} \<or> S \<subseteq> {x. e \<le> inner A x}"
+    proof (rule convex_triple_rel_frontier[OF cvx ga_rf gb_rf w_fr ne])
+      show "ga \<noteq> w" using wne(1) by simp
+      show "gb \<noteq> w" using wne(2) by simp
+      show "inner A ga = e" using e_def by simp
+      show "inner A gb = e" using eb by simp
+      show "inner A w = e" using w(2) by simp
+    qed
+    have D1S: "path_image D1 \<subseteq> S" using D1fr relfr hullD1 hull_subset by (metis frontier_def Diff_subset dual_order.trans)
+    from triple show False
+    proof
+      assume "S \<subseteq> {x. inner A x \<le> e}"
+      then have "path_image D1 \<subseteq> {x. inner A x \<le> e}" using D1S by blast
+      then show False using not_le by simp
+    next
+      assume "S \<subseteq> {x. e \<le> inner A x}"
+      then have "path_image D1 \<subseteq> {x. e \<le> inner A x}" using D1S by blast
+      then show False using not_ge by simp
+    qed
+  qed
+  have "{ga, gb} \<subseteq> frontier S" using ga_fr gb_fr by simp
+  then show ?thesis using opfr by (simp add: closed_segment_eq_open)
+qed
 
 text \<open>The step lemma: replacing an arc that deviates from the convex hull frontier
   with a straight segment shortens the path while preserving the convex hull.\<close>
@@ -9745,30 +10094,6 @@ next
     show ?thesis
     proof -
       note [[quick_and_dirty]]
-      have seg_in_frontier: "closed_segment (g a) (g b) \<subseteq> frontier (convex hull path_image g)"
-        sorry
-      have rev_d1_arc: "arc (reversepath d1)" using d_split(2) by (simp add: arc_reversepath)
-      have rev_d1_start: "pathstart (reversepath d1) = g a" using d_split(6) by (simp add: pathstart_reversepath)
-      have rev_d1_finish: "pathfinish (reversepath d1) = g b" using d_split(5) by (simp add: pathfinish_reversepath)
-      have rev_d1_pi: "path_image (reversepath d1) = path_image d1" by (simp add: path_image_reversepath)
-      have d0d1_pi: "path_image d0 \<union> path_image (reversepath d1) = frontier (convex hull path_image g)"
-        using rev_d1_pi d_split(8) d_props(4) by simp
-      have int_ends: "path_image d0 \<inter> path_image (reversepath d1) = {pathstart d0, pathfinish d0}"
-        using d_split(7) rev_d1_pi d_split(3,4) by simp
-      have seg_sub_union: "closed_segment (g a) (g b) \<subseteq> path_image d0 \<union> path_image (reversepath d1)"
-        using seg_in_frontier d0d1_pi by simp
-      have dich: "path_image d0 \<subseteq> closed_segment (g a) (g b) \<or> path_image (reversepath d1) \<subseteq> closed_segment (g a) (g b)"
-      proof (rule connected_subset_arc_pair[where g=d0 and h="reversepath d1"])
-        show "arc d0" by (rule d_split(1))
-        show "arc (reversepath d1)" by (rule rev_d1_arc)
-        show "pathstart d0 = pathstart (reversepath d1)" using d_split(3) rev_d1_start by simp
-        show "pathfinish d0 = pathfinish (reversepath d1)" using d_split(4) rev_d1_finish by simp
-        show "path_image d0 \<inter> path_image (reversepath d1) = {pathstart d0, pathfinish d0}" by (rule int_ends)
-        show "connected (closed_segment (g a) (g b))" by simp
-        show "closed_segment (g a) (g b) \<subseteq> path_image d0 \<union> path_image (reversepath d1)" by (rule seg_sub_union)
-        show "pathstart d0 \<in> closed_segment (g a) (g b)" using d_split(3) by simp
-        show "pathfinish d0 \<in> closed_segment (g a) (g b)" using d_split(4) by simp
-      qed
       have hull_closed: "closed (convex hull path_image g)"
         by (simp add: compact_imp_closed compact_convex_hull compact_simple_path_image \<open>simple_path g\<close>)
       have compact_hull: "compact (convex hull path_image g)"
@@ -9838,6 +10163,47 @@ next
         then have "convex hull {x. x extreme_point_of (convex hull path_image g)} \<subseteq> convex hull (path_image d1)"
           by (rule hull_mono)
         then show "convex hull (path_image g) \<subseteq> convex hull (path_image d1)" using km_ext by simp
+      qed
+      \<comment> \<open>The straight segment between g(a) and g(b) lies on the frontier, via seg_frontier_aux
+         applied to the arc d1 (whose hull is the whole convex hull by hull_d1_eq).\<close>
+      have seg_in_frontier: "closed_segment (g a) (g b) \<subseteq> frontier (convex hull path_image g)"
+      proof (rule seg_frontier_aux[of _ _ _ d1])
+        show "convex (convex hull path_image g)" by (rule convex_convex_hull)
+        show "compact (convex hull path_image g)" by (rule compact_hull)
+        show "interior (convex hull path_image g) \<noteq> {}" by (rule interior_ne)
+        show "g a \<in> frontier (convex hull path_image g)" by (rule assms(7))
+        show "g b \<in> frontier (convex hull path_image g)" by (rule assms(8))
+        show "g a \<noteq> g b" by (rule ga_ne_gb)
+        show "path_image d1 \<subseteq> frontier (convex hull path_image g)"
+          using d_split(8) d_props(4) by blast
+        show "connected (path_image d1 - {g a, g b})"
+          using connected_simple_path_endless[OF arc_imp_simple_path[OF d_split(2)]] d_split(5,6)
+          by (simp add: insert_commute)
+        show "g a \<in> path_image d1" by (rule gab_d1(1))
+        show "g b \<in> path_image d1" by (rule gab_d1(2))
+        show "convex hull path_image d1 = convex hull path_image g" by (rule hull_d1_eq)
+      qed
+      have rev_d1_arc: "arc (reversepath d1)" using d_split(2) by (simp add: arc_reversepath)
+      have rev_d1_start: "pathstart (reversepath d1) = g a" using d_split(6) by (simp add: pathstart_reversepath)
+      have rev_d1_finish: "pathfinish (reversepath d1) = g b" using d_split(5) by (simp add: pathfinish_reversepath)
+      have rev_d1_pi: "path_image (reversepath d1) = path_image d1" by (simp add: path_image_reversepath)
+      have d0d1_pi: "path_image d0 \<union> path_image (reversepath d1) = frontier (convex hull path_image g)"
+        using rev_d1_pi d_split(8) d_props(4) by simp
+      have int_ends: "path_image d0 \<inter> path_image (reversepath d1) = {pathstart d0, pathfinish d0}"
+        using d_split(7) rev_d1_pi d_split(3,4) by simp
+      have seg_sub_union: "closed_segment (g a) (g b) \<subseteq> path_image d0 \<union> path_image (reversepath d1)"
+        using seg_in_frontier d0d1_pi by simp
+      have dich: "path_image d0 \<subseteq> closed_segment (g a) (g b) \<or> path_image (reversepath d1) \<subseteq> closed_segment (g a) (g b)"
+      proof (rule connected_subset_arc_pair[where g=d0 and h="reversepath d1"])
+        show "arc d0" by (rule d_split(1))
+        show "arc (reversepath d1)" by (rule rev_d1_arc)
+        show "pathstart d0 = pathstart (reversepath d1)" using d_split(3) rev_d1_start by simp
+        show "pathfinish d0 = pathfinish (reversepath d1)" using d_split(4) rev_d1_finish by simp
+        show "path_image d0 \<inter> path_image (reversepath d1) = {pathstart d0, pathfinish d0}" by (rule int_ends)
+        show "connected (closed_segment (g a) (g b))" by simp
+        show "closed_segment (g a) (g b) \<subseteq> path_image d0 \<union> path_image (reversepath d1)" by (rule seg_sub_union)
+        show "pathstart d0 \<in> closed_segment (g a) (g b)" using d_split(3) by simp
+        show "pathfinish d0 \<in> closed_segment (g a) (g b)" using d_split(4) by simp
       qed
       have not_d1: "\<not> (path_image (reversepath d1) \<subseteq> closed_segment (g a) (g b))"
       proof
@@ -10099,10 +10465,32 @@ next
         fix f :: "real \<Rightarrow> complex" and M c d assume lip: "M-lipschitz_on {c..d} f"
         show "has_bounded_variation_on f {c..d}"
           unfolding has_bounded_variation_on_interval
-        proof (intro exI[where x="M * (d - c)"] allI impI)
+        proof (intro exI[where x="max 0 (M * (d - c))"] allI impI)
           fix D assume D: "D division_of {c..d}"
-          show "(\<Sum>k\<in>D. norm (f (Sup k) - f (Inf k))) \<le> M * (d - c)"
-            sorry
+          have Mnn: "0 \<le> M" using lip by (simp add: lipschitz_on_nonneg)
+          have elem: "\<And>k. k \<in> D \<Longrightarrow> norm (f (Sup k) - f (Inf k)) \<le> M * content k"
+          proof -
+            fix k assume k: "k \<in> D"
+            obtain a' b' where ab': "k = cbox a' b'" using division_ofD(4)[OF D k] by blast
+            have ksub: "k \<subseteq> {c..d}" using division_ofD(2)[OF D k] by simp
+            have kne: "k \<noteq> {}" using division_ofD(3)[OF D k] by simp
+            then have leab: "a' \<le> b'" using ab' by (simp add: box_ne_empty)
+            have infk: "Inf k = a'" and supk: "Sup k = b'" using ab' leab by auto
+            have mem: "a' \<in> {c..d}" "b' \<in> {c..d}" using ksub ab' leab by auto
+            have "norm (f b' - f a') = dist (f b') (f a')" by (simp add: dist_norm)
+            also have "\<dots> \<le> M * dist b' a'" using lipschitz_onD[OF lip] mem by simp
+            also have "dist b' a' = b' - a'" using leab by (simp add: dist_real_def)
+            also have "M * (b' - a') = M * content k" using ab' leab by (simp add: content_real)
+            finally show "norm (f (Sup k) - f (Inf k)) \<le> M * content k" using infk supk by simp
+          qed
+          have "(\<Sum>k\<in>D. norm (f (Sup k) - f (Inf k))) \<le> (\<Sum>k\<in>D. M * content k)"
+            by (rule sum_mono) (rule elem)
+          also have "\<dots> = M * (\<Sum>k\<in>D. content k)" by (simp add: sum_distrib_left)
+          also have "(\<Sum>k\<in>D. content k) = content {c..d}"
+            using additive_content_division[OF D[unfolded box_real(2)[symmetric]]] by (simp add: box_real(2))
+          also have "M * content {c..d} \<le> max 0 (M * (d - c))"
+            using Mnn by (simp add: content_real_if)
+          finally show "(\<Sum>k\<in>D. norm (f (Sup k) - f (Inf k))) \<le> max 0 (M * (d - c))" .
         qed
       qed
       have bv_hh: "has_bounded_variation_on h {0..1}" using lip_imp_bv[OF lip_hh] .
@@ -10132,12 +10520,10 @@ next
           using vector_variation_combine[OF bv_g_a1, of b] \<open>a<b\<close> b_le1 by simp
         ultimately show ?thesis by simp
       qed
-      have vv_cong: "\<And>(f::real\<Rightarrow>complex) (k::real\<Rightarrow>complex) c d. (\<And>x. x \<in> {c..d} \<Longrightarrow> f x = k x) \<Longrightarrow> vector_variation {c..d} f = vector_variation {c..d} k"
-        sorry
       have lo_eq: "vector_variation {0..a} h = vector_variation {0..a} g"
-        by (rule vv_cong) (simp add: hh_lo)
+        by (rule vector_variation_cong) (simp add: hh_lo)
       have hi_eq: "vector_variation {b..1} h = vector_variation {b..1} g"
-        by (rule vv_cong) (simp add: hh_hi)
+        by (rule vector_variation_cong) (simp add: hh_hi)
       have hh_a: "h a = g a" using \<open>a<b\<close> by (simp add: h_def)
       have hh_b: "h b = g b" using \<open>a<b\<close> by (simp add: h_def)
       have mid_hh_ge: "vector_variation {a..b} h \<ge> norm (g b - g a)"
@@ -10147,7 +10533,54 @@ next
         then show ?thesis using hh_a hh_b by (simp add: norm_minus_commute)
       qed
       have mid_hh_le: "vector_variation {a..b} h \<le> norm (g b - g a)"
-        sorry
+      proof -
+        have key: "\<And>D. D division_of {a..b} \<Longrightarrow> (\<Sum>k\<in>D. norm (h (Sup k) - h (Inf k))) \<le> norm (g b - g a)"
+        proof -
+          fix D assume D: "D division_of {a..b}"
+          have elem: "\<And>k. k \<in> D \<Longrightarrow> norm (h (Sup k) - h (Inf k)) = ((Sup k - Inf k)/(b-a)) * norm (g b - g a)"
+          proof -
+            fix k assume k: "k \<in> D"
+            obtain a' b' where ab': "k = cbox a' b'" using division_ofD(4)[OF D k] by blast
+            have ksub: "k \<subseteq> {a..b}" using division_ofD(2)[OF D k] by simp
+            have kne: "k \<noteq> {}" using division_ofD(3)[OF D k] by simp
+            then have leab: "a' \<le> b'" using ab' by (simp add: box_ne_empty)
+            have infk: "Inf k = a'" and supk: "Sup k = b'" using ab' leab by auto
+            have mem: "a' \<in> {a..b}" "b' \<in> {a..b}" using ksub ab' leab by auto
+            have ha: "h a' = g a + ((a'-a)/(b-a)) *\<^sub>R (g b - g a)" using hh_eq_lin mem(1) .
+            have hb: "h b' = g a + ((b'-a)/(b-a)) *\<^sub>R (g b - g a)" using hh_eq_lin mem(2) .
+            have "h b' - h a' = (((b'-a)/(b-a)) - ((a'-a)/(b-a))) *\<^sub>R (g b - g a)"
+              by (simp add: ha hb scaleR_left_diff_distrib)
+            also have "((b'-a)/(b-a)) - ((a'-a)/(b-a)) = (b'-a')/(b-a)"
+              by (simp add: diff_divide_distrib)
+            finally have "h b' - h a' = ((b'-a')/(b-a)) *\<^sub>R (g b - g a)" by simp
+            then have "norm (h b' - h a') = \<bar>(b'-a')/(b-a)\<bar> * norm (g b - g a)" by simp
+            also have "\<bar>(b'-a')/(b-a)\<bar> = (b'-a')/(b-a)" using leab \<open>a<b\<close> by simp
+            finally show "norm (h (Sup k) - h (Inf k)) = ((Sup k - Inf k)/(b-a)) * norm (g b - g a)"
+              using infk supk by simp
+          qed
+          have content_elem: "\<And>k. k \<in> D \<Longrightarrow> (Sup k - Inf k) = content k"
+          proof -
+            fix k assume k: "k \<in> D"
+            obtain a' b' where ab': "k = cbox a' b'" using division_ofD(4)[OF D k] by blast
+            have kne: "k \<noteq> {}" using division_ofD(3)[OF D k] by simp
+            then have leab: "a' \<le> b'" using ab' by (simp add: box_ne_empty)
+            then show "(Sup k - Inf k) = content k" using ab' by (simp add: content_real)
+          qed
+          have "(\<Sum>k\<in>D. norm (h (Sup k) - h (Inf k))) = (\<Sum>k\<in>D. ((Sup k - Inf k)/(b-a)) * norm (g b - g a))"
+            by (rule sum.cong[OF refl]) (rule elem)
+          also have "\<dots> = ((\<Sum>k\<in>D. (Sup k - Inf k))/(b-a)) * norm (g b - g a)"
+            by (simp add: sum_distrib_right sum_divide_distrib)
+          also have "(\<Sum>k\<in>D. (Sup k - Inf k)) = (\<Sum>k\<in>D. content k)"
+            by (rule sum.cong[OF refl]) (rule content_elem)
+          also have "(\<Sum>k\<in>D. content k) = content {a..b}"
+            using additive_content_division[OF D[unfolded box_real(2)[symmetric]]] by (simp add: box_real(2))
+          also have "content {a..b} = b - a" using \<open>a<b\<close> by (simp add: content_real)
+          also have "((b-a)/(b-a)) * norm (g b - g a) = norm (g b - g a)" using \<open>a<b\<close> by simp
+          finally show "(\<Sum>k\<in>D. norm (h (Sup k) - h (Inf k))) \<le> norm (g b - g a)" by simp
+        qed
+        show ?thesis
+          using bv_hh_ab key has_bounded_vector_variation_on_interval by blast
+      qed
       have mid_hh_eq: "vector_variation {a..b} h = norm (g b - g a)"
         using mid_hh_ge mid_hh_le by simp
       define c where "c = (a + b)/2"
@@ -10207,9 +10640,6 @@ next
     qed
   qed
 qed
-
-
-
 
 
 
