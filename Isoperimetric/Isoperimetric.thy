@@ -4261,7 +4261,8 @@ qed
 
 section \<open>Lebesgue measurability of ordinate sets\<close>
 
-text \<open>Helper: if A is Lebesgue measurable in \<real>, then A \<times> UNIV is Lebesgue measurable in \<real>².\<close>
+text \<open>Helper: if @{term A} is Lebesgue measurable in $\mathbb{R}$, then @{term "A \<times> (UNIV::real set)"}
+  is Lebesgue measurable in $\mathbb{R}^2$.\<close>
 
 lemma lebesgue_measurable_Times_UNIV:
   fixes A :: "real set"
@@ -4409,7 +4410,7 @@ proof -
   qed
 qed
 
-text \<open>Cavalieri principle: measure of the subgraph of a nonneg continuous function\<close>
+text \<open>Cavalieri principle: the measure of the subgraph of a nonnegative continuous function.\<close>
 
 lemma has_integral_area_under_curve:
   fixes f :: "real \<Rightarrow> real"
@@ -4491,12 +4492,11 @@ proof -
       by (force simp: S_def S'_def image_iff)
     then have meas_eq: "measure lebesgue S = measure lebesgue S'"
         using measure_Complex_image(2)[OF S'_meas] by simp
-    \<comment> \<open>Step 2: compute measure of S' using Fubini\<close>
+    \<comment> \<open>Step 2: compute the measure of @{text "S'"} using Fubini\<close>
     have "measure lebesgue S' = integral {a..b} f"
     proof -
       have integ: "integrable lborel (indicat_real S')"
         using S'_compact fmeasurable_compact fmeasurable_def by blast
-      \<comment> \<open>The slice x \<mapsto> integral over y of indicator S' equals f(x) on [a,b] and 0 outside\<close>
       have slice_eq: "\<And>x. integral UNIV (\<lambda>y. indicat_real S' (x, y)) =
                           (if x \<in> {a..b} then f x else 0)"
       proof -
@@ -4580,7 +4580,7 @@ proof -
     have decomp: "{(x :: real, y :: real). f x < q \<longrightarrow> y < q} =
       {(x, y). q \<le> f x} \<union> {(x, y). y < q}"
       by auto
-    \<comment> \<open>Part A: {(x,y). y < q} is Borel measurable\<close>
+    \<comment> \<open>Part A: @{term "{(x,y). y < q}"} is Borel measurable\<close>
     have "{(x :: real, y :: real). y < q} = (UNIV :: real set) \<times> {..<q}"
       by auto
     moreover have "{..<q} \<in> sets (borel :: real measure)"
@@ -4591,7 +4591,7 @@ proof -
         \<in> sets (lebesgue :: (real \<times> real) measure)"
       using borel_Times sets_completionI_sets
       by (metis sets_lborel)
-    \<comment> \<open>Part B: {(x,y). q \<le> f x} is Lebesgue measurable\<close>
+    \<comment> \<open>Part B: @{term "{(x,y). q \<le> f x}"} is Lebesgue measurable\<close>
     have "{x :: real. f x \<in> {q..}} \<in> sets lebesgue"
       using lebesgue_measurable_vimage_borel[OF f_meas atLeast_borel] .
     then have "{x :: real. q \<le> f x} \<in> sets lebesgue"
@@ -4699,7 +4699,7 @@ proof -
     using lborel.emeasure_pair_measure_alt[OF graph_h_borel] by simp
   then have graph_h_null: "{(x, y). h x = y} \<in> null_sets (lborel :: (real \<times> real) measure)"
     by (metis graph_h_borel lborel_prod null_setsI)
-  \<comment> \<open>N \<times> UNIV is contained in a null set in lborel\<close>
+  \<comment> \<open>@{term "N \<times> (UNIV::real set)"} is contained in a null set in @{term lborel}\<close>
   obtain N' where N': "N' \<in> null_sets lborel" "N \<subseteq> N'"
     by (metis null_sets_completion_iff2 neg_N(1) negligible_iff_null_sets)
   have "N' \<times> (UNIV :: real set) \<in> null_sets (lborel \<Otimes>\<^sub>M lborel)"
@@ -4708,7 +4708,7 @@ proof -
     using lborel_prod by metis
   have N_cross_sub: "N \<times> (UNIV :: real set) \<subseteq> N' \<times> (UNIV :: real set)"
     using N'(2) by auto
-  \<comment> \<open>Combine: graph(f) \<subseteq> null set\<close>
+  \<comment> \<open>Combine: the graph of @{term f} is contained in a null set\<close>
   have "{(x, y). h x = y} \<union> N' \<times> UNIV \<in> null_sets (lborel :: (real \<times> real) measure)"
     using graph_h_null N'_cross_null by blast
   moreover have "{(x, y). f x = y} \<subseteq> {(x, y). h x = y} \<union> N' \<times> UNIV"
@@ -4805,7 +4805,7 @@ lemma frontier_convex_hull_subset_path_image:
 proof -
   have bounded_hull: "bounded (convex hull (path_image g))"
     by (simp add: assms(1) bounded_convex_hull bounded_simple_path_image)
-      \<comment> \<open>The interior of the convex hull is connected, bounded, and disjoint from path_image g\<close>
+      \<comment> \<open>The interior of the convex hull is connected, bounded, and disjoint from @{term "path_image g"}\<close>
   have int_sub: "interior (convex hull (path_image g)) \<inter> path_image g = {}"
     using assms(3) frontier_def by auto
   have "connected (interior (convex hull (path_image g)))"
@@ -4819,12 +4819,12 @@ proof -
     by (smt (verit, ccfv_threshold) Diff_eq_empty_iff compl_le_compl_iff connected_Int_frontier
         convex_convex_hull double_compl hull_antimono inf.absorb_iff2 inside_outside int_sub interior_Int
         interior_eq outside_subset_convex subset_hull sup.coboundedI2)
-      \<comment> \<open>Also inside \<subseteq> convex hull (since outside contains complement of hull)\<close>
+      \<comment> \<open>Also @{term "inside (path_image g) \<subseteq> convex hull (path_image g)"} (since @{term "outside (path_image g)"} contains the complement of the hull)\<close>
   have "- (convex hull (path_image g)) \<subseteq> outside (path_image g)"
     by (simp add: hull_subset outside_subset_convex)
   hence inside_sub: "inside (path_image g) \<subseteq> convex hull (path_image g)"
     by (metis Un_subset_iff compl_le_swap2 union_with_inside)
-      \<comment> \<open>Since inside is open and \<subseteq> convex hull, inside \<subseteq> interior (convex hull)\<close>
+      \<comment> \<open>Since @{term "inside (path_image g)"} is open and contained in the convex hull, it lies in the interior of the hull\<close>
   have "inside (path_image g) \<subseteq> interior (convex hull (path_image g))"
     by (simp add: Jordan_inside_outside assms inside_sub interior_maximal)
   with assms show ?thesis
@@ -4940,7 +4940,6 @@ proof -
       and derivf: "\<And>t. t \<in> {0..2*pi} - k \<Longrightarrow>
           ((\<lambda>u. integral {0..u} f') has_vector_derivative f' t) (at t within {0..2*pi})"
       using f' has_vector_derivative_indefinite_integral by blast
-        \<comment> \<open>Hence (f t - f a)^2 has the right derivative a.e.\<close>
     have deriv_sq: "((\<lambda>t. (f t - f a)\<^sup>2) has_vector_derivative 2 * (f t - f a) * f' t) (at t within {c..x})"
       if "t \<in> {c..x} - k" for t
     proof -
@@ -4999,7 +4998,6 @@ proof -
       have inv_tan_eq: "inverse (tan (t-a)) = cos (t-a) / sin (t-a)"
         if "t \<in> {c..x}" for t
         by (simp add: Multiseries_Expansion.tan_conv_sin_cos)
-          \<comment> \<open>cos(t-a)/sin(t-a) has the right derivative\<close>
       have deriv: "((\<lambda>t. cos (t-a) / sin (t-a)) has_vector_derivative
                     - inverse ((sin (t-a))\<^sup>2)) (at t within {c..x})"
         if "t \<in> {c..x}" for t
@@ -5023,7 +5021,6 @@ proof -
     qed
     show "y \<in> {c..d}" using that .
   qed
-    \<comment> \<open>The IBP integrand equals g' pointwise on {c..d}\<close>
   have integrand_eq: "(f x - f a)\<^sup>2 * (- inverse ((sin (x - a))\<^sup>2)) +
       2 * (f x - f a) * f' x * inverse (tan (x - a)) = g' x"
     if "x \<in> {c..d}" for x
@@ -5053,7 +5050,7 @@ proof -
     by (metis (no_types, lifting) atLeastAtMost_iff order.refl that(1))
 qed
 
-text \<open>Continuity of g.\<close>
+text \<open>Continuity of @{term g}.\<close>
 lemma g_cont: "continuous_on {0..2*pi} g"
   unfolding continuous_on_eq_continuous_within
 proof
@@ -5061,7 +5058,7 @@ proof
   show "continuous (at c within {0..2*pi}) g"
   proof (cases "sin (c - a) = 0")
     case False
-      \<comment> \<open>When sin(c - a) \<noteq> 0, g is a quotient of continuous functions.\<close>
+      \<comment> \<open>When $\sin(c - a) \neq 0$, @{term g} is a quotient of continuous functions.\<close>
     have g_eq: "g x = (f x - f a)\<^sup>2 * cos (x - a) / sin (x - a)" for x
       unfolding g_def tan_def by (simp add: field_simps)
     have "continuous (at c within {0..2*pi}) f"
@@ -5070,7 +5067,7 @@ proof
       using False by (auto simp: continuous_intros)
   next
     case True
-      \<comment> \<open>When sin(c - a) = 0, g(c) = 0 and we need to show g(x) \<rightarrow> 0.\<close>
+      \<comment> \<open>When $\sin(c - a) = 0$, we have $g(c) = 0$ and need to show $g(x) \to 0$.\<close>
     have fca: "f c = f a"
     proof -
       from True obtain n :: int where npi: "c - a = of_int n * pi"
@@ -5095,17 +5092,16 @@ proof
       unfolding g_def using fca by simp
     show ?thesis unfolding continuous_within gc0
     proof -
-      \<comment> \<open>Derive tan(x - a) = tan(x - c) from sin(c - a) = 0.\<close>
+      \<comment> \<open>Derive $\tan(x - a) = \tan(x - c)$ from $\sin(c - a) = 0$.\<close>
       from True obtain n :: int where npi: "c - a = of_int n * pi"
         using sin_zero_iff_int2 by auto
       have tan_eq: "tan (x - a) = tan (x - c)" for x
         by (metis npi diff_add_cancel diff_diff_eq2 tan_periodic_int)
       have g_eq2: "g x = (f x - f c)\<^sup>2 * cos (x - c) / sin (x - c)" for x
         unfolding g_def by (metis fca divide_divide_eq_right local.tan_eq tan_def)
-          \<comment> \<open>Show (g \<longlongrightarrow> 0) using the cos/sin form.\<close>
       show "(g \<longlongrightarrow> 0) (at c within {0..2*pi})"
       proof -
-        \<comment> \<open>Cauchy-Schwarz bound: (f x - f c)² \<le> |x - c| * \<integral>_c^x (f')².\<close>
+        \<comment> \<open>Cauchy--Schwarz bound: $(f(x) - f(c))^2 \le |x - c| \cdot \int_c^x (f')^2$.\<close>
         have cs_bound: "(f x - f c)\<^sup>2 \<le> \<bar>x - c\<bar> * integral {min c x..max c x} (\<lambda>t. (f' t)\<^sup>2)"
           if xin: "x \<in> {0..2*pi}" for x
         proof -
@@ -5113,7 +5109,7 @@ proof
             using integrable_subinterval_real[OF set_lebesgue_integral_eq_integral(1)[OF f'abs] that] .
           have f'2_int_sub: "(\<lambda>t. (f' t)\<^sup>2) integrable_on {a..b}" if "{a..b} \<subseteq> {0..2*pi}" for a b
             using integrable_subinterval_real[OF f'2 that] .
-              \<comment> \<open>Helper: FTC gives f(b) - f(a) = \<integral>_a^b f' for a,b \<in> {0..2\<pi>}\<close>
+              \<comment> \<open>Helper: the FTC gives $f(b) - f(a) = \int_a^b f'$ for $a, b \in \{0..2\pi\}$\<close>
           have ftc_sub: "f b - f a = integral {a..b} f'"
             if "a \<in> {0..2*pi}" "b \<in> {0..2*pi}" "a \<le> b" for a b
           proof -
@@ -5124,7 +5120,7 @@ proof
               using f'hsd that by (auto simp: has_integral_integrable_integral)
             ultimately show ?thesis by linarith
           qed
-            \<comment> \<open>Helper: Cauchy-Schwarz (\<integral>_I f')² \<le> (b-a) * \<integral>_I (f')² for I = {a..b} \<subseteq> {0..2\<pi>}\<close>
+            \<comment> \<open>Helper: Cauchy--Schwarz $\left(\int_I f'\right)^2 \le (b-a) \cdot \int_I (f')^2$ for $I = \{a..b\} \subseteq \{0..2\pi\}$\<close>
           have cs_sub: "(integral {a..b} f')\<^sup>2 \<le> (b-a) * integral {a..b} (\<lambda>t. (f' t)\<^sup>2)"
             if sub: "{a..b} \<subseteq> {0..2*pi}" and ab: "a < b" for a b
           proof -
@@ -5167,7 +5163,7 @@ proof
               by (simp add: cs_sub ftc_sub power2_commute)
           qed
         qed
-          \<comment> \<open>The integral of f'² over a shrinking interval tends to 0.\<close>
+          \<comment> \<open>The integral of $(f')^2$ over a shrinking interval tends to $0$.\<close>
         have f'2_int_tends_0:
           "((\<lambda>x. integral {min c x..max c x} (\<lambda>t. (f' t)\<^sup>2)) \<longlongrightarrow> 0) (at c within {0..2*pi})"
         proof -
@@ -5213,7 +5209,6 @@ proof
             \<comment> \<open>Now combine everything.\<close>
         show ?thesis
         proof (rule Lim_null_comparison[where g = "\<lambda>x. 2 * integral {min c x..max c x} (\<lambda>t. (f' t)\<^sup>2)"])
-          \<comment> \<open>g(x) is eventually bounded by 2 * \<integral>(f')².\<close>
           show "\<forall>\<^sub>F x in at c within {0..2*pi}. norm (g x) \<le> 2 * integral {min c x..max c x} (\<lambda>t. (f' t)\<^sup>2)"
           proof -
             have mem: "\<forall>\<^sub>F x in at c within {0..2*pi}. x \<in> {0..2*pi}"
@@ -5333,7 +5328,7 @@ proof -
       case False with cd_le show ?thesis by simp
     next
       case True
-        \<comment> \<open>Pick sequences c_n \<rightarrow> c and d_n \<rightarrow> d from inside (c,d)\<close>
+        \<comment> \<open>Pick sequences $c_n \to c$ and $d_n \to d$ from inside $(c,d)$\<close>
       define c_n where "c_n \<equiv> \<lambda>n. c + (d - c) / (real n + 2)"
       define d_n where "d_n \<equiv> \<lambda>n. d - (d - c) / (real n + 2)"
       have pos: "0 < (d - c) / (real n + 2)" for n
@@ -5362,7 +5357,7 @@ proof -
         unfolding c_n_def using tendsto_add[OF tendsto_const frac_lim] by simp
       have d_n_lim: "d_n \<longlonglongrightarrow> d"
         unfolding d_n_def using tendsto_diff[OF tendsto_const frac_lim] by simp
-          \<comment> \<open>On each [c_n, d_n], trouble_free applies\<close>
+          \<comment> \<open>On each $\{c_n..d_n\}$, @{thm [source] trouble_free} applies\<close>
       have c_n_in: "c_n n \<in> {c<..<d}" and d_n_in: "d_n n \<in> {c<..<d}" for n
         using pos[of n] lt_dc[of n] unfolding c_n_def d_n_def by auto
       have sub_n: "{c_n n..d_n n} \<subseteq> {c<..<d}" for n
@@ -5486,14 +5481,14 @@ proof -
       by (smt (verit, ccfv_threshold) sin_gt_zero that)
     have sin_nz_3: "sin (x - a) \<noteq> 0" if "0 < x" "x < a" for x
       using \<open>a < pi\<close> sin_zero_pi_iff that by auto
-    \<comment> \<open>Apply mainly_trouble_free on three intervals.\<close>
+    \<comment> \<open>Apply @{thm [source] mainly_trouble_free} on three intervals.\<close>
     have int1: "(g' has_integral g (2*pi) - g (a + pi)) {a + pi..2*pi}"
       by (rule mainly_trouble_free) (use \<open>0 \<le> a\<close> \<open>a < pi\<close> sin_nz_1 in auto)
     have int2: "(g' has_integral g (a + pi) - g a) {a..a + pi}"
       by (rule mainly_trouble_free) (use \<open>0 \<le> a\<close> \<open>a < pi\<close> sin_nz_2 in auto)
     have int3: "(g' has_integral g a - g 0) {0..a}"
       by (rule mainly_trouble_free) (use \<open>0 \<le> a\<close> \<open>a < pi\<close> sin_nz_3 in auto)
-    \<comment> \<open>Combine the three integrals using has_integral_combine.\<close>
+    \<comment> \<open>Combine the three integrals using @{thm [source] has_integral_combine}.\<close>
     have api_le: "a \<le> a + pi" and api_le2: "a + pi \<le> 2*pi"
       using \<open>0 \<le> a\<close> \<open>a < pi\<close> by auto
     have a_le_2pi: "a \<le> 2*pi" using \<open>0 \<le> a\<close> \<open>a < pi\<close> by auto
@@ -5501,47 +5496,40 @@ proof -
       by (rule has_integral_combine[OF api_le api_le2 int2 int1])
     have int_all: "(g' has_integral (g a - g 0) + ((g (a + pi) - g a) + (g (2*pi) - g (a + pi)))) {0..2*pi}"
       by (rule has_integral_combine[OF \<open>0 \<le> a\<close> a_le_2pi int3 int12])
-    \<comment> \<open>Simplify: the telescoping sum gives g(2\<pi>) - g(0).\<close>
+    \<comment> \<open>Simplify: the telescoping sum gives $g(2\pi) - g(0)$.\<close>
     have int_all': "(g' has_integral g (2*pi) - g 0) {0..2*pi}"
       using int_all by (simp add: algebra_simps)
-    \<comment> \<open>Show g(2\<pi>) = g(0), so the integral of g' is 0.\<close>
+    \<comment> \<open>Show $g(2\pi) = g(0)$, so the integral of $g'$ is $0$.\<close>
     have "g (2*pi) = g 0"
       unfolding g_def using feq by (simp add: tan_def)
     hence g'_zero: "(g' has_integral 0) {0..2*pi}"
       using int_all' by simp
-    \<comment> \<open>Extract the inequality from \<integral>g' = 0.\<close>
-    \<comment> \<open>g'(x) = (f'(x))² − (f(x)−f(a))² − rest(x)², so (f'(x))² − g'(x) = (f(x)−f(a))² + rest(x)² \<ge> (f(x)−f(a))².\<close>
+    \<comment> \<open>Extract the inequality from $\int g' = 0$.\<close>
     have ffa_int: "(\<lambda>x. (f x - f a)\<^sup>2) integrable_on {0..2*pi}"
       by (intro integrable_continuous_interval continuous_intros contf)
     have g'_int: "g' integrable_on {0..2*pi}"
       using g'_zero by (auto simp: has_integral_integrable_integral)
-    \<comment> \<open>(f')² − g' is integrable and its integral = \<integral>(f')² − 0 = \<integral>(f')².\<close>
     have diff_int: "((\<lambda>x. (f' x)\<^sup>2 - g' x) has_integral integral {0..2*pi} (\<lambda>x. (f' x)\<^sup>2) - 0) {0..2*pi}"
       by (rule has_integral_diff[OF integrable_integral[OF f'2] g'_zero])
-    \<comment> \<open>(f')²(x) − g'(x) = (f(x)−f(a))² + rest(x)² \<ge> (f(x)−f(a))².\<close>
     have diff_eq: "(f' x)\<^sup>2 - g' x = (f x - f a)\<^sup>2 + (f' x - (f x - f a) / tan (x - a))\<^sup>2" for x
       unfolding g'_def by (simp add: algebra_simps)
     have diff_ge: "(f' x)\<^sup>2 - g' x \<ge> (f x - f a)\<^sup>2" for x
       unfolding diff_eq by (simp add: zero_le_power2)
-    \<comment> \<open>Therefore \<integral>(f')² \<ge> \<integral>(f(x)−f(a))².\<close>
     have "integral {0..2*pi} (\<lambda>x. (f x - f a)\<^sup>2) \<le> integral {0..2*pi} (\<lambda>x. (f' x)\<^sup>2 - g' x)"
       by (rule integral_le[OF ffa_int]) (use diff_int has_integral_integrable_integral in \<open>auto intro: diff_ge\<close>)
     also have "\<dots> = integral {0..2*pi} (\<lambda>x. (f' x)\<^sup>2)"
       using diff_int has_integral_integrable_integral by auto
     finally have ineq_ffa: "integral {0..2*pi} (\<lambda>x. (f x - f a)\<^sup>2) \<le> integral {0..2*pi} (\<lambda>x. (f' x)\<^sup>2)" .
-    \<comment> \<open>Show \<integral>(f(x))² \<le> \<integral>(f(x)−f(a))² using \<integral>f = 0.\<close>
+    \<comment> \<open>Show $\int f(x)^2 \le \int (f(x)-f(a))^2$ using $\int f = 0$.\<close>
     have "(f x)\<^sup>2 \<le> (f x - f a)\<^sup>2 + 2 * f a * f x - (f a)\<^sup>2" for x
       by (simp add: power2_eq_square algebra_simps)
-    \<comment> \<open>Actually: (f(x)−f(a))² = (f(x))² − 2\<sqdot>f(a)\<sqdot>f(x) + (f(a))², so (f(x))² = (f(x)−f(a))² + 2\<sqdot>f(a)\<sqdot>f(x) − (f(a))².\<close>
     have fx_eq: "(f x)\<^sup>2 = (f x - f a)\<^sup>2 + 2 * f a * f x - (f a)\<^sup>2" for x
       by (simp add: power2_eq_square algebra_simps)
     have f_int: "f integrable_on {0..2*pi}"
       by (rule integrable_continuous_interval[OF contf])
-    \<comment> \<open>\<integral>f = 0 by assumption.\<close>
     have f_integral_0: "integral {0..2*pi} f = 0"
       using f0 by (auto simp: has_integral_integrable_integral)
-    \<comment> \<open>\<integral>(f(x)−f(a))² = \<integral>(f(x))² + (f(a))²\<sqdot>2\<pi>  (using \<integral>f = 0).\<close>
-    have "integral {0..2*pi} (\<lambda>x. (f x - f a)\<^sup>2) 
+    have "integral {0..2*pi} (\<lambda>x. (f x - f a)\<^sup>2)
         = integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2) - 2 * f a * integral {0..2*pi} f + (f a)\<^sup>2 * (2*pi)"
     proof -
       have eq: "(f x - f a)\<^sup>2 = (f x)\<^sup>2 - 2 * f a * f x + (f a)\<^sup>2" for x
@@ -5550,7 +5538,6 @@ proof -
         by (intro integrable_continuous_interval continuous_intros contf)
       have ffa_2fa_int: "(\<lambda>x. 2 * f a * f x) integrable_on {0..2*pi}"
         using f_int integrable_on_mult_right by blast
-      \<comment> \<open>Split: (f−fa)² = f² − 2\<sqdot>fa\<sqdot>f + fa²\<close>
       have "integral {0..2*pi} (\<lambda>x. (f x - f a)\<^sup>2) = integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2 - 2 * f a * f x + (f a)\<^sup>2)"
         by (simp add: eq)
       also have "\<dots> = integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2 - 2 * f a * f x) + integral {0..2*pi} (\<lambda>x. (f a)\<^sup>2)"
@@ -5683,7 +5670,7 @@ proof -
         using ffa_eq fa0 by simp
       ultimately show ?thesis using eq_hyp by linarith
     qed
-    \<comment> \<open>Integral of c * sin(x - a) via the fundamental theorem of calculus.\<close>
+    \<comment> \<open>Integral of $c \sin(x - a)$ via the fundamental theorem of calculus.\<close>
     have csin_integral: "integral {u..v} (\<lambda>x. c * sin (x - a)) =
         c * (cos (u - a) - cos (v - a))" if "u \<le> v" for u v c
     proof -
@@ -5698,7 +5685,7 @@ proof -
       thus ?thesis
         by (simp add: has_integral_integrable_integral algebra_simps)
     qed
-    \<comment> \<open>Key fact: on intervals where sin(x−a) \<noteq> 0, f equals c * sin(x−a).\<close>
+    \<comment> \<open>Key fact: on intervals where $\sin(x-a) \neq 0$, @{term f} equals $c \sin(x-a)$.\<close>
     have key_fact: "\<exists>c. \<forall>x\<in>{u..v}. f x = c * sin (x - a)"
       if huv: "0 \<le> u" "u < v" "v \<le> 2*pi"
         and hsin: "\<And>x. x \<in> {u<..<v} \<Longrightarrow> sin (x - a) \<noteq> 0"
@@ -5707,7 +5694,7 @@ proof -
       \<comment> \<open>Open-interval version (to be proved later).\<close>
       have open_ver: "\<exists>c. \<forall>x\<in>{u<..<v}. f x = c * sin (x - a)"
       proof -
-        \<comment> \<open>Step 1: \<integral>ᵤᵥ rest² = 0 from \<integral>₀²\<pi> rest² = 0 and nonnegativity.\<close>
+        \<comment> \<open>Step 1: $\int_u^v \mathit{rest}^2 = 0$ from $\int_0^{2\pi} \mathit{rest}^2 = 0$ and nonnegativity.\<close>
         have rest_sq_sub: "(\<lambda>x. (rest x)\<^sup>2) integrable_on {u..v}"
           by (rule integrable_subinterval_real[OF rest_sq_int])
              (use huv in auto)
@@ -5720,7 +5707,7 @@ proof -
           by (rule integral_nonneg[OF rest_sq_sub]) (use rest_sq_nonneg in auto)
         ultimately have rest_sq_sub_zero: "integral {u..v} (\<lambda>x. (rest x)\<^sup>2) = 0"
           using rest_sq_zero by linarith
-        \<comment> \<open>Step 2: rest = 0 a.e. on {u..v} via Lebesgue theory.\<close>
+        \<comment> \<open>Step 2: $\mathit{rest} = 0$ a.e. on $\{u..v\}$ via Lebesgue theory.\<close>
         have rest_ae_zero: "AE x in lebesgue_on {u..v}. rest x = 0"
         proof -
           have uv_meas: "{u..v} \<in> sets lebesgue" by simp
@@ -5757,19 +5744,19 @@ proof -
             using st' by auto
           have st'_sub2: "{s'..t'} \<subseteq> {0..2*pi}"
             using st' huv by auto
-          \<comment> \<open>sin(x - a) \<noteq> 0 on [s', t']\<close>
+          \<comment> \<open>$\sin(x - a) \neq 0$ on $\{s'..t'\}$\<close>
           have sin_nz_st: "sin (x - a) \<noteq> 0" if "x \<in> {s'..t'}" for x
             using hsin st'_sub that by auto
-          \<comment> \<open>h = f/sin is absolutely continuous on [s', t']\<close>
+          \<comment> \<open>$h = f/\sin$ is absolutely continuous on $\{s'..t'\}$\<close>
           define h where "h \<equiv> \<lambda>x. f x / sin (x - a)"
           have ac_f: "absolutely_continuous_on {0..2*pi} f"
             using absolute_integral_absolutely_continuous_derivative_eq f'abs f'hsd by blast
           have ac_f_st: "absolutely_continuous_on {s'..t'} f"
             using absolutely_continuous_on_subset[OF ac_f st'_sub2] .
-          \<comment> \<open>1/sin(x-a) is absolutely continuous on [s', t'] via Lipschitz bound\<close>
+          \<comment> \<open>$1/\sin(x-a)$ is absolutely continuous on $\{s'..t'\}$ via a Lipschitz bound\<close>
           have ac_inv_sin: "absolutely_continuous_on {s'..t'} (\<lambda>x. inverse (sin (x - a)))"
           proof -
-            \<comment> \<open>The derivative -cos/sin² is bounded on [s',t'] since sin is bounded away from 0\<close>
+            \<comment> \<open>The derivative $-\cos/\sin^2$ is bounded on $\{s'..t'\}$ since $\sin$ is bounded away from $0$\<close>
             define deriv where "deriv \<equiv> \<lambda>x::real. - cos (x - a) / (sin (x - a))\<^sup>2"
             have cont_deriv: "continuous_on {s'..t'} deriv"
               unfolding deriv_def
