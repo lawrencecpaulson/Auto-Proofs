@@ -11325,8 +11325,142 @@ theorem isoperimetric_convexification_strict:
     and "path_image h = frontier (convex hull (path_image g))"
     and "measure lebesgue (inside (path_image g)) < measure lebesgue (inside (path_image h))"
 proof -
+  obtain h where h: "rectifiable_path h" "simple_path h" "pathfinish h = pathstart h"
+      "path_length h \<le> path_length g" "convex hull (path_image h) = convex hull (path_image g)"
+      "path_image h = frontier (convex hull (path_image g))"
+    using isoperimetric_convexification[OF assms(1,2,3)] by metis
+  have pathg: "path g" using assms(2) simple_path_imp_path by blast
+  have bdd_hull: "bounded (convex hull (path_image g))"
+    by (simp add: bounded_convex_hull bounded_simple_path_image assms(2))
+  have ins_h: "inside (path_image h) = interior (convex hull (path_image g))"
+    using h(6) inside_frontier_eq_interior[OF bdd_hull convex_convex_hull] by simp
+  have ins_g_sub: "inside (path_image g) \<subseteq> interior (convex hull (path_image g))"
+  proof -
+    let ?C = "convex hull (path_image g)"
+    have pig_sub: "path_image g \<subseteq> ?C" by (rule hull_subset)
+    have conn: "connected (- ?C)" using bdd_hull by (simp add: connected_complement_bounded_convex)
+    have unbdd: "\<not> bounded (- ?C)"
+    proof
+      assume "bounded (- ?C)"
+      then have "bounded (?C \<union> - ?C)" using bdd_hull bounded_Un by blast
+      moreover have "?C \<union> - ?C = UNIV" by auto
+      ultimately show False using not_bounded_UNIV by simp
+    qed
+    have un: "(?C - path_image g) \<union> (- ?C) = - path_image g" using pig_sub by auto
+    have "inside (path_image g) \<subseteq> ?C - path_image g" using inside_subset[OF conn unbdd un] .
+    then have "inside (path_image g) \<subseteq> ?C" by blast
+    moreover have "open (inside (path_image g))" using assms(2) by (simp add: open_inside closed_simple_path_image)
+    ultimately show ?thesis using interior_maximal by blast
+  qed
+  \<comment> \<open>Measurability: \<open>inside\<close> is bounded and open, hence Lebesgue measurable (cf. HOL Light's
+      \<open>MEASURABLE_INSIDE\<close>, which is just \<open>MEASURABLE_OPEN; BOUNDED_INSIDE; OPEN_INSIDE\<close>).\<close>
+  have clg: "closed (path_image g)" using assms(2) by (simp add: closed_simple_path_image)
+  have bdd_ins_g: "bounded (inside (path_image g))" using Jordan_inside_outside[OF assms(2,3)] by simp
+  have open_ins_g: "open (inside (path_image g))" using clg by (rule open_inside)
+  have meas_ins_g: "inside (path_image g) \<in> lmeasurable"
+    using bdd_ins_g open_ins_g by (rule lmeasurable_open)
+  have meas_ins_h: "inside (path_image h) \<in> lmeasurable"
+  proof -
+    have "bounded (interior (convex hull path_image g))" using bdd_hull bounded_interior by blast
+    moreover have "open (interior (convex hull path_image g))" by simp
+    ultimately show ?thesis using ins_h by (simp add: lmeasurable_open)
+  qed
+  \<comment> \<open>The path image is not contained in the frontier of its convex hull (else \<open>inside g\<close>
+      would be convex), so it meets the interior of the hull.\<close>
+  have not_sub: "\<not> path_image g \<subseteq> frontier (convex hull (path_image g))"
+  proof
+    assume sub: "path_image g \<subseteq> frontier (convex hull (path_image g))"
+    have "convex (inside (path_image g))"
+    proof -
+      have "frontier (convex hull (path_image g)) = path_image g"
+        using frontier_convex_hull_eq_path_image[OF assms(2,3)] sub
+        by (meson frontier_convex_hull_subset_path_image[OF assms(2,3)] subset_antisym)
+      then have "inside (path_image g) = inside (frontier (convex hull (path_image g)))" by simp
+      also have "\<dots> = interior (convex hull (path_image g))"
+        using inside_frontier_eq_interior[OF bdd_hull convex_convex_hull] .
+      finally show ?thesis by (simp add: convex_interior)
+    qed
+    then show False using assms(4) by simp
+  qed
+  have pig_hull: "path_image g \<subseteq> convex hull (path_image g)" by (rule hull_subset)
+  have ex_int: "\<exists>x. x \<in> path_image g \<and> x \<in> interior (convex hull (path_image g))"
+  proof -
+    obtain x where x: "x \<in> path_image g" "x \<notin> frontier (convex hull (path_image g))"
+      using not_sub by blast
+    have "x \<in> convex hull (path_image g)" using x(1) pig_hull by blast
+    then have "x \<in> closure (convex hull (path_image g))" using closure_subset by blast
+    then have "x \<in> interior (convex hull (path_image g))" using x(2) by (simp add: frontier_def)
+    then show ?thesis using x(1) by blast
+  qed
+  have jordan_g: "inside (path_image g) \<noteq> {} \<and> open (inside (path_image g)) \<and> connected (inside (path_image g)) \<and>
+      outside (path_image g) \<noteq> {} \<and> open (outside (path_image g)) \<and> connected (outside (path_image g)) \<and>
+      frontier (inside (path_image g)) = path_image g \<and> frontier (outside (path_image g)) = path_image g"
+    using Jordan_inside_outside[OF assms(2,3)] by blast
+  \<comment> \<open>Find a frontier point \<open>x\<close> of \<open>g\<close> in the hull interior; \<open>frontier_straddle\<close> gives a nearby
+      outside point \<open>y\<close>, and a ball about \<open>y\<close> lies in \<open>outside g \<inter> interior(hull)\<close>.\<close>
+  obtain x where x_pig: "x \<in> path_image g" and x_int: "x \<in> interior (convex hull (path_image g))"
+    using ex_int by blast
+  obtain r1 where r1: "r1 > 0" "ball x r1 \<subseteq> interior (convex hull (path_image g))"
+    using x_int open_contains_ball[of "interior (convex hull (path_image g))"] by auto
+  have x_fro_out: "x \<in> frontier (outside (path_image g))" using x_pig jordan_g by simp
+  obtain y where y_out: "y \<in> outside (path_image g)" and y_close: "dist x y < r1"
+    using x_fro_out r1(1) frontier_straddle[of x "outside (path_image g)"] by (metis dist_commute)
+  have y_in_ball: "y \<in> ball x r1" using y_close by (simp add: dist_commute)
+  have y_int: "y \<in> interior (convex hull (path_image g))" using y_in_ball r1(2) by blast
+  have y_in_both: "y \<in> outside (path_image g) \<inter> interior (convex hull (path_image g))"
+    using y_out y_int by blast
+  have open_both: "open (outside (path_image g) \<inter> interior (convex hull (path_image g)))"
+    using jordan_g open_Int open_interior by blast
+  obtain r2 where r2: "r2 > 0" "ball y r2 \<subseteq> outside (path_image g) \<inter> interior (convex hull (path_image g))"
+    using y_in_both open_both by (meson open_contains_ball)
+  \<comment> \<open>This ball lies in \<open>inside h - inside g\<close>: it is in \<open>interior(hull) = inside h\<close> and in
+      \<open>outside g\<close>, which is disjoint from \<open>inside g\<close>.\<close>
+  have ins_g_sub_h: "inside (path_image g) \<subseteq> inside (path_image h)"
+    using ins_g_sub ins_h by simp
+  have io_disj: "inside (path_image g) \<inter> outside (path_image g) = {}"
+    by (simp add: inside_Int_outside)
+  have ball_sub: "ball y r2 \<subseteq> inside (path_image h) - inside (path_image g)"
+  proof
+    fix z assume z: "z \<in> ball y r2"
+    have z_out: "z \<in> outside (path_image g)" using z r2(2) by blast
+    have z_int: "z \<in> interior (convex hull (path_image g))" using z r2(2) by blast
+    have "z \<in> inside (path_image h)" using z_int ins_h by simp
+    moreover have "z \<notin> inside (path_image g)" using z_out io_disj by blast
+    ultimately show "z \<in> inside (path_image h) - inside (path_image g)" by simp
+  qed
+  \<comment> \<open>A nonempty ball has positive measure, so the difference does too.\<close>
+  have ball_pos: "measure lebesgue (ball y r2) > 0"
+  proof -
+    have "\<not> negligible (ball y r2)"
+      using negligible_convex_interior[of "ball y r2"] r2(1) by simp
+    moreover have "ball y r2 \<in> lmeasurable" by simp
+    ultimately show ?thesis
+      using negligible_iff_measure0[of "ball y r2"] measure_nonneg[of lebesgue "ball y r2"] by fastforce
+  qed
+  have diff_meas: "inside (path_image h) - inside (path_image g) \<in> lmeasurable"
+    using meas_ins_h meas_ins_g by (simp add: fmeasurable.Diff)
+  have diff_pos: "measure lebesgue (inside (path_image h) - inside (path_image g)) > 0"
+  proof -
+    have "ball y r2 \<in> sets lebesgue" by simp
+    then have "measure lebesgue (ball y r2) \<le> measure lebesgue (inside (path_image h) - inside (path_image g))"
+      using ball_sub diff_meas measure_mono_fmeasurable by blast
+    then show ?thesis using ball_pos by linarith
+  qed
+  have meas_eq: "measure lebesgue (inside (path_image h) - inside (path_image g)) =
+      measure lebesgue (inside (path_image h)) - measure lebesgue (inside (path_image g))"
+    using measurable_measure_Diff[OF meas_ins_h _ ins_g_sub_h] meas_ins_g by (simp add: fmeasurableD)
+  have strict: "measure lebesgue (inside (path_image g)) < measure lebesgue (inside (path_image h))"
+    using diff_pos meas_eq by linarith
   show ?thesis
-    sorry
+  proof (intro that)
+    show "rectifiable_path h" by (rule h(1))
+    show "simple_path h" by (rule h(2))
+    show "pathfinish h = pathstart h" by (rule h(3))
+    show "path_length h \<le> path_length g" by (rule h(4))
+    show "convex hull path_image h = convex hull path_image g" by (rule h(5))
+    show "path_image h = frontier (convex hull path_image g)" by (rule h(6))
+    show "measure lebesgue (inside (path_image g)) < measure lebesgue (inside (path_image h))" by (rule strict)
+  qed
 qed
 
 section \<open>Part 5: The isoperimetric theorem\<close>
