@@ -10083,9 +10083,6 @@ next
           by (rule that[OF r1 r2 r3 r4 r5 r6 r7 r8 r9 r10 r11])
       qed
     qed
-
-
-
     \<comment> \<open>Step 3: g(a) and g(b) are on the path_image of d\<close>
     have ga_in_d: "g a \<in> path_image d" and gb_in_d: "g b \<in> path_image d"
       using d_props(4) assms(7,8) by auto
@@ -10093,7 +10090,6 @@ next
        (front_arc is no longer used; see step_lemma_proof_body.thy in memory for derivation notes.)\<close>
     show ?thesis
     proof -
-      note [[quick_and_dirty]]
       have hull_closed: "closed (convex hull path_image g)"
         by (simp add: compact_imp_closed compact_convex_hull compact_simple_path_image \<open>simple_path g\<close>)
       have compact_hull: "compact (convex hull path_image g)"
@@ -10641,7 +10637,602 @@ next
   qed
 qed
 
+text \<open>A nonempty bounded open connected subset of the reals is an open interval.\<close>
 
+lemma open_bounded_connected_real_is_interval:
+  fixes c :: "real set"
+  assumes "open c" "connected c" "c \<noteq> {}" "bounded c"
+  shows "c = {Inf c<..<Sup c}"
+proof -
+  have isiv: "is_interval c" using assms(2) by (simp add: is_interval_connected_1)
+  have bb: "bdd_below c" and ba: "bdd_above c" using assms(4) bounded_imp_bdd_below bounded_imp_bdd_above by auto
+  have InfnotIn: "Inf c \<notin> c"
+  proof
+    assume "Inf c \<in> c"
+    then obtain b where "b < Inf c" "{b<..Inf c} \<subseteq> c" using open_left[OF assms(1) \<open>Inf c \<in> c\<close>, of "Inf c - 1"] by auto
+    then have "(Inf c + b)/2 \<in> c" by auto
+    moreover have "(Inf c + b)/2 < Inf c" using \<open>b < Inf c\<close> by simp
+    ultimately show False using bb cInf_lower leD by blast
+  qed
+  have SupnotIn: "Sup c \<notin> c"
+  proof
+    assume "Sup c \<in> c"
+    then obtain b where "Sup c < b" "{Sup c..<b} \<subseteq> c" using open_right[OF assms(1) \<open>Sup c \<in> c\<close>, of "Sup c + 1"] by auto
+    then have "(Sup c + b)/2 \<in> c" by auto
+    moreover have "Sup c < (Sup c + b)/2" using \<open>Sup c < b\<close> by simp
+    ultimately show False using ba cSup_upper leD by blast
+  qed
+  show ?thesis
+  proof (rule set_eqI, rule iffI)
+    fix x assume "x \<in> c"
+    then have "Inf c \<le> x" "x \<le> Sup c" using bb ba cInf_lower cSup_upper by auto
+    moreover have "x \<noteq> Inf c" using \<open>x \<in> c\<close> InfnotIn by auto
+    moreover have "x \<noteq> Sup c" using \<open>x \<in> c\<close> SupnotIn by auto
+    ultimately show "x \<in> {Inf c<..<Sup c}" by auto
+  next
+    fix x assume x: "x \<in> {Inf c<..<Sup c}"
+    obtain u where u: "u \<in> c" "u < x" using x assms(3) bb
+      by (metis cInf_lessD greaterThanLessThan_iff)
+    obtain v where v: "v \<in> c" "x < v" using x assms(3) ba
+      by (metis less_cSupD greaterThanLessThan_iff)
+    show "x \<in> c" using isiv u v by (meson is_interval_1 less_imp_le)
+  qed
+qed
+
+text \<open>The reduced convexification subgoal: a unit-speed (Lipschitz) simple closed rectifiable loop
+  starting on the frontier of its convex hull can be replaced by a no-longer loop with the same
+  convex hull whose image IS that frontier. The components of the part of the parameter interval
+  whose image avoids the frontier are countably many open intervals; this is captured by
+  @{text decomp} (still to be proved), and the deviating arcs are then straightened via
+  @{text step_lemma}.\<close>
+
+lemma convexification_unit_speed:
+  fixes \<gamma> :: "real \<Rightarrow> complex"
+  assumes rect: "rectifiable_path \<gamma>" and simp: "simple_path \<gamma>" and loop: "pathfinish \<gamma> = pathstart \<gamma>"
+    and frstart: "pathstart \<gamma> \<in> frontier (convex hull (path_image \<gamma>))"
+    and lip: "\<And>x y. x \<in> {0..1} \<Longrightarrow> y \<in> {0..1} \<Longrightarrow> dist (\<gamma> x) (\<gamma> y) \<le> path_length \<gamma> * dist x y"
+  shows "\<exists>h. rectifiable_path h \<and> simple_path h \<and> pathfinish h = pathstart h \<and> path_length h \<le> path_length \<gamma> \<and> convex hull (path_image h) = convex hull (path_image \<gamma>) \<and> path_image h = frontier (convex hull (path_image \<gamma>))"
+proof (cases "path_image \<gamma> \<subseteq> frontier (convex hull (path_image \<gamma>))")
+  case True
+  \<comment> \<open>Already on the frontier: \<gamma> itself works (its image equals the frontier).\<close>
+  have "path_image \<gamma> = frontier (convex hull (path_image \<gamma>))"
+    using frontier_convex_hull_subset_path_image[OF simp loop True] True by blast
+  then show ?thesis using rect simp loop by (intro exI[of _ \<gamma>]) auto
+next
+  case False
+  have path\<gamma>: "path \<gamma>" using simp by (rule simple_path_imp_path)
+  define F where "F = frontier (convex hull (path_image \<gamma>))"
+  define s where "s = {t \<in> {0..1}. \<gamma> t \<notin> F}"
+  have clF: "closed F" unfolding F_def by simp
+  have cont\<gamma>: "continuous_on {0..1} \<gamma>" using path\<gamma> by (simp add: path_def)
+  have g0F: "\<gamma> 0 \<in> F" using frstart F_def by (simp add: pathstart_def)
+  have g1F: "\<gamma> 1 \<in> F" using frstart loop F_def by (simp add: pathstart_def pathfinish_def)
+  \<comment> \<open>Since both endpoints map into F, the deviating set s avoids 0 and 1, hence is open in \<real>.\<close>
+  have s_sub: "s \<subseteq> {0<..<1}"
+  proof
+    fix t assume "t \<in> s"
+    then have t01: "t \<in> {0..1}" and tnF: "\<gamma> t \<notin> F" unfolding s_def by auto
+    have "t \<noteq> 0" using tnF g0F by auto
+    moreover have "t \<noteq> 1" using tnF g1F by auto
+    ultimately show "t \<in> {0<..<1}" using t01 by auto
+  qed
+  have s_openin: "openin (top_of_set {0..1}) s"
+  proof -
+    have "openin (top_of_set {0..1}) ({0..1} \<inter> \<gamma> -` (- F))"
+      using cont\<gamma> clF by (intro continuous_openin_preimage_gen) auto
+    moreover have "{0..1} \<inter> \<gamma> -` (- F) = s" unfolding s_def by auto
+    ultimately show ?thesis by simp
+  qed
+  have opens: "open s"
+  proof -
+    have "openin (top_of_set {0<..<1}) s"
+      using s_openin s_sub by (metis greaterThanLessThan_subseteq_atLeastAtMost_iff openin_subset_trans order_refl zero_le_one)
+    then show ?thesis by (metis open_greaterThanLessThan openin_open_trans)
+  qed
+  have s_ne: "s \<noteq> {}"
+  proof -
+    from False obtain z where "z \<in> path_image \<gamma>" "z \<notin> F" unfolding F_def by blast
+    then obtain t where "t \<in> {0..1}" "\<gamma> t = z" by (auto simp: path_image_def)
+    then have "t \<in> s" using \<open>z \<notin> F\<close> unfolding s_def by auto
+    then show ?thesis by auto
+  qed
+  \<comment> \<open>Component decomposition: the components of s are countably many open intervals
+     \<open>{a n<..<b n}\<close>, each with both endpoints mapped by \<gamma> onto the frontier F.\<close>
+  have decomp: "\<exists>a b::nat\<Rightarrow>real. (\<forall>n. a n \<in> {0..1}) \<and> (\<forall>n. b n \<in> {0..1}) \<and> (\<forall>n. a n \<le> b n) \<and> (\<forall>n. \<gamma> (a n) \<in> F) \<and> (\<forall>n. \<gamma> (b n) \<in> F) \<and> components s = {{a n<..<b n} | n. n \<in> (UNIV::nat set)}"
+  proof -
+    have comp_open: "\<And>c. c \<in> components s \<Longrightarrow> open c" using opens by (rule open_components)
+    have comp_disj: "disjoint (components s)"
+      using pairwise_disjoint_components by (simp add: disjoint_def pairwise_def disjnt_def)
+    have comp_count: "countable (components s)"
+      using comp_open comp_disj by (rule countable_disjoint_open_subsets)
+    have comp_ne: "components s \<noteq> {}" using s_ne by (simp add: components_eq_empty)
+    define q where "q = from_nat_into (components s)"
+    have q_range: "range q = components s"
+      unfolding q_def using comp_ne comp_count by (rule range_from_nat_into)
+    have q_comp: "\<And>n. q n \<in> components s" using q_range by auto
+    have s_sub01: "s \<subseteq> {0..1}" using s_sub by auto
+    have s_bdd: "bounded s" using s_sub01 bounded_closed_interval bounded_subset by blast
+    have qsub: "\<And>n. q n \<subseteq> s" using q_comp in_components_subset by blast
+    have q_interval: "\<And>n. q n = {Inf (q n)<..<Sup (q n)}"
+    proof -
+      fix n
+      have o: "open (q n)" using q_comp comp_open by blast
+      have c: "connected (q n)" using q_comp in_components_connected by blast
+      have nem: "q n \<noteq> {}" using q_comp in_components_nonempty by blast
+      have bd: "bounded (q n)" using qsub s_bdd bounded_subset by blast
+      show "q n = {Inf (q n)<..<Sup (q n)}" using o c nem bd by (rule open_bounded_connected_real_is_interval)
+    qed
+    define a where "a = (\<lambda>n. Inf (q n))"
+    define b where "b = (\<lambda>n. Sup (q n))"
+    have qab: "\<And>n. q n = {a n<..<b n}" using q_interval by (simp add: a_def b_def)
+    have ablt: "\<And>n. a n < b n"
+    proof -
+      fix n
+      have "q n \<noteq> {}" using q_comp in_components_nonempty by blast
+      then show "a n < b n" using qab by (metis greaterThanLessThan_empty_iff not_less)
+    qed
+    have clq: "\<And>n. closure (q n) = {a n..b n}" using qab ablt by (simp add: closure_greaterThanLessThan)
+    have cls01: "closure s \<subseteq> {0..1}"
+      using s_sub closure_mono[of s "{0<..<1}"] closure_greaterThanLessThan[of "0::real" 1] by simp
+    have ab01: "\<And>n. a n \<in> {0..1} \<and> b n \<in> {0..1}"
+    proof -
+      fix n
+      have "{a n..b n} = closure (q n)" using clq by simp
+      also have "closure (q n) \<subseteq> closure s" using qsub by (simp add: closure_mono)
+      also have "closure s \<subseteq> {0..1}" using cls01 by simp
+      finally have sub: "{a n..b n} \<subseteq> {0..1}" .
+      have "a n \<in> {a n..b n}" "b n \<in> {a n..b n}" using ablt[of n] by auto
+      then show "a n \<in> {0..1} \<and> b n \<in> {0..1}" using sub by blast
+    qed
+    have a_notin: "\<And>n. a n \<notin> s"
+    proof (rule ccontr)
+      fix n assume "\<not> a n \<notin> s"
+      then have ains: "a n \<in> s" by simp
+      have qns: "q n \<subseteq> s" by (rule qsub)
+      have sub: "{a n..<b n} \<subseteq> s"
+      proof
+        fix x assume "x \<in> {a n..<b n}"
+        then have "x = a n \<or> x \<in> {a n<..<b n}" by auto
+        then show "x \<in> s" using ains qns qab by auto
+      qed
+      moreover have "connected {a n..<b n}" by (rule connected_Ico)
+      moreover have "{a n..<b n} \<noteq> {}" using ablt[of n] by auto
+      moreover have "q n \<subseteq> {a n..<b n}" using qab by auto
+      ultimately have "{a n..<b n} = q n"
+        using q_comp[of n] in_components_maximal by blast
+      then show False using ablt[of n] qab by (metis atLeastLessThan_iff greaterThanLessThan_iff less_irrefl order_refl)
+    qed
+    have b_notin: "\<And>n. b n \<notin> s"
+    proof (rule ccontr)
+      fix n assume "\<not> b n \<notin> s"
+      then have bins: "b n \<in> s" by simp
+      have qns: "q n \<subseteq> s" by (rule qsub)
+      have sub: "{a n<..b n} \<subseteq> s"
+      proof
+        fix x assume "x \<in> {a n<..b n}"
+        then have "x = b n \<or> x \<in> {a n<..<b n}" by auto
+        then show "x \<in> s" using bins qns qab by auto
+      qed
+      moreover have "connected {a n<..b n}" by (rule connected_Ioc)
+      moreover have "{a n<..b n} \<noteq> {}" using ablt[of n] by auto
+      moreover have "q n \<subseteq> {a n<..b n}" using qab by auto
+      ultimately have "{a n<..b n} = q n"
+        using q_comp[of n] in_components_maximal by blast
+      then show False using ablt[of n] qab by (metis greaterThanAtMost_iff greaterThanLessThan_iff less_irrefl order_refl)
+    qed
+    have gaF: "\<And>n. \<gamma> (a n) \<in> F"
+    proof -
+      fix n
+      have "a n \<in> {0..1}" using ab01 by simp
+      moreover have "a n \<notin> s" by (rule a_notin)
+      ultimately show "\<gamma> (a n) \<in> F" unfolding s_def by auto
+    qed
+    have gbF: "\<And>n. \<gamma> (b n) \<in> F"
+    proof -
+      fix n
+      have "b n \<in> {0..1}" using ab01 by simp
+      moreover have "b n \<notin> s" by (rule b_notin)
+      ultimately show "\<gamma> (b n) \<in> F" unfolding s_def by auto
+    qed
+    have comp_eq: "components s = {{a n<..<b n} | n. n \<in> (UNIV::nat set)}"
+    proof -
+      have "components s = range q" using q_range by simp
+      also have "\<dots> = {{a n<..<b n} | n. n \<in> (UNIV::nat set)}" using qab by auto
+      finally show ?thesis .
+    qed
+    show "\<exists>a b::nat\<Rightarrow>real. (\<forall>n. a n \<in> {0..1}) \<and> (\<forall>n. b n \<in> {0..1}) \<and> (\<forall>n. a n \<le> b n) \<and> (\<forall>n. \<gamma> (a n) \<in> F) \<and> (\<forall>n. \<gamma> (b n) \<in> F) \<and> components s = {{a n<..<b n} | n. n \<in> (UNIV::nat set)}"
+      using ab01 ablt gaF gbF comp_eq by (intro exI[of _ a] exI[of _ b]) (auto simp: less_imp_le)
+  qed
+  note [[quick_and_dirty]]
+  \<comment> \<open>Extract the deviating arcs from the decomposition.\<close>
+  from decomp obtain a b :: "nat \<Rightarrow> real" where
+    ab01: "\<And>n. a n \<in> {0..1}" "\<And>n. b n \<in> {0..1}" and
+    able: "\<And>n. a n \<le> b n" and
+    gaF: "\<And>n. \<gamma> (a n) \<in> F" and gbF: "\<And>n. \<gamma> (b n) \<in> F" and
+    comps: "components s = {{a n<..<b n} | n. n \<in> (UNIV::nat set)}" by auto
+  \<comment> \<open>U n collects the first n deviating arcs; P n h is the invariant for the n-th
+     approximation: a Lipschitz simple closed loop with the same convex hull, mapping the
+     first n arcs onto the frontier and equal to \<gamma> elsewhere.\<close>
+  define U where "U = (\<lambda>n::nat. \<Union> {{a m<..<b m} | m. m < n})"
+  define P where "P = (\<lambda>n h. simple_path h \<and> rectifiable_path h \<and> pathstart h = pathstart \<gamma> \<and> pathfinish h = pathfinish \<gamma> \<and> convex hull (path_image h) = convex hull (path_image \<gamma>) \<and> (\<forall>x\<in>{0..1}. \<forall>y\<in>{0..1}. dist (h x) (h y) \<le> path_length \<gamma> * dist x y) \<and> (\<forall>x\<in>U n. h x \<in> F) \<and> (\<forall>x. x \<notin> U n \<longrightarrow> h x = \<gamma> x))"
+  have U0: "U 0 = {}" by (simp add: U_def)
+  have base: "P 0 \<gamma>"
+    unfolding P_def using simp rect lip by (simp add: U0)
+  have arc_comp: "\<And>n. {a n<..<b n} \<in> components s" using comps by auto
+  have arc_in_s: "\<And>n. {a n<..<b n} \<subseteq> s" using arc_comp in_components_subset by blast
+  have arc_off_F: "\<And>n x. x \<in> {a n<..<b n} \<Longrightarrow> \<gamma> x \<notin> F"
+    using arc_in_s s_def by blast
+  have USuc: "\<And>n. U (Suc n) = U n \<union> {a n<..<b n}"
+    by (auto simp: U_def less_Suc_eq)
+  have U_sub_s: "\<And>n. U n \<subseteq> s"
+  proof -
+    fix n
+    show "U n \<subseteq> s"
+    proof
+      fix x assume "x \<in> U n"
+      then obtain m where "m < n" "x \<in> {a m<..<b m}" by (auto simp: U_def)
+      then show "x \<in> s" using arc_in_s by blast
+    qed
+  qed
+  have an_notin_s: "\<And>n. a n \<notin> s" using gaF s_def by blast
+  have bn_notin_s: "\<And>n. b n \<notin> s" using gbF s_def by blast
+  have an_notin_U: "\<And>n. a n \<notin> U n" using an_notin_s U_sub_s by blast
+  have bn_notin_U: "\<And>n. b n \<notin> U n" using bn_notin_s U_sub_s by blast
+  have arc_sub_U: "\<And>i j::nat. i < j \<Longrightarrow> {a i<..<b i} \<subseteq> U j"
+  proof -
+    fix i j :: nat assume "i < j"
+    then have "{a i<..<b i} \<in> {{a k<..<b k} | k. k < j}" by auto
+    then show "{a i<..<b i} \<subseteq> U j" by (auto simp: U_def)
+  qed
+  have U_mem: "\<And>x n. x \<in> U n \<Longrightarrow> \<exists>i<n. x \<in> {a i<..<b i}"
+  proof -
+    fix x n assume "x \<in> U n"
+    then show "\<exists>i<n. x \<in> {a i<..<b i}" unfolding U_def by blast
+  qed
+  have arc_disj: "\<And>i j. {a i<..<b i} \<noteq> {a j<..<b j} \<Longrightarrow> {a i<..<b i} \<inter> {a j<..<b j} = {}"
+    using arc_comp components_nonoverlap by blast
+  have arc_disj_U: "\<And>n. \<not> {a n<..<b n} \<subseteq> U n \<Longrightarrow> {a n<..<b n} \<inter> U n = {}"
+  proof -
+    fix n assume nsub: "\<not> {a n<..<b n} \<subseteq> U n"
+    show "{a n<..<b n} \<inter> U n = {}"
+    proof (rule ccontr)
+      assume "{a n<..<b n} \<inter> U n \<noteq> {}"
+      then obtain x where x: "x \<in> {a n<..<b n} \<inter> U n" by blast
+      then have x1: "x \<in> {a n<..<b n}" and x2: "x \<in> U n" by auto
+      from x2 obtain i where i: "i < n" "x \<in> {a i<..<b i}" using U_mem by blast
+      have eq: "{a n<..<b n} = {a i<..<b i}" using x1 i(2) arc_disj by blast
+      have "{a i<..<b i} \<subseteq> U n" using i(1) arc_sub_U by blast
+      then show False using nsub eq by simp
+    qed
+  qed
+  have F_eq: "F = frontier (convex hull (path_image \<gamma>))" by (simp add: F_def)
+  \<comment> \<open>Inductive step: straighten the n-th arc with step\_lemma (unless it is empty or already
+     handled), preserving the invariant.\<close>
+  have step: "\<And>n h. P n h \<Longrightarrow> \<exists>h'. P (Suc n) h' \<and> (\<forall>x. \<not>(x \<in> {a n<..<b n} \<and> x \<notin> U n) \<longrightarrow> h' x = h x)"
+  proof -
+    fix n h assume Ph: "P n h"
+    have hsimple: "simple_path h" and hrect: "rectifiable_path h"
+      and hps: "pathstart h = pathstart \<gamma>" and hpf: "pathfinish h = pathfinish \<gamma>"
+      and hhull: "convex hull (path_image h) = convex hull (path_image \<gamma>)"
+      and hlip: "\<And>x y. x \<in> {0..1} \<Longrightarrow> y \<in> {0..1} \<Longrightarrow> dist (h x) (h y) \<le> path_length \<gamma> * dist x y"
+      and hUF: "\<And>x. x \<in> U n \<Longrightarrow> h x \<in> F"
+      and hoff: "\<And>x. x \<notin> U n \<Longrightarrow> h x = \<gamma> x"
+      using Ph unfolding P_def by auto
+    have hloop: "pathfinish h = pathstart h" using hps hpf loop by simp
+    have hF: "frontier (convex hull (path_image h)) = F" using hhull F_eq by simp
+    show "\<exists>h'. P (Suc n) h' \<and> (\<forall>x. \<not>(x \<in> {a n<..<b n} \<and> x \<notin> U n) \<longrightarrow> h' x = h x)"
+    proof (cases "{a n<..<b n} = {} \<or> {a n<..<b n} \<subseteq> U n")
+      case True
+      then have "U (Suc n) = U n" using USuc by auto
+      then have "P (Suc n) h" using Ph by (simp add: P_def)
+      then show ?thesis by (intro exI[of _ h]) auto
+    next
+      case False
+      then have ne: "{a n<..<b n} \<noteq> {}" and nsub: "\<not> {a n<..<b n} \<subseteq> U n" by auto
+      have ablt_n: "a n < b n" using ne by simp
+      have arc_disj_Un: "{a n<..<b n} \<inter> U n = {}" using nsub arc_disj_U by blast
+      have ha: "h (a n) = \<gamma> (a n)" using hoff an_notin_U by simp
+      have hb: "h (b n) = \<gamma> (b n)" using hoff bn_notin_U by simp
+      have harc: "\<And>x. x \<in> {a n<..<b n} \<Longrightarrow> h x = \<gamma> x" using hoff arc_disj_Un by blast
+      have haF: "h (a n) \<in> frontier (convex hull (path_image h))" using ha gaF hF by simp
+      have hbF: "h (b n) \<in> frontier (convex hull (path_image h))" using hb gbF hF by simp
+      have harc_offF: "h ` {a n<..<b n} \<inter> frontier (convex hull (path_image h)) = {}"
+      proof -
+        have "h ` {a n<..<b n} \<subseteq> {y. y \<notin> F}" using harc arc_off_F by auto
+        then show ?thesis using hF by auto
+      qed
+      obtain h' where h'simple: "simple_path h'"
+        and h'ps: "pathstart h' = pathstart h" and h'pf: "pathfinish h' = pathstart h"
+        and h'lip: "\<And>x y. x \<in> {0..1} \<Longrightarrow> y \<in> {0..1} \<Longrightarrow> dist (h' x) (h' y) \<le> path_length \<gamma> * dist x y"
+        and h'len: "path_length h' < path_length h"
+        and h'hull: "convex hull (path_image h') = convex hull (path_image h)"
+        and h'off: "\<And>x. x \<notin> {a n<..<b n} \<Longrightarrow> h' x = h x"
+        and h'arcF: "h' ` {a n..b n} \<subseteq> frontier (convex hull (path_image h))"
+        using step_lemma[OF hsimple hloop hlip ablt_n ab01(1)[of n] ab01(2)[of n] haF hbF harc_offF]
+        by metis
+      have h'rect: "rectifiable_path h'"
+        by (rule lipschitz_imp_rectifiable_path[where B="path_length \<gamma>"])
+           (use h'lip in \<open>simp add: dist_norm\<close>)
+      have h'agree: "\<And>x. \<not>(x \<in> {a n<..<b n} \<and> x \<notin> U n) \<Longrightarrow> h' x = h x"
+      proof -
+        fix x assume "\<not>(x \<in> {a n<..<b n} \<and> x \<notin> U n)"
+        then have "x \<notin> {a n<..<b n}" using arc_disj_Un by blast
+        then show "h' x = h x" using h'off by simp
+      qed
+      have h'UF: "\<And>x. x \<in> U (Suc n) \<Longrightarrow> h' x \<in> F"
+      proof -
+        fix x assume "x \<in> U (Suc n)"
+        then have "x \<in> U n \<or> x \<in> {a n<..<b n}" using USuc by auto
+        then show "h' x \<in> F"
+        proof
+          assume xUn: "x \<in> U n"
+          then have "x \<notin> {a n<..<b n}" using arc_disj_Un by blast
+          then have "h' x = h x" using h'off by simp
+          then show "h' x \<in> F" using xUn hUF by simp
+        next
+          assume "x \<in> {a n<..<b n}"
+          then have "x \<in> {a n..b n}" by auto
+          then have "h' x \<in> frontier (convex hull (path_image h))" using h'arcF by auto
+          then show "h' x \<in> F" using hF by simp
+        qed
+      qed
+      have h'offSuc: "\<And>x. x \<notin> U (Suc n) \<Longrightarrow> h' x = \<gamma> x"
+      proof -
+        fix x assume "x \<notin> U (Suc n)"
+        then have xn: "x \<notin> U n" and xarc: "x \<notin> {a n<..<b n}" using USuc by auto
+        have "h' x = h x" using xarc h'off by simp
+        also have "h x = \<gamma> x" using xn hoff by simp
+        finally show "h' x = \<gamma> x" .
+      qed
+      have PSuc: "P (Suc n) h'"
+        unfolding P_def
+        using h'simple h'rect h'ps hps h'pf loop h'hull hhull h'lip h'UF h'offSuc
+        by simp
+      show ?thesis using PSuc h'agree by blast
+    qed
+  qed
+  \<comment> \<open>Dependent choice yields the sequence of approximations f.\<close>
+  obtain f where f: "\<And>n. P n (f n)"
+    and fstep: "\<And>n x. \<not>(x \<in> {a n<..<b n} \<and> x \<notin> U n) \<Longrightarrow> f (Suc n) x = f n x"
+    using dependent_nat_choice[where P=P and Q="\<lambda>n h h'. \<forall>x. \<not>(x \<in> {a n<..<b n} \<and> x \<notin> U n) \<longrightarrow> h' x = h x"]
+      base step by metis
+  \<comment> \<open>For each parameter x the sequence f n x is eventually constant: either x lies in no arc
+     (so f n x = \<gamma> x throughout), or it lies in the arc with least index N, after which f is fixed.\<close>
+  have evconst: "\<forall>x\<in>{0..1}. \<exists>y. eventually (\<lambda>n. f n x = y) sequentially"
+  proof
+    fix x :: real assume x01: "x \<in> {0..1}"
+    show "\<exists>y. eventually (\<lambda>n. f n x = y) sequentially"
+    proof (cases "\<exists>n. x \<in> {a n<..<b n}")
+      case False
+      have stab: "f n x = f 0 x" for n
+      proof (induct n)
+        case 0 show ?case by simp
+      next
+        case (Suc n)
+        have "f (Suc n) x = f n x" using fstep False by blast
+        then show ?case using Suc by simp
+      qed
+      then have "eventually (\<lambda>n. f n x = f 0 x) sequentially" by simp
+      then show ?thesis by blast
+    next
+      case True
+      define N where "N = (LEAST n. x \<in> {a n<..<b n})"
+      have xN: "x \<in> {a N<..<b N}" using True LeastI_ex N_def by (metis (mono_tags, lifting))
+      have stab2: "\<And>m. N < m \<Longrightarrow> f (Suc m) x = f m x"
+      proof -
+        fix m assume Nm: "N < m"
+        have "x \<in> U m" using Nm xN arc_sub_U by blast
+        then have "\<not>(x \<in> {a m<..<b m} \<and> x \<notin> U m)" by simp
+        then show "f (Suc m) x = f m x" using fstep by blast
+      qed
+      have stab3: "\<And>d. f (Suc N + d) x = f (Suc N) x"
+      proof -
+        fix d show "f (Suc N + d) x = f (Suc N) x"
+        proof (induct d)
+          case 0 show ?case by simp
+        next
+          case (Suc d)
+          have "f (Suc (Suc N + d)) x = f (Suc N + d) x" using stab2 by simp
+          then show ?case using Suc by simp
+        qed
+      qed
+      have "eventually (\<lambda>n. f n x = f (Suc N) x) sequentially"
+      proof (rule eventually_sequentiallyI[where c="Suc N"])
+        fix n assume "Suc N \<le> n"
+        then obtain d where "n = Suc N + d" using le_Suc_ex by blast
+        then show "f n x = f (Suc N) x" using stab3 by simp
+      qed
+      then show ?thesis by blast
+    qed
+  qed
+  \<comment> \<open>Skolemize to obtain the limit path h: f n x = h x eventually, for each x.\<close>
+  obtain h where h: "\<And>x. x \<in> {0..1} \<Longrightarrow> eventually (\<lambda>n. f n x = h x) sequentially"
+    using evconst by (metis (mono_tags))
+  \<comment> \<open>Properties of the approximants f n, extracted from the invariant P.\<close>
+  have fsimple: "\<And>n. simple_path (f n)" using f unfolding P_def by blast
+  have fps: "\<And>n. pathstart (f n) = pathstart \<gamma>" using f unfolding P_def by blast
+  have fpf: "\<And>n. pathfinish (f n) = pathfinish \<gamma>" using f unfolding P_def by blast
+  have fhull: "\<And>n. convex hull (path_image (f n)) = convex hull (path_image \<gamma>)" using f unfolding P_def by blast
+  have flip: "\<And>n x y. x \<in> {0..1} \<Longrightarrow> y \<in> {0..1} \<Longrightarrow> dist (f n x) (f n y) \<le> path_length \<gamma> * dist x y"
+    using f unfolding P_def by blast
+  have fUF: "\<And>n x. x \<in> U n \<Longrightarrow> f n x \<in> F" using f unfolding P_def by blast
+  have foff: "\<And>n x. x \<notin> U n \<Longrightarrow> f n x = \<gamma> x" using f unfolding P_def by blast
+  \<comment> \<open>The limit path h inherits the L-Lipschitz bound (pointwise limit of L-Lipschitz maps).\<close>
+  have hlip: "\<And>x y::real. x \<in> {0..1} \<Longrightarrow> y \<in> {0..1} \<Longrightarrow> dist (h x) (h y) \<le> path_length \<gamma> * dist x y"
+  proof -
+    fix x y :: real assume xy: "x \<in> {0..1}" "y \<in> {0..1}"
+    have ev: "eventually (\<lambda>n. f n x = h x \<and> f n y = h y) sequentially"
+      using h[OF xy(1)] h[OF xy(2)] by eventually_elim simp
+    then obtain n where n: "f n x = h x" "f n y = h y"
+      unfolding eventually_sequentially by auto
+    have "dist (f n x) (f n y) \<le> path_length \<gamma> * dist x y" using flip[OF xy] by blast
+    then show "dist (h x) (h y) \<le> path_length \<gamma> * dist x y" using n by simp
+  qed
+  have hrect: "rectifiable_path h"
+    by (rule lipschitz_imp_rectifiable_path[where B="path_length \<gamma>"])
+       (use hlip in \<open>simp add: dist_norm\<close>)
+  have hpath: "path h" using hrect by (rule rectifiable_path_imp_path)
+  have hsimple: "simple_path h"
+    unfolding simple_path_def
+  proof (intro conjI)
+    show "path h" by (rule hpath)
+    show "loop_free h"
+      unfolding loop_free_def
+    proof (intro ballI impI)
+      fix x y :: real assume xy: "x \<in> {0..1}" "y \<in> {0..1}" and eq: "h x = h y"
+      have ev: "eventually (\<lambda>n. f n x = h x \<and> f n y = h y) sequentially"
+        using h[OF xy(1)] h[OF xy(2)] by eventually_elim simp
+      then obtain n where n: "f n x = h x" "f n y = h y"
+        unfolding eventually_sequentially by auto
+      have "f n x = f n y" using n eq by simp
+      then show "x = y \<or> x = 0 \<and> y = 1 \<or> x = 1 \<and> y = 0"
+        using fsimple[of n] xy unfolding simple_path_def loop_free_def by blast
+    qed
+  qed
+  have hloop: "pathfinish h = pathstart h"
+  proof -
+    have z01: "(0::real) \<in> {0..1}" and o01: "(1::real) \<in> {0..1}" by auto
+    have ev: "eventually (\<lambda>n. f n 0 = h 0 \<and> f n 1 = h 1) sequentially"
+      using h[OF z01] h[OF o01] by eventually_elim simp
+    then obtain n where n: "f n 0 = h 0" "f n 1 = h 1"
+      unfolding eventually_sequentially by auto
+    have "f n 1 = f n 0" using fps[of n] fpf[of n] loop by (simp add: pathstart_def pathfinish_def)
+    then have "h 1 = h 0" using n by simp
+    then show ?thesis by (simp add: pathstart_def pathfinish_def)
+  qed
+  have hlen: "path_length h \<le> path_length \<gamma>"
+    by (rule path_length_lipschitz[where B="path_length \<gamma>"])
+       (use hlip in \<open>simp add: dist_norm\<close>)
+  \<comment> \<open>The image of h lies on the frontier: each parameter either lands in an arc (so eventually
+     in F) or maps via \<gamma> to a point already on the frontier.\<close>
+  have notarc_notin_s: "\<And>x. (\<nexists>n. x \<in> {a n<..<b n}) \<Longrightarrow> x \<notin> s"
+  proof -
+    fix x assume noarc: "\<nexists>n. x \<in> {a n<..<b n}"
+    show "x \<notin> s"
+    proof
+      assume "x \<in> s"
+      then have "x \<in> \<Union>(components s)" by (simp add: Union_components)
+      then obtain c where "c \<in> components s" "x \<in> c" by blast
+      then obtain n where "c = {a n<..<b n}" using comps by auto
+      then show False using noarc \<open>x \<in> c\<close> by blast
+    qed
+  qed
+  have hx_in_F: "\<And>x. x \<in> {0..1} \<Longrightarrow> h x \<in> F"
+  proof -
+    fix x :: real assume x01: "x \<in> {0..1}"
+    show "h x \<in> F"
+    proof (cases "\<exists>n. x \<in> {a n<..<b n}")
+      case True
+      then obtain n where xn: "x \<in> {a n<..<b n}" by blast
+      obtain N where N: "\<And>m. N \<le> m \<Longrightarrow> f m x = h x" using h[OF x01] unfolding eventually_sequentially by blast
+      define m where "m = max N (Suc n)"
+      have "N \<le> m" "n < m" by (auto simp: m_def)
+      have "x \<in> U m" using xn arc_sub_U \<open>n < m\<close> by blast
+      then have "f m x \<in> F" using fUF by blast
+      then show "h x \<in> F" using N \<open>N \<le> m\<close> by simp
+    next
+      case False
+      obtain n where n: "f n x = h x" using h[OF x01] unfolding eventually_sequentially by blast
+      have "x \<notin> U n" using False U_mem by blast
+      then have "f n x = \<gamma> x" using foff by blast
+      moreover have "x \<notin> s" using False notarc_notin_s by blast
+      then have "\<gamma> x \<in> F" using x01 s_def by blast
+      ultimately show "h x \<in> F" using n by simp
+    qed
+  qed
+  have hsub_F: "path_image h \<subseteq> F" using hx_in_F by (auto simp: path_image_def)
+  \<comment> \<open>Off the arcs, h still agrees with \<gamma>; so \<gamma>'s image outside the deviating set s is part of
+     the image of h.\<close>
+  have arcs_eq_s: "\<Union> {{a n<..<b n} | n. n \<in> (UNIV::nat set)} = s"
+    using comps Union_components by metis
+  have hoff_s: "\<And>x. x \<in> {0..1} \<Longrightarrow> x \<notin> s \<Longrightarrow> h x = \<gamma> x"
+  proof -
+    fix x :: real assume x01: "x \<in> {0..1}" and xs: "x \<notin> s"
+    have noarc: "\<nexists>n. x \<in> {a n<..<b n}" using xs arcs_eq_s by blast
+    obtain n where n: "f n x = h x" using h[OF x01] unfolding eventually_sequentially by blast
+    have "x \<notin> U n" using noarc U_mem by blast
+    then have "f n x = \<gamma> x" using foff by blast
+    then show "h x = \<gamma> x" using n by simp
+  qed
+  have gout_sub_h: "\<gamma> ` ({0..1} - s) \<subseteq> path_image h"
+  proof
+    fix z assume "z \<in> \<gamma> ` ({0..1} - s)"
+    then obtain x where x: "x \<in> {0..1}" "x \<notin> s" "z = \<gamma> x" by auto
+    then have "z = h x" using hoff_s by simp
+    then show "z \<in> path_image h" using x(1) by (auto simp: path_image_def)
+  qed
+  \<comment> \<open>The convex hulls agree.\<close>
+  have hhull: "convex hull (path_image h) = convex hull (path_image \<gamma>)"
+  proof (rule subset_antisym)
+    \<comment> \<open>\<subseteq>: every point h x = f n x for some n lies in convex hull (f n) = convex hull \<gamma>.\<close>
+    have ph_sub: "path_image h \<subseteq> convex hull (path_image \<gamma>)"
+    proof
+      fix z assume "z \<in> path_image h"
+      then obtain x where x: "x \<in> {0..1}" "z = h x" by (auto simp: path_image_def)
+      obtain n where n: "f n x = h x" using h[OF x(1)] unfolding eventually_sequentially by blast
+      have "h x = f n x" using n by simp
+      then have "h x \<in> path_image (f n)" using x(1) by (auto simp: path_image_def)
+      then have "h x \<in> convex hull (path_image (f n))" using hull_subset by (meson subsetD)
+      then have "h x \<in> convex hull (path_image \<gamma>)" using fhull by simp
+      then show "z \<in> convex hull (path_image \<gamma>)" using x(2) by simp
+    qed
+    show "convex hull (path_image h) \<subseteq> convex hull (path_image \<gamma>)"
+      using ph_sub convex_convex_hull by (rule hull_minimal)
+  next
+    \<comment> \<open>\<supseteq>: the extreme points of the hull are frontier points, hence images of parameters
+       outside s, which lie in path_image h. (Krein-Milman + redundancy of interior points.)\<close>
+    have cpt_g: "compact (convex hull path_image \<gamma>)"
+      by (simp add: compact_convex_hull compact_path_image path\<gamma>)
+    have km_g: "convex hull path_image \<gamma> = convex hull {x. x extreme_point_of (convex hull path_image \<gamma>)}"
+      using Krein_Milman_Minkowski[OF cpt_g convex_convex_hull] by simp
+    have ext_in_out: "\<And>z. z extreme_point_of (convex hull path_image \<gamma>) \<Longrightarrow> z \<in> \<gamma> ` ({0..1} - s)"
+    proof -
+      fix z assume e: "z extreme_point_of (convex hull path_image \<gamma>)"
+      have zpig: "z \<in> path_image \<gamma>" using extreme_point_of_convex_hull[OF e] .
+      then obtain x where x: "x \<in> {0..1}" "z = \<gamma> x" by (auto simp: path_image_def)
+      have znotint: "z \<notin> interior (convex hull path_image \<gamma>)" using extreme_point_not_in_interior[OF e] .
+      have "z \<in> F"
+      proof -
+        have "z \<in> convex hull path_image \<gamma>" using zpig hull_subset by (meson subsetD)
+        then have "z \<in> closure (convex hull path_image \<gamma>)" using closure_subset by (meson subsetD)
+        then show "z \<in> F" using znotint F_def by (simp add: frontier_def)
+      qed
+      then have "x \<notin> s" using x(2) s_def x(1) by auto
+      then show "z \<in> \<gamma> ` ({0..1} - s)" using x by auto
+    qed
+    have "{x. x extreme_point_of (convex hull path_image \<gamma>)} \<subseteq> \<gamma> ` ({0..1} - s)"
+      using ext_in_out by blast
+    then have "convex hull {x. x extreme_point_of (convex hull path_image \<gamma>)} \<subseteq> convex hull (\<gamma> ` ({0..1} - s))"
+      by (rule hull_mono)
+    then have "convex hull (path_image \<gamma>) \<subseteq> convex hull (\<gamma> ` ({0..1} - s))" using km_g by simp
+    also have "convex hull (\<gamma> ` ({0..1} - s)) \<subseteq> convex hull (path_image h)"
+      using gout_sub_h by (rule hull_mono)
+    finally show "convex hull (path_image \<gamma>) \<subseteq> convex hull (path_image h)" .
+  qed
+  \<comment> \<open>The image of h is exactly the frontier: \<subseteq> is hsub_F; \<supseteq> because h is a simple closed
+     curve whose image lies on the frontier of its (now equal) convex hull.\<close>
+  have hF: "frontier (convex hull (path_image h)) = F" using hhull F_eq by simp
+  have h_image_F: "path_image h = F"
+  proof
+    show "path_image h \<subseteq> F" by (rule hsub_F)
+    show "F \<subseteq> path_image h"
+    proof -
+      have "path_image h \<subseteq> frontier (convex hull (path_image h))" using hsub_F hF by simp
+      then have "frontier (convex hull (path_image h)) \<subseteq> path_image h"
+        using frontier_convex_hull_subset_path_image[OF hsimple hloop] by simp
+      then show "F \<subseteq> path_image h" using hF by simp
+    qed
+  qed
+  show ?thesis
+  proof (intro exI[of _ h] conjI)
+    show "rectifiable_path h" by (rule hrect)
+    show "simple_path h" by (rule hsimple)
+    show "pathfinish h = pathstart h" by (rule hloop)
+    show "path_length h \<le> path_length \<gamma>" by (rule hlen)
+    show "convex hull (path_image h) = convex hull (path_image \<gamma>)" by (rule hhull)
+    show "path_image h = frontier (convex hull (path_image \<gamma>))" using h_image_F F_def by simp
+  qed
+qed
 
 theorem isoperimetric_convexification:
   fixes g :: "real \<Rightarrow> complex"
@@ -10653,8 +11244,73 @@ theorem isoperimetric_convexification:
     and "convex hull (path_image h) = convex hull (path_image g)"
     and "path_image h = frontier (convex hull (path_image g))"
 proof -
+  note [[quick_and_dirty]]
+  \<comment> \<open>Strengthened version, assuming the loop starts on the frontier of its convex hull.
+     (Proved later; here used to derive the general statement by shifting the basepoint.)\<close>
+  have *: "\<And>G::real\<Rightarrow>complex. rectifiable_path G \<Longrightarrow> simple_path G \<Longrightarrow> pathfinish G = pathstart G \<Longrightarrow> pathstart G \<in> frontier (convex hull (path_image G)) \<Longrightarrow> (\<exists>h. rectifiable_path h \<and> simple_path h \<and> pathfinish h = pathstart h \<and> path_length h \<le> path_length G \<and> convex hull (path_image h) = convex hull (path_image G) \<and> path_image h = frontier (convex hull (path_image G)))"
+  proof -
+    fix G :: "real \<Rightarrow> complex"
+    assume Grect: "rectifiable_path G" and Gsimple: "simple_path G"
+      and Gloop: "pathfinish G = pathstart G"
+      and Gfr: "pathstart G \<in> frontier (convex hull (path_image G))"
+    \<comment> \<open>WLOG reparametrize G by arc length, so it becomes (path_length G)-Lipschitz (unit speed).
+       All relevant quantities (path_image, path_length, endpoints, frontier) are preserved.\<close>
+    obtain g' where g': "rectifiable_path g'" "path_image g' = path_image G"
+        "pathstart g' = pathstart G" "pathfinish g' = pathfinish G"
+        "path_length g' = path_length G" "arc G \<Longrightarrow> arc g'" "simple_path G \<Longrightarrow> simple_path g'"
+        "\<forall>t\<in>{0..1}. path_length (subpath 0 t g') = path_length G * t"
+        "\<forall>x\<in>{0..1}. \<forall>y\<in>{0..1}. dist (g' x) (g' y) \<le> path_length G * dist x y"
+      using arc_length_reparametrization[OF Grect] by metis
+    have g'simple: "simple_path g'" using g'(7) Gsimple by simp
+    have g'rect: "rectifiable_path g'" by (rule g'(1))
+    have g'loop: "pathfinish g' = pathstart g'" using g'(3,4) Gloop by simp
+    have g'fr: "pathstart g' \<in> frontier (convex hull (path_image g'))"
+      using g'(3) g'(2) Gfr by simp
+    have g'lip: "\<And>x y. x \<in> {0..1} \<Longrightarrow> y \<in> {0..1} \<Longrightarrow> dist (g' x) (g' y) \<le> path_length G * dist x y"
+      using g'(9) by blast
+    have g'lip': "\<And>x y. x \<in> {0..1} \<Longrightarrow> y \<in> {0..1} \<Longrightarrow> dist (g' x) (g' y) \<le> path_length g' * dist x y"
+      using g'lip g'(5) by simp
+    \<comment> \<open>Reduced subgoal, now also assuming the unit-speed (Lipschitz) bound. This is where the
+       iterated application of step_lemma will go.\<close>
+    have **: "\<And>\<gamma>::real\<Rightarrow>complex. rectifiable_path \<gamma> \<Longrightarrow> simple_path \<gamma> \<Longrightarrow> pathfinish \<gamma> = pathstart \<gamma> \<Longrightarrow> pathstart \<gamma> \<in> frontier (convex hull (path_image \<gamma>)) \<Longrightarrow> (\<And>x y. x \<in> {0..1} \<Longrightarrow> y \<in> {0..1} \<Longrightarrow> dist (\<gamma> x) (\<gamma> y) \<le> path_length \<gamma> * dist x y) \<Longrightarrow> (\<exists>h. rectifiable_path h \<and> simple_path h \<and> pathfinish h = pathstart h \<and> path_length h \<le> path_length \<gamma> \<and> convex hull (path_image h) = convex hull (path_image \<gamma>) \<and> path_image h = frontier (convex hull (path_image \<gamma>)))"
+      using convexification_unit_speed by blast
+    have inst: "\<exists>h. rectifiable_path h \<and> simple_path h \<and> pathfinish h = pathstart h \<and> path_length h \<le> path_length g' \<and> convex hull (path_image h) = convex hull (path_image g') \<and> path_image h = frontier (convex hull (path_image g'))"
+      using **[OF g'rect g'simple g'loop g'fr g'lip'] .
+    show "\<exists>h. rectifiable_path h \<and> simple_path h \<and> pathfinish h = pathstart h \<and> path_length h \<le> path_length G \<and> convex hull (path_image h) = convex hull (path_image G) \<and> path_image h = frontier (convex hull (path_image G))"
+      using inst g'(5) g'(2) by simp
+  qed
+  \<comment> \<open>Some point of the loop lies on the frontier (an extreme point of the convex hull).\<close>
+  have pathg: "path g" using assms(2) by (rule simple_path_imp_path)
+  have cpt: "compact (convex hull path_image g)"
+    by (simp add: compact_convex_hull compact_path_image pathg)
+  have ne: "convex hull path_image g \<noteq> {}"
+    by (simp add: path_image_nonempty)
+  obtain x where x_ext: "x extreme_point_of (convex hull path_image g)"
+    using extreme_point_exists_convex[OF cpt convex_convex_hull ne] by blast
+  have x_pig: "x \<in> path_image g" using extreme_point_of_convex_hull[OF x_ext] .
+  have x_in: "x \<in> convex hull path_image g" using hull_subset x_pig by (meson subsetD)
+  have x_notint: "x \<notin> interior (convex hull path_image g)" using extreme_point_not_in_interior[OF x_ext] .
+  have x_clo: "x \<in> closure (convex hull path_image g)" using x_in closure_subset by (meson subsetD)
+  have x_fr: "x \<in> frontier (convex hull path_image g)"
+    using x_clo x_notint by (simp add: frontier_def)
+  obtain t where t: "t \<in> {0..1}" "g t = x" using x_pig by (auto simp: path_image_def)
+  \<comment> \<open>Shift g so that it starts at the frontier point g t; properties are preserved.\<close>
+  have sp_rect: "rectifiable_path (shiftpath t g)" using assms(1,3) t(1) by (rule rectifiable_path_shiftpath)
+  have sp_simple: "simple_path (shiftpath t g)" using assms(2,3) t(1) by (simp add: simple_path_shiftpath)
+  have sp_loop: "pathfinish (shiftpath t g) = pathstart (shiftpath t g)" using assms(3) t(1) by (rule closed_shiftpath)
+  have sp_pi: "path_image (shiftpath t g) = path_image g" using t(1) assms(3) by (rule path_image_shiftpath)
+  have sp_start: "pathstart (shiftpath t g) = g t" using t(1) by (simp add: pathstart_shiftpath)
+  have sp_len: "path_length (shiftpath t g) = path_length g" using assms(1,3) t(1) by (rule path_length_shiftpath)
+  have sp_startfr: "pathstart (shiftpath t g) \<in> frontier (convex hull (path_image (shiftpath t g)))"
+    using sp_start sp_pi x_fr t(2) by simp
+  have inst: "\<exists>h. rectifiable_path h \<and> simple_path h \<and> pathfinish h = pathstart h \<and> path_length h \<le> path_length (shiftpath t g) \<and> convex hull (path_image h) = convex hull (path_image (shiftpath t g)) \<and> path_image h = frontier (convex hull (path_image (shiftpath t g)))"
+    using *[OF sp_rect sp_simple sp_loop sp_startfr] .
+  from inst obtain h where h: "rectifiable_path h" "simple_path h" "pathfinish h = pathstart h"
+      "path_length h \<le> path_length (shiftpath t g)"
+      "convex hull (path_image h) = convex hull (path_image (shiftpath t g))"
+      "path_image h = frontier (convex hull (path_image (shiftpath t g)))" by blast
   show ?thesis
-    sorry
+    using inst sp_len sp_pi that by force
 qed
 
 theorem isoperimetric_convexification_strict:
