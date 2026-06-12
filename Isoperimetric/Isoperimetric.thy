@@ -4654,36 +4654,6 @@ proof -
     by (intro sets.countable_UN''[OF countable_rat]) (use meas_q in auto)
 qed
 
-lemma lebesgue_measurable_ordinate_set_le_eq:
-  fixes f :: "real \<Rightarrow> real"
-  shows "f measurable_on UNIV \<longleftrightarrow>
-    {(x, y). y \<le> f x} \<in> sets (lebesgue :: (real \<times> real) measure)"
-proof
-  assume "f measurable_on UNIV"
-  then show "{(x, y). y \<le> f x} \<in> sets (lebesgue :: (real \<times> real) measure)"
-    by (rule lebesgue_measurable_ordinate_set_le)
-next
-  \<comment> \<open>Backward direction requires Fubini-type section argument\<close>
-  assume "{(x, y). y \<le> f x} \<in> sets (lebesgue :: (real \<times> real) measure)"
-  then show "f measurable_on UNIV"
-    sorry
-qed
-
-lemma lebesgue_measurable_ordinate_set_lt_eq:
-  fixes f :: "real \<Rightarrow> real"
-  shows "f measurable_on UNIV \<longleftrightarrow>
-    {(x, y). y < f x} \<in> sets (lebesgue :: (real \<times> real) measure)"
-proof
-  assume "f measurable_on UNIV"
-  then show "{(x, y). y < f x} \<in> sets (lebesgue :: (real \<times> real) measure)"
-    by (rule lebesgue_measurable_ordinate_set_lt)
-next
-  \<comment> \<open>Backward direction requires Fubini-type section argument\<close>
-  assume "{(x, y). y < f x} \<in> sets (lebesgue :: (real \<times> real) measure)"
-  then show "f measurable_on UNIV"
-    sorry
-qed
-
 lemma negligible_measurable_function_graph:
   fixes f :: "real \<Rightarrow> real"
   assumes "f measurable_on UNIV"
