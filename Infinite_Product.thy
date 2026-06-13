@@ -1,8 +1,79 @@
 theory Infinite_Product
   imports "HOL-Complex_Analysis.Complex_Analysis"
-    "HOL-ex.Sketch_and_Explore" Isar_Explore
+    "HOL-ex.Sketch_and_Explore" "../AutoCorrode-aws-version/iq/Isar_Explore"
 
 begin
+
+(*
+  ============================================================================
+  STATUS OF THE OPEN sorries  (briefing for Manuel, 2026-06-13)
+  ============================================================================
+
+  There are 5 sorries. One is now closed; the others split into "needs a
+  different statement" and "genuinely hard". The recurring theme: the *sum*
+  theory works because addition is UNIFORMLY CONTINUOUS on UNIV (one uniformity
+  entourage is invariant under translation by any constant). Multiplication is
+  NOT uniformly continuous on UNIV, so the sum proofs cannot be ported verbatim.
+
+  ----------------------------------------------------------------------------
+  (1) multipliable_on_subset_aux        (B \<subseteq> A, f \<noteq> 0 on A-B \<Longrightarrow> mult. on A \<Longrightarrow> on B)
+      STATUS: OPEN. Load-bearing (4 call sites). The lemma is TRUE.
+      The current proof is not one step short -- it is STRUCTURALLY WRONG: the
+      inner claim `lim_scaled` (that  \<lambda>X. prod f G * prod f X  tends to S along
+      finite_subsets_at_top B) is FALSE, because X \<union> G only ranges over subsets
+      of  B \<union> F0  and never reaches (A-B)-F0. The sorry at the `F \<subseteq> X \<union> G` step
+      is merely where that falseness surfaces.
+      Why the obvious fix fails: "divide out the finite factor G = seed - B" is
+      CIRCULAR. It leaves the factor 1 / \<Parallel>prod f G\<Parallel>, and \<Parallel>prod f G\<Parallel> cannot be
+      controlled: to reach a finer seed F1 one needs F1 - B \<subseteq> G, which forces
+      G to depend on F1, whose own factor is then uncontrolled. (Contrast
+      summable_on_subset_aux, which needs no such factor: + is uniformly
+      continuous, so the translation constant just cancels.)
+      WHAT WOULD WORK: a local-uniform-continuity / Cauchy-filter argument. Since
+      prod f \<longrightarrow> S \<noteq> 0, the partial products eventually lie in an annulus
+      {z. \<Parallel>S\<Parallel>/2 \<le> \<Parallel>z\<Parallel> \<le> 2\<Parallel>S\<Parallel>}, on which (a,c) \<mapsto> a * c is uniformly continuous;
+      run the Cauchy-restricts-to-subnet argument there. Verified building
+      blocks: dist (x*c) (y*c) = \<Parallel>c\<Parallel> * dist x y (real_normed_field); and S \<noteq> 0
+      holds for the net (a zero limit forces a zero finite factor). NOT YET DONE.
+      (Alternatively: multipliable with nonzero limit \<Longleftrightarrow> abs_multipliable, then
+      subset -- but for general fields that equivalence is exactly the kind of
+      thing that is missing, and for \<complex> it is sorry (5).)
+
+  ----------------------------------------------------------------------------
+  (2) has_setprod_Sigma   (inner `obtain D'`, the deleted-assumption sorry)
+      STATUS: OPEN, needs a STRONGER HYPOTHESIS. The step wants prod_uniformity,
+      whose premise  uniformly_continuous_on UNIV (\<lambda>(x,y). x*y)  is FALSE for a
+      field -- this is the "inconsistent assumption I deleted". Fix per the TODO
+      below: assume the multiplicands are nonzero / strongly multipliable, so they
+      all sit in a ball around 1 away from 0, where * IS uniformly continuous.
+
+  ----------------------------------------------------------------------------
+  (3) has_setprod_Sigma'
+      STATUS: OPEN at this generality. Same wall as (2), worse: the type class is
+      only topological_semigroup_mult -- no metric, no uniform continuity at all.
+      Not provable without strengthening the type class or the hypotheses (the
+      in-file comment already diagnoses this correctly).
+
+  ----------------------------------------------------------------------------
+  (4) uniform_limit_prodinf
+      STATUS: *** PROVED *** (2026-06-13). The previous scaffold was not just
+      incomplete but insufficient: it fixed the seed at level min 1 (\<epsilon>/2), yet the
+      estimate  dist(prod X, prod X2) \<le> exp(\<Sum>\<^bsub>X\<^esub>\<Parallel>f\<Parallel>) * (exp(\<Sum>\<^bsub>X2-X\<^esub>\<Parallel>f\<Parallel>) - 1)
+      carries the factor exp(\<Sum>\<^bsub>X\<^esub>\<Parallel>f\<Parallel>) out front, so no coarse seed can force it
+      below \<epsilon>. The proof now: shows L continuous on the compact B (hence bounded
+      by some M), picks r = ln(1 + \<epsilon>/exp(M+1)) and seeds at min 1 (r/4), then
+      passes to the limit X2 \<rightarrow> A with Lim_in_closed_set. NB: f's codomain is
+      real_normed_div_algebra (not a field), so the proof uses
+      Real_Vector_Spaces.prod_norm, NOT the field-only prod_norm_le.
+
+  ----------------------------------------------------------------------------
+  (5) strongly_multipliable_on_iff_abs_multipliable_on_complex
+      STATUS: OPEN, research-level. Needs \<Sum> Ln (f x) to converge over an
+      UNORDERED index set, crossing branch cuts. The referenced Ln_prodinf_complex
+      is SEQUENTIAL (\<Prod>\<^bsub>j\<le>n\<^esub>) and its "+ 2\<pi>i k" branch count is not well-defined for
+      a net. The author's note ("not clear how to make this formal") stands.
+  ============================================================================
+*)
 
 no_notation Infinite_Set_Sum.abs_summable_on (infix \<open>abs'_summable'_on\<close> 50)
 
@@ -3502,8 +3573,8 @@ The lemma has_setprod_Sigma' generalizes has_setprod_Sigma from real_normed_fiel
 Why it's hard
 
 The analogous result for sums (has_sum_Sigma') works because:
-• uniform_topological_group_add gives uniform continuity of addition
-• This enables sum_uniformity: the "splitting lemma" that controls \<Sum> aᵢ - \<Sum> bᵢ uniformly when each aᵢ \<approx> bᵢ
+\<bullet> uniform_topological_group_add gives uniform continuity of addition
+\<bullet> This enables sum_uniformity: the "splitting lemma" that controls \<Sum> a\<^sub>i - \<Sum> b\<^sub>i uniformly when each a\<^sub>i \<approx> b\<^sub>i
 
 For products, we only have topological_semigroup_mult (continuity, not uniform continuity). The existing prod_uniformity (line 1264) requires uniformly_continuous_on UNIV (\<lambda>(x,y). x*y), which is not available in this type class.
 *)
@@ -3638,24 +3709,48 @@ proof (intro allI impI)
     if "y \<in> B" for y
     using mult_y[OF that] by (rule infprod_tendsto)
 
-  \<comment> \<open>Now show: for all \<epsilon> > 0, eventually dist(partial_prod, infprod) < \<epsilon> uniformly in y\<close>
-  \<comment> \<open>Strategy: bound dist(prod X, prod X2) for X \<subseteq> X2, then take limit in X2 to get bound on dist(prod X, infprod)\<close>
+  \<comment> \<open>Now show: for all \<open>\<epsilon> > 0\<close>, eventually \<open>dist(partial_prod, infprod) < \<epsilon>\<close> uniformly in \<open>y\<close>.
+    The estimate is \<open>dist(prod X, prod X2) \<le> norm(prod X) * norm(prod(X2-X) - 1)
+      \<le> exp(\<Sum>\<^bsub>X\<^esub> norm f) * (exp(\<Sum>\<^bsub>X2-X\<^esub> norm f) - 1)\<close>; controlling the first factor uniformly
+    requires \<open>L\<close> to be bounded on the compact set \<open>B\<close>.\<close>
 
-  \<comment> \<open>Key product estimate: for X \<subseteq> X2 finite subsets of A,\<close>
-  \<comment> \<open>  dist(prod X, prod X2) \<le> norm(prod X) * norm(prod(X2\\X) - 1)\<close>
-  \<comment> \<open>                        \<le> exp(sum_X norm f) * (exp(sum_{X2\\X} norm f) - 1)\<close>
+  \<comment> \<open>\<open>L\<close> is the uniform limit of continuous partial sums on the compact \<open>B\<close>, hence continuous and bounded.\<close>
+  have contL: "continuous_on B L"
+  proof (rule uniform_limit_theorem[OF _ conv_sum])
+    show "\<forall>\<^sub>F X in finite_subsets_at_top A. continuous_on B (\<lambda>y. \<Sum>x\<in>X. norm (f x y))"
+      by (intro eventually_finite_subsets_at_top_weakI continuous_intros continuous_on_norm cont)
+    show "finite_subsets_at_top A \<noteq> bot" by simp
+  qed
+  obtain M where M: "\<And>y. y \<in> B \<Longrightarrow> L y \<le> M"
+  proof (cases "B = {}")
+    case True
+    thus ?thesis using that[of 0] by auto
+  next
+    case False
+    have "bounded (L ` B)"
+      using contL A by (simp add: compact_continuous_image compact_imp_bounded)
+    then obtain M0 where "\<And>y. y \<in> B \<Longrightarrow> \<bar>L y\<bar> \<le> M0"
+      by (auto simp: bounded_iff)
+    then have "\<And>y. y \<in> B \<Longrightarrow> L y \<le> max M0 0" by (force simp: abs_le_iff)
+    thus ?thesis using that[of "max M0 0"] by force
+  qed
 
-  \<comment> \<open>Get uniform bound: eventually sum norm f < L y + 1 for all y in B\<close>
-  have "\<forall>\<^sub>F X in finite_subsets_at_top A. \<forall>y\<in>B. dist (\<Sum>x\<in>X. norm (f x y)) (L y) < min 1 (\<epsilon> / 2)"
+  \<comment> \<open>Pick the seed level so that the product estimate is \<open>< \<epsilon>\<close> for every \<open>y\<in>B\<close>.\<close>
+  define r where "r = ln (1 + \<epsilon> / exp (M+1))"
+  have r_pos: "r > 0"
+    unfolding r_def using \<epsilon> by (intro ln_gt_zero) (auto intro: add_pos_pos)
+  have exp_r: "exp r = 1 + \<epsilon> / exp (M+1)"
+    unfolding r_def using \<epsilon> by (subst exp_ln) (auto intro: add_pos_pos)
+
+  have "\<forall>\<^sub>F X in finite_subsets_at_top A. \<forall>y\<in>B. dist (\<Sum>x\<in>X. norm (f x y)) (L y) < min 1 (r/4)"
   proof -
-    have "min 1 (\<epsilon> / 2) > 0" using \<epsilon> by auto
+    have "min 1 (r/4) > 0" using r_pos by auto
     with conv_sum show ?thesis unfolding uniform_limit_iff by blast
   qed
   then obtain X0 where X0: "finite X0" "X0 \<subseteq> A" and
-    X0_prop: "\<And>X. \<lbrakk>finite X; X0 \<subseteq> X; X \<subseteq> A\<rbrakk> \<Longrightarrow> \<forall>y\<in>B. dist (\<Sum>x\<in>X. norm (f x y)) (L y) < min 1 (\<epsilon> / 2)"
+    X0_prop: "\<And>X. \<lbrakk>finite X; X0 \<subseteq> X; X \<subseteq> A\<rbrakk> \<Longrightarrow> \<forall>y\<in>B. dist (\<Sum>x\<in>X. norm (f x y)) (L y) < min 1 (r/4)"
     by (auto simp: eventually_finite_subsets_at_top)
 
-  \<comment> \<open>Show the eventually condition\<close>
   show "\<forall>\<^sub>F X in finite_subsets_at_top A. \<forall>y\<in>B. dist (\<Prod>x\<in>X. 1 + f x y) (\<Prod>\<^sub>\<infinity>x\<in>A. 1 + f x y) < \<epsilon>"
     unfolding eventually_finite_subsets_at_top
   proof (intro exI conjI allI impI)
@@ -3666,15 +3761,101 @@ proof (intro allI impI)
     show "\<forall>y\<in>B. dist (\<Prod>x\<in>X. 1 + f x y) (\<Prod>\<^sub>\<infinity>x\<in>A. 1 + f x y) < \<epsilon>"
     proof
       fix y assume y: "y \<in> B"
-      \<comment> \<open>Use Lim_in_closed_set: the limit of partial products lies in cball(prod X, bound)\<close>
-      \<comment> \<open>For any X2 with X \<subseteq> X2 \<subseteq> A:\<close>
-      \<comment> \<open>  dist(prod X, prod X2) = norm(prod X * (prod(X2\\X) - 1))\<close>
-      \<comment> \<open>                         \<le> norm(prod X) * norm(prod(X2\\X) - 1)\<close>
-      \<comment> \<open>                         \<le> exp(sum_X norm f) * (exp(sum_{X2\\X} norm f) - 1)\<close>
-      \<comment> \<open>                         \<le> exp(L y + 1) * (exp(sum_{X2\\X} norm f) - 1)\<close>
-      \<comment> \<open>For X2 \<supseteq> X \<supseteq> X0: sum_{X2\\X} \<le> sum_{X2} - sum_{X0} + ... \<le> 2 * min(1, \<epsilon>/2) \<le> \<epsilon>\<close>
-      show "dist (\<Prod>x\<in>X. 1 + f x y) (\<Prod>\<^sub>\<infinity>x\<in>A. 1 + f x y) < \<epsilon>"
-      sorry
+      define g where "g = (\<lambda>x. 1 + f x y)"
+      have limg: "(prod g \<longlongrightarrow> infprod g A) (finite_subsets_at_top A)"
+        using prod_tendsto[OF y] unfolding g_def .
+      have dX: "dist (\<Sum>x\<in>X. norm (f x y)) (L y) < min 1 (r/4)"
+        using X0_prop[OF X_fin X0_X X_sub] y by blast
+      have sumX_le: "(\<Sum>x\<in>X. norm (f x y)) \<le> L y + 1"
+        using dX unfolding dist_real_def by linarith
+      \<comment> \<open>The partial product over \<open>X\<close> is bounded by \<open>exp(L y + 1)\<close>.\<close>
+      have normgX: "norm (prod g X) \<le> exp (L y + 1)"
+      proof -
+        have pe: "norm (g x) \<le> 1 + norm (f x y)" for x
+          unfolding g_def using norm_triangle_ineq[of 1 "f x y"] by simp
+        have "norm (prod g X) = (\<Prod>x\<in>X. norm (g x))"
+          by (simp add: prod_norm)
+        also have "\<dots> \<le> (\<Prod>x\<in>X. 1 + norm (f x y))"
+          by (intro prod_mono conjI) (use pe in auto)
+        also have "\<dots> \<le> exp (\<Sum>x\<in>X. norm (f x y))"
+          by (intro prod_le_exp_sum) auto
+        also have "\<dots> \<le> exp (L y + 1)"
+          using sumX_le by simp
+        finally show ?thesis .
+      qed
+      \<comment> \<open>Key estimate: \<open>dist(prod X, prod X2) \<le> exp(L y + 1) * (exp(\<Sum>\<^bsub>X2-X\<^esub> norm f) - 1)\<close>.\<close>
+      have step_bound: "dist (prod g X) (prod g X2) \<le> exp (L y + 1) * (exp (\<Sum>x\<in>X2 - X. norm (f x y)) - 1)"
+        if X2: "finite X2" "X \<subseteq> X2" "X2 \<subseteq> A" for X2
+      proof -
+        define D where "D = X2 - X"
+        have Dfin: "finite D" and Ddisj: "X \<inter> D = {}" and X2eq: "X2 = X \<union> D"
+          using X2 X_fin unfolding D_def by auto
+        have normD: "norm (prod g D - 1) \<le> exp (\<Sum>x\<in>D. norm (f x y)) - 1"
+        proof -
+          have "norm (prod g D - 1) \<le> (\<Prod>x\<in>D. 1 + norm (f x y)) - 1"
+            unfolding g_def using norm_prod_minus1_le_prod_minus1[of "\<lambda>x. f x y" D] by simp
+          also have "(\<Prod>x\<in>D. 1 + norm (f x y)) \<le> exp (\<Sum>x\<in>D. norm (f x y))"
+            by (intro prod_le_exp_sum) auto
+          finally show ?thesis by simp
+        qed
+        have "prod g X2 = prod g X * prod g D"
+          unfolding X2eq using X_fin Dfin Ddisj by (simp add: prod.union_disjoint)
+        hence "prod g X2 - prod g X = prod g X * (prod g D - 1)"
+          by (simp add: algebra_simps)
+        hence "dist (prod g X) (prod g X2) = norm (prod g X) * norm (prod g D - 1)"
+          by (simp add: dist_norm norm_mult norm_minus_commute)
+        also have "\<dots> \<le> exp (L y + 1) * (exp (\<Sum>x\<in>D. norm (f x y)) - 1)"
+          by (intro mult_mono normgX normD) auto
+        finally show ?thesis unfolding D_def .
+      qed
+      \<comment> \<open>The tail sum is small because both \<open>X\<close> and \<open>X2\<close> contain the seed \<open>X0\<close>.\<close>
+      have tail_bound: "(\<Sum>x\<in>X2 - X. norm (f x y)) \<le> r/2"
+        if X2: "finite X2" "X \<subseteq> X2" "X2 \<subseteq> A" for X2
+      proof -
+        have "(\<Sum>x\<in>X2. norm (f x y)) = (\<Sum>x\<in>X. norm (f x y)) + (\<Sum>x\<in>X2 - X. norm (f x y))"
+          using X2 X_fin by (subst sum.subset_diff[of X X2]) auto
+        moreover have "dist (\<Sum>x\<in>X2. norm (f x y)) (L y) < min 1 (r/4)"
+          using X0_prop[OF X2(1) _ X2(3)] X0_X X2(2) y by blast
+        ultimately show ?thesis using dX unfolding dist_real_def by linarith
+      qed
+      have dist_le_C: "dist (prod g X) (prod g X2) \<le> exp (L y + 1) * (exp (r/2) - 1)"
+        if X2: "finite X2" "X \<subseteq> X2" "X2 \<subseteq> A" for X2
+      proof -
+        have "dist (prod g X) (prod g X2) \<le> exp (L y + 1) * (exp (\<Sum>x\<in>X2 - X. norm (f x y)) - 1)"
+          using step_bound[OF X2] .
+        also have "\<dots> \<le> exp (L y + 1) * (exp (r/2) - 1)"
+          using tail_bound[OF X2] by (intro mult_left_mono diff_right_mono) auto
+        finally show ?thesis .
+      qed
+      \<comment> \<open>Pass to the limit \<open>X2 \<rightarrow> A\<close> using that the closed ball is closed.\<close>
+      have "infprod g A \<in> cball (prod g X) (exp (L y + 1) * (exp (r/2) - 1))"
+      proof (rule Lim_in_closed_set[OF closed_cball _ _ limg])
+        show "\<forall>\<^sub>F X2 in finite_subsets_at_top A. prod g X2 \<in> cball (prod g X) (exp (L y + 1) * (exp (r/2) - 1))"
+          unfolding eventually_finite_subsets_at_top
+        proof (intro exI conjI allI impI)
+          show "finite X" by (rule X_fin)
+          show "X \<subseteq> A" by (rule X_sub)
+          fix X2 assume "finite X2 \<and> X \<subseteq> X2 \<and> X2 \<subseteq> A"
+          thus "prod g X2 \<in> cball (prod g X) (exp (L y + 1) * (exp (r/2) - 1))"
+            using dist_le_C by (auto simp: dist_commute mem_cball)
+        qed
+      qed auto
+      hence lim_le_C: "dist (prod g X) (infprod g A) \<le> exp (L y + 1) * (exp (r/2) - 1)"
+        by (simp add: dist_commute mem_cball)
+      \<comment> \<open>The bound is \<open>< \<epsilon>\<close> because \<open>L y \<le> M\<close> and \<open>r/2 < r\<close>.\<close>
+      have "exp (L y + 1) * (exp (r/2) - 1) < \<epsilon>"
+      proof -
+        have "exp (L y + 1) * (exp (r/2) - 1) \<le> exp (M + 1) * (exp (r/2) - 1)"
+          using r_pos M[OF y] by (intro mult_right_mono) auto
+        also have "\<dots> < exp (M + 1) * (exp r - 1)"
+          using r_pos by (intro mult_strict_left_mono) auto
+        also have "\<dots> = \<epsilon>"
+          using exp_r by (simp add: field_simps)
+        finally show ?thesis .
+      qed
+      with lim_le_C have "dist (prod g X) (infprod g A) < \<epsilon>" by linarith
+      thus "dist (\<Prod>x\<in>X. 1 + f x y) (\<Prod>\<^sub>\<infinity>x\<in>A. 1 + f x y) < \<epsilon>"
+        unfolding g_def by simp
     qed
   qed
 qed
