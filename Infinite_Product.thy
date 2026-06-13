@@ -75,6 +75,34 @@ begin
   ============================================================================
 *)
 
+(*Manuel's response:
+For the most part I already knew this. The issue is that multiplication 
+is not uniformly continuous. However, multiplication away from 0 *is* 
+uniformly continuous, and any strongly multipliable product has almost 
+all multiplicands away from 0. The main issue is how to properly 
+formalise that. There is no type class for "multiplication is uniformly 
+continuous away from 0", so the easiest thing is probably to work with 
+something like {banach, real_normed_field}. Or if all else fails, 
+directly on "complex".
+
+My suggestion would be to let Claude fix the lemma statements as it sees 
+fit, i.e. adding assumptions or strengthening type class constraints and 
+try again. The proofs of the sorried theorems as they are now are 
+probably mostly rubbish, so do encourage Claude to delete them or delete 
+them yourself before giving the file to it.
+
+The last one 
+("strongly_multipliable_on_iff_abs_multipliable_on_complex") would be 
+nice to have (if it is indeed true), but I think we can live without it. 
+I would have thought it should be true, but my intuition on this is not 
+to be trusted.
+
+Another thing that would be nice to have is something like if we have a 
+uniformly convergent product then the logarithmic derivative of that is 
+a uniformly convergent sum. That would be useful for developing the 
+Weierstraß zeta function.
+*)
+
 no_notation Infinite_Set_Sum.abs_summable_on (infix \<open>abs'_summable'_on\<close> 50)
 
 (*REPLACE*)
