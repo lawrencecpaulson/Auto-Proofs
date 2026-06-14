@@ -6,53 +6,106 @@ begin
 
 (*
   ============================================================================
-  STATUS OF THE OPEN sorries  (briefing for Manuel, 2026-06-13)
+  STATUS OF THE OPEN sorries  (briefing for Manuel, updated 2026-06-14)
   ============================================================================
 
-  There are 5 sorries. One is now closed; the others split into "needs a
-  different statement" and "genuinely hard". The recurring theme: the *sum*
-  theory works because addition is UNIFORMLY CONTINUOUS on UNIV (one uniformity
-  entourage is invariant under translation by any constant). Multiplication is
-  NOT uniformly continuous on UNIV, so the sum proofs cannot be ported verbatim.
+  Of the original 5 sorries, THREE are now CLOSED: (2) has_setprod_Sigma,
+  (3) has_setprod_Sigma', (4) uniform_limit_prodinf. TWO remain: (1)
+  multipliable_on_subset_aux (true, two regimes incl. limit 0 -- a genuine small
+  theorem, see below) and (5) the complex strongly/abs equivalence (research-level;
+  you said we can live without it).
+  The recurring theme: the *sum* theory works because addition is UNIFORMLY
+  CONTINUOUS on UNIV (one uniformity entourage is invariant under translation by
+  any constant); multiplication is NOT, so the sum proofs cannot be ported
+  verbatim. For (2)/(3) the fix was that * IS uniformly continuous on bounded
+  sets, captured by the new metric lemma norm_prod_diff_le.
 
   ----------------------------------------------------------------------------
   (1) multipliable_on_subset_aux        (B \<subseteq> A, f \<noteq> 0 on A-B \<Longrightarrow> mult. on A \<Longrightarrow> on B)
-      STATUS: OPEN. Load-bearing (4 call sites). The lemma is TRUE.
-      The current proof is not one step short -- it is STRUCTURALLY WRONG: the
-      inner claim `lim_scaled` (that  \<lambda>X. prod f G * prod f X  tends to S along
-      finite_subsets_at_top B) is FALSE, because X \<union> G only ranges over subsets
-      of  B \<union> F0  and never reaches (A-B)-F0. The sorry at the `F \<subseteq> X \<union> G` step
-      is merely where that falseness surfaces.
-      Why the obvious fix fails: "divide out the finite factor G = seed - B" is
-      CIRCULAR. It leaves the factor 1 / \<Parallel>prod f G\<Parallel>, and \<Parallel>prod f G\<Parallel> cannot be
-      controlled: to reach a finer seed F1 one needs F1 - B \<subseteq> G, which forces
-      G to depend on F1, whose own factor is then uncontrolled. (Contrast
-      summable_on_subset_aux, which needs no such factor: + is uniformly
-      continuous, so the translation constant just cancels.)
-      WHAT WOULD WORK: a local-uniform-continuity / Cauchy-filter argument. Since
-      prod f \<longrightarrow> S \<noteq> 0, the partial products eventually lie in an annulus
-      {z. \<Parallel>S\<Parallel>/2 \<le> \<Parallel>z\<Parallel> \<le> 2\<Parallel>S\<Parallel>}, on which (a,c) \<mapsto> a * c is uniformly continuous;
-      run the Cauchy-restricts-to-subnet argument there. Verified building
-      blocks: dist (x*c) (y*c) = \<Parallel>c\<Parallel> * dist x y (real_normed_field); and S \<noteq> 0
-      holds for the net (a zero limit forces a zero finite factor). NOT YET DONE.
-      (Alternatively: multipliable with nonzero limit \<Longleftrightarrow> abs_multipliable, then
-      subset -- but for general fields that equivalence is exactly the kind of
-      thing that is missing, and for \<complex> it is sorry (5).)
+      STATUS: OPEN, but better understood (analysis 2026-06-14). Load-bearing
+      (4 call sites). The lemma is TRUE; the existing proof is STRUCTURALLY WRONG
+      (its inner `lim_scaled` claim -- that \<lambda>X. prod f G * prod f X \<longrightarrow> S along
+      finite_subsets_at_top B -- is false, since X \<union> G never reaches (A-B)-F0;
+      the `F \<subseteq> X \<union> G` sorry is just where that surfaces). Delete it.
+
+      KEY CORRECTION to the earlier note here: the limit S = infprod f A may well
+      be 0, and the lemma is true ANYWAY. Example: A = UNIV::nat set, f \<equiv> 1/2.
+      Then prod f \<longrightarrow> 0, every f x \<noteq> 0, and f is multipliable on every B \<subseteq> A
+      (still \<longrightarrow> 0). So "S \<noteq> 0 / multiplication away from 0" is NOT the whole
+      story -- there is a second regime in which the partial products SHRINK to 0.
+      Any proof must cover both regimes, so do NOT try to show S \<noteq> 0 (it is false
+      in general).
+
+      The clean uniform route is COMPLETENESS / Cauchy filter: show prod f is
+      Cauchy along finite_subsets_at_top B, then conclude with
+      cauchy_filter_complete_converges. The following building blocks were
+      verified in the REPL and are reusable (all from cauchyA + factors-near-1,
+      no appeal to S \<noteq> 0):
+        cauchyA  : \<forall>e>0. \<exists>F fin \<subseteq> A. any two finite A-supersets of F are <e apart;
+        tail1    : \<forall>e>0. \<exists>F fin \<subseteq> A, \<Parallel>prod f F\<Parallel>>0, with
+                   dist (prod f D) 1 \<le> e / \<Parallel>prod f F\<Parallel>  for finite D \<subseteq> A, D \<inter> F = {};
+        shift_lim: (\<lambda>H. prod f (H - F)) \<longrightarrow> S / prod f F  on finite_subsets_at_top A.
+      For X,Y \<subseteq> B finite with F \<inter> B \<subseteq> X,Y, the master-seed identity
+        \<Parallel>prod f F-B\<Parallel> * \<Parallel>prod f X - prod f Y\<Parallel>
+            = \<Parallel>prod f (X \<union> (F-B)) - prod f (Y \<union> (F-B))\<Parallel> < e
+      gives  dist (prod f X) (prod f Y) < e / \<Parallel>prod f (F-B)\<Parallel>.  The ONE remaining
+      gap is to show this can be driven below any \<epsilon> -- i.e. that
+      inf over admissible seeds F of  e / \<Parallel>prod f (F-B)\<Parallel>  is 0 (worked by hand for
+      f \<equiv> 1/2: e/\<Parallel>c\<Parallel> ~ sqrt e \<longrightarrow> 0, so the bound IS sound, just not yet formalised).
+      So this is a genuine (small) theorem needing a careful completeness
+      argument, NOT a one-line fix or a mere added hypothesis.
+
+      IMPACT IF LEFT OPEN -- is the theory still useful? YES. Of ~173 lemmas, only a
+      small, localised cluster depends (transitively) on multipliable_on_subset_aux.
+      DIRECT users (4): infprod_Sigma', multipliable_on_union,
+      multipliable_on_insert_iff, multipliable_on_SigmaD1. TRANSITIVE: the
+      "nonzero \<Longrightarrow> multipliable, automatically" conveniences --
+      infprod_Sigma'_banach, multipliable_on_Sigma_banach, infprod_Sigma_banach,
+      infprod_swap, infprod_swap_banach (~10 lemmas total). These are the variants
+      that DERIVE per-fibre / per-subfamily multipliability from "all factors
+      nonzero"; the corresponding results stated WITH explicit multipliability
+      hypotheses (e.g. has_setprod_Sigma, infprod_Sigma, infprod_Sigma',
+      infprod_swap given its three premises) do NOT need it.
+      EVERYTHING ELSE is independent and stands: the definitions and core calculus
+      (uniqueness, congruence/neutral, has_setprod_mult, DISJOINT union, Diff,
+      finite approximation), reindexing / bij_betw, homomorphism / exp / inverse /
+      power transfer, the entire ABSOLUTE-convergence theory
+      (abs_convergent_prod_imp_convergent_prod, abs_multipliable_multipliable,
+      abs_multipliable_on_iff_summable_on, comparison tests, bridges to sequential
+      convergent_prod), the main has_setprod_Sigma / infprod_Sigma, prod_norm_le,
+      norm_infprod_le, uniform_limit_prodinf, and the real/complex specialisations.
+      In particular the pieces needed for Weierstrass products / zeta
+      (abs-multipliable \<Longleftrightarrow> summable, uniform_limit_prodinf, exp/log bridges) are intact.
+      So the gap is confined to the "convenience corollaries", not the backbone.
 
   ----------------------------------------------------------------------------
-  (2) has_setprod_Sigma   (inner `obtain D'`, the deleted-assumption sorry)
-      STATUS: OPEN, needs a STRONGER HYPOTHESIS. The step wants prod_uniformity,
-      whose premise  uniformly_continuous_on UNIV (\<lambda>(x,y). x*y)  is FALSE for a
-      field -- this is the "inconsistent assumption I deleted". Fix per the TODO
-      below: assume the multiplicands are nonzero / strongly multipliable, so they
-      all sit in a ball around 1 away from 0, where * IS uniformly continuous.
+  (2) has_setprod_Sigma   (was: inner `obtain D'`, the deleted-assumption sorry)
+      STATUS: *** PROVED *** (2026-06-14). Load-bearing (5 call sites; (3) and the
+      whole infprod_Sigma cluster depend on it). The `obtain D'` step needed
+      prod_uniformity at n = card M, whose premise uniformly_continuous_on UNIV
+      (\<lambda>(x,y). x*y) is FALSE for a field -- and it is NOT fixable by adding a
+      hypothesis, since prod_uniformity is stated for ALL g, g' (unbounded). FIX:
+      two new standalone helper lemmas were added just before this lemma --
+        norm_prod_diff_le         : metric finite-product Lipschitz bound,
+            \<Parallel>prod g M - prod g' M\<Parallel> \<le> card M * C ^ card M * d  when \<Parallel>g m\<Parallel>,\<Parallel>g' m\<Parallel> \<le> C (C\<ge>1)
+            and \<Parallel>g m - g' m\<Parallel> \<le> d (d\<ge>0), by finite_induct;
+        prod_close_of_factors_close : its \<epsilon>-\<delta> corollary.
+      The `obtain D'` block was then replaced by a metric construction: extract an
+      eD-ball from the entourage D (real_normed_field uniformity is metric), bound
+      the factors by C = Max{\<Parallel>b a\<Parallel>+1 | a\<in>M} (with \<delta> \<le> 1 so the partial products,
+      being \<delta>-close to b a, also stay \<le> C), then apply prod_close_of_factors_close.
+      This is exactly Manuel's "multiplication is uniformly continuous away from 0 /
+      switch to real_normed_field" plan, made concrete. Whole file: 0 errors.
 
   ----------------------------------------------------------------------------
   (3) has_setprod_Sigma'
-      STATUS: OPEN at this generality. Same wall as (2), worse: the type class is
-      only topological_semigroup_mult -- no metric, no uniform continuity at all.
-      Not provable without strengthening the type class or the hypotheses (the
-      in-file comment already diagnoses this correctly).
+      STATUS: CLOSED by reduction (2026-06-14). It was the SAME statement as (2)
+      but at a more general type class, and it was NEVER USED anywhere with that
+      generality. Following Manuel's "switch to real_normed_field" advice it is now
+      restated at \<^class>\<open>real_normed_field\<close> and proved as a one-line alias of (2)
+      (has_setprod_Sigma). So it no longer carries an independent sorry -- it now
+      stands or falls exactly with (2). The speculative analysis comment that
+      preceded it has been removed.
 
   ----------------------------------------------------------------------------
   (4) uniform_limit_prodinf
@@ -1448,6 +1501,90 @@ qed
   with uniformity (which I always find very confusing). You lose some generality that way, but
   it still gives us the result for real and complex, which are the important ones.
 *)
+
+text \<open>Metric "splitting lemma" for products, the multiplicative replacement for the uniformity
+  machinery of @{thm [source] prod_uniformity}: a finite product is Lipschitz in its factors,
+  PROVIDED the factors stay bounded. (Multiplication is uniformly continuous on bounded sets,
+  which is enough here -- the factors that occur are partial products near the nonzero limits.)\<close>
+
+lemma norm_prod_diff_le:
+  fixes g g' :: "'i \<Rightarrow> 'b :: real_normed_field"
+  assumes "finite M"
+    and "\<And>m. m \<in> M \<Longrightarrow> norm (g m) \<le> C" and "\<And>m. m \<in> M \<Longrightarrow> norm (g' m) \<le> C"
+    and "\<And>m. m \<in> M \<Longrightarrow> norm (g m - g' m) \<le> d" and "C \<ge> 1" and "d \<ge> 0"
+  shows "norm (prod g M - prod g' M) \<le> real (card M) * C ^ (card M) * d"
+  using assms
+proof (induction M rule: finite_induct)
+  case empty
+  then show ?case by simp
+next
+  case (insert x M)
+  have gx: "norm (g x) \<le> C" and gM: "\<And>m. m \<in> M \<Longrightarrow> norm (g m) \<le> C" using insert.prems(1) by auto
+  have g'x: "norm (g' x) \<le> C" and g'M: "\<And>m. m \<in> M \<Longrightarrow> norm (g' m) \<le> C" using insert.prems(2) by auto
+  have dx: "norm (g x - g' x) \<le> d" and dM: "\<And>m. m \<in> M \<Longrightarrow> norm (g m - g' m) \<le> d" using insert.prems(3) by auto
+  have C0: "C \<ge> 1" and d0: "d \<ge> 0" using insert.prems(4,5) by auto
+  have Cnn: "C \<ge> 0" using C0 by simp
+  have IH: "norm (prod g M - prod g' M) \<le> real (card M) * C ^ (card M) * d"
+    using insert.IH[OF gM g'M dM C0 d0] .
+  define P P' where "P = prod g M" and "P' = prod g' M"
+  have normP': "norm P' \<le> C ^ (card M)"
+  proof -
+    have "norm P' = (\<Prod>m\<in>M. norm (g' m))" unfolding P'_def by (simp add: prod_norm)
+    also have "\<dots> \<le> (\<Prod>m\<in>M. C)" by (intro prod_mono conjI g'M) auto
+    also have "\<dots> = C ^ (card M)" by (simp add: prod_constant)
+    finally show ?thesis .
+  qed
+  have pownn: "C ^ (card M) \<ge> 0" using Cnn by simp
+  have prod_eq: "prod g (insert x M) - prod g' (insert x M) = g x * P - g' x * P'"
+    using insert.hyps by (simp add: P_def P'_def)
+  have split: "g x * P - g' x * P' = g x * (P - P') + (g x - g' x) * P'"
+    by (simp add: algebra_simps)
+  have B: "norm (g x * P - g' x * P') \<le> norm (g x) * norm (P - P') + norm (g x - g' x) * norm P'"
+    unfolding split by (smt (verit) norm_triangle_ineq norm_mult)
+  have step1: "norm (g x) * norm (P - P') \<le> C * (real (card M) * C ^ (card M) * d)"
+    using IH gx P_def P'_def Cnn by (intro mult_mono) auto
+  have step2: "norm (g x - g' x) * norm P' \<le> d * C ^ (card M)"
+    using dx normP' d0 pownn by (intro mult_mono) auto
+  have "norm (prod g (insert x M) - prod g' (insert x M)) = norm (g x * P - g' x * P')"
+    by (simp add: prod_eq)
+  also have "\<dots> \<le> C * (real (card M) * C ^ (card M) * d) + d * C ^ (card M)"
+    using B step1 step2 by linarith
+  also have "\<dots> = real (card M) * (C ^ (Suc (card M))) * d + C ^ (card M) * d"
+    by (simp add: algebra_simps)
+  also have "\<dots> \<le> real (card M) * (C ^ (Suc (card M))) * d + C ^ (Suc (card M)) * d"
+    using C0 pownn d0 by (simp add: mult_right_mono mult_left_mono)
+  also have "\<dots> = real (card (insert x M)) * C ^ (card (insert x M)) * d"
+    using insert.hyps by (simp add: algebra_simps)
+  finally show ?case .
+qed
+
+lemma prod_close_of_factors_close:
+  fixes M :: "'i set" and C \<epsilon> :: real
+  assumes "finite M" and "C \<ge> 1" and "\<epsilon> > 0"
+  shows "\<exists>\<delta>>0. \<forall>h h' :: 'i \<Rightarrow> 'b :: real_normed_field.
+           (\<forall>m\<in>M. norm (h m) \<le> C \<and> norm (h' m) \<le> C \<and> dist (h m) (h' m) < \<delta>)
+           \<longrightarrow> dist (prod h M) (prod h' M) < \<epsilon>"
+proof -
+  define K where "K = real (card M) * C ^ (card M) + 1"
+  have K0: "K > 0" using assms by (simp add: K_def add_nonneg_pos)
+  define \<delta> where "\<delta> = \<epsilon> / K"
+  have \<delta>0: "\<delta> > 0" using assms K0 by (simp add: \<delta>_def)
+  have "dist (prod h M) (prod h' M) < \<epsilon>"
+    if H: "\<forall>m\<in>M. norm (h m) \<le> C \<and> norm (h' m) \<le> C \<and> dist (h m) (h' m) < \<delta>"
+    for h h' :: "'i \<Rightarrow> 'b"
+  proof -
+    have nH: "\<And>m. m \<in> M \<Longrightarrow> norm (h m) \<le> C" using H by blast
+    have nH': "\<And>m. m \<in> M \<Longrightarrow> norm (h' m) \<le> C" using H by blast
+    have dH: "\<And>m. m \<in> M \<Longrightarrow> norm (h m - h' m) \<le> \<delta>" using H by (simp add: dist_norm less_imp_le)
+    have "norm (prod h M - prod h' M) \<le> real (card M) * C ^ (card M) * \<delta>"
+      using norm_prod_diff_le[OF assms(1) nH nH' dH assms(2)] \<delta>0 by simp
+    also have "\<dots> < \<epsilon>"
+      using \<delta>0 K0 assms unfolding \<delta>_def K_def by (simp add: field_simps)
+    finally show ?thesis by (simp add: dist_norm)
+  qed
+  thus ?thesis using \<delta>0 by blast
+qed
+
 lemma has_setprod_Sigma:
   fixes A :: "'a set" and B :: "'a \<Rightarrow> 'b set"
     and f :: \<open>'a \<times> 'b \<Rightarrow> 'c::real_normed_field\<close>
@@ -1490,13 +1627,25 @@ proof -
       define FMB where \<open>FMB = finite_subsets_at_top (Sigma M B)\<close>
       have \<open>eventually (\<lambda>H. D (\<Prod>a\<in>M. b a, \<Prod>(a,b)\<in>H. f (a,b))) FMB\<close>
       proof -
-        obtain D' where D'_uni: \<open>eventually D' uniformity\<close> 
-          and \<open>card M' \<le> card M \<and> (\<forall>m\<in>M'. D' (g m, g' m)) \<Longrightarrow> D (prod g M', prod g' M')\<close>
-        for M' :: \<open>'a set\<close> and g g'
-          sorry
-          (* TODO from Manuel: broken because I deleted an inconsistent assumption *)
-        then have D'_sum_D: \<open>(\<forall>m\<in>M. D' (g m, g' m)) \<Longrightarrow> D (prod g M, prod g' M)\<close> for g g'
-          by auto
+        \<comment> \<open>Metric replacement for the (false in general) prod_uniformity step: \<open>D\<close> contains a
+            metric ball of radius \<open>eD\<close>; choose \<open>C\<close> bounding all \<open>b a\<close> (a \<in> M) and \<open>\<delta> \<le> 1\<close> from
+            \<open>prod_close_of_factors_close\<close> so that \<open>\<delta>\<close>-close, \<open>C\<close>-bounded factors give \<open>D\<close>-close products.\<close>
+        from D_uni obtain eD where eD0: \<open>eD > 0\<close>
+          and eD_D: \<open>\<And>x y::'c. dist x y < eD \<Longrightarrow> D (x, y)\<close>
+          by (auto simp: eventually_uniformity_metric)
+        define C where \<open>C = Max (insert 1 ((\<lambda>a. norm (b a) + 1) ` M))\<close>
+        have C1: \<open>C \<ge> 1\<close> using \<open>finite M\<close> by (simp add: C_def)
+        have bC: \<open>norm (b a) + 1 \<le> C\<close> if \<open>a \<in> M\<close> for a
+          using that \<open>finite M\<close> by (simp add: C_def)
+        obtain \<delta>0 where \<delta>00: \<open>\<delta>0 > 0\<close>
+          and \<delta>0_prod: \<open>\<And>h h'::'a\<Rightarrow>'c. (\<forall>m\<in>M. norm (h m) \<le> C \<and> norm (h' m) \<le> C \<and> dist (h m) (h' m) < \<delta>0)
+                          \<Longrightarrow> dist (prod h M) (prod h' M) < eD\<close>
+          using prod_close_of_factors_close[OF \<open>finite M\<close> C1 eD0] by blast
+        define \<delta> where \<open>\<delta> = min \<delta>0 1\<close>
+        have \<delta>0: \<open>\<delta> > 0\<close> using \<delta>00 by (simp add: \<delta>_def)
+        define D' where \<open>D' = (\<lambda>(x::'c,y::'c). dist x y < \<delta>)\<close>
+        have D'_uni: \<open>eventually D' uniformity\<close>
+          unfolding D'_def using \<delta>0 by (auto simp: eventually_uniformity_metric)
 
         obtain Ha where \<open>Ha a \<supseteq> Ga a\<close> and Ha_fin: \<open>finite (Ha a)\<close> and Ha_B: \<open>Ha a \<subseteq> B a\<close>
           and D'_sum_Ha: \<open>Ha a \<subseteq> L \<Longrightarrow> L \<subseteq> B a \<Longrightarrow> finite L \<Longrightarrow> D' (b a, prod (\<lambda>b. f (a,b)) L)\<close> if \<open>a \<in> A\<close> for a L
@@ -1520,10 +1669,33 @@ proof -
             using that by (auto simp: Ha'_def)
           then have *: \<open>(\<Prod>(a,b)\<in>H. f (a,b)) = (\<Prod>a\<in>M. \<Prod>b\<in>Ha' a. f (a,b))\<close>
             by (simp add: \<open>finite M\<close> prod.Sigma)
-          have \<open>D' (b a, prod (\<lambda>b. f (a,b)) (Ha' a))\<close> if \<open>a \<in> M\<close> for a
+          have D'close: \<open>D' (b a, prod (\<lambda>b. f (a,b)) (Ha' a))\<close> if \<open>a \<in> M\<close> for a
             using D'_sum_Ha \<open>M \<subseteq> A\<close> that by auto
+          \<comment> \<open>Both factors are \<open>\<delta>\<close>-close and \<open>C\<close>-bounded, so the products are \<open>eD\<close>-close, hence \<open>D\<close>-related.\<close>
+          have bnd: \<open>norm (b a) \<le> C \<and> norm (prod (\<lambda>b. f (a,b)) (Ha' a)) \<le> C
+                     \<and> dist (b a) (prod (\<lambda>b. f (a,b)) (Ha' a)) < \<delta>0\<close> if \<open>a \<in> M\<close> for a
+          proof -
+            have d1: \<open>dist (b a) (prod (\<lambda>b. f (a,b)) (Ha' a)) < \<delta>\<close>
+              using D'close[OF that] by (simp add: D'_def)
+            have nb: \<open>norm (b a) \<le> C\<close> using bC[OF that] by simp
+            have \<open>norm (prod (\<lambda>b. f (a,b)) (Ha' a)) \<le> norm (b a) + dist (b a) (prod (\<lambda>b. f (a,b)) (Ha' a))\<close>
+            proof -
+              have \<open>norm (prod (\<lambda>b. f (a,b)) (Ha' a))
+                      = norm (b a + (prod (\<lambda>b. f (a,b)) (Ha' a) - b a))\<close> by simp
+              also have \<open>\<dots> \<le> norm (b a) + norm (prod (\<lambda>b. f (a,b)) (Ha' a) - b a)\<close>
+                by (rule norm_triangle_ineq)
+              also have \<open>norm (prod (\<lambda>b. f (a,b)) (Ha' a) - b a) = dist (b a) (prod (\<lambda>b. f (a,b)) (Ha' a))\<close>
+                by (simp add: dist_norm norm_minus_commute)
+              finally show ?thesis by simp
+            qed
+            also have \<open>\<dots> \<le> norm (b a) + 1\<close> using d1 by (simp add: \<delta>_def)
+            also have \<open>\<dots> \<le> C\<close> using bC[OF that] by simp
+            finally show ?thesis using nb d1 by (simp add: \<delta>_def)
+          qed
+          have \<open>dist (\<Prod>a\<in>M. b a) (\<Prod>a\<in>M. prod (\<lambda>b. f (a,b)) (Ha' a)) < eD\<close>
+            by (rule \<delta>0_prod) (use bnd in blast)
           then have \<open>D (\<Prod>a\<in>M. b a, \<Prod>a\<in>M. prod (\<lambda>b. f (a,b)) (Ha' a))\<close>
-            by (rule_tac D'_sum_D, auto)
+            by (rule eD_D)
           with * show ?thesis
             by auto
         qed
@@ -3581,38 +3753,21 @@ next
   finally show "g multipliable_on A" .
 qed
 
-(*Given the complexity analysis:
+text \<open>\<open>has_setprod_Sigma'\<close> was a variant of \<open>has_setprod_Sigma\<close> at the more general type class
+  \<open>{comm_monoid_mult, semidom, topological_semigroup_mult, t2_space, uniform_space,
+  uniform_topological_group_add}\<close>. That generalisation is not available: the sum analogue uses
+  uniform continuity of \<open>+\<close> (from \<open>uniform_topological_group_add\<close>), whereas \<open>*\<close> is not uniformly
+  continuous on \<^term>\<open>UNIV\<close>. Following Manuel's advice to "switch to \<^class>\<open>real_normed_field\<close>", the
+  lemma is now just an alias of \<open>has_setprod_Sigma\<close> (same statement); it was never used elsewhere
+  with the broader type class.\<close>
 
-1. has_setprod_Sigma' (line 3486): This requires proving that finite products can be decomposed over Sigma types in a general topological ring setting. The existing proof for real_normed_field already has a sorry (at line 1388). The generalization requires controlling finite products using the uniform additive group structure, which is a non-trivial research problem.
-
-2. uniform_limit_prodinf (line 3585): Requires Cauchy-type theorems for products.
-
-3. strongly_multipliable_on_iff_abs_multipliable_on_complex (line 3687): Requires complex logarithm branch cut analysis.
-
-All three remaining sorries are research-level problems with TODO notes from the original author (Manuel). Let me provide a detailed analysis of what would be needed for has_setprod_Sigma':
-
----
-
-Analysis of has_setprod_Sigma'
-
-The lemma has_setprod_Sigma' generalizes has_setprod_Sigma from real_normed_field to:
-{comm_monoid_mult, semidom, topological_semigroup_mult, t2_space, uniform_space, uniform_topological_group_add}
-
-Why it's hard
-
-The analogous result for sums (has_sum_Sigma') works because:
-\<bullet> uniform_topological_group_add gives uniform continuity of addition
-\<bullet> This enables sum_uniformity: the "splitting lemma" that controls \<Sum> a\<^sub>i - \<Sum> b\<^sub>i uniformly when each a\<^sub>i \<approx> b\<^sub>i
-
-For products, we only have topological_semigroup_mult (continuity, not uniform continuity). The existing prod_uniformity (line 1264) requires uniformly_continuous_on UNIV (\<lambda>(x,y). x*y), which is not available in this type class.
-*)
 lemma has_setprod_Sigma':
   fixes A :: "'a set" and B :: "'a \<Rightarrow> 'b set"
-    and f :: \<open>'a \<times> 'b \<Rightarrow> 'c::{comm_monoid_mult, semidom, topological_semigroup_mult, t2_space, uniform_space, uniform_topological_group_add}\<close>
+    and f :: \<open>'a \<times> 'b \<Rightarrow> 'c::real_normed_field\<close>
   assumes multipliableAB: "(f has_setprod a) (Sigma A B)"
   assumes multipliableB: \<open>\<And>x. x\<in>A \<Longrightarrow> ((\<lambda>y. f (x, y)) has_setprod (b x)) (B x)\<close>
   shows "(b has_setprod a) A"
-  sorry
+  by (rule has_setprod_Sigma[OF multipliableAB multipliableB])
 
 
 
