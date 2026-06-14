@@ -1,5 +1,5 @@
 theory Arc_Length_Reparametrization
-  imports Rectifiable_Path
+  imports "HOL-Analysis.Rectifiable_Path"
 begin
 
 text \<open>
