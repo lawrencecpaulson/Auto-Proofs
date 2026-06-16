@@ -11,6 +11,7 @@ section \<open>Library material\<close>
 text \<open>The pushforward of (planar) Lebesgue measure under \<open>(x,y) \<mapsto> Complex x y\<close> is the
   Lebesgue measure on \<^typ>\<open>complex\<close>. This is the mathematical content of the transport below.\<close>
 
+(*in Lebesgue_Measure*)
 lemma lborel_distr_complex_pair:
   "distr (lborel :: (real \<times> real) measure) borel (\<lambda>(x,y). Complex x y) = (lborel :: complex measure)"
 proof (rule lborel_eqI[symmetric])
@@ -59,6 +60,7 @@ text \<open>A general, reusable kernel: if \<open>f\<close> and \<open>g\<close>
   to be done by hand because the two spaces are \emph{different types} (so the same-type
   @{thm [source] measure_linear_sufficient} does not directly apply).\<close>
 
+(*in Lebesgue_Measure*)
 lemma measure_linear_bij_image_transfer:
   fixes f :: "'a::euclidean_space \<Rightarrow> 'b::euclidean_space"
   assumes g_meas: "g \<in> lborel \<rightarrow>\<^sub>M lborel"
@@ -102,10 +104,7 @@ proof -
     using emeas by (simp add: measure_def)
 qed
 
-text \<open>The transport from pairs of reals to type \<^typ>\<open>complex\<close> is now just an application:
-  \<open>(x,y) \<mapsto> Complex x y\<close> and \<open>z \<mapsto> (Re z, Im z)\<close> are mutually inverse, and
-  @{thm [source] lborel_distr_complex_pair} provides the measure-preservation hypothesis.\<close>
-
+(*in Lebesgue_Measure*)
 lemma measure_Complex_image:
   fixes S :: "(real \<times> real) set"
   assumes "S \<in> lmeasurable"
@@ -4390,6 +4389,7 @@ qed
 text \<open>Cavalieri principle (general, on the plane \<^typ>\<open>real \<times> real\<close>): the subgraph of a
   nonnegative continuous function is Lebesgue measurable, with measure equal to its integral.\<close>
 
+(*Interval_Integral*)
 lemma has_integral_area_under_curve_real:
   fixes f :: "real \<Rightarrow> real"
   assumes "a \<le> b"
@@ -4454,6 +4454,7 @@ qed
 text \<open>The version used in this development phrases the subgraph in the complex plane; it is a
   direct corollary via @{thm [source] measure_Complex_image}.\<close>
 
+(*Interval_Integral*)
 lemma has_integral_area_under_curve:
   fixes f :: "real \<Rightarrow> real"
   assumes "a \<le> b"
@@ -4480,6 +4481,7 @@ proof -
        = integral {a..b} f" .
 qed
 
+(*Equivalence_Measurable_On_Borel*)
 lemma lebesgue_measurable_ordinate_set_le:
   fixes f :: "real \<Rightarrow> real"
   assumes "f measurable_on UNIV"
@@ -4554,6 +4556,7 @@ proof -
   qed
 qed
 
+(*Equivalence_Measurable_On_Borel*)
 lemma lebesgue_measurable_ordinate_set_lt:
   fixes f :: "real \<Rightarrow> real"
   assumes "f measurable_on UNIV"
@@ -4587,6 +4590,7 @@ proof -
     by (intro sets.countable_UN''[OF countable_rat]) (use meas_q in auto)
 qed
 
+(*Equivalence_Measurable_On_Borel*)
 lemma negligible_measurable_function_graph:
   fixes f :: "real \<Rightarrow> real"
   assumes "f measurable_on UNIV"
