@@ -4530,9 +4530,9 @@ lemma connected_subset_arc_pair:
   fixes g h :: "real \<Rightarrow> 'a::euclidean_space"
   assumes "arc g" "arc h"
     "pathstart g = pathstart h" "pathfinish g = pathfinish h"
-    "path_image g \<inter> path_image h = {pathstart g, pathfinish g}"
-    "connected S" "S \<subseteq> path_image g \<union> path_image h"
-    "pathstart g \<in> S" "pathfinish g \<in> S"
+    and pai_eq: "path_image g \<inter> path_image h = {pathstart g, pathfinish g}"
+    "connected S" and Ssub: "S \<subseteq> path_image g \<union> path_image h"
+    and "pathstart g \<in> S" "pathfinish g \<in> S"
   shows "path_image g \<subseteq> S \<or> path_image h \<subseteq> S"
 proof (rule ccontr)
   assume "\<not> (path_image g \<subseteq> S \<or> path_image h \<subseteq> S)"
@@ -4554,116 +4554,59 @@ proof (rule ccontr)
     using q(1) by (simp add: path_image_def image_Un [symmetric]) (metis ivl_disj_un_two_touch(4))
   define E1 where "E1 = S - (path_image (subpath p 1 g) \<union> path_image (subpath q 1 h))"
   define E2 where "E2 = S - (path_image (subpath 0 p g) \<union> path_image (subpath 0 q h))"
-  have cl_gp1: "closed (path_image (subpath p 1 g))"
-    using pathg p(1) by (simp add: closed_path_image path_subpath)
-  have cl_hq1: "closed (path_image (subpath q 1 h))"
-    using pathh q(1) by (simp add: closed_path_image path_subpath)
-  have cl_g0p: "closed (path_image (subpath 0 p g))"
-    using pathg p(1) by (simp add: closed_path_image path_subpath)
-  have cl_h0q: "closed (path_image (subpath 0 q h))"
-    using pathh q(1) by (simp add: closed_path_image path_subpath)
   have openE1: "openin (top_of_set S) E1"
   proof -
     have "E1 = S \<inter> (- (path_image (subpath p 1 g) \<union> path_image (subpath q 1 h)))"
       unfolding E1_def by blast
-    moreover have "open (- (path_image (subpath p 1 g) \<union> path_image (subpath q 1 h)))"
-      using cl_gp1 cl_hq1 by blast
-    ultimately show ?thesis by (simp add: openin_open_Int)
+    moreover have "closed (path_image (subpath p 1 g) \<union> path_image (subpath q 1 h))"
+      using p q pathg pathh by (force intro: closed_path_image)
+    ultimately show ?thesis by blast
   qed
   have openE2: "openin (top_of_set S) E2"
   proof -
     have "E2 = S \<inter> (- (path_image (subpath 0 p g) \<union> path_image (subpath 0 q h)))"
       unfolding E2_def by blast
-    moreover have "open (- (path_image (subpath 0 p g) \<union> path_image (subpath 0 q h)))"
-      using cl_g0p cl_h0q by blast
-    ultimately show ?thesis by (simp add: openin_open_Int)
+    moreover have "closed (path_image (subpath 0 p g) \<union> path_image (subpath 0 q h))"
+      using p q pathg pathh by (force intro: closed_path_image)
+    ultimately show ?thesis by blast
   qed
-  have injg: "inj_on g {0..1}" using assms(1) by (simp add: arc_def)
-  have injh: "inj_on h {0..1}" using assms(2) by (simp add: arc_def)
+  have injg: "inj_on g {0..1}" and injh: "inj_on h {0..1}" using assms by (simp_all add: arc_def)
   have p_pos: "p > 0"
-  proof (rule ccontr)
-    assume "\<not> p > 0" then have "p = 0" using p(1) by simp
-    then have "g p = pathstart g" by (simp add: pathstart_def)
-    then show False using gp assms(8) by simp
-  qed
-  have q_pos: "q > 0"
-  proof (rule ccontr)
-    assume "\<not> q > 0" then have "q = 0" using q(1) by simp
-    then have "h q = pathstart h" by (simp add: pathstart_def)
-    then show False using hq assms(8) assms(3) by simp
-  qed
-  have p_lt1: "p < 1"
-  proof (rule ccontr)
-    assume "\<not> p < 1" then have "p = 1" using p(1) by simp
-    then have "g p = pathfinish g" by (simp add: pathfinish_def)
-    then show False using gp assms(9) by simp
-  qed
-  have q_lt1: "q < 1"
-  proof (rule ccontr)
-    assume "\<not> q < 1" then have "q = 1" using q(1) by simp
-    then have "h q = pathfinish h" by (simp add: pathfinish_def)
-    then show False using hq assms(9) assms(4) by simp
-  qed
+    using assms pg p by (force simp: pathstart_def)
+  have "q > 0"
+    using assms ph q by (force simp: pathstart_def)
+  have "p < 1"
+    using assms pg p by (force simp: pathfinish_def)
+  have "q < 1"
+    using assms ph q by (force simp: pathfinish_def)
   have ne_E1: "pathstart g \<in> E1"
   proof -
     have "g 0 \<notin> g ` {p..1}"
-    proof
-      assume "g 0 \<in> g ` {p..1}"
-      then obtain t where t: "t \<in> {p..1}" "g 0 = g t" by auto
-      have "0 = t" using injg t p(1) p_pos by (force simp: inj_on_def)
-      then show False using t(1) p_pos by simp
-    qed
+      using injg p(1) \<open>p > 0\<close> by (force simp: inj_on_def)
     moreover have "g 0 \<notin> h ` {q..1}"
-    proof
-      assume "g 0 \<in> h ` {q..1}"
-      then have "h 0 \<in> h ` {q..1}" using assms(3) by (simp add: pathstart_def)
-      then obtain t where t: "t \<in> {q..1}" "h 0 = h t" by auto
-      have "0 = t" using injh t q(1) q_pos by (force simp: inj_on_def)
-      then show False using t(1) q_pos by simp
-    qed
+      using injh q(1) \<open>q > 0\<close> assms(3) by (fastforce simp: pathstart_def inj_on_def)
     ultimately show ?thesis
-      unfolding E1_def using assms(8) img_gp1 img_hq1 by (simp add: pathstart_def)
+      using \<open>pathstart g \<in> S\<close> img_gp1 img_hq1 by (simp add: E1_def pathstart_def)
   qed
   have ne_E2: "pathfinish g \<in> E2"
   proof -
     have "g 1 \<notin> g ` {0..p}"
-    proof
-      assume "g 1 \<in> g ` {0..p}"
-      then obtain t where t: "t \<in> {0..p}" "g 1 = g t" by auto
-      have "1 = t" using injg t p(1) by (force simp: inj_on_def)
-      then show False using t(1) p_lt1 by simp
-    qed
+      using injg \<open>p < 1\<close> p(1) by (force simp: inj_on_def)
     moreover have "g 1 \<notin> h ` {0..q}"
-    proof
-      assume "g 1 \<in> h ` {0..q}"
-      then have "h 1 \<in> h ` {0..q}" using assms(4) by (simp add: pathfinish_def)
-      then obtain t where t: "t \<in> {0..q}" "h 1 = h t" by auto
-      have "1 = t" using injh t q(1) by (force simp: inj_on_def)
-      then show False using t(1) q_lt1 by simp
-    qed
-    moreover have "pathfinish g \<in> S" using assms(9) .
+      by (smt (verit) arcD assms(2,4) atLeastAtMost_iff imageE pathfinish_def \<open>q < 1\<close>)
     ultimately show ?thesis
-      unfolding E2_def using img_g0p img_h0q by (simp add: pathfinish_def)
+      using \<open>pathfinish g \<in> S\<close> img_g0p img_h0q by (simp add: E2_def pathfinish_def)
   qed
   have ps_g: "pathstart g = g 0" by (simp add: pathstart_def)
   have pf_g: "pathfinish g = g 1" by (simp add: pathfinish_def)
-  have cross_gh: "\<And>s t. s \<in> {0..1} \<Longrightarrow> t \<in> {0..1} \<Longrightarrow> g s = h t \<Longrightarrow> g s = g 0 \<or> g s = g 1"
-  proof -
-    fix s t assume s: "s \<in> {0..1}" and t: "t \<in> {0..1}" and eq: "g s = h t"
-    have "g s \<in> path_image g" using s by (auto simp: path_image_def)
-    moreover have "g s \<in> path_image h" using t eq by (auto simp: path_image_def)
-    ultimately have "g s \<in> {pathstart g, pathfinish g}" using assms(5) by blast
-    then show "g s = g 0 \<or> g s = g 1" using ps_g pf_g by auto
-  qed
-  have sub_p1: "{p..1} \<subseteq> {0..1}" using p(1) by auto
-  have sub_0p: "{0..p} \<subseteq> {0..1}" using p(1) by auto
-  have sub_q1: "{q..1} \<subseteq> {0..1}" using q(1) by auto
-  have sub_0q: "{0..q} \<subseteq> {0..1}" using q(1) by auto
+  have cross_gh: "g s = g 0 \<or> g s = g 1" 
+    if "s \<in> {0..1}" "t \<in> {0..1}" "g s = h t" for s t
+    using that pf_g ps_g assms(5) by (force simp: path_image_def)
   have gh11: "g 1 = h 1" using assms(4) by (simp add: pathfinish_def)
   have gh00: "g 0 = h 0" using assms(3) by (simp add: pathstart_def)
-  have cover_False: "\<And>x. x \<in> S \<Longrightarrow> x \<in> g ` {p..1} \<union> h ` {q..1} \<Longrightarrow> x \<in> g ` {0..p} \<union> h ` {0..q} \<Longrightarrow> False"
+  have cover_False: False 
+    if xS: "x \<in> S" and inR1: "x \<in> g ` {p..1} \<union> h ` {q..1}" and inR2: "x \<in> g ` {0..p} \<union> h ` {0..q}" for x 
   proof -
-    fix x assume xS: "x \<in> S" and inR1: "x \<in> g ` {p..1} \<union> h ` {q..1}" and inR2: "x \<in> g ` {0..p} \<union> h ` {0..q}"
     from inR1 consider (g1) "x \<in> g ` {p..1}" | (h1) "x \<in> h ` {q..1}" by auto
     then show False
     proof cases
@@ -4674,24 +4617,23 @@ proof (rule ccontr)
       proof cases
         case a
         then obtain t where t: "t \<in> {0..p}" "x = g t" by auto
-        have "s = t" using injg s t sub_p1 sub_0p s(2) t(2) by (force simp: inj_on_def)
+        have "s = t" using injg s t p s(2) t(2) by (force simp: inj_on_def)
         then have "s = p" using s(1) t(1) by simp
         then show False using gp xS s(2) by simp
       next
         case b
         then obtain t where t: "t \<in> {0..q}" "x = h t" by auto
         have eq: "g s = h t" using s(2) t(2) by simp
-        have "g s = g 0 \<or> g s = g 1" using cross_gh s(1) sub_p1 t(1) sub_0q eq by blast
+        have "g s = g 0 \<or> g s = g 1" using cross_gh s(1) p q t(1) eq by (auto intro: order.trans)
         then show False
         proof
           assume "g s = g 0"
-          then have "s = 0" using injg s(1) sub_p1 by (force simp: inj_on_def)
-          then show False using s(1) p_pos by simp
+          then have "s = 0" using injg s(1) p by (force simp: inj_on_def)
+          then show False using s(1) \<open>p > 0\<close> by simp
         next
           assume "g s = g 1"
-          then have "h t = h 1" using eq gh11 by simp
-          then have "t = 1" using injh t(1) sub_0q by (force simp: inj_on_def)
-          then show False using t(1) q_lt1 by simp
+          then have "t = 1" using eq gh11 injh t(1) q by (force simp: inj_on_def)
+          then show False using t(1) \<open>q < 1\<close> by simp
         qed
       qed
     next
@@ -4703,50 +4645,34 @@ proof (rule ccontr)
         case a
         then obtain t where t: "t \<in> {0..p}" "x = g t" by auto
         have eq: "g t = h s" using s(2) t(2) by simp
-        have "g t = g 0 \<or> g t = g 1" using cross_gh t(1) sub_0p s(1) sub_q1 eq by blast
+        have "g t = g 0 \<or> g t = g 1" using cross_gh t(1) p s(1) q eq by (auto intro: order.trans)
         then show False
         proof
           assume "g t = g 1"
-          then have "t = 1" using injg t(1) sub_0p by (force simp: inj_on_def)
-          then show False using t(1) p_lt1 by simp
+          then have "t = 1" using injg t(1) p by (force simp: inj_on_def)
+          then show False using t(1) \<open>p < 1\<close> by simp
         next
           assume "g t = g 0"
-          then have "h s = h 0" using eq gh00 by simp
-          then have "s = 0" using injh s(1) sub_q1 by (force simp: inj_on_def)
-          then show False using s(1) q_pos by simp
+          then have "s = 0" using injh eq gh00 s(1) q by (force simp: inj_on_def)
+          then show False using s(1) \<open>q > 0\<close> by simp
         qed
       next
-        case b
-        then obtain t where t: "t \<in> {0..q}" "x = h t" by auto
-        have "s = t" using injh s t sub_q1 sub_0q s(2) t(2) by (force simp: inj_on_def)
-        then have "s = q" using s(1) t(1) by simp
-        then show False using hq xS s(2) by simp
+        case b then show False
+          using arcD assms(2) ph(2) q(2) s xS by fastforce
       qed
     qed
   qed
   have cover: "S \<subseteq> E1 \<union> E2"
-  proof
-    fix x assume xS: "x \<in> S"
-    show "x \<in> E1 \<union> E2"
-    proof (rule ccontr)
-      assume "x \<notin> E1 \<union> E2"
-      then have "x \<in> g ` {p..1} \<union> h ` {q..1}" and "x \<in> g ` {0..p} \<union> h ` {0..q}"
-        using xS unfolding E1_def E2_def img_gp1 img_hq1 img_g0p img_h0q by auto
-      then show False using cover_False xS by blast
-    qed
-  qed
-  have disjoint: "E1 \<inter> E2 = {}"
-  proof -
-    have "(g ` {p..1} \<union> h ` {q..1}) \<union> (g ` {0..p} \<union> h ` {0..q}) = path_image g \<union> path_image h"
-      using comb_g comb_h by blast
-    moreover have "S \<subseteq> path_image g \<union> path_image h" using assms(7) .
-    ultimately show ?thesis unfolding E1_def E2_def img_gp1 img_hq1 img_g0p img_h0q by blast
-  qed
-  from assms(6) have "\<not> (\<exists>E1 E2. openin (top_of_set S) E1 \<and> openin (top_of_set S) E2 \<and> S \<subseteq> E1 \<union> E2 \<and> E1 \<inter> E2 = {} \<and> E1 \<noteq> {} \<and> E2 \<noteq> {})"
-    by (simp add: connected_openin)
-  moreover have "openin (top_of_set S) E1 \<and> openin (top_of_set S) E2 \<and> S \<subseteq> E1 \<union> E2 \<and> E1 \<inter> E2 = {} \<and> E1 \<noteq> {} \<and> E2 \<noteq> {}"
+    using arcD assms(1) gp cover_False
+    unfolding E1_def E2_def img_gp1 img_hq1 img_g0p img_h0q by blast
+  have "(g ` {p..1} \<union> h ` {q..1}) \<union> (g ` {0..p} \<union> h ` {0..q}) = path_image g \<union> path_image h"
+    using comb_g comb_h by blast
+  with assms(7)  have disjoint: "E1 \<inter> E2 = {}"
+    unfolding E1_def E2_def img_gp1 img_hq1 img_g0p img_h0q by blast
+  have "openin (top_of_set S) E1 \<and> openin (top_of_set S) E2 \<and> S \<subseteq> E1 \<union> E2 \<and> E1 \<inter> E2 = {} \<and> E1 \<noteq> {} \<and> E2 \<noteq> {}"
     using openE1 openE2 cover disjoint ne_E1 ne_E2 by auto
-  ultimately show False by blast
+  with \<open>connected S\<close> show False
+    using connected_openin by blast
 qed
 
 text \<open>If two frontier points of a bounded convex $2$-dimensional set are joined by a frontier arc whose
@@ -4774,10 +4700,7 @@ proof -
   have A_nz: "A \<noteq> 0" using ne by (simp add: A_def)
   define e where "e = inner A ga"
   have eb: "inner A gb = e"
-  proof -
-    have "inner A (gb - ga) = 0" unfolding A_def inner_complex_def by (simp add: algebra_simps)
-    then show ?thesis using e_def by (simp add: inner_diff_right)
-  qed
+    by (auto simp: A_def inner_complex_def e_def algebra_simps)
   have opfr: "open_segment ga gb \<subseteq> frontier S"
   proof (rule ccontr)
     assume "\<not> open_segment ga gb \<subseteq> frontier S"
@@ -4786,28 +4709,21 @@ proof -
       using segint ne by (simp add: midpoint_in_open_segment subsetD)
     have mid_e: "inner A (midpoint ga gb) = e"
       using e_def eb by (simp add: midpoint_def inner_add_right inner_diff_right field_simps)
-    have not_le: "\<not> (path_image D1 \<subseteq> {x. inner A x \<le> e})"
-    proof
-      assume "path_image D1 \<subseteq> {x. inner A x \<le> e}"
-      then have "convex hull (path_image D1) \<subseteq> {x. inner A x \<le> e}"
-        by (simp add: convex_halfspace_le hull_minimal)
-      then have "S \<subseteq> {x. inner A x \<le> e}" using hullD1 by simp
-      then have "interior S \<subseteq> interior {x. inner A x \<le> e}" by (rule interior_mono)
-      also have "interior {x. inner A x \<le> e} = {x. inner A x < e}"
-        using A_nz by (simp add: interior_halfspace_le)
-      finally have "inner A (midpoint ga gb) < e" using mid_int by blast
+    have not_le: False if "path_image D1 \<subseteq> {x. inner A x \<le> e}"
+    proof -
+      have "S \<subseteq> {x. inner A x \<le> e}" 
+        by (metis convex_halfspace_le hullD1 hull_minimal that)
+      then have "inner A (midpoint ga gb) < e" using mid_int
+        by (metis (mono_tags, lifting) A_nz interior_halfspace_le interior_mono 
+            mem_Collect_eq subsetD)
       then show False using mid_e by simp
     qed
-    have not_ge: "\<not> (path_image D1 \<subseteq> {x. e \<le> inner A x})"
-    proof
-      assume "path_image D1 \<subseteq> {x. e \<le> inner A x}"
-      then have "convex hull (path_image D1) \<subseteq> {x. e \<le> inner A x}"
-        by (simp add: convex_halfspace_ge hull_minimal)
-      then have "S \<subseteq> {x. e \<le> inner A x}" using hullD1 by simp
-      then have "interior S \<subseteq> interior {x. e \<le> inner A x}" by (rule interior_mono)
-      also have "interior {x. e \<le> inner A x} = {x. e < inner A x}"
-        using A_nz by (simp add: interior_halfspace_ge)
-      finally have "e < inner A (midpoint ga gb)" using mid_int by blast
+    have not_ge: False if "path_image D1 \<subseteq> {x. e \<le> inner A x}"
+    proof -
+      have "S \<subseteq> {x. e \<le> inner A x}"
+        by (metis convex_halfspace_ge hullD1 hull_minimal that)
+      then have "e < inner A (midpoint ga gb)" using mid_int
+        by (metis A_nz interior_halfspace_ge interior_mono mem_Collect_eq subsetD)
       then show False using mid_e by simp
     qed
     from not_le obtain x1 where x1: "x1 \<in> path_image D1" "inner A x1 > e" by force
@@ -4823,24 +4739,11 @@ proof -
     have gb_rf: "gb \<in> rel_frontier S" using gb_fr relfr by simp
     have wne: "w \<noteq> ga" "w \<noteq> gb" using w(1) by auto
     have triple: "S \<subseteq> {x. inner A x \<le> e} \<or> S \<subseteq> {x. e \<le> inner A x}"
-    proof (rule convex_triple_rel_frontier[OF cvx ga_rf gb_rf w_fr ne])
-      show "ga \<noteq> w" using wne(1) by simp
-      show "gb \<noteq> w" using wne(2) by simp
-      show "inner A ga = e" using e_def by simp
-      show "inner A gb = e" using eb by simp
-      show "inner A w = e" using w(2) by simp
-    qed
-    have D1S: "path_image D1 \<subseteq> S" using D1fr relfr hullD1 hull_subset by (metis frontier_def Diff_subset dual_order.trans)
+      using assms(1,6) convex_triple_rel_frontier e_def eb ga_rf gb_rf w(2) w_fr wne(1,2) by blast
+    have D1S: "path_image D1 \<subseteq> S"
+      by (metis hullD1 hull_subset) 
     from triple show False
-    proof
-      assume "S \<subseteq> {x. inner A x \<le> e}"
-      then have "path_image D1 \<subseteq> {x. inner A x \<le> e}" using D1S by blast
-      then show False using not_le by simp
-    next
-      assume "S \<subseteq> {x. e \<le> inner A x}"
-      then have "path_image D1 \<subseteq> {x. e \<le> inner A x}" using D1S by blast
-      then show False using not_ge by simp
-    qed
+      using D1S local.not_le not_ge by blast
   qed
   have "{ga, gb} \<subseteq> frontier S" using ga_fr gb_fr by simp
   then show ?thesis using opfr by (simp add: closed_segment_eq_open)
