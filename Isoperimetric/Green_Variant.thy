@@ -2140,10 +2140,9 @@ lemma not_all_above:
 proof -
   have seg_infinite: "\<not> finite (open_segment a b)"
     using Reb assms by force
-  have Im_b: "Im b = 0" using b(3) assms by simp
   have seg_Im0: "open_segment a b \<subseteq> {z. Im z = 0}"
-    using assms Im_b by (auto simp: in_segment complex_eq_iff)
-  have seg_in_closure: "open_segment a b \<subseteq> closure (inside (path_image g))"
+    using assms b by (auto simp: in_segment complex_eq_iff)
+  then have seg_in_closure: "open_segment a b \<subseteq> closure (inside (path_image g))"
     by (metis b(1) conv convex_contains_open_segment convex_convex_hull convex_hull_eq_closure_inside
         g hull_inc pathfinish_in_path_image)
   have frontier_eq: "frontier (inside (path_image g)) = path_image g"
@@ -2151,25 +2150,20 @@ proof -
 
   show ?thesis
   proof
-    assume above: "path_image g \<subseteq> {z. 0 \<le> Im z}"
-    then have hull_above: "convex hull (path_image g) \<subseteq> {z. 0 \<le> Im z}"
+    assume "path_image g \<subseteq> {z. 0 \<le> Im z}"
+    then have "convex hull (path_image g) \<subseteq> {z. 0 \<le> Im z}"
       by (intro hull_minimal convex_halfspace_Im_ge)
-    then have inside_above: "inside (path_image g) \<subseteq> {z. 0 < Im z}"
-    proof -
-      have sub: "inside (path_image g) \<subseteq> {z. (0::real) \<le> \<i> \<bullet> z}"
-        using hull_above  closure_subset
-        using conv convex_hull_eq_closure_inside g by auto
-      then have "inside (path_image g) \<subseteq> interior {z. (0::real) \<le> \<i> \<bullet> z}"
-        using interior_maximal open_inside Jordan_inside_outside g by blast
-      also have "\<dots> = {z. 0 < \<i> \<bullet> z}"
-        by (rule interior_halfspace_ge) simp
-      finally show ?thesis by (simp add: complex_inner_i_right)
-    qed
-    have "open_segment a b \<subseteq> path_image g"
-      using frontier_def frontier_eq inside_above interior_open open_inside seg_Im0 seg_in_closure
-      by (smt (verit, best) DiffI Jordan_inside_outside g mem_Collect_eq subset_eq)
+    then have "inside (path_image g) \<subseteq> {z. (0::real) \<le> \<i> \<bullet> z}"
+      using closure_subset conv convex_hull_eq_closure_inside g by auto
+    then have "inside (path_image g) \<subseteq> interior {z. (0::real) \<le> \<i> \<bullet> z}"
+      using interior_maximal open_inside Jordan_inside_outside g by blast
+    also have "\<dots> = {z. 0 < \<i> \<bullet> z}"
+      by (rule interior_halfspace_ge) simp
+    finally have "inside (path_image g) \<subseteq> {z. 0 < Im z}"
+      by simp
     then have "open_segment a b \<subseteq> {z \<in> path_image g. Im z = 0}"
-      using seg_Im0 by auto
+      using Jordan_inside_outside[of g] frontier_def g interior_open seg_Im0 seg_in_closure
+      by fastforce
     also have "\<dots> \<subseteq> {0, b}"
       using real_on_curve by blast
     finally show False using seg_infinite finite_subset by blast
