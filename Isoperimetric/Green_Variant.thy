@@ -516,6 +516,8 @@ lemma mainly_trouble_free: "(g' has_integral g d - g c) {c..d}"
   if "c \<le> d" and "{c..d} \<subseteq> {0..2*pi}" and "\<And>x. x \<in> {c<..<d} \<Longrightarrow> sin (x - a) \<noteq> 0"
   for c d
 proof -
+  note cd_le = \<open>c \<le> d\<close> and cd_sub = \<open>{c..d} \<subseteq> {0..2*pi}\<close>
+    and sin_nz = \<open>\<And>x. x \<in> {c<..<d} \<Longrightarrow> sin (x - a) \<noteq> 0\<close>
   have "g' absolutely_integrable_on {c..d}"
   proof -
     have f'2_abs: "(\<lambda>x. (f' x)\<^sup>2) absolutely_integrable_on {0..2*pi}"
@@ -523,8 +525,6 @@ proof -
     have ffa_abs: "(\<lambda>x. (f x - f a)\<^sup>2) absolutely_integrable_on {0..2*pi}"
       by (rule absolutely_integrable_continuous_real)
         (intro continuous_intros contf)
-    note cd_le = \<open>c \<le> d\<close> and cd_sub = \<open>{c..d} \<subseteq> {0..2*pi}\<close>
-      and sin_nz = \<open>\<And>x. x \<in> {c<..<d} \<Longrightarrow> sin (x - a) \<noteq> 0\<close>
     have g'_int_sub: "g' integrable_on {u..v}" if uv_sub: "{u..v} \<subseteq> {c<..<d}" for u v
     proof (cases "u \<le> v")
       case True
@@ -574,8 +574,6 @@ proof -
   qed
   show ?thesis
   proof -
-    note cd_le = \<open>c \<le> d\<close> and cd_sub = \<open>{c..d} \<subseteq> {0..2*pi}\<close>
-      and sin_nz = \<open>\<And>x. x \<in> {c<..<d} \<Longrightarrow> sin (x - a) \<noteq> 0\<close>
     have g'_int: "g' integrable_on {c..d}"
       using \<open>g' absolutely_integrable_on {c..d}\<close> set_lebesgue_integral_eq_integral by blast
     have g_cont_cd: "continuous_on {c..d} g"
@@ -729,168 +727,93 @@ proof -
   show "(\<lambda>x. (f x)\<^sup>2) integrable_on {0..2*pi}"
     by (intro integrable_continuous_interval continuous_on_power contf)
 
-  show "integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2) \<le> integral {0..2*pi} (\<lambda>x. (f' x)\<^sup>2)"
-  proof -
-    \<comment> \<open>Zeros of sin(x - a) in [0, 2\<pi>] are exactly at x = a and x = a + \<pi>.\<close>
-    have sin_nz_1: "sin (x - a) \<noteq> 0" if "a + pi < x" "x < 2*pi" for x
-      by (smt (verit) \<open>0 \<le> a\<close> sin_lt_zero that)
-    have sin_nz_2: "sin (x - a) \<noteq> 0" if "a < x" "x < a + pi" for x
-      by (smt (verit, ccfv_threshold) sin_gt_zero that)
-    have sin_nz_3: "sin (x - a) \<noteq> 0" if "0 < x" "x < a" for x
-      using \<open>a < pi\<close> sin_zero_pi_iff that by auto
-    \<comment> \<open>Apply \<open>mainly_trouble_free\<close> on three intervals.\<close>
-    have int1: "(g' has_integral g (2*pi) - g (a + pi)) {a + pi..2*pi}"
-      by (rule mainly_trouble_free) (use \<open>0 \<le> a\<close> \<open>a < pi\<close> sin_nz_1 in auto)
-    have int2: "(g' has_integral g (a + pi) - g a) {a..a + pi}"
-      by (rule mainly_trouble_free) (use \<open>0 \<le> a\<close> \<open>a < pi\<close> sin_nz_2 in auto)
-    have int3: "(g' has_integral g a - g 0) {0..a}"
-      by (rule mainly_trouble_free) (use \<open>0 \<le> a\<close> \<open>a < pi\<close> sin_nz_3 in auto)
-    \<comment> \<open>Combine the three integrals using \<open>has_integral_combine\<close>.\<close>
-    have api_le: "a \<le> a + pi" and api_le2: "a + pi \<le> 2*pi"
-      using \<open>0 \<le> a\<close> \<open>a < pi\<close> by auto
-    have a_le_2pi: "a \<le> 2*pi" using \<open>0 \<le> a\<close> \<open>a < pi\<close> by auto
-    have int12: "(g' has_integral (g (a + pi) - g a) + (g (2*pi) - g (a + pi))) {a..2*pi}"
-      by (rule has_integral_combine[OF api_le api_le2 int2 int1])
-    have int_all: "(g' has_integral (g a - g 0) + ((g (a + pi) - g a) + (g (2*pi) - g (a + pi)))) {0..2*pi}"
-      by (rule has_integral_combine[OF \<open>0 \<le> a\<close> a_le_2pi int3 int12])
-    \<comment> \<open>Simplify: the telescoping sum gives $g(2\pi) - g(0)$.\<close>
-    have int_all': "(g' has_integral g (2*pi) - g 0) {0..2*pi}"
-      using int_all by (simp add: algebra_simps)
-    \<comment> \<open>Show $g(2\pi) = g(0)$, so the integral of $g'$ is $0$.\<close>
-    have "g (2*pi) = g 0"
-      unfolding g_def using feq by (simp add: tan_def)
-    hence g'_zero: "(g' has_integral 0) {0..2*pi}"
-      using int_all' by simp
-    \<comment> \<open>Extract the inequality from $\int g' = 0$.\<close>
-    have ffa_int: "(\<lambda>x. (f x - f a)\<^sup>2) integrable_on {0..2*pi}"
-      by (intro integrable_continuous_interval continuous_intros contf)
-    have g'_int: "g' integrable_on {0..2*pi}"
-      using g'_zero by (auto simp: has_integral_integrable_integral)
-    have diff_int: "((\<lambda>x. (f' x)\<^sup>2 - g' x) has_integral integral {0..2*pi} (\<lambda>x. (f' x)\<^sup>2) - 0) {0..2*pi}"
-      by (rule has_integral_diff[OF integrable_integral[OF f'2] g'_zero])
-    have diff_eq: "(f' x)\<^sup>2 - g' x = (f x - f a)\<^sup>2 + (f' x - (f x - f a) / tan (x - a))\<^sup>2" for x
-      unfolding g'_def by (simp add: algebra_simps)
-    have diff_ge: "(f' x)\<^sup>2 - g' x \<ge> (f x - f a)\<^sup>2" for x
-      unfolding diff_eq by (simp add: zero_le_power2)
-    have "integral {0..2*pi} (\<lambda>x. (f x - f a)\<^sup>2) \<le> integral {0..2*pi} (\<lambda>x. (f' x)\<^sup>2 - g' x)"
-      by (rule integral_le[OF ffa_int]) (use diff_int has_integral_integrable_integral in \<open>auto intro: diff_ge\<close>)
-    also have "\<dots> = integral {0..2*pi} (\<lambda>x. (f' x)\<^sup>2)"
-      using diff_int has_integral_integrable_integral by auto
-    finally have ineq_ffa: "integral {0..2*pi} (\<lambda>x. (f x - f a)\<^sup>2) \<le> integral {0..2*pi} (\<lambda>x. (f' x)\<^sup>2)" .
-    \<comment> \<open>Show $\int f(x)^2 \le \int (f(x)-f(a))^2$ using $\int f = 0$.\<close>
-    have "(f x)\<^sup>2 \<le> (f x - f a)\<^sup>2 + 2 * f a * f x - (f a)\<^sup>2" for x
-      by (simp add: power2_eq_square algebra_simps)
-    have fx_eq: "(f x)\<^sup>2 = (f x - f a)\<^sup>2 + 2 * f a * f x - (f a)\<^sup>2" for x
-      by (simp add: power2_eq_square algebra_simps)
-    have f_int: "f integrable_on {0..2*pi}"
-      by (rule integrable_continuous_interval[OF contf])
-    have f_integral_0: "integral {0..2*pi} f = 0"
-      using f0 by (auto simp: has_integral_integrable_integral)
-    have "integral {0..2*pi} (\<lambda>x. (f x - f a)\<^sup>2)
-        = integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2) - 2 * f a * integral {0..2*pi} f + (f a)\<^sup>2 * (2*pi)"
-    proof -
-      have eq: "(f x - f a)\<^sup>2 = (f x)\<^sup>2 - 2 * f a * f x + (f a)\<^sup>2" for x
-        by (simp add: power2_eq_square algebra_simps)
-      have fx2_int: "(\<lambda>x. (f x)\<^sup>2) integrable_on {0..2*pi}"
-        by (intro integrable_continuous_interval continuous_intros contf)
-      have ffa_2fa_int: "(\<lambda>x. 2 * f a * f x) integrable_on {0..2*pi}"
-        using f_int integrable_on_mult_right by blast
-      have "integral {0..2*pi} (\<lambda>x. (f x - f a)\<^sup>2) = integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2 - 2 * f a * f x + (f a)\<^sup>2)"
-        by (simp add: eq)
-      also have "\<dots> = integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2 - 2 * f a * f x) + integral {0..2*pi} (\<lambda>x. (f a)\<^sup>2)"
-        by (rule Henstock_Kurzweil_Integration.integral_add)
-          (auto intro: integrable_diff fx2_int ffa_2fa_int)
-      also have "integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2 - 2 * f a * f x) =
+\<comment> \<open>Zeros of sin(x - a) in [0, 2\<pi>] are exactly at x = a and x = a + \<pi>.\<close>
+  have sin_nz_1: "sin (x - a) \<noteq> 0" if "a + pi < x" "x < 2*pi" for x
+    by (smt (verit) \<open>0 \<le> a\<close> sin_lt_zero that)
+  have sin_nz_2: "sin (x - a) \<noteq> 0" if "a < x" "x < a + pi" for x
+    by (smt (verit, ccfv_threshold) sin_gt_zero that)
+  have sin_nz_3: "sin (x - a) \<noteq> 0" if "0 < x" "x < a" for x
+    using \<open>a < pi\<close> sin_zero_pi_iff that by auto
+      \<comment> \<open>Apply \<open>mainly_trouble_free\<close> on three intervals.\<close>
+  have int1: "(g' has_integral g (2*pi) - g (a + pi)) {a + pi..2*pi}"
+    by (rule mainly_trouble_free) (use \<open>0 \<le> a\<close> \<open>a < pi\<close> sin_nz_1 in auto)
+  have int2: "(g' has_integral g (a + pi) - g a) {a..a + pi}"
+    by (rule mainly_trouble_free) (use \<open>0 \<le> a\<close> \<open>a < pi\<close> sin_nz_2 in auto)
+  have int3: "(g' has_integral g a - g 0) {0..a}"
+    by (rule mainly_trouble_free) (use \<open>0 \<le> a\<close> \<open>a < pi\<close> sin_nz_3 in auto)
+      \<comment> \<open>Combine the three integrals using \<open>has_integral_combine\<close>.\<close>
+  have api_le: "a \<le> a + pi" and api_le2: "a + pi \<le> 2*pi"
+    using \<open>0 \<le> a\<close> \<open>a < pi\<close> by auto
+  have a_le_2pi: "a \<le> 2*pi" using \<open>0 \<le> a\<close> \<open>a < pi\<close> by auto
+  have int12: "(g' has_integral (g (a + pi) - g a) + (g (2*pi) - g (a + pi))) {a..2*pi}"
+    by (rule has_integral_combine[OF api_le api_le2 int2 int1])
+  have int_all: "(g' has_integral (g a - g 0) + ((g (a + pi) - g a) + (g (2*pi) - g (a + pi)))) {0..2*pi}"
+    by (rule has_integral_combine[OF \<open>0 \<le> a\<close> a_le_2pi int3 int12])
+      \<comment> \<open>Simplify: the telescoping sum gives $g(2\pi) - g(0)$.\<close>
+  have int_all': "(g' has_integral g (2*pi) - g 0) {0..2*pi}"
+    using int_all by (simp add: algebra_simps)
+      \<comment> \<open>Show $g(2\pi) = g(0)$, so the integral of $g'$ is $0$.\<close>
+  have "g (2*pi) = g 0"
+    unfolding g_def using feq by (simp add: tan_def)
+  hence g'_zero: "(g' has_integral 0) {0..2*pi}"
+    using int_all' by simp
+      \<comment> \<open>Extract the inequality from $\int g' = 0$.\<close>
+  have ffa_int: "(\<lambda>x. (f x - f a)\<^sup>2) integrable_on {0..2*pi}"
+    by (intro integrable_continuous_interval continuous_intros contf)
+  have g'_int: "g' integrable_on {0..2*pi}"
+    using g'_zero by (auto simp: has_integral_integrable_integral)
+  have diff_int: "((\<lambda>x. (f' x)\<^sup>2 - g' x) has_integral integral {0..2*pi} (\<lambda>x. (f' x)\<^sup>2) - 0) {0..2*pi}"
+    by (rule has_integral_diff[OF integrable_integral[OF f'2] g'_zero])
+  have diff_eq: "(f' x)\<^sup>2 - g' x = (f x - f a)\<^sup>2 + (f' x - (f x - f a) / tan (x - a))\<^sup>2" for x
+    unfolding g'_def by (simp add: algebra_simps)
+  have diff_ge: "(f' x)\<^sup>2 - g' x \<ge> (f x - f a)\<^sup>2" for x
+    unfolding diff_eq by (simp add: zero_le_power2)
+  have "integral {0..2*pi} (\<lambda>x. (f x - f a)\<^sup>2) \<le> integral {0..2*pi} (\<lambda>x. (f' x)\<^sup>2 - g' x)"
+    by (rule integral_le[OF ffa_int]) (use diff_int has_integral_integrable_integral in \<open>auto intro: diff_ge\<close>)
+  also have "\<dots> = integral {0..2*pi} (\<lambda>x. (f' x)\<^sup>2)"
+    using diff_int has_integral_integrable_integral by auto
+  finally have ineq_ffa: "integral {0..2*pi} (\<lambda>x. (f x - f a)\<^sup>2) \<le> integral {0..2*pi} (\<lambda>x. (f' x)\<^sup>2)" .
+      \<comment> \<open>Show $\int f(x)^2 \le \int (f(x)-f(a))^2$ using $\int f = 0$.\<close>
+  have "(f x)\<^sup>2 \<le> (f x - f a)\<^sup>2 + 2 * f a * f x - (f a)\<^sup>2" for x
+    by (simp add: power2_eq_square algebra_simps)
+  have fx_eq: "(f x)\<^sup>2 = (f x - f a)\<^sup>2 + 2 * f a * f x - (f a)\<^sup>2" for x
+    by (simp add: power2_eq_square algebra_simps)
+  have f_int: "f integrable_on {0..2*pi}"
+    by (rule integrable_continuous_interval[OF contf])
+  have f_integral_0: "integral {0..2*pi} f = 0"
+    using f0 by (auto simp: has_integral_integrable_integral)
+  have eq: "(f x - f a)\<^sup>2 = (f x)\<^sup>2 - 2 * f a * f x + (f a)\<^sup>2" for x
+    by (simp add: power2_eq_square algebra_simps)
+  have fx2_int: "(\<lambda>x. (f x)\<^sup>2) integrable_on {0..2*pi}"
+    by (intro integrable_continuous_interval continuous_intros contf)
+  have ffa_2fa_int: "(\<lambda>x. 2 * f a * f x) integrable_on {0..2*pi}"
+    using f_int integrable_on_mult_right by blast
+  have "integral {0..2*pi} (\<lambda>x. (f x - f a)\<^sup>2) = integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2 - 2 * f a * f x + (f a)\<^sup>2)"
+    by (simp add: eq)
+  also have "\<dots> = integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2 - 2 * f a * f x) + integral {0..2*pi} (\<lambda>x. (f a)\<^sup>2)"
+    by (rule Henstock_Kurzweil_Integration.integral_add)
+      (auto intro: integrable_diff fx2_int ffa_2fa_int)
+  also have "integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2 - 2 * f a * f x) =
         integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2) - integral {0..2*pi} (\<lambda>x. 2 * f a * f x)"
-        by (rule Henstock_Kurzweil_Integration.integral_diff[OF fx2_int ffa_2fa_int])
-      also have "integral {0..2*pi} (\<lambda>x. 2 * f a * f x) = 2 * f a * integral {0..2*pi} f"
-        using integral_cmul by simp
-      also have "integral {0..2*pi} (\<lambda>x. (f a)\<^sup>2) = (f a)\<^sup>2 * (2*pi)"
-        by simp
-      finally show ?thesis by linarith
-    qed
-    with f_integral_0 have "integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2) \<le> integral {0..2*pi} (\<lambda>x. (f x - f a)\<^sup>2)"
-      by auto
-    thus ?thesis using ineq_ffa by linarith
-  qed
+    by (rule Henstock_Kurzweil_Integration.integral_diff[OF fx2_int ffa_2fa_int])
+  also have "integral {0..2*pi} (\<lambda>x. 2 * f a * f x) = 0"
+    using integral_cmul by (simp add: f_integral_0)
+  also have "integral {0..2*pi} (\<lambda>x. (f a)\<^sup>2) = (f a)\<^sup>2 * (2*pi)"
+    by simp
+  finally have ffa_eq: "integral {0..2*pi} (\<lambda>x. (f x - f a)\<^sup>2) 
+                      = integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2) + (f a)\<^sup>2 * (2*pi)"
+    by linarith
+  then have ffa_ineq': "integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2) \<le> integral {0..2*pi} (\<lambda>x. (f x - f a)\<^sup>2)"
+    by auto
+  thus "integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2) \<le> integral {0..2*pi} (\<lambda>x. (f' x)\<^sup>2)"
+    using ineq_ffa by linarith
   show "\<exists>c a. \<forall>x \<in> {0..2*pi}. f x = c * sin (x - a)"
     if "integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2) = integral {0..2*pi} (\<lambda>x. (f' x)\<^sup>2)"
   proof -
     \<comment> \<open>From the equality, all intermediate inequalities are equalities.\<close>
-    note eq_hyp = that
-    \<comment> \<open>Re-derive key intermediate facts.\<close>
-    have ffa_2fa_int: "(\<lambda>x. 2 * f a * f x) integrable_on {0..2*pi}"
-      using assms(3) integrable_on_mult_right by blast
-    have fx2_int: "(\<lambda>x. (f x)\<^sup>2) integrable_on {0..2*pi}"
-      by (intro integrable_continuous_interval continuous_intros contf)
-    have ffa_int: "(\<lambda>x. (f x - f a)\<^sup>2) integrable_on {0..2*pi}"
-      by (intro integrable_continuous_interval continuous_intros contf)
-    have ffa_eq: "integral {0..2*pi} (\<lambda>x. (f x - f a)\<^sup>2) = integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2) + (f a)\<^sup>2 * (2*pi)"
-    proof -
-      have eq: "(f x - f a)\<^sup>2 = (f x)\<^sup>2 - 2 * f a * f x + (f a)\<^sup>2" for x
-        by (simp add: power2_eq_square algebra_simps)
-      have "integral {0..2*pi} (\<lambda>x. (f x - f a)\<^sup>2) =
-        integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2 - 2 * f a * f x + (f a)\<^sup>2)"
-        by (rule integral_cong) (simp add: eq)
-      also have "\<dots> = integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2 - 2 * f a * f x) +
-        integral {0..2*pi} (\<lambda>x. (f a)\<^sup>2)"
-        by (rule Henstock_Kurzweil_Integration.integral_add)
-          (auto intro: integrable_diff fx2_int ffa_2fa_int)
-      also have "integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2 - 2 * f a * f x) =
-        integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2) - integral {0..2*pi} (\<lambda>x. 2 * f a * f x)"
-        by (rule Henstock_Kurzweil_Integration.integral_diff[OF fx2_int ffa_2fa_int])
-      also have "integral {0..2*pi} (\<lambda>x. 2 * f a * f x) = 2 * f a * integral {0..2*pi} f"
-        using integral_cmul by simp
-      also have "integral {0..2*pi} (\<lambda>x. (f a)\<^sup>2) = (f a)\<^sup>2 * (2*pi)"
-        by simp
-      finally show ?thesis using f0 by (auto simp: has_integral_integrable_integral)
-    qed
-    \<comment> \<open>Re-derive g'_zero: (g' has_integral 0) {0..2\<pi>}.\<close>
-    have sin_nz_1: "sin (x - a) \<noteq> 0" if "a + pi < x" "x < 2*pi" for x
-      by (smt (verit) \<open>0 \<le> a\<close> sin_lt_zero that)
-    have sin_nz_2: "sin (x - a) \<noteq> 0" if "a < x" "x < a + pi" for x
-      by (smt (verit, ccfv_threshold) sin_gt_zero that)
-    have sin_nz_3: "sin (x - a) \<noteq> 0" if "0 < x" "x < a" for x
-      using \<open>a < pi\<close> sin_zero_pi_iff that by auto
-    have int1: "(g' has_integral g (2*pi) - g (a + pi)) {a + pi..2*pi}"
-      by (rule mainly_trouble_free) (use \<open>0 \<le> a\<close> \<open>a < pi\<close> sin_nz_1 in auto)
-    have int2: "(g' has_integral g (a + pi) - g a) {a..a + pi}"
-      by (rule mainly_trouble_free) (use \<open>0 \<le> a\<close> \<open>a < pi\<close> sin_nz_2 in auto)
-    have int3: "(g' has_integral g a - g 0) {0..a}"
-      by (rule mainly_trouble_free) (use \<open>0 \<le> a\<close> \<open>a < pi\<close> sin_nz_3 in auto)
-    have api_le: "a \<le> a + pi" and api_le2: "a + pi \<le> 2*pi"
-      using \<open>0 \<le> a\<close> \<open>a < pi\<close> by auto
-    have a_le_2pi: "a \<le> 2*pi" using \<open>0 \<le> a\<close> \<open>a < pi\<close> by auto
-    have int12: "(g' has_integral (g (a + pi) - g a) + (g (2*pi) - g (a + pi))) {a..2*pi}"
-      by (rule has_integral_combine[OF api_le api_le2 int2 int1])
-    have int_all: "(g' has_integral (g a - g 0) + ((g (a + pi) - g a) + (g (2*pi) - g (a + pi)))) {0..2*pi}"
-      by (rule has_integral_combine[OF \<open>0 \<le> a\<close> a_le_2pi int3 int12])
-    have int_all': "(g' has_integral g (2*pi) - g 0) {0..2*pi}"
-      using int_all by (simp add: algebra_simps)
-    have "g (2*pi) = g 0"
-      unfolding g_def using feq by (simp add: tan_def)
-    hence g'_zero: "(g' has_integral 0) {0..2*pi}"
-      using int_all' by simp
-    have ineq_ffa: "integral {0..2*pi} (\<lambda>x. (f x - f a)\<^sup>2) \<le>
-      integral {0..2*pi} (\<lambda>x. (f' x)\<^sup>2)"
-    proof -
-      have diff_ge: "(f' x)\<^sup>2 - g' x \<ge> (f x - f a)\<^sup>2" for x
-        unfolding g'_def by (simp add: zero_le_power2)
-      have "integral {0..2*pi} (\<lambda>x. (f x - f a)\<^sup>2) \<le>
-        integral {0..2*pi} (\<lambda>x. (f' x)\<^sup>2 - g' x)"
-        by (rule integral_le[OF ffa_int])
-          (use has_integral_diff[OF integrable_integral[OF f'2] g'_zero]
-               has_integral_integrable_integral diff_ge in auto)
-      also have "\<dots> = integral {0..2*pi} (\<lambda>x. (f' x)\<^sup>2)"
-        using has_integral_diff[OF integrable_integral[OF f'2] g'_zero]
-              has_integral_integrable_integral by auto
-      finally show ?thesis .
-    qed
-    \<comment> \<open>Step 1: f(a) = 0.\<close>
     have fa0: "f a = 0"
-      by (smt (verit) eq_hyp ffa_eq ineq_ffa mult_eq_0_iff mult_nonneg_nonneg pi_gt_zero power_eq_0_iff
-          zero_le_power2)
-    \<comment> \<open>Step 2: The "rest" term integrates to 0.\<close>
+      by (smt (verit, best) ffa_ineq' a ffa_eq ineq_ffa mult_eq_0_iff power_eq_0_iff that)
+    \<comment> \<open>The "rest" term integrates to 0.\<close>
     define rest where "rest \<equiv> \<lambda>x. f' x - (f x - f a) / tan (x - a)"
     have diff_eq: "(f' x)\<^sup>2 - g' x = (f x - f a)\<^sup>2 + (rest x)\<^sup>2" for x
       unfolding g'_def rest_def by (simp add: algebra_simps)
@@ -925,7 +848,7 @@ proof -
       qed
       moreover have "integral {0..2*pi} (\<lambda>x. (f x - f a)\<^sup>2) = integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2)"
         using ffa_eq fa0 by simp
-      ultimately show ?thesis using eq_hyp by linarith
+      ultimately show ?thesis using that by linarith
     qed
     \<comment> \<open>Integral of $c \sin(x - a)$ via the fundamental theorem of calculus.\<close>
     have csin_integral: "integral {u..v} (\<lambda>x. c * sin (x - a)) =
@@ -2213,45 +2136,33 @@ proof -
        By the change of variables $x = Re(g(s))$ and Re-injectivity, the integral
        $\int_0^t Re(g') \cdot Im(g)\,ds = \int_0^{Re\,b} f_{\mathit{upper}}(x)\,dx \ge 0$
        since $f_{\mathit{upper}} = Im \circ g \circ Re^{-1} \ge 0$ on the upper arc.\<close>
-  have upper_int: "integral {0..t} f \<ge> 0"
-  proof -
-    interpret Area g g' 0 t U
-    proof
-      show "Re (g 0) \<le> Re (g t)" 
-        using g0 hgt Reb by simp
-      show "absolutely_continuous_on {0..t} g"
-        using absolutely_continuous_on_subset[OF cont] t by auto
-      show "inj_on g {0..t}"
-        using arc_inj_on t less_eq_real_def by presburger
-      then show "inj_on Re (g ` {0..t})"
-        using Reb Re_inj_upper g0 t
-        by (intro arc_Re_inj_on; fastforce simp: assms b(2))
-    qed (use above U vder t in auto)
-    show ?thesis
-      unfolding f_def using below_arclet(2) by auto
-  qed
-    \<comment> \<open>Lower arc integral $\ge 0$ as well.
-       On $\{t..1\}$, @{term g} goes from $b$ back to $0$ ($Re$ decreasing) with $Im(g) \le 0$.
-       By the change of variables $x = Re(g(s))$:
-       $\int_t^1 Re(g') \cdot Im(g)\,ds = \int_{Re\,b}^0 f_{\mathit{lower}}(x)\,dx = -\int_0^{Re\,b} f_{\mathit{lower}}(x)\,dx \ge 0$
-       since $f_{\mathit{lower}} \le 0$.\<close>
-  have lower_int: "integral {t..1} f \<ge> 0"
-  proof -
-    have Re_le': "Re (g 1) \<le> Re (g t)" using g1 hgt Reb by simp
-    have ac_sub': "absolutely_continuous_on {t..1} g"
+  interpret A0t: Area g g' 0 t U
+  proof
+    show "Re (g 0) \<le> Re (g t)" 
+      using g0 hgt Reb by simp
+    show "absolutely_continuous_on {0..t} g"
       using absolutely_continuous_on_subset[OF cont] t by auto
-    have inj_g_lower: "inj_on g {t..1}"
-      using arc_inj_on t(2) less_eq_real_def t by presburger
-    then have inj_Re_lower: "inj_on Re (g ` {t..1})"
-      using Reb Re_inj_lower g1 t
+    show "inj_on g {0..t}"
+      using arc_inj_on t less_eq_real_def by presburger
+    then show "inj_on Re (g ` {0..t})"
+      using Reb Re_inj_upper g0 t
       by (intro arc_Re_inj_on; fastforce simp: assms b(2))
-    have vder_sub': "\<And>s. s \<in> {t..1} - U \<Longrightarrow> (g has_vector_derivative g' s) (at s)"
-      using vder t(1) by auto
-    show ?thesis
-      unfolding f_def
-      using t area_above_arclet(2)[OF _ Re_le' ac_sub' below inj_g_lower inj_Re_lower U vder_sub']
-      by auto
-  qed
+  qed (use above U vder t in auto)
+  have upper_int: "integral {0..t} f \<ge> 0"
+    unfolding f_def using A0t.below_arclet(2) by auto
+    \<comment> \<open>Lower arc integral $\ge 0$ as well.\<close>
+  have Re_le': "Re (g 1) \<le> Re (g t)" using g1 hgt Reb by simp
+  have ac_sub': "absolutely_continuous_on {t..1} g"
+    using absolutely_continuous_on_subset[OF cont] t by auto
+  have inj_g_lower: "inj_on g {t..1}"
+    using arc_inj_on t(2) less_eq_real_def t by presburger
+  then have inj_Re_lower: "inj_on Re (g ` {t..1})"
+    using Reb Re_inj_lower g1 t
+    by (intro arc_Re_inj_on; fastforce simp: assms b(2))
+  have lower_int: "integral {t..1} f \<ge> 0"
+    unfolding f_def
+    using t vder area_above_arclet(2)[OF _ Re_le' ac_sub' below inj_g_lower inj_Re_lower U]
+    by auto
     \<comment> \<open>Total integral $=$ area of the inside.
        The inside decomposes as the region between the two arcs:
        $\mathit{inside}\,(\mathit{path\_image}\ g) = \{z \mid Re\,z \in (0, Re\,b) \wedge f_{\mathit{lower}}(Re\,z) < Im\,z < f_{\mathit{upper}}(Re\,z)\}$.
@@ -2261,50 +2172,22 @@ proof -
   have area_decomp: "measure lebesgue (inside (path_image g)) = integral {0..t} f + integral {t..1} f"
   proof -
     \<comment> \<open>Re-derive the integral-equals-measure identities (proved locally in \<open>upper_int\<close>/\<open>lower_int\<close>)\<close>
-    have t_le: "0 \<le> t" and t_le1: "t \<le> 1" using t by auto
     have Re_le: "Re (g 0) \<le> Re (g t)" and Re_le': "Re (g 1) \<le> Re (g t)" 
       using g0 g1 hgt Reb by auto
-    have ac_sub: "absolutely_continuous_on {0..t} g"
-      using absolutely_continuous_on_subset[OF cont] t by auto
-    have ac_sub': "absolutely_continuous_on {t..1} g"
-      using absolutely_continuous_on_subset[OF cont] t by auto
-    have inj_g_upper: "inj_on g {0..t}"
-      using arc_inj_on[of 0 t] t by auto
-    then have inj_Re_upper: "inj_on Re (g ` {0..t})"
-      using Reb Re_inj_upper g0 t
+    have inj_Re_upper: "inj_on Re (g ` {0..t})"
+      using Reb Re_inj_upper g0 arc_inj_on[of 0 t] t
       by (intro arc_Re_inj_on; fastforce simp: assms b(2))
-    have inj_g_lower: "inj_on g {t..1}"
-      using arc_inj_on[of t 1] t by auto
-    then have inj_Re_lower: "inj_on Re (g ` {t..1})"
-      using Reb Re_inj_lower g1 t
-      by (intro arc_Re_inj_on; fastforce simp: assms b(2))
-    have vder_sub: "\<And>s. s \<in> {0..t} - U \<Longrightarrow> (g has_vector_derivative g' s) (at s)"
-      using vder t(2) by auto
-    have vder_sub': "\<And>s. s \<in> {t..1} - U \<Longrightarrow> (g has_vector_derivative g' s) (at s)"
-      using vder t(1) by auto
         \<comment> \<open>The integral-equals-measure identities\<close>
-    interpret Area g g' 0 t U
-    proof
-      show "Re (g 0) \<le> Re (g t)" 
-        using g0 hgt Reb by simp
-      show "absolutely_continuous_on {0..t} g"
-        using absolutely_continuous_on_subset[OF cont] t by auto
-      show "inj_on g {0..t}"
-        using arc_inj_on t less_eq_real_def by presburger
-      then show "inj_on Re (g ` {0..t})"
-        using Reb Re_inj_upper g0 t
-        by (intro arc_Re_inj_on; fastforce simp: assms b(2))
-    qed (use above U vder t in auto)
     define Au where "Au \<equiv> {z. \<exists>w \<in> g ` {0..t}. Re w = Re z \<and> 0 \<le> Im z \<and> Im z \<le> Im w}"
     define Al where "Al \<equiv> {z. \<exists>w \<in> g ` {t..1}. Re w = Re z \<and> Im w \<le> Im z \<and> Im z \<le> 0}"
     have int_upper: "integral {0..t} f = measure lebesgue Au"
-      using below_arclet(2) unfolding f_def Au_def by auto
+      using A0t.below_arclet(2) unfolding f_def Au_def by auto
     have int_lower: "integral {t..1} f = measure lebesgue Al"
-      using area_above_arclet(2)[OF t_le1 Re_le' ac_sub' below inj_g_lower inj_Re_lower U vder_sub']
-      unfolding f_def Al_def by blast
+      using t vder area_above_arclet(2)[OF _ Re_le' ac_sub' below inj_g_lower inj_Re_lower U]
+      unfolding f_def Al_def by auto
         \<comment> \<open>Step A: @{term Au} and @{term Al} are measurable (compact, hence @{term lmeasurable})\<close>
     have cont_g_upper: "continuous_on {0..t} g"
-      using absolutely_continuous_on_imp_continuous[OF ac_sub] is_interval_cc by blast
+      by (simp add: absolutely_continuous_on_imp_continuous A0t.acont_g)
     define \<phi> where "\<phi> \<equiv> \<lambda>(s,r). Complex (Re (g s)) (r * Im (g s))"
     have cont_\<phi>: "continuous_on ({0..t} \<times> {0..1}) \<phi>"
       unfolding \<phi>_def split_def
@@ -2331,25 +2214,21 @@ proof -
         show "z \<in> \<phi> ` ({0..t} \<times> {0..1})"
         proof (cases "Im w = 0")
           case True 
-          then have "Im z = 0" using w(3,4) by linarith
-          then have "z = \<phi> (s, 0)" unfolding \<phi>_def using w(2) s(2) by (simp add: complex_eq_iff)
+          then have "z = \<phi> (s, 0)" unfolding \<phi>_def using w s(2) by (simp add: complex_eq_iff)
           then show ?thesis using s(1) by auto
         next
           case False
           define r where "r \<equiv> Im z / Im w"
           have "Im w > 0" using False w(3,4) by linarith
-          then have "r \<in> {0..1}" unfolding r_def using w(3,4) by (auto simp: field_simps)
           moreover have "z = \<phi> (s, r)"
-            unfolding \<phi>_def r_def using False w(2) s(2) by (simp add: complex_eq_iff)
-          ultimately show ?thesis using s(1) by auto
+            unfolding \<phi>_def r_def using False w s(2) by (simp add: field_simps complex_eq_iff)
+          ultimately show ?thesis using w s(1) by (auto simp: r_def)
         qed
       qed
     qed
     have Au_meas: "Au \<in> lmeasurable"
       using img compact_continuous_image[OF cont_\<phi>] lmeasurable_compact by (metis compact_Icc compact_Times)
-    with compact_Times compact_Icc img compact_continuous_image[OF cont_\<phi>] lmeasurable_compact
-    have Au_meas: "Au \<in> lmeasurable"
-      by metis have cont_g_lower: "continuous_on {t..1} g"
+    have cont_g_lower: "continuous_on {t..1} g"
       using absolutely_continuous_on_imp_continuous[OF ac_sub'] is_interval_cc by blast
     define \<psi> where "\<psi> \<equiv> \<lambda>(s::real, r::real). Complex (Re (g s)) (r * Im (g s))"
     have cont_\<psi>: "continuous_on ({t..1} \<times> {0..1}) \<psi>"
@@ -2379,15 +2258,13 @@ proof -
         show "z \<in> \<psi> ` ({t..1} \<times> {0..1})"
         proof (cases "Im w = 0")
           case True
-          then have "Im z = 0" using w(3,4) by linarith
-          then have "z = \<psi> (s, 0)" unfolding \<psi>_def using w(2) s(2) by (simp add: complex_eq_iff)
+          then have "z = \<psi> (s, 0)" unfolding \<psi>_def using w s(2) by (simp add: complex_eq_iff)
           then show ?thesis using s(1) by auto
         next
           case False
           define r where "r \<equiv> Im z / Im w"
-          have "Im w < 0" using False w by linarith
-          then have "r \<in> {0..1}" unfolding r_def using w
-            by (auto simp: field_simps divide_le_eq_1_neg divide_nonneg_neg)
+          have "r \<in> {0..1}" unfolding r_def using w
+            using False by (auto simp: field_simps)
           moreover have "z = \<psi> (s, r)"
             unfolding \<psi>_def r_def using False w(2) s(2) by (simp add: complex_eq_iff)
           ultimately show ?thesis using s(1) by auto
@@ -2397,97 +2274,89 @@ proof -
     have "compact ({t..1} \<times> {0..1::real})" by (intro compact_Times compact_Icc)
     then have Al_meas: "Al \<in> lmeasurable" \<comment> \<open>duality\<close>
       using img compact_continuous_image[OF cont_\<psi>] lmeasurable_compact by blast
-    have Au_Al_sub_closure: "Au \<union> Al \<subseteq> closure (inside (path_image g))"
+
+    have ch_eq: "convex hull (path_image g) = closure (inside (path_image g))"
+      using convex_hull_eq_closure_inside[OF g(1) _ conv] g(2,3) by auto
+    have zero_in_ch: "0 \<in> convex hull (path_image g)"
+      using hull_subset[of "path_image g" convex] g0
+      by (auto simp: path_image_def intro!: imageI[of 0])
+    have b_in_ch: "b \<in> convex hull (path_image g)"
+      using hull_subset[of "path_image g" convex] b(1) by auto
+    have bdd_pi: "bounded (path_image g)"
+      using compact_simple_path_image[OF g(1)] compact_imp_bounded by blast
+        \<comment> \<open>Key fact: every point on the path has $Re \in [0, Re\,b]$\<close>
+    have zero_in_pi: "(0::complex) \<in> path_image g"
+      using g0 by (auto simp: path_image_def intro!: imageI[of 0])
+    have Re_bounds: "0 \<le> Re w \<and> Re w \<le> Re b" if "w \<in> path_image g" for w
     proof -
-      have ch_eq: "convex hull (path_image g) = closure (inside (path_image g))"
-        using convex_hull_eq_closure_inside[OF g(1) _ conv] g(2,3) by auto
-      have zero_in_ch: "0 \<in> convex hull (path_image g)"
-        using hull_subset[of "path_image g" convex] g0
-        by (auto simp: path_image_def intro!: imageI[of 0])
-      have b_in_ch: "b \<in> convex hull (path_image g)"
-        using hull_subset[of "path_image g" convex] b(1) by auto
-      have real_seg: "closed_segment 0 b \<subseteq> convex hull (path_image g)"
-        using closed_segment_subset_convex_hull[OF zero_in_ch b_in_ch] .
-      have bdd_pi: "bounded (path_image g)"
-        using compact_simple_path_image[OF g(1)] compact_imp_bounded by blast
-          \<comment> \<open>Key fact: every point on the path has $Re \in [0, Re\,b]$\<close>
-      have zero_in_pi: "(0::complex) \<in> path_image g"
-        using g0 by (auto simp: path_image_def intro!: imageI[of 0])
-      have Re_bounds: "0 \<le> Re w \<and> Re w \<le> Re b" if "w \<in> path_image g" for w
-      proof -
-        have "diameter (path_image g) = dist 0 b" using dab g0 g1 assms by simp
-        then have diam_eq: "diameter (path_image g) = Re b"
-          using Imb Re_le cmod_eq_Re g0 hgt by auto
-        have "cmod w \<le> Re b" 
-          using diameter_bounded_bound[OF bdd_pi that zero_in_pi] diam_eq by (simp add: dist_norm)
-        then have "Re w \<le> Re b"
-          using abs_Re_le_cmod[of w] by linarith
-        moreover have "cmod (w - b) \<le> Re b" 
-          using diameter_bounded_bound[OF bdd_pi that b(1)] diam_eq by (simp add: dist_norm)
-        then have "Re w \<ge> 0" 
-          using abs_Re_le_cmod[of "w - b"] \<open>cmod (w - b) \<le> Re b\<close> by auto
-        ultimately show ?thesis by auto
-      qed
-        \<comment> \<open>Sublemma: @{term "Complex (Re w) 0 \<in> closed_segment 0 b"} for any @{term w} on the path\<close>
-      have real_point_in_seg: "Complex (Re w) 0 \<in> closed_segment 0 b"
-        if "w \<in> path_image g" for w
-      proof -
-        have bds: "0 \<le> Re w" "Re w \<le> Re b" using Re_bounds[OF that] by auto
-        define u where "u \<equiv> Re w / Re b"
-        have "0 \<le> u" "u \<le> 1" unfolding u_def using bds Reb by auto
-        have "Complex (Re w) 0 = (1 - u) *\<^sub>R 0 + u *\<^sub>R b"
-          unfolding u_def using Reb Imb
-          by (simp add: complex_eq_iff scaleR_complex.ctr)
-        then show ?thesis using \<open>0 \<le> u\<close> \<open>u \<le> 1\<close>
-          unfolding closed_segment_def by auto
-      qed
-        \<comment> \<open>Sublemma: any @{term z} between $p = \mathit{Complex}\,(Re\,w)\,0$ and @{term w} is in the convex hull\<close>
-      have in_ch_via_seg: "z \<in> convex hull (path_image g)"
-        if w_pi: "w \<in> path_image g"
-          and Re_eq: "Re w = Re z"
-          and Im_between: "(0 \<le> Im z \<and> Im z \<le> Im w) \<or> (Im w \<le> Im z \<and> Im z \<le> 0)"
-        for z w
-      proof -
-        define p where "p \<equiv> Complex (Re w) 0"
-        have p_in_ch: "p \<in> convex hull (path_image g)"
-          using real_point_in_seg[OF w_pi] real_seg
-          using p_def by blast
-        have w_in_ch: "w \<in> convex hull (path_image g)"
-          using hull_subset[of "path_image g" convex] w_pi by auto
-        show "z \<in> convex hull (path_image g)"
-        proof (cases "Im w = 0")
-          case True
-          with that show ?thesis using p_in_ch
-            by (metis complex.exhaust_sel p_def verit_la_disequality)
-        next
-          case False
-          define u where "u \<equiv> Im z / Im w"
-          have "0 \<le> u" "u \<le> 1" unfolding u_def using Im_between False
-            by (auto simp: field_simps split: if_splits)
-          have "z = (1 - u) *\<^sub>R p + u *\<^sub>R w"
-            using False by (simp add: Re_eq p_def u_def complex_eq_iff scaleR_complex.ctr field_simps)
-          then show ?thesis
-            by (simp add: \<open>0 \<le> u\<close> \<open>u \<le> 1\<close> convexD_alt p_in_ch w_in_ch)
-        qed
-      qed
-      have Au_sub: "Au \<subseteq> convex hull (path_image g)"
-      proof (rule subsetI)
-        fix z assume "z \<in> Au"
-        then obtain w where "w \<in> g ` {0..t}" "Re w = Re z" "0 \<le> Im z" "Im z \<le> Im w"
-          unfolding Au_def by auto
-        then show "z \<in> convex hull (path_image g)"
-          using t in_ch_via_seg[of w z] by (auto simp: path_image_def)
-      qed
-      have Al_sub: "Al \<subseteq> convex hull (path_image g)"
-      proof (rule subsetI)
-        fix z assume "z \<in> Al"
-        then obtain w where "w \<in> g ` {t..1}" "Re w = Re z" "Im w \<le> Im z" "Im z \<le> 0"
-          unfolding Al_def by auto
-        then show "z \<in> convex hull (path_image g)"
-          using t in_ch_via_seg[of w z] by (auto simp: path_image_def)
-      qed
-      show ?thesis using Au_sub Al_sub ch_eq by auto
+      have "diameter (path_image g) = dist 0 b" using dab g0 g1 assms by simp
+      then have diam_eq: "diameter (path_image g) = Re b"
+        using Imb Re_le cmod_eq_Re g0 hgt by auto
+      have "cmod w \<le> Re b" 
+        using diameter_bounded_bound[OF bdd_pi that zero_in_pi] diam_eq by (simp add: dist_norm)
+      moreover have "cmod (w - b) \<le> Re b" 
+        using diameter_bounded_bound[OF bdd_pi that b(1)] diam_eq by (simp add: dist_norm)
+      ultimately show ?thesis using abs_Re_le_cmod[of w] abs_Re_le_cmod[of "w - b"] by auto
     qed
+      \<comment> \<open>Sublemma: @{term "Complex (Re w) 0 \<in> closed_segment 0 b"} for any @{term w} on the path\<close>
+    have real_point_in_seg: "Complex (Re w) 0 \<in> closed_segment 0 b"
+      if "w \<in> path_image g" for w
+    proof -
+      have bds: "0 \<le> Re w" "Re w \<le> Re b" using Re_bounds[OF that] by auto
+      define u where "u \<equiv> Re w / Re b"
+      have "0 \<le> u" "u \<le> 1" unfolding u_def using bds Reb by auto
+      have "Complex (Re w) 0 = (1 - u) *\<^sub>R 0 + u *\<^sub>R b"
+        unfolding u_def using Reb Imb
+        by (simp add: complex_eq_iff scaleR_complex.ctr)
+      then show ?thesis using \<open>0 \<le> u\<close> \<open>u \<le> 1\<close>
+        unfolding closed_segment_def by auto
+    qed
+      \<comment> \<open>Sublemma: any @{term z} between $p = \mathit{Complex}\,(Re\,w)\,0$ and @{term w} is in the convex hull\<close>
+    have in_ch_via_seg: "z \<in> convex hull (path_image g)"
+      if w_pi: "w \<in> path_image g"
+        and Re_eq: "Re w = Re z"
+        and Im_between: "(0 \<le> Im z \<and> Im z \<le> Im w) \<or> (Im w \<le> Im z \<and> Im z \<le> 0)"
+      for z w
+    proof -
+      define p where "p \<equiv> Complex (Re w) 0"
+      have p_in_ch: "p \<in> convex hull (path_image g)"
+        using b_in_ch closed_segment_subset p_def real_point_in_seg w_pi zero_in_ch by blast
+      have w_in_ch: "w \<in> convex hull (path_image g)"
+        using hull_subset[of "path_image g" convex] w_pi by auto
+      show "z \<in> convex hull (path_image g)"
+      proof (cases "Im w = 0")
+        case True
+        with that show ?thesis using p_in_ch
+          by (metis complex.exhaust_sel p_def verit_la_disequality)
+      next
+        case False
+        define u where "u \<equiv> Im z / Im w"
+        have "0 \<le> u" "u \<le> 1" unfolding u_def using Im_between False
+          by (auto simp: field_simps split: if_splits)
+        have "z = (1 - u) *\<^sub>R p + u *\<^sub>R w"
+          using False by (simp add: Re_eq p_def u_def complex_eq_iff scaleR_complex.ctr field_simps)
+        then show ?thesis
+          by (simp add: \<open>0 \<le> u\<close> \<open>u \<le> 1\<close> convexD_alt p_in_ch w_in_ch)
+      qed
+    qed
+    have Au_sub: "Au \<subseteq> convex hull (path_image g)"
+    proof (rule subsetI)
+      fix z assume "z \<in> Au"
+      then obtain w where "w \<in> g ` {0..t}" "Re w = Re z" "0 \<le> Im z" "Im z \<le> Im w"
+        unfolding Au_def by auto
+      then show "z \<in> convex hull (path_image g)"
+        using t in_ch_via_seg[of w z] by (auto simp: path_image_def)
+    qed
+    have Al_sub: "Al \<subseteq> convex hull (path_image g)"
+    proof (rule subsetI)
+      fix z assume "z \<in> Al"
+      then obtain w where "w \<in> g ` {t..1}" "Re w = Re z" "Im w \<le> Im z" "Im z \<le> 0"
+        unfolding Al_def by auto
+      then show "z \<in> convex hull (path_image g)"
+        using t in_ch_via_seg[of w z] by (auto simp: path_image_def)
+    qed
+    have Au_Al_sub_closure: "Au \<union> Al \<subseteq> closure (inside (path_image g))"
+      using Au_sub Al_sub ch_eq by auto
 
     have inside_sub_Au_Al: "inside (path_image g) \<subseteq> Au \<union> Al"
     proof (rule subsetI)
@@ -2523,7 +2392,7 @@ proof -
         have Re_w: "Re w = Re z" and Im_w: "Im w = Im z + d" unfolding w_def by auto
         have Im_w_pos: "Im w > 0" using True d(1) Im_w by linarith
         \<comment> \<open>Since $Im\,w > 0$ and the lower arc has $Im \le 0$, @{term w} must be on the upper arc\<close>
-        have "{0..1} = {0..t} \<union> {t..1}" using t_le t_le1 by (auto simp: ivl_disj_un_two_touch)
+        have "{0..1} = {0..t} \<union> {t..1}" using t by (auto simp: ivl_disj_un_two_touch)
         then have w_upper: "w \<in> g ` {0..t}"
           using w_on_path Im_w_pos below subsetD by (fastforce simp: path_image_def)
         show "z \<in> Au \<union> Al"
@@ -2544,7 +2413,7 @@ proof -
             \<comment> \<open>Since $Im\,w < 0$, @{term w} must be on the lower arc\<close>
         have w_lower: "w \<in> g ` {t..1}"
         proof -
-          have "{0..1} = {0..t} \<union> {t..1}" using t_le t_le1 by (auto simp: ivl_disj_un_two_touch)
+          have "{0..1} = {0..t} \<union> {t..1}" using t by (auto simp: ivl_disj_un_two_touch)
           then have "path_image g = g ` {0..t} \<union> g ` {t..1}"
             unfolding path_image_def by (simp add: image_Un)
           then have "w \<in> g ` {0..t} \<union> g ` {t..1}" using w_on_path by simp
@@ -2668,13 +2537,6 @@ proof -
       by (smt (verit, best) b(2) box_real(2) g(3) mem_box_real(2) pathfinish_def t0)
     ultimately show thesis using t0 that by blast
   qed
-  have Re_inj_upper: "\<lbrakk>s1 \<in> {0..t}; s2 \<in> {0..t}; Re (g s1) = Re (g s2); s1 \<noteq> s2\<rbrakk>
-        \<Longrightarrow> (s1 = 0 \<and> s2 = t) \<or> (s1 = t \<and> s2 = 0)" for s1 s2
-    using Re_inj_upper_gen g0 g1 t by presburger
-  have Re_inj_lower: "\<lbrakk>s1 \<in> {t..1}; s2 \<in> {t..1}; Re (g s1) = Re (g s2); s1 \<noteq> s2\<rbrakk>
-        \<Longrightarrow> (s1 = t \<and> s2 = 1) \<or> (s1 = 1 \<and> s2 = t)" for s1 s2
-    using CR.Re_inj_upper_gen[of "1-s1" "1-t" "1-s2"] t g g0 g1 assms
-    by (auto simp add: gop_def reversepath_def)
   have "g ` {0..t} \<subseteq> {z. 0 \<le> Im z} \<and> g ` {t..1} \<subseteq> {z. Im z \<le> 0} \<or>
         g ` {0..t} \<subseteq> {z. Im z \<le> 0} \<and> g ` {t..1} \<subseteq> {z. 0 \<le> Im z}"
   proof -
@@ -2926,13 +2788,6 @@ proof -
         then show False
           using non z_in_seg by (auto simp: closed_segment_eq_open)
       qed
-      have Re_inj_upper: "\<lbrakk>s1 \<in> {0..t}; s2 \<in> {0..t}; Re (g s1) = Re (g s2); s1 \<noteq> s2\<rbrakk>
-        \<Longrightarrow> (s1 = 0 \<and> s2 = t) \<or> (s1 = t \<and> s2 = 0)" for s1 s2
-        using Re_inj_upper_gen g0 g1 t by presburger
-      have Re_inj_lower: "\<lbrakk>s1 \<in> {t..1}; s2 \<in> {t..1}; Re (g s1) = Re (g s2); s1 \<noteq> s2\<rbrakk>
-        \<Longrightarrow> (s1 = t \<and> s2 = 1) \<or> (s1 = 1 \<and> s2 = t)" for s1 s2
-        using CR.Re_inj_upper_gen[of "1-s1" "1-t" "1-s2"] t g g0 g1 assms
-        by (auto simp add: gop_def reversepath_def)
 
 \<comment> \<open>@{term "Im \<circ> g"} doesn't change sign on either arc: if it did, the IVT gives a real point
      in the interior of the arc, contradicting \<open>real_on_curve\<close> and injectivity.\<close>
