@@ -1,3 +1,5 @@
+section \<open>Isoperimetric theorem for convex curves\<close>
+
 theory Isoperimetric
   imports Green_Variant
 
@@ -27,8 +29,6 @@ text \<open>
     L2 Fourier convergence (useful for Wirtinger inequality)
   \<^item> @{text Lp} (via Fourier): Hölder inequality, Minkowski inequality
 \<close>
-
-section \<open>Isoperimetric theorem for convex curves\<close>
 
 text \<open>The kernel lemma: the isoperimetric inequality for a convex curve that has been
   normalized to arc-length parametrization with zero-mean imaginary part and
@@ -855,7 +855,7 @@ proof -
     by (metis meas_eq)
 qed
 
-section \<open>Convexification\<close>
+subsection \<open>Convexification\<close>
 
 text \<open>A connected subset of a segment that contains both endpoints is the whole segment.
   (HOL Light: CONNECTED\_SUBSET\_SEGMENT.)\<close>
@@ -2285,7 +2285,7 @@ proof -
   with h that show ?thesis by blast
 qed
 
-section \<open>The isoperimetric theorem\<close>
+subsection \<open>The isoperimetric theorem\<close>
 
 theorem isoperimetric_theorem:
   fixes g :: "real \<Rightarrow> complex"

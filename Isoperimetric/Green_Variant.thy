@@ -1,9 +1,9 @@
+section \<open>A very special case of Green's theorem for a convex area\<close>
+
 theory Green_Variant
   imports Wirtinger
 
 begin
-
-section \<open>A very special case of Green's theorem for a convex area\<close>
 
 subsection \<open>Area under an arc.\<close>
 
