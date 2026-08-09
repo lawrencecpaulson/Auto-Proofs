@@ -510,28 +510,21 @@ qed
 
 text \<open>The integral over mainly trouble-free intervals:
     we only need \<open>sin(x - a) \<noteq> 0\<close> on the open interior, allowing zeros at the endpoints.\<close>
-lemma mainly_trouble_free: "(g' has_integral g d - g c) {c..d}"
-  if "c \<le> d" and "{c..d} \<subseteq> {0..2*pi}" and "\<And>x. x \<in> {c<..<d} \<Longrightarrow> sin (x - a) \<noteq> 0"
-  for c d
+lemma mainly_trouble_free: 
+  assumes "c \<le> d" and cd_sub: "{c..d} \<subseteq> {0..2*pi}" and sin_nz: "\<And>x. x \<in> {c<..<d} \<Longrightarrow> sin (x - a) \<noteq> 0"
+  shows "(g' has_integral g d - g c) {c..d}"
 proof -
-  note cd_le = \<open>c \<le> d\<close> and cd_sub = \<open>{c..d} \<subseteq> {0..2*pi}\<close>
-    and sin_nz = \<open>\<And>x. x \<in> {c<..<d} \<Longrightarrow> sin (x - a) \<noteq> 0\<close>
   have "g' absolutely_integrable_on {c..d}"
   proof -
     have f'2_abs: "(\<lambda>x. (f' x)\<^sup>2) absolutely_integrable_on {0..2*pi}"
-      by (rule abs_absolutely_integrableI_1[OF f'2]) (simp add: integrable_eq[OF f'2])
+      by (simp add: absolutely_integrable_on_def f'2)
     have ffa_abs: "(\<lambda>x. (f x - f a)\<^sup>2) absolutely_integrable_on {0..2*pi}"
-      by (rule absolutely_integrable_continuous_real)
-        (intro continuous_intros contf)
-    have g'_int_sub: "g' integrable_on {u..v}" if uv_sub: "{u..v} \<subseteq> {c<..<d}" for u v
+      by (intro absolutely_integrable_continuous_real continuous_intros contf)
+    have g'_int_sub: "g' integrable_on {u..v}" if "{u..v} \<subseteq> {c<..<d}" for u v
     proof (cases "u \<le> v")
       case True
-      then have uv_mem: "u \<in> {c<..<d}" "v \<in> {c<..<d}" and  uv_2pi: "{u..v} \<subseteq> {0..2*pi}"
-        using uv_sub cd_sub by auto
-      have sin_nz': "sin (x - a) \<noteq> 0" if "x \<in> {u..v}" for x
-        using sin_nz that uv_sub by blast
       show ?thesis
-        using has_integral_integrable[OF trouble_free[OF True uv_2pi sin_nz']] by auto
+        using has_integral_integrable[OF trouble_free[OF True]] sin_nz that cd_sub by force
     qed (simp add: not_le integrable_on_empty)
     have g'_int: "g' integrable_on {c'..d'}" if "{c'..d'} \<subseteq> {c<..<d}" for c' d'
       using \<open>{c'..d'} \<subseteq> {c<..<d}\<close> g'_int_sub by blast
@@ -539,8 +532,7 @@ proof -
       by (intro continuous_intros g_cont)
     obtain h where h_abs: "h absolutely_integrable_on {c..d}" 
       and h_bounded: "(\<forall>x\<in>{c..d}. g' x \<le> h x) \<or> (\<forall>x\<in>{c..d}. h x \<le> g' x)"
-      using absolutely_integrable_on_subinterval[OF f'2_abs cd_sub]
-      by (simp add: g'_def) 
+      using absolutely_integrable_on_subinterval[OF f'2_abs cd_sub] by (simp add: g'_def) 
     show ?thesis
     proof (intro g'_int absolutely_integrable_improper [of c d , unfolded box_real])
       obtain w where "0 \<le> w" "w \<le> 2*pi" and w: "\<forall>y. 0\<le>y \<longrightarrow> y \<le> 2*pi \<longrightarrow> \<bar>g y\<bar> \<le> \<bar>g w\<bar>"
@@ -570,105 +562,102 @@ proof -
       qed
     qed (use h_abs h_bounded in auto)
   qed
-  show ?thesis
-  proof -
-    have g'_int: "g' integrable_on {c..d}"
-      using \<open>g' absolutely_integrable_on {c..d}\<close> set_lebesgue_integral_eq_integral by blast
-    have g_cont_cd: "continuous_on {c..d} g"
-      using continuous_on_subset[OF g_cont cd_sub] .
-    have goal: "integral {c..d} g' = g d - g c"
-    proof (cases "c < d")
-      case False with cd_le show ?thesis by simp
-    next
-      case True
-        \<comment> \<open>Pick sequences $c_n \to c$ and $d_n \to d$ from inside $(c,d)$\<close>
-      define c_n where "c_n \<equiv> \<lambda>n. c + (d - c) / (real n + 2)"
-      define d_n where "d_n \<equiv> \<lambda>n. d - (d - c) / (real n + 2)"
-      have pos: "0 < (d - c) / (real n + 2)" for n
-        using True by auto
-      have lt_dc: "(d - c) / (real n + 2) < d - c" for n
-        using True by (simp add: divide_less_eq)
-      have c_n_le_d_n: "c_n n \<le> d_n n" for n
-      proof -
-        have "c * real n \<le> d * real n"
-          using True by (intro mult_right_mono) auto
-        then have "2 * ((d - c) / (real n + 2)) \<le> d - c"
-          using True by (simp add: field_simps)
-        then show ?thesis unfolding c_n_def d_n_def by linarith
-      qed
-      have frac_lim: "(\<lambda>n. (d - c) / (real n + 2)) \<longlonglongrightarrow> 0"
-      proof (rule real_tendsto_sandwich)
-        show "\<forall>\<^sub>F n in sequentially. 0 \<le> (d - c) / (real n + 2)"
-          using True by (intro always_eventually allI) (auto simp: field_simps)
-        show "\<forall>\<^sub>F n in sequentially. (d - c) / (real n + 2) \<le> (d - c) * (1 / real n)"
-          using True by (intro eventually_sequentiallyI[of 1]) (auto simp: field_simps)
-        show "(\<lambda>_. (0::real)) \<longlonglongrightarrow> 0" by simp
-        show "(\<lambda>n. (d - c) * (1 / real n)) \<longlonglongrightarrow> 0"
-          using tendsto_mult_right_zero[OF lim_inverse_n'] by simp
-      qed
-      have c_n_lim: "c_n \<longlonglongrightarrow> c"
-        unfolding c_n_def using tendsto_add[OF tendsto_const frac_lim] by simp
-      have d_n_lim: "d_n \<longlonglongrightarrow> d"
-        unfolding d_n_def using tendsto_diff[OF tendsto_const frac_lim] by simp
-          \<comment> \<open>On each $\{c_n..d_n\}$, \<open>trouble_free\<close> applies\<close>
-      have c_n_in: "c_n n \<in> {c<..<d}" and d_n_in: "d_n n \<in> {c<..<d}" for n
-        using pos[of n] lt_dc[of n] unfolding c_n_def d_n_def by auto
-      have sub_n: "{c_n n..d_n n} \<subseteq> {c<..<d}" for n
-        using c_n_in[of n] d_n_in[of n] c_n_le_d_n[of n] by auto
-      have sub_2pi_n: "{c_n n..d_n n} \<subseteq> {0..2*pi}" for n
-        using sub_n[of n] cd_sub greaterThanLessThan_subseteq_atLeastAtMost_iff by blast
-      have sin_nz_n: "sin (x - a) \<noteq> 0" if "x \<in> {c_n n..d_n n}" for n x
-        using that sub_n[of n] sin_nz
-        by (meson greaterThanLessThan_subseteq_atLeastAtMost_iff subsetD)
-      have tf_n: "(g' has_integral g (d_n n) - g (c_n n)) {c_n n..d_n n}" for n
-        using trouble_free[OF c_n_le_d_n sub_2pi_n sin_nz_n] .
-      have int_n: "integral {c_n n..d_n n} g' = g (d_n n) - g (c_n n)" for n
-        using tf_n[of n] by (rule integral_unique)
-      have int_lim: "(\<lambda>n. integral {c_n n..d_n n} g') \<longlonglongrightarrow> integral {c..d} g'"
-      proof -
-        have indef_cont: "continuous_on {c..d} (\<lambda>x. integral {c..x} g')"
-          by (rule indefinite_integral_continuous_1[OF g'_int])
-        have c_n_cd: "c_n n \<in> {c..d}" for n
-          using c_n_in[of n] by (meson atLeastAtMost_iff greaterThanLessThan_iff less_imp_le)
-        have d_n_cd: "d_n n \<in> {c..d}" for n
-          using d_n_in[of n] by (meson atLeastAtMost_iff greaterThanLessThan_iff less_imp_le)
-        have split: "integral {c_n n..d_n n} g' = integral {c..d_n n} g' - integral {c..c_n n} g'" for n
-        proof -
-          have cn_le: "c \<le> c_n n" using c_n_in[of n] by auto
-          have int_cdn: "g' integrable_on {c..d_n n}"
-            by (rule integrable_subinterval_real[OF g'_int]) (use d_n_cd[of n] cd_le in auto)
-          have "integral {c..c_n n} g' + integral {c_n n..d_n n} g' = integral {c..d_n n} g'"
-            by (rule Henstock_Kurzweil_Integration.integral_combine[OF cn_le c_n_le_d_n int_cdn])
-          then show ?thesis by linarith
-        qed
-        have "(\<lambda>n. integral {c..d_n n} g') \<longlonglongrightarrow> integral {c..d} g'"
-          by (rule continuous_on_tendsto_compose[OF indef_cont d_n_lim])
-            (use d_n_cd cd_le in \<open>auto intro: always_eventually\<close>)
-        moreover have "(\<lambda>n. integral {c..c_n n} g') \<longlonglongrightarrow> integral {c..c} g'"
-          by (rule continuous_on_tendsto_compose[OF indef_cont c_n_lim])
-            (use c_n_cd cd_le in \<open>auto intro: always_eventually\<close>)
-        moreover have "integral {c..c} g' = 0" by simp
-        ultimately have "(\<lambda>n. integral {c..d_n n} g' - integral {c..c_n n} g') \<longlonglongrightarrow> integral {c..d} g' - 0"
-          by (intro tendsto_diff) simp_all
-        then show ?thesis using split by simp
-      qed
-      moreover have "(\<lambda>n. g (d_n n) - g (c_n n)) \<longlonglongrightarrow> g d - g c"
-      proof (intro tendsto_diff)
-        obtain d_n_cd: "d_n n \<in> {c..d}" and c_n_cd: "c_n n \<in> {c..d}" for n
-          using c_n_in d_n_in less_eq_real_def by force
-        show "(\<lambda>n. g (d_n n)) \<longlonglongrightarrow> g d"
-          by (rule continuous_on_tendsto_compose[OF g_cont_cd d_n_lim])
-             (use d_n_cd cd_le in \<open>auto intro: always_eventually\<close>)
-        show "(\<lambda>n. g (c_n n)) \<longlonglongrightarrow> g c"
-          by (rule continuous_on_tendsto_compose[OF g_cont_cd c_n_lim])
-             (use c_n_cd cd_le in \<open>auto intro: always_eventually\<close>)
-      qed
-      ultimately show ?thesis
-        using int_n LIMSEQ_unique by auto
+  have g'_int: "g' integrable_on {c..d}"
+    using \<open>g' absolutely_integrable_on {c..d}\<close> set_lebesgue_integral_eq_integral by blast
+  have g_cont_cd: "continuous_on {c..d} g"
+    using continuous_on_subset[OF g_cont cd_sub] .
+  have "integral {c..d} g' = g d - g c"
+  proof (cases "c < d")
+    case False with \<open>c \<le> d\<close> show ?thesis by simp
+  next
+    case True
+      \<comment> \<open>Pick sequences $c_n \to c$ and $d_n \to d$ from inside $(c,d)$\<close>
+    define c_n where "c_n \<equiv> \<lambda>n. c + (d - c) / (real n + 2)"
+    define d_n where "d_n \<equiv> \<lambda>n. d - (d - c) / (real n + 2)"
+    have pos: "0 < (d - c) / (real n + 2)" for n
+      using True by auto
+    have lt_dc: "(d - c) / (real n + 2) < d - c" for n
+      using True by (simp add: divide_less_eq)
+    have c_n_le_d_n: "c_n n \<le> d_n n" for n
+    proof -
+      have "c * real n \<le> d * real n"
+        using True by (intro mult_right_mono) auto
+      then have "2 * ((d - c) / (real n + 2)) \<le> d - c"
+        using True by (simp add: field_simps)
+      then show ?thesis unfolding c_n_def d_n_def by linarith
     qed
-    show ?thesis
-      using integrable_integral[OF g'_int] goal by auto
+    have frac_lim: "(\<lambda>n. (d - c) / (real n + 2)) \<longlonglongrightarrow> 0"
+    proof (rule real_tendsto_sandwich)
+      show "\<forall>\<^sub>F n in sequentially. 0 \<le> (d - c) / (real n + 2)"
+        using True by (intro always_eventually allI) (auto simp: field_simps)
+      show "\<forall>\<^sub>F n in sequentially. (d - c) / (real n + 2) \<le> (d - c) * (1 / real n)"
+        using True by (intro eventually_sequentiallyI[of 1]) (auto simp: field_simps)
+      show "(\<lambda>_. (0::real)) \<longlonglongrightarrow> 0" by simp
+      show "(\<lambda>n. (d - c) * (1 / real n)) \<longlonglongrightarrow> 0"
+        using tendsto_mult_right_zero[OF lim_inverse_n'] by simp
+    qed
+    have c_n_lim: "c_n \<longlonglongrightarrow> c"
+      unfolding c_n_def using tendsto_add[OF tendsto_const frac_lim] by simp
+    have d_n_lim: "d_n \<longlonglongrightarrow> d"
+      unfolding d_n_def using tendsto_diff[OF tendsto_const frac_lim] by simp
+        \<comment> \<open>On each $\{c_n..d_n\}$, \<open>trouble_free\<close> applies\<close>
+    have c_n_in: "c_n n \<in> {c<..<d}" and d_n_in: "d_n n \<in> {c<..<d}" for n
+      using pos[of n] lt_dc[of n] unfolding c_n_def d_n_def by auto
+    have sub_n: "{c_n n..d_n n} \<subseteq> {c<..<d}" for n
+      using c_n_in[of n] d_n_in[of n] c_n_le_d_n[of n] by auto
+    have sub_2pi_n: "{c_n n..d_n n} \<subseteq> {0..2*pi}" for n
+      using sub_n[of n] cd_sub greaterThanLessThan_subseteq_atLeastAtMost_iff by blast
+    have sin_nz_n: "sin (x - a) \<noteq> 0" if "x \<in> {c_n n..d_n n}" for n x
+      using that sub_n[of n] sin_nz
+      by (meson greaterThanLessThan_subseteq_atLeastAtMost_iff subsetD)
+    have tf_n: "(g' has_integral g (d_n n) - g (c_n n)) {c_n n..d_n n}" for n
+      using trouble_free[OF c_n_le_d_n sub_2pi_n sin_nz_n] .
+    have int_n: "integral {c_n n..d_n n} g' = g (d_n n) - g (c_n n)" for n
+      using tf_n[of n] by (rule integral_unique)
+    have int_lim: "(\<lambda>n. integral {c_n n..d_n n} g') \<longlonglongrightarrow> integral {c..d} g'"
+    proof -
+      have indef_cont: "continuous_on {c..d} (\<lambda>x. integral {c..x} g')"
+        by (rule indefinite_integral_continuous_1[OF g'_int])
+      have c_n_cd: "c_n n \<in> {c..d}" for n
+        using c_n_in[of n] by (meson atLeastAtMost_iff greaterThanLessThan_iff less_imp_le)
+      have d_n_cd: "d_n n \<in> {c..d}" for n
+        using d_n_in[of n] by (meson atLeastAtMost_iff greaterThanLessThan_iff less_imp_le)
+      have split: "integral {c_n n..d_n n} g' = integral {c..d_n n} g' - integral {c..c_n n} g'" for n
+      proof -
+        have cn_le: "c \<le> c_n n" using c_n_in[of n] by auto
+        have int_cdn: "g' integrable_on {c..d_n n}"
+          by (rule integrable_subinterval_real[OF g'_int]) (use d_n_cd[of n] \<open>c \<le> d\<close> in auto)
+        have "integral {c..c_n n} g' + integral {c_n n..d_n n} g' = integral {c..d_n n} g'"
+          by (rule Henstock_Kurzweil_Integration.integral_combine[OF cn_le c_n_le_d_n int_cdn])
+        then show ?thesis by linarith
+      qed
+      have "(\<lambda>n. integral {c..d_n n} g') \<longlonglongrightarrow> integral {c..d} g'"
+        by (rule continuous_on_tendsto_compose[OF indef_cont d_n_lim])
+          (use d_n_cd \<open>c \<le> d\<close> in \<open>auto intro: always_eventually\<close>)
+      moreover have "(\<lambda>n. integral {c..c_n n} g') \<longlonglongrightarrow> integral {c..c} g'"
+        by (rule continuous_on_tendsto_compose[OF indef_cont c_n_lim])
+          (use c_n_cd \<open>c \<le> d\<close> in \<open>auto intro: always_eventually\<close>)
+      moreover have "integral {c..c} g' = 0" by simp
+      ultimately have "(\<lambda>n. integral {c..d_n n} g' - integral {c..c_n n} g') \<longlonglongrightarrow> integral {c..d} g' - 0"
+        by (intro tendsto_diff) simp_all
+      then show ?thesis using split by simp
+    qed
+    moreover have "(\<lambda>n. g (d_n n) - g (c_n n)) \<longlonglongrightarrow> g d - g c"
+    proof (intro tendsto_diff)
+      obtain d_n_cd: "d_n n \<in> {c..d}" and c_n_cd: "c_n n \<in> {c..d}" for n
+        using c_n_in d_n_in less_eq_real_def by force
+      show "(\<lambda>n. g (d_n n)) \<longlonglongrightarrow> g d"
+        by (rule continuous_on_tendsto_compose[OF g_cont_cd d_n_lim])
+          (use d_n_cd \<open>c \<le> d\<close> in \<open>auto intro: always_eventually\<close>)
+      show "(\<lambda>n. g (c_n n)) \<longlonglongrightarrow> g c"
+        by (rule continuous_on_tendsto_compose[OF g_cont_cd c_n_lim])
+          (use c_n_cd \<open>c \<le> d\<close> in \<open>auto intro: always_eventually\<close>)
+    qed
+    ultimately show ?thesis
+      using int_n LIMSEQ_unique by auto
   qed
+  then show ?thesis
+    using integrable_integral[OF g'_int] by auto
 qed
 
 end
@@ -739,22 +728,15 @@ proof -
     by (rule mainly_trouble_free) (use \<open>0 \<le> a\<close> \<open>a < pi\<close> sin_nz_2 in auto)
   have int3: "(g' has_integral g a - g 0) {0..a}"
     by (rule mainly_trouble_free) (use \<open>0 \<le> a\<close> \<open>a < pi\<close> sin_nz_3 in auto)
-      \<comment> \<open>Combine the three integrals using \<open>has_integral_combine\<close>.\<close>
   have api_le: "a \<le> a + pi" and api_le2: "a + pi \<le> 2*pi"
     using \<open>0 \<le> a\<close> \<open>a < pi\<close> by auto
   have a_le_2pi: "a \<le> 2*pi" using \<open>0 \<le> a\<close> \<open>a < pi\<close> by auto
   have int12: "(g' has_integral (g (a + pi) - g a) + (g (2*pi) - g (a + pi))) {a..2*pi}"
     by (rule has_integral_combine[OF api_le api_le2 int2 int1])
-  have int_all: "(g' has_integral (g a - g 0) + ((g (a + pi) - g a) + (g (2*pi) - g (a + pi)))) {0..2*pi}"
-    by (rule has_integral_combine[OF \<open>0 \<le> a\<close> a_le_2pi int3 int12])
-      \<comment> \<open>Simplify: the telescoping sum gives $g(2\pi) - g(0)$.\<close>
-  have int_all': "(g' has_integral g (2*pi) - g 0) {0..2*pi}"
-    using int_all by (simp add: algebra_simps)
-      \<comment> \<open>Show $g(2\pi) = g(0)$, so the integral of $g'$ is $0$.\<close>
   have "g (2*pi) = g 0"
     unfolding g_def using feq by (simp add: tan_def)
   hence g'_zero: "(g' has_integral 0) {0..2*pi}"
-    using int_all' by simp
+    using has_integral_combine[OF \<open>0 \<le> a\<close> a_le_2pi int3 int12] by (simp add: algebra_simps)
       \<comment> \<open>Extract the inequality from $\int g' = 0$.\<close>
   have ffa_int: "(\<lambda>x. (f x - f a)\<^sup>2) integrable_on {0..2*pi}"
     by (intro integrable_continuous_interval continuous_intros contf)
@@ -772,10 +754,6 @@ proof -
       \<comment> \<open>Show $\int f(x)^2 \le \int (f(x)-f(a))^2$ using $\int f = 0$.\<close>
   have "(f x)\<^sup>2 \<le> (f x - f a)\<^sup>2 + 2 * f a * f x - (f a)\<^sup>2" for x
     by (simp add: power2_eq_square algebra_simps)
-  have fx_eq: "(f x)\<^sup>2 = (f x - f a)\<^sup>2 + 2 * f a * f x - (f a)\<^sup>2" for x
-    by (simp add: power2_eq_square algebra_simps)
-  have f_integral_0: "integral {0..2*pi} f = 0"
-    using f0 by (auto simp: has_integral_integrable_integral)
   have fx2_int: "(\<lambda>x. (f x)\<^sup>2) integrable_on {0..2*pi}"
     by (intro integrable_continuous_interval continuous_intros contf)
   have ffa_2fa_int: "(\<lambda>x. 2 * f a * f x) integrable_on {0..2*pi}"
@@ -789,7 +767,7 @@ proof -
         integral {0..2*pi} (\<lambda>x. (f x)\<^sup>2) - integral {0..2*pi} (\<lambda>x. 2 * f a * f x)"
     by (rule Henstock_Kurzweil_Integration.integral_diff[OF fx2_int ffa_2fa_int])
   also have "integral {0..2*pi} (\<lambda>x. 2 * f a * f x) = 0"
-    using integral_cmul by (simp add: f_integral_0)
+    using integral_cmul f0 by (simp add: has_integral_integrable_integral)
   also have "integral {0..2*pi} (\<lambda>x. (f a)\<^sup>2) = (f a)\<^sup>2 * (2*pi)"
     by simp
   finally have ffa_eq: "integral {0..2*pi} (\<lambda>x. (f x - f a)\<^sup>2) 
