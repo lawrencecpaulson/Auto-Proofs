@@ -6,17 +6,24 @@ begin
 
 (*
   ============================================================================
-  STATUS (updated 2026-08-21):  there are no sorries left in this theory.
+  STATUS (updated 2026-08-22):  no sorries, and Manuel's wish list below is
+  discharged.
   ============================================================================
+
+  Checked by a headless build with quick_and_dirty=false, so the absence of
+  sorries is machine-verified rather than just "no sorry appears in the text".
+  (Two `oops` do occur, but only inside a comment block recording two FALSE
+  has_setprod_cmult_* statements.)
 
   The recurring theme of the whole development: the *sum* theory works because
   addition is UNIFORMLY CONTINUOUS on UNIV (one uniformity entourage is invariant
   under translation by any constant).  Multiplication is not, so the sum proofs
   cannot be ported verbatim.  It is, however, uniformly continuous away from 0,
   and in a product with a NON-ZERO value almost all subproducts lie near 1.
-  Making that precise is what closed every remaining gap.
+  Making that precise is what closed every gap.
 
-  Of the five sorries that used to be here:
+  ---------------------------------------------------------------------------
+  PART I -- the five sorries that used to be here.
 
   (1) multipliable_on_subset_aux -- DELETED: THE STATEMENT WAS FALSE.
       "B \<subseteq> A, f \<noteq> 0 on A-B, f multipliable on A \<Longrightarrow> f multipliable on B" fails
@@ -61,6 +68,67 @@ begin
       winding number ever appears.  norm_Ln_le then bounds the partial sums of
       Ln o f, which gives absolute summability by the new criterion
       abs_summable_on_of_bdd_partial_sums.  See the text before the lemma.
+
+  ---------------------------------------------------------------------------
+  PART II -- Manuel's last request (final paragraph of his note below): the
+  logarithmic derivative of a uniformly convergent product should be a uniformly
+  convergent sum, for the Weierstrass zeta function.  DONE, in the section "The
+  uniform Weierstrass convergence theorem" that precedes the main development:
+
+     deriv_uniform_limit_cball, deriv_uniform_limit_on_compact
+        the piece that was missing from the library, which gives only POINTWISE
+        convergence of the derivatives (deriv_complex_uniform_limit,
+        has_complex_derivative_uniform_limit).  These give UNIFORM convergence,
+        on any strictly smaller closed ball and hence on compact subsets.
+        Proof: Cauchy_inequality bounds the derivative at the CENTRE of a ball by
+        the supremum on its boundary, so re-centring it at each point of the
+        smaller ball -- where a ball of the fixed radius r-s still fits inside
+        the larger one -- converts a uniform bound on f n - g into a uniform
+        bound on the derivatives, with constant 1/(r-s).
+     deriv_prod_logderiv, logderiv_prodinf_uniform_limit
+        the uniform strengthening of the library's pointwise
+        logderiv_prodinf_complex_uniform_limit.  Short, given the above:
+        uniform_lim_divide divides the two uniform limits, and its "denominator
+        bounded away from 0" hypothesis concerns the LIMIT function, so
+        continuity and non-vanishing on the compact set suffice.
+
+  NB none of that section is about infinite products: it belongs in
+  HOL-Complex_Analysis.Cauchy_Integral_Formula, right after
+  deriv_complex_uniform_limit, and SHOULD BE MOVED THERE.  It is parked here only
+  because this is where it was needed.
+
+  ---------------------------------------------------------------------------
+  PART III -- added along the way; not needed for any sorry, but the theory was
+  missing them.
+
+     has_setprod_norm, multipliable_on_norm    taking norms: the bridge to the
+                                               real theory
+     abs_multipliable_on_subset                absolute multipliability, unlike
+                                               plain multipliability, DOES pass
+                                               to arbitrary subsets
+     infprod_split                             a non-zero product splits along
+                                               any decomposition of the index set
+     sum_abs_le_of_bdd_partial_sums,
+     abs_summable_on_real_of_bdd_partial_sums,
+     abs_summable_on_of_bdd_partial_sums       bounded-partial-sums criteria for
+                                               absolute summability
+     uniform_limit_compose_filterlim,
+     uniform_limit_prod_lessThan               bridge from
+                                               finite_subsets_at_top UNIV to
+                                               sequentially, so
+                                               uniform_limit_prodinf' composes
+                                               with the sequential library
+     abs_multipliable_on_of_nonzero_infprod_real, ..._complex
+                                               an unordered product with a
+                                               non-zero value converges
+                                               ABSOLUTELY: for real and complex
+                                               families there is no difference
+                                               between unconditional and absolute
+                                               convergence once 0 is excluded
+
+  has_setprod_factors_tend_to_1 is now a six-line corollary of
+  has_setprod_prods_near_1 (it is the singleton case), in place of a 55-line
+  proof.
 
   Fixed along the way: infprod_swap_banach carried the hypothesis
   "uniformly_continuous_on UNIV (\<lambda>(x,y). x*y)", which is FALSE for a field, so the
