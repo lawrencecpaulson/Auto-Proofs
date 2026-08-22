@@ -12,8 +12,7 @@ begin
 
   Checked by a headless build with quick_and_dirty=false, so the absence of
   sorries is machine-verified rather than just "no sorry appears in the text".
-  (Two `oops` do occur, but only inside a comment block recording two FALSE
-  has_setprod_cmult_* statements.)
+  There are no `oops` either.
 
   The recurring theme of the whole development: the *sum* theory works because
   addition is UNIFORMLY CONTINUOUS on UNIV (one uniformity entourage is invariant
@@ -85,12 +84,28 @@ begin
         smaller ball -- where a ball of the fixed radius r-s still fits inside
         the larger one -- converts a uniform bound on f n - g into a uniform
         bound on the derivatives, with constant 1/(r-s).
-     deriv_prod_logderiv, logderiv_prodinf_uniform_limit
+     deriv_prod_logderiv, logderiv_prod_uniform_limit
         the uniform strengthening of the library's pointwise
         logderiv_prodinf_complex_uniform_limit.  Short, given the above:
         uniform_lim_divide divides the two uniform limits, and its "denominator
         bounded away from 0" hypothesis concerns the LIMIT function, so
         continuity and non-vanishing on the compact set suffice.
+        Nothing in that argument cares how the partial products are indexed, so
+        the theorem is stated for an arbitrary filter F and an arbitrary schedule
+        idx of index sets; the proof uses only two properties of the schedule,
+        namely that almost all idx n are finite subsets of I and that every k in I
+        is eventually in idx n.
+     logderiv_prodinf_uniform_limit, logderiv_infprod_uniform_limit,
+     has_sum_logderiv_infprod
+        its two instances (2026-08-22, generalisation asked for by Manuel): the
+        ORDERED one, over initial segments along sequentially, and the UNORDERED
+        one, along finite_subsets_at_top I and for an arbitrary index type.
+        Neither implies the other -- the unordered hypothesis is the stronger,
+        and so is its conclusion -- but the unordered one is the version that fits
+        this theory: its hypothesis is uniform has_setprod convergence and its
+        conclusion uniform has_sum convergence, so it composes with
+        uniform_limit_prodinf' directly, with no detour through the initial
+        segments.  Read at a single point it gives has_sum_logderiv_infprod.
 
   NB none of that section is about infinite products: it belongs in
   HOL-Complex_Analysis.Cauchy_Integral_Formula, right after
@@ -115,9 +130,11 @@ begin
      uniform_limit_compose_filterlim,
      uniform_limit_prod_lessThan               bridge from
                                                finite_subsets_at_top UNIV to
-                                               sequentially, so
-                                               uniform_limit_prodinf' composes
-                                               with the sequential library
+                                               sequentially, for results stated
+                                               only for sequences (no longer
+                                               needed for the logarithmic
+                                               derivative, which now has an
+                                               unordered form of its own)
      abs_multipliable_on_of_nonzero_infprod_real, ..._complex
                                                an unordered product with a
                                                non-zero value converges
@@ -371,18 +388,19 @@ qed
 
 
 text \<open>
-  The logarithmic derivative of a finite product, in the form needed below.
+  The logarithmic derivative of a product, over an arbitrary index set (\<open>has_field_derivative_prod'\<close>
+  needs no finiteness: for an infinite set both sides are those of the empty product).
 \<close>
 lemma deriv_prod_logderiv:
-  fixes f :: "nat \<Rightarrow> complex \<Rightarrow> complex"
-  assumes holf: "\<And>k. f k holomorphic_on A" and A: "open A" and z: "z \<in> A"
-    and nz: "\<And>k. f k z \<noteq> 0"
-  shows "deriv (\<lambda>x. \<Prod>k<n. f k x) z = (\<Prod>k<n. f k z) * (\<Sum>k<n. deriv (f k) z / f k z)"
+  fixes f :: "'a \<Rightarrow> complex \<Rightarrow> complex"
+  assumes holf: "\<And>k. k \<in> S \<Longrightarrow> f k holomorphic_on A" and A: "open A" and z: "z \<in> A"
+    and nz: "\<And>k. k \<in> S \<Longrightarrow> f k z \<noteq> 0"
+  shows "deriv (\<lambda>x. \<Prod>k\<in>S. f k x) z = (\<Prod>k\<in>S. f k z) * (\<Sum>k\<in>S. deriv (f k) z / f k z)"
 proof (rule DERIV_imp_deriv, rule has_field_derivative_prod')
-  show "\<And>x. x \<in> {..<n} \<Longrightarrow> f x z \<noteq> 0"
+  show "\<And>k. k \<in> S \<Longrightarrow> f k z \<noteq> 0"
     using nz by blast
-  show "\<And>x. x \<in> {..<n} \<Longrightarrow> (f x has_field_derivative deriv (f x) z) (at z)"
-    using holomorphic_derivI[OF holf A z] by simp
+  show "\<And>k. k \<in> S \<Longrightarrow> (f k has_field_derivative deriv (f k) z) (at z)"
+    using holf A z by (blast intro: holomorphic_derivI)
 qed
 
 text \<open>
@@ -393,75 +411,84 @@ text \<open>
   a locally uniformly convergent product is a locally uniformly convergent sum.  This is the shape
   needed for the Weierstrass \<open>\<zeta>\<close> function.
 
-  The proof is short because all the work has been done: for the partial products
-  \<^term>\<open>g n = (\<lambda>x. \<Prod>k<n. f k x)\<close> one has \<open>deriv (g n) / g n = (\<Sum>k<n. deriv (f k) / f k)\<close>
+  Nothing in the argument cares how the partial products are indexed, so the theorem is proved for
+  an arbitrary filter \<^term>\<open>F\<close> and an arbitrary schedule \<^term>\<open>idx\<close> of index sets.  The proof uses
+  exactly two properties of that schedule: almost all \<^term>\<open>idx n\<close> are finite subsets of
+  \<^term>\<open>I\<close>, and each \<^term>\<open>k \<in> I\<close> eventually belongs to \<^term>\<open>idx n\<close>.  The two instances below
+  are the ordered one -- initial segments along \<^term>\<open>sequentially\<close> -- and the unordered one, along
+  \<^term>\<open>finite_subsets_at_top I\<close>, which is the filter of \<open>has_setprod\<close> and \<open>has_sum\<close>.  Neither
+  implies the other: the unordered hypothesis is the stronger one, and so is its conclusion.
+
+  The proof is short because all the work has been done: for the partial products one has
+  \<open>deriv (\<lambda>x. \<Prod>k\<in>idx n. f k x) / (\<lambda>x. \<Prod>k\<in>idx n. f k x) = (\<Sum>k\<in>idx n. deriv (f k) / f k)\<close>
   identically, the derivatives converge uniformly on \<^term>\<open>K\<close> by the theorem above, and
-  \<open>uniform_lim_divide\<close> divides the two uniform limits, its hypothesis "denominator bounded away
-  from \<open>0\<close>" coming from \<^term>\<open>P\<close> being continuous and non-vanishing on the compact \<^term>\<open>K\<close>.
+  \<open>uniform_lim_divide\<close> divides the two uniform limits -- its "denominator bounded away from \<open>0\<close>"
+  hypothesis is about the \<^emph>\<open>limit\<close> function, so continuity and non-vanishing on the compact
+  \<^term>\<open>K\<close> suffice.
 \<close>
-theorem logderiv_prodinf_uniform_limit:
-  fixes f :: "nat \<Rightarrow> complex \<Rightarrow> complex"
+theorem logderiv_prod_uniform_limit:
+  fixes f :: "'a \<Rightarrow> complex \<Rightarrow> complex" and idx :: "'n \<Rightarrow> 'a set" and F :: "'n filter"
   assumes ulim: "\<And>L. compact L \<Longrightarrow> L \<subseteq> A \<Longrightarrow>
-                   uniform_limit L (\<lambda>n x. \<Prod>k<n. f k x) P sequentially"
-    and holf: "\<And>k. f k holomorphic_on A"
+                   uniform_limit L (\<lambda>n x. \<Prod>k\<in>idx n. f k x) P F"
+    and holf: "\<And>k. k \<in> I \<Longrightarrow> f k holomorphic_on A"
     and A: "open A"
     and nzP: "\<And>z. z \<in> A \<Longrightarrow> P z \<noteq> 0"
+    and fin: "\<forall>\<^sub>F n in F. finite (idx n) \<and> idx n \<subseteq> I"
+    and cover: "\<And>k. k \<in> I \<Longrightarrow> \<forall>\<^sub>F n in F. k \<in> idx n"
+    and F: "F \<noteq> bot"
     and K: "compact K" "K \<subseteq> A"
-  shows "uniform_limit K (\<lambda>n z. \<Sum>k<n. deriv (f k) z / f k z)
-                         (\<lambda>z. deriv P z / P z) sequentially"
+  shows "uniform_limit K (\<lambda>n z. \<Sum>k\<in>idx n. deriv (f k) z / f k z)
+                         (\<lambda>z. deriv P z / P z) F"
 proof -
-  have holg: "(\<lambda>x. \<Prod>k<n. f k x) holomorphic_on A" for n
-    by (intro holomorphic_intros holf)
-  have ptw: "(\<lambda>n. \<Prod>k<n. f k z) \<longlonglongrightarrow> P z" if "z \<in> A" for z
+  have holg: "\<forall>\<^sub>F n in F. (\<lambda>x. \<Prod>k\<in>idx n. f k x) holomorphic_on A"
+    using fin by eventually_elim (auto intro!: holomorphic_intros holf)
+  have ptw: "((\<lambda>n. \<Prod>k\<in>idx n. f k z) \<longlongrightarrow> P z) F" if "z \<in> A" for z
   proof -
-    have "uniform_limit {z} (\<lambda>n x. \<Prod>k<n. f k x) P sequentially"
+    have "uniform_limit {z} (\<lambda>n x. \<Prod>k\<in>idx n. f k x) P F"
       using that by (intro ulim) auto
     from tendsto_uniform_limitI[OF this] show ?thesis
       by simp
   qed
   \<comment> \<open>a non-zero product forces every factor to be non-zero\<close>
-  have nzf: "f k z \<noteq> 0" if z: "z \<in> A" for k z
+  have nzf: "f k z \<noteq> 0" if z: "z \<in> A" and k: "k \<in> I" for k z
   proof
     assume fz: "f k z = 0"
-    have "eventually (\<lambda>n. (\<Prod>k<n. f k z) = 0) sequentially"
-      using eventually_gt_at_top[of k] by eventually_elim (use fz in auto)
-    hence "(\<lambda>n. \<Prod>k<n. f k z) \<longlonglongrightarrow> 0"
+    have "\<forall>\<^sub>F n in F. (\<Prod>j\<in>idx n. f j z) = 0"
+      using fin cover[OF k] by eventually_elim (use fz in \<open>auto intro: prod_zero\<close>)
+    hence "((\<lambda>n. \<Prod>j\<in>idx n. f j z) \<longlongrightarrow> 0) F"
       by (rule tendsto_eventually)
     with ptw[OF z] have "P z = 0"
-      using tendsto_unique sequentially_bot by blast
+      using tendsto_unique F by blast
     with nzP[OF z] show False
       by simp
   qed
-  have prodnz: "(\<Prod>k<n. f k z) \<noteq> 0" if z: "z \<in> A" for n z
-    using nzf[OF z] by auto
-  have idt: "deriv (\<lambda>x. \<Prod>k<n. f k x) z / (\<Prod>k<n. f k z) = (\<Sum>k<n. deriv (f k) z / f k z)"
-    if z: "z \<in> A" for n z
-    using deriv_prod_logderiv[OF holf A z nzf[OF z]] prodnz[OF z]
-    by simp
   \<comment> \<open>the derivatives of the partial products converge uniformly on \<^term>\<open>K\<close>\<close>
-  have ulim_deriv: "uniform_limit K (\<lambda>n. deriv (\<lambda>x. \<Prod>k<n. f k x)) (deriv P) sequentially"
-  proof (rule deriv_uniform_limit_on_compact)
-    show "\<And>L. compact L \<Longrightarrow> L \<subseteq> A \<Longrightarrow> uniform_limit L (\<lambda>n x. \<Prod>k<n. f k x) P sequentially"
-      by (rule ulim)
-    show "eventually (\<lambda>n. (\<lambda>x. \<Prod>k<n. f k x) holomorphic_on A) sequentially"
-      using holg by simp
-    show "sequentially \<noteq> bot" by simp
-    show "open A" by (rule A)
-    show "compact K" by (rule K)
-    show "K \<subseteq> A" by (rule K)
-  qed
-  have ulimK: "uniform_limit K (\<lambda>n x. \<Prod>k<n. f k x) P sequentially"
+  have ulim_deriv: "uniform_limit K (\<lambda>n. deriv (\<lambda>x. \<Prod>k\<in>idx n. f k x)) (deriv P) F"
+    by (rule deriv_uniform_limit_on_compact[OF ulim holg F A K])
+  have ulimK: "uniform_limit K (\<lambda>n x. \<Prod>k\<in>idx n. f k x) P F"
     using K by (intro ulim)
+  have ntl: "\<not> trivial_limit F"
+    using F by simp
   \<comment> \<open>\<^term>\<open>P\<close> and \<^term>\<open>deriv P\<close> are continuous on \<^term>\<open>K\<close>, being uniform limits\<close>
-  have contdg: "continuous_on K (deriv (\<lambda>x. \<Prod>k<n. f k x))" for n
-    using holomorphic_on_imp_continuous_on[OF holomorphic_deriv[OF holg A]] K(2)
-    by (rule continuous_on_subset)
+  have contdg: "\<forall>\<^sub>F n in F. continuous_on K (deriv (\<lambda>x. \<Prod>k\<in>idx n. f k x))"
+    using holg
+  proof eventually_elim
+    case (elim n)
+    show ?case
+      using holomorphic_on_imp_continuous_on[OF holomorphic_deriv[OF elim A]] K(2)
+      by (rule continuous_on_subset)
+  qed
   have contdP: "continuous_on K (deriv P)"
-    using contdg ulim_deriv by (intro uniform_limit_theorem) auto
-  have contg: "continuous_on K (\<lambda>x. \<Prod>k<n. f k x)" for n
-    using holomorphic_on_imp_continuous_on[OF holg] K(2) by (rule continuous_on_subset)
+    using contdg ulim_deriv ntl by (rule uniform_limit_theorem)
+  have contg: "\<forall>\<^sub>F n in F. continuous_on K (\<lambda>x. \<Prod>k\<in>idx n. f k x)"
+    using holg
+  proof eventually_elim
+    case (elim n)
+    show ?case
+      using holomorphic_on_imp_continuous_on[OF elim] K(2) by (rule continuous_on_subset)
+  qed
   have contP: "continuous_on K P"
-    using contg ulimK by (intro uniform_limit_theorem) auto
+    using contg ulimK ntl by (rule uniform_limit_theorem)
   have bddP: "bounded (deriv P ` K)"
     using contdP K(1) by (intro compact_imp_bounded compact_continuous_image) auto
   \<comment> \<open>and \<^term>\<open>P\<close> is bounded away from \<open>0\<close> on the compact set \<^term>\<open>K\<close>\<close>
@@ -482,22 +509,100 @@ proof -
   qed
   then obtain b where b: "b > 0" "\<And>z. z \<in> K \<Longrightarrow> b \<le> norm (P z)"
     by blast
-  have quot: "uniform_limit K (\<lambda>n z. deriv (\<lambda>u. \<Prod>k<n. f k u) z / (\<Prod>k<n. f k z))
-                              (\<lambda>z. deriv P z / P z) sequentially"
+  have quot: "uniform_limit K (\<lambda>n z. deriv (\<lambda>u. \<Prod>k\<in>idx n. f k u) z / (\<Prod>k\<in>idx n. f k z))
+                              (\<lambda>z. deriv P z / P z) F"
     by (rule uniform_lim_divide[OF ulim_deriv ulimK bddP b(2) b(1)])
-  have eq: "uniform_limit K (\<lambda>n z. deriv (\<lambda>u. \<Prod>k<n. f k u) z / (\<Prod>k<n. f k z))
-                            (\<lambda>z. deriv P z / P z) sequentially
-          = uniform_limit K (\<lambda>n z. \<Sum>k<n. deriv (f k) z / f k z)
-                            (\<lambda>z. deriv P z / P z) sequentially"
-  proof (rule uniform_limit_cong')
-    show "\<And>y x. x \<in> K \<Longrightarrow> deriv (\<lambda>u. \<Prod>k<y. f k u) x / (\<Prod>k<y. f k x)
-                            = (\<Sum>k<y. deriv (f k) x / f k x)"
-      using idt K(2) by blast
-    show "\<And>x. x \<in> K \<Longrightarrow> deriv P x / P x = deriv P x / P x"
-      by simp
+  have idt: "\<forall>\<^sub>F n in F. \<forall>z\<in>K. deriv (\<lambda>u. \<Prod>k\<in>idx n. f k u) z / (\<Prod>k\<in>idx n. f k z)
+                               = (\<Sum>k\<in>idx n. deriv (f k) z / f k z)"
+    using fin
+  proof eventually_elim
+    case (elim n)
+    show ?case
+    proof (intro ballI)
+      fix z assume "z \<in> K"
+      then have zA: "z \<in> A"
+        using K(2) by blast
+      have nz: "\<And>k. k \<in> idx n \<Longrightarrow> f k z \<noteq> 0"
+        using elim nzf[OF zA] by blast
+      have "deriv (\<lambda>u. \<Prod>k\<in>idx n. f k u) z
+              = (\<Prod>k\<in>idx n. f k z) * (\<Sum>k\<in>idx n. deriv (f k) z / f k z)"
+        using elim holf nz by (intro deriv_prod_logderiv[OF _ A zA]) blast+
+      moreover have "(\<Prod>k\<in>idx n. f k z) \<noteq> 0"
+        using elim nz by auto
+      ultimately show "deriv (\<lambda>u. \<Prod>k\<in>idx n. f k u) z / (\<Prod>k\<in>idx n. f k z)
+                         = (\<Sum>k\<in>idx n. deriv (f k) z / f k z)"
+        by simp
+    qed
   qed
-  from quot eq show ?thesis
+  have "uniform_limit K (\<lambda>n z. deriv (\<lambda>u. \<Prod>k\<in>idx n. f k u) z / (\<Prod>k\<in>idx n. f k z))
+                        (\<lambda>z. deriv P z / P z) F
+      = uniform_limit K (\<lambda>n z. \<Sum>k\<in>idx n. deriv (f k) z / f k z)
+                        (\<lambda>z. deriv P z / P z) F"
+    by (rule uniform_limit_cong[OF idt]) simp
+  with quot show ?thesis
     by simp
+qed
+
+text \<open>The ordered instance: the schedule of initial segments along \<^term>\<open>sequentially\<close>.\<close>
+corollary logderiv_prodinf_uniform_limit:
+  fixes f :: "nat \<Rightarrow> complex \<Rightarrow> complex"
+  assumes ulim: "\<And>L. compact L \<Longrightarrow> L \<subseteq> A \<Longrightarrow>
+                   uniform_limit L (\<lambda>n x. \<Prod>k<n. f k x) P sequentially"
+    and holf: "\<And>k. f k holomorphic_on A"
+    and A: "open A"
+    and nzP: "\<And>z. z \<in> A \<Longrightarrow> P z \<noteq> 0"
+    and K: "compact K" "K \<subseteq> A"
+  shows "uniform_limit K (\<lambda>n z. \<Sum>k<n. deriv (f k) z / f k z)
+                         (\<lambda>z. deriv P z / P z) sequentially"
+proof (rule logderiv_prod_uniform_limit[where idx = "\<lambda>n. {..<n}" and I = UNIV])
+  show "\<And>k. k \<in> UNIV \<Longrightarrow> \<forall>\<^sub>F n in sequentially. k \<in> {..<n}"
+    by (simp add: eventually_gt_at_top)
+qed (use assms in auto)
+
+text \<open>
+  The unordered instance, along \<^term>\<open>finite_subsets_at_top I\<close>: an \<^emph>\<open>unconditionally\<close> uniformly
+  convergent product has an \<^emph>\<open>unconditionally\<close> uniformly convergent logarithmic derivative.  This
+  is the version that fits the rest of this theory, since the hypothesis is uniform convergence of
+  \<open>has_setprod\<close> and the conclusion is uniform convergence of \<open>has_sum\<close>; the index type need not be
+  \<^typ>\<open>nat\<close>.  It composes directly with \<open>uniform_limit_prodinf'\<close> below, with no detour through
+  the initial segments.
+\<close>
+corollary logderiv_infprod_uniform_limit:
+  fixes f :: "'a \<Rightarrow> complex \<Rightarrow> complex"
+  assumes ulim: "\<And>L. compact L \<Longrightarrow> L \<subseteq> A \<Longrightarrow>
+                   uniform_limit L (\<lambda>X x. \<Prod>k\<in>X. f k x) P (finite_subsets_at_top I)"
+    and holf: "\<And>k. k \<in> I \<Longrightarrow> f k holomorphic_on A"
+    and A: "open A"
+    and nzP: "\<And>z. z \<in> A \<Longrightarrow> P z \<noteq> 0"
+    and K: "compact K" "K \<subseteq> A"
+  shows "uniform_limit K (\<lambda>X z. \<Sum>k\<in>X. deriv (f k) z / f k z)
+                         (\<lambda>z. deriv P z / P z) (finite_subsets_at_top I)"
+proof (rule logderiv_prod_uniform_limit[where idx = "\<lambda>X. X" and I = I])
+  show "\<forall>\<^sub>F X in finite_subsets_at_top I. finite X \<and> X \<subseteq> I"
+    by (intro eventually_finite_subsets_at_top_weakI) auto
+  show "\<forall>\<^sub>F X in finite_subsets_at_top I. k \<in> X" if "k \<in> I" for k
+    unfolding eventually_finite_subsets_at_top using that by (intro exI[of _ "{k}"]) auto
+qed (use assms in auto)
+
+text \<open>
+  Read at a single point, the unordered version says that the logarithmic derivative is summable in
+  the unordered sense, with sum \<^term>\<open>deriv P z / P z\<close>.
+\<close>
+corollary has_sum_logderiv_infprod:
+  fixes f :: "'a \<Rightarrow> complex \<Rightarrow> complex"
+  assumes ulim: "\<And>L. compact L \<Longrightarrow> L \<subseteq> A \<Longrightarrow>
+                   uniform_limit L (\<lambda>X x. \<Prod>k\<in>X. f k x) P (finite_subsets_at_top I)"
+    and holf: "\<And>k. k \<in> I \<Longrightarrow> f k holomorphic_on A"
+    and A: "open A"
+    and nzP: "\<And>z. z \<in> A \<Longrightarrow> P z \<noteq> 0"
+    and z: "z \<in> A"
+  shows "((\<lambda>k. deriv (f k) z / f k z) has_sum deriv P z / P z) I"
+proof -
+  have "uniform_limit {z} (\<lambda>X z. \<Sum>k\<in>X. deriv (f k) z / f k z)
+                          (\<lambda>z. deriv P z / P z) (finite_subsets_at_top I)"
+    using z by (intro logderiv_infprod_uniform_limit[OF ulim holf A nzP]) auto
+  from tendsto_uniform_limitI[OF this] show ?thesis
+    unfolding has_sum_def by simp
 qed
 
 section \<open>Unordered infinite products\<close>
@@ -2028,24 +2133,6 @@ next
     by auto
 qed
 
-(*
-  TODO from Manuel: Like the subset one:
-  This is broken. It assumed that multiplication is uniformly convergent, which it isn't.
-
-  One probably has to assume strong multipliability or, even better, that all multiplicands are 
-  nonzero (which can then be generalised to strong multipliability).
-
-  Then it holds that all multiplicands are "away from 0 and close to 1", i.e. 
-  they are all contained in some ball around 1 that does not contain 0. (you showed something
-  roughly like this already in has_setprod_factors_tend_to_1).
-
-  Then everything probably works again because multiplication is uniformly continuous on such 
-  domains.
-
-  It might also be a good idea to just switch to real_normed_field in order to avoid messing around
-  with uniformity (which I always find very confusing). You lose some generality that way, but
-  it still gives us the result for real and complex, which are the important ones.
-*)
 
 text \<open>Metric "splitting lemma" for products, the multiplicative replacement for the uniformity
   machinery of @{thm [source] prod_uniformity}: a finite product is Lipschitz in its factors,
@@ -3627,15 +3714,6 @@ proof (rule tendsto_le)
     by (simp add: assms(3) eventually_finite_subsets_at_top_weakI in_mono prod_norm_le)
 qed auto
 
-(*
-lemma multipliable_on_Sigma:
-  fixes A :: "'a set" and B :: "'a \<Rightarrow> 'b set"
-    and f :: \<open>'a \<Rightarrow> 'b \<Rightarrow> 'c::{comm_monoid_mult, t2_space, uniform_space}\<close>
-  assumes times_cont: \<open>uniformly_continuous_on UNIV (\<lambda>(x::'c,y). x+y)\<close>
-  assumes multipliableAB: "(\<lambda>(x,y). f x y) multipliable_on (Sigma A B)"
-  assumes multipliableB: \<open>\<And>x. x\<in>A \<Longrightarrow> (f x) multipliable_on (B x)\<close>
-  shows \<open>(\<lambda>x. infprod (f x) (B x)) multipliable_on A\<close>
-*)
 
 lemma infprod_nonneg_is_SUPREMUM_real:
   fixes f :: "'a \<Rightarrow> real"
@@ -3851,13 +3929,6 @@ proof -
 qed
 
 
-
-
-(*
-class topological_field = topological_comm_monoid_mult + field +
-  assumes tendsto_inverse_nhds: "a \<noteq> 0 \<Longrightarrow> (inverse \<longlongrightarrow> inverse a) (nhds a)"
-*)
-
 lemma multipliable_on_union:
   fixes f :: "_ \<Rightarrow> 'a :: {real_normed_field, complete_space}"
   assumes "f multipliable_on A" "f multipliable_on B"
@@ -4021,22 +4092,14 @@ lemma multipliable_on_swap:
   "f multipliable_on (A \<times> B) \<longleftrightarrow> (\<lambda>(x,y). f (y,x)) multipliable_on (B \<times> A)"
   by (metis has_setprod_swap multipliable_on_def)
 
-(*
-lemma has_setprod_cmult_right_iff:
-  fixes c :: "'a :: {topological_semigroup_mult, field, t2_space}"
-  assumes "c \<noteq> 0"
-  shows   "((\<lambda>x. c * f x) has_setprod S) A \<longleftrightarrow> (f has_setprod (S / c)) A"
-  \<comment> \<open>WARNING: This statement is FALSE for |A| \<noteq> 1. 
-      Counterexample: A = {1,2}, f = (\<lambda>_. 1), c = 2. LHS product = 4, RHS product = 1 \<noteq> 4/2.
-      The correct version would need c^(card A) for finite A.\<close>
-  oops
-
-lemma has_setprod_cmult_left_iff:
-  fixes c :: "'a :: {topological_semigroup_mult, field, t2_space}"
-  assumes "c \<noteq> 0"
-  shows   "((\<lambda>x. f x * c) has_setprod S) A \<longleftrightarrow> (f has_setprod (S / c)) A"
-  oops
-*)
+text \<open>
+  \<^bold>\<open>Not\<close> lemmas.  For \<^term>\<open>c \<noteq> 0\<close>, neither
+  \<open>((\<lambda>x. c * f x) has_setprod S) A\<close> nor \<open>((\<lambda>x. f x * c) has_setprod S) A\<close> is
+  equivalent to \<open>(f has_setprod S / c) A\<close>: scaling every factor scales the product by
+  \<^term>\<open>c ^ card A\<close>, not by \<^term>\<open>c\<close>.  Counterexample: for \<^term>\<open>A = {1, 2 :: nat}\<close>,
+  \<^term>\<open>f = (\<lambda>_. 1 :: real)\<close> and \<^term>\<open>c = (2 :: real)\<close> the scaled product is $4$,
+  while the product of \<^term>\<open>f\<close> is $1$ and \<^term>\<open>S / c\<close> is $2$.
+\<close>
 
 lemma finite_nonzero_values_imp_multipliable_on:
   assumes "finite {x\<in>X. f x \<noteq> 0}"
@@ -4356,97 +4419,6 @@ lemma has_setprod_Sigma':
   by (rule has_setprod_Sigma[OF multipliableAB multipliableB])
 
 
-
-(* TODO from Manuel:
-   Figure out how to generalise uniformly_convergent_prod_Cauchy, convergent_prod_Cauchy_iff.
-   Might involve Cauchy filters, similarly to the proof of abs_summable_summable.
-
-lemma uniformly_convergent_prod_Cauchy:
-  fixes f :: "nat \<Rightarrow> 'a :: topological_space \<Rightarrow> 'b :: {real_normed_div_algebra, comm_ring_1, banach}"
-  assumes C: "\<And>x m. x \<in> A \<Longrightarrow> norm (\<Prod>k<m. f k x) \<le> C"
-  assumes "\<And>e. e > 0 \<Longrightarrow> \<exists>M. \<forall>x\<in>A. \<forall>m\<ge>M. \<forall>n\<ge>m. dist (\<Prod>k=m..n. f k x) 1 < e"
-  shows   "uniformly_convergent_on A (\<lambda>N x. \<Prod>n<N. f n x)"
-proof (rule Cauchy_uniformly_convergent, rule uniformly_Cauchy_onI')
-  fix \<epsilon> :: real assume \<epsilon>: "\<epsilon> > 0"
-  define C' where "C' = max C 1"
-  have C': "C' > 0"
-    by (auto simp: C'_def)
-  define \<delta> where "\<delta> = Min {2 / 3 * \<epsilon> / C', 1 / 2}"
-  from \<epsilon> have "\<delta> > 0"
-    using \<open>C' > 0\<close> by (auto simp: \<delta>_def)
-  obtain M where M: "\<And>x m n. x \<in> A \<Longrightarrow> m \<ge> M \<Longrightarrow> n \<ge> m \<Longrightarrow> dist (\<Prod>k=m..n. f k x) 1 < \<delta>"
-    using \<open>\<delta> > 0\<close> assms by fast
-
-  show "\<exists>M. \<forall>x\<in>A. \<forall>m\<ge>M. \<forall>n>m. dist (\<Prod>k<m. f k x) (\<Prod>k<n. f k x) < \<epsilon>"
-  proof (rule exI, intro ballI allI impI)
-    fix x m n
-    assume x: "x \<in> A" and mn: "M + 1 \<le> m" "m < n"
-    show "dist (\<Prod>k<m. f k x) (\<Prod>k<n. f k x) < \<epsilon>"
-    proof (cases "\<exists>k<m. f k x = 0")
-      case True
-      hence "(\<Prod>k<m. f k x) = 0" and "(\<Prod>k<n. f k x) = 0"
-        using mn x by (auto intro!: prod_zero)
-      thus ?thesis
-        using \<epsilon> by simp
-    next
-      case False
-      have *: "{..<n} = {..<m} \<union> {m..n-1}"
-        using mn by auto
-      have "dist (\<Prod>k<m. f k x) (\<Prod>k<n. f k x) = norm ((\<Prod>k<m. f k x) * ((\<Prod>k=m..n-1. f k x) - 1))"
-        unfolding * by (subst prod.union_disjoint)
-                       (use mn in \<open>auto simp: dist_norm algebra_simps norm_minus_commute\<close>)
-      also have "\<dots> = (\<Prod>k<m. norm (f k x)) * dist (\<Prod>k=m..n-1. f k x) 1"
-        by (simp add: norm_mult dist_norm prod_norm)
-      also have "\<dots> < (\<Prod>k<m. norm (f k x)) * (2 / 3 * \<epsilon> / C')"
-      proof (rule mult_strict_left_mono)
-        show "dist (\<Prod>k = m..n - 1. f k x) 1 < 2 / 3 * \<epsilon> / C'"
-          using M[of x m "n-1"] x mn unfolding \<delta>_def by fastforce
-      qed (use False in \<open>auto intro!: prod_pos\<close>)
-      also have "(\<Prod>k<m. norm (f k x)) = (\<Prod>k<M. norm (f k x)) * norm (\<Prod>k=M..<m. (f k x))"
-      proof -
-        have *: "{..<m} = {..<M} \<union> {M..<m}"
-          using mn by auto
-        show ?thesis
-          unfolding * using mn by (subst prod.union_disjoint) (auto simp: prod_norm)
-      qed
-      also have "norm (\<Prod>k=M..<m. (f k x)) \<le> 3 / 2"
-      proof -
-        have "dist (\<Prod>k=M..m-1. f k x) 1 < \<delta>"
-          using M[of x M "m-1"] x mn \<open>\<delta> > 0\<close> by auto
-        also have "\<dots> \<le> 1 / 2"
-          by (simp add: \<delta>_def)
-        also have "{M..m-1} = {M..<m}"
-          using mn by auto
-        finally have "norm (\<Prod>k=M..<m. f k x) \<le> norm (1 :: 'b) + 1 / 2"
-          by norm
-        thus ?thesis
-          by simp
-      qed
-      hence "(\<Prod>k<M. norm (f k x)) * norm (\<Prod>k = M..<m. f k x) * (2 / 3 * \<epsilon> / C') \<le>
-             (\<Prod>k<M. norm (f k x)) * (3 / 2) * (2 / 3 * \<epsilon> / C')"
-        using \<epsilon> C' by (intro mult_left_mono mult_right_mono prod_nonneg) auto
-      also have "\<dots> \<le> C' * (3 / 2) * (2 / 3 * \<epsilon> / C')"
-      proof (intro mult_right_mono)
-        have "(\<Prod>k<M. norm (f k x)) \<le> C"
-          using C[of x M] x by (simp add: prod_norm)
-        also have "\<dots> \<le> C'"
-          by (simp add: C'_def)
-        finally show "(\<Prod>k<M. norm (f k x)) \<le> C'" .
-      qed (use \<epsilon> C' in auto)
-      finally show "dist (\<Prod>k<m. f k x) (\<Prod>k<n. f k x) < \<epsilon>"
-        using \<open>C' > 0\<close> by (simp add: field_simps)
-    qed
-  qed
-qed
-
-*)
-
-
-(* 
-  TODO from Manuel: Proof is probably similar to abs_multipliable_on_iff_summable_on.
-  Or take inspiration from uniformly_convergent_on_prod.
-  But that requires the Cauchy theorems...
-*)
 lemma uniform_limit_prodinf:
   fixes f :: "nat \<Rightarrow> 'a :: topological_space \<Rightarrow> 'b :: {real_normed_div_algebra, comm_ring_1, banach, semidom, topological_semigroup_mult, t2_space}"
   assumes cont: "\<And>n. continuous_on B (f n)"
@@ -4650,10 +4622,10 @@ text \<open>
   The bridge to the sequential theory.  A uniform limit along
   \<^term>\<open>finite_subsets_at_top (UNIV :: nat set)\<close> specialises to a uniform limit over the initial
   segments, which is the shape required by the sequential results of
-  \<^theory>\<open>HOL-Complex_Analysis.Cauchy_Integral_Formula\<close>.  In particular, composing
-  \<open>uniform_limit_prodinf'\<close> with the library's \<open>logderiv_prodinf_complex_uniform_limit\<close> turns an
-  unordered uniformly convergent product of holomorphic functions into a summable logarithmic
-  derivative, which is what one needs for Weierstrass products.
+  \<^theory>\<open>HOL-Complex_Analysis.Cauchy_Integral_Formula\<close>.  For the logarithmic derivative of a
+  Weierstrass product the detour is no longer needed: \<open>uniform_limit_prodinf'\<close> feeds
+  \<open>logderiv_infprod_uniform_limit\<close> above directly, both being stated along
+  \<^term>\<open>finite_subsets_at_top A\<close>.
 \<close>
 lemma uniform_limit_compose_filterlim:
   assumes ul: "uniform_limit B g P F" and fl: "filterlim \<phi> F F'"
@@ -4682,9 +4654,6 @@ text \<open>Most lemmas in the general property section already apply to real nu
 (*
   Contributed by Manuel: for real numbers, strong multipliability is equivalent to
   absolute multipliability. The same clearley does not hold for "normal" multipliability.
-
-  The analogous statement also holds for complex numbers but is probably more difficult to
-  prove there.
 *)
 lemma strongly_multipliable_on_iff_abs_multipliable_on_real:
   fixes f :: \<open>'a \<Rightarrow> real\<close>
@@ -5084,36 +5053,6 @@ lemma multipliable_on_Im:
   shows "(\<lambda>x. Im (f x)) multipliable_on M"
   by (metis assms has_setprod_Im multipliable_on_def)
 
-
-
-
-(* TODO: statement likely needs fixing (norm(f x) need not be \<ge> 1)
-lemma abs_multipliable_on_comparison_test':
-  assumes "g multipliable_on A"
-  assumes "\<And>x. x \<in> A \<Longrightarrow> norm (f x) \<le> g x"
-  shows   "(\<lambda>x. norm (f x)) multipliable_on A"
-*)
-
-
-(* TODO: requires multipliable_Suc_iff, norm_multipliable_imp_has_setprod, multipliable_geometric
-lemma has_setprod_geometric_from_1:
-  fixes z :: "'a :: {real_normed_field, banach}"
-  assumes "norm z < 1"
-  shows   "((\<lambda>n. z ^ n) has_setprod (z / (1 - z))) {1..}"
-*)
-
-
-(*
-lemma has_setprod_divide_const:
-  fixes f :: "'a \<Rightarrow> 'b :: {topological_semigroup_mult, field, semiring_0}"
-  shows "(f has_setprod S) A \<Longrightarrow> ((\<lambda>x. f x / c) has_setprod (S / c)) A"
-  using has_setprod_cmult_right[of f A S "inverse c"] by (simp add: field_simps)
-
-lemma has_setprod_uminusI:
-  fixes f :: "'a \<Rightarrow> 'b :: {topological_semigroup_mult, ring_1}"
-  shows "(f has_setprod S) A \<Longrightarrow> ((\<lambda>x. -f x) has_setprod (-S)) A"
-  using has_setprod_cmult_right[of f A S "-1"] by simp
-*)
 
 lemma multipliable_countable_real:
   fixes f :: \<open>'a \<Rightarrow> real\<close>
