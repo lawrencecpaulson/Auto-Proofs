@@ -113,6 +113,327 @@ lemma filterlim_map_prod:
   by (intro filterlim_Pair filterlim_compose[OF _ filterlim_fst] filterlim_compose[OF _ filterlim_snd] assms)
 
 
+section \<open>The uniform Weierstrass convergence theorem\<close>
+
+text \<open>
+  \<^bold>\<open>NOTE.\<close>  Nothing in this section is about infinite products: it belongs in
+  \<^theory>\<open>HOL-Complex_Analysis.Cauchy_Integral_Formula\<close> (right after
+  \<open>deriv_complex_uniform_limit\<close>) and should be moved there.  It is parked here only because that
+  is where it was needed.
+
+  \<^theory>\<open>HOL-Complex_Analysis.Cauchy_Integral_Formula\<close> proves that the derivatives of a
+  uniformly convergent sequence of holomorphic functions converge \<^emph>\<open>pointwise\<close>
+  (\<open>deriv_complex_uniform_limit\<close>, \<open>has_complex_derivative_uniform_limit\<close>).  What is missing, and
+  what is proved here, is that they converge \<^emph>\<open>uniformly\<close> on any strictly smaller closed ball,
+  and hence uniformly on compact subsets.  This is the form needed to differentiate a locally
+  uniformly convergent series or product term by term.
+
+  The proof is Cauchy's estimate applied to the difference: \<open>Cauchy_inequality\<close> bounds the
+  derivative at the \<^emph>\<open>centre\<close> of a ball by the supremum on its boundary, so re-centring it at
+  each point \<^term>\<open>w\<close> of the smaller ball -- where a ball of the fixed radius \<open>r - s\<close> still fits
+  inside the larger one -- turns a uniform bound on \<^term>\<open>f n - g\<close> into a uniform bound on
+  \<^term>\<open>deriv (f n) - deriv g\<close>, with the constant \<open>1 / (r - s)\<close>.
+\<close>
+
+lemma deriv_uniform_limit_cball:
+  fixes f :: "'n \<Rightarrow> complex \<Rightarrow> complex"
+  assumes cont: "eventually (\<lambda>n. continuous_on (cball z r) (f n) \<and> f n holomorphic_on ball z r) F"
+      and ulim: "uniform_limit (cball z r) f g F"
+      and F: "F \<noteq> bot"
+      and s: "0 < s" "s < r"
+  shows "uniform_limit (cball z s) (\<lambda>n. deriv (f n)) (deriv g) F"
+proof -
+  define \<rho> where "\<rho> = r - s"
+  have \<rho>: "\<rho> > 0"
+    using s by (simp add: \<rho>_def)
+  have sub_ball: "ball w \<rho> \<subseteq> ball z r" if w: "w \<in> cball z s" for w
+  proof
+    fix x assume x: "x \<in> ball w \<rho>"
+    have "dist x z \<le> dist x w + dist w z"
+      by (rule dist_triangle)
+    moreover have "dist x w < \<rho>"
+      using x by (simp add: dist_commute)
+    moreover have "dist w z \<le> s"
+      using w by (simp add: dist_commute)
+    ultimately have "dist x z < \<rho> + s"
+      by linarith
+    thus "x \<in> ball z r"
+      by (simp add: \<rho>_def dist_commute)
+  qed
+  have sub_cball: "cball w \<rho> \<subseteq> cball z r" if w: "w \<in> cball z s" for w
+  proof
+    fix x assume x: "x \<in> cball w \<rho>"
+    have "dist x z \<le> dist x w + dist w z"
+      by (rule dist_triangle)
+    moreover have "dist x w \<le> \<rho>"
+      using x by (simp add: dist_commute)
+    moreover have "dist w z \<le> s"
+      using w by (simp add: dist_commute)
+    ultimately have "dist x z \<le> \<rho> + s"
+      by linarith
+    thus "x \<in> cball z r"
+      by (simp add: \<rho>_def dist_commute)
+  qed
+  \<comment> \<open>the limit function is itself holomorphic\<close>
+  have contg: "continuous_on (cball z r) g" and holg: "g holomorphic_on ball z r"
+    using holomorphic_uniform_limit[OF cont ulim F] by blast+
+  show ?thesis
+    unfolding uniform_limit_iff
+  proof (intro allI impI)
+    fix \<epsilon> :: real assume \<epsilon>: "\<epsilon> > 0"
+    define B where "B = \<epsilon> * \<rho> / 2"
+    have B: "B > 0"
+      unfolding B_def using \<epsilon> \<rho> by simp
+    from ulim have "\<forall>\<^sub>F n in F. \<forall>x\<in>cball z r. dist (f n x) (g x) < B"
+      using B unfolding uniform_limit_iff by blast
+    with cont show "\<forall>\<^sub>F n in F. \<forall>w\<in>cball z s. dist (deriv (f n) w) (deriv g w) < \<epsilon>"
+    proof eventually_elim
+      case (elim n)
+      then have contfn: "continuous_on (cball z r) (f n)"
+        and holfn: "f n holomorphic_on ball z r" by auto
+      from elim have close: "norm (f n x - g x) \<le> B" if "x \<in> cball z r" for x
+        using that by (simp add: dist_norm less_imp_le)
+      show ?case
+      proof (intro ballI)
+        fix w assume w: "w \<in> cball z s"
+        have wball: "w \<in> ball z r"
+          using w s by auto
+        \<comment> \<open>the derivative of the difference, estimated at the centre \<^term>\<open>w\<close>\<close>
+        have "norm ((deriv ^^ 1) (\<lambda>x. f n x - g x) w) \<le> fact 1 * B / \<rho> ^ 1"
+        proof (rule Cauchy_inequality)
+          show "(\<lambda>x. f n x - g x) holomorphic_on ball w \<rho>"
+            using holomorphic_on_subset[OF holfn sub_ball[OF w]]
+                  holomorphic_on_subset[OF holg sub_ball[OF w]]
+            by (intro holomorphic_intros)
+          show "continuous_on (cball w \<rho>) (\<lambda>x. f n x - g x)"
+            using continuous_on_subset[OF contfn sub_cball[OF w]]
+                  continuous_on_subset[OF contg sub_cball[OF w]]
+            by (intro continuous_intros)
+          show "0 < \<rho>"
+            by (rule \<rho>)
+          fix x assume "norm (w - x) = \<rho>"
+          hence "x \<in> cball w \<rho>"
+            by (simp add: dist_norm norm_minus_commute)
+          with sub_cball[OF w] show "norm (f n x - g x) \<le> B"
+            by (intro close) blast
+        qed
+        moreover have "deriv (\<lambda>x. f n x - g x) w = deriv (f n) w - deriv g w"
+          using holfn holg wball
+          by (intro deriv_diff holomorphic_on_imp_differentiable_at) auto
+        ultimately have "norm (deriv (f n) w - deriv g w) \<le> B / \<rho>"
+          by simp
+        also have "B / \<rho> < \<epsilon>"
+          unfolding B_def using \<rho> \<epsilon> by simp
+        finally show "dist (deriv (f n) w) (deriv g w) < \<epsilon>"
+          by (simp add: dist_norm)
+      qed
+    qed
+  qed
+qed
+
+text \<open>
+  The version for compact subsets of an open set: locally uniform convergence of the functions
+  gives locally uniform convergence of the derivatives.
+\<close>
+lemma deriv_uniform_limit_on_compact:
+  fixes f :: "'n \<Rightarrow> complex \<Rightarrow> complex"
+  assumes ulim: "\<And>L. compact L \<Longrightarrow> L \<subseteq> A \<Longrightarrow> uniform_limit L f g F"
+      and holf: "eventually (\<lambda>n. f n holomorphic_on A) F"
+      and F: "F \<noteq> bot" and A: "open A"
+      and K: "compact K" "K \<subseteq> A"
+  shows "uniform_limit K (\<lambda>n. deriv (f n)) (deriv g) F"
+proof -
+  \<comment> \<open>around each point of \<^term>\<open>K\<close> choose a ball whose double still lies in \<^term>\<open>A\<close>\<close>
+  have "\<exists>d>0. cball w (2 * d) \<subseteq> A" if "w \<in> K" for w
+  proof -
+    from that K have "w \<in> A" by blast
+    with A obtain e where e: "e > 0" "ball w e \<subseteq> A"
+      using openE by blast
+    have "cball w (2 * (e/4)) \<subseteq> ball w e"
+      using e by auto
+    with e show ?thesis
+      by (intro exI[of _ "e/4"]) auto
+  qed
+  then obtain d where d: "\<And>w. w \<in> K \<Longrightarrow> d w > 0"
+    and dA: "\<And>w. w \<in> K \<Longrightarrow> cball w (2 * d w) \<subseteq> A"
+    by metis
+  \<comment> \<open>finitely many of the small balls already cover \<^term>\<open>K\<close>\<close>
+  have "K \<subseteq> (\<Union>w\<in>K. ball w (d w))"
+    using d by auto
+  then obtain T where T: "T \<subseteq> K" "finite T" "K \<subseteq> (\<Union>w\<in>T. ball w (d w))"
+    using K(1)
+    by (meson Elementary_Metric_Spaces.open_ball compactE_image)
+  \<comment> \<open>on each of them the previous lemma applies, with the doubled radius as the outer one\<close>
+  have step: "uniform_limit (cball w (d w)) (\<lambda>n. deriv (f n)) (deriv g) F" if w: "w \<in> T" for w
+  proof (rule deriv_uniform_limit_cball[where r = "2 * d w"])
+    have wK: "w \<in> K"
+      using w T by blast
+    have sub: "cball w (2 * d w) \<subseteq> A"
+      by (rule dA[OF wK])
+    show "\<forall>\<^sub>F n in F. continuous_on (cball w (2 * d w)) (f n) \<and>
+                     f n holomorphic_on ball w (2 * d w)"
+      using holf
+    proof eventually_elim
+      case (elim n)
+      have hol: "f n holomorphic_on cball w (2 * d w)"
+        by (rule holomorphic_on_subset[OF elim sub])
+      have "continuous_on (cball w (2 * d w)) (f n)"
+        by (rule holomorphic_on_imp_continuous_on[OF hol])
+      moreover have "f n holomorphic_on ball w (2 * d w)"
+        by (rule holomorphic_on_subset[OF hol ball_subset_cball])
+      ultimately show ?case
+        by blast
+    qed
+    show "uniform_limit (cball w (2 * d w)) f g F"
+      using dA[OF wK] by (intro ulim) auto
+    show "F \<noteq> bot"
+      by (rule F)
+    show "0 < d w"
+      by (rule d[OF wK])
+    show "d w < 2 * d w"
+      using d[OF wK] by simp
+  qed
+  have "uniform_limit (\<Union>w\<in>T. cball w (d w)) (\<lambda>n. deriv (f n)) (deriv g) F"
+    using T(2) step by (intro uniform_limit_on_UNION) auto
+  moreover have "K \<subseteq> (\<Union>w\<in>T. cball w (d w))"
+    using T(3) by force
+  ultimately show ?thesis
+    by (rule uniform_limit_on_subset)
+qed
+
+
+text \<open>
+  The logarithmic derivative of a finite product, in the form needed below.
+\<close>
+lemma deriv_prod_logderiv:
+  fixes f :: "nat \<Rightarrow> complex \<Rightarrow> complex"
+  assumes holf: "\<And>k. f k holomorphic_on A" and A: "open A" and z: "z \<in> A"
+    and nz: "\<And>k. f k z \<noteq> 0"
+  shows "deriv (\<lambda>x. \<Prod>k<n. f k x) z = (\<Prod>k<n. f k z) * (\<Sum>k<n. deriv (f k) z / f k z)"
+proof (rule DERIV_imp_deriv, rule has_field_derivative_prod')
+  show "\<And>x. x \<in> {..<n} \<Longrightarrow> f x z \<noteq> 0"
+    using nz by blast
+  show "\<And>x. x \<in> {..<n} \<Longrightarrow> (f x has_field_derivative deriv (f x) z) (at z)"
+    using holomorphic_derivI[OF holf A z] by simp
+qed
+
+text \<open>
+  \<^bold>\<open>The application Manuel asked for.\<close>  \<open>logderiv_prodinf_complex_uniform_limit\<close> in
+  \<^theory>\<open>HOL-Complex_Analysis.Cauchy_Integral_Formula\<close> turns a uniformly convergent product of
+  holomorphic functions into a summable logarithmic derivative at each \<^emph>\<open>single\<close> point.  With the
+  uniform Weierstrass theorem above we get the \<^emph>\<open>uniform\<close> statement: the logarithmic derivative of
+  a locally uniformly convergent product is a locally uniformly convergent sum.  This is the shape
+  needed for the Weierstrass \<open>\<zeta>\<close> function.
+
+  The proof is short because all the work has been done: for the partial products
+  \<^term>\<open>g n = (\<lambda>x. \<Prod>k<n. f k x)\<close> one has \<open>deriv (g n) / g n = (\<Sum>k<n. deriv (f k) / f k)\<close>
+  identically, the derivatives converge uniformly on \<^term>\<open>K\<close> by the theorem above, and
+  \<open>uniform_lim_divide\<close> divides the two uniform limits, its hypothesis "denominator bounded away
+  from \<open>0\<close>" coming from \<^term>\<open>P\<close> being continuous and non-vanishing on the compact \<^term>\<open>K\<close>.
+\<close>
+theorem logderiv_prodinf_uniform_limit:
+  fixes f :: "nat \<Rightarrow> complex \<Rightarrow> complex"
+  assumes ulim: "\<And>L. compact L \<Longrightarrow> L \<subseteq> A \<Longrightarrow>
+                   uniform_limit L (\<lambda>n x. \<Prod>k<n. f k x) P sequentially"
+    and holf: "\<And>k. f k holomorphic_on A"
+    and A: "open A"
+    and nzP: "\<And>z. z \<in> A \<Longrightarrow> P z \<noteq> 0"
+    and K: "compact K" "K \<subseteq> A"
+  shows "uniform_limit K (\<lambda>n z. \<Sum>k<n. deriv (f k) z / f k z)
+                         (\<lambda>z. deriv P z / P z) sequentially"
+proof -
+  have holg: "(\<lambda>x. \<Prod>k<n. f k x) holomorphic_on A" for n
+    by (intro holomorphic_intros holf)
+  have ptw: "(\<lambda>n. \<Prod>k<n. f k z) \<longlonglongrightarrow> P z" if "z \<in> A" for z
+  proof -
+    have "uniform_limit {z} (\<lambda>n x. \<Prod>k<n. f k x) P sequentially"
+      using that by (intro ulim) auto
+    from tendsto_uniform_limitI[OF this] show ?thesis
+      by simp
+  qed
+  \<comment> \<open>a non-zero product forces every factor to be non-zero\<close>
+  have nzf: "f k z \<noteq> 0" if z: "z \<in> A" for k z
+  proof
+    assume fz: "f k z = 0"
+    have "eventually (\<lambda>n. (\<Prod>k<n. f k z) = 0) sequentially"
+      using eventually_gt_at_top[of k] by eventually_elim (use fz in auto)
+    hence "(\<lambda>n. \<Prod>k<n. f k z) \<longlonglongrightarrow> 0"
+      by (rule tendsto_eventually)
+    with ptw[OF z] have "P z = 0"
+      using tendsto_unique sequentially_bot by blast
+    with nzP[OF z] show False
+      by simp
+  qed
+  have prodnz: "(\<Prod>k<n. f k z) \<noteq> 0" if z: "z \<in> A" for n z
+    using nzf[OF z] by auto
+  have idt: "deriv (\<lambda>x. \<Prod>k<n. f k x) z / (\<Prod>k<n. f k z) = (\<Sum>k<n. deriv (f k) z / f k z)"
+    if z: "z \<in> A" for n z
+    using deriv_prod_logderiv[OF holf A z nzf[OF z]] prodnz[OF z]
+    by simp
+  \<comment> \<open>the derivatives of the partial products converge uniformly on \<^term>\<open>K\<close>\<close>
+  have ulim_deriv: "uniform_limit K (\<lambda>n. deriv (\<lambda>x. \<Prod>k<n. f k x)) (deriv P) sequentially"
+  proof (rule deriv_uniform_limit_on_compact)
+    show "\<And>L. compact L \<Longrightarrow> L \<subseteq> A \<Longrightarrow> uniform_limit L (\<lambda>n x. \<Prod>k<n. f k x) P sequentially"
+      by (rule ulim)
+    show "eventually (\<lambda>n. (\<lambda>x. \<Prod>k<n. f k x) holomorphic_on A) sequentially"
+      using holg by simp
+    show "sequentially \<noteq> bot" by simp
+    show "open A" by (rule A)
+    show "compact K" by (rule K)
+    show "K \<subseteq> A" by (rule K)
+  qed
+  have ulimK: "uniform_limit K (\<lambda>n x. \<Prod>k<n. f k x) P sequentially"
+    using K by (intro ulim)
+  \<comment> \<open>\<^term>\<open>P\<close> and \<^term>\<open>deriv P\<close> are continuous on \<^term>\<open>K\<close>, being uniform limits\<close>
+  have contdg: "continuous_on K (deriv (\<lambda>x. \<Prod>k<n. f k x))" for n
+    using holomorphic_on_imp_continuous_on[OF holomorphic_deriv[OF holg A]] K(2)
+    by (rule continuous_on_subset)
+  have contdP: "continuous_on K (deriv P)"
+    using contdg ulim_deriv by (intro uniform_limit_theorem) auto
+  have contg: "continuous_on K (\<lambda>x. \<Prod>k<n. f k x)" for n
+    using holomorphic_on_imp_continuous_on[OF holg] K(2) by (rule continuous_on_subset)
+  have contP: "continuous_on K P"
+    using contg ulimK by (intro uniform_limit_theorem) auto
+  have bddP: "bounded (deriv P ` K)"
+    using contdP K(1) by (intro compact_imp_bounded compact_continuous_image) auto
+  \<comment> \<open>and \<^term>\<open>P\<close> is bounded away from \<open>0\<close> on the compact set \<^term>\<open>K\<close>\<close>
+  have "\<exists>b>0. \<forall>z\<in>K. b \<le> norm (P z)"
+  proof (cases "K = {}")
+    case True
+    thus ?thesis
+      by (intro exI[of _ 1]) auto
+  next
+    case False
+    have "continuous_on K (\<lambda>z. norm (P z))"
+      using contP by (intro continuous_intros)
+    then obtain z0 where z0: "z0 \<in> K" "\<forall>z\<in>K. norm (P z0) \<le> norm (P z)"
+      using K(1) False continuous_attains_inf by blast
+    have "norm (P z0) > 0"
+      using z0(1) K(2) nzP by auto
+    with z0 show ?thesis by blast
+  qed
+  then obtain b where b: "b > 0" "\<And>z. z \<in> K \<Longrightarrow> b \<le> norm (P z)"
+    by blast
+  have quot: "uniform_limit K (\<lambda>n z. deriv (\<lambda>u. \<Prod>k<n. f k u) z / (\<Prod>k<n. f k z))
+                              (\<lambda>z. deriv P z / P z) sequentially"
+    by (rule uniform_lim_divide[OF ulim_deriv ulimK bddP b(2) b(1)])
+  have eq: "uniform_limit K (\<lambda>n z. deriv (\<lambda>u. \<Prod>k<n. f k u) z / (\<Prod>k<n. f k z))
+                            (\<lambda>z. deriv P z / P z) sequentially
+          = uniform_limit K (\<lambda>n z. \<Sum>k<n. deriv (f k) z / f k z)
+                            (\<lambda>z. deriv P z / P z) sequentially"
+  proof (rule uniform_limit_cong')
+    show "\<And>y x. x \<in> K \<Longrightarrow> deriv (\<lambda>u. \<Prod>k<y. f k u) x / (\<Prod>k<y. f k x)
+                            = (\<Sum>k<y. deriv (f k) x / f k x)"
+      using idt K(2) by blast
+    show "\<And>x. x \<in> K \<Longrightarrow> deriv P x / P x = deriv P x / P x"
+      by simp
+  qed
+  from quot eq show ?thesis
+    by simp
+qed
+
+section \<open>Unordered infinite products\<close>
+
 definition HAS_SETPROD :: \<open>('a \<Rightarrow> 'b :: {semidom, topological_semigroup_mult, t2_space}) \<Rightarrow> 'a set \<Rightarrow> 'b \<Rightarrow> bool\<close> 
     where has_setprod_def: \<open>HAS_SETPROD f A x \<longleftrightarrow> (prod f \<longlongrightarrow> x) (finite_subsets_at_top A)\<close>
 
@@ -1988,7 +2309,7 @@ lemma infprod_Sigma_banach:
   assumes \<open>infprod f (Sigma A B) \<noteq> 0\<close>
   shows \<open>infprod (\<lambda>x. infprod (\<lambda>y. f (x,y)) (B x)) A = infprod f (Sigma A B)\<close>
   using assms
-  by (metis (no_types, lifting) case_prod_eta infprod_Sigma'_banach infprod_cong)
+  by (simp add: infprod_Sigma'_banach)
 
 lemma infprod_swap:
   fixes A :: "'a set" and B :: "'b set"
