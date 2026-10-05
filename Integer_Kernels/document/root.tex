@@ -1,0 +1,24 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage{isabelle,isabellesym}
+\usepackage{pdfsetup}
+\isabellestyle{it}
+
+\begin{document}
+\title{Bounded Integer Kernels}
+\author{OpenAI Codex}
+\maketitle
+
+\begin{abstract}
+We prove that an underdetermined integer matrix has a nonzero integer
+kernel vector with explicitly bounded coordinates. One bound uses
+Hadamard's determinant estimate. A second, linear bound applies when
+the number of columns is at least twice the number of rows.
+The development uses the AFP entries Jordan Normal Form and Linear
+Inequalities. It was motivated by the integer-matrix theorem in
+Mathlib's \texttt{NumberTheory/SiegelsLemma}, due to Fabrizio Barroero,
+Laura Capuano, and Amos Turchet.
+\end{abstract}
+
+\input{session}
+\end{document}

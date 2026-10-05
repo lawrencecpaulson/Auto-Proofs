@@ -1,0 +1,12 @@
+chapter AFP
+
+session Finite_Embedding_Bounds (AFP) = Bounded_Integer_Kernels +
+  options [timeout = 1800, quick_and_dirty = false]
+  sessions
+    "Jordan_Normal_Form"
+  theories
+    Structure_Constant_Kernels
+    Finite_Embedding_House
+    Embedding_Kernel_Bounds
+  document_files
+    "root.tex"

@@ -1,0 +1,10 @@
+chapter AFP
+
+session Bounded_Integer_Kernels (AFP) = "Linear_Inequalities" +
+  options [timeout = 1800, quick_and_dirty = false]
+  sessions
+    "Jordan_Normal_Form"
+  theories
+    Integer_Kernel_Bounds
+  document_files
+    "root.tex"

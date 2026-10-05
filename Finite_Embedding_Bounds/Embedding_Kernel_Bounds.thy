@@ -1,15 +1,13 @@
-(*  Title:      Baker/Gelfond_Schneider_Embedding_Siegel.thy
+(*  Title:      Finite_Embedding_Bounds/Embedding_Kernel_Bounds.thy
     Author:     OpenAI Codex
 
-Siegel-style bounded kernel vectors together with uniform finite-embedding
-house bounds. This is the reusable layer that sits between the raw
-structure-constant descent and a future concrete number-field instantiation.
+Uniform finite-embedding house bounds for bounded algebraic kernels.
 *)
 
-theory Gelfond_Schneider_Embedding_Siegel
+theory Embedding_Kernel_Bounds
   imports
-    Gelfond_Schneider_Embedding_House
-    Gelfond_Schneider_Siegel
+    Structure_Constant_Kernels
+    Finite_Embedding_House
 begin
 
 context finite_embedding_house

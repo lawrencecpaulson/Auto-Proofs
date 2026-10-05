@@ -9,7 +9,7 @@ Lean's `use6and8`/`use5` path.
 theory Gelfond_Schneider_Power_Basis_Norm_Target
   imports
     Gelfond_Schneider_Power_Basis_Recovery
-    Gelfond_Schneider_Power_Basis_Bounds
+    Gelfond_Schneider_Power_Basis
     Gelfond_Schneider_Power_Basis_Inverse_Bounds
     Gelfond_Schneider_Power_Basis_Field_Norm
     Gelfond_Schneider_Number_Field_Norm_Target

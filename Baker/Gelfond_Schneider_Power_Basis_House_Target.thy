@@ -10,7 +10,7 @@ closer to the analytic output than a root-by-root bound.
 theory Gelfond_Schneider_Power_Basis_House_Target
   imports
     Gelfond_Schneider_Power_Basis_Recovery
-    Gelfond_Schneider_Power_Basis_Bounds
+    Gelfond_Schneider_Power_Basis
     Gelfond_Schneider_Power_Basis_Inverse_Bounds
     Gelfond_Schneider_Number_Field_Target
 begin

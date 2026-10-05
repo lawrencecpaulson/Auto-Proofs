@@ -7,6 +7,8 @@ session Gelfond_Schneider_Standalone (AFP) = "Hermite_Lindemann" +
     "HOL-Complex_Analysis"
     "HOL-Examples"
     "Linear_Inequalities"
+    "Bounded_Integer_Kernels"
+    "Finite_Embedding_Bounds"
     "New_Algebra"
   directories
     ".."

@@ -8,8 +8,8 @@ to explicit coefficient and denominator estimates.
 
 theory Gelfond_Schneider_Power_Basis_Inverse_Bounds
   imports
-    Gelfond_Schneider_Power_Basis_Inverse
-    Gelfond_Schneider_Power_Basis_Bounds
+    Gelfond_Schneider_Power_Basis_Recovery
+    Gelfond_Schneider_Power_Basis
 begin
 
 locale finite_normal_galois_power_basis = finite_galois_power_basis K eta D emb

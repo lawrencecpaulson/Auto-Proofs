@@ -9,9 +9,130 @@ than the temporary two-logarithm detour.
 *)
 
 theory Gelfond_Schneider_Direct
-  imports Gelfond_Schneider_Siegel
+  imports
+    Gelfond_Schneider_Matrix
+    "Finite_Embedding_Bounds.Structure_Constant_Kernels"
 
 begin
+
+declare [[apply_timeout = 10]]
+
+section \<open>Bounded kernels for the Gelfond-Schneider system\<close>
+
+theorem gs_system_mat_exists_bounded_algebraic_int_kernel:
+
+  fixes basis :: "nat \<Rightarrow> complex"
+  fixes C :: "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> int"
+  assumes dpos: "D > 0"
+  assumes mnq: "m * n < q * q"
+  assumes basis_int: "\<And>j. j < D \<Longrightarrow> algebraic_int (basis j)"
+  assumes basis_indep: "\<And>c. (\<Sum>j<D. of_int (c j) * basis j) = 0 \<Longrightarrow> (\<forall>j<D. c j = 0)"
+  assumes mult_repr:
+    "\<And>u t j. u < m * n \<Longrightarrow> t < q * q \<Longrightarrow> j < D \<Longrightarrow>
+      gs_system_mat d m n q $$ (u,t) * basis j = (\<Sum>k<D. of_int (C u t k j) * basis k)"
+  assumes C_bnd:
+    "\<And>u t k j. u < m * n \<Longrightarrow> t < q * q \<Longrightarrow> k < D \<Longrightarrow> j < D \<Longrightarrow> abs (C u t k j) \<le> Bnd"
+  obtains v :: "complex vec" and x :: "int vec" where
+      "v \<in> carrier_vec (q * q)"
+    and "v \<noteq> 0\<^sub>v (q * q)"
+    and "gs_system_mat d m n q *\<^sub>v v = 0\<^sub>v (m * n)"
+    and "\<forall>i<q * q. algebraic_int (v $ i)"
+    and "\<forall>t<q * q. v $ t = (\<Sum>j<D. of_int (x $ sg_pair_idx D t j) * basis j)"
+    and "x \<in> carrier_vec (q * q * D)"
+    and "x \<noteq> 0\<^sub>v (q * q * D)"
+    and "x \<in> Bounded_vec (int (q * q * D + 1) * det_bound_hadamard (q * q * D) (max 1 Bnd))"
+proof -
+  obtain v :: "complex vec" and x :: "int vec" where
+      v_carrier: "v \<in> carrier_vec (q * q)"
+    and v_nz: "v \<noteq> 0\<^sub>v (q * q)"
+    and x_carrier: "x \<in> carrier_vec (q * q * D)"
+    and x_nz: "x \<noteq> 0\<^sub>v (q * q * D)"
+    and ker: "gs_system_mat d m n q *\<^sub>v v = 0\<^sub>v (m * n)"
+    and repr: "\<forall>t<q * q. v $ t = (\<Sum>j<D. of_int (x $ sg_pair_idx D t j) * basis j)"
+    and x_bnd: "x \<in> Bounded_vec (int (q * q * D + 1) * det_bound_hadamard (q * q * D) (max 1 Bnd))"
+    by (rule exists_nonzero_bounded_kernel_vec_of_structure_constants[OF gs_system_mat_carrier dpos mnq mult_repr C_bnd basis_indep])
+  have vint: "\<forall>i<q * q. algebraic_int (v $ i)"
+  proof
+    fix i
+    show "i < q * q \<longrightarrow> algebraic_int (v $ i)"
+    proof
+      assume i: "i < q * q"
+      have sum_int: "algebraic_int (\<Sum>j<D. of_int (x $ sg_pair_idx D i j) * basis j)"
+      proof (rule algebraic_int_sum)
+        fix j
+        assume j: "j \<in> {..<D}"
+        have "algebraic_int (of_int (x $ sg_pair_idx D i j))"
+          by simp
+        moreover have "algebraic_int (basis j)"
+          using basis_int j by simp
+        ultimately show "algebraic_int (of_int (x $ sg_pair_idx D i j) * basis j)"
+          by (rule algebraic_int_times)
+      qed
+      show "algebraic_int (v $ i)"
+        using repr i sum_int by simp
+    qed
+  qed
+  show thesis
+    by (rule that[OF v_carrier v_nz ker vint repr x_carrier x_nz x_bnd])
+qed
+
+theorem gs_system_mat_exists_bounded_algebraic_int_kernel_linear:
+
+  fixes basis :: "nat \<Rightarrow> complex"
+  fixes C :: "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> int"
+  assumes dpos: "D > 0"
+  assumes mnpos: "m * n > 0"
+  assumes mnq: "2 * (m * n) \<le> q * q"
+  assumes basis_int: "\<And>j. j < D \<Longrightarrow> algebraic_int (basis j)"
+  assumes basis_indep: "\<And>c. (\<Sum>j<D. of_int (c j) * basis j) = 0 \<Longrightarrow> (\<forall>j<D. c j = 0)"
+  assumes mult_repr:
+    "\<And>u t j. u < m * n \<Longrightarrow> t < q * q \<Longrightarrow> j < D \<Longrightarrow>
+      gs_system_mat d m n q $$ (u,t) * basis j = (\<Sum>k<D. of_int (C u t k j) * basis k)"
+  assumes C_bnd:
+    "\<And>u t k j. u < m * n \<Longrightarrow> t < q * q \<Longrightarrow> k < D \<Longrightarrow> j < D \<Longrightarrow> abs (C u t k j) \<le> Bnd"
+  obtains v :: "complex vec" and x :: "int vec" where
+      "v \<in> carrier_vec (q * q)"
+    and "v \<noteq> 0\<^sub>v (q * q)"
+    and "gs_system_mat d m n q *\<^sub>v v = 0\<^sub>v (m * n)"
+    and "\<forall>i<q * q. algebraic_int (v $ i)"
+    and "\<forall>t<q * q. v $ t = (\<Sum>j<D. of_int (x $ sg_pair_idx D t j) * basis j)"
+    and "x \<in> carrier_vec (q * q * D)"
+    and "x \<noteq> 0\<^sub>v (q * q * D)"
+    and "x \<in> Bounded_vec (2 * int (q * q * D) * max 1 Bnd)"
+proof -
+  obtain v :: "complex vec" and x :: "int vec" where
+      v_carrier: "v \<in> carrier_vec (q * q)"
+    and v_nz: "v \<noteq> 0\<^sub>v (q * q)"
+    and ker: "gs_system_mat d m n q *\<^sub>v v = 0\<^sub>v (m * n)"
+    and repr: "\<forall>t<q * q. v $ t = (\<Sum>j<D. of_int (x $ sg_pair_idx D t j) * basis j)"
+    and x_carrier: "x \<in> carrier_vec (q * q * D)"
+    and x_nz: "x \<noteq> 0\<^sub>v (q * q * D)"
+    and x_bnd: "x \<in> Bounded_vec (2 * int (q * q * D) * max 1 Bnd)"
+    by (rule exists_nonzero_bounded_kernel_vec_of_structure_constants_linear[OF gs_system_mat_carrier mnpos dpos mnq mult_repr C_bnd basis_indep])
+  have vint: "\<forall>i<q * q. algebraic_int (v $ i)"
+  proof
+    fix i
+    show "i < q * q \<longrightarrow> algebraic_int (v $ i)"
+    proof
+      assume i: "i < q * q"
+      have sum_int: "algebraic_int (\<Sum>j<D. of_int (x $ sg_pair_idx D i j) * basis j)"
+      proof (rule algebraic_int_sum)
+        fix j
+        assume j: "j \<in> {..<D}"
+        have "algebraic_int (of_int (x $ sg_pair_idx D i j))"
+          by simp
+        moreover have "algebraic_int (basis j)"
+          using basis_int j by simp
+        ultimately show "algebraic_int (of_int (x $ sg_pair_idx D i j) * basis j)"
+          by (rule algebraic_int_times)
+      qed
+      show "algebraic_int (v $ i)"
+        using repr i sum_int by simp
+    qed
+  qed
+  show thesis
+    by (rule that[OF v_carrier v_nz ker vint repr x_carrier x_nz x_bnd])
+qed
 
 section \<open>Direct Auxiliary Witness Data\<close>
 

@@ -8,7 +8,7 @@ This is the wrapper layer that matches the Lean `use6and8`/`use5` estimates.
 theory Gelfond_Schneider_Number_Field_Norm_Target
   imports
     Gelfond_Schneider_Direct_Target
-    Gelfond_Schneider_Embedding_Norm_Indexed
+    Gelfond_Schneider_Embedding_Indexed
 begin
 
 locale gelfond_schneider_number_field_norm_target =

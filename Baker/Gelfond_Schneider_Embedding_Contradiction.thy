@@ -9,7 +9,7 @@ theorem.
 
 theory Gelfond_Schneider_Embedding_Contradiction
   imports
-    Gelfond_Schneider_Embedding_Siegel
+    "Finite_Embedding_Bounds.Embedding_Kernel_Bounds"
     Gelfond_Schneider_Contradiction
 begin
 
