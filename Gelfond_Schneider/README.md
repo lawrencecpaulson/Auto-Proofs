@@ -56,12 +56,17 @@ The proof is independent of the abandoned Baker two-logarithm development.
    [`Gelfond_Schneider.thy`](Gelfond_Schneider.thy) applies that result to
    discharge the counterexample and state the public theorem.
 
-The `Direct`, `Direct_Target`, `Embedding_Indexed`,
-`Embedding_Contradiction`, `Number_Field_Target`, `Number_Field_Norm_Target`,
-`Power_Basis_House_Target`, and `Contradiction` theories provide reusable
-intermediate interfaces connecting these stages. `Arithmetic`,
-`Scaled_Bounded`, `Rho_Bounds`, and `Statement_Shell` supply the algebraic and
-analytic estimates used by the final contradiction.
+`Direct`, `Arithmetic`, `Scaled_Bounded`, `Rho_Bounds`, and
+`Statement_Shell` supply the matrix construction and estimates used by the
+final contradiction. Earlier conditional target locales and their bridge
+theories were removed after the final proof was connected directly to the
+scaled-denominator contradiction.
+
+## Later refactoring
+
+After removal of redundant material, review theory names. Drop the
+`Gelfond_Schneider_` prefix when the remaining suffix is distinctive; keep it
+for generic suffixes such as `Order` and `Matrix`.
 
 ## Reusable library sessions
 
@@ -86,8 +91,8 @@ isabelle build \
   -o document=false Gelfond_Schneider_Standalone
 ```
 
-The strict session passed a batch build on 2026-10-05 after the directory
-rename and the addition of the two corollaries.
+The strict session passed a batch build on 2026-10-05 after removal of
+unreachable theories and unused conditional proof branches.
 
 The local `Mathlib-GelfondSchneider`, `Mathlib-Numbertheory`, and
 `Transcendental` directories contain ignored Lean reference copies; they

@@ -1,11 +1,9 @@
 (*  Title:      Gelfond_Schneider/Gelfond_Schneider_Setup.thy
     Author:     OpenAI Codex
 
-Normalization data for a future standalone formalization of the
-Gelfond-Schneider theorem. This mirrors the front end of the Lean development:
-an alleged algebraic counterexample is reduced to a chosen logarithm together
-with the basic irrational-scaling independence facts that the later auxiliary
-function argument will need.
+Normalization data for the Gelfond-Schneider theorem. An alleged algebraic
+counterexample is reduced to a chosen logarithm for the auxiliary-function
+argument.
 *)
 
 theory Gelfond_Schneider_Setup
@@ -162,18 +160,6 @@ proof -
     by (rule algebraic_log_value_transcendental[OF alg_a a_nz a_not1 log_z])
 qed
 
-lemma gelfond_schneider_data_qindep:
-  assumes d: "is_gelfond_schneider_data d"
-  shows "rat_linearly_independent [gs_z d, gs_b d * gs_z d]"
-proof -
-  have z_nz: "gs_z d \<noteq> 0"
-    by (rule gelfond_schneider_data_z_nonzero[OF d])
-  have b_irr: "gs_b d \<notin> \<rat>"
-    using d unfolding is_gelfond_schneider_data_def by blast
-  show ?thesis
-    by (rule rat_linearly_independent_pair_scale) (use z_nz b_irr in auto)
-qed
-
 lemma gelfond_schneider_data_c1_ge1:
   assumes d: "is_gelfond_schneider_data d"
   shows "1 \<le> gs_c1 d"
@@ -314,30 +300,6 @@ proof -
     using algs nontriv b_irr z by auto
   then show ?thesis
     by blast
-qed
-
-theorem gelfond_schneider_counterexample_witness:
-  fixes a b w :: complex
-  assumes algs: "algebraic a" "algebraic b" "algebraic w"
-  assumes nontriv: "a \<noteq> 0" "a \<noteq> 1"
-  assumes b_irr: "b \<notin> \<rat>"
-  assumes wmem: "w \<in> power_values a b"
-  obtains z where
-    "z \<in> log_values a"
-    "b * z \<in> log_values w"
-    "\<not> algebraic z"
-    "rat_linearly_independent [z, b * z]"
-proof -
-  from power_value_log_valueE[OF wmem]
-  obtain z where z: "z \<in> log_values a" "b * z \<in> log_values w" .
-  have z_trans: "\<not> algebraic z"
-    by (rule algebraic_log_value_transcendental[OF algs(1) nontriv z(1)])
-  have z_nz: "z \<noteq> 0"
-    using nontriv(2) z(1) by auto
-  have indep: "rat_linearly_independent [z, b * z]"
-    by (rule rat_linearly_independent_pair_scale) (use z_nz b_irr in auto)
-  show thesis
-    by (rule that[OF z z_trans indep])
 qed
 
 end
