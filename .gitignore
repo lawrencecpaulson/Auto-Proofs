@@ -1,2 +1,5 @@
 *.marks
 repl.cpython-314.pyc
+/Mathlib-GelfondSchneider/
+/Mathlib-Numbertheory/
+/Transcendental/
