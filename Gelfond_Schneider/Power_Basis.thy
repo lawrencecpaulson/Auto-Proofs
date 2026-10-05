@@ -1,4 +1,4 @@
-(*  Title:      Gelfond_Schneider/Gelfond_Schneider_Power_Basis.thy
+(*  Title:      Gelfond_Schneider/Power_Basis.thy
     Author:     OpenAI Codex
 
 Qualitative power-basis infrastructure for the standalone Gelfond-Schneider
@@ -7,8 +7,8 @@ and the resulting monogenic basis values `emb i eta ^ j` at the level needed
 before any quantitative inverse-Vandermonde bounds are introduced.
 *)
 
-theory Gelfond_Schneider_Power_Basis
-  imports Gelfond_Schneider_Galois_Root_Bounds
+theory Power_Basis
+  imports Galois_Root_Bounds
 begin
 
 locale finite_galois_power_basis =

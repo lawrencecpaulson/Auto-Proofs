@@ -1,4 +1,4 @@
-(*  Title:      Gelfond_Schneider/Gelfond_Schneider_Common_Field.thy
+(*  Title:      Gelfond_Schneider/Common_Field.thy
     Author:     OpenAI Codex
 
 Common-field packaging for the standalone Gelfond-Schneider route.  This
@@ -7,7 +7,7 @@ complex numbers: any algebraic triple a, b, w lives in one simple extension
 Q(theta), and hence admits power-basis coordinates over Q.
 *)
 
-theory Gelfond_Schneider_Common_Field
+theory Common_Field
   imports
     Gelfond_Schneider_Preliminaries
     "New_Algebra.Finite_Generated_Extension"

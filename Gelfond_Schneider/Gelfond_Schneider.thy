@@ -5,7 +5,7 @@ Standalone theorem target for the Gelfond-Schneider formalization.
 *)
 
 theory Gelfond_Schneider
-  imports Gelfond_Schneider_Power_Basis_Norm_Direct
+  imports Power_Basis_Norm_Direct
 begin
 
 section \<open>Standalone Gelfond-Schneider\<close>

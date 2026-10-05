@@ -1,4 +1,4 @@
-(*  Title:      Gelfond_Schneider/Gelfond_Schneider_Scaled_Bounded.thy
+(*  Title:      Gelfond_Schneider/Scaled_Bounded.thy
     Author:     OpenAI Codex
 
 Bounded-kernel packaging for the row-scaled Gelfond-Schneider system matrix.
@@ -6,9 +6,9 @@ This mirrors the existing unscaled bounded-kernel route, but targets the
 row-scaled coefficients that already match the arithmetic normalization.
 *)
 
-theory Gelfond_Schneider_Scaled_Bounded
+theory Scaled_Bounded
   imports
-    Gelfond_Schneider_Scaled_Matrix
+    Scaled_Matrix
     Gelfond_Schneider_Arithmetic
 begin
 

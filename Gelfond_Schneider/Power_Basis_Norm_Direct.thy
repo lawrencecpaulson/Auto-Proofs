@@ -1,12 +1,12 @@
-(*  Title:      Gelfond_Schneider/Gelfond_Schneider_Power_Basis_Norm_Direct.thy
+(*  Title:      Gelfond_Schneider/Power_Basis_Norm_Direct.thy
     Author:     OpenAI Codex
 
 Instantiates the scaled-denominator power-basis contradiction for the
 primitive normal common field.
 *)
 
-theory Gelfond_Schneider_Power_Basis_Norm_Direct
-  imports Gelfond_Schneider_Power_Basis_Norm_Target
+theory Power_Basis_Norm_Direct
+  imports Power_Basis_Norm_Target
 begin
 
 theorem exists_finite_normal_galois_power_basis_coordinates_of_algebraic_triple:

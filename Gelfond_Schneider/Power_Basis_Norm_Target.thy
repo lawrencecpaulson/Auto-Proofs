@@ -1,17 +1,17 @@
-(*  Title:      Gelfond_Schneider/Gelfond_Schneider_Power_Basis_Norm_Target.thy
+(*  Title:      Gelfond_Schneider/Power_Basis_Norm_Target.thy
     Author:     OpenAI Codex
 
 Power-basis norm estimates, controlled-denominator kernel construction, and
 the verified scaled contradiction.
 *)
 
-theory Gelfond_Schneider_Power_Basis_Norm_Target
+theory Power_Basis_Norm_Target
   imports
-    Gelfond_Schneider_Power_Basis_Recovery
-    Gelfond_Schneider_Power_Basis
-    Gelfond_Schneider_Power_Basis_Inverse_Bounds
-    Gelfond_Schneider_Power_Basis_Field_Norm
-    Gelfond_Schneider_Rho_Bounds
+    Power_Basis_Recovery
+    Power_Basis
+    Power_Basis_Inverse_Bounds
+    Power_Basis_Field_Norm
+    Rho_Bounds
 begin
 
 locale gelfond_schneider_power_basis_field_norm_estimates =
@@ -922,7 +922,7 @@ proof -
   have bound: "(of_int (2 * int (q * q * D) *
       max 1 (ceiling (?W * ?A))) :: real) \<le>
       (4 * of_nat (gs_m h) * of_nat D * (1 + ?W)) * of_nat r * ?G"
-    by (rule Gelfond_Schneider_Rho_Bounds.gs_witness_bound_le_growth
+    by (rule Rho_Bounds.gs_witness_bound_le_growth
       [OF qsq Anonneg Wnonneg Ale Gone])
   show ?thesis using bound
     by (simp add: gs_witness_growth_weight_def ac_simps)

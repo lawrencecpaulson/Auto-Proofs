@@ -22,9 +22,9 @@ The proof is independent of the abandoned Baker two-logarithm development.
    conditions as an underdetermined matrix kernel. `Order` uses Isabelle's
    `zorder` and `zor_poly` machinery.
 2. **Finite normal field and power basis.**
-   [`Gelfond_Schneider_Common_Field.thy`](Gelfond_Schneider_Common_Field.thy)
+   [`Common_Field.thy`](Common_Field.thy)
    and
-   [`Gelfond_Schneider_Galois_Root_Bounds.thy`](Gelfond_Schneider_Galois_Root_Bounds.thy)
+   [`Galois_Root_Bounds.thy`](Galois_Root_Bounds.thy)
    place the algebraic data in one finite normal extension
    `K = ℚ(η)`, with algebraic-integer generator `η`, degree `D`, rational
    power-basis coordinates, and an indexed family of automorphisms.
@@ -33,7 +33,7 @@ The proof is independent of the abandoned Baker two-logarithm development.
    Vandermonde matrix, and quantitative inverse bounds. `House` and
    `Power_Basis_Field_Norm` control conjugates and the Galois norm.
 3. **Bounded integral kernel.**
-   [`Gelfond_Schneider_Power_Basis_Norm_Target.thy`](Gelfond_Schneider_Power_Basis_Norm_Target.thy)
+   [`Power_Basis_Norm_Target.thy`](Power_Basis_Norm_Target.thy)
    clears rational multiplication coordinates of the actual row-scaled
    matrix. A positive integer `T` is chosen from the fixed field data
    *before* the grid parameter `q`; a power `T^N` clears all relevant
@@ -50,7 +50,7 @@ The proof is independent of the abandoned Baker two-logarithm development.
    the opposite inequality for a suitable `q`. The locale
    `gelfond_schneider_power_basis_scaled_norm_verified` proves this
    contradiction.
-   [`Gelfond_Schneider_Power_Basis_Norm_Direct.thy`](Gelfond_Schneider_Power_Basis_Norm_Direct.thy)
+   [`Power_Basis_Norm_Direct.thy`](Power_Basis_Norm_Direct.thy)
    chooses the global parameters in the required order and exports
    `no_gelfond_schneider_data_scaled`.
    [`Gelfond_Schneider.thy`](Gelfond_Schneider.thy) applies that result to
@@ -61,12 +61,6 @@ The proof is independent of the abandoned Baker two-logarithm development.
 final contradiction. Earlier conditional target locales and their bridge
 theories were removed after the final proof was connected directly to the
 scaled-denominator contradiction.
-
-## Later refactoring
-
-After removal of redundant material, review theory names. Drop the
-`Gelfond_Schneider_` prefix when the remaining suffix is distinctive; keep it
-for generic suffixes such as `Order` and `Matrix`.
 
 ## Reusable library sessions
 
@@ -91,8 +85,8 @@ isabelle build \
   -o document=false Gelfond_Schneider_Standalone
 ```
 
-The strict session passed a batch build on 2026-10-05 after removal of
-unreachable theories and unused conditional proof branches.
+The strict session passed a batch build on 2026-10-05 after the theory
+renaming.
 
 The local `Mathlib-GelfondSchneider`, `Mathlib-Numbertheory`, and
 `Transcendental` directories contain ignored Lean reference copies; they

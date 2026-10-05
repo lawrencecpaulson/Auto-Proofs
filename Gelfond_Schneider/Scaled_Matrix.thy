@@ -1,4 +1,4 @@
-(*  Title:      Gelfond_Schneider/Gelfond_Schneider_Scaled_Matrix.thy
+(*  Title:      Gelfond_Schneider/Scaled_Matrix.thy
     Author:     OpenAI Codex
 
 Row-scaled matrix packaging for the indexed Gelfond-Schneider linear system.
@@ -9,7 +9,7 @@ vanishing/min-order purposes, while matching the later quantitative scaling
 more closely than the raw system matrix.
 *)
 
-theory Gelfond_Schneider_Scaled_Matrix
+theory Scaled_Matrix
   imports Gelfond_Schneider_Matrix
 begin
 

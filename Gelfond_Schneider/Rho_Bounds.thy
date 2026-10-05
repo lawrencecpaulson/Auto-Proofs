@@ -1,4 +1,4 @@
-(*  Title:      Gelfond_Schneider/Gelfond_Schneider_Rho_Bounds.thy
+(*  Title:      Gelfond_Schneider/Rho_Bounds.thy
     Author:     OpenAI Codex
 
 Bridge from the existing row-scaled witness package to the final q-choice growth
@@ -6,10 +6,10 @@ contradiction. This isolates the remaining Lean port to proving quantitative
 bounds on the distinguished scalar rho.
 *)
 
-theory Gelfond_Schneider_Rho_Bounds
+theory Rho_Bounds
   imports
-    Gelfond_Schneider_Scaled_Bounded
-    Gelfond_Schneider_Statement_Shell
+    Scaled_Bounded
+    Statement_Shell
 begin
 
 lemma gs_q_choice_circle_clearance:

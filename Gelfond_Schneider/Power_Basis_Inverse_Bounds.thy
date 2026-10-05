@@ -1,4 +1,4 @@
-(*  Title:      Gelfond_Schneider/Gelfond_Schneider_Power_Basis_Inverse_Bounds.thy
+(*  Title:      Gelfond_Schneider/Power_Basis_Inverse_Bounds.thy
     Author:     OpenAI Codex
 
 Crude inverse-Vandermonde bounds for the power-basis route.  The aim here is
@@ -6,10 +6,10 @@ not sharp constants, only a clean reduction of the remaining `inv_bound` input
 to explicit coefficient and denominator estimates.
 *)
 
-theory Gelfond_Schneider_Power_Basis_Inverse_Bounds
+theory Power_Basis_Inverse_Bounds
   imports
-    Gelfond_Schneider_Power_Basis_Recovery
-    Gelfond_Schneider_Power_Basis
+    Power_Basis_Recovery
+    Power_Basis
 begin
 
 locale finite_normal_galois_power_basis = finite_galois_power_basis K eta D emb

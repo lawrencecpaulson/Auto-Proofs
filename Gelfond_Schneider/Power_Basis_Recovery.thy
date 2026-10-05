@@ -1,4 +1,4 @@
-(*  Title:      Gelfond_Schneider/Gelfond_Schneider_Power_Basis_Recovery.thy
+(*  Title:      Gelfond_Schneider/Power_Basis_Recovery.thy
     Author:     OpenAI Codex
 
 Lagrange-interpolation recovery for the indexed Galois power basis.  This
@@ -7,9 +7,9 @@ contradiction layers without yet addressing the quantitative inverse-matrix
 bounds.
 *)
 
-theory Gelfond_Schneider_Power_Basis_Recovery
+theory Power_Basis_Recovery
   imports
-    Gelfond_Schneider_Power_Basis
+    Power_Basis
     "Finite_Embedding_Bounds.Finite_Embedding_House"
 begin
 

@@ -1,4 +1,4 @@
-(*  Title:      Gelfond_Schneider/Gelfond_Schneider_Statement_Shell.thy
+(*  Title:      Gelfond_Schneider/Statement_Shell.thy
     Author:     OpenAI Codex
 
 Arithmetic shell for the final standalone Gelfond-Schneider contradiction.
@@ -7,7 +7,7 @@ leaving only the concrete analytic bounds on the distinguished quantity `rho`
 as the remaining gap.
 *)
 
-theory Gelfond_Schneider_Statement_Shell
+theory Statement_Shell
   imports
     Gelfond_Schneider_Preliminaries
     Gelfond_Schneider_System

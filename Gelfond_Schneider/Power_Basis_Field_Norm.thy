@@ -1,4 +1,4 @@
-(*  Title:      Gelfond_Schneider/Gelfond_Schneider_Power_Basis_Field_Norm.thy
+(*  Title:      Gelfond_Schneider/Power_Basis_Field_Norm.thy
     Author:     OpenAI Codex
 
 Absolute field-norm style constructions for the finite normal Galois power-basis
@@ -6,9 +6,9 @@ setup. This packages the product of all Galois conjugates into a reusable
 object for the remaining quantitative Gelfond-Schneider bounds.
 *)
 
-theory Gelfond_Schneider_Power_Basis_Field_Norm
+theory Power_Basis_Field_Norm
   imports
-    Gelfond_Schneider_Power_Basis_Inverse_Bounds
+    Power_Basis_Inverse_Bounds
     "New_Algebra.Galois_Finite_Correspondence"
 begin
 

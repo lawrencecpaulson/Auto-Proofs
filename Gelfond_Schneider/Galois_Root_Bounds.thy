@@ -1,4 +1,4 @@
-(*  Title:      Gelfond_Schneider/Gelfond_Schneider_Galois_Root_Bounds.thy
+(*  Title:      Gelfond_Schneider/Galois_Root_Bounds.thy
     Author:     OpenAI Codex
 
 Root-bound transfer for algebraic integers inside finite Galois extensions of
@@ -7,9 +7,9 @@ x are bounded" to "all roots of min_int_poly x are bounded", which is exactly
 the shape needed by the direct Gelfond-Schneider contradiction layer.
 *)
 
-theory Gelfond_Schneider_Galois_Root_Bounds
+theory Galois_Root_Bounds
   imports
-    Gelfond_Schneider_Common_Field
+    Common_Field
     Gelfond_Schneider_Setup
     Gelfond_Schneider_House
     "New_Algebra.Field_Extension_Tower"
