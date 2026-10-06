@@ -9,7 +9,7 @@ object for the remaining quantitative Gelfond-Schneider bounds.
 theory Power_Basis_Field_Norm
   imports
     Power_Basis_Inverse_Bounds
-    "New_Algebra.Galois_Finite_Correspondence"
+    "HOL-New_Algebra.Galois_Finite_Correspondence"
 begin
 
 context finite_normal_galois_power_basis

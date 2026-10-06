@@ -183,7 +183,7 @@ proof -
     using lead_coeff_cf_pos_poly[of f] f0 by simp
   have prim_f: "primitive f"
     using irreducible_content[OF irr_f] deg_f_ne0 by auto
-  have f_prim: "content f = 1"
+  have f_prim: "Polynomial.content f = 1"
     using prim_f by (simp add: primitive_iff_content_eq_1)
   have f_eq: "f = Polynomial.smult (sgn (Polynomial.lead_coeff f)) ?g"
     using cf_pos_poly_main[of f] f_prim by simp

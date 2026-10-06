@@ -73,20 +73,22 @@ Both are separate sessions imported by the strict Gelfond–Schneider session.
 
 ## Build
 
-From the `Auto-Proofs` directory:
+With Isabelle2026-RC3 and a matching AFP development checkout, from the
+`Auto-Proofs` directory:
 
 ```sh
-isabelle build \
+/Applications/Isabelle2026-RC3.app/bin/isabelle build \
   -d Integer_Kernels \
   -d Finite_Embedding_Bounds \
   -d Gelfond_Schneider \
-  -d ../New-Algebra \
-  -d ../afp/release/thys \
+  -d /path/to/afp-devel/thys \
   -o document=false Gelfond_Schneider_Standalone
 ```
 
-The strict session passed a batch build on 2026-10-06 after narrowing the
-`Log_Values` import and renaming generic helper theories to `GS_...`.
+The development imports the `HOL-New_Algebra` session bundled with RC3.
+The strict session passed a batch build on 2026-10-06 using AFP development
+revision `153c5fc`. The older local AFP release checkout does not build with
+RC3.
 
 The local `Mathlib-GelfondSchneider`, `Mathlib-Numbertheory`, and
 `Transcendental` directories contain ignored Lean reference copies; they

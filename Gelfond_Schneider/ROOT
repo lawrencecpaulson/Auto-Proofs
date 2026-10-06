@@ -9,6 +9,6 @@ session Gelfond_Schneider_Standalone (AFP) = "Hermite_Lindemann" +
     "Linear_Inequalities"
     "Bounded_Integer_Kernels"
     "Finite_Embedding_Bounds"
-    "New_Algebra"
+    "HOL-New_Algebra"
   theories
     Gelfond_Schneider

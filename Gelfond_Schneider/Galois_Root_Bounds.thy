@@ -12,10 +12,10 @@ theory Galois_Root_Bounds
     Common_Field
     GS_Setup
     GS_House
-    "New_Algebra.Field_Extension_Tower"
-    "New_Algebra.Galois_Finite_Extension"
-    "New_Algebra.Galois_Finite_Correspondence"
-    "New_Algebra.Rats_Irreducibility"
+    "HOL-New_Algebra.Field_Extension_Tower"
+    "HOL-New_Algebra.Galois_Simple_Degree"
+    "HOL-New_Algebra.Galois_Finite_Correspondence"
+    "HOL-New_Algebra.Galois_Transitivity"
 begin
 
 theorem exists_finite_normal_rational_extension_of_algebraic:
@@ -667,10 +667,11 @@ proof -
     using alg by auto
   have prim_p: "primitive (min_int_poly x)"
     using irreducible_content[OF min_int_poly_irreducible[of x]] pdeg_ne0 by auto
-  have cont_p: "content (min_int_poly x) = 1"
+  have cont_p: "Polynomial.content (min_int_poly x) = 1"
     using prim_p by (simp add: primitive_iff_content_eq_1)
   have irr_rat: "irreducible (map_poly of_int (min_int_poly x) :: rat poly)"
-    by (rule irreducible_int_imp_rat[OF min_int_poly_irreducible[of x] pdeg_ne0 cont_p])
+    using min_int_poly_irreducible[of x] pdeg_ne0 cont_p
+    by (metis Polynomial_Factorial.irreducible_int_imp_rat)
   have deg_rat_ne0: "Polynomial.degree (map_poly of_int (min_int_poly x) :: rat poly) \<noteq> 0"
     using pdeg_ne0 by (simp add: Polynomial.degree_map_poly)
   have deg_rat: "Polynomial.degree (map_poly of_int (min_int_poly x) :: rat poly) > 0"
