@@ -6,7 +6,7 @@ Gelfond-Schneider statements.
 *)
 
 theory Log_Values
-  imports "Hermite_Lindemann.Hermite_Lindemann"
+  imports "HOL-Analysis.Complex_Transcendental"
 begin
 
 section \<open>Set-Valued Logarithms and Powers\<close>

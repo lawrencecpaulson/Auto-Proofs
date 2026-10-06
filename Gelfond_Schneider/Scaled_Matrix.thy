@@ -10,7 +10,7 @@ more closely than the raw system matrix.
 *)
 
 theory Scaled_Matrix
-  imports Gelfond_Schneider_Matrix
+  imports GS_Matrix
 begin
 
 section \<open>Row-Scaled Matrix Form\<close>

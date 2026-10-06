@@ -1,4 +1,4 @@
-(*  Title:      Gelfond_Schneider/Gelfond_Schneider_System.thy
+(*  Title:      Gelfond_Schneider/GS_System.thy
     Author:     OpenAI Codex
 
 Vector-indexed auxiliary-function lemmas for the standalone Gelfond-Schneider
@@ -7,8 +7,8 @@ as a function of a `q^2`-tuple of coefficients and its derivatives at the
 interpolation nodes are rewritten into the indexed linear-system coefficients.
 *)
 
-theory Gelfond_Schneider_System
-  imports Gelfond_Schneider_Auxiliary
+theory GS_System
+  imports GS_Auxiliary
 begin
 
 section \<open>Quantitative Parameters and Indexing\<close>

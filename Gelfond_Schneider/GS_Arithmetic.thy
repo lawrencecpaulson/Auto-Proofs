@@ -1,4 +1,4 @@
-(*  Title:      Gelfond_Schneider/Gelfond_Schneider_Arithmetic.thy
+(*  Title:      Gelfond_Schneider/GS_Arithmetic.thy
     Author:     OpenAI Codex
 
 Arithmetic lower-bound infrastructure for the standalone Gelfond-Schneider
@@ -6,10 +6,10 @@ port. This packages the first nonvanishing derivative into a scaled algebraic
 integer, matching the algebraic half of the direct contradiction argument.
 *)
 
-theory Gelfond_Schneider_Arithmetic
+theory GS_Arithmetic
   imports
-    Gelfond_Schneider_Direct
-    Gelfond_Schneider_House
+    GS_Direct
+    GS_House
 begin
 
 section \<open>Scaled Derivative Values\<close>

@@ -1,4 +1,4 @@
-(*  Title:      Gelfond_Schneider/Gelfond_Schneider_Setup.thy
+(*  Title:      Gelfond_Schneider/GS_Setup.thy
     Author:     OpenAI Codex
 
 Normalization data for the Gelfond-Schneider theorem. An alleged algebraic
@@ -6,8 +6,8 @@ counterexample is reduced to a chosen logarithm for the auxiliary-function
 argument.
 *)
 
-theory Gelfond_Schneider_Setup
-  imports Gelfond_Schneider_Preliminaries
+theory GS_Setup
+  imports GS_Preliminaries
 begin
 
 declare [[apply_timeout = 10]]

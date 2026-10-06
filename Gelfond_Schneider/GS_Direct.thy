@@ -1,4 +1,4 @@
-(*  Title:      Gelfond_Schneider/Gelfond_Schneider_Direct.thy
+(*  Title:      Gelfond_Schneider/GS_Direct.thy
     Author:     OpenAI Codex
 
 Direct packaging of the completed matrix/order part of the standalone
@@ -8,9 +8,9 @@ following the structure of the Lean `MainAlgSetup`/`MainOrder` path rather
 than the temporary two-logarithm detour.
 *)
 
-theory Gelfond_Schneider_Direct
+theory GS_Direct
   imports
-    Gelfond_Schneider_Matrix
+    GS_Matrix
     "Finite_Embedding_Bounds.Structure_Constant_Kernels"
 
 begin

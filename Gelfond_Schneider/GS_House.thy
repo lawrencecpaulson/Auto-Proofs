@@ -1,12 +1,12 @@
-(*  Title:      Gelfond_Schneider/Gelfond_Schneider_House.thy
+(*  Title:      Gelfond_Schneider/GS_House.thy
     Author:     OpenAI Codex
 
 A local house-style wrapper around min_int_poly roots for the direct
 Gelfond-Schneider contradiction.
 *)
 
-theory Gelfond_Schneider_House
-  imports Gelfond_Schneider_Preliminaries
+theory GS_House
+  imports GS_Preliminaries
 begin
 
 definition gs_house :: "complex \<Rightarrow> real"

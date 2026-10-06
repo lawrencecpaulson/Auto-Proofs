@@ -1,4 +1,4 @@
-(*  Title:      Gelfond_Schneider/Gelfond_Schneider_Algebraic.thy
+(*  Title:      Gelfond_Schneider/GS_Algebraic.thy
     Author:     OpenAI Codex
 
 The first algebraic coefficient layer for the standalone Gelfond-Schneider
@@ -7,8 +7,8 @@ function coefficients are expressed and their denominators are cleared by a
 uniform integer scale.
 *)
 
-theory Gelfond_Schneider_Algebraic
-  imports Gelfond_Schneider_Setup
+theory GS_Algebraic
+  imports GS_Setup
 begin
 
 declare [[apply_timeout = 10]]

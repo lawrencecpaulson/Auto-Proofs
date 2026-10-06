@@ -1,4 +1,4 @@
-(*  Title:      Gelfond_Schneider/Gelfond_Schneider_Auxiliary.thy
+(*  Title:      Gelfond_Schneider/GS_Auxiliary.thy
     Author:     OpenAI Codex
 
 Generic auxiliary-function infrastructure for the standalone
@@ -8,8 +8,8 @@ identities and the distinct-exponent nonvanishing criterion needed in the
 `MainOrder` part of the argument.
 *)
 
-theory Gelfond_Schneider_Auxiliary
-  imports Gelfond_Schneider_Algebraic
+theory GS_Auxiliary
+  imports GS_Algebraic
 begin
 
 declare [[apply_timeout = 10]]

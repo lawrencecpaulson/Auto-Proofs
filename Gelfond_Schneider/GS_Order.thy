@@ -1,4 +1,4 @@
-(*  Title:      Gelfond_Schneider/Gelfond_Schneider_Order.thy
+(*  Title:      Gelfond_Schneider/GS_Order.thy
     Author:     OpenAI Codex
 
 Analytic order infrastructure for the standalone Gelfond-Schneider port.
@@ -6,9 +6,9 @@ This translates the Lean `analyticOrderAt` layer into Isabelle's native
 `zorder`/`zor_poly` API for the auxiliary exponential sum.
 *)
 
-theory Gelfond_Schneider_Order
+theory GS_Order
   imports
-    Gelfond_Schneider_Auxiliary
+    GS_Auxiliary
     "HOL-Complex_Analysis.Laurent_Convergence"
 begin
 

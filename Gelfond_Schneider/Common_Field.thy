@@ -9,7 +9,7 @@ Q(theta), and hence admits power-basis coordinates over Q.
 
 theory Common_Field
   imports
-    Gelfond_Schneider_Preliminaries
+    GS_Preliminaries
     "New_Algebra.Finite_Generated_Extension"
     "New_Algebra.Primitive_Element"
     "New_Algebra.Galois_Normality"

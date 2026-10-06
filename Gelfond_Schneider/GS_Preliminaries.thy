@@ -1,4 +1,4 @@
-(*  Title:      Gelfond_Schneider/Gelfond_Schneider_Preliminaries.thy
+(*  Title:      Gelfond_Schneider/GS_Preliminaries.thy
     Author:     OpenAI Codex
 
 Small bridge lemmas from the existing Hermite-Lindemann development to the
@@ -6,9 +6,10 @@ set-valued logarithm interface used by the standalone Gelfond-Schneider
 formalization.
 *)
 
-theory Gelfond_Schneider_Preliminaries
+theory GS_Preliminaries
   imports
     Log_Values
+    "Hermite_Lindemann.Hermite_Lindemann"
     "Algebraic_Numbers.Complex_Algebraic_Numbers"
 begin
 

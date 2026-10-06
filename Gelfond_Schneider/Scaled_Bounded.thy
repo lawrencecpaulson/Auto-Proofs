@@ -9,7 +9,7 @@ row-scaled coefficients that already match the arithmetic normalization.
 theory Scaled_Bounded
   imports
     Scaled_Matrix
-    Gelfond_Schneider_Arithmetic
+    GS_Arithmetic
 begin
 
 section \<open>Bounded Kernel Coefficients for the Row-Scaled System\<close>

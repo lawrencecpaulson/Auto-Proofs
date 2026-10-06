@@ -9,8 +9,8 @@ as the remaining gap.
 
 theory Statement_Shell
   imports
-    Gelfond_Schneider_Preliminaries
-    Gelfond_Schneider_System
+    GS_Preliminaries
+    GS_System
 begin
 
 section \<open>Generic Growth Contradiction\<close>
@@ -169,9 +169,14 @@ lemma gs_growth_contradiction_from_norm_bounds:
 proof -
   have growth: "of_nat r powr ((((of_nat r :: real) - 3 * of_nat h) / 2)) < (c14 * c5) powr of_nat r"
     by (rule gs_use5_bound[OF rpos c14_ge1 _ rho_pos rho_upper rho_inv_lt]) (use c5_ge1 in auto)
+  have c15_ge1: "1 \<le> c14 * c5"
+  proof -
+    have "1 * 1 \<le> c14 * c5"
+      using c14_ge1 c5_ge1 by (intro mult_mono) simp_all
+    then show ?thesis by simp
+  qed
   show False
-    by (rule gs_growth_contradiction[of "c14 * c5" h r])
-       (use c14_ge1 c5_ge1 six_h_le_r c15_4_le_r growth in auto)
+    by (rule gs_growth_contradiction[OF c15_ge1 six_h_le_r c15_4_le_r growth])
 qed
 
 

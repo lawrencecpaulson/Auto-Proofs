@@ -13,8 +13,8 @@ The proof is independent of the abandoned Baker two-logarithm development.
 
 1. **Counterexample and auxiliary function.**
    [`Log_Values.thy`](Log_Values.thy) defines the branch-explicit `log_values`
-   and `power_values` interfaces.
-   [`Gelfond_Schneider_Setup.thy`](Gelfond_Schneider_Setup.thy) turns an
+   and `power_values` interfaces using `Complex_Transcendental`.
+   [`GS_Setup.thy`](GS_Setup.thy) turns an
    algebraic counterexample into `gelfond_schneider_data`.
    The `Algebraic`, `Auxiliary`, `Order`, `System`, `Vanishing`, `Matrix`, and
    `Scaled_Matrix` theories construct the exponential sum, prove its
@@ -85,8 +85,8 @@ isabelle build \
   -o document=false Gelfond_Schneider_Standalone
 ```
 
-The strict session passed a batch build on 2026-10-05 after the theory
-renaming.
+The strict session passed a batch build on 2026-10-06 after narrowing the
+`Log_Values` import and renaming generic helper theories to `GS_...`.
 
 The local `Mathlib-GelfondSchneider`, `Mathlib-Numbertheory`, and
 `Transcendental` directories contain ignored Lean reference copies; they

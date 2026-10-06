@@ -1,4 +1,4 @@
-(*  Title:      Gelfond_Schneider/Gelfond_Schneider_Matrix.thy
+(*  Title:      Gelfond_Schneider/GS_Matrix.thy
     Author:     OpenAI Codex
 
 Matrix packaging for the indexed Gelfond-Schneider linear system. This gives
@@ -7,9 +7,9 @@ bridges matrix-kernel equalities to the functional hypotheses used by the
 auxiliary-function / zorder layer.
 *)
 
-theory Gelfond_Schneider_Matrix
+theory GS_Matrix
   imports
-    Gelfond_Schneider_Vanishing
+    GS_Vanishing
     "Jordan_Normal_Form.Matrix_Kernel"
 begin
 

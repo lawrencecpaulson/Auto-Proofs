@@ -1,4 +1,4 @@
-(*  Title:      Gelfond_Schneider/Gelfond_Schneider_Vanishing.thy
+(*  Title:      Gelfond_Schneider/GS_Vanishing.thy
     Author:     OpenAI Codex
 
 Abstract vanishing-order consequences of a solution to the indexed
@@ -9,10 +9,10 @@ the auxiliary function has zorder at least `n` there, and one can choose a
 node of minimal order among `1, ..., m`.
 *)
 
-theory Gelfond_Schneider_Vanishing
+theory GS_Vanishing
   imports
-    Gelfond_Schneider_System
-    Gelfond_Schneider_Order
+    GS_System
+    GS_Order
 begin
 
 section \<open>Vanishing at the Interpolation Nodes\<close>

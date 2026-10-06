@@ -10,8 +10,8 @@ the shape needed by the direct Gelfond-Schneider contradiction layer.
 theory Galois_Root_Bounds
   imports
     Common_Field
-    Gelfond_Schneider_Setup
-    Gelfond_Schneider_House
+    GS_Setup
+    GS_House
     "New_Algebra.Field_Extension_Tower"
     "New_Algebra.Galois_Finite_Extension"
     "New_Algebra.Galois_Finite_Correspondence"
