@@ -1,6 +1,6 @@
 # Bounds for finite embedding families
 
-This Isabelle session contains reusable results extracted from the
+This session contains valuable results used in the
 Gelfond–Schneider development:
 
 - `Structure_Constant_Kernels`: bounded kernel vectors obtained by lifting

@@ -1,12 +1,7 @@
 # Bounded Integer Kernels
 
-This session extracts the integer-matrix results formerly embedded in
-`Baker/Gelfond_Schneider_Siegel.thy`. It depends on the AFP entries
-`Jordan_Normal_Form` and `Linear_Inequalities`; it does not import the
-Gelfond–Schneider development.
-
 `Integer_Kernel_Bounds.thy` provides two bounds for a nonzero integer
-kernel vector of an underdetermined integer matrix:
+kernel vector of an underdetermined integer matrix (used for Gelfond–Schneider):
 
 - a general bound using `det_bound_hadamard`;
 - a linear bound `2 * int q * max 1 Bnd` when `0 < p` and `2 * p ≤ q`.
