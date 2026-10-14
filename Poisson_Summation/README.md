@@ -2,7 +2,7 @@
 
 See `PLAN.md` for the proposed Isabelle theorem and proof sequence.
 
-The `Poisson_Summation` session contains five theories:
+The `Poisson_Summation` session contains six theories:
 `Complex_Fourier_Series.thy` proves uniqueness for continuous complex
 `2*pi`-periodic functions via AFP Fourier's real-valued Fejér theorem.
 `Periodization.thy` proves convergence, continuity, period one, real-line
@@ -16,8 +16,12 @@ of `f` and its Fourier transform with exponents greater than one. The
 `Tent_Function.thy` checks the Fourier normalization: the tent function
 periodizes to 1, and its integer Fourier samples are 1 at zero and 0
 elsewhere. The sample values are also calculated directly from the
-real-line integral, independently of the coefficient identity. The session
-builds with Isabelle2026-RC3:
+real-line integral, independently of the coefficient identity.
+`Gaussian_Example.thy` derives the Fourier transform of the standard normal
+density from `HOL-Probability`'s characteristic function theorem, proves
+quadratic decay bounds on both sides, and obtains an explicit Gaussian
+Poisson identity for every real shift. The session builds with
+Isabelle2026-RC3:
 
 ```sh
 USER_HOME=/private/tmp/poisson_rc3_user \

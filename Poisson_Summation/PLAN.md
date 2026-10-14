@@ -94,7 +94,7 @@ usual identity at `x = 0` as a corollary.
    summability. Its coefficients are the supplied sequence. The complex
    uniqueness theorem then identifies it with the rescaled periodization,
    giving the all-`x` theorem `poisson_summation`.
-7. **Usable corollaries (partly done).** The `x = 0` formula is
+7. **Usable corollaries (done).** The `x = 0` formula is
    `poisson_summation_zero`. The theorem `poisson_summation_power_decay`
    replaces both summability hypotheses by bounds of the form
    `A * (1 + |x|) powr (-p)` for `f` and
@@ -102,9 +102,13 @@ usual identity at `x = 0` as a corollary.
    `Tent_Function.thy` checks the normalization: the tent function has
    periodization 1 and Fourier samples equal to 1 at zero and 0 at every
    other integer. The samples are calculated both through the coefficient
-   identity and directly from the real-line integral. A Gaussian or
-   theta-function instance is a separate milestone because it also needs
-   the Fourier transform of a Gaussian.
+   identity and directly from the real-line integral.
+8. **Gaussian example (done).** `Gaussian_Example.thy` imports
+   `HOL-Probability.Characteristic_Functions`, obtains the Fourier
+   transform of the standard normal density from its characteristic
+   function, and proves quadratic decay estimates for the density and
+   its transform. `standard_gaussian_poisson` gives the explicit summation
+   formula at every real shift.
 
 ## Boundaries of the first milestone
 

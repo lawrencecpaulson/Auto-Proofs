@@ -1,9 +1,11 @@
 chapter AFP
 
 session Poisson_Summation = Fourier +
+  sessions "HOL-Probability"
   theories
     Complex_Fourier_Series
     Periodization
     Fourier_Transform
     Reconstruction
     Tent_Function
+    Gaussian_Example
