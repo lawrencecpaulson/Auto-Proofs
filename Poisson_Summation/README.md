@@ -20,7 +20,12 @@ real-line integral, independently of the coefficient identity.
 `Gaussian_Example.thy` derives the Fourier transform of the standard normal
 density from `HOL-Probability`'s characteristic function theorem, proves
 quadratic decay bounds on both sides, and obtains an explicit Gaussian
-Poisson identity for every real shift. The session builds with
+Poisson identity for every real shift. A Fourier scaling lemma gives the
+transform for every positive Gaussian dilation. Applying Poisson summation
+to that family proves the Jacobi theta transformation
+`sqrt t * jacobi_theta t = jacobi_theta (1/t)` for `t > 0`, where
+`jacobi_theta t` is the complex-valued sum of `exp (-pi*t*n^2)` over integer
+`n`. Its summability for `t > 0` is proved separately. The session builds with
 Isabelle2026-RC3:
 
 ```sh

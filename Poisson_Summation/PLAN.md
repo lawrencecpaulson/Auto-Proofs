@@ -109,6 +109,13 @@ usual identity at `x = 0` as a corollary.
    function, and proves quadratic decay estimates for the density and
    its transform. `standard_gaussian_poisson` gives the explicit summation
    formula at every real shift.
+9. **Theta transformation (done).** `Fourier_Transform.thy` proves the
+   positive-dilation rule for the real-line Fourier transform.
+   `Gaussian_Example.thy` uses it to compute the transform and quadratic
+   decay bounds for dilated standard normal densities. Applying Poisson
+   summation and proving summability of the theta series yields
+   `jacobi_theta_transformation`,
+   `sqrt t * jacobi_theta t = jacobi_theta (1/t)` for every `t > 0`.
 
 ## Boundaries of the first milestone
 

@@ -6,6 +6,48 @@ definition real_fourier_transform :: "(real \<Rightarrow> complex) \<Rightarrow>
   "real_fourier_transform f \<xi> =
     (\<integral>x. f x * cis (-(2 * pi * \<xi> * x)) \<partial>lebesgue)"
 
+lemma real_fourier_transform_scale:
+  fixes f :: "real \<Rightarrow> complex"
+  assumes continuous: "continuous_on UNIV f"
+    and a: "0 < a"
+  shows "real_fourier_transform (\<lambda>x. f (a * x)) \<xi> =
+    real_fourier_transform f (\<xi> / a) / of_real a"
+proof -
+  let ?h = "\<lambda>y. f y * cis (-(2 * pi * (\<xi> / a) * y))"
+  have continuous_h: "continuous_on UNIV ?h"
+    by (intro continuous_intros continuous)
+  have continuous_scaled: "continuous_on UNIV (\<lambda>x. ?h (a * x))"
+    by (rule continuous_on_compose2[OF continuous_h])
+      (auto intro: continuous_intros)
+  have measurable_h: "?h \<in> borel_measurable lborel"
+    using borel_measurable_continuous_onI[OF continuous_h] by simp
+  have measurable_scaled:
+    "(\<lambda>x. ?h (a * x)) \<in> borel_measurable lborel"
+    using borel_measurable_continuous_onI[OF continuous_scaled] by simp
+  have affine:
+    "(\<integral>x. ?h (a * x) \<partial>lborel) =
+      (\<integral>y. ?h y \<partial>lborel) / of_real a"
+  proof -
+    have "(\<integral>y. ?h y \<partial>lborel) =
+      a *\<^sub>R (\<integral>x. ?h (a * x) \<partial>lborel)"
+      using lborel_integral_real_affine[where f="?h" and c=a and t=0] a
+      by simp
+    then show ?thesis
+      using a by (simp add: scaleR_conv_of_real field_simps)
+  qed
+  have "real_fourier_transform (\<lambda>x. f (a * x)) \<xi> =
+    (\<integral>x. ?h (a * x) \<partial>lebesgue)"
+    using a by (simp add: real_fourier_transform_def field_simps)
+  also have "\<dots> = (\<integral>x. ?h (a * x) \<partial>lborel)"
+    using integral_completion[OF measurable_scaled] by simp
+  also have "\<dots> = (\<integral>y. ?h y \<partial>lborel) / of_real a"
+    by (rule affine)
+  also have "\<dots> = real_fourier_transform f (\<xi> / a) / of_real a"
+    using integral_completion[OF measurable_h]
+    by (simp add: real_fourier_transform_def)
+  finally show ?thesis .
+qed
+
 lemma cis_integer_shift:
   "cis (-(2 * pi * of_int k * (t + of_int n))) =
     cis (-(2 * pi * of_int k * t))"
@@ -46,6 +88,15 @@ proof (rule Bochner_Integration.integrable_bound[OF integrable])
     norm (f x * cis (-(2 * pi * \<xi> * x))) \<le> norm (f x)"
     by (rule AE_I2) (simp add: norm_mult)
 qed
+
+lemma real_fourier_transform_cmult:
+  fixes f :: "real \<Rightarrow> complex"
+  assumes continuous: "continuous_on UNIV f"
+    and integrable: "integrable lebesgue f"
+  shows "real_fourier_transform (\<lambda>x. c * f x) \<xi> =
+    c * real_fourier_transform f \<xi>"
+  using fourier_weight_integrable[OF continuous integrable, of \<xi>]
+  by (simp add: real_fourier_transform_def mult_ac)
 
 lemma fourier_weight_cells_summable:
   fixes f :: "real \<Rightarrow> complex"
