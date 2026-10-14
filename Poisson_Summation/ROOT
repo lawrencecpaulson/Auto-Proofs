@@ -1,0 +1,9 @@
+chapter AFP
+
+session Poisson_Summation = Fourier +
+  theories
+    Complex_Fourier_Series
+    Periodization
+    Fourier_Transform
+    Reconstruction
+    Tent_Function
