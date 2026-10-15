@@ -1,0 +1,62 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage{isabelle,isabellesym}
+\usepackage{amsmath,amssymb,url}
+
+% This should be the last package used.
+\usepackage{pdfsetup}
+
+\urlstyle{rm}
+\isabellestyle{it}
+
+\begin{document}
+
+\title{Poisson Summation and the Jacobi Theta Transformation}
+\author{Lawrence C. Paulson}
+\date{}
+\maketitle
+
+\begin{abstract}
+This entry formalises the one-dimensional Poisson summation formula for
+continuous complex-valued functions. The main theorem assumes a summable
+majorant for the translates on one unit interval and absolute summability
+of the integer Fourier samples. It also gives a criterion in terms of power
+decay and a version for arbitrary positive lattice spacing. Examples
+compute the Fourier samples of the tent function and derive the Jacobi
+theta transformation from the Fourier transform of a Gaussian.
+\end{abstract}
+
+\tableofcontents
+
+\section{Overview and sources}
+
+For the Fourier transform
+\[
+  \widehat f(\xi)=\int_{\mathbb R} f(t)e^{-2\pi i\xi t}\,dt,
+\]
+the principal result identifies the periodisation
+$\sum_{n\in\mathbb Z} f(x+n)$ with its Fourier series. The lattice-spacing
+theorem replaces the unit lattice by $h\mathbb Z$ for $h>0$ and has Fourier
+frequencies $k/h$. The Gaussian example yields
+\[
+  \sqrt t\,\sum_{n\in\mathbb Z}e^{-\pi t n^2}
+  =\sum_{k\in\mathbb Z}e^{-\pi k^2/t}
+  \qquad (t>0).
+\]
+
+Poisson summation and its Gaussian application are standard results in
+Fourier analysis~\cite{stein_shakarchi_fourier}. The proof architecture
+follows the coefficient calculation for a periodisation and Fourier
+reconstruction used in the Mathlib formalisation by
+Loeffler~\cite{mathlib_poisson}. Reconstruction here uses the Fej\'er
+convergence theorem from the AFP entry \emph{Fourier Series}~\cite{afp_fourier}.
+The Gaussian transform is obtained from the standard normal
+characteristic-function theorem in Isabelle/HOL's
+\texttt{HOL-Probability.Characteristic\_Functions}.
+
+\input{session}
+
+\bibliographystyle{abbrv}
+\bibliography{root}
+
+\end{document}

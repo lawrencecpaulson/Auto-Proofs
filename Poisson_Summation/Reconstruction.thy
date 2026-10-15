@@ -260,6 +260,89 @@ corollary poisson_summation_zero:
   using poisson_summation[OF continuous majorant bound samples, of 0]
   by (simp add: periodization_def)
 
+theorem poisson_summation_lattice:
+  fixes f :: "real \<Rightarrow> complex"
+    and M :: "int \<Rightarrow> real"
+  assumes h: "0 < h"
+    and continuous: "continuous_on UNIV f"
+    and majorant: "M summable_on UNIV"
+    and bound: "\<And>t n. t \<in> {0..1} \<Longrightarrow>
+      norm (f (h * (t + of_int n))) \<le> M n"
+    and samples: "(\<lambda>k::int.
+      norm (real_fourier_transform f (of_int k / h))) summable_on UNIV"
+  shows "(\<Sum>\<^sub>\<infinity>n::int. f (x + h * of_int n)) =
+    (\<Sum>\<^sub>\<infinity>k::int.
+      (real_fourier_transform f (of_int k / h) / of_real h) *
+        cis (2 * pi * of_int k * x / h))"
+proof -
+  let ?g = "\<lambda>u. f (h * u)"
+  have continuous_g: "continuous_on UNIV ?g"
+    by (rule continuous_on_compose2[OF continuous])
+      (auto intro: continuous_intros)
+  have bound_g:
+    "norm (?g (t + of_int n)) \<le> M n"
+    if "t \<in> {0..1}" for t n
+    by (rule bound[OF that])
+  have inverse_norm:
+    "norm (inverse (of_real h :: complex)) = inverse h"
+    using h by (simp add: norm_inverse)
+  have sample_eq:
+    "norm (real_fourier_transform ?g (of_int k)) =
+      (1 / h) *\<^sub>R
+        norm (real_fourier_transform f (of_int k / h))"
+    for k :: int
+    using h inverse_norm
+    by (simp add: real_fourier_transform_scale[OF continuous h]
+        norm_divide divide_inverse norm_mult)
+  have scaled_samples:
+    "(\<lambda>k::int. (1 / h) *\<^sub>R
+      norm (real_fourier_transform f (of_int k / h))) summable_on UNIV"
+    by (rule summable_on_scaleR_right[OF samples])
+  have samples_g:
+    "(\<lambda>k::int. norm (real_fourier_transform ?g (of_int k)))
+      summable_on UNIV"
+    using scaled_samples by (simp add: sample_eq)
+  have left:
+    "(\<Sum>\<^sub>\<infinity>n::int. f (x + h * of_int n)) =
+      periodization ?g (x / h)"
+  proof -
+    have eq: "f (x + h * of_int n) = ?g (x / h + of_int n)"
+      for n :: int
+      using h by (simp add: distrib_left)
+    show ?thesis
+      unfolding periodization_def
+      by (rule infsum_cong) (simp add: eq)
+  qed
+  have right:
+    "(\<Sum>\<^sub>\<infinity>k::int.
+      real_fourier_transform ?g (of_int k) *
+        cis (2 * pi * of_int k * (x / h))) =
+    (\<Sum>\<^sub>\<infinity>k::int.
+      (real_fourier_transform f (of_int k / h) / of_real h) *
+        cis (2 * pi * of_int k * x / h))"
+  proof (rule infsum_cong)
+    fix k :: int
+    assume "k \<in> UNIV"
+    have transform:
+      "real_fourier_transform ?g (of_int k) =
+        real_fourier_transform f (of_int k / h) / of_real h"
+      by (rule real_fourier_transform_scale[OF continuous h])
+    have exponent:
+      "2 * pi * of_int k * (x / h) =
+        2 * pi * of_int k * x / h"
+      by (simp add: divide_inverse mult_ac)
+    show "real_fourier_transform ?g (of_int k) *
+        cis (2 * pi * of_int k * (x / h)) =
+      (real_fourier_transform f (of_int k / h) / of_real h) *
+        cis (2 * pi * of_int k * x / h)"
+      using transform exponent by simp
+  qed
+  show ?thesis
+    using poisson_summation
+      [OF continuous_g majorant bound_g samples_g, of "x / h"]
+      left right by simp
+qed
+
 lemma summable_int_power_decay:
   assumes p: "1 < p"
   shows "(\<lambda>n::int. (1 + \<bar>real_of_int n\<bar>) powr (-p)) summable_on UNIV"

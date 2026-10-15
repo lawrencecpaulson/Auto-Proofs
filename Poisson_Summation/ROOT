@@ -1,6 +1,7 @@
 chapter AFP
 
 session Poisson_Summation = Fourier +
+  options [timeout = 600]
   sessions "HOL-Probability"
   theories
     Complex_Fourier_Series
@@ -9,3 +10,6 @@ session Poisson_Summation = Fourier +
     Reconstruction
     Tent_Function
     Gaussian_Example
+  document_files
+    "root.tex"
+    "root.bib"

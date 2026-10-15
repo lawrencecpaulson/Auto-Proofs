@@ -12,7 +12,9 @@ that its integer samples are the `2*pi`-periodic Fourier coefficients of the
 rescaled periodization. This gives the coefficient identity needed for
 reconstruction via uniqueness. `Reconstruction.thy` proves the all-`x`
 Poisson formula, its `x = 0` corollary, and a version assuming power decay
-of `f` and its Fourier transform with exponents greater than one. The
+of `f` and its Fourier transform with exponents greater than one. It also
+proves `poisson_summation_lattice` for every spacing `h > 0`, using
+`real_fourier_transform_scale` to express the Fourier samples at `k / h`.
 `Tent_Function.thy` checks the Fourier normalization: the tent function
 periodizes to 1, and its integer Fourier samples are 1 at zero and 0
 elsewhere. The sample values are also calculated directly from the
@@ -56,3 +58,17 @@ Isabelle work can be tracked here without adding thousands of vendored files.
 
 No Lean compiler binary or compiled Mathlib cache is included. This is a
 source reference; running it requires the toolchain named above.
+
+## AFP submission files
+
+`ROOT` names the single AFP session, sets its timeout, and lists
+`document/root.tex` and `document/root.bib`. The staged entry metadata is
+`../metadata/entries/Poisson_Summation.toml`; update its `date` to the actual
+submission date. For an AFP checkout, copy the six theory files, `ROOT`, and
+`document/` to `thys/Poisson_Summation/`, copy the metadata file to
+`metadata/entries/`, and add `Poisson_Summation` to `thys/ROOTS`. The `upstream/`
+source snapshot and these local planning notes are not part of the entry.
+
+The Isabelle2026-RC3 PDF build succeeds with both the full document and
+outline variants. It writes `output/document.pdf` and `output/outline.pdf`;
+`output/` is ignored by Git. The bibliography is present in the full PDF.

@@ -1,0 +1,32 @@
+title = "Poisson Summation and the Jacobi Theta Transformation"
+date = 2026-10-14
+topics = [
+  "Mathematics/Analysis",
+  "Mathematics/Number theory",
+]
+abstract = """
+This entry formalises the one-dimensional Poisson summation formula for
+continuous complex-valued functions. The main theorem assumes a summable
+majorant for the translates on one unit interval and absolute summability
+of the integer Fourier samples. It also gives a criterion in terms of power
+decay and a version for arbitrary positive lattice spacing. Examples
+compute the Fourier samples of the tent function and derive the Jacobi
+theta transformation from the Fourier transform of a Gaussian."""
+license = "bsd"
+note = ""
+
+[authors]
+
+[authors.paulson]
+homepage = "paulson_homepage"
+
+[contributors]
+
+[notify]
+paulson = "paulson_email"
+
+[history]
+
+[extra]
+
+[related]
