@@ -718,7 +718,7 @@ proof -
   have Re_inj_lower: "\<lbrakk>s1 \<in> {t..1}; s2 \<in> {t..1}; Re (g s1) = Re (g s2); s1 \<noteq> s2\<rbrakk>
         \<Longrightarrow> (s1 = t \<and> s2 = 1) \<or> (s1 = 1 \<and> s2 = t)" for s1 s2
     using CR.Re_inj_upper_gen[of "1-s1" "1-t" "1-s2"] hgt t using g g0 g1 assms
-    by (auto simp add: gop_def reversepath_def)
+    by (auto simp: gop_def reversepath_def)
       \<comment> \<open>Step 0: absolute integrability (needed for integral splitting)\<close>
   define f where "f \<equiv> \<lambda>s. Re (g' s) * Im (g s)"
   have f_int: "f integrable_on {0..1}"
@@ -920,7 +920,8 @@ proof -
       proof (cases "Im w = 0")
         case True
         with that show ?thesis using p_in_ch
-          by (metis complex.exhaust_sel p_def verit_la_disequality)
+          unfolding p_def
+          by (metis complex.exhaust_sel[of z] nle_le)
       next
         case False
         define u where "u \<equiv> Im z / Im w"
@@ -1335,7 +1336,7 @@ proof -
         by auto
       ultimately show ?thesis
         using seg_eq inside_side seg_both
-        by (auto simp add: path_image_def image_subset_iff)
+        by (auto simp: path_image_def image_subset_iff)
     next
       case seg_inside:2
       have real_on_curve: "z = 0 \<or> z = b" 
