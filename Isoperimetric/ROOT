@@ -1,12 +1,12 @@
+chapter AFP
+
 session Isoperimetric = "HOL-Analysis" +
   options [timeout = 600]
   sessions
     Fourier
-    Green
-  directories "."
   theories
-    Bounded_Variation
-    Absolute_Continuity
-    Rectifiable_Path
-    Arc_Length_Reparametrization
+    Wirtinger
+    Green_Variant
     Isoperimetric
+  document_files
+    "root.tex"

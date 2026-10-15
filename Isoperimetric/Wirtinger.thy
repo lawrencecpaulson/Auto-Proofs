@@ -1,7 +1,7 @@
 section \<open>Part 1: The Wirtinger inequality\<close>
 
 theory Wirtinger
-  imports Arc_Length_Reparametrization "Fourier.Square_Integrable"
+  imports "HOL-Analysis.Rectifiable_Path" "Fourier.Square_Integrable"
 
 begin
 
@@ -13,8 +13,6 @@ lemma convex_hull_eq_closure_inside:
     and conv: "convex (inside (path_image g))"
   shows "convex hull (path_image g) = closure (inside (path_image g))"
 proof (rule equalityI)
-  have compact_pi: "compact (path_image g)"
-    using compact_simple_path_image[OF assms(1)] .
   have bounded_inside: "bounded (inside (path_image g))" 
     and frontier_inside: "frontier (inside (path_image g)) = path_image g"
     using Jordan_inside_outside g by blast+
@@ -41,8 +39,6 @@ lemma frontier_convex_hull_subset_path_image:
     "path_image g \<subseteq> frontier (convex hull (path_image g))"
   shows "frontier (convex hull path_image g) \<subseteq> path_image g"
 proof -
-  have bounded_hull: "bounded (convex hull (path_image g))"
-    by (simp add: assms(1) bounded_convex_hull bounded_simple_path_image)
       \<comment> \<open>The interior of the convex hull is connected, bounded, and disjoint from @{term "path_image g"}\<close>
   have "interior (convex hull (path_image g)) \<inter> path_image g = {}"
     using assms(3) frontier_def by auto
@@ -64,53 +60,6 @@ proof -
     by (simp add: Jordan_inside_outside assms inside_sub interior_maximal)
   with assms show ?thesis
     using frontier_convex_hull_eq_path_image int_inside by auto
-qed
-
-text \<open>The Hölder bound for @{text "p = q = 2"} follows from @{thm Holder_inequality} in the
-  AFP @{text Lp} entry.\<close>
-
-lemma real_hoelder_bound_2:
-  fixes f :: "real \<Rightarrow> real" and S :: "real set"
-  assumes "S \<in> sets lebesgue" "S \<in> lmeasurable"
-    "f \<in> borel_measurable lebesgue"
-    "integrable lebesgue (\<lambda>x. indicator S x * (f x)\<^sup>2)"
-  shows "(LINT x|lebesgue. indicator S x * f x)\<^sup>2 \<le>
-    measure lebesgue S * (LINT x|lebesgue. indicator S x * (f x)\<^sup>2)"
-proof -
-  have ind_if: "\<And>g x. indicator S x * g x = (if x \<in> S then g x else (0::real))"
-    by (simp add: indicator_def)
-  have to_lebesgue_on: "\<And>g::real\<Rightarrow>real. (LINT x|lebesgue. indicator S x * g x) = integral\<^sup>L (lebesgue_on S) g"
-    using assms(1) by (simp add: ind_if Lebesgue_Measure.integral_restrict_UNIV)
-
-  have f_meas_on: "f \<in> borel_measurable (lebesgue_on S)"
-    using assms(3) measurable_restrict_space1 by blast
-  have f_sq_integ: "integrable (lebesgue_on S) (\<lambda>x. (f x)\<^sup>2)"
-    using Lebesgue_Measure.integrable_restrict_UNIV[OF assms(1), of "\<lambda>x. (f x)\<^sup>2"]
-    by (simp add: assms(1,4) integrable_restrict_space)
-  have f_sq_int: "f square_integrable S"
-    unfolding square_integrable_def using assms(1) f_meas_on f_sq_integ by blast
-
-  have one_sq_int: "(\<lambda>x. 1::real) square_integrable S"
-    unfolding square_integrable_def 
-    using finite_measure_lebesgue_on assms finite_measure.integrable_const by blast
-
-  have schwartz: "\<bar>l2product S f (\<lambda>x. 1)\<bar> \<le> l2norm S f * l2norm S (\<lambda>x. 1)"
-    by (rule Schwartz_inequality_abs[OF f_sq_int one_sq_int])
-
-  have "(l2norm S (\<lambda>x. 1))\<^sup>2 = l2product S (\<lambda>x. 1) (\<lambda>x. 1)"
-    by (rule l2norm_pow_2[OF one_sq_int])
-  also have "\<dots> = measure lebesgue S"
-    using finite_measure_lebesgue_on[OF assms(2)]
-    by (simp add: l2product_def assms(1) measure_restrict_space)
-  finally have "(l2norm S (\<lambda>x. 1))\<^sup>2 = measure lebesgue S" .
-  moreover have "(l2product S f (\<lambda>x. 1))\<^sup>2 \<le> (l2norm S f)\<^sup>2 * (l2norm S (\<lambda>x. 1))\<^sup>2"
-    by (metis power_mult_distrib real_sqrt_abs schwartz sqrt_le_D)
-  moreover
-  have "LINT x|lebesgue. indicator S x * f x = l2product S f (\<lambda>x. 1)" 
-       "LINT x|lebesgue. indicator S x * (f x)\<^sup>2 = l2product S f f"
-    by (simp_all add: to_lebesgue_on l2product_def power2_eq_square)
-  ultimately show ?thesis
-    by (metis f_sq_int l2norm_pow_2 mult.commute)
 qed
 
 locale W =
@@ -253,8 +202,6 @@ proof -
     let ?F = "f x - f a"
     let ?s = "sin (x - a)"
     let ?c = "cos (x - a)"
-    have inv_tan: "inverse (tan (x - a)) = ?c / ?s"
-      unfolding tan_def using snz by (simp add: field_simps)
     have sc1: "?s\<^sup>2 + ?c\<^sup>2 = 1"
       using sin_cos_squared_add[of "x - a"] by simp
     have "((f x - f a)\<^sup>2 * (- inverse (?s\<^sup>2)) + 2 * (f x - f a) * f' x * inverse (tan (x - a))) * ?s\<^sup>2
@@ -267,7 +214,7 @@ proof -
     ultimately show ?thesis using snz
       by (metis mult_right_cancel)
   qed
-    \<comment> \<open>Combine using has_integral_eq\<close>
+    \<comment> \<open>Combine using \<open>has_integral_eq\<close>\<close>
   show ?thesis
     using has_integral_eq ibp_int integrand_eq unfolding g_def divide_inverse
     by (metis (no_types, lifting) atLeastAtMost_iff order.refl that(1))
@@ -465,8 +412,6 @@ proof -
   proof -
     have f'2_abs: "(\<lambda>x. (f' x)\<^sup>2) absolutely_integrable_on {0..2*pi}"
       by (simp add: absolutely_integrable_on_def f'2)
-    have ffa_abs: "(\<lambda>x. (f x - f a)\<^sup>2) absolutely_integrable_on {0..2*pi}"
-      by (intro absolutely_integrable_continuous_real continuous_intros contf)
     have g'_int_sub: "g' integrable_on {u..v}" if "{u..v} \<subseteq> {c<..<d}" for u v
     proof (cases "u \<le> v")
       case True
@@ -661,7 +606,7 @@ proof -
   show "(\<lambda>x. (f x)\<^sup>2) integrable_on {0..2*pi}"
     by (intro integrable_continuous_interval continuous_on_power contf)
 
-\<comment> \<open>Zeros of sin(x - a) in [0, 2\<pi>] are exactly at x = a and x = a + \<pi>.\<close>
+\<comment> \<open>Zeros of sine on this interval occur at a and a plus pi.\<close>
   have sin_nz_1: "sin (x - a) \<noteq> 0" if "a + pi < x" "x < 2*pi" for x
     by (smt (verit) \<open>0 \<le> a\<close> sin_lt_zero that)
   have sin_nz_2: "sin (x - a) \<noteq> 0" if "a < x" "x < a + pi" for x
@@ -687,8 +632,6 @@ proof -
       \<comment> \<open>Extract the inequality from $\int g' = 0$.\<close>
   have ffa_int: "(\<lambda>x. (f x - f a)\<^sup>2) integrable_on {0..2*pi}"
     by (intro integrable_continuous_interval continuous_intros contf)
-  have g'_int: "g' integrable_on {0..2*pi}"
-    using g'_zero by (auto simp: has_integral_integrable_integral)
   have diff_int: "((\<lambda>x. (f' x)\<^sup>2 - g' x) has_integral integral {0..2*pi} (\<lambda>x. (f' x)\<^sup>2) - 0) {0..2*pi}"
     by (rule has_integral_diff[OF integrable_integral[OF f'2] g'_zero])
   have diff_ge: "(f' x)\<^sup>2 - g' x \<ge> (f x - f a)\<^sup>2" for x

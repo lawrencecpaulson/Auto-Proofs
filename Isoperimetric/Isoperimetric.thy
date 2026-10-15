@@ -9,7 +9,7 @@ text \<open>
   Formalisation of the isoperimetric inequality, following John Harrison's
   HOL Light proof in @{text "100/isoperimetric.ml"}.
 
-  The proof has five parts:
+  The proof has six parts:
   \<^enum> Convex curve lemmas (switching between views of a convex simple closed curve)
   \<^enum> The Wirtinger inequality
   \<^enum> A special case of Green's theorem for convex area
@@ -21,7 +21,6 @@ text \<open>
   \<^item> @{text Bounded_Variation}: bounded variation and vector variation
   \<^item> @{text Absolute_Continuity}: absolute continuity and FTC
   \<^item> @{text Rectifiable_Path}: rectifiable paths and path length
-  \<^item> @{text Arc_Length_Reparametrization}: arc length reparametrization
   \<^item> @{text Green_Variant}: a form of the Green Area Theorem
 
   AFP dependencies:
@@ -516,9 +515,7 @@ proof -
   have h_eq: "h = (*) r \<circ> g1" unfolding h_def g1_def by (simp add: comp_assoc)
   have pi_h: "path_image h = (*) r ` path_image g1"
     unfolding h_eq by (simp add: path_image_compose image_comp)
-  have b'_eq: "b' = r * (b - a)" unfolding b'_def by simp
   \<comment> \<open>Key: $r \cdot (b-a)$ is a positive real\<close>
-  have ba_ne: "b - a \<noteq> 0" using assms(9) by auto
   have "r * (b - a) = cis (- Arg (b-a)) * (b-a)"
     unfolding r_def by simp
   also have "\<dots> = of_real (cmod (b-a))"
@@ -949,7 +946,7 @@ proof (rule ccontr)
     ultimately show ?thesis by blast
   qed
   have injg: "inj_on g {0..1}" and injh: "inj_on h {0..1}" using assms by (simp_all add: arc_def)
-  have p_pos: "p > 0"
+  have "p > 0"
     using assms pg p by (force simp: pathstart_def)
   have "q > 0"
     using assms ph q by (force simp: pathstart_def)
@@ -1068,7 +1065,6 @@ lemma seg_frontier_aux:
     and hullD1: "convex hull (path_image D1) = S"
   shows "closed_segment ga gb \<subseteq> frontier S"
 proof -
-  have clSh: "closed S" using cpt by (rule compact_imp_closed)
   have relfr: "rel_frontier S = frontier S" using intne by (rule rel_frontier_nonempty_interior)
   have ga_cl: "ga \<in> closure S" and gb_cl: "gb \<in> closure S"
     using ga_fr gb_fr by (auto simp: frontier_def)
@@ -1227,8 +1223,6 @@ next
 
     \<comment> \<open>Step 2: the frontier of the convex hull admits a rectifiable simple loop parametrization
        (this corresponds to HOL Light's \<open>RECTIFIABLE_LOOP_RELATIVE_FRONTIER_CONVEX\<close>)\<close>
-    have frontier_eq_rel: "rel_frontier (convex hull (path_image g)) = frontier (convex hull (path_image g))"
-      using rel_frontier_nonempty_interior[OF interior_ne] by simp
     obtain d where d_props:
       "simple_path d" "pathfinish d = pathstart d" "rectifiable_path d"
       "path_image d = frontier (convex hull (path_image g))"
@@ -1266,10 +1260,6 @@ next
         using sp_d1 by (simp add: simple_path_reversepath)
       have sp_g0: "simple_path g0" using arcs(1) arc_imp_simple_path by blast
       note g0_ends = arcs(3,4)
-      have gab_g0: "g a \<in> path_image g0" "g b \<in> path_image g0"
-        using g0_ends by (metis pathstart_in_path_image pathfinish_in_path_image)+
-      have gab_d0: "g a \<in> path_image d0" "g b \<in> path_image d0"
-        using da(3,4) by (metis pathstart_in_path_image pathfinish_in_path_image)+
       have gab_d1: "g a \<in> path_image d1" "g b \<in> path_image d1"
         using da(5,6) by (metis pathstart_in_path_image pathfinish_in_path_image)+
       have d0_sub: "path_image d0 \<subseteq> path_image d" and d1_sub: "path_image d1 \<subseteq> path_image d"
@@ -1284,8 +1274,6 @@ next
       have d1_g0_int: "path_image d1 \<inter> path_image g0 = {g a, g b}"
         using d1_sub da(7) g0_d_int by auto
       \<comment> \<open>Split the inside via \<open>SPLIT_INSIDE_SIMPLE_CLOSED_CURVE\<close> on @{term d0}, @{term "reversepath d1"}, @{term g0}\<close>
-      have d_union: "path_image d0 \<union> path_image (reversepath d1) = path_image d"
-        using da(8) path_image_reversepath by simp
       have inside_eq: "inside (path_image d0 \<union> path_image (reversepath d1)) = interior (convex hull path_image g)"
         by (simp add: assms(1) bounded_convex_hull bounded_simple_path_image d_props(4) da(8)
             inside_frontier_eq_interior)
@@ -1340,8 +1328,6 @@ next
         using arcs(9) by (simp add: Int_commute)
       have S_g0: "S \<inter> path_image g0 = {}"
         using g1_g0_int unfolding S_def by blast
-      have d0d1_front: "path_image d0 \<union> path_image d1 = frontier (convex hull path_image g)"
-        using da(8) d_props(4) by simp
       have cldd0: "closed (path_image d0 \<union> path_image g0)"
         using da(1) arcs(1) by (simp add: closed_path_image arc_imp_path closed_Un)
       have cldd1: "closed (path_image d1 \<union> path_image g0)"
@@ -1547,10 +1533,6 @@ next
         by (metis hh_out_img hh_seg image_Un path_image_def)
       have front_in_hull: "frontier (convex hull path_image g) \<subseteq> convex hull path_image g"
         using hull_closed by (simp add: frontier_def closure_closed)
-      have seg_in: "closed_segment (g a) (g b) \<subseteq> convex hull path_image g"
-        using seg_in_frontier front_in_hull by (rule subset_trans)
-      have out_in: "g ` ({0..1} - {a<..<b}) \<subseteq> convex hull path_image g"
-        by (metis hull_subset local.hull_eq)
       have hull_hh: "convex hull (path_image h) = convex hull (path_image g)"
         using hull_seg_eq pi_h by argo
       have "dist (g a) (g b) \<le> L * dist a b" using assms(3) ab01 by blast
@@ -1593,8 +1575,6 @@ next
       have path_hh: "path h"
         using lip_hh by (simp add: path_def lipschitz_on_continuous_on)
       have g1_img: "g ` ({0..1} - {a<..<b}) = path_image g1" using arcs(8) by simp
-      have opse_in_d0: "open_segment (g a) (g b) \<subseteq> path_image d0"
-        using d0_eq_seg by (simp add: open_segment_def)
       have opse_g1_disj: "open_segment (g a) (g b) \<inter> path_image g1 = {}"
         by (metis Int_Diff Int_commute d0_eq_seg d_split(11) insert_commute open_segment_def)
       have hh_in_opse: "h x \<in> open_segment (g a) (g b)" if "x \<in> {a<..<b}" for x
@@ -1823,7 +1803,13 @@ next
   have g1F: "\<gamma> 1 \<in> F" using frstart loop F_def by (simp add: pathstart_def pathfinish_def)
   \<comment> \<open>Since both endpoints map into @{term F}, the deviating set @{term s} avoids $0$ and $1$, hence is open in $\mathbb{R}$.\<close>
   have s_sub: "s \<subseteq> {0<..<1}"
-    unfolding s_def using g0F g1F verit_la_disequality by fastforce
+  proof
+    fix t assume "t \<in> s"
+    then have bounds: "0 \<le> t" "t \<le> 1" and outside: "\<gamma> t \<notin> F"
+      unfolding s_def by auto
+    have "t \<noteq> 0" "t \<noteq> 1" using outside g0F g1F by auto
+    then show "t \<in> {0<..<1}" using bounds by auto
+  qed
   have "openin (top_of_set {0..1}) ({0..1} \<inter> \<gamma> -` (- F))"
     using cont\<gamma> by (intro continuous_openin_preimage_gen) (auto simp: F_def)
   then have s_openin: "openin (top_of_set {0..1}) s"
@@ -2087,8 +2073,6 @@ next
   have hsub_F: "path_image h \<subseteq> F" using hx_in_F by (auto simp: path_image_def)
   \<comment> \<open>Off the arcs, @{term h} still agrees with @{term \<gamma>}; so @{term \<gamma>}'s image outside the deviating set @{term s} is part of
      the image of @{term h}.\<close>
-  have arcs_eq_s: "\<Union> {{a n<..<b n} | n. n \<in> (UNIV::nat set)} = s"
-    using comps Union_components by metis
   have hoff_s: "h x = \<gamma> x" if x01: "x \<in> {0..1}" and xs: "x \<notin> s" for x
     by (metis (mono_tags, lifting) U_sub_s eventually_sequentially foff h le_refl subset_eq
         that)
@@ -2323,4 +2307,3 @@ next
 qed
 
 end
-

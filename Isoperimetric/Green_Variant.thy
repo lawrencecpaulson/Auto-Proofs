@@ -517,9 +517,6 @@ proof (rule ccontr)
   have S_int_ne: "interior S \<noteq> {}"
     using Jordan_inside_outside[OF g(1)] g
     by (metis Diff_empty S_convex convex_closure frontier_S frontier_def inside_convex)
-    \<comment> \<open>Step 1: At least one of $s_1$, $s_2$ is in the open interval $(0,t)$.\<close>
-  have interior_param: "s1 \<in> {0<..<t} \<or> s2 \<in> {0<..<t}"
-    using s1t s2t neq not_endpts by auto
       \<comment> \<open>Step 2: $g\,s_1 \neq g\,s_2$ (from injectivity of @{term g} on $\{0..t\}$, which is a proper sub-arc).\<close>
   have inj_sub: "inj_on g {0..t}"
     using arc_inj_on[of 0 t] ht by auto
@@ -683,8 +680,6 @@ proof
   then have seg_in_closure: "open_segment a b \<subseteq> closure (inside (path_image g))"
     by (metis b(1) conv convex_contains_open_segment convex_convex_hull convex_hull_eq_closure_inside
         g hull_inc pathfinish_in_path_image)
-  have frontier_eq: "frontier (inside (path_image g)) = path_image g"
-    using Jordan_inside_outside g by blast
   have "open_segment a b \<subseteq> {z \<in> path_image g. Im z = 0}"
     using * Jordan_inside_outside[of g] frontier_def g interior_open seg_Im0 seg_in_closure
     by fastforce
@@ -704,10 +699,9 @@ lemma Green_area_zero_A:
     and below: "g ` {t..1} \<subseteq> {z. Im z \<le> 0}"
   shows "Green_concl g g'"
 proof -
-  \<comment> \<open>Common facts used by both split_case and split_case'\<close>
+  \<comment> \<open>Common facts used by both \<open>split_case\<close> and \<open>split_case'\<close>\<close>
   have g0: "g 0 = 0" using assms g(2) by (simp add: pathstart_def)
   have g1: "g 1 = 0" using assms g(3) by (simp add: pathfinish_def)
-  have lfg: "loop_free g" using g by (simp add: simple_path_def)
   have Reb: "Re b > 0" and Imb: "Im b = 0" using b assms by auto
     \<comment> \<open>Re-injectivity: on each arc, @{term "Re \<circ> g"} is injective (except at endpoints).
        Otherwise \<open>frontier_vertical_at_most_two\<close> gives a contradiction via three points
@@ -767,9 +761,6 @@ proof -
     \<comment> \<open>Re-derive the integral-equals-measure identities (proved locally in \<open>upper_int\<close>/\<open>lower_int\<close>)\<close>
     have Re_le: "Re (g 0) \<le> Re (g t)" and Re_le': "Re (g 1) \<le> Re (g t)" 
       using g0 g1 hgt Reb by auto
-    have inj_Re_upper: "inj_on Re (g ` {0..t})"
-      using Reb Re_inj_upper g0 arc_inj_on[of 0 t] t
-      by (intro arc_Re_inj_on; fastforce simp: assms b(2))
         \<comment> \<open>The integral-equals-measure identities\<close>
     define Au where "Au \<equiv> {z. \<exists>w \<in> g ` {0..t}. Re w = Re z \<and> 0 \<le> Im z \<and> Im z \<le> Im w}"
     define Al where "Al \<equiv> {z. \<exists>w \<in> g ` {t..1}. Re w = Re z \<and> Im w \<le> Im z \<and> Im z \<le> 0}"
@@ -969,9 +960,6 @@ proof -
         using rel_frontier_nonempty_interior[OF S_int_ne] .
       have z_int: "z \<in> interior S" and z_rel_int: "z \<in> rel_interior S" 
         using z_in inside_eq_int rel_interior_nonempty_interior by auto
-          \<comment> \<open>@{term S} is full-dimensional, so @{term "affine hull S = UNIV"}\<close>
-      have aff_S: "affine hull S = UNIV"
-        by (simp add: S_int_ne affine_hull_nonempty_interior)
           \<comment> \<open>Case split on the sign of $Im\,z$\<close>
       show "z \<in> Au \<union> Al"
       proof (cases "Im z \<ge> 0")
@@ -1270,8 +1258,6 @@ proof -
           using continuous_on_subset[OF cont_g] t by auto
         have cont_inv: "continuous_on (g ` {t..1}) (the_inv_into {t..1} g)"
           using continuous_on_inv_into[OF cont_sub compact_Icc inj] .
-        have inv_mem: "the_inv_into {t..1} g z \<in> {t..1}" if "z \<in> closed_segment 0 b" for z
-          using the_inv_into_into[OF inj _ order_refl] sub that by blast
         have eqt: "the_inv_into {t..1} g b = t"
           using the_inv_into_f_f[OF inj, of t] t by auto
         have eq1: "the_inv_into {t..1} g 0 = 1"
@@ -1492,8 +1478,6 @@ proof -
       using has_integral_mult_right[OF Re_has_int] by simp
     have ai_translated: "(\<lambda>t. Re (g' t) * Im (((+) (- a) \<circ> g) t)) integrable_on {0..1}"
       using * unfolding Green_concl_def absolutely_integrable_on_def by auto
-    have Ima_integrable: "(\<lambda>t. Im a * Re (g' t)) integrable_on {0..1}"
-      using Ima_has_int by (rule has_integral_integrable)
     have "integral {0..1} ?G
           = integral {0..1} (\<lambda>t. Re (g' t) * Im (((+) (- a) \<circ> g) t) + Im a * Re (g' t))"
       by (simp add: o_def plus_complex.sel uminus_complex.sel algebra_simps)
