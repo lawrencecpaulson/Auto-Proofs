@@ -17,6 +17,7 @@ session Stokes = "HOL-Analysis" +
     Stokes_One_Dimensional_Partition
     Stokes_One_Dimensional_Regularity
     Stokes_One_Dimensional_Global
+    Stokes_One_Dimensional_Integration
     Stokes_Smooth_Cutoff
     Stokes_Halfspace_Naturality
     Stokes_Block_Determinant

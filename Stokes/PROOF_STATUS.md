@@ -115,8 +115,8 @@ partition-weighted coordinate forms at the half-space face.
 `global_stokes_empty_boundary` and `global_stokes_compact_carrier`
 are checked corollaries. The separate
 `Stokes_halfline_form_C1_zero_integral` checks the signed half-line
-case. A global one-dimensional theorem needs a one-dimensional
-manifold-with-boundary interface.
+case. The half-line atlas below supplies the global one-dimensional
+case.
 `Stokes_one_dimensional_finite_chain` now checks the signed formula
 for finite oriented interval presentations, with interior endpoint
 cancellation and a finite zero-dimensional boundary sum.
@@ -139,11 +139,16 @@ theory checks continuous one-sided derivatives of localized scalar
 forms. `Stokes_One_Dimensional_Global.thy` checks
 `exact_body_integral_stokes`, partition independence of its
 exact-form chart integral, compact-support independence, and
-empty-boundary and compact-carrier corollaries. All these theories
+empty-boundary and compact-carrier corollaries.
+`Stokes_One_Dimensional_Integration.thy` defines a chart-independent
+integral for continuous compactly supported compatible one-forms.
+It proves that `exact_one_form omega` has the required chart
+transformation and regularity, that partition derivative terms
+cancel after integration, and that `one_form_body_integral` agrees
+with `exact_body_integral` for compactly supported exact forms.
+`one_form_body_integral_stokes` states the global one-dimensional
+Stokes formula using this general one-form integral. These theories
 are registered in `Stokes/ROOT` and built on 21 October 2026.
-The exact-form integral uses derivatives of partition-weighted
-primitives. A general one-dimensional one-form integral and
-comparison to this exact-form integral remain open.
 
 ## Checked analytic results
 

@@ -21,6 +21,8 @@ theorem compact_support_one_dimensional_stokes:
     "\<And>i. i \<in> F \<Longrightarrow>
       chartwise_C1_scalar (phi i)"
     "\<And>i. i \<in> F \<Longrightarrow>
+      continuous_on M (phi i)"
+    "\<And>i. i \<in> F \<Longrightarrow>
       \<exists>L. closed L \<and>
         {p\<in>M. phi i p \<noteq> 0} \<subseteq> L \<and>
         L \<subseteq> D i"
@@ -302,6 +304,8 @@ proof (rule compact_support_one_dimensional_stokes
       (\<Sum>i\<in>F. phi i p) = 1"
     and phi_C1: "\<And>i. i \<in> F \<Longrightarrow>
       chartwise_C1_scalar (phi i)"
+    and phi_cont: "\<And>i. i \<in> F \<Longrightarrow>
+      continuous_on M (phi i)"
     and phi_support: "\<And>i. i \<in> F \<Longrightarrow>
       \<exists>L. closed L \<and>
         {p\<in>M. phi i p \<noteq> 0} \<subseteq> L \<and>

@@ -288,6 +288,19 @@ proof -
     by (simp add: transition_def)
 qed
 
+lemma transition_point:
+  assumes i: "i \<in> I" and j: "j \<in> I"
+    and t: "t \<in> overlap i j"
+  shows "from_chart j (transition i j t) =
+    from_chart i t"
+proof -
+  have p: "from_chart i t \<in> D j"
+    using t overlap_preimage[OF i] by auto
+  show ?thesis
+    using halfline_chart.to_from[OF chart[OF j] p]
+    by (simp add: transition_def)
+qed
+
 lemma transition_injective:
   assumes i: "i \<in> I" and j: "j \<in> I"
   shows "inj_on (transition i j) (overlap i j)"
