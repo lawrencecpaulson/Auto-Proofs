@@ -1,0 +1,3 @@
+session Stokes_Boundary = Stokes +
+  theories
+    Stokes_Boundary_Charts

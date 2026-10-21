@@ -1,0 +1,10 @@
+session Stokes_Boundary_Integration = Stokes_Boundary +
+  options [timeout = 180]
+  sessions
+    Stokes_Integration
+  theories
+    Stokes_Boundary_Integration
+    Stokes_Body_Overlap
+    Stokes_Body_Local_Integration
+    Stokes_Smooth_Partition
+    Stokes_Single_Chart

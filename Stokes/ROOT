@@ -1,0 +1,15 @@
+session Stokes = "HOL-Analysis" +
+  options [timeout = 600]
+  theories
+    Stokes_Local
+    Stokes_Basis_Fubini
+    Stokes_Chart_Local
+    Stokes_Chart_Theorem
+    Stokes_Form_Bridge
+    Stokes_Forms
+    Stokes_Product_Forms
+    Stokes_Cart_Product
+    Stokes_Halfline_Forms
+    Stokes_Smooth_Cutoff
+    Stokes_Halfspace_Naturality
+    Stokes_Block_Determinant

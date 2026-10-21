@@ -1,0 +1,6 @@
+session Stokes_Manifold = Smooth_Manifolds +
+  options [timeout = 600]
+  sessions
+    Stokes_Integration
+  theories
+    Stokes_Manifold_Integration

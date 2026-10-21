@@ -1,0 +1,4 @@
+session Stokes_Integration = Stokes +
+  options [timeout = 600]
+  theories
+    Stokes_Oriented_Integration
