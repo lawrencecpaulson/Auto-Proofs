@@ -10,6 +10,13 @@ session Stokes = "HOL-Analysis" +
     Stokes_Product_Forms
     Stokes_Cart_Product
     Stokes_Halfline_Forms
+    Stokes_One_Dimensional_Chain
+    Stokes_One_Dimensional_Atlas
+    Stokes_One_Dimensional_Atlas_Gluing
+    Stokes_One_Dimensional_Manifold
+    Stokes_One_Dimensional_Partition
+    Stokes_One_Dimensional_Regularity
+    Stokes_One_Dimensional_Global
     Stokes_Smooth_Cutoff
     Stokes_Halfspace_Naturality
     Stokes_Block_Determinant

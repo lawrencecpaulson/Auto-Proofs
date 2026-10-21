@@ -69,6 +69,21 @@ support, body and boundary partition independence, linearity, and
 the local chart rules. A common C¹ partition evaluates both integrals
 when the body and boundary coefficients have one compact support
 bound.
+`Stokes_Global_Gluing.thy` checks the compact-support global Stokes
+identity for the half-space atlas coordinate-family model, plus its
+empty-boundary and compact-carrier corollaries. It constructs a finite
+smooth partition and uses a reflected ambient extension to preserve
+differentiability at boundary points. This atlas model has dimension
+at least two. `Stokes_One_Dimensional_Chain.thy` checks signed
+one-dimensional Stokes for finite interval presentations and
+finitely supported infinite collections. `Stokes_One_Dimensional_Atlas.thy`
+checks a local half-line chart theorem and the boundary gluing sum.
+`Stokes_One_Dimensional_Manifold.thy` defines an oriented half-line
+atlas; the partition, regularity, and global theories construct
+finite C¹ chart weights and prove `exact_body_integral_stokes`.
+The one-dimensional exact-form integral is independent of its
+partition and compact support set. Integration of arbitrary
+one-forms remains to be connected to this exact-form interface.
 `Stokes_Halfspace_Naturality.thy` proves naturality when ambient chart
 extensions are inverse only on the halfspace and a boundary
 cofactor coefficient law. `Stokes_Block_Determinant.thy` identifies

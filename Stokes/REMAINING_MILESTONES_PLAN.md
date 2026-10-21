@@ -14,7 +14,7 @@ form gate was checked in Isabelle2026-RC4 on 20 October 2026.
 | 4, boundary geometry | Relative-carrier atlas, C² transitions, locally inverse extensions, positive induced boundary orientation, and form boundary coefficient law checked | Instantiate smooth oriented atlases beyond the abstract locale; one-dimensional boundary uses the separate halfline model |
 | 5a, integration with boundary | Complete for the coordinate-family interface: finite chartwise C¹ partitions, both partition-independent linear integrals, chart rules, and a common body/boundary partition | Use the common partition in Milestone 6 |
 | 5b, single-chart Stokes | Complete: `Stokes_chart_supported_form_integrals_C1` equates the partition-defined body and boundary integrals for a chart-supported coordinate form | Optional abstract form datatype; Milestone 6 needs regularity of partition-weighted forms |
-| 6, global Stokes | Planned | Compact-support theorem by a finite partition sum |
+| 6, global Stokes | Compact-support theorem checked in dimensions at least two; a separate arbitrary oriented one-dimensional atlas theorem and partition-independent exact-form integral check | Relate the one-dimensional exact-form integral to a general one-form integration interface, if a uniform integral across dimensions is required |
 | 7, classical Green's theorem | Planned after 6 | Planar `P dx + Q dy` corollary with area and oriented contour integrals |
 
 The optional all-degree form algebra (1b) and cubical-chain Stokes are
@@ -219,9 +219,14 @@ inside one interior or boundary chart.
   corollaries. Keep the arbitrary noncompact manifold statement
   under the compact-support hypothesis.
 
-**Gate:** the global compact-support Stokes theorem and these
-corollaries are checked, with no assumed Piola, coefficient,
-chart-independence, or partition identities.
+**Gate status:** `global_stokes` and its empty-boundary and
+compact-carrier corollaries check in dimensions at least two, with
+no assumed Piola, coefficient, chart-independence, or partition
+identities. In dimension one, `exact_body_integral_stokes` checks
+for an arbitrary oriented C¹ half-line atlas. The one-dimensional
+exact-form integral is partition-independent and support-independent.
+A general one-form integral and comparison to this exact-form
+integral are still needed for a single uniform interface.
 
 ## Milestone 7: classical Green's theorem
 

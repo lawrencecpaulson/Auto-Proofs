@@ -5,7 +5,14 @@ The `Stokes` session in `ROOT` checks `Stokes_Local.thy`,
 `Stokes_Chart_Theorem.thy`, `Stokes_Form_Bridge.thy`,
 `Stokes_Forms.thy`, `Stokes_Product_Forms.thy`,
 `Stokes_Cart_Product.thy`, `Stokes_Halfline_Forms.thy`,
-`Stokes_Smooth_Cutoff.thy`, and
+`Stokes_One_Dimensional_Chain.thy`,
+`Stokes_One_Dimensional_Atlas.thy`,
+`Stokes_One_Dimensional_Atlas_Gluing.thy`,
+`Stokes_One_Dimensional_Manifold.thy`,
+`Stokes_One_Dimensional_Partition.thy`,
+`Stokes_One_Dimensional_Regularity.thy`,
+`Stokes_One_Dimensional_Global.thy`,
+`Stokes_Smooth_Cutoff.thy`,
 `Stokes_Halfspace_Naturality.thy`, and
 `Stokes_Block_Determinant.thy` with
 Isabelle2026-RC4. The full development build completed successfully on
@@ -19,8 +26,9 @@ against AFP `Smooth_Manifolds`.
 `Stokes_Boundary_Integration.thy`,
 `Stokes_Body_Overlap.thy`,
 `Stokes_Body_Local_Integration.thy`,
-`Stokes_Smooth_Partition.thy`, and
-`Stokes_Single_Chart.thy`.
+`Stokes_Smooth_Partition.thy`,
+`Stokes_Single_Chart.thy`, and
+`Stokes_Global_Gluing.thy`.
 
 On 21 October 2026, `Stokes_Boundary_Integration` built successfully
 after adding `exterior_top_zero_off_near_support` and
@@ -91,6 +99,51 @@ partition. The atlas assumes C² transitions; the proved chartwise
 C¹ regularity is the regularity used for localization. The
 zero-dimensional boundary integral in the separate half-line model
 is a signed finite sum.
+
+Milestone 6's compact-support theorem `global_stokes` is checked for
+the half-space atlas coordinate-family interface (`real × real^'n`,
+hence dimension at least two). It proves equality of the
+partition-defined body integral of `product_exterior_top A` and
+boundary integral of `product_boundary_coeff A` from compact
+support, the interior pullback law, ambient differentiability, and
+continuity of the normal and tangential derivative coefficients.
+The proof constructs a finite chartwise C¹ partition using
+`body_C1_partition_exists` and glues single-chart Stokes equalities.
+`stokes_reflect_extension_local_C1` and the product derivative
+lemmas supply ambient differentiable extensions of
+partition-weighted coordinate forms at the half-space face.
+`global_stokes_empty_boundary` and `global_stokes_compact_carrier`
+are checked corollaries. The separate
+`Stokes_halfline_form_C1_zero_integral` checks the signed half-line
+case. A global one-dimensional theorem needs a one-dimensional
+manifold-with-boundary interface.
+`Stokes_one_dimensional_finite_chain` now checks the signed formula
+for finite oriented interval presentations, with interior endpoint
+cancellation and a finite zero-dimensional boundary sum.
+`Stokes_one_dimensional_closed_chain`,
+`Stokes_line_form_C1_zero_integral`,
+`Stokes_compact_interval_form_C1`, and
+`Stokes_periodic_interval_form_C1` check useful special cases.
+`Stokes_one_dimensional_compactly_supported_chain` extends the
+formula to a possibly infinite collection of intervals with only
+finitely many active pieces. `Stokes_one_dimensional_chart_C1` checks
+the local identity on a relatively open half-line chart, and
+`one_dimensional_boundary_partition_sum` checks the finite boundary
+gluing sum. `Stokes_one_dimensional_finite_atlas_gluing` checks their
+combination. The oriented C¹ half-line atlas in
+`Stokes_One_Dimensional_Manifold.thy` has checked boundary-sign,
+transition-map, chart-overlap, compact-subcover, and finite-boundary
+results. `Stokes_One_Dimensional_Partition.thy` checks finite
+chartwise C¹ partitions on every compact subset. The regularity
+theory checks continuous one-sided derivatives of localized scalar
+forms. `Stokes_One_Dimensional_Global.thy` checks
+`exact_body_integral_stokes`, partition independence of its
+exact-form chart integral, compact-support independence, and
+empty-boundary and compact-carrier corollaries. All these theories
+are registered in `Stokes/ROOT` and built on 21 October 2026.
+The exact-form integral uses derivatives of partition-weighted
+primitives. A general one-dimensional one-form integral and
+comparison to this exact-form integral remain open.
 
 ## Checked analytic results
 

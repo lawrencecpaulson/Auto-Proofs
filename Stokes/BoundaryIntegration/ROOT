@@ -8,3 +8,4 @@ session Stokes_Boundary_Integration = Stokes_Boundary +
     Stokes_Body_Local_Integration
     Stokes_Smooth_Partition
     Stokes_Single_Chart
+    Stokes_Global_Gluing
