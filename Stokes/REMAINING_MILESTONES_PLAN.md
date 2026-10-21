@@ -1,6 +1,6 @@
 # Remaining milestones: implementation order and proof gates
 
-This plan refines `MILESTONE_1_SPEC.md` through `MILESTONE_6_SPEC.md`.
+This plan refines `MILESTONE_1_SPEC.md` through `MILESTONE_7_SPEC.md`.
 `PROOF_STATUS.md` is the record of checked theorems. The first local
 form gate was checked in Isabelle2026-RC4 on 20 October 2026.
 
@@ -15,6 +15,7 @@ form gate was checked in Isabelle2026-RC4 on 20 October 2026.
 | 5a, integration with boundary | Complete for the coordinate-family interface: finite chartwise C¹ partitions, both partition-independent linear integrals, chart rules, and a common body/boundary partition | Use the common partition in Milestone 6 |
 | 5b, single-chart Stokes | Complete: `Stokes_chart_supported_form_integrals_C1` equates the partition-defined body and boundary integrals for a chart-supported coordinate form | Optional abstract form datatype; Milestone 6 needs regularity of partition-weighted forms |
 | 6, global Stokes | Planned | Compact-support theorem by a finite partition sum |
+| 7, classical Green's theorem | Planned after 6 | Planar `P dx + Q dy` corollary with area and oriented contour integrals |
 
 The optional all-degree form algebra (1b) and cubical-chain Stokes are
 outside the critical path.
@@ -221,6 +222,23 @@ inside one interior or boundary chart.
 **Gate:** the global compact-support Stokes theorem and these
 corollaries are checked, with no assumed Piola, coefficient,
 chart-independence, or partition identities.
+
+## Milestone 7: classical Green's theorem
+
+- Instantiate the two-dimensional positive boundary atlas for a
+  compact smooth planar region and its oriented boundary.
+- For the one-form `P dx + Q dy`, identify the exterior coefficient
+  as `partial_x Q - partial_y P`.
+- Identify the two Stokes integrals with the usual planar area
+  integral and the oriented contour integral. Check counterclockwise
+  orientation on the outer boundary and clockwise orientation around
+  holes.
+- Apply Milestone 6 to obtain the traditional formula. Compare with
+  the separate `Green/` development's Type I and Type II region
+  results and reuse its line-integral interface when suitable.
+
+**Gate:** a checked Isabelle theorem states Green's theorem using
+ordinary area and contour integrals, without a new subdivision proof.
 
 ## Scheduling and risk
 

@@ -18,11 +18,12 @@ Working documents:
 - `MILESTONE_5_SPEC.md`: integration on manifolds with boundary and
   single-chart Stokes.
 - `MILESTONE_6_SPEC.md`: global compact-support Stokes by finite gluing.
+- `MILESTONE_7_SPEC.md`: classical Green's theorem as a planar corollary.
 - `SOURCE_AUDIT.md`: Lean, mathlib, Isabelle, and AFP source map.
 - `OFFLINE_PLAN.md`: order of proof experiments when Isabelle is available.
 - `MANIFOLD_ROADMAP.md`: dependencies from local Stokes to the global theorem.
 - `REMAINING_MILESTONES_PLAN.md`: executable proof gates for milestones
-  1a and 3–6, including the form/chart interface that completes 2.
+  1a and 3–7, including the form/chart interface that completes 2.
 - `BOUNDARY_CHART_DESIGN.md`: proposed relative-carrier boundary-chart
   interface and the first milestone 4 prototype.
 - `TEXT_SOURCES.md`: page guide to the two downloaded mathematical texts.
