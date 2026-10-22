@@ -4,8 +4,6 @@ session Stokes = Smooth_Manifolds +
   description "Stokes' theorem for smooth manifolds with boundary"
   options [timeout = 600]
   directories
-    "Integration"
-    "Manifold"
     "Boundary"
     "BoundaryIntegration"
   theories [document = false]
@@ -33,9 +31,9 @@ session Stokes = Smooth_Manifolds +
     Stokes_Smooth_Cutoff
     Stokes_Halfspace_Naturality
     Stokes_Block_Determinant
-    "Integration/Stokes_Oriented_Integration"
+    Stokes_Oriented_Integration
   theories
-    "Manifold/Stokes_Manifold_Integration"
+    Stokes_Manifold_Integration
     "Boundary/Stokes_Boundary_Charts"
   theories [document = false]
     "Boundary/Stokes_Disk_Atlas"
