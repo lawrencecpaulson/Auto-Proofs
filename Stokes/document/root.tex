@@ -1,0 +1,46 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage{isabelle,isabellesym}
+\usepackage{amsmath,amssymb}
+
+% This should be the last package used.
+\usepackage{pdfsetup}
+
+\urlstyle{rm}
+\isabellestyle{it}
+
+\begin{document}
+
+\title{Stokes' Theorem on Smooth Manifolds with Boundary}
+\author{Lawrence C.\ Paulson}
+\maketitle
+
+\begin{abstract}
+We formalise Stokes' theorem for oriented smooth manifolds with boundary
+in Isabelle/HOL. The main result equates the integral of the exterior
+derivative of a compactly supported near-top form with the integral of
+its boundary restriction. Forms are represented by compatible
+coordinate families, and both integrals are defined using finite
+partitions of unity. The development establishes the local half-space
+identity, the induced boundary orientation, chart independence of the
+integrals, and the global gluing theorem. It also treats dimension one
+separately and gives a two-chart instance for the closed unit disk.
+\end{abstract}
+
+\section{Scope}
+
+For positive dimension, the boundary is modelled on a closed
+half-space. In dimensions at least two, the integrated forms have
+degree one less than the manifold dimension, represented by their
+coordinate coefficient fields. The one-dimensional development uses
+an exact-form interface and a chart-independent one-form integral.
+The disk instance identifies its boundary with the unit circle.
+The Green-form calculation checks the usual
+$\partial_x Q-\partial_y P$ sign in local coordinates; an ordinary
+area-and-contour-integral Green theorem is not claimed here.
+
+\section{Formal development}
+
+\input{session}
+
+\end{document}

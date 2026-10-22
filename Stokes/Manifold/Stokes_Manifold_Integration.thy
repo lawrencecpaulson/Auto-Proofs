@@ -1,7 +1,7 @@
 theory Stokes_Manifold_Integration
   imports
     "Smooth_Manifolds.Partition_Of_Unity"
-    Stokes_Integration.Stokes_Oriented_Integration
+    Stokes_Oriented_Integration
 begin
 
 definition chart_overlap ::

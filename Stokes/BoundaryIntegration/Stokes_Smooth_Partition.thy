@@ -1,6 +1,6 @@
 theory Stokes_Smooth_Partition
   imports Stokes_Body_Local_Integration
-    Stokes.Stokes_Smooth_Cutoff
+    Stokes_Smooth_Cutoff
 begin
 
 context smooth_oriented_C2_halfspace_atlas

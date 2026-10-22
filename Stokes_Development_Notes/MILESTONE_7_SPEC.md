@@ -5,6 +5,17 @@ theory. It should state Green's theorem in the usual vector-calculus
 notation and identify its two integrals with the manifold integrals
 used for Stokes.
 
+As of 2026-10-22, `Boundary/Stokes_Disk_Atlas.thy` and
+`BoundaryIntegration/Stokes_Disk_Smooth.thy` check a two-chart smooth
+oriented atlas for the closed unit disk.
+`BoundaryIntegration/Stokes_Green_Form.thy` checks the near-top encoding
+of `P dx + Q dy` as `(Q,-P)`, its exterior coefficient
+`partial_x Q - partial_y P`, and the induced face coefficient `-Q`.
+It also specializes the disk Stokes theorem to compatible chartwise
+`P` and `Q`. The chart compatibility of fields constructed from
+physical-plane `P` and `Q`, and the ordinary area/contour integral
+identifications, remain to be proved.
+
 ## Main statement
 
 Let `R` be a compact oriented planar region with a sufficiently smooth

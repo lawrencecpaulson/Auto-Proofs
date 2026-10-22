@@ -1,7 +1,7 @@
 theory Stokes_Boundary_Integration
   imports
-    Stokes_Boundary.Stokes_Boundary_Charts
-    Stokes_Integration.Stokes_Oriented_Integration
+    Stokes_Boundary_Charts
+    Stokes_Oriented_Integration
 begin
 
 context positively_oriented_C2_halfspace_atlas

@@ -1,12 +1,22 @@
-session Stokes = "HOL-Analysis" +
+chapter AFP
+
+session Stokes = Smooth_Manifolds +
+  description "Stokes' theorem for smooth manifolds with boundary"
   options [timeout = 600]
-  theories
+  directories
+    "Integration"
+    "Manifold"
+    "Boundary"
+    "BoundaryIntegration"
+  theories [document = false]
     Stokes_Local
     Stokes_Basis_Fubini
     Stokes_Chart_Local
     Stokes_Chart_Theorem
     Stokes_Form_Bridge
+  theories
     Stokes_Forms
+  theories [document = false]
     Stokes_Product_Forms
     Stokes_Cart_Product
     Stokes_Halfline_Forms
@@ -17,7 +27,29 @@ session Stokes = "HOL-Analysis" +
     Stokes_One_Dimensional_Partition
     Stokes_One_Dimensional_Regularity
     Stokes_One_Dimensional_Global
+  theories
     Stokes_One_Dimensional_Integration
+  theories [document = false]
     Stokes_Smooth_Cutoff
     Stokes_Halfspace_Naturality
     Stokes_Block_Determinant
+    "Integration/Stokes_Oriented_Integration"
+  theories
+    "Manifold/Stokes_Manifold_Integration"
+    "Boundary/Stokes_Boundary_Charts"
+  theories [document = false]
+    "Boundary/Stokes_Disk_Atlas"
+    "BoundaryIntegration/Stokes_Boundary_Integration"
+    "BoundaryIntegration/Stokes_Body_Overlap"
+    "BoundaryIntegration/Stokes_Body_Local_Integration"
+    "BoundaryIntegration/Stokes_Smooth_Partition"
+    "BoundaryIntegration/Stokes_Single_Chart"
+  theories
+    "BoundaryIntegration/Stokes_Global_Gluing"
+  theories [document = false]
+    "BoundaryIntegration/Stokes_Disk_Smooth"
+  theories
+    "BoundaryIntegration/Stokes_Disk_Stokes"
+    "BoundaryIntegration/Stokes_Green_Form"
+  document_files
+    "root.tex"

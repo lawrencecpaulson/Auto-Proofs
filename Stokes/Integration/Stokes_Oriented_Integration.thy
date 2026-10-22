@@ -1,5 +1,5 @@
 theory Stokes_Oriented_Integration
-  imports Stokes.Stokes_Block_Determinant
+  imports Stokes_Block_Determinant
 begin
 
 theorem oriented_integral_change_of_variables:

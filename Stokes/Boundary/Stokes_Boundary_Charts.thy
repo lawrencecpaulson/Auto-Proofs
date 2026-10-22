@@ -1,5 +1,5 @@
 theory Stokes_Boundary_Charts
-  imports Stokes.Stokes_Block_Determinant
+  imports Stokes_Block_Determinant
 begin
 
 definition closed_halfspace ::
