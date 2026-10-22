@@ -535,27 +535,16 @@ proof -
     have ys_mem: "ys \<in> ?K"
       unfolding ys_def using y_bounds by auto
     have y_vec: "vec_of_list ys = y"
-    proof (rule eq_vecI)
-      show "dim_vec (vec_of_list ys) = dim_vec y"
-        unfolding ys_def using y_carrier by simp
-    next
-      fix i
-      assume i: "i < dim_vec y"
-      then have ip: "i < p"
-        using y_carrier by simp
-      show "vec_of_list ys $ i = y $ i"
-        unfolding ys_def using ip by (simp add: vec_of_list_index)
-    qed
+      using y_carrier ys_def by auto
     show "y \<in> ?R"
       using ys_mem y_vec by blast
   qed
-
   have count_lt: "card (?f ` ?S) < card ?S"
   proof -
     have C_sq_lt: "Suc (C ^ 2) < Suc C ^ 2"
       using C_pos by (simp add: power2_eq_square)
-    have "Suc (C ^ 2) ^ p < (Suc C ^ 2) ^ p"
-      using C_sq_lt ppos by (intro power_strict_mono) auto
+    with ppos have "Suc (C ^ 2) ^ p < (Suc C ^ 2) ^ p"
+      by (intro power_strict_mono) auto
     also have "\<dots> = Suc C ^ (2 * p)"
       by (simp add: power_mult)
     also have "\<dots> \<le> Suc C ^ q"
@@ -564,86 +553,31 @@ proof -
       using cardR cardS by simp
     have "card (?f ` ?S) \<le> card ?R"
       by (rule card_mono[OF finR image_sub])
-    also have "\<dots> < card ?S"
-      by (rule cardR_lt)
-    finally show ?thesis .
+    with cardR_lt show ?thesis by linarith
   qed
-
-  then have "\<not> inj_on ?f ?S"
-    by (rule pigeonhole)
-  then obtain x y where
-      xS: "x \<in> ?S"
-    and yS: "y \<in> ?S"
-    and xy: "x \<noteq> y"
-    and img_eq: "?f x = ?f y"
+  with pigeonhole obtain x y 
+    where xS: "x \<in> ?S" and yS: "y \<in> ?S" and "x \<noteq> y" and img_eq: "?f x = ?f y"
     unfolding inj_on_def by blast
-
-  from S_props[OF xS] have x_carrier: "x \<in> carrier_vec q" and
-    x_bounds: "\<forall>j<q. 0 \<le> x $ j \<and> x $ j \<le> int C"
-    by blast+
-  from S_props[OF yS] have y_carrier: "y \<in> carrier_vec q" and
-    y_bounds: "\<forall>j<q. 0 \<le> y $ j \<and> y $ j \<le> int C"
-    by blast+
-
+  have x_carrier: "x \<in> carrier_vec q" 
+    and x_bounds: "\<forall>j<q. 0 \<le> x $ j \<and> x $ j \<le> int C"
+    and y_carrier: "y \<in> carrier_vec q" 
+    and y_bounds: "\<forall>j<q. 0 \<le> y $ j \<and> y $ j \<le> int C"
+  using S_props xS yS by blast+
   obtain i where i: "i < q" "x $ i \<noteq> y $ i"
-    using x_carrier y_carrier xy by force
-  define z where "z = x - y"
+    using x_carrier y_carrier \<open>x \<noteq> y\<close> by force
+  define z where "z \<equiv> x - y"
   have z_carrier: "z \<in> carrier_vec q"
     unfolding z_def using x_carrier y_carrier by auto
   have z_nz: "z \<noteq> 0\<^sub>v q"
-  proof
-    assume z0: "z = 0\<^sub>v q"
-    have zi0: "z $ i = 0"
-      using z0 i z_carrier by simp
-    have xy0: "(x - y) $ i = 0"
-      using zi0 unfolding z_def by simp
-    have "x $ i - y $ i = 0"
-      using xy0 i x_carrier y_carrier by simp
-    then show False
-      using i by simp
-  qed
-  have Ay_carrier: "A *\<^sub>v y \<in> carrier_vec p"
+    using i z_def by (metis index_minus_vec index_zero_vec right_minus_eq)
+  have"A *\<^sub>v y \<in> carrier_vec p"
     by (rule mult_mat_vec_carrier[OF A y_carrier])
-  have Az0: "A *\<^sub>v z = 0\<^sub>v p"
-  proof -
-    have "A *\<^sub>v z = A *\<^sub>v x - A *\<^sub>v y"
-      unfolding z_def by (simp add: mult_minus_distrib_mat_vec[OF A x_carrier y_carrier])
-    also have "\<dots> = A *\<^sub>v y - A *\<^sub>v y"
-      using img_eq by simp
-    also have "\<dots> = 0\<^sub>v p"
-      using Ay_carrier by simp
-    finally show ?thesis .
-  qed
+  then have Az0: "A *\<^sub>v z = 0\<^sub>v p"
+    by (simp add: z_def img_eq mult_minus_distrib_mat_vec[OF A x_carrier y_carrier])
   have z_bnd: "z \<in> Bounded_vec (int C)"
-  proof -
-    have "\<forall>j<dim_vec z. abs (z $ j) \<le> int C"
-    proof
-      fix j
-      show "j < dim_vec z \<longrightarrow> abs (z $ j) \<le> int C"
-      proof
-        assume jlt: "j < dim_vec z"
-        then have jq: "j < q"
-          using z_carrier by simp
-        have xj0: "0 \<le> x $ j" and xjC: "x $ j \<le> int C"
-          using x_bounds jq by blast+
-        have yj0: "0 \<le> y $ j" and yjC: "y $ j \<le> int C"
-          using y_bounds jq by blast+
-        have zj: "z $ j = x $ j - y $ j"
-          unfolding z_def using jq x_carrier y_carrier by simp
-        have lo: "- int C \<le> z $ j"
-          using zj xj0 yjC by linarith
-        have hi: "z $ j \<le> int C"
-          using zj xjC yj0 by linarith
-        show "abs (z $ j) \<le> int C"
-          using lo hi by linarith
-      qed
-    qed
-    then show ?thesis
-      unfolding Bounded_vec_def by simp
-  qed
+    unfolding Bounded_vec_def z_def using x_bounds y_bounds y_carrier by fastforce
   have z_bnd': "z \<in> Bounded_vec (2 * int q * max 1 Bnd)"
     using z_bnd unfolding C_def by (simp add: B_int)
-
   show ?thesis
     using z_carrier z_nz Az0 z_bnd' by blast
 qed
