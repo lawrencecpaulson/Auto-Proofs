@@ -8,46 +8,46 @@ session Stokes = Smooth_Manifolds +
     "BoundaryIntegration"
   theories [document = false]
     Stokes_Local
-    Stokes_Basis_Fubini
-    Stokes_Chart_Local
-    Stokes_Chart_Theorem
-    Stokes_Form_Bridge
+    Basis_Fubini
+    Chart_Local
+    Chart_Theorem
+    Form_Bridge
   theories
-    Stokes_Forms
+    Forms
   theories [document = false]
-    Stokes_Product_Forms
-    Stokes_Cart_Product
-    Stokes_Halfline_Forms
-    Stokes_One_Dimensional_Chain
-    Stokes_One_Dimensional_Atlas
-    Stokes_One_Dimensional_Atlas_Gluing
-    Stokes_One_Dimensional_Manifold
-    Stokes_One_Dimensional_Partition
-    Stokes_One_Dimensional_Regularity
-    Stokes_One_Dimensional_Global
+    Product_Forms
+    Cart_Product
+    Halfline_Forms
+    One_Dimensional_Chain
+    One_Dimensional_Atlas
+    One_Dimensional_Atlas_Gluing
+    One_Dimensional_Manifold
+    One_Dimensional_Partition
+    One_Dimensional_Regularity
+    One_Dimensional_Global
   theories
-    Stokes_One_Dimensional_Integration
+    One_Dimensional_Integration
   theories [document = false]
-    Stokes_Smooth_Cutoff
-    Stokes_Halfspace_Naturality
-    Stokes_Block_Determinant
-    Stokes_Oriented_Integration
+    Smooth_Cutoff
+    Halfspace_Naturality
+    Block_Determinant
+    Oriented_Integration
   theories
-    Stokes_Manifold_Integration
-    "Boundary/Stokes_Boundary_Charts"
+    Manifold_Integration
+    "Boundary/Boundary_Charts"
   theories [document = false]
-    "Boundary/Stokes_Disk_Atlas"
-    "BoundaryIntegration/Stokes_Boundary_Integration"
-    "BoundaryIntegration/Stokes_Body_Overlap"
-    "BoundaryIntegration/Stokes_Body_Local_Integration"
-    "BoundaryIntegration/Stokes_Smooth_Partition"
-    "BoundaryIntegration/Stokes_Single_Chart"
+    "Boundary/Disk_Atlas"
+    "BoundaryIntegration/Boundary_Integration"
+    "BoundaryIntegration/Body_Overlap"
+    "BoundaryIntegration/Body_Local_Integration"
+    "BoundaryIntegration/Smooth_Partition"
+    "BoundaryIntegration/Single_Chart"
   theories
-    "BoundaryIntegration/Stokes_Global_Gluing"
+    "BoundaryIntegration/Global_Gluing"
   theories [document = false]
-    "BoundaryIntegration/Stokes_Disk_Smooth"
+    "BoundaryIntegration/Disk_Smooth"
   theories
-    "BoundaryIntegration/Stokes_Disk_Stokes"
-    "BoundaryIntegration/Stokes_Green_Form"
+    "BoundaryIntegration/Disk_Stokes"
+    "BoundaryIntegration/Green_Form"
   document_files
     "root.tex"

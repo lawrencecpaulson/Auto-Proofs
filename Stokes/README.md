@@ -15,10 +15,10 @@ planar area and contour integrals.
 
 The principal results are in:
 
-- `BoundaryIntegration/Stokes_Global_Gluing.thy`: global Stokes and corollaries.
-- `Stokes_One_Dimensional_Integration.thy`: the one-dimensional integral.
-- `BoundaryIntegration/Stokes_Disk_Stokes.thy`: the closed disk instance.
-- `BoundaryIntegration/Stokes_Green_Form.thy`: the Green-form coordinate identity.
+- `BoundaryIntegration/Global_Gluing.thy`: global Stokes and corollaries.
+- `One_Dimensional_Integration.thy`: the one-dimensional integral.
+- `BoundaryIntegration/Disk_Stokes.thy`: the closed disk instance.
+- `BoundaryIntegration/Green_Form.thy`: the Green-form coordinate identity.
 
 When this directory is placed alongside `Smooth_Manifolds` in an AFP theories
 tree, build and check the document with:
