@@ -1,4 +1,4 @@
-(*  Title:      Finite_Embedding_Bounds/Structure_Constant_Kernels.thy
+(*  Title:      Gelfond_Schneider/Finite_Embedding_Bounds/Structure_Constant_Kernels.thy
     Author:     OpenAI Codex
 
 Bounded complex-matrix kernels via integral structure constants.

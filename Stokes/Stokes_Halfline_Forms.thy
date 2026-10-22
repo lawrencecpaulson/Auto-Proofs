@@ -22,25 +22,6 @@ definition finite_boundary_zero_integral ::
   where "finite_boundary_zero_integral B a =
     (\<Sum>p\<in>B. a p)"
 
-lemma finite_boundary_zero_integral_add:
-  "finite_boundary_zero_integral B
-      (\<lambda>p. a p + b p) =
-    finite_boundary_zero_integral B a +
-      finite_boundary_zero_integral B b"
-  by (simp add: finite_boundary_zero_integral_def
-    sum.distrib)
-
-lemma finite_boundary_zero_integral_scale:
-  "finite_boundary_zero_integral B
-      (\<lambda>p. c * a p) =
-    c * finite_boundary_zero_integral B a"
-  by (simp add: finite_boundary_zero_integral_def
-    sum_distrib_left)
-
-lemma finite_boundary_zero_integral_empty:
-  "finite_boundary_zero_integral {} a = 0"
-  by (simp add: finite_boundary_zero_integral_def)
-
 lemma halfline_boundary_as_zero_integral:
   "halfline_boundary_coeff F =
     finite_boundary_zero_integral {0::real}

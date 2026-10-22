@@ -13,8 +13,8 @@ matrix and mixed-integer-solution results.
 To check this session in the current workspace:
 
 ```sh
-/Applications/Isabelle2025-2.app/bin/isabelle build \
-  -D Integer_Kernels \
-  -d /Users/lawrpau/isabelle/afp/release/thys \
+/Applications/Isabelle2026-RC4.app/Contents/Resources/bin/isabelle build \
+  -D Gelfond_Schneider \
+  -d /path/to/afp-devel/thys \
   -o document=false Bounded_Integer_Kernels
 ```

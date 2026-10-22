@@ -116,7 +116,7 @@ lemma gs_aux_fun_vec_exists_min_order_node:
           \<le> zorder (gs_aux_fun_vec d q \<xi>) (of_nat (Suc j))"
 proof -
   define z0 where "z0 = arg_min_on (zorder (gs_aux_fun_vec d q \<xi>)) (gs_order_nodes m)"
-  have z0_mem: "z0 \<in> gs_order_nodes m"
+  have "z0 \<in> gs_order_nodes m"
     unfolding z0_def
     by (rule finite_arg_min_on_zorder(1)) (simp_all add: mpos)
   then obtain l where l: "l < m" "z0 = of_nat (Suc l)"

@@ -42,17 +42,6 @@ proof -
     by (rule DERIV_cong) (simp add: algebra_simps)
 qed
 
-lemma has_field_derivative_exp_linear:
-  "((\<lambda>x::complex. exp (z * x)) has_field_derivative z * exp (z * x)) (at x)"
-proof -
-  have eq_fun: "(\<lambda>x::complex. exp (z * x)) = (\<lambda>x. exp (x * z))"
-    by (simp add: fun_eq_iff mult.commute)
-  have "((\<lambda>x::complex. exp (z * x)) has_field_derivative z * exp (x * z)) (at x)"
-    by (simp only: eq_fun has_field_derivative_exp_linear_right)
-  then show ?thesis
-    by (rule DERIV_cong) (simp add: mult.commute)
-qed
-
 lemma deriv_const_exp_linear_right:
   "deriv (\<lambda>x::complex. c * exp (x * z)) x = c * z * exp (x * z)"
 proof -
@@ -60,43 +49,6 @@ proof -
     by (rule DERIV_cmult[OF has_field_derivative_exp_linear_right])
   then show ?thesis
     by (simp add: has_field_derivative_def DERIV_imp_deriv)
-qed
-
-lemma deriv_const_exp_linear:
-  "deriv (\<lambda>x::complex. c * exp (z * x)) x = c * z * exp (z * x)"
-proof -
-  have eq_fun: "(\<lambda>x::complex. c * exp (z * x)) = (\<lambda>x. c * exp (x * z))"
-    by (simp add: fun_eq_iff mult.commute)
-  have "deriv (\<lambda>x::complex. c * exp (z * x)) x = deriv (\<lambda>x. c * exp (x * z)) x"
-    by (simp only: eq_fun)
-  also have "\<dots> = c * z * exp (x * z)"
-    by (rule deriv_const_exp_linear_right)
-  finally show ?thesis
-    by (simp add: mult.commute)
-qed
-
-lemma iterated_deriv_const_exp_linear:
-  "((deriv ^^ k) (\<lambda>x::complex. c * exp (z * x))) x = c * z ^ k * exp (z * x)"
-proof (induction k arbitrary: x)
-  case 0
-  then show ?case
-    by simp
-next
-  case (Suc k)
-  have fun_eq: "(deriv ^^ k) (\<lambda>x. c * exp (z * x)) = (\<lambda>x. c * z ^ k * exp (z * x))"
-    by (rule ext) (simp add: Suc.IH)
-  have "((deriv ^^ Suc k) (\<lambda>x. c * exp (z * x))) x =
-      deriv (\<lambda>x. c * z ^ k * exp (z * x)) x"
-    by (simp add: fun_eq)
-  also have "\<dots> = c * z ^ Suc k * exp (z * x)"
-  proof -
-    have "deriv (\<lambda>x. c * z ^ k * exp (z * x)) x =
-        (c * z ^ k) * z * exp (z * x)"
-      by (rule deriv_const_exp_linear)
-    then show ?thesis
-      by (simp add: algebra_simps)
-  qed
-  finally show ?case .
 qed
 
 lemma iterated_deriv_exp_sum:

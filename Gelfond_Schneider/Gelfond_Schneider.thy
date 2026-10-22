@@ -1,14 +1,14 @@
 (*  Title:      Gelfond_Schneider/Gelfond_Schneider.thy
     Author:     OpenAI Codex
 
-Standalone theorem target for the Gelfond-Schneider formalization.
+The public Gelfond-Schneider theorem and its principal corollaries.
 *)
 
 theory Gelfond_Schneider
   imports Power_Basis_Norm_Direct
 begin
 
-section \<open>Standalone Gelfond-Schneider\<close>
+section \<open>Gelfond-Schneider\<close>
 
 text \<open>
 The normalized counterexample contradiction follows from the finite normal
@@ -87,10 +87,10 @@ proof
         using assms(4) by (simp add: powr_def)
       finally show ?thesis .
     qed
-    have nz: "of_real a \<noteq> (0 :: complex)"
+    have "of_real a \<noteq> (0 :: complex)"
       using assms(4) by simp
-    have "exp (of_real b * Ln (of_real a)) \<in> power_values (of_real a) (of_real b)"
-      by (rule principal_power_value_mem[OF nz])
+    then have "exp (of_real b * Ln (of_real a)) \<in> power_values (of_real a) (of_real b)"
+      by (rule principal_power_value_mem)
     with eq show ?thesis
       by simp
   qed

@@ -1,4 +1,4 @@
-(*  Title:      Finite_Embedding_Bounds/Embedding_Kernel_Bounds.thy
+(*  Title:      Gelfond_Schneider/Finite_Embedding_Bounds/Embedding_Kernel_Bounds.thy
     Author:     OpenAI Codex
 
 Uniform finite-embedding house bounds for bounded algebraic kernels.

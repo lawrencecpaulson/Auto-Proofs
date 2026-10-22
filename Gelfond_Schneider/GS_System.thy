@@ -87,62 +87,6 @@ proof (rule ccontr)
     using ult by simp
 qed
 
-lemma gs_pair_of_idx_mem_grid:
-  assumes qpos: "q > 0"
-  assumes tlt: "t < q * q"
-  shows "gs_pair_of_idx q t \<in> gs_grid q"
-proof -
-  have div_lt: "t div q < q"
-    by (rule div_lt_of_lt_mult[OF qpos tlt])
-  have mod_lt: "t mod q < q"
-    using qpos by simp
-  show ?thesis
-    unfolding gs_pair_of_idx_def gs_grid_def using div_lt mod_lt by auto
-qed
-
-lemma gs_idx_of_pair_lt:
-  assumes ab: "ab \<in> gs_grid q"
-  shows "gs_idx_of_pair q ab < q * q"
-proof -
-  have a_lt: "fst ab < q" and b_lt: "snd ab < q"
-    using ab unfolding gs_grid_def by auto
-  have "q * fst ab + snd ab < q * fst ab + q"
-    using b_lt by simp
-  also have "\<dots> \<le> q * q"
-  proof -
-    have "q * fst ab + q = q * Suc (fst ab)"
-      by simp
-    also have "\<dots> \<le> q * q"
-    proof -
-      have "Suc (fst ab) \<le> q"
-        using a_lt by simp
-      then have "q * Suc (fst ab) \<le> q * q"
-        by (rule mult_left_mono) simp
-      then show ?thesis
-        by simp
-    qed
-    finally show ?thesis .
-  qed
-  finally show ?thesis
-    unfolding gs_idx_of_pair_def .
-qed
-
-lemma gs_pair_idx_inverse:
-  assumes qpos: "q > 0"
-  assumes ab: "ab \<in> gs_grid q"
-  shows "gs_pair_of_idx q (gs_idx_of_pair q ab) = ab"
-proof -
-  have a_lt: "fst ab < q" and b_lt: "snd ab < q"
-    using ab unfolding gs_grid_def by auto
-  have div_eq: "(q * fst ab + snd ab) div q = fst ab"
-    using qpos b_lt by (simp add: div_mult2_eq)
-  have mod_eq: "(q * fst ab + snd ab) mod q = snd ab"
-    using qpos b_lt by simp
-  show ?thesis
-    unfolding gs_pair_of_idx_def gs_idx_of_pair_def
-    using div_eq mod_eq by simp
-qed
-
 lemma gs_idx_pair_inverse:
   assumes qpos: "q > 0"
   assumes tlt: "t < q * q"
@@ -346,10 +290,6 @@ proof (rule inj_onI)
   assume s: "s \<in> {..<q * q}"
   assume t: "t \<in> {..<q * q}"
   assume eq: "gs_rho_idx d q s = gs_rho_idx d q t"
-  have sgrid: "gs_pair_of_idx q s \<in> gs_grid q"
-    by (rule gs_pair_of_idx_mem_grid[OF qpos]) (use s in simp)
-  have tgrid: "gs_pair_of_idx q t \<in> gs_grid q"
-    by (rule gs_pair_of_idx_mem_grid[OF qpos]) (use t in simp)
   have ab_eq:
       "gs_a_idx q s = gs_a_idx q t \<and> gs_b_idx q s = gs_b_idx q t"
   proof (rule gelfond_schneider_data_rho_injective[OF d])

@@ -1,4 +1,4 @@
-(*  Title:      Finite_Embedding_Bounds/Finite_Embedding_House.thy
+(*  Title:      Gelfond_Schneider/Finite_Embedding_Bounds/Finite_Embedding_House.thy
     Author:     OpenAI Codex
 
 Maximum modulus over a finite family of complex embeddings, with

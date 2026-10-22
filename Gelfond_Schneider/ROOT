@@ -1,7 +1,29 @@
 chapter AFP
 
-session Gelfond_Schneider_Standalone (AFP) = "Hermite_Lindemann" +
+session Bounded_Integer_Kernels (AFP) in "Integer_Kernels" =
+    "Linear_Inequalities" +
   options [timeout = 1800, quick_and_dirty = false]
+  sessions
+    "Jordan_Normal_Form"
+  theories
+    Integer_Kernel_Bounds
+  document_files
+    "root.tex"
+
+session Finite_Embedding_Bounds (AFP) in "Finite_Embedding_Bounds" =
+    Bounded_Integer_Kernels +
+  options [timeout = 1800, quick_and_dirty = false]
+  sessions
+    "Jordan_Normal_Form"
+  theories
+    Structure_Constant_Kernels
+    Finite_Embedding_House
+    Embedding_Kernel_Bounds
+  document_files
+    "root.tex"
+
+session Gelfond_Schneider (AFP) = "Hermite_Lindemann" +
+  options [timeout = 1800, quick_and_dirty = false, document = pdf]
   sessions
     "Algebraic_Numbers"
     "HOL-Complex_Analysis"
@@ -12,3 +34,5 @@ session Gelfond_Schneider_Standalone (AFP) = "Hermite_Lindemann" +
     "HOL-New_Algebra"
   theories
     Gelfond_Schneider
+  document_files
+    "root.tex"

@@ -1,4 +1,4 @@
-(*  Title:      Integer_Kernels/Integer_Kernel_Bounds.thy
+(*  Title:      Gelfond_Schneider/Integer_Kernels/Integer_Kernel_Bounds.thy
     Author:     OpenAI Codex
 
 Quantitative nonzero integer kernel vectors for underdetermined matrices.

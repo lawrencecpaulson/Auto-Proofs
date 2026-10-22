@@ -7,7 +7,7 @@ principal complex-power and positive real-power corollaries.
 
 The proof is independent of the abandoned Baker two-logarithm development.
 [`ROOT`](ROOT) selects the public theory and all its transitive imports in the
-`Gelfond_Schneider_Standalone` session, with `quick_and_dirty = false`.
+`Gelfond_Schneider` session, with `quick_and_dirty = false`.
 
 ## Proof architecture
 
@@ -64,31 +64,28 @@ scaled-denominator contradiction.
 
 ## Reusable library sessions
 
-- [`Bounded_Integer_Kernels`](../Integer_Kernels/README.md) supplies the
+- [`Bounded_Integer_Kernels`](Integer_Kernels/README.md) supplies the
   bounded nonzero integer-matrix kernel theorem.
-- [`Finite_Embedding_Bounds`](../Finite_Embedding_Bounds/README.md) supplies
+- [`Finite_Embedding_Bounds`](Finite_Embedding_Bounds/README.md) supplies
   finite-family house bounds, coordinate recovery, and lifted kernel bounds.
 
-Both are separate sessions imported by the strict Gelfond–Schneider session.
+Both are supporting sessions in this AFP entry, imported by the
+Gelfond–Schneider session.
 
 ## Build
 
-With Isabelle2026-RC3 and a matching AFP development checkout, from the
+With Isabelle2026-RC4 and a matching AFP development checkout, from the
 `Auto-Proofs` directory:
 
 ```sh
-/Applications/Isabelle2026-RC3.app/bin/isabelle build \
-  -d Integer_Kernels \
-  -d Finite_Embedding_Bounds \
-  -d Gelfond_Schneider \
+/Applications/Isabelle2026-RC4.app/Contents/Resources/bin/isabelle build \
+  -D Gelfond_Schneider \
   -d /path/to/afp-devel/thys \
-  -o document=false Gelfond_Schneider_Standalone
+  Gelfond_Schneider
 ```
 
-The development imports the `HOL-New_Algebra` session bundled with RC3.
-The strict session passed a batch build on 2026-10-06 using AFP development
-revision `153c5fc`. The older local AFP release checkout does not build with
-RC3.
+The main session generates its PDF document. The development imports the
+`HOL-New_Algebra` session bundled with RC4.
 
 The local `Mathlib-GelfondSchneider`, `Mathlib-Numbertheory`, and
 `Transcendental` directories contain ignored Lean reference copies; they

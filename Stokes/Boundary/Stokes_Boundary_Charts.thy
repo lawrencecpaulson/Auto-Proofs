@@ -627,16 +627,6 @@ proof (unfold_locales)
     by (simp add: id_def homeomorphism_ident)
 qed
 
-lemma closed_halfspace_face:
-  "halfspace_face (closed_halfspace ::
-    (real \<times> 'e::euclidean_space) set) = UNIV"
-  by (auto simp: halfspace_face_def closed_halfspace_def)
-
-lemma open_halfspace_face:
-  "halfspace_face (open_halfspace ::
-    (real \<times> 'e::euclidean_space) set) = {}"
-  by (auto simp: halfspace_face_def open_halfspace_def)
-
 locale halfspace_atlas =
   fixes M :: "'a::topological_space set"
     and I :: "'i set"
@@ -843,7 +833,7 @@ lemma finite_boundary_chart_neighborhoods:
     "\<And>p. p \<in> P \<Longrightarrow>
       L p \<subseteq> boundary_carrier \<inter> D (j p)"
 proof -
-  have witness: "\<exists>i W Q.
+  have "\<exists>i W Q.
       i \<in> I \<and>
       openin (top_of_set boundary_carrier) W \<and>
       p \<in> W \<and> compact Q \<and>
@@ -866,7 +856,7 @@ proof -
       V p \<subseteq> L p \<and>
       L p \<subseteq> boundary_carrier \<inter> D (j p)"
     by metis
-  have ambient: "\<forall>p\<in>K. \<exists>U.
+  have "\<forall>p\<in>K. \<exists>U.
       open U \<and> V p = boundary_carrier \<inter> U"
     using data by (auto simp: openin_open)
   then obtain U where U: "\<And>p. p \<in> K \<Longrightarrow>

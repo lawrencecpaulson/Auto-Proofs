@@ -33,23 +33,6 @@ lemma one_chain_vertices_finite:
   "finite E \<Longrightarrow> finite (one_chain_vertices E src dst)"
   by (simp add: one_chain_vertices_def)
 
-lemma one_chain_boundary_finite:
-  "finite E \<Longrightarrow> finite (one_chain_boundary E src dst)"
-  by (simp add: one_chain_boundary_def
-    one_chain_vertices_finite)
-
-lemma one_chain_incidence_off_vertices:
-  assumes "v \<notin> one_chain_vertices E src dst"
-  shows "one_chain_incidence E src dst v = 0"
-proof -
-  have dst: "\<And>e. e \<in> E \<Longrightarrow> dst e \<noteq> v"
-    using assms by (auto simp: one_chain_vertices_def)
-  have src: "\<And>e. e \<in> E \<Longrightarrow> src e \<noteq> v"
-    using assms by (auto simp: one_chain_vertices_def)
-  show ?thesis
-    by (simp add: one_chain_incidence_def dst src)
-qed
-
 lemma one_chain_incidence_count:
   assumes finite: "finite E"
   shows "one_chain_incidence E src dst v =
@@ -60,25 +43,25 @@ proof -
       "(\<Sum>e\<in>E. if dst e = v then 1::real else 0) =
         real (card {e\<in>E. dst e = v})"
   proof -
-    have restrict: "(\<Sum>e\<in>E.
+    have "(\<Sum>e\<in>E.
         if dst e = v then 1::real else 0) =
       (\<Sum>e\<in>{e\<in>E. dst e = v}.
         if dst e = v then 1 else 0)"
       by (rule sum.mono_neutral_right[OF finite])
          auto
-    show ?thesis using restrict by simp
+    then show ?thesis by simp
   qed
   have src:
       "(\<Sum>e\<in>E. if src e = v then 1::real else 0) =
         real (card {e\<in>E. src e = v})"
   proof -
-    have restrict: "(\<Sum>e\<in>E.
+    have "(\<Sum>e\<in>E.
         if src e = v then 1::real else 0) =
       (\<Sum>e\<in>{e\<in>E. src e = v}.
         if src e = v then 1 else 0)"
       by (rule sum.mono_neutral_right[OF finite])
          auto
-    show ?thesis using restrict by simp
+    then show ?thesis by simp
   qed
   show ?thesis
     by (simp add: one_chain_incidence_def dst src)

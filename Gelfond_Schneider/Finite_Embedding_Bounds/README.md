@@ -18,8 +18,8 @@ number field. The corresponding Mathlib sources are
 In this workspace, check it with:
 
 ```sh
-/Applications/Isabelle2025-2.app/bin/isabelle build \
-  -D Integer_Kernels -D Finite_Embedding_Bounds \
-  -d /Users/lawrpau/isabelle/afp/release/thys \
+/Applications/Isabelle2026-RC4.app/Contents/Resources/bin/isabelle build \
+  -D Gelfond_Schneider \
+  -d /path/to/afp-devel/thys \
   -o document=false Finite_Embedding_Bounds
 ```

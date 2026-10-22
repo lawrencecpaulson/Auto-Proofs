@@ -1,7 +1,7 @@
 theory Ramanujan_Constant
   imports
     "HOL-Decision_Procs.Approximation"
-    "Gelfond_Schneider_Standalone.Gelfond_Schneider"
+    "Gelfond_Schneider.Gelfond_Schneider"
 begin
 
 section \<open>Ramanujan's Constant\<close>

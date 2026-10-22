@@ -234,7 +234,7 @@ corollary gs_system_mat_exists_nonzero_coeffs:
   obtains \<xi> where "\<exists>t<q * q. \<xi> t \<noteq> 0"
     and "gs_system_mat d m n q *\<^sub>v gs_coeff_vec q \<xi> = 0\<^sub>v (m * n)"
 proof -
-  have ex_v: "\<exists>v. v \<in> carrier_vec (q * q) \<and> v \<noteq> 0\<^sub>v (q * q) \<and>
+  have "\<exists>v. v \<in> carrier_vec (q * q) \<and> v \<noteq> 0\<^sub>v (q * q) \<and>
     gs_system_mat d m n q *\<^sub>v v = 0\<^sub>v (m * n)"
     by (rule exists_nonzero_kernel_vec_rectangular[OF gs_system_mat_carrier mnq])
   then obtain v where v: "v \<in> carrier_vec (q * q)" "v \<noteq> 0\<^sub>v (q * q)"

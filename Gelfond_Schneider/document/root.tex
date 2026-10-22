@@ -1,0 +1,25 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage{isabelle,isabellesym}
+\usepackage{amsmath,amssymb}
+\usepackage{pdfsetup}
+\isabellestyle{it}
+
+\begin{document}
+\title{The Gelfond--Schneider Theorem}
+\author{Lawrence C.\ Paulson}
+\maketitle
+
+\begin{abstract}
+We formalise the Gelfond--Schneider theorem in Isabelle/HOL for every
+branch of the complex power. If \(a\) and \(b\) are algebraic,
+\(a\ne 0,1\), and \(b\) is irrational, then every value of \(a^b\)
+is transcendental. The proof constructs an auxiliary exponential
+function and a bounded nonzero integer-matrix kernel, then derives a
+contradiction using estimates on a finite normal field and its
+algebraic norm. Supporting sessions develop bounded integer kernels
+and bounds for finite families of complex embeddings.
+\end{abstract}
+
+\input{session}
+\end{document}

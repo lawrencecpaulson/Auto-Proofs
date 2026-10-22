@@ -100,37 +100,6 @@ next
     by (simp add: algebra_simps)
 qed
 
-lemma gelfond_schneider_data_a_exp:
-  assumes d: "is_gelfond_schneider_data d"
-  shows "exp (gs_z d) = gs_a d"
-  using d unfolding is_gelfond_schneider_data_def by simp
-
-lemma gelfond_schneider_data_w_exp:
-  assumes d: "is_gelfond_schneider_data d"
-  shows "exp (gs_b d * gs_z d) = gs_w d"
-  using d unfolding is_gelfond_schneider_data_def by simp
-
-lemma gelfond_schneider_data_w_nonzero:
-  assumes d: "is_gelfond_schneider_data d"
-  shows "gs_w d \<noteq> 0"
-proof -
-  have "gs_b d * gs_z d \<in> log_values (gs_w d)"
-    using d unfolding is_gelfond_schneider_data_def by blast
-  then show ?thesis
-    by auto
-qed
-
-lemma gelfond_schneider_data_b_nonzero:
-  assumes d: "is_gelfond_schneider_data d"
-  shows "gs_b d \<noteq> 0"
-proof
-  assume "gs_b d = 0"
-  moreover have "(0 :: complex) \<in> \<rat>"
-    by simp
-  ultimately show False
-    using d unfolding is_gelfond_schneider_data_def by simp
-qed
-
 lemma gelfond_schneider_data_z_nonzero:
   assumes d: "is_gelfond_schneider_data d"
   shows "gs_z d \<noteq> 0"
