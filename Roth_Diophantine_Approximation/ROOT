@@ -1,0 +1,16 @@
+chapter AFP
+
+session Roth_Diophantine_Approximation (AFP) = "HOL-Computational_Algebra" +
+  options [timeout = 600, quick_and_dirty = false]
+  sessions
+    Hermite_Lindemann
+    Polynomials
+  theories
+    Roth_Approximation
+    Roth_Integral_Reduction
+    Roth_MPoly_Box
+    Roth_Hasse
+    Roth_Index
+    Roth_Disjoint_Index
+    Roth_Hasse_Derivative
+    Roth_Hasse_Support
