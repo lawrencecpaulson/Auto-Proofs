@@ -139,15 +139,29 @@ This milestone is independently useful polynomial infrastructure.
 
 ### 3. Count low-weight multi-indices
 
-For a box `0 ≤ iₕ ≤ rₕ`, let `N = ∏(rₕ+1)`. Prove that the fraction of
-indices with `Σ iₕ/rₕ ≤ m(1-ε)/2` is at most
-`1/(m ε²)` for `0 < ε < 1`.
+**Status:** complete under Isabelle2026 RC4; the Roth session built on
+23 October 2026. `Roth_Index_Count` proves the box cardinality,
+the finite-grid second-moment estimate, `roth_low_indices_count`,
+and `roth_taylor_conditions_dimension`. The last theorem gives the
+strict `2d` dimension gap for the Taylor conditions used in
+Milestone 4.
+
+Assume `m > 0`, `r v > 0` for `v < m`, and `0 < ε < 1`. First prove
+`card (roth_exponent_box m r) = ∏_{v<m}(r v + 1)`, and denote this
+positive number by `N`. For
+`L = {I ∈ roth_exponent_box m r.
+roth_weight m r I ≤ m(1-ε)/2}`, prove the division-free count
+`card L * m * ε² ≤ N` (with the natural numbers cast to reals).
+Consequently, `2d < m ε²` implies `2d * card L < N`, the exact
+dimension gap needed in Milestone 4.
 
 Use an elementary second-moment calculation: each uniform coordinate
 `iₕ/rₕ` has mean `1/2`, its squared deviation is at most `1/4`,
-and cross terms sum to zero. Markov's inequality for the squared sum
-gives the bound. Thus for `m ε² > 2d`, the number of conditions times
-the algebraic degree `d` is less than `N/2`.
+and cross terms sum to zero. In finite-sum form, the sum over the box
+of the squared centered total weight is at most `N*m/4`. Every index
+in `L` contributes at least `m²*ε²/4`. This proves the count without
+a probability library. The count with `≤` safely covers the Taylor
+conditions with weight `< m(1-ε)/2`.
 
 This replaces the paper's exponential estimate. The weaker bound
 suffices because `m` is freely chosen and gives exactly the dimension
@@ -157,11 +171,23 @@ library.
 
 ### 4. Bounded integral power basis and auxiliary polynomial
 
-Fix an algebraic integer `α` of degree `d` and a monic
-`f ∈ ℤ[X]` annihilating it. Prove that the coordinates of `α^k` in
-`1, α, ..., α^(d-1)` are integers and bounded by `Cα^k` for a fixed
-`Cα ≥ 1`. Polynomial remainder recurrence modulo `f` should provide
-both integrality and the exponential bound. Avoid a general integral
+**Status:** complete under Isabelle2026 RC4; the Roth session built on
+23 October 2026. `Roth_Power_Basis` gives integer coordinates for all
+powers of `α` with bound `roth_power_base f ^ k`.
+`Roth_Auxiliary_Matrix` constructs the bounded integer Taylor system,
+and `Roth_Auxiliary_Polynomial` applies the integer kernel theorem.
+The theorem `roth_auxiliary_polynomial_monic_exp` gives a nonzero
+integer polynomial in the box, index at least `m(1-ε)/2`, and
+coefficient bound `2 * (4 * roth_power_base f) ^ (Σrₕ)` whenever
+`2d < m ε²`.
+
+Fix an algebraic integer `α` and choose **any** monic
+`f ∈ ℤ[X]` of degree `d > 0` with `f(α)=0`. The minimal polynomial is
+unnecessary. Use reduction modulo `f` to choose an integer coordinate
+vector for every `α^k` in `1, α, ..., α^(d-1)`, bounded by `Cα^k`
+for a fixed `Cα ≥ 1`. These vectors need not be unique if `f` is not
+minimal; only their evaluation and bounds matter. Prove both by a
+recurrence on the coefficients of `f`, avoiding a general integral
 basis of the number field.
 
 For positive `r₁,...,rₘ`, make one unknown for each monomial in the
@@ -185,9 +211,15 @@ of partial degrees at most `rₕ`, `βₕ=pₕ/qₕ` are reduced, and
 `T(β) ≠ 0`, then
 `|T(β)| ≥ 1/∏ qₕ^rₕ`.
 
+Choose a working exponent margin `0 < δ' < min 1 δ` below the exponent
+`2+δ` in the final theorem. Milestone 1's comparison of height with
+denominator converts sufficiently large good approximants into
+`|α-βₕ| ≤ H(βₕ)^-(2+δ')`. Choose `ε > 0` small enough that
+`(2+δ')(1-3ε)/2 > 1+ε`; this is the strict exponent gap needed below.
+
 Use the Taylor expansion at `(α,...,α)` and the auxiliary polynomial's
 vanishing to bound `|D_J P(β)|` above when each
-`|α-βₕ| ≤ qₕ^-(2+δ)`. Under balanced values of `rₕ log qₕ`,
+`|α-βₕ| ≤ H(βₕ)^-(2+δ')`. Under balanced values of `rₕ log H(βₕ)`,
 a sufficiently large denominator contradicts the preceding lower
 bound unless every derivative with weight below `εm` vanishes.
 
@@ -213,12 +245,16 @@ substitution, the base must be *strictly larger* than every partial
 degree.
 
 **6b. Determinant and factor estimates.** Split a polynomial by the
-last variable into a minimal-length tensor decomposition. Prove the
-two Wronskians are nonzero and their product equals a determinant of
-derivatives of `P`. Bound its partial degrees and coefficient height.
-Establish the needed rational projective-height facts, especially
-factor-height bounds for polynomials in disjoint variables. Prove the
-lower index bound for the determinant from its derivative entries.
+last variable into a minimal-length tensor decomposition **over `ℚ`**.
+The coefficient matrix has the same rank after extending scalars, so
+no algebraic-closure coefficients are needed. Prove the two Wronskians
+are nonzero and their product equals a determinant of derivatives of
+`P`. Bound its partial degrees and coefficient height. Normalize
+rational factor polynomials to primitive integer coefficients; for
+factors in disjoint variables, the product's coefficients are pairwise
+products. Establish the resulting projective factor-height estimate
+and the lower index bound for the determinant from its derivative
+entries.
 
 **6c. Induction.** Derive a rational-point Roth lemma of the shape:
 if `rₕ₊₁/rₕ ≤ η^(2^(m-1))`, `0 < η ≤ 1/2`, and
@@ -231,9 +267,10 @@ the determinant-index inequality separately.
 
 ### 7. Choose approximants and derive the contradiction
 
-Assume infinitely many approximants with exponent `2+δ`. Use
-unbounded rational heights to choose `β₁,...,βₘ` with sufficiently
-rapid successive growth, including the **first** gap from `β₁` to
+Assume infinitely many approximants with exponent `2+δ`, and apply
+Milestone 5 with a smaller working margin `δ'`. Use unbounded rational
+heights to choose `β₁,...,βₘ` with sufficiently rapid successive
+growth, including the **first** gap from `β₁` to
 `β₂`. Choose `r₁` sufficiently large and
 `rₕ ≈ r₁ log H(β₁)/log H(βₕ)` so that
 
@@ -262,9 +299,13 @@ session builds, then the entry build and document build once.
 The local `v2.tex` is a route map, not a source to translate line by
 line. Before proving each major lemma, cross-check its statement and
 constants against Bombieri–Gubler, *Heights in Diophantine Geometry*,
-Chapter 6, or another complete classical proof. Access to that
-chapter would be especially useful for Milestone 6, but is not needed
-for Milestones 1–4. Mathlib's `NumberTheory/SiegelsLemma.lean` is a
+Chapter 6, or Mahler, *Lectures on Diophantine Approximations,
+Part 1: g-adic numbers and Roth's theorem*, Chapter 5. Mahler's
+chapter on Roth's lemma and generalized Wronskians is accessible
+through Project Euclid (`ndml/1175197418`) and provides a direct
+classical check on Milestone 6. Access to Bombieri–Gubler would be
+especially useful for height estimates, but is not needed for
+Milestones 1–4. Mathlib's `NumberTheory/SiegelsLemma.lean` is a
 useful comparison for Milestone 0; its sharper exponent bound is
 outside the critical path.
 

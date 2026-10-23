@@ -163,18 +163,21 @@ proof -
   qed
 qed
 
-theorem exists_ne_zero_int_vec_bounded_kernel_linear:
+text \<open>A counting form of Siegel's lemma. The bound can be selected to suit
+  a particular auxiliary-polynomial construction.\<close>
+
+theorem exists_ne_zero_int_vec_bounded_kernel_card:
   fixes A :: "int mat"
   assumes A: "A \<in> carrier_mat p q"
   assumes ppos: "0 < p"
-  assumes hpq: "2 * p \<le> q"
+  assumes hpq: "p < q"
   assumes ABnd: "A \<in> Bounded_mat Bnd"
+  assumes count: "Suc (2 * q * nat (max 1 Bnd) * C) ^ p < Suc C ^ q"
   shows "\<exists>x. x \<in> carrier_vec q \<and> x \<noteq> 0\<^sub>v q \<and> A *\<^sub>v x = 0\<^sub>v p \<and>
-    x \<in> Bounded_vec (2 * int q * max 1 Bnd)"
+    x \<in> Bounded_vec (int C)"
 proof -
-  define B where "B \<equiv> nat (max 1 Bnd)"
-  define C where "C \<equiv> 2 * q * B"
-  define M where "M \<equiv> int q * int B * int C"
+  define B where "B = nat (max 1 Bnd)"
+  define M where "M = int q * int B * int C"
 
   let ?L = "{xs :: int list. set xs \<subseteq> {0..int C} \<and> length xs = q}"
   let ?S = "vec_of_list ` ?L"
@@ -185,7 +188,9 @@ proof -
   have B_int: "int B = max 1 Bnd"
     unfolding B_def by simp
   have C_pos: "0 < C"
-    using B_def C_def hpq ppos by force
+    using count unfolding B_def by (cases C) auto
+  have M_nonneg: "0 \<le> M"
+    unfolding M_def by simp
   have card_C_interval: "card {0..int C} = Suc C"
     by simp
   have finL: "finite ?L"
@@ -199,20 +204,40 @@ proof -
   have cardS: "card ?S = Suc C ^ q"
     using cardL injL by (simp add: card_image)
 
-  have "card {-M..M} = nat (int (Suc (C ^ 2)))"
-    unfolding M_def C_def by (simp add: B_int algebra_simps power2_eq_square)
-  also have "\<dots> = Suc (C ^ 2)"
-    using nat_int by blast
-  finally have M_card: "card {-M..M} = Suc (C ^ 2)" .
+  have M_twice: "2 * M + 1 = int (Suc (2 * q * B * C))"
+    unfolding M_def by (simp add: algebra_simps)
+  have M_card: "card {-M..M} = Suc (2 * q * B * C)"
+  proof -
+    have "card {-M..M} = nat (2 * M + 1)"
+      using M_nonneg by simp
+    also have "\<dots> = nat (int (Suc (2 * q * B * C)))"
+      using M_twice by simp
+    also have "\<dots> = Suc (2 * q * B * C)"
+      by (simp only: nat_int)
+    finally show ?thesis .
+  qed
   have finK: "finite ?K"
     by (rule finite_lists_length_eq) simp
   have injK: "inj_on vec_of_list ?K"
-    by (meson inj_on_inverseI list_vec)
-  have cardK: "card ?K = Suc (C ^ 2) ^ p"
-    using M_card by (simp add: card_lists_length_eq)
+  proof (rule inj_onI)
+    fix xs ys
+    assume xs: "xs \<in> ?K"
+    assume ys: "ys \<in> ?K"
+    assume eq: "vec_of_list xs = vec_of_list ys"
+    show "xs = ys"
+      by (rule inj_onD[OF inj_on_vec_of_list_fixed_length]) (use xs ys eq in auto)
+  qed
+  have cardK: "card ?K = Suc (2 * q * B * C) ^ p"
+  proof -
+    have "card ?K = card {-M..M} ^ p"
+      by (simp add: card_lists_length_eq)
+    also have "\<dots> = Suc (2 * q * B * C) ^ p"
+      by (subst M_card) simp
+    finally show ?thesis .
+  qed
   have finR: "finite ?R"
     using finK by simp
-  have cardR: "card ?R = Suc (C ^ 2) ^ p"
+  have cardR: "card ?R = Suc (2 * q * B * C) ^ p"
     using cardK injK by (simp add: card_image)
 
   have S_props:
@@ -277,16 +302,8 @@ proof -
   qed
   have count_lt: "card (?f ` ?S) < card ?S"
   proof -
-    have C_sq_lt: "Suc (C ^ 2) < Suc C ^ 2"
-      using C_pos by (simp add: power2_eq_square)
-    with ppos have "Suc (C ^ 2) ^ p < (Suc C ^ 2) ^ p"
-      by (intro power_strict_mono) auto
-    also have "\<dots> = Suc C ^ (2 * p)"
-      by (simp add: power_mult)
-    also have "\<dots> \<le> Suc C ^ q"
-      using hpq C_pos by (intro power_increasing) auto
-    finally have cardR_lt: "card ?R < card ?S"
-      using cardR cardS by simp
+    have cardR_lt: "card ?R < card ?S"
+      using count cardR cardS unfolding B_def by simp
     have "card (?f ` ?S) \<le> card ?R"
       by (rule card_mono[OF finR image_sub])
     with cardR_lt show ?thesis by linarith
@@ -312,10 +329,44 @@ proof -
     by (simp add: z_def img_eq mult_minus_distrib_mat_vec[OF A x_carrier y_carrier])
   have z_bnd: "z \<in> Bounded_vec (int C)"
     unfolding Bounded_vec_def z_def using x_bounds y_bounds y_carrier by fastforce
-  have z_bnd': "z \<in> Bounded_vec (2 * int q * max 1 Bnd)"
-    using z_bnd unfolding C_def by (simp add: B_int)
   show ?thesis
-    using z_carrier z_nz Az0 z_bnd' by blast
+    using z_carrier z_nz Az0 z_bnd by blast
+qed
+
+corollary exists_ne_zero_int_vec_bounded_kernel_linear:
+  fixes A :: "int mat"
+  assumes A: "A \<in> carrier_mat p q"
+  assumes ppos: "0 < p"
+  assumes hpq: "2 * p \<le> q"
+  assumes ABnd: "A \<in> Bounded_mat Bnd"
+  shows "\<exists>x. x \<in> carrier_vec q \<and> x \<noteq> 0\<^sub>v q \<and> A *\<^sub>v x = 0\<^sub>v p \<and>
+    x \<in> Bounded_vec (2 * int q * max 1 Bnd)"
+proof -
+  define B where "B = nat (max 1 Bnd)"
+  define C where "C = 2 * q * B"
+  have B_pos: "0 < B"
+    unfolding B_def by simp
+  have B_int: "int B = max 1 Bnd"
+    unfolding B_def by simp
+  have q_pos: "0 < q"
+    using ppos hpq by linarith
+  have C_pos: "0 < C"
+    unfolding C_def using q_pos B_pos by simp
+  have C_sq_lt: "Suc (C ^ 2) < Suc C ^ 2"
+    using C_pos by (simp add: power2_eq_square)
+  with ppos have "Suc (C ^ 2) ^ p < (Suc C ^ 2) ^ p"
+    by (intro power_strict_mono) auto
+  also have "\<dots> = Suc C ^ (2 * p)"
+    by (simp add: power_mult)
+  also have "\<dots> \<le> Suc C ^ q"
+    using hpq C_pos by (intro power_increasing) auto
+  finally have count: "Suc (2 * q * nat (max 1 Bnd) * C) ^ p < Suc C ^ q"
+    unfolding C_def B_def by (simp add: power2_eq_square algebra_simps)
+  have pq: "p < q"
+    using hpq ppos by linarith
+  from exists_ne_zero_int_vec_bounded_kernel_card[OF A ppos pq ABnd count]
+  show ?thesis
+    unfolding C_def using B_int by simp
 qed
 
 end

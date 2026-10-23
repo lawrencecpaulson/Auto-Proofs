@@ -5,6 +5,7 @@ session Roth_Diophantine_Approximation (AFP) = "HOL-Computational_Algebra" +
   sessions
     Hermite_Lindemann
     Polynomials
+    Bounded_Integer_Kernels
   theories
     Roth_Approximation
     Roth_Integral_Reduction
@@ -14,3 +15,7 @@ session Roth_Diophantine_Approximation (AFP) = "HOL-Computational_Algebra" +
     Roth_Disjoint_Index
     Roth_Hasse_Derivative
     Roth_Hasse_Support
+    Roth_Index_Count
+    Roth_Power_Basis
+    Roth_Auxiliary_Matrix
+    Roth_Auxiliary_Polynomial

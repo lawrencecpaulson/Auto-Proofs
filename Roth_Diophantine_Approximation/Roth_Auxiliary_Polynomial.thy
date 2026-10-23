@@ -1,0 +1,429 @@
+theory Roth_Auxiliary_Polynomial
+  imports
+    Roth_Auxiliary_Matrix
+    "Bounded_Integer_Kernels.Integer_Kernel_Bounds"
+begin
+
+section \<open>The auxiliary Taylor system\<close>
+
+lemma roth_mchoose_nonzero_box:
+  assumes box: "K \<in> roth_exponent_box m r"
+    and nz: "roth_mchoose K J \<noteq> 0"
+  shows "J \<in> roth_exponent_box m r"
+proof (rule roth_exponent_boxI)
+  have le: "Poly_Mapping.lookup J v \<le> Poly_Mapping.lookup K v" for v
+    using nz by (meson roth_mchoose_zero not_le)
+  show "Poly_Mapping.keys J \<subseteq> {..<m}"
+  proof
+    fix v
+    assume v: "v \<in> Poly_Mapping.keys J"
+    then have "Poly_Mapping.lookup J v \<noteq> 0"
+      by (simp add: in_keys_iff)
+    then have "Poly_Mapping.lookup K v \<noteq> 0"
+      using le[of v] by auto
+    then have "v \<in> Poly_Mapping.keys K"
+      by (simp add: in_keys_iff)
+    then show "v \<in> {..<m}"
+      using roth_exponent_boxD(1)[OF box] by auto
+  qed
+  show "Poly_Mapping.lookup J v \<le> r v" if "v < m" for v
+    using le[of v] roth_exponent_boxD(2)[OF box that]
+    by linarith
+qed
+
+lemma roth_aux_matrix_entry_outside:
+  assumes box: "K \<in> roth_exponent_box m r"
+    and outside: "J \<notin> roth_exponent_box m r"
+  shows "roth_aux_matrix_entry f d J K j = 0"
+  using roth_mchoose_nonzero_box[OF box] outside
+  by (auto simp: roth_aux_matrix_entry_def)
+
+definition roth_aux_matrix ::
+  "int poly \<Rightarrow> nat \<Rightarrow>
+    (nat \<Rightarrow>\<^sub>0 nat) list \<Rightarrow>
+    (nat \<Rightarrow>\<^sub>0 nat) list \<Rightarrow> int mat" where
+  "roth_aux_matrix f d Is Ks =
+    mat (length Is * d) (length Ks)
+      (\<lambda>(u,t). roth_aux_matrix_entry f d
+        (Is ! (u div d)) (Ks ! t) (u mod d))"
+
+lemma roth_aux_matrix_carrier:
+  "roth_aux_matrix f d Is Ks \<in> carrier_mat (length Is * d) (length Ks)"
+  by (simp add: roth_aux_matrix_def)
+
+lemma roth_aux_matrix_bounded:
+  fixes f :: "int poly"
+  assumes d: "d = Polynomial.degree f"
+    and dpos: "0 < d"
+    and Ks: "set Ks \<subseteq> roth_exponent_box m r"
+  shows "roth_aux_matrix f d Is Ks \<in>
+    Bounded_mat ((2 * roth_power_base f) ^ (\<Sum>v<m. r v))"
+proof (unfold Bounded_mat_def, intro CollectI allI impI)
+  fix u t
+  assume u: "u < dim_row (roth_aux_matrix f d Is Ks)"
+    and t: "t < dim_col (roth_aux_matrix f d Is Ks)"
+  have kt: "Ks ! t \<in> roth_exponent_box m r"
+    using t Ks by (auto simp: roth_aux_matrix_def
+      dest: nth_mem)
+  have rem: "u mod d < d"
+    using dpos by simp
+  show "abs (roth_aux_matrix f d Is Ks $$ (u,t)) \<le>
+      (2 * roth_power_base f) ^ (\<Sum>v<m. r v)"
+    using roth_aux_matrix_entry_bound[OF d kt rem] u t
+    by (simp add: roth_aux_matrix_def)
+qed
+
+lemma roth_aux_matrix_kernel_taylor:
+  fixes a :: real and f :: "int poly" and x :: "int vec"
+  assumes monic: "Polynomial.lead_coeff f = 1"
+    and d: "d = Polynomial.degree f"
+    and root: "poly (map_poly of_int f) a = 0"
+    and dpos: "0 < d"
+    and xcar: "x \<in> carrier_vec (length Ks)"
+    and Ax: "roth_aux_matrix f d Is Ks *\<^sub>v x =
+      0\<^sub>v (length Is * d)"
+    and i: "i < length Is"
+  shows "roth_taylor_coeff (\<lambda>_. a) (Is ! i)
+      (\<Sum>t<length Ks. MPoly_Type.monom (Ks ! t) (of_int (x $ t))) = 0"
+proof -
+  have row_zero:
+    "(\<Sum>t<length Ks.
+      roth_aux_matrix_entry f d (Is ! i) (Ks ! t) j * (x $ t)) = 0"
+    if j: "j < d" for j
+  proof -
+    let ?u = "i * d + j"
+    have u: "?u < length Is * d"
+    proof -
+      have "?u < Suc i * d"
+        using j by simp
+      also have "\<dots> \<le> length Is * d"
+      proof (rule mult_right_mono)
+        show "Suc i \<le> length Is"
+          using i by simp
+        show "0 \<le> d"
+          by simp
+      qed
+      finally show ?thesis .
+    qed
+    have div: "?u div d = i"
+      using j dpos by simp
+    have mod: "?u mod d = j"
+      using j dpos by simp
+    have "0 = (roth_aux_matrix f d Is Ks *\<^sub>v x) $ ?u"
+      using Ax u by simp
+    also have "\<dots> =
+      (\<Sum>t<length Ks.
+        roth_aux_matrix_entry f d (Is ! i) (Ks ! t) j * (x $ t))"
+      using u xcar j by (simp add: scalar_prod_def row_def
+        roth_aux_matrix_def div atLeast0LessThan)
+    finally show ?thesis by (rule sym)
+  qed
+  show ?thesis
+    by (simp add: roth_aux_matrix_taylor_sum[OF monic d root]
+      row_zero)
+qed
+
+lemma roth_aux_matrix_outside_taylor:
+  fixes a :: real and f :: "int poly" and x :: "int vec"
+  assumes monic: "Polynomial.lead_coeff f = 1"
+    and d: "d = Polynomial.degree f"
+    and root: "poly (map_poly of_int f) a = 0"
+    and Ks: "set Ks \<subseteq> roth_exponent_box m r"
+    and outside: "J \<notin> roth_exponent_box m r"
+  shows "roth_taylor_coeff (\<lambda>_. a) J
+      (\<Sum>t<length Ks. MPoly_Type.monom (Ks ! t) (of_int (x $ t))) = 0"
+proof -
+  have z: "roth_aux_matrix_entry f d J (Ks ! t) j = 0"
+    if "t < length Ks" for t j
+    by (rule roth_aux_matrix_entry_outside)
+      (use Ks outside that in \<open>auto dest: nth_mem\<close>)
+  show ?thesis
+    by (simp add: roth_aux_matrix_taylor_sum[OF monic d root] z)
+qed
+
+lemma roth_aux_polynomial_coeff:
+  fixes x :: "int vec"
+  assumes dist: "distinct Ks" and t: "t < length Ks"
+  shows "MPoly_Type.coeff
+      (\<Sum>s<length Ks. MPoly_Type.monom (Ks ! s) (x $ s)) (Ks ! t) =
+    x $ t"
+proof -
+  have "MPoly_Type.coeff
+      (\<Sum>s<length Ks. MPoly_Type.monom (Ks ! s) (x $ s)) (Ks ! t) =
+      (\<Sum>s<length Ks. if Ks ! t = Ks ! s then x $ s else 0)"
+    by (simp add: roth_coeff_sum More_MPoly_Type.coeff_monom when_def)
+  also have "\<dots> = (\<Sum>s<length Ks. if s = t then x $ s else 0)"
+    by (intro sum.cong refl)
+      (use dist t in \<open>auto simp: nth_eq_iff_index_eq\<close>)
+  also have "\<dots> = x $ t"
+    using t by simp
+  finally show ?thesis .
+qed
+
+lemma roth_aux_polynomial_nonzero:
+  fixes x :: "int vec"
+  assumes dist: "distinct Ks"
+    and xcar: "x \<in> carrier_vec (length Ks)"
+    and xnz: "x \<noteq> 0\<^sub>v (length Ks)"
+  shows "(\<Sum>t<length Ks. MPoly_Type.monom (Ks ! t) (x $ t)) \<noteq> 0"
+proof -
+  obtain t where t: "t < length Ks" "x $ t \<noteq> 0"
+    using xcar xnz by force
+  show ?thesis
+    using roth_aux_polynomial_coeff[OF dist t(1), of x] t
+    by (auto simp: MPoly_Type.coeff_def zero_mpoly.rep_eq)
+qed
+
+lemma roth_aux_polynomial_in_box:
+  assumes Ks: "set Ks \<subseteq> roth_exponent_box m r"
+  shows "roth_poly_in_box m r
+    (\<Sum>t<length Ks. MPoly_Type.monom (Ks ! t) (x $ t :: int))"
+  by (rule roth_poly_in_box_sum)
+    (use Ks in \<open>auto intro: roth_poly_in_box_monom dest: nth_mem\<close>)
+
+lemma roth_aux_polynomial_cast:
+  fixes x :: "int vec"
+  shows "replace_coeff of_int
+      (\<Sum>t<length Ks. MPoly_Type.monom (Ks ! t) (x $ t)) =
+    (\<Sum>t<length Ks. MPoly_Type.monom (Ks ! t) (of_int (x $ t) :: real))"
+  by (simp add: roth_replace_coeff_sum replace_coeff_monom)
+
+lemma roth_suc_le_pow2:
+  "Suc n \<le> (2::nat) ^ n"
+proof (induction n)
+  case 0
+  then show ?case by simp
+next
+  case (Suc n)
+  have "Suc (Suc n) \<le> 2 * Suc n"
+    by arith
+  also have "\<dots> \<le> 2 * (2::nat) ^ n"
+    using Suc.IH by simp
+  finally show ?case by (simp add: power_Suc)
+qed
+
+lemma roth_exponent_box_card_exp_bound:
+  "card (roth_exponent_box m r) \<le>
+    (2::nat) ^ (\<Sum>v<m. r v)"
+proof -
+  have "(\<Prod>v<m. Suc (r v)) \<le> (\<Prod>v<m. (2::nat) ^ r v)"
+    by (intro prod_mono) (auto intro: roth_suc_le_pow2)
+  then show ?thesis
+    by (simp add: roth_exponent_box_card power_sum)
+qed
+
+theorem roth_auxiliary_polynomial_monic:
+  fixes f :: "int poly" and a :: real
+  assumes monic: "Polynomial.lead_coeff f = 1"
+    and d: "d = Polynomial.degree f"
+    and dpos: "0 < d"
+    and root: "poly (map_poly of_int f) a = 0"
+    and mpos: "0 < m"
+    and rpos: "\<And>v. v < m \<Longrightarrow> 0 < r v"
+    and epos: "0 < eps"
+    and elt: "eps < 1"
+    and gap: "2 * real d < real m * eps\<^sup>2"
+  shows "\<exists>P :: int mpoly.
+    P \<noteq> 0 \<and> roth_poly_in_box m r P \<and>
+    ereal (real m * (1-eps) / 2) \<le>
+      roth_index m r (\<lambda>_. a) (replace_coeff of_int P) \<and>
+    (\<forall>K. abs (MPoly_Type.coeff P K) \<le>
+      2 * int (card (roth_exponent_box m r)) *
+        (2 * roth_power_base f) ^ (\<Sum>v<m. r v))"
+proof -
+  let ?S = "roth_exponent_box m r"
+  let ?C = "{J \<in> ?S. roth_weight m r J < real m * (1-eps) / 2}"
+  let ?B = "(2 * roth_power_base f) ^ (\<Sum>v<m. r v)"
+  have Cfin: "finite ?C"
+    by simp
+  obtain Is where Is: "set Is = ?C" "distinct Is"
+    using finite_distinct_list[OF Cfin] by blast
+  obtain Ks where Ks: "set Ks = ?S" "distinct Ks"
+    using finite_distinct_list[OF finite_roth_exponent_box] by blast
+  have Ksbox: "set Ks \<subseteq> ?S"
+    using Ks by simp
+  have onebox: "(0::nat \<Rightarrow>\<^sub>0 nat) \<in> ?S"
+    by (rule roth_exponent_boxI) simp_all
+  have theta_pos: "0 < real m * (1-eps) / 2"
+    using mpos elt by simp
+  have oneC: "(0::nat \<Rightarrow>\<^sub>0 nat) \<in> ?C"
+    using onebox theta_pos by (simp add: roth_weight_def)
+  have Ispos: "0 < length Is"
+    using Is oneC by (cases Is) auto
+  have ppos: "0 < length Is * d"
+    using Ispos dpos by simp
+  have card_gap: "2 * d * card ?C < card ?S"
+    by (rule roth_taylor_conditions_dimension
+      [where m=m and r=r and eps=eps and d=d])
+      (use mpos rpos epos gap in auto)
+  have Iscard: "length Is = card ?C"
+  proof -
+    have "card (set Is) = length Is"
+      using Is(2) by (simp add: distinct_card)
+    then show ?thesis using Is(1) by simp
+  qed
+  have Kscard: "length Ks = card ?S"
+  proof -
+    have "card (set Ks) = length Ks"
+      using Ks(2) by (simp add: distinct_card)
+    then show ?thesis using Ks(1) by simp
+  qed
+  have dim_strict: "2 * (length Is * d) < length Ks"
+    using card_gap by (simp add: Iscard Kscard mult_ac)
+  have dim: "2 * (length Is * d) \<le> length Ks"
+    using dim_strict by simp
+  let ?A = "roth_aux_matrix f d Is Ks"
+  have Acar: "?A \<in> carrier_mat (length Is * d) (length Ks)"
+    by (rule roth_aux_matrix_carrier)
+  have Abnd: "?A \<in> Bounded_mat ?B"
+    by (rule roth_aux_matrix_bounded[OF d dpos Ksbox])
+  obtain x where xcar: "x \<in> carrier_vec (length Ks)"
+    and xnz: "x \<noteq> 0\<^sub>v (length Ks)"
+    and Ax: "?A *\<^sub>v x = 0\<^sub>v (length Is * d)"
+    and xbnd: "x \<in> Bounded_vec
+      (2 * int (length Ks) * max 1 ?B)"
+    using exists_ne_zero_int_vec_bounded_kernel_linear
+      [OF Acar ppos dim Abnd] by blast
+  have Bbase: "1 \<le> 2 * roth_power_base f"
+    using roth_power_base_ge_one[of f] by simp
+  have Bge: "1 \<le> ?B"
+    by (rule one_le_power[OF Bbase])
+  have xpoint: "abs (x $ t) \<le> 2 * int (length Ks) * ?B"
+    if "t < length Ks" for t
+    using xbnd xcar that Bge by (simp add: Bounded_vec_def)
+  define P :: "int mpoly" where
+    "P = (\<Sum>t<length Ks. MPoly_Type.monom (Ks ! t) (x $ t))"
+  have Pnz: "P \<noteq> 0"
+    unfolding P_def by (rule roth_aux_polynomial_nonzero[OF Ks(2) xcar xnz])
+  have Pbox: "roth_poly_in_box m r P"
+    unfolding P_def by (rule roth_aux_polynomial_in_box[OF Ksbox])
+  have Preal: "replace_coeff of_int P =
+      (\<Sum>t<length Ks.
+        MPoly_Type.monom (Ks ! t) (of_int (x $ t) :: real))"
+    unfolding P_def by (rule roth_aux_polynomial_cast)
+  have Pindex: "ereal (real m * (1-eps) / 2) \<le>
+      roth_index m r (\<lambda>_. a) (replace_coeff of_int P)"
+  proof (simp only: roth_index_ge_iff, intro allI impI)
+    fix J
+    assume Jw: "ereal (roth_weight m r J) <
+      ereal (real m * (1-eps) / 2)"
+    then have w: "roth_weight m r J < real m * (1-eps) / 2"
+      by simp
+    show "roth_taylor_coeff (\<lambda>_. a) J (replace_coeff of_int P) = 0"
+    proof (cases "J \<in> ?S")
+      case True
+      then have "J \<in> ?C"
+        using w by simp
+      then have Jset: "J \<in> set Is"
+        using Is(1) by blast
+      then obtain i where i: "i < length Is" "Is ! i = J"
+        by (auto simp: in_set_conv_nth)
+      show ?thesis
+        using roth_aux_matrix_kernel_taylor
+          [OF monic d root dpos xcar Ax i(1)]
+        by (simp add: Preal i(2))
+    next
+      case False
+      show ?thesis
+        using roth_aux_matrix_outside_taylor
+          [OF monic d root Ksbox False]
+        by (simp add: Preal)
+    qed
+  qed
+  have Ppoint: "abs (MPoly_Type.coeff P K) \<le>
+      2 * int (length Ks) * ?B" for K
+  proof (cases "K \<in> ?S")
+    case True
+    then have Kset: "K \<in> set Ks"
+      using Ks(1) by blast
+    then obtain t where t: "t < length Ks" "Ks ! t = K"
+      by (auto simp: in_set_conv_nth)
+    have "MPoly_Type.coeff P K = x $ t"
+      unfolding P_def using roth_aux_polynomial_coeff
+        [OF Ks(2) t(1), of x] t by simp
+    then show ?thesis using xpoint[OF t(1)] by simp
+  next
+    case False
+    then have "MPoly_Type.coeff P K = 0"
+      by (rule roth_coeff_zero_outside_box[OF Pbox])
+    then show ?thesis using Bge by simp
+  qed
+  show ?thesis
+    using Pnz Pbox Pindex Ppoint
+    by (intro exI[of _ P]) (simp add: Kscard)
+qed
+
+corollary roth_auxiliary_polynomial_monic_exp:
+  fixes f :: "int poly" and a :: real
+  assumes monic: "Polynomial.lead_coeff f = 1"
+    and d: "d = Polynomial.degree f"
+    and dpos: "0 < d"
+    and root: "poly (map_poly of_int f) a = 0"
+    and mpos: "0 < m"
+    and rpos: "\<And>v. v < m \<Longrightarrow> 0 < r v"
+    and epos: "0 < eps"
+    and elt: "eps < 1"
+    and gap: "2 * real d < real m * eps\<^sup>2"
+  shows "\<exists>P :: int mpoly.
+    P \<noteq> 0 \<and> roth_poly_in_box m r P \<and>
+    ereal (real m * (1-eps) / 2) \<le>
+      roth_index m r (\<lambda>_. a) (replace_coeff of_int P) \<and>
+    (\<forall>K. abs (MPoly_Type.coeff P K) \<le>
+      2 * (4 * roth_power_base f) ^ (\<Sum>v<m. r v))"
+proof -
+  let ?S = "roth_exponent_box m r"
+  let ?R = "\<Sum>v<m. r v"
+  let ?B = "(2 * roth_power_base f) ^ ?R"
+  have q: "int (card ?S) \<le> (2::int) ^ ?R"
+    using roth_exponent_box_card_exp_bound[of m r] by simp
+  have Bnonneg: "0 \<le> ?B"
+    using roth_power_base_ge_one[of f] by simp
+  have qB: "int (card ?S) * ?B \<le> (2::int) ^ ?R * ?B"
+    by (rule mult_right_mono[OF q Bnonneg])
+  have pow_eq: "(2::int) ^ ?R * ?B =
+      (4 * roth_power_base f) ^ ?R"
+  proof -
+    have "(2::int) ^ ?R * ?B =
+        (2 * (2 * roth_power_base f)) ^ ?R"
+      by (rule power_mult_distrib[symmetric])
+    also have "\<dots> = (4 * roth_power_base f) ^ ?R"
+      by (simp add: algebra_simps)
+    finally show ?thesis .
+  qed
+  have bound: "2 * int (card ?S) * ?B \<le>
+      2 * (4 * roth_power_base f) ^ ?R"
+  proof -
+    have "2 * int (card ?S) * ?B =
+        2 * (int (card ?S) * ?B)"
+      by (simp add: mult.assoc)
+    also have "\<dots> \<le> 2 * ((2::int) ^ ?R * ?B)"
+      by (rule mult_left_mono[OF qB]) simp
+    also have "\<dots> = 2 * (4 * roth_power_base f) ^ ?R"
+      by (simp only: pow_eq)
+    finally show ?thesis .
+  qed
+  obtain P :: "int mpoly" where P:
+    "P \<noteq> 0" "roth_poly_in_box m r P"
+    "ereal (real m * (1-eps) / 2) \<le>
+      roth_index m r (\<lambda>_. a) (replace_coeff of_int P)"
+    "\<forall>K. abs (MPoly_Type.coeff P K) \<le>
+      2 * int (card ?S) * ?B"
+    using roth_auxiliary_polynomial_monic
+      [where f=f and a=a and d=d and m=m and r=r and eps=eps,
+       OF monic d dpos root mpos rpos epos elt gap] by blast
+  have Pbound: "\<forall>K. abs (MPoly_Type.coeff P K) \<le>
+      2 * (4 * roth_power_base f) ^ ?R"
+  proof
+    fix K
+    have "abs (MPoly_Type.coeff P K) \<le>
+        2 * int (card ?S) * ?B"
+      using P(4) by blast
+    also note bound
+    finally show "abs (MPoly_Type.coeff P K) \<le>
+        2 * (4 * roth_power_base f) ^ ?R" .
+  qed
+  show ?thesis
+    using P(1-3) Pbound by (intro exI[of _ P]) auto
+qed
+
+end
