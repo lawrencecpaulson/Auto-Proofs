@@ -1,0 +1,26 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage{isabelle,isabellesym}
+\usepackage{amsmath,amssymb}
+\usepackage{pdfsetup}
+\isabellestyle{it}
+
+\begin{document}
+\title{Roth's Theorem on Diophantine Approximation}
+\author{Lawrence C.\ Paulson}
+\maketitle
+
+\begin{abstract}
+We formalise the classical real form of Roth's theorem in Isabelle/HOL.
+For an irrational real algebraic number $\alpha$ and every $\delta>0$,
+only finitely many reduced rational numbers $p/q$ with $q>0$ satisfy
+$|\alpha-p/q|<q^{-2-\delta}$. The proof constructs a multivariate
+auxiliary integer polynomial, transfers a large index from an algebraic
+point to rational approximants, and derives the opposing index bound
+from Roth's lemma. Supporting developments include Hasse derivatives,
+polynomial height estimates, Wronskians, and a finite sequence selection
+argument.
+\end{abstract}
+
+\input{session}
+\end{document}

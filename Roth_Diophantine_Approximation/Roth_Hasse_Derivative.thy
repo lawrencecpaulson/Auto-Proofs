@@ -206,10 +206,14 @@ lemma roth_insertion_Var [simp]:
   using insertion_single[of a v 1 1] by simp
 
 lemma roth_insertion_power:
-  "insertion a (P ^ n) = insertion a P ^ n"
+  fixes a :: "nat \<Rightarrow> 'a::comm_ring_1"
+    and P :: "'a mpoly"
+  shows "insertion a (P ^ n) = insertion a P ^ n"
   by (induction n) (simp_all add: insertion_mult)
 
 lemma roth_insertion_prod:
+  fixes a :: "nat \<Rightarrow> 'a::comm_ring_1"
+    and P :: "'i \<Rightarrow> 'a mpoly"
   assumes "finite S"
   shows "insertion a (\<Prod>x\<in>S. P x) =
     (\<Prod>x\<in>S. insertion a (P x))"
@@ -217,6 +221,8 @@ lemma roth_insertion_prod:
     (simp_all add: insertion_mult)
 
 lemma roth_insertion_sum:
+  fixes a :: "nat \<Rightarrow> 'a::comm_ring_1"
+    and P :: "'i \<Rightarrow> 'a mpoly"
   assumes "finite S"
   shows "insertion a (\<Sum>x\<in>S. P x) =
     (\<Sum>x\<in>S. insertion a (P x))"
@@ -231,6 +237,37 @@ lemma roth_insertion_monom:
   using roth_mpoly_subst_monom[of Var I c]
   by (simp add: insertion_mult roth_insertion_prod
     roth_insertion_power)
+
+lemma roth_insertion_sum_any:
+  fixes b :: "nat \<Rightarrow> 'a::comm_ring_1"
+    and T :: "'i \<Rightarrow> 'a mpoly"
+  assumes "finite S"
+  shows "insertion b (\<Sum>x\<in>S. T x) =
+    (\<Sum>x\<in>S. insertion b (T x))"
+  using assms by (induction S rule: finite_induct)
+    (simp_all add: insertion_add)
+
+lemma roth_insertion_prod_any:
+  fixes b :: "nat \<Rightarrow> 'a::comm_ring_1"
+    and T :: "'i \<Rightarrow> 'a mpoly"
+  assumes "finite S"
+  shows "insertion b (\<Prod>x\<in>S. T x) =
+    (\<Prod>x\<in>S. insertion b (T x))"
+  using assms by (induction S rule: finite_induct)
+    (simp_all add: insertion_mult)
+
+lemma roth_insertion_power_any:
+  fixes b :: "nat \<Rightarrow> 'a::comm_ring_1"
+  shows "insertion b (P ^ n) = insertion b P ^ n"
+  by (induction n) (simp_all add: insertion_mult)
+
+lemma roth_insertion_monom_any:
+  fixes a :: "nat \<Rightarrow> 'a::comm_ring_1" and c :: 'a
+  shows "insertion a (MPoly_Type.monom I c) =
+    c * (\<Prod>v\<in>Poly_Mapping.keys I. a v ^ Poly_Mapping.lookup I v)"
+  using roth_mpoly_subst_monom[of Var I c]
+  by (simp add: insertion_mult roth_insertion_prod_any
+    roth_insertion_power_any)
 
 lemma roth_insertion_subst:
   fixes a :: "nat \<Rightarrow> 'a::comm_ring_1"

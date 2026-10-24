@@ -1,7 +1,7 @@
 chapter AFP
 
 session Roth_Diophantine_Approximation (AFP) = "HOL-Computational_Algebra" +
-  options [timeout = 600, quick_and_dirty = false]
+  options [timeout = 600, quick_and_dirty = false, document = pdf]
   sessions
     Hermite_Lindemann
     Polynomials
@@ -57,3 +57,20 @@ session Roth_Diophantine_Approximation (AFP) = "HOL-Computational_Algebra" +
     Roth_Power_Basis
     Roth_Auxiliary_Matrix
     Roth_Auxiliary_Polynomial
+    Roth_Auxiliary_Height
+    Roth_Rational_Evaluation
+    Roth_Taylor_Evaluation
+    Roth_Evaluation_Sandwich
+    Roth_Evaluation_Height
+    Roth_Index_Transfer
+    Roth_Auxiliary_Index_Transfer
+    Roth_Conditional_Contradiction
+    Roth_Approximant_Selection
+    Roth_Approximation_Height
+    Roth_Degree_Selection
+    Roth_Parameter_Bounds
+    Roth_Parameter_Costs
+    Roth_Selected_Contradiction
+    Roth_Algebraic_Integer
+  document_files
+    "root.tex"

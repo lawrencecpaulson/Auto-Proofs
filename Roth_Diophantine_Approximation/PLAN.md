@@ -230,6 +230,18 @@ evaluation bounds as separate theorems; the index conclusion should
 be a short application of them. This is the real-number replacement
 for the paper's Section 3 "Index Lemma".
 
+**Status (24 October 2026): conditional index transfer complete.**
+`Roth_Rational_Evaluation` proves the denominator lower bound,
+including height and real forms. `Roth_Taylor_Evaluation` gives an
+exponential upper bound from the index at the algebraic tuple.
+`Roth_Evaluation_Height` bounds the Taylor coefficients using the
+integer coefficient supremum and transfers rational indices to real
+coefficients. `Roth_Index_Transfer` and
+`Roth_Auxiliary_Index_Transfer` derive the rational index conclusion
+from an explicit logarithmic gap and the auxiliary polynomial's
+height bound. Establishing that gap is part of the final parameter
+choice in Milestone 7.
+
 ### 6. Roth's lemma over rational points
 
 This is the principal proof risk and has a separate
@@ -269,6 +281,21 @@ Milestone 6 gives `Ind_β(P) ≤ εm/2`, a contradiction.
 Return first the algebraic-integer theorem, then apply Milestone 1
 to obtain the theorem for every irrational real algebraic `α`.
 
+**Status (24 October 2026): complete and batch-built.**
+`Roth_Conditional_Contradiction` combines the auxiliary polynomial,
+index transfer, and Roth's lemma into a contradiction under explicit
+parameter inequalities. `Roth_Approximant_Selection` obtains finite
+rapidly growing sequences from infinitely many good pairs.
+`Roth_Approximation_Height` converts sufficiently large good pairs
+into the rational-height error bound and selects sequences satisfying
+it. `Roth_Degree_Selection` rounds inverse logarithmic heights to
+positive integer degrees while preserving a specified ratio.
+`Roth_Parameter_Bounds` and `Roth_Parameter_Costs` choose the global
+parameters. `Roth_Selected_Contradiction` discharges the height
+allowance and strict logarithmic gap. `Roth_Algebraic_Integer` proves
+finiteness of good approximants for algebraic integers and applies the
+Milestone 1 reduction to irrational real algebraic numbers.
+
 ### 8. AFP integration and cleanup
 
 Provide a standalone Roth session with `ROOT`, document source,
@@ -279,6 +306,11 @@ both Roth and `Transcendence_Series_Hancl_Rucki`; interpret its
 Hančl–Rucki corollaries. Review theorem names, unused facts,
 redundant `have` steps, and session dependencies. Run the narrow
 session builds, then the entry build and document build once.
+
+**Status (24 October 2026): in progress.** The standalone session and
+classical real theorem are batch-built. A document source has been
+added, and its build is in progress. The Hančl–Rucki bridge and wider
+cleanup remain.
 
 ## Source audit and decision points
 
