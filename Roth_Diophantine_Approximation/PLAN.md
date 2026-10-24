@@ -307,10 +307,11 @@ Hančl–Rucki corollaries. Review theorem names, unused facts,
 redundant `have` steps, and session dependencies. Run the narrow
 session builds, then the entry build and document build once.
 
-**Status (24 October 2026): in progress.** The standalone session and
-classical real theorem are batch-built. A document source has been
-added, and its build is in progress. The Hančl–Rucki bridge and wider
-cleanup remain.
+**Status (24 October 2026): proof integration complete.** The
+standalone Roth session, classical real theorem, and PDF document are
+batch-built. `Roth_Hancl_Rucki` interprets the locale and exports both
+corollaries; its session and PDF document are also batch-built.
+Bibliography and wider cleanup remain as editorial work.
 
 ## Source audit and decision points
 
