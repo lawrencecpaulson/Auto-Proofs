@@ -1,5 +1,6 @@
-theory Roth_Hasse_Derivative
-  imports Roth_Disjoint_Index
+theory Hasse_Derivative
+  imports
+    Disjoint_Index
 begin
 
 section \<open>Polynomial Hasse derivatives\<close>

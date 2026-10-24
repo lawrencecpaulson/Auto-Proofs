@@ -1,4 +1,4 @@
-theory Roth_Integral_Reduction
+theory Integral_Reduction
   imports
     Roth_Approximation
     "Hermite_Lindemann.More_Algebraic_Numbers_HLW"

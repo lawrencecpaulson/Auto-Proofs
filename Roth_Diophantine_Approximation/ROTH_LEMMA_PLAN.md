@@ -8,7 +8,7 @@ for the index of a nonzero polynomial at a tuple of rational points.
 
 **Completed and batch-built (24 October 2026).**
 `Roth_Lemma.roth_lemma` is the rational theorem and
-`Roth_Lemma_Int.roth_lemma_integer` is the integer-polynomial interface
+`Roth_Lemma.roth_lemma_integer` is the integer-polynomial interface
 for Milestone 7. The latter uses
 `ln (real (roth_int_coeff_sup Q)) + 4*m*r 0` as its height allowance.
 
@@ -43,7 +43,7 @@ is what the induction uses for its one-variable factor.
 
 ## Layer 6.0: heights and scale invariance
 
-Suggested theory: `Roth_Rational_Height.thy`.
+Suggested theory: `Primitive_Height.thy`.
 
 1. Construct a primitive integer representative of every nonzero
    `rat mpoly`, unique up to sign. Define `H_proj(P) ≥ 1` and
@@ -74,7 +74,7 @@ disjoint-factor height additivity, with no Wronskian imports.
 
 ## Layer 6.1: the one-variable bound
 
-Suggested theory: `Roth_Univariate_Order.thy`.
+Suggested theory: `Univariate_Index.thy`.
 
 For nonzero `Q :: rat poly` of degree at most `r > 0` and rational
 `β`, let `l` be the multiplicity of `β` as a root. Prove
@@ -105,7 +105,7 @@ Suggested theory: `Roth_Wronskian.thy`.
 `roth_wr_independent` proves the univariate nonvanishing criterion;
 the Kronecker theories establish substitution, its derivative
 expansion, and determinant reflection.
-`Roth_Kronecker_Minor.roth_generalized_wronskian` proves the boxed
+`Kronecker_Minor.roth_generalized_wronskian` proves the boxed
 multivariate criterion with the row-order bound below.
 
 Use Hasse derivatives `roth_hasse I` and the determinant for
@@ -153,12 +153,12 @@ differential algebra is needed.
 
 ## Layer 6.3: tensor rank and determinant identity
 
-Suggested theory: `Roth_Tensor_Split.thy`.
+Suggested theory: `Tensor_Determinant.thy`.
 
 **Progress (24 October 2026):** This layer is proved and batch-built.
-`Roth_Tensor_Split` chooses the independent coefficient basis;
-`Roth_Det_Factorization` proves the determinant product identity;
-`Roth_Det_Factor_Bounds` supplies the factor support and degree boxes.
+`Tensor_Determinant` chooses the independent coefficient basis;
+`Det_Factor_Bounds` proves the determinant product identity and
+supplies the factor support and degree boxes.
 
 For `m≥2`, write `P` as a polynomial in `X_(m-1)` with coefficients
 in `ℚ[X₀,...,X_(m-2)]`. Choose a basis of the span of its coefficient
@@ -219,7 +219,7 @@ public theorem's allowance before starting the induction.
 
 ## Layer 6.5: determinant index
 
-Suggested theory: `Roth_Determinant_Index.thy`.
+Suggested theory: `Det_Factor_Bounds.thy`.
 
 Work with the real value of the index for **nonzero** polynomials;
 use `roth_index_attained` to leave `ereal` only at the interface.

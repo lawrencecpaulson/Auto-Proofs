@@ -9,68 +9,25 @@ session Roth_Diophantine_Approximation (AFP) = "HOL-Computational_Algebra" +
     Berlekamp_Zassenhaus
   theories
     Roth_Approximation
-    Roth_Integral_Reduction
-    Roth_MPoly_Box
-    Roth_Hasse
-    Roth_Index
-    Roth_Disjoint_Index
-    Roth_Rational_Height
-    Roth_Disjoint_Height
-    Roth_Hasse_Derivative
-    Roth_Primitive_Height
-    Roth_Univariate_Bridge
-    Roth_Univariate_Order
-    Roth_Univariate_Rational
-    Roth_Univariate_Index
-    Roth_Hasse_Support
-    Roth_Binomial_Matrix
+    Integral_Reduction
+    Disjoint_Index
+    Hasse_Derivative
+    Primitive_Height
+    Hasse_Support
+    Univariate_Index
     Roth_Wronskian
-    Roth_Kronecker
-    Roth_Kronecker_Chain
-    Roth_Kronecker_Jet
-    Roth_Kronecker_Expansion
-    Roth_Kronecker_Evaluation
-    Roth_Kronecker_Det
-    Roth_Kronecker_Wronskian
-    Roth_Kronecker_Minor
-    Roth_Tensor_Split
-    Roth_Tensor_Determinant
-    Roth_Tensor_Matrix
-    Roth_Tensor_Wronskian
-    Roth_Tensor_Indexed
-    Roth_Determinant_Box
-    Roth_Determinant_Height
-    Roth_Determinant_Coeff
+    Kronecker_Evaluation
+    Kronecker_Minor
+    Tensor_Determinant
+    Tensor_Indexed
     Roth_Index_Count
     Roth_Determinant_Bounds
-    Roth_Determinant_Index
-    Roth_Det_Bridge
-    Roth_Det_Factorization
-    Roth_Det_Factor_Bounds
-    Roth_Index_Dimension
-    Roth_Univariate_Any_Index
-    Roth_Index_Scale
-    Roth_Lemma_Arithmetic
-    Roth_Lemma_Structure
+    Det_Factor_Bounds
     Roth_Lemma
-    Roth_Lemma_Int
-    Roth_Power_Basis
-    Roth_Auxiliary_Matrix
-    Roth_Auxiliary_Polynomial
-    Roth_Auxiliary_Height
-    Roth_Rational_Evaluation
-    Roth_Taylor_Evaluation
-    Roth_Evaluation_Sandwich
-    Roth_Evaluation_Height
-    Roth_Index_Transfer
-    Roth_Auxiliary_Index_Transfer
-    Roth_Conditional_Contradiction
-    Roth_Approximant_Selection
-    Roth_Approximation_Height
-    Roth_Degree_Selection
-    Roth_Parameter_Bounds
+    Auxiliary_Polynomial
+    Evaluation_Height
+    Auxiliary_Index_Transfer
     Roth_Parameter_Costs
-    Roth_Selected_Contradiction
     Roth_Algebraic_Integer
   document_files
     "root.tex"

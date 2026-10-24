@@ -1,5 +1,6 @@
-theory Roth_Hasse_Support
-  imports Roth_Hasse_Derivative
+theory Hasse_Support
+  imports
+    Hasse_Derivative
 begin
 
 section \<open>Exponent support of Hasse derivatives\<close>

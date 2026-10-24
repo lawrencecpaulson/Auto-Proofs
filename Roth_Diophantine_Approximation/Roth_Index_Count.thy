@@ -1,5 +1,6 @@
 theory Roth_Index_Count
-  imports Roth_Hasse_Support
+  imports
+    Hasse_Support
 begin
 
 section \<open>Counting low-weight exponents\<close>

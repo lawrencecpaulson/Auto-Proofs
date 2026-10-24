@@ -76,7 +76,7 @@ checkout.
 **Status:** complete under Isabelle2026 RC4. `Roth_Approximation.thy`
 provides finite reduced-pair sets with integer and natural denominators,
 the denominator-bound and `κ ≤ 2` equivalences, the height bound, and
-scaling of reduced approximants. `Roth_Integral_Reduction.thy` proves
+scaling of reduced approximants. `Integral_Reduction.thy` proves
 `roth_reduction_to_integral`: finiteness for algebraic integers at every
 exponent above `2` implies finiteness for all algebraic irrationals at
 every exponent above `2`. The Roth session built successfully on
@@ -107,11 +107,11 @@ denominator-bound form is stated through
 
 **Status:** complete under Isabelle2026 RC4; the
 `Roth_Diophantine_Approximation` session built on 23 October 2026.
-`Roth_MPoly_Box` supplies finite exponent boxes and partial-degree
-bounds. `Roth_Hasse` and `Roth_Hasse_Derivative` give the Taylor identity
-in Hasse-derivative form. `Roth_Index` and `Roth_Disjoint_Index` prove the
-weighted-index laws, including exact multiplication for disjoint
-variables. `Roth_Hasse_Support` proves the derivative index and degree
+`Disjoint_Index` supplies finite exponent boxes, partial-degree
+bounds, Hasse coefficients, and weighted-index laws, including exact
+multiplication for disjoint variables. `Hasse_Derivative` gives the
+Taylor identity in Hasse-derivative form. `Hasse_Support` proves
+the derivative index and degree
 bounds, the exact coefficient formula
 `coeff (D_J P) I = coeff P (I+J) * of_nat (roth_mchoose (I+J) J)`,
 the composition law `D_I (D_J P) =
@@ -172,10 +172,9 @@ library.
 ### 4. Bounded integral power basis and auxiliary polynomial
 
 **Status:** complete under Isabelle2026 RC4; the Roth session built on
-23 October 2026. `Roth_Power_Basis` gives integer coordinates for all
-powers of `α` with bound `roth_power_base f ^ k`.
-`Roth_Auxiliary_Matrix` constructs the bounded integer Taylor system,
-and `Roth_Auxiliary_Polynomial` applies the integer kernel theorem.
+23 October 2026. `Auxiliary_Polynomial` gives integer coordinates for all
+powers of `α` with bound `roth_power_base f ^ k`, constructs the bounded
+integer Taylor system, and applies the integer kernel theorem.
 The theorem `roth_auxiliary_polynomial_monic_exp` gives a nonzero
 integer polynomial in the box, index at least `m(1-ε)/2`, and
 coefficient bound `2 * (4 * roth_power_base f) ^ (Σrₕ)` whenever
@@ -231,13 +230,12 @@ be a short application of them. This is the real-number replacement
 for the paper's Section 3 "Index Lemma".
 
 **Status (24 October 2026): conditional index transfer complete.**
-`Roth_Rational_Evaluation` proves the denominator lower bound,
-including height and real forms. `Roth_Taylor_Evaluation` gives an
-exponential upper bound from the index at the algebraic tuple.
-`Roth_Evaluation_Height` bounds the Taylor coefficients using the
-integer coefficient supremum and transfers rational indices to real
-coefficients. `Roth_Index_Transfer` and
-`Roth_Auxiliary_Index_Transfer` derive the rational index conclusion
+`Evaluation_Height` proves the denominator lower bound,
+including height and real forms, gives an exponential upper bound
+from the index at the algebraic tuple, and bounds the Taylor
+coefficients using the integer coefficient supremum.
+`Auxiliary_Index_Transfer` transfers rational indices to real
+coefficients and derives the rational index conclusion
 from an explicit logarithmic gap and the auxiliary polynomial's
 height bound. Establishing that gap is part of the final parameter
 choice in Milestone 7.
@@ -256,7 +254,7 @@ available.
 **Status (24 October 2026): complete and batch-built.**
 `Roth_Lemma.roth_lemma` proves the rational-point theorem with the
 height allowance `h_proj(P) + 4*m*r 0` and conclusion
-`Ind_β(P) ≤ 2*m*η`. `Roth_Lemma_Int.roth_lemma_integer` gives the
+`Ind_β(P) ≤ 2*m*η`. `Roth_Lemma.roth_lemma_integer` gives the
 integer-polynomial corollary with
 `ln (real (roth_int_coeff_sup Q)) + 4*m*r 0` in its hypothesis.
 The proof uses the generalized Wronskian, disjoint determinant
@@ -282,17 +280,14 @@ Return first the algebraic-integer theorem, then apply Milestone 1
 to obtain the theorem for every irrational real algebraic `α`.
 
 **Status (24 October 2026): complete and batch-built.**
-`Roth_Conditional_Contradiction` combines the auxiliary polynomial,
+`Auxiliary_Index_Transfer` combines the auxiliary polynomial,
 index transfer, and Roth's lemma into a contradiction under explicit
-parameter inequalities. `Roth_Approximant_Selection` obtains finite
-rapidly growing sequences from infinitely many good pairs.
-`Roth_Approximation_Height` converts sufficiently large good pairs
-into the rational-height error bound and selects sequences satisfying
-it. `Roth_Degree_Selection` rounds inverse logarithmic heights to
-positive integer degrees while preserving a specified ratio.
-`Roth_Parameter_Bounds` and `Roth_Parameter_Costs` choose the global
-parameters. `Roth_Selected_Contradiction` discharges the height
-allowance and strict logarithmic gap. `Roth_Algebraic_Integer` proves
+parameter inequalities. `Roth_Parameter_Costs` obtains rapidly
+growing sequences from infinitely many good pairs, converts
+sufficiently large good pairs into the rational-height error bound,
+rounds inverse logarithmic heights to positive integer degrees,
+and chooses the global parameters. `Roth_Algebraic_Integer`
+discharges the height allowance and strict logarithmic gap and proves
 finiteness of good approximants for algebraic integers and applies the
 Milestone 1 reduction to irrational real algebraic numbers.
 
@@ -311,7 +306,8 @@ session builds, then the entry build and document build once.
 standalone Roth session, classical real theorem, and PDF document are
 batch-built. `Roth_Hancl_Rucki` interprets the locale and exports both
 corollaries; its session and PDF document are also batch-built.
-Bibliography and wider cleanup remain as editorial work.
+The Roth proof is consolidated into 21 theories grouped by component.
+A bibliography remains as editorial work.
 
 ## Source audit and decision points
 
