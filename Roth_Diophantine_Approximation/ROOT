@@ -6,6 +6,7 @@ session Roth_Diophantine_Approximation (AFP) = "HOL-Computational_Algebra" +
     Hermite_Lindemann
     Polynomials
     Bounded_Integer_Kernels
+    Berlekamp_Zassenhaus
   theories
     Roth_Approximation
     Roth_Integral_Reduction
@@ -13,9 +14,46 @@ session Roth_Diophantine_Approximation (AFP) = "HOL-Computational_Algebra" +
     Roth_Hasse
     Roth_Index
     Roth_Disjoint_Index
+    Roth_Rational_Height
+    Roth_Disjoint_Height
     Roth_Hasse_Derivative
+    Roth_Primitive_Height
+    Roth_Univariate_Bridge
+    Roth_Univariate_Order
+    Roth_Univariate_Rational
+    Roth_Univariate_Index
     Roth_Hasse_Support
+    Roth_Binomial_Matrix
+    Roth_Wronskian
+    Roth_Kronecker
+    Roth_Kronecker_Chain
+    Roth_Kronecker_Jet
+    Roth_Kronecker_Expansion
+    Roth_Kronecker_Evaluation
+    Roth_Kronecker_Det
+    Roth_Kronecker_Wronskian
+    Roth_Kronecker_Minor
+    Roth_Tensor_Split
+    Roth_Tensor_Determinant
+    Roth_Tensor_Matrix
+    Roth_Tensor_Wronskian
+    Roth_Tensor_Indexed
+    Roth_Determinant_Box
+    Roth_Determinant_Height
+    Roth_Determinant_Coeff
     Roth_Index_Count
+    Roth_Determinant_Bounds
+    Roth_Determinant_Index
+    Roth_Det_Bridge
+    Roth_Det_Factorization
+    Roth_Det_Factor_Bounds
+    Roth_Index_Dimension
+    Roth_Univariate_Any_Index
+    Roth_Index_Scale
+    Roth_Lemma_Arithmetic
+    Roth_Lemma_Structure
+    Roth_Lemma
+    Roth_Lemma_Int
     Roth_Power_Basis
     Roth_Auxiliary_Matrix
     Roth_Auxiliary_Polynomial

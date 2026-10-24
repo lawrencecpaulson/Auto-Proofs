@@ -188,30 +188,6 @@ lemma roth_aux_polynomial_cast:
     (\<Sum>t<length Ks. MPoly_Type.monom (Ks ! t) (of_int (x $ t) :: real))"
   by (simp add: roth_replace_coeff_sum replace_coeff_monom)
 
-lemma roth_suc_le_pow2:
-  "Suc n \<le> (2::nat) ^ n"
-proof (induction n)
-  case 0
-  then show ?case by simp
-next
-  case (Suc n)
-  have "Suc (Suc n) \<le> 2 * Suc n"
-    by arith
-  also have "\<dots> \<le> 2 * (2::nat) ^ n"
-    using Suc.IH by simp
-  finally show ?case by (simp add: power_Suc)
-qed
-
-lemma roth_exponent_box_card_exp_bound:
-  "card (roth_exponent_box m r) \<le>
-    (2::nat) ^ (\<Sum>v<m. r v)"
-proof -
-  have "(\<Prod>v<m. Suc (r v)) \<le> (\<Prod>v<m. (2::nat) ^ r v)"
-    by (intro prod_mono) (auto intro: roth_suc_le_pow2)
-  then show ?thesis
-    by (simp add: roth_exponent_box_card power_sum)
-qed
-
 theorem roth_auxiliary_polynomial_monic:
   fixes f :: "int poly" and a :: real
   assumes monic: "Polynomial.lead_coeff f = 1"

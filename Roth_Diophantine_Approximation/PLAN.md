@@ -232,38 +232,24 @@ for the paper's Section 3 "Index Lemma".
 
 ### 6. Roth's lemma over rational points
 
-This is the principal proof risk. It can proceed independently of
-Milestones 3–5 once Milestone 2 is available. Split it into three
-checkable sessions or theory layers:
+This is the principal proof risk and has a separate
+[Milestone 6 proof plan](ROTH_LEMMA_PLAN.md). Its seven checkpoints cover
+rational projective heights, the univariate order bound, generalized
+Wronskians, tensor splitting, determinant height and index estimates,
+and the final induction. The plan states a proposed rational-point
+theorem and audits the numerical constants in the source exposition.
+It can proceed independently of Milestones 3–5 once Milestone 2 is
+available.
 
-**6a. Wronskian nonvanishing.** For linearly independent polynomials
-in characteristic zero, construct multi-indices `μᵢ` with
-`|μᵢ| ≤ i-1` whose derivative determinant is nonzero. The paper uses
-Kronecker substitution and a univariate Wronskian. Formalise both
-claims or find a more direct finite-jet argument. For Kronecker
-substitution, the base must be *strictly larger* than every partial
-degree.
-
-**6b. Determinant and factor estimates.** Split a polynomial by the
-last variable into a minimal-length tensor decomposition **over `ℚ`**.
-The coefficient matrix has the same rank after extending scalars, so
-no algebraic-closure coefficients are needed. Prove the two Wronskians
-are nonzero and their product equals a determinant of derivatives of
-`P`. Bound its partial degrees and coefficient height. Normalize
-rational factor polynomials to primitive integer coefficients; for
-factors in disjoint variables, the product's coefficients are pairwise
-products. Establish the resulting projective factor-height estimate
-and the lower index bound for the determinant from its derivative
-entries.
-
-**6c. Induction.** Derive a rational-point Roth lemma of the shape:
-if `rₕ₊₁/rₕ ≤ η^(2^(m-1))`, `0 < η ≤ 1/2`, and
-`η^(2^(m-1)) minₕ(rₕ log H(βₕ))` dominates the coefficient height of
-`P` plus a constant times `m r₁`, then
-`Ind_β(P) ≤ 2mη`. The exact harmless constants must be checked
-against 6b and the final contradiction before freezing the public
-statement. The induction should expose the univariate case and
-the determinant-index inequality separately.
+**Status (24 October 2026): complete and batch-built.**
+`Roth_Lemma.roth_lemma` proves the rational-point theorem with the
+height allowance `h_proj(P) + 4*m*r 0` and conclusion
+`Ind_β(P) ≤ 2*m*η`. `Roth_Lemma_Int.roth_lemma_integer` gives the
+integer-polynomial corollary with
+`ln (real (roth_int_coeff_sup Q)) + 4*m*r 0` in its hypothesis.
+The proof uses the generalized Wronskian, disjoint determinant
+factorization, projective-height and quadratic determinant-index
+bounds, and induction on the number of variables.
 
 ### 7. Choose approximants and derive the contradiction
 
