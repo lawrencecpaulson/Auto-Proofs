@@ -12,8 +12,9 @@ The proof is independent of the abandoned Baker two-logarithm development.
 ## Proof architecture
 
 1. **Counterexample and auxiliary function.**
-   [`Log_Values.thy`](Log_Values.thy) defines the branch-explicit `log_values`
-   and `power_values` interfaces using `Complex_Transcendental`.
+   [`GS_Preliminaries.thy`](GS_Preliminaries.thy) defines the branch-explicit
+   `log_values` and `power_values` interfaces and connects them to
+   `Hermite_Lindemann`.
    [`GS_Setup.thy`](GS_Setup.thy) turns an
    algebraic counterexample into `gelfond_schneider_data`.
    The `Algebraic`, `Auxiliary`, `Order`, `System`, `Vanishing`, `Matrix`, and
