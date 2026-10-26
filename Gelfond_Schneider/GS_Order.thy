@@ -12,8 +12,6 @@ theory GS_Order
     "HOL-Complex_Analysis.Laurent_Convergence"
 begin
 
-declare [[apply_timeout = 10]]
-
 section \<open>Analytic Order of Finite Exponential Sums\<close>
 
 lemma finite_exp_sum_holomorphic:

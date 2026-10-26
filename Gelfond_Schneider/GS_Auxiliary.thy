@@ -12,8 +12,6 @@ theory GS_Auxiliary
   imports GS_Algebraic
 begin
 
-declare [[apply_timeout = 10]]
-
 section \<open>Finite Exponential Sums\<close>
 
 definition gs_grid :: "nat \<Rightarrow> (nat \<times> nat) set"

@@ -10,8 +10,6 @@ theory GS_Setup
   imports GS_Preliminaries
 begin
 
-declare [[apply_timeout = 10]]
-
 section \<open>Gelfond-Schneider Setup\<close>
 
 record gelfond_schneider_data =

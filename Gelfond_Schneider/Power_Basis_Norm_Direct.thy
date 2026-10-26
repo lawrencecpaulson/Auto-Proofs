@@ -24,6 +24,10 @@ theorem exists_finite_normal_galois_power_basis_coordinates_of_algebraic_triple:
     and "(\<forall>i<D. cw i \<in> (\<rat> :: complex set))"
     and "w = (\<Sum>i<D. cw i * eta ^ i)"
 proof -
+  have sfQ: "Subfield (\<rat> :: complex set)"
+    using complex_subfield_Rats by (simp add: complex_subfield_iff_subfield)
+  interpret Q: Subfield "(\<rat> :: complex set)"
+    by (rule sfQ)
   obtain eta D ca cb cw K emb where
       eta_int: "algebraic_int eta"
     and K_def: "K = eval_img (\<rat> :: complex set) eta"
@@ -40,10 +44,6 @@ proof -
     and separableK: "separable_extension K (\<rat> :: complex set)"
     and ebij: "bij_betw emb {0..<D} (field_auto K (\<rat> :: complex set))"
     by (rule exists_normal_integral_primitive_common_field_coordinates_with_galois_enumeration[OF alg_a alg_b alg_w])
-  have sfQ: "Subfield (\<rat> :: complex set)"
-    using complex_subfield_Rats by (simp add: complex_subfield_iff_subfield)
-  interpret Q: Subfield "(\<rat> :: complex set)"
-    by (rule sfQ)
   interpret T: finite_subfield_tower "\<rat>" K
     by (rule finK)
   have etaK: "eta \<in> K"
@@ -72,22 +72,12 @@ theorem no_gelfond_schneider_data_of_power_basis_house_coordinate_contradiction:
       False"
   shows False
 proof -
-  from d have alg_a: "algebraic (gs_a d)"
+  have alg_a: "algebraic (gs_a d)"
     and alg_b: "algebraic (gs_b d)"
     and alg_w: "algebraic (gs_w d)"
-    unfolding is_gelfond_schneider_data_def by auto
-  obtain K eta D emb ca cb cw where
-      PB: "finite_normal_galois_power_basis K eta D emb"
-    and Dpos: "D > 0"
-    and ca_rat: "(\<forall>i<D. ca i \<in> (\<rat> :: complex set))"
-    and a_eq: "gs_a d = (\<Sum>i<D. ca i * eta ^ i)"
-    and cb_rat: "(\<forall>i<D. cb i \<in> (\<rat> :: complex set))"
-    and b_eq: "gs_b d = (\<Sum>i<D. cb i * eta ^ i)"
-    and cw_rat: "(\<forall>i<D. cw i \<in> (\<rat> :: complex set))"
-    and w_eq: "gs_w d = (\<Sum>i<D. cw i * eta ^ i)"
-    by (rule exists_finite_normal_galois_power_basis_coordinates_of_algebraic_triple[OF alg_a alg_b alg_w])
-  show False
-    by (rule coord_contradiction[OF PB d Dpos ca_rat a_eq cb_rat b_eq cw_rat w_eq])
+    using d unfolding is_gelfond_schneider_data_def by auto
+  with exists_finite_normal_galois_power_basis_coordinates_of_algebraic_triple[OF alg_a alg_b alg_w] 
+       coord_contradiction d show False by auto
 qed
 
 theorem scaled_norm_contradiction_for_power_basis:
@@ -103,81 +93,37 @@ theorem scaled_norm_contradiction_for_power_basis:
   shows False
 proof -
   interpret PB: finite_normal_galois_power_basis K eta D emb by (rule PB)
-  obtain i0 where i0lt: "i0 < D" and emb0: "emb i0 = identity K"
-    by (rule PB.obtains_identity_embedding_index)
-  have aK: "gs_a d \<in> K"
-    using PB.sum_rat_power_in_K[OF ca_rat] by (simp only: a_eq)
-  have bK: "gs_b d \<in> K"
-    using PB.sum_rat_power_in_K[OF cb_rat] by (simp only: b_eq)
-  have wK: "gs_w d \<in> K"
-    using PB.sum_rat_power_in_K[OF cw_rat] by (simp only: w_eq)
+  obtain aK: "gs_a d \<in> K" and  bK: "gs_b d \<in> K" and wK: "gs_w d \<in> K"
+    using PB.sum_rat_power_in_K a_eq b_eq ca_rat cb_rat cw_rat w_eq by presburger
   obtain T::int where Tp: "T > 0" and prod:
-    "\<forall>xs. (\<forall>x\<in>set xs.
-      x = gs_a d \<or> x = gs_w d \<or> x = eta \<or>
-      (\<exists>u v::nat. x = of_nat u + of_nat v * gs_b d)) \<longrightarrow>
-      (\<exists>z::nat \<Rightarrow> int.
-        of_int (T ^ length xs) * prod_list xs =
-          (\<Sum>i<D. of_int (z i) * eta ^ i))"
+              "\<forall>xs. (\<forall>x\<in>set xs. x = gs_a d \<or> x = gs_w d \<or> x = eta \<or>
+                (\<exists>u v. x = of_nat u + of_nat v * gs_b d)) \<longrightarrow>
+                (\<exists>z. of_int (T ^ length xs) * prod_list xs = (\<Sum>i<D. of_int (z i) * eta ^ i))"
     using PB.data_generators_and_affines_uniform_product_denominator
       [OF aK bK wK] by blast
   let ?U = "(of_int (T ^ (1 + 4 * gs_m D * gs_m D + D)) :: real)"
   let ?HB = "gelfond_schneider_power_basis_field_norm_estimates.gs_house_growth_base eta D emb d D"
   let ?P = "gelfond_schneider_power_basis_field_norm_estimates.gs_point_growth_base eta D emb d D"
-  define c14 where "c14 = max 1 ((?HB * ?U ^ 2) ^ (D - 1) * (?P * ?U))"
-  have c14ge: "1 \<le> c14" by (simp add: c14_def)
-  have Cge: "1 \<le> c14 * (2::real)" using c14ge by simp
-  define q where "q = gs_q_choice D (c14 * (2::real))"
-  have qpos: "q > 0" unfolding q_def
-    by (rule gs_q_choice_pos[OF Dpos Cge])
-  have dvd: "2 * gs_m D dvd q ^ 2" unfolding q_def
-    by (rule gs_q_choice_dvd)
-  have npos: "gs_n D q > 0"
-  proof -
-    have "6 * D \<le> gs_n D q"
-      unfolding q_def by (rule gs_q_choice_six_h_le_n[OF Dpos Cge])
-    then show ?thesis using Dpos by linarith
-  qed
-  define A where "A = gelfond_schneider_power_basis_field_norm_estimates.gs_concrete_entry_bound D emb d q D"
-  have entryK: "gs_row_scaled_system_mat d (gs_m D) (gs_n D q) q $$ (u,t) \<in> K"
-    if up: "u < gs_m D * gs_n D q" and tq: "t < q * q" for u t
-    by (rule PB.row_scaled_entry_in_K_from_rational_coordinates
-      [OF ca_rat a_eq cb_rat b_eq cw_rat w_eq up tq])
-  have SV: "gelfond_schneider_power_basis_scaled_norm_verified
-    K eta D emb ca cb cw d q D i0 A 2 c14 T"
-  proof unfold_locales
-    show "is_gelfond_schneider_data d" by (rule d)
-    show "\<forall>i<D. ca i \<in> (\<rat> :: complex set)" by (rule ca_rat)
-    show "gs_a d = (\<Sum>i<D. ca i * eta ^ i)" by (rule a_eq)
-    show "\<forall>i<D. cb i \<in> (\<rat> :: complex set)" by (rule cb_rat)
-    show "gs_b d = (\<Sum>i<D. cb i * eta ^ i)" by (rule b_eq)
-    show "\<forall>i<D. cw i \<in> (\<rat> :: complex set)" by (rule cw_rat)
-    show "gs_w d = (\<Sum>i<D. cw i * eta ^ i)" by (rule w_eq)
-    show "q > 0" by (rule qpos)
-    show "gs_n D q > 0" by (rule npos)
-    show "2 * gs_m D dvd q ^ 2" by (rule dvd)
-    show "i0 < D" by (rule i0lt)
-    show "emb i0 = identity K" by (rule emb0)
-    show "\<And>u t. u < gs_m D * gs_n D q \<Longrightarrow> t < q * q \<Longrightarrow>
-      gs_row_scaled_system_mat d (gs_m D) (gs_n D q) q $$ (u,t) \<in> K"
-      by (rule entryK)
-    show "D > 0" by (rule Dpos)
-    show "q = gs_q_choice D (c14 * 2)" by (rule q_def)
-    show "1 \<le> c14" by (rule c14ge)
-    show "1 < (2::real)" by simp
-    show "T > 0" by (rule Tp)
-    show "\<forall>xs. (\<forall>x\<in>set xs.
-      x = gs_a d \<or> x = gs_w d \<or> x = eta \<or>
-      (\<exists>u v::nat. x = of_nat u + of_nat v * gs_b d)) \<longrightarrow>
-      (\<exists>z::nat \<Rightarrow> int.
-        of_int (T ^ length xs) * prod_list xs =
-          (\<Sum>i<D. of_int (z i) * eta ^ i))"
-      by (rule prod)
-    show "D = D" by simp
-    show "A = gelfond_schneider_power_basis_field_norm_estimates.gs_concrete_entry_bound D emb d q D"
-      by (rule A_def)
-    show "(?HB * ?U ^ 2) ^ (D - 1) * (?P * ?U) \<le> c14"
-      by (simp add: c14_def)
-  qed
+  define c14 where "c14 \<equiv> max 1 ((?HB * ?U ^ 2) ^ (D - 1) * (?P * ?U))"
+  have Cge: "1 \<le> c14 * 2"
+    using c14_def by linarith 
+  define q where "q \<equiv> gs_q_choice D (c14 * (2::real))"
+  define A where "A \<equiv> gelfond_schneider_power_basis_field_norm_estimates.gs_concrete_entry_bound D emb d q D"
+  obtain i0 where i0lt: "i0 < D" and emb0: "emb i0 = identity K"
+    by (rule PB.obtains_identity_embedding_index)
+  have SV: "gelfond_schneider_power_basis_scaled_norm_verified K eta D emb ca cb cw d q D i0 A 2 c14 T"
+  proof 
+    show "q > 0"       
+      unfolding q_def by (rule gs_q_choice_pos[OF Dpos Cge])
+    show "gs_n D q > 0"
+      using \<open>0 < q\<close> gs_n_q_choice_closed_form gs_q_choice_def q_def by auto
+    show "2 * gs_m D dvd q ^ 2" 
+      unfolding q_def by (rule gs_q_choice_dvd)
+    show "gs_row_scaled_system_mat d (gs_m D) (gs_n D q) q $$ (u,t) \<in> K"
+      if up: "u < gs_m D * gs_n D q" and tq: "t < q * q" for u t
+      by (rule PB.row_scaled_entry_in_K_from_rational_coordinates
+          [OF ca_rat a_eq cb_rat b_eq cw_rat w_eq up tq])
+  qed (use assms prod d Tp i0lt emb0 q_def A_def c14_def in auto)
   interpret V: gelfond_schneider_power_basis_scaled_norm_verified
     K eta D emb ca cb cw d q D i0 A 2 c14 T by (rule SV)
   show False by (rule V.coordinate_contradiction)
@@ -186,7 +132,7 @@ qed
 theorem no_gelfond_schneider_data_scaled:
   assumes d: "is_gelfond_schneider_data d"
   shows False
-  by (rule no_gelfond_schneider_data_of_power_basis_house_coordinate_contradiction[OF d])
-    (rule scaled_norm_contradiction_for_power_basis)
+  using assms no_gelfond_schneider_data_of_power_basis_house_coordinate_contradiction
+    scaled_norm_contradiction_for_power_basis by blast
 
 end

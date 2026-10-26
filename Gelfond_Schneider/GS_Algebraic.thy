@@ -11,8 +11,6 @@ theory GS_Algebraic
   imports GS_Setup
 begin
 
-declare [[apply_timeout = 10]]
-
 section \<open>Algebraic Coefficients\<close>
 
 definition gs_affine_coeff :: "gelfond_schneider_data \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> complex"

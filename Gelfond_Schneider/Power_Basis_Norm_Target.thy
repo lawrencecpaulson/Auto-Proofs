@@ -3237,13 +3237,12 @@ proof -
   proof (rule REC.repr_coeff_ehouse_le_of_inverse_matrix_bound)
     show "0 \<le> power_basis_inverse_bound"
       by (rule power_basis_inverse_bound_nonneg)
-    show "\<And>i. i < D \<Longrightarrow>
-      cmod (REC.inverse_basis_matrix_entry k i) \<le> power_basis_inverse_bound"
-      by (rule inverse_basis_matrix_entry_le_power_basis_inverse_bound[OF _ klt])
+    show "\<And>i. i < D \<Longrightarrow> cmod (REC.inverse_basis_matrix_entry k i) \<le> power_basis_inverse_bound"
+      using inverse_basis_matrix_entry_le_power_basis_inverse_bound by blast
   qed
   show ?thesis
-    by (rule REC.abs_int_basis_coeff_ehouse_le_biorthogonal
-      [OF klt rb power_basis_inverse_bound_nonneg comb_le Hnonneg])
+    using REC.abs_int_basis_coeff_ehouse_le_biorthogonal [OF klt rb]
+    using power_basis_inverse_bound_nonneg comb_le Hnonneg by blast
 qed
 
 theorem finite_K_matrix_has_house_bounded_kernel_given_denominator:

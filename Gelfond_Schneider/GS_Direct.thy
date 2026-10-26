@@ -15,8 +15,6 @@ theory GS_Direct
 
 begin
 
-declare [[apply_timeout = 10]]
-
 section \<open>Bounded kernels for the Gelfond-Schneider system\<close>
 
 theorem gs_system_mat_exists_bounded_algebraic_int_kernel:
