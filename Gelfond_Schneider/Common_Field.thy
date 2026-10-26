@@ -99,6 +99,18 @@ proof -
     by (rule that[OF _ _ _ alg_theta T\<theta>]) (use aL bL wL L_def in auto)
 qed
 
+locale rational_power_basis_coordinates =
+  fixes D :: nat
+    and eta :: complex
+    and ca cb cw :: "nat \<Rightarrow> complex"
+    and a b w :: complex
+  assumes ca_rat: "\<forall>i<D. ca i \<in> (\<rat> :: complex set)"
+    and a_eq: "a = (\<Sum>i<D. ca i * eta ^ i)"
+    and cb_rat: "\<forall>i<D. cb i \<in> (\<rat> :: complex set)"
+    and b_eq: "b = (\<Sum>i<D. cb i * eta ^ i)"
+    and cw_rat: "\<forall>i<D. cw i \<in> (\<rat> :: complex set)"
+    and w_eq: "w = (\<Sum>i<D. cw i * eta ^ i)"
+
 theorem exists_primitive_rational_common_field_coordinates_of_algebraic_triple:
   fixes a b w :: complex
   assumes alg_a: "algebraic a"
@@ -107,12 +119,7 @@ theorem exists_primitive_rational_common_field_coordinates_of_algebraic_triple:
   obtains \<theta> d ca cb cw where
       "d = ext_degree (\<rat> :: complex set) \<theta>"
     and "d > 0"
-    and "(\<forall>i<d. ca i \<in> (\<rat> :: complex set))"
-    and "a = (\<Sum>i<d. ca i * \<theta> ^ i)"
-    and "(\<forall>i<d. cb i \<in> (\<rat> :: complex set))"
-    and "b = (\<Sum>i<d. cb i * \<theta> ^ i)"
-    and "(\<forall>i<d. cw i \<in> (\<rat> :: complex set))"
-    and "w = (\<Sum>i<d. cw i * \<theta> ^ i)"
+    and "rational_power_basis_coordinates d \<theta> ca cb cw a b w"
 proof -
   obtain \<theta> where
       aE: "a \<in> eval_img (\<rat> :: complex set) \<theta>"
@@ -141,8 +148,10 @@ proof -
     by (auto simp: d_def)
   have dpos: "d > 0"
     unfolding d_def by (rule Subfield.ext_degree_pos[OF sfQ alg_theta])
+  have coords: "rational_power_basis_coordinates d \<theta> ca cb cw a b w"
+    by unfold_locales (use ca cb cw in auto)
   show thesis
-    by (rule that[OF d_def dpos ca(1) ca(2) cb(1) cb(2) cw(1) cw(2)])
+    by (rule that[OF d_def dpos coords])
 qed
 
 

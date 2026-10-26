@@ -25,12 +25,7 @@ locale gelfond_schneider_power_basis_field_norm_estimates =
   fixes q h i0
   fixes A c5 c14 :: real
   assumes d: "is_gelfond_schneider_data d"
-  assumes ca_rat: "\<forall>i<D. ca i \<in> (\<rat> :: complex set)"
-  assumes a_eq: "gs_a d = (\<Sum>i<D. ca i * eta ^ i)"
-  assumes cb_rat: "\<forall>i<D. cb i \<in> (\<rat> :: complex set)"
-  assumes b_eq: "gs_b d = (\<Sum>i<D. cb i * eta ^ i)"
-  assumes cw_rat: "\<forall>i<D. cw i \<in> (\<rat> :: complex set)"
-  assumes w_eq: "gs_w d = (\<Sum>i<D. cw i * eta ^ i)"
+  assumes coords: "rational_power_basis_coordinates D eta ca cb cw (gs_a d) (gs_b d) (gs_w d)"
   assumes qpos: "q > 0"
   assumes npos: "gs_n h q > 0"
   assumes dvd: "2 * gs_m h dvd q ^ 2"
@@ -44,6 +39,13 @@ locale gelfond_schneider_power_basis_field_norm_estimates =
   assumes c14_ge1: "1 \<le> c14"
   assumes c5_gt1: "1 < c5"
 begin
+
+lemmas ca_rat = rational_power_basis_coordinates.ca_rat[OF coords]
+lemmas a_eq = rational_power_basis_coordinates.a_eq[OF coords]
+lemmas cb_rat = rational_power_basis_coordinates.cb_rat[OF coords]
+lemmas b_eq = rational_power_basis_coordinates.b_eq[OF coords]
+lemmas cw_rat = rational_power_basis_coordinates.cw_rat[OF coords]
+lemmas w_eq = rational_power_basis_coordinates.w_eq[OF coords]
 
 definition Aemb :: "nat \<Rightarrow> nat \<Rightarrow> (complex \<Rightarrow> complex) \<Rightarrow> complex"
   where "Aemb u t e = e (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q $$ (u,t))"
@@ -2756,17 +2758,18 @@ proof -
 qed
 
 theorem system_coefficients_have_uniform_exponential_denominator:
-  assumes ca_rat: "\<forall>i<D. ca i \<in> (\<rat> :: complex set)"
-    and a_eq: "gs_a d = (\<Sum>i<D. ca i * eta ^ i)"
-    and cb_rat: "\<forall>i<D. cb i \<in> (\<rat> :: complex set)"
-    and b_eq: "gs_b d = (\<Sum>i<D. cb i * eta ^ i)"
-    and cw_rat: "\<forall>i<D. cw i \<in> (\<rat> :: complex set)"
-    and w_eq: "gs_w d = (\<Sum>i<D. cw i * eta ^ i)"
+  assumes coords: "rational_power_basis_coordinates D eta ca cb cw (gs_a d) (gs_b d) (gs_w d)"
   shows "\<exists>T::int. T > 0 \<and> (\<forall>a b l k.
     \<exists>c::nat \<Rightarrow> int.
       of_int (T ^ (k + a * l + b * l)) * gs_system_coeff d a b l k =
         (\<Sum>j<D. of_int (c j) * eta ^ j))"
 proof -
+  note ca_rat = rational_power_basis_coordinates.ca_rat[OF coords]
+  note a_eq = rational_power_basis_coordinates.a_eq[OF coords]
+  note cb_rat = rational_power_basis_coordinates.cb_rat[OF coords]
+  note b_eq = rational_power_basis_coordinates.b_eq[OF coords]
+  note cw_rat = rational_power_basis_coordinates.cw_rat[OF coords]
+  note w_eq = rational_power_basis_coordinates.w_eq[OF coords]
   have aK: "gs_a d \<in> K"
     using sum_rat_power_in_K[OF ca_rat] by (simp only: a_eq)
   have bK: "gs_b d \<in> K"
@@ -2836,18 +2839,19 @@ proof -
 qed
 
 theorem system_coefficients_times_basis_have_uniform_denominator:
-  assumes ca_rat: "\<forall>i<D. ca i \<in> (\<rat> :: complex set)"
-    and a_eq: "gs_a d = (\<Sum>i<D. ca i * eta ^ i)"
-    and cb_rat: "\<forall>i<D. cb i \<in> (\<rat> :: complex set)"
-    and b_eq: "gs_b d = (\<Sum>i<D. cb i * eta ^ i)"
-    and cw_rat: "\<forall>i<D. cw i \<in> (\<rat> :: complex set)"
-    and w_eq: "gs_w d = (\<Sum>i<D. cw i * eta ^ i)"
+  assumes coords: "rational_power_basis_coordinates D eta ca cb cw (gs_a d) (gs_b d) (gs_w d)"
   shows "\<exists>T::int. T > 0 \<and> (\<forall>a b l k j.
     \<exists>c::nat \<Rightarrow> int.
       of_int (T ^ (k + a * l + b * l + j)) *
         (gs_system_coeff d a b l k * eta ^ j) =
         (\<Sum>i<D. of_int (c i) * eta ^ i))"
 proof -
+  note ca_rat = rational_power_basis_coordinates.ca_rat[OF coords]
+  note a_eq = rational_power_basis_coordinates.a_eq[OF coords]
+  note cb_rat = rational_power_basis_coordinates.cb_rat[OF coords]
+  note b_eq = rational_power_basis_coordinates.b_eq[OF coords]
+  note cw_rat = rational_power_basis_coordinates.cw_rat[OF coords]
+  note w_eq = rational_power_basis_coordinates.w_eq[OF coords]
   have aK: "gs_a d \<in> K"
     using sum_rat_power_in_K[OF ca_rat] by (simp only: a_eq)
   have bK: "gs_b d \<in> K"
@@ -2919,14 +2923,12 @@ proof -
   show ?thesis using kle ea eb jlt by linarith
 qed
 
-lemma row_scaled_matrix_entries_from_product_denominator:
+lemma row_scaled_matrix_entries_from_coefficient_representation:
   fixes T :: int
-  assumes prod: "\<forall>xs. (\<forall>x\<in>set xs.
-    x = gs_a d \<or> x = gs_w d \<or> x = eta \<or>
-    (\<exists>u v::nat. x = of_nat u + of_nat v * gs_b d)) \<longrightarrow>
-    (\<exists>c::nat \<Rightarrow> int.
-      of_int (T ^ length xs) * prod_list xs =
-        (\<Sum>i<D. of_int (c i) * eta ^ i))"
+  assumes rep: "\<forall>a b l k j. \<exists>c::nat \<Rightarrow> int.
+      of_int (T ^ (k + a * l + b * l + j)) *
+        (gs_system_coeff d a b l k * eta ^ j) =
+        (\<Sum>i<D. of_int (c i) * eta ^ i)"
     and npos: "gs_n h q > 0"
     and qpos: "q > 0"
   shows "\<forall>u<gs_m h * gs_n h q. \<forall>t<q * q. \<forall>j<D.
@@ -2935,11 +2937,6 @@ lemma row_scaled_matrix_entries_from_product_denominator:
         (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q $$ (u,t) * eta ^ j) =
         (\<Sum>i<D. of_int (c i) * eta ^ i)"
 proof -
-  have rep: "\<forall>a b l k j. \<exists>c::nat \<Rightarrow> int.
-      of_int (T ^ (k + a * l + b * l + j)) *
-        (gs_system_coeff d a b l k * eta ^ j) =
-        (\<Sum>i<D. of_int (c i) * eta ^ i)"
-    by (rule system_coefficients_times_basis_from_product_denominator[OF prod])
   have one: "\<exists>c::nat \<Rightarrow> int.
     of_int (T ^ (gs_n h q + 2 * (gs_m h * q) + D)) *
       (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q $$ (u,t) * eta ^ j) =
@@ -2988,13 +2985,26 @@ proof -
   show ?thesis using one by blast
 qed
 
+lemma row_scaled_matrix_entries_from_product_denominator:
+  fixes T :: int
+  assumes prod: "\<forall>xs. (\<forall>x\<in>set xs.
+    x = gs_a d \<or> x = gs_w d \<or> x = eta \<or>
+    (\<exists>u v::nat. x = of_nat u + of_nat v * gs_b d)) \<longrightarrow>
+    (\<exists>c::nat \<Rightarrow> int.
+      of_int (T ^ length xs) * prod_list xs =
+        (\<Sum>i<D. of_int (c i) * eta ^ i))"
+    and npos: "gs_n h q > 0"
+    and qpos: "q > 0"
+  shows "\<forall>u<gs_m h * gs_n h q. \<forall>t<q * q. \<forall>j<D.
+    \<exists>c::nat \<Rightarrow> int.
+      of_int (T ^ (gs_n h q + 2 * (gs_m h * q) + D)) *
+        (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q $$ (u,t) * eta ^ j) =
+        (\<Sum>i<D. of_int (c i) * eta ^ i)"
+  by (rule row_scaled_matrix_entries_from_coefficient_representation
+    [OF system_coefficients_times_basis_from_product_denominator[OF prod] npos qpos])
+
 theorem row_scaled_matrix_entries_have_uniform_exponential_denominator:
-  assumes ca_rat: "\<forall>i<D. ca i \<in> (\<rat> :: complex set)"
-    and a_eq: "gs_a d = (\<Sum>i<D. ca i * eta ^ i)"
-    and cb_rat: "\<forall>i<D. cb i \<in> (\<rat> :: complex set)"
-    and b_eq: "gs_b d = (\<Sum>i<D. cb i * eta ^ i)"
-    and cw_rat: "\<forall>i<D. cw i \<in> (\<rat> :: complex set)"
-    and w_eq: "gs_w d = (\<Sum>i<D. cw i * eta ^ i)"
+  assumes coords: "rational_power_basis_coordinates D eta ca cb cw (gs_a d) (gs_b d) (gs_w d)"
     and npos: "gs_n h q > 0"
     and qpos: "q > 0"
   shows "\<exists>T::int. T > 0 \<and>
@@ -3010,53 +3020,15 @@ proof -
         (gs_system_coeff d a b l k * eta ^ j) =
         (\<Sum>i<D. of_int (c i) * eta ^ i)"
     using system_coefficients_times_basis_have_uniform_denominator
-      [OF ca_rat a_eq cb_rat b_eq cw_rat w_eq] by blast
-  have one: "\<exists>c::nat \<Rightarrow> int.
-    of_int (T ^ (gs_n h q + 2 * (gs_m h * q) + D)) *
-      (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q $$ (u,t) * eta ^ j) =
-      (\<Sum>i<D. of_int (c i) * eta ^ i)"
-    if ult: "u < gs_m h * gs_n h q" and tlt: "t < q * q" and jlt: "j < D"
-    for u t j
-  proof -
-    let ?k = "gs_k_idx (gs_n h q) u"
-    let ?a = "gs_a_idx q t"
-    let ?b = "gs_b_idx q t"
-    let ?l = "gs_l_idx (gs_n h q) u"
-    let ?e = "?k + ?a * ?l + ?b * ?l + j"
-    let ?N = "gs_n h q + 2 * (gs_m h * q) + D"
-    have eN: "?e \<le> ?N"
-      by (rule gs_system_coeff_idx_basis_exponent_le[OF npos qpos ult tlt jlt])
-    obtain c::"nat \<Rightarrow> int" where crep:
-      "of_int (T ^ ?e) * (gs_system_coeff d ?a ?b ?l ?k * eta ^ j) =
-        (\<Sum>i<D. of_int (c i) * eta ^ i)"
-      using rep by blast
-    have padded: "of_int (T ^ ?N) *
-      (gs_system_coeff d ?a ?b ?l ?k * eta ^ j) =
-        (\<Sum>i<D. of_int (T ^ (?N - ?e) * c i) * eta ^ i)"
-      by (rule scaled_integer_power_basis_coordinate_pad_exponent[OF eN crep])
-    let ?s = "gs_row_scale d (gs_m h) (gs_n h q) q u"
-    have row: "gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q $$ (u,t) =
-      of_int ?s * gs_system_coeff d ?a ?b ?l ?k"
-      using ult tlt by (simp add: gs_row_scaled_system_mat_def gs_system_coeff_idx_def)
-    have final: "of_int (T ^ ?N) *
-      (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q $$ (u,t) * eta ^ j) =
-      (\<Sum>i<D. of_int (?s * (T ^ (?N - ?e) * c i)) * eta ^ i)"
-    proof -
-      have "of_int (T ^ ?N) *
+      [OF coords] by blast
+  have entries: "\<forall>u<gs_m h * gs_n h q. \<forall>t<q * q. \<forall>j<D.
+    \<exists>c::nat \<Rightarrow> int.
+      of_int (T ^ (gs_n h q + 2 * (gs_m h * q) + D)) *
         (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q $$ (u,t) * eta ^ j) =
-        of_int ?s * (of_int (T ^ ?N) *
-          (gs_system_coeff d ?a ?b ?l ?k * eta ^ j))"
-        by (simp add: row algebra_simps)
-      also have "... = of_int ?s *
-        (\<Sum>i<D. of_int (T ^ (?N - ?e) * c i) * eta ^ i)"
-        by (simp only: padded)
-      also have "... = (\<Sum>i<D. of_int (?s * (T ^ (?N - ?e) * c i)) * eta ^ i)"
-        by (simp add: sum_distrib_left algebra_simps)
-      finally show ?thesis .
-    qed
-    show ?thesis by (rule exI[of _ "\<lambda>i. ?s * (T ^ (?N - ?e) * c i)"]) (rule final)
-  qed
-  show ?thesis by (intro exI[of _ T]) (use Tp one in auto)
+        (\<Sum>i<D. of_int (c i) * eta ^ i)"
+    by (rule row_scaled_matrix_entries_from_coefficient_representation
+      [OF rep npos qpos])
+  show ?thesis using Tp entries by blast
 qed
 
 lemma finite_matrix_has_scaled_integer_structure_constants:
@@ -3398,16 +3370,17 @@ proof -
 qed
 
 lemma row_scaled_entry_in_K_from_rational_coordinates:
-  assumes ca_rat: "\<forall>i<D. ca i \<in> (\<rat> :: complex set)"
-    and a_eq: "gs_a d = (\<Sum>i<D. ca i * eta ^ i)"
-    and cb_rat: "\<forall>i<D. cb i \<in> (\<rat> :: complex set)"
-    and b_eq: "gs_b d = (\<Sum>i<D. cb i * eta ^ i)"
-    and cw_rat: "\<forall>i<D. cw i \<in> (\<rat> :: complex set)"
-    and w_eq: "gs_w d = (\<Sum>i<D. cw i * eta ^ i)"
+  assumes coords: "rational_power_basis_coordinates D eta ca cb cw (gs_a d) (gs_b d) (gs_w d)"
     and up: "u < m * n"
     and tq: "t < q * q"
   shows "gs_row_scaled_system_mat d m n q $$ (u,t) \<in> K"
 proof -
+  note ca_rat = rational_power_basis_coordinates.ca_rat[OF coords]
+  note a_eq = rational_power_basis_coordinates.a_eq[OF coords]
+  note cb_rat = rational_power_basis_coordinates.cb_rat[OF coords]
+  note b_eq = rational_power_basis_coordinates.b_eq[OF coords]
+  note cw_rat = rational_power_basis_coordinates.cw_rat[OF coords]
+  note w_eq = rational_power_basis_coordinates.w_eq[OF coords]
   interpret KS: Subfield K by (rule K_subfield)
   have aK: "gs_a d \<in> K"
     using sum_rat_power_in_K[OF ca_rat] by (simp only: a_eq)
@@ -3444,12 +3417,7 @@ proof -
 qed
 
 theorem row_scaled_matrix_has_bounded_algebraic_integer_kernel:
-  assumes ca_rat: "\<forall>i<D. ca i \<in> (\<rat> :: complex set)"
-    and a_eq: "gs_a d = (\<Sum>i<D. ca i * eta ^ i)"
-    and cb_rat: "\<forall>i<D. cb i \<in> (\<rat> :: complex set)"
-    and b_eq: "gs_b d = (\<Sum>i<D. cb i * eta ^ i)"
-    and cw_rat: "\<forall>i<D. cw i \<in> (\<rat> :: complex set)"
-    and w_eq: "gs_w d = (\<Sum>i<D. cw i * eta ^ i)"
+  assumes coords: "rational_power_basis_coordinates D eta ca cb cw (gs_a d) (gs_b d) (gs_w d)"
     and npos: "gs_n h q > 0"
     and dvd: "2 * gs_m h dvd q ^ 2"
   obtains B :: int and v :: "complex vec" and x :: "int vec" where
@@ -3475,19 +3443,14 @@ proof -
   have entryK: "?M $$ (u,t) \<in> K"
     if up: "u < ?m * ?n" and tq: "t < q * q" for u t
     by (rule row_scaled_entry_in_K_from_rational_coordinates
-      [OF ca_rat a_eq cb_rat b_eq cw_rat w_eq up tq])
+      [OF coords up tq])
   show thesis
     by (rule finite_K_matrix_has_bounded_algebraic_integer_kernel
       [OF Mcar mnpos hpq entryK]) (auto intro: that)
 qed
 
 theorem row_scaled_matrix_has_house_bounded_kernel:
-  assumes ca_rat: "\<forall>i<D. ca i \<in> (\<rat> :: complex set)"
-    and a_eq: "gs_a d = (\<Sum>i<D. ca i * eta ^ i)"
-    and cb_rat: "\<forall>i<D. cb i \<in> (\<rat> :: complex set)"
-    and b_eq: "gs_b d = (\<Sum>i<D. cb i * eta ^ i)"
-    and cw_rat: "\<forall>i<D. cw i \<in> (\<rat> :: complex set)"
-    and w_eq: "gs_w d = (\<Sum>i<D. cw i * eta ^ i)"
+  assumes coords: "rational_power_basis_coordinates D eta ca cb cw (gs_a d) (gs_b d) (gs_w d)"
     and npos: "gs_n h q > 0"
     and dvd: "2 * gs_m h dvd q ^ 2"
     and house: "\<And>u t. u < gs_m h * gs_n h q \<Longrightarrow> t < q * q \<Longrightarrow>
@@ -3519,19 +3482,14 @@ proof -
   have entryK: "?M $$ (u,t) \<in> K"
     if up: "u < ?m * ?n" and tq: "t < q * q" for u t
     by (rule row_scaled_entry_in_K_from_rational_coordinates
-      [OF ca_rat a_eq cb_rat b_eq cw_rat w_eq up tq])
+      [OF coords up tq])
   show thesis
     by (rule finite_K_matrix_has_house_bounded_algebraic_integer_kernel
       [OF Mcar mnpos hpq entryK house Hnonneg]) (auto intro: that)
 qed
 
 theorem row_scaled_matrix_has_exponential_denominator_bounded_kernel:
-  assumes ca_rat: "\<forall>i<D. ca i \<in> (\<rat> :: complex set)"
-    and a_eq: "gs_a d = (\<Sum>i<D. ca i * eta ^ i)"
-    and cb_rat: "\<forall>i<D. cb i \<in> (\<rat> :: complex set)"
-    and b_eq: "gs_b d = (\<Sum>i<D. cb i * eta ^ i)"
-    and cw_rat: "\<forall>i<D. cw i \<in> (\<rat> :: complex set)"
-    and w_eq: "gs_w d = (\<Sum>i<D. cw i * eta ^ i)"
+  assumes coords: "rational_power_basis_coordinates D eta ca cb cw (gs_a d) (gs_b d) (gs_w d)"
     and npos: "gs_n h q > 0"
     and qpos: "q > 0"
     and dvd: "2 * gs_m h dvd q ^ 2"
@@ -3564,7 +3522,7 @@ proof -
         of_int (T ^ ?N) * (?M $$ (u,t) * eta ^ j) =
           (\<Sum>i<D. of_int (c i) * eta ^ i)"
     using row_scaled_matrix_entries_have_uniform_exponential_denominator
-      [OF ca_rat a_eq cb_rat b_eq cw_rat w_eq npos qpos] by blast
+      [OF coords npos qpos] by blast
   define f :: "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> int" where
     "f = (\<lambda>u t j. SOME c::nat \<Rightarrow> int.
       of_int (T ^ ?N) * (?M $$ (u,t) * eta ^ j) =
@@ -3591,7 +3549,7 @@ proof -
   have entryK: "?M $$ (u,t) \<in> K"
     if up: "u < ?m * ?n" and tq: "t < q * q" for u t
     by (rule row_scaled_entry_in_K_from_rational_coordinates
-      [OF ca_rat a_eq cb_rat b_eq cw_rat w_eq up tq])
+      [OF coords up tq])
   have Lp: "T ^ ?N > 0" using Tp by simp
   have repC: "\<forall>u<?m * ?n. \<forall>t<q * q. \<forall>j<D.
     of_int (T ^ ?N) * (?M $$ (u,t) * eta ^ j) =
@@ -3611,12 +3569,7 @@ theorem row_scaled_matrix_has_given_denominator_bounded_kernel:
       (\<exists>c::nat \<Rightarrow> int.
         of_int (T ^ length xs) * prod_list xs =
           (\<Sum>i<D. of_int (c i) * eta ^ i))"
-    and ca_rat: "\<forall>i<D. ca i \<in> (\<rat> :: complex set)"
-    and a_eq: "gs_a d = (\<Sum>i<D. ca i * eta ^ i)"
-    and cb_rat: "\<forall>i<D. cb i \<in> (\<rat> :: complex set)"
-    and b_eq: "gs_b d = (\<Sum>i<D. cb i * eta ^ i)"
-    and cw_rat: "\<forall>i<D. cw i \<in> (\<rat> :: complex set)"
-    and w_eq: "gs_w d = (\<Sum>i<D. cw i * eta ^ i)"
+    and coords: "rational_power_basis_coordinates D eta ca cb cw (gs_a d) (gs_b d) (gs_w d)"
     and npos: "gs_n h q > 0"
     and qpos: "q > 0"
     and dvd: "2 * gs_m h dvd q ^ 2"
@@ -3675,7 +3628,7 @@ proof -
   have entryK: "?M $$ (u,t) \<in> K"
     if up: "u < ?m * ?n" and tq: "t < q * q" for u t
     by (rule row_scaled_entry_in_K_from_rational_coordinates
-      [OF ca_rat a_eq cb_rat b_eq cw_rat w_eq up tq])
+      [OF coords up tq])
   have Lp: "T ^ ?N > 0" using Tp by simp
   have repC: "\<forall>u<?m * ?n. \<forall>t<q * q. \<forall>j<D.
     of_int (T ^ ?N) * (?M $$ (u,t) * eta ^ j) =
@@ -3748,7 +3701,7 @@ proof -
     and xnz: "x \<noteq> 0\<^sub>v (q * q * D)"
     and xbnd: "x \<in> Bounded_vec ?B"
     by (rule row_scaled_matrix_has_given_denominator_bounded_kernel
-      [OF Tp prod ca_rat a_eq cb_rat b_eq cw_rat w_eq npos qpos dvd house Anonneg])
+      [OF Tp prod coords npos qpos dvd house Anonneg])
   have repr: "\<forall>t<q * q. Matrix.vec_index v t =
     (\<Sum>j<D. of_int (Matrix.vec_index x (sg_pair_idx D t j)) * basis j (emb i0))"
     using vrepr by (simp add: basis_eq_power_at_identity_embedding[OF emb0])

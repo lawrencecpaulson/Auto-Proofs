@@ -17,12 +17,7 @@ theorem exists_finite_normal_galois_power_basis_coordinates_of_algebraic_triple:
   obtains K eta D emb ca cb cw where
     "finite_normal_galois_power_basis K eta D emb"
     and "D > 0"
-    and "(\<forall>i<D. ca i \<in> (\<rat> :: complex set))"
-    and "a = (\<Sum>i<D. ca i * eta ^ i)"
-    and "(\<forall>i<D. cb i \<in> (\<rat> :: complex set))"
-    and "b = (\<Sum>i<D. cb i * eta ^ i)"
-    and "(\<forall>i<D. cw i \<in> (\<rat> :: complex set))"
-    and "w = (\<Sum>i<D. cw i * eta ^ i)"
+    and "rational_power_basis_coordinates D eta ca cb cw a b w"
 proof -
   have sfQ: "Subfield (\<rat> :: complex set)"
     using complex_subfield_Rats by (simp add: complex_subfield_iff_subfield)
@@ -33,12 +28,7 @@ proof -
     and K_def: "K = eval_img (\<rat> :: complex set) eta"
     and D_def: "D = ext_degree (\<rat> :: complex set) eta"
     and Dpos: "D > 0"
-    and ca_rat: "(\<forall>i<D. ca i \<in> (\<rat> :: complex set))"
-    and a_eq: "a = (\<Sum>i<D. ca i * eta ^ i)"
-    and cb_rat: "(\<forall>i<D. cb i \<in> (\<rat> :: complex set))"
-    and b_eq: "b = (\<Sum>i<D. cb i * eta ^ i)"
-    and cw_rat: "(\<forall>i<D. cw i \<in> (\<rat> :: complex set))"
-    and w_eq: "w = (\<Sum>i<D. cw i * eta ^ i)"
+    and coords: "rational_power_basis_coordinates D eta ca cb cw a b w"
     and finK: "finite_subfield_tower (\<rat> :: complex set) K"
     and normalK: "normal_extension K (\<rat> :: complex set)"
     and separableK: "separable_extension K (\<rat> :: complex set)"
@@ -53,7 +43,7 @@ proof -
   have PB: "finite_normal_galois_power_basis K eta D emb"
     by unfold_locales (use K_def D_def algQ eta_int ebij finK normalK separableK in auto)
   show thesis
-    by (rule that[OF PB Dpos ca_rat a_eq cb_rat b_eq cw_rat w_eq])
+    by (rule that[OF PB Dpos coords])
 qed
 
 theorem no_gelfond_schneider_data_of_power_basis_house_coordinate_contradiction:
@@ -63,12 +53,7 @@ theorem no_gelfond_schneider_data_of_power_basis_house_coordinate_contradiction:
       finite_normal_galois_power_basis K eta D emb \<Longrightarrow>
       is_gelfond_schneider_data d \<Longrightarrow>
       D > 0 \<Longrightarrow>
-      (\<forall>i<D. ca i \<in> (\<rat> :: complex set)) \<Longrightarrow>
-      gs_a d = (\<Sum>i<D. ca i * eta ^ i) \<Longrightarrow>
-      (\<forall>i<D. cb i \<in> (\<rat> :: complex set)) \<Longrightarrow>
-      gs_b d = (\<Sum>i<D. cb i * eta ^ i) \<Longrightarrow>
-      (\<forall>i<D. cw i \<in> (\<rat> :: complex set)) \<Longrightarrow>
-      gs_w d = (\<Sum>i<D. cw i * eta ^ i) \<Longrightarrow>
+      rational_power_basis_coordinates D eta ca cb cw (gs_a d) (gs_b d) (gs_w d) \<Longrightarrow>
       False"
   shows False
 proof -
@@ -84,15 +69,18 @@ theorem scaled_norm_contradiction_for_power_basis:
   assumes PB: "finite_normal_galois_power_basis K eta D emb"
     and d: "is_gelfond_schneider_data d"
     and Dpos: "D > 0"
-    and ca_rat: "\<forall>i<D. ca i \<in> (\<rat> :: complex set)"
-    and a_eq: "gs_a d = (\<Sum>i<D. ca i * eta ^ i)"
-    and cb_rat: "\<forall>i<D. cb i \<in> (\<rat> :: complex set)"
-    and b_eq: "gs_b d = (\<Sum>i<D. cb i * eta ^ i)"
-    and cw_rat: "\<forall>i<D. cw i \<in> (\<rat> :: complex set)"
-    and w_eq: "gs_w d = (\<Sum>i<D. cw i * eta ^ i)"
+    and coords: "rational_power_basis_coordinates D eta ca cb cw (gs_a d) (gs_b d) (gs_w d)"
   shows False
 proof -
   interpret PB: finite_normal_galois_power_basis K eta D emb by (rule PB)
+  interpret Coords: rational_power_basis_coordinates D eta ca cb cw "gs_a d" "gs_b d" "gs_w d"
+    by (rule coords)
+  note ca_rat = Coords.ca_rat
+  note a_eq = Coords.a_eq
+  note cb_rat = Coords.cb_rat
+  note b_eq = Coords.b_eq
+  note cw_rat = Coords.cw_rat
+  note w_eq = Coords.w_eq
   obtain aK: "gs_a d \<in> K" and  bK: "gs_b d \<in> K" and wK: "gs_w d \<in> K"
     using PB.sum_rat_power_in_K a_eq b_eq ca_rat cb_rat cw_rat w_eq by presburger
   obtain T::int where Tp: "T > 0" and prod:
@@ -122,8 +110,8 @@ proof -
     show "gs_row_scaled_system_mat d (gs_m D) (gs_n D q) q $$ (u,t) \<in> K"
       if up: "u < gs_m D * gs_n D q" and tq: "t < q * q" for u t
       by (rule PB.row_scaled_entry_in_K_from_rational_coordinates
-          [OF ca_rat a_eq cb_rat b_eq cw_rat w_eq up tq])
-  qed (use assms prod d Tp i0lt emb0 q_def A_def c14_def in auto)
+          [OF coords up tq])
+  qed (use assms ca_rat a_eq cb_rat b_eq cw_rat w_eq prod d Tp i0lt emb0 q_def A_def c14_def in auto)
   interpret V: gelfond_schneider_power_basis_scaled_norm_verified
     K eta D emb ca cb cw d q D i0 A 2 c14 T by (rule SV)
   show False by (rule V.coordinate_contradiction)

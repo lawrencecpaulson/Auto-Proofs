@@ -95,12 +95,7 @@ theorem exists_normal_common_field_coordinates_of_algebraic_triple:
   obtains \<theta> D ca cb cw K where
       "D = ext_degree (\<rat> :: complex set) \<theta>"
     and "D > 0"
-    and "(\<forall>i<D. ca i \<in> (\<rat> :: complex set))"
-    and "a = (\<Sum>i<D. ca i * \<theta> ^ i)"
-    and "(\<forall>i<D. cb i \<in> (\<rat> :: complex set))"
-    and "b = (\<Sum>i<D. cb i * \<theta> ^ i)"
-    and "(\<forall>i<D. cw i \<in> (\<rat> :: complex set))"
-    and "w = (\<Sum>i<D. cw i * \<theta> ^ i)"
+    and "rational_power_basis_coordinates D \<theta> ca cb cw a b w"
     and "finite_subfield_tower (\<rat> :: complex set) K"
     and "normal_extension K (\<rat> :: complex set)"
     and "separable_extension K (\<rat> :: complex set)"
@@ -145,8 +140,10 @@ proof -
     using bE eval_sub by blast
   have wK: "w \<in> K"
     using wE eval_sub by blast
+  have coords: "rational_power_basis_coordinates D \<theta> ca cb cw a b w"
+    by unfold_locales (use ca_rat a_eq cb_rat b_eq cw_rat w_eq in auto)
   show thesis
-    by (rule that[OF D_def Dpos ca_rat a_eq cb_rat b_eq cw_rat w_eq
+    by (rule that[OF D_def Dpos coords
           finK normalK separableK eval_sub aK bK wK])
 qed
 
@@ -159,12 +156,7 @@ theorem exists_normal_primitive_common_field_coordinates_of_algebraic_triple:
       "K = eval_img (\<rat> :: complex set) \<theta>"
     and "D = ext_degree (\<rat> :: complex set) \<theta>"
     and "D > 0"
-    and "(\<forall>i<D. ca i \<in> (\<rat> :: complex set))"
-    and "a = (\<Sum>i<D. ca i * \<theta> ^ i)"
-    and "(\<forall>i<D. cb i \<in> (\<rat> :: complex set))"
-    and "b = (\<Sum>i<D. cb i * \<theta> ^ i)"
-    and "(\<forall>i<D. cw i \<in> (\<rat> :: complex set))"
-    and "w = (\<Sum>i<D. cw i * \<theta> ^ i)"
+    and "rational_power_basis_coordinates D \<theta> ca cb cw a b w"
     and "finite_subfield_tower (\<rat> :: complex set) K"
     and "normal_extension K (\<rat> :: complex set)"
     and "separable_extension K (\<rat> :: complex set)"
@@ -175,12 +167,7 @@ proof -
   obtain \<theta>0 D0 ca0 cb0 cw0 K where
       D0_def: "D0 = ext_degree (\<rat> :: complex set) \<theta>0"
     and D0_pos: "D0 > 0"
-    and ca0_rat: "(\<forall>i<D0. ca0 i \<in> (\<rat> :: complex set))"
-    and a0_eq: "a = (\<Sum>i<D0. ca0 i * \<theta>0 ^ i)"
-    and cb0_rat: "(\<forall>i<D0. cb0 i \<in> (\<rat> :: complex set))"
-    and b0_eq: "b = (\<Sum>i<D0. cb0 i * \<theta>0 ^ i)"
-    and cw0_rat: "(\<forall>i<D0. cw0 i \<in> (\<rat> :: complex set))"
-    and w0_eq: "w = (\<Sum>i<D0. cw0 i * \<theta>0 ^ i)"
+    and _: "rational_power_basis_coordinates D0 \<theta>0 ca0 cb0 cw0 a b w"
     and finK: "finite_subfield_tower (\<rat> :: complex set) K"
     and normalK: "normal_extension K (\<rat> :: complex set)"
     and separableK: "separable_extension K (\<rat> :: complex set)"
@@ -221,8 +208,10 @@ proof -
     by (auto simp: D_def)
   have Dpos: "D > 0"
     unfolding D_def by (rule Subfield.ext_degree_pos[OF sfQ algQ])
+  have coords: "rational_power_basis_coordinates D \<theta> ca cb cw a b w"
+    by unfold_locales (use ca_rat a_eq cb_rat b_eq cw_rat w_eq in auto)
   show thesis
-    by (rule that[OF K_def D_def Dpos ca_rat a_eq cb_rat b_eq cw_rat w_eq
+    by (rule that[OF K_def D_def Dpos coords
           finK normalK separableK aK bK wK])
 qed
 
@@ -235,12 +224,7 @@ theorem exists_normal_primitive_common_field_coordinates_with_galois_enumeration
       "K = eval_img (\<rat> :: complex set) \<theta>"
     and "D = ext_degree (\<rat> :: complex set) \<theta>"
     and "D > 0"
-    and "(\<forall>i<D. ca i \<in> (\<rat> :: complex set))"
-    and "a = (\<Sum>i<D. ca i * \<theta> ^ i)"
-    and "(\<forall>i<D. cb i \<in> (\<rat> :: complex set))"
-    and "b = (\<Sum>i<D. cb i * \<theta> ^ i)"
-    and "(\<forall>i<D. cw i \<in> (\<rat> :: complex set))"
-    and "w = (\<Sum>i<D. cw i * \<theta> ^ i)"
+    and "rational_power_basis_coordinates D \<theta> ca cb cw a b w"
     and "finite_subfield_tower (\<rat> :: complex set) K"
     and "normal_extension K (\<rat> :: complex set)"
     and "separable_extension K (\<rat> :: complex set)"
@@ -253,12 +237,7 @@ proof -
       K_def: "K = eval_img (\<rat> :: complex set) \<theta>"
     and D_def: "D = ext_degree (\<rat> :: complex set) \<theta>"
     and Dpos: "D > 0"
-    and ca_rat: "(\<forall>i<D. ca i \<in> (\<rat> :: complex set))"
-    and a_eq: "a = (\<Sum>i<D. ca i * \<theta> ^ i)"
-    and cb_rat: "(\<forall>i<D. cb i \<in> (\<rat> :: complex set))"
-    and b_eq: "b = (\<Sum>i<D. cb i * \<theta> ^ i)"
-    and cw_rat: "(\<forall>i<D. cw i \<in> (\<rat> :: complex set))"
-    and w_eq: "w = (\<Sum>i<D. cw i * \<theta> ^ i)"
+    and coords: "rational_power_basis_coordinates D \<theta> ca cb cw a b w"
     and finK: "finite_subfield_tower (\<rat> :: complex set) K"
     and normalK: "normal_extension K (\<rat> :: complex set)"
     and separableK: "separable_extension K (\<rat> :: complex set)"
@@ -282,7 +261,7 @@ proof -
   have emb_D: "bij_betw emb {0..<D} (field_auto K (\<rat> :: complex set))"
     using emb by (simp add: cardG degree_eq)
   show thesis
-    by (rule that[OF K_def D_def Dpos ca_rat a_eq cb_rat b_eq cw_rat w_eq
+    by (rule that[OF K_def D_def Dpos coords
           finK normalK separableK aK bK wK emb_D])
 qed
 
@@ -296,12 +275,7 @@ theorem exists_normal_integral_primitive_common_field_coordinates_with_galois_en
     and "K = eval_img (\<rat> :: complex set) \<eta>"
     and "D = ext_degree (\<rat> :: complex set) \<eta>"
     and "D > 0"
-    and "(\<forall>i<D. ca i \<in> (\<rat> :: complex set))"
-    and "a = (\<Sum>i<D. ca i * \<eta> ^ i)"
-    and "(\<forall>i<D. cb i \<in> (\<rat> :: complex set))"
-    and "b = (\<Sum>i<D. cb i * \<eta> ^ i)"
-    and "(\<forall>i<D. cw i \<in> (\<rat> :: complex set))"
-    and "w = (\<Sum>i<D. cw i * \<eta> ^ i)"
+    and "rational_power_basis_coordinates D \<eta> ca cb cw a b w"
     and "finite_subfield_tower (\<rat> :: complex set) K"
     and "normal_extension K (\<rat> :: complex set)"
     and "separable_extension K (\<rat> :: complex set)"
@@ -314,12 +288,7 @@ proof -
       K_def: "K = eval_img (\<rat> :: complex set) \<theta>"
     and D_def: "D = ext_degree (\<rat> :: complex set) \<theta>"
     and Dpos: "D > 0"
-    and ca0_rat: "(\<forall>i<D. ca0 i \<in> (\<rat> :: complex set))"
-    and a0_eq: "a = (\<Sum>i<D. ca0 i * \<theta> ^ i)"
-    and cb0_rat: "(\<forall>i<D. cb0 i \<in> (\<rat> :: complex set))"
-    and b0_eq: "b = (\<Sum>i<D. cb0 i * \<theta> ^ i)"
-    and cw0_rat: "(\<forall>i<D. cw0 i \<in> (\<rat> :: complex set))"
-    and w0_eq: "w = (\<Sum>i<D. cw0 i * \<theta> ^ i)"
+    and coords0: "rational_power_basis_coordinates D \<theta> ca0 cb0 cw0 a b w"
     and finK: "finite_subfield_tower (\<rat> :: complex set) K"
     and normalK: "normal_extension K (\<rat> :: complex set)"
     and separableK: "separable_extension K (\<rat> :: complex set)"
@@ -328,6 +297,14 @@ proof -
     and wK: "w \<in> K"
     and ebij: "bij_betw emb {0..<D} (field_auto K (\<rat> :: complex set))"
     by (rule exists_normal_primitive_common_field_coordinates_with_galois_enumeration[OF alg_a alg_b alg_w])
+  interpret Coords0: rational_power_basis_coordinates D \<theta> ca0 cb0 cw0 a b w
+    by (rule coords0)
+  note ca0_rat = Coords0.ca_rat
+  note a0_eq = Coords0.a_eq
+  note cb0_rat = Coords0.cb_rat
+  note b0_eq = Coords0.b_eq
+  note cw0_rat = Coords0.cw_rat
+  note w0_eq = Coords0.w_eq
   have sfQ: "Subfield (\<rat> :: complex set)"
     using complex_subfield_Rats by (simp add: complex_subfield_iff_subfield)
   interpret Q: Subfield "(\<rat> :: complex set)"
@@ -402,8 +379,10 @@ proof -
       by (rule sum.cong[OF refl]) (use c_nz in \<open>simp add: field_simps power_mult_distrib\<close>)
     finally show ?thesis .
   qed
+  have coords: "rational_power_basis_coordinates D \<eta> ca cb cw a b w"
+    by unfold_locales (use ca_rat a_eq cb_rat b_eq cw_rat w_eq in auto)
   show thesis
-    by (rule that[OF eta_int K_eta D_eta Dpos ca_rat a_eq cb_rat b_eq cw_rat w_eq
+    by (rule that[OF eta_int K_eta D_eta Dpos coords
           finK normalK separableK aK bK wK ebij])
 qed
 

@@ -541,6 +541,48 @@ proof -
        (use r0_def deriv_nz in auto)
 qed
 
+lemma gs_scaled_auxiliary_value_house_lower_bound:
+  fixes v :: "complex vec"
+  assumes d: "is_gelfond_schneider_data d"
+    and qpos: "q > 0"
+    and v_carrier: "v \<in> carrier_vec (q * q)"
+    and v_nz: "v \<noteq> 0\<^sub>v (q * q)"
+    and vint: "\<forall>i<q * q. algebraic_int (v $ i)"
+    and r_eq: "r = nat (gs_min_order (gs_m h) d q (\<lambda>t. v $ t))"
+    and deriv_nz:
+      "((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. v $ t)))
+        (gs_min_order_node (gs_m h) d q (\<lambda>t. v $ t)) \<noteq> 0"
+  obtains c :: int and rho :: complex where
+      "c = gs_c1 d ^ r * gs_c1 d ^ (2 * gs_m h * q)"
+    and "rho = (of_int c :: complex) *
+          (gs_z d powi (- int r) *
+            ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. v $ t)))
+              (gs_min_order_node (gs_m h) d q (\<lambda>t. v $ t)))"
+    and "algebraic_int rho"
+    and "rho \<noteq> 0"
+    and "1 \<le> cmod rho * gs_house rho ^
+          (card (set (complex_roots_of_int_poly (min_int_poly rho))) - 1)"
+proof -
+  let ?c = "gs_c1 d ^ r * gs_c1 d ^ (2 * gs_m h * q)"
+  let ?rho = "(of_int ?c :: complex) *
+    (gs_z d powi (- int r) *
+      ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. v $ t)))
+        (gs_min_order_node (gs_m h) d q (\<lambda>t. v $ t)))"
+  have coeff_nz: "\<exists>t<q * q. v $ t \<noteq> 0"
+    using v_carrier v_nz by force
+  have rho_int: "algebraic_int ?rho"
+    using gs_scaled_min_deriv_algebraic_int[OF d qpos gs_m_pos vint coeff_nz]
+      r_eq by simp
+  have rho_nz: "?rho \<noteq> 0"
+    using gelfond_schneider_data_c1_nonzero[OF d]
+      gelfond_schneider_data_z_nonzero[OF d] deriv_nz
+    by (auto simp: power_int_def)
+  have rho_lb: "1 \<le> cmod ?rho * gs_house ?rho ^
+    (card (set (complex_roots_of_int_poly (min_int_poly ?rho))) - 1)"
+    by (rule one_le_self_mul_house_pow_of_nonzero_algebraic_int[OF rho_int rho_nz])
+  show thesis by (rule that[of ?c ?rho]) (use rho_int rho_nz rho_lb in auto)
+qed
+
 theorem gs_exists_row_scaled_bounded_nonzero_algebraic_int_house_lower_bound:
   fixes basis :: "nat \<Rightarrow> complex"
   fixes C :: "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> int"
@@ -595,48 +637,10 @@ proof -
       "((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. v $ t)))
         (gs_min_order_node (gs_m h) d q (\<lambda>t. v $ t)) \<noteq> 0"
     by (rule gs_exists_row_scaled_bounded_integral_auxiliary_data[OF d qpos npos dvd Dpos basis_int basis_indep mult_repr C_bnd])
-  have coeff_nz: "\<exists>t<q * q. v $ t \<noteq> 0"
-    using v_carrier v_nz by force
-  define c :: int where "c = gs_c1 d ^ r * gs_c1 d ^ (2 * gs_m h * q)"
-  have c_nz: "c \<noteq> 0"
-    unfolding c_def using gelfond_schneider_data_c1_nonzero[OF d] by auto
-  have rho_int:
-      "algebraic_int
-        ((of_int c :: complex) *
-          (gs_z d powi (- int r) *
-            ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. v $ t)))
-              (gs_min_order_node (gs_m h) d q (\<lambda>t. v $ t))))"
-  proof -
-    have "algebraic_int
-        (of_int (gs_c1 d ^ nat (gs_min_order (gs_m h) d q (\<lambda>t. v $ t)) *
-                 gs_c1 d ^ (2 * gs_m h * q)) *
-          (gs_z d powi (- int (nat (gs_min_order (gs_m h) d q (\<lambda>t. v $ t)))) *
-            ((deriv ^^ nat (gs_min_order (gs_m h) d q (\<lambda>t. v $ t)))
-              (gs_aux_fun_vec d q (\<lambda>t. v $ t)))
-              (gs_min_order_node (gs_m h) d q (\<lambda>t. v $ t))))"
-      by (rule gs_scaled_min_deriv_algebraic_int[OF d qpos gs_m_pos vint coeff_nz])
-    then show ?thesis
-      unfolding c_def using r_eq by simp
-  qed
-  have zfac_nz: "gs_z d powi (- int r) \<noteq> 0"
-    using gelfond_schneider_data_z_nonzero[OF d] by (simp add: power_int_def)
-  have scaled_nz:
-      "(of_int c :: complex) *
-        (gs_z d powi (- int r) *
-          ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. v $ t)))
-            (gs_min_order_node (gs_m h) d q (\<lambda>t. v $ t))) \<noteq> 0"
-    using c_nz zfac_nz deriv_nz by auto
-  define rho :: complex where "rho = (of_int c :: complex) *
-      (gs_z d powi (- int r) *
-        ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. v $ t)))
-          (gs_min_order_node (gs_m h) d q (\<lambda>t. v $ t)))"
-  have rho_lb:
-      "1 \<le> cmod rho * gs_house rho ^
-        (card (set (complex_roots_of_int_poly (min_int_poly rho))) - 1)"
-    unfolding rho_def by (rule one_le_self_mul_house_pow_of_nonzero_algebraic_int[OF rho_int scaled_nz])
   show thesis
-    by (rule that[OF v_carrier v_nz v_ker vint repr x_carrier x_nz x_bnd r_eq deriv_nz])
-       (use c_def rho_def rho_int scaled_nz rho_lb in auto)
+    by (rule gs_scaled_auxiliary_value_house_lower_bound
+      [OF d qpos v_carrier v_nz vint r_eq deriv_nz])
+       (rule that[OF v_carrier v_nz v_ker vint repr x_carrier x_nz x_bnd r_eq deriv_nz])
 qed
 
 theorem gs_exists_row_scaled_bounded_nonzero_algebraic_int_house_lower_bound_linear:
@@ -694,48 +698,10 @@ proof -
         (gs_min_order_node (gs_m h) d q (\<lambda>t. v $ t)) \<noteq> 0"
     by (rule gs_exists_row_scaled_bounded_integral_auxiliary_data_linear
           [OF d qpos npos dvd Dpos basis_int basis_indep mult_repr C_bnd])
-  have coeff_nz: "\<exists>t<q * q. v $ t \<noteq> 0"
-    using v_carrier v_nz by force
-  define c :: int where "c = gs_c1 d ^ r * gs_c1 d ^ (2 * gs_m h * q)"
-  have c_nz: "c \<noteq> 0"
-    unfolding c_def using gelfond_schneider_data_c1_nonzero[OF d] by auto
-  have rho_int:
-      "algebraic_int
-        ((of_int c :: complex) *
-          (gs_z d powi (- int r) *
-            ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. v $ t)))
-              (gs_min_order_node (gs_m h) d q (\<lambda>t. v $ t))))"
-  proof -
-    have "algebraic_int
-        (of_int (gs_c1 d ^ nat (gs_min_order (gs_m h) d q (\<lambda>t. v $ t)) *
-                 gs_c1 d ^ (2 * gs_m h * q)) *
-          (gs_z d powi (- int (nat (gs_min_order (gs_m h) d q (\<lambda>t. v $ t)))) *
-            ((deriv ^^ nat (gs_min_order (gs_m h) d q (\<lambda>t. v $ t)))
-              (gs_aux_fun_vec d q (\<lambda>t. v $ t)))
-              (gs_min_order_node (gs_m h) d q (\<lambda>t. v $ t))))"
-      by (rule gs_scaled_min_deriv_algebraic_int[OF d qpos gs_m_pos vint coeff_nz])
-    then show ?thesis
-      unfolding c_def using r_eq by simp
-  qed
-  have zfac_nz: "gs_z d powi (- int r) \<noteq> 0"
-    using gelfond_schneider_data_z_nonzero[OF d] by (simp add: power_int_def)
-  have scaled_nz:
-      "(of_int c :: complex) *
-        (gs_z d powi (- int r) *
-          ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. v $ t)))
-            (gs_min_order_node (gs_m h) d q (\<lambda>t. v $ t))) \<noteq> 0"
-    using c_nz zfac_nz deriv_nz by auto
-  define rho :: complex where "rho = (of_int c :: complex) *
-      (gs_z d powi (- int r) *
-        ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. v $ t)))
-          (gs_min_order_node (gs_m h) d q (\<lambda>t. v $ t)))"
-  have rho_lb:
-      "1 \<le> cmod rho * gs_house rho ^
-        (card (set (complex_roots_of_int_poly (min_int_poly rho))) - 1)"
-    unfolding rho_def by (rule one_le_self_mul_house_pow_of_nonzero_algebraic_int[OF rho_int scaled_nz])
   show thesis
-    by (rule that[OF v_carrier v_nz v_ker vint repr x_carrier x_nz x_bnd r_eq deriv_nz])
-       (use c_def rho_def rho_int scaled_nz rho_lb in auto)
+    by (rule gs_scaled_auxiliary_value_house_lower_bound
+      [OF d qpos v_carrier v_nz vint r_eq deriv_nz])
+       (rule that[OF v_carrier v_nz v_ker vint repr x_carrier x_nz x_bnd r_eq deriv_nz])
 qed
 
 theorem gs_exists_row_scaled_bounded_nonzero_algebraic_int_cmod_upper_bound:
