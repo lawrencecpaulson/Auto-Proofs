@@ -20,15 +20,22 @@ Completed extractions:
   both now use `gs_scaled_auxiliary_value_house_lower_bound` after
   constructing their respective bounded kernel vectors. This removed
   34 lines overall.
+- `Power_Basis_Norm_Target.thy` now defines the scaled auxiliary value,
+  its integer multiplier, and the witness growth prefactor once. Three
+  pairs of house and point bound lemmas share their common assumptions
+  through local contexts. Together these changes remove 75 theory lines.
+- `Power_Basis_Norm_Target.thy` derives the exponential-denominator
+  bounded-kernel theorem from the given-denominator version and the
+  product-denominator existence result. This removes 24 theory lines
+  while making the dependency between the results explicit.
 
 Remaining candidates identified on 2026-10-26:
 
-- `Power_Basis_Norm_Target.thy`, the exponential-denominator and
-  given-denominator versions of the row-scaled bounded-kernel theorem:
-  roughly 35 identical lines choose integer coordinates, assemble their
-  matrix representation, and invoke the house-bounded kernel theorem.
-  A result parameterized by the available denominator representation would
-  isolate this common argument.
+- `Power_Basis_Norm_Target.thy`, the two
+  `gs_rho_upper_from_concrete_witness` lemmas repeat their witness premises;
+  their denominator bounds differ. Grouping the common premises would
+  save few lines and may obscure the two quantitative hypotheses; keep
+  them explicit unless a broader witness interface is needed.
 - `Scaled_Bounded.thy` and `GS_Direct.thy` repeatedly state the
   `basis_int`, `basis_indep`, `mult_repr`, and `C_bnd` conditions. Consider a
   shared locale if further work touches several of those interfaces; a
