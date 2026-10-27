@@ -273,7 +273,7 @@ qed
 lemma gs_scaled_deriv_emb_sum_bound:
   assumes ilt: "i < D"
   assumes coeffK: "\<And>t. t < q * q \<Longrightarrow> \<xi> t \<in> K"
-  shows "cmod (emb i ((of_int c :: complex) *
+  shows "cmod (emb i (of_int c *
     (gs_z d powi (- int k) * ((deriv ^^ k) (gs_aux_fun_vec d q \<xi>)) (of_nat l)))) \<le>
     of_int (abs c) *
       (\<Sum>t<q * q. cmod (emb i (\<xi> t)) *
@@ -284,7 +284,7 @@ proof -
     by (rule emb_in_field_auto[OF ilt])
   have hom: "field_hom_on K (emb i)"
     by (rule field_auto_as_hom[OF K_subfield sigma])
-  have cK: "(of_int c :: complex) \<in> K"
+  have cK: "of_int c \<in> K"
     using Rats_subset_K by auto
   have termK: "\<xi> t * gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k \<in> K"
     if tlt: "t < q * q" for t
@@ -292,14 +292,14 @@ proof -
   have sumK: "(\<Sum>t<q * q. \<xi> t *
       gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k) \<in> K"
     by (rule KS.sum_closed) (use termK in auto)
-  have cfix: "emb i (of_int c :: complex) = of_int c"
+  have cfix: "emb i (of_int c) = of_int c"
     using sigma by (simp add: field_auto_mem_iff)
-  have eq: "emb i ((of_int c :: complex) *
+  have eq: "emb i (of_int c *
       (gs_z d powi (- int k) * ((deriv ^^ k) (gs_aux_fun_vec d q \<xi>)) (of_nat l))) =
       of_int c * (\<Sum>t<q * q. emb i (\<xi> t) *
         emb i (gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k))"
   proof -
-    have "emb i ((of_int c :: complex) *
+    have "emb i (of_int c *
       (gs_z d powi (- int k) * ((deriv ^^ k) (gs_aux_fun_vec d q \<xi>)) (of_nat l))) =
         of_int c * emb i (\<Sum>t<q * q. \<xi> t *
           gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k)"
@@ -321,7 +321,7 @@ proof -
          (auto intro: field_auto_mult[OF sigma coeffK gs_system_coeff_in_K])
     finally show ?thesis .
   qed
-  have "cmod (emb i ((of_int c :: complex) *
+  have "cmod (emb i (of_int c *
     (gs_z d powi (- int k) * ((deriv ^^ k) (gs_aux_fun_vec d q \<xi>)) (of_nat l)))) =
       of_int (abs c) * cmod (\<Sum>t<q * q. emb i (\<xi> t) *
         emb i (gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k))"
@@ -380,7 +380,7 @@ lemma gs_scaled_deriv_emb_uniform_bound:
   assumes coeff_bnd: "\<And>t. t < q * q \<Longrightarrow> cmod (emb i (\<xi> t)) \<le> V"
   assumes system_bnd: "\<And>t. t < q * q \<Longrightarrow>
     cmod (emb i (gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k)) \<le> U"
-  shows "cmod (emb i ((of_int c :: complex) *
+  shows "cmod (emb i (of_int c *
     (gs_z d powi (- int k) * ((deriv ^^ k) (gs_aux_fun_vec d q \<xi>)) (of_nat l)))) \<le>
     of_int (abs c) * of_nat (q * q) * V * U"
 proof -
@@ -388,7 +388,7 @@ proof -
       cmod (emb i (gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k)) \<le> V * U"
     if tlt: "t < q * q" for t
     by (intro mult_mono coeff_bnd[OF tlt] system_bnd[OF tlt]) (use Vnonneg Unonneg in auto)
-  have "cmod (emb i ((of_int c :: complex) *
+  have "cmod (emb i (of_int c *
     (gs_z d powi (- int k) * ((deriv ^^ k) (gs_aux_fun_vec d q \<xi>)) (of_nat l)))) \<le>
       of_int (abs c) * (\<Sum>t<q * q. cmod (emb i (\<xi> t)) *
         cmod (emb i (gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k)))"
@@ -663,7 +663,7 @@ lemma gs_concrete_entry_bound_le_growth:
   assumes rpos: "r > 0"
   shows "gs_concrete_entry_bound \<le>
     gs_concrete_entry_growth_constant ^ r *
-      (of_nat r :: real) powr (of_nat r / 2)"
+      real r powr (of_nat r / 2)"
 proof -
   have prod_ge1: "1 \<le> c14 * c5"
   proof -
@@ -702,7 +702,7 @@ definition gs_witness_growth_weight :: real where
 definition gs_entry_growth_envelope :: "nat \<Rightarrow> real" where
   "gs_entry_growth_envelope r = max 1
     (gs_concrete_entry_growth_constant ^ r *
-      (of_nat r :: real) powr (of_nat r / 2))"
+      real r powr (of_nat r / 2))"
 
 lemma gs_concrete_entry_growth_constant_ge_one:
   "1 \<le> gs_concrete_entry_growth_constant"
@@ -734,18 +734,18 @@ lemma gs_entry_growth_envelope_eq:
   assumes rpos: "r > 0"
   shows "gs_entry_growth_envelope r =
     gs_concrete_entry_growth_constant ^ r *
-      (of_nat r :: real) powr (of_nat r / 2)"
+      real r powr (of_nat r / 2)"
 proof -
-  have rone: "1 \<le> (of_nat r :: real)" using rpos by simp
-  have powrone: "1 \<le> (of_nat r :: real) powr (of_nat r / 2)"
+  have rone: "1 \<le> real r" using rpos by simp
+  have powrone: "1 \<le> real r powr (of_nat r / 2)"
     using powr_mono2[of "of_nat r / 2" 1 "of_nat r"] rone by simp
   have Kone: "1 \<le> gs_concrete_entry_growth_constant"
     by (rule gs_concrete_entry_growth_constant_ge_one)
   have Fone: "1 \<le> gs_concrete_entry_growth_constant ^ r *
-      (of_nat r :: real) powr (of_nat r / 2)"
+      real r powr (of_nat r / 2)"
   proof -
     have "(1::real) * 1 \<le> gs_concrete_entry_growth_constant ^ r *
-      (of_nat r :: real) powr (of_nat r / 2)"
+      real r powr (of_nat r / 2)"
       by (intro mult_mono powrone) (use Kone in auto)
     then show ?thesis by simp
   qed
@@ -848,7 +848,7 @@ lemma gs_witness_bound_le_growth_simple:
     (4 * of_nat (gs_m h) * of_nat D *
       (1 + gs_witness_growth_weight)) * of_nat r *
       gs_concrete_entry_growth_constant ^ r *
-      (of_nat r :: real) powr (of_nat r / 2)"
+      real r powr (of_nat r / 2)"
   using gs_witness_bound_le_growth[OF nle rpos]
   by (simp add: gs_entry_growth_envelope_eq[OF rpos] ac_simps)
 
@@ -864,7 +864,7 @@ lemma gs_witness_bound_le_growth_with_denominator:
       (1 + gs_witness_growth_weight)) * of_nat r *
       (gs_concrete_entry_growth_constant *
         of_int (T ^ (1 + 4 * gs_m h * gs_m h + D))) ^ r *
-      (of_nat r :: real) powr (of_nat r / 2)"
+      real r powr (of_nat r / 2)"
 proof -
   let ?N = "gs_n h q + 2 * (gs_m h * q) + D"
   let ?C = "1 + 4 * gs_m h * gs_m h + D"
@@ -872,7 +872,7 @@ proof -
   let ?L = "of_int (T ^ ?N) :: real"
   let ?A = "?L * gs_concrete_entry_bound"
   let ?K = "gs_concrete_entry_growth_constant"
-  let ?P = "(of_nat r :: real) powr (of_nat r / 2)"
+  let ?P = "real r powr (of_nat r / 2)"
   let ?G = "(?K * ?S) ^ r * ?P"
   let ?W = "gs_witness_growth_weight"
   have bal: "q * q = 2 * gs_m h * gs_n h q"
@@ -939,7 +939,7 @@ lemma gs_house_aux_factor_le_growth:
     gs_data_emb_bound ^ (gs_m h * q) *
     gs_data_emb_bound ^ (gs_m h * q) \<le>
     gs_concrete_entry_growth_constant ^ r *
-      (of_nat r :: real) powr (of_nat r / 2)"
+      real r powr (of_nat r / 2)"
 proof -
   have prod_ge1: "1 \<le> c14 * c5"
   proof -
@@ -1001,7 +1001,7 @@ lemma gs_scaled_deriv_emb_bounded_vec_le:
   assumes x_bnd: "x \<in> Bounded_vec B"
   assumes B_nonneg: "0 \<le> B"
   assumes lm: "l \<le> gs_m h"
-  shows "cmod (emb i ((of_int c :: complex) *
+  shows "cmod (emb i (of_int c *
     (gs_z d powi (- int k) *
       ((deriv ^^ k) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t))) (of_nat l)))) \<le>
     of_int (abs c) * of_nat (q * q) *
@@ -1069,7 +1069,7 @@ lemma rho_in_K:
     "\<forall>t<q * q. Matrix.vec_index v t =
       (\<Sum>j<D. of_int (Matrix.vec_index x (sg_pair_idx D t j)) * basis j (emb i0))"
   assumes rho_def:
-    "rho = (of_int c :: complex) *
+    "rho = of_int c *
       (gs_z d powi (- int r) *
         ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
           (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t)))"
@@ -1107,9 +1107,9 @@ proof -
     then show ?thesis
       by (simp add: node)
   qed
-  have cK: "(of_int c :: complex) \<in> K"
+  have cK: "of_int c \<in> K"
     by (simp add: KS.of_int_closed)
-  have "(of_int c :: complex) *
+  have "of_int c *
       (gs_z d powi (- int r) *
         ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
           (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t))) \<in> K"
@@ -1171,7 +1171,7 @@ lemma rho_algebraic_int_nonzero:
       (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t)) \<noteq> 0"
   assumes c_def: "c = gs_c1 d ^ r * gs_c1 d ^ (2 * gs_m h * q)"
   assumes rho_def:
-    "rho = (of_int c :: complex) *
+    "rho = of_int c *
       (gs_z d powi (- int r) *
         ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
           (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t)))"
@@ -1187,7 +1187,7 @@ proof -
       unfolding c_def using gelfond_schneider_data_c1_nonzero[OF d] by auto
     have zfac_nz: "gs_z d powi (- int r) \<noteq> 0"
       using gelfond_schneider_data_z_nonzero[OF d] by (simp add: power_int_def)
-    have "rho = (of_int c :: complex) *
+    have "rho = of_int c *
         (gs_z d powi (- int r) *
           ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
             (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t)))"
@@ -1205,7 +1205,7 @@ lemma gs_house_rho_le_of_bounded_vec:
   assumes B_nonneg: "0 \<le> B"
   assumes ai: "algebraic_int rho"
   assumes xK: "rho \<in> K"
-  assumes rho_def: "rho = (of_int c :: complex) *
+  assumes rho_def: "rho = of_int c *
     (gs_z d powi (- int r) *
       ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
         (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t)))"
@@ -1230,7 +1230,7 @@ proof -
   have lle: "Suc l \<le> gs_m h" using llt by simp
   have bound: "cmod (emb j rho) \<le> ?H" if jlt: "j < D" for j
   proof -
-    have "cmod (emb j rho) = cmod (emb j ((of_int c :: complex) *
+    have "cmod (emb j rho) = cmod (emb j (of_int c *
       (gs_z d powi (- int r) *
       ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t))) (of_nat (Suc l)))))"
       by (simp add: rho_def node)
@@ -1250,7 +1250,7 @@ lemma gs_house_rho_le_growth:
   assumes B_nonneg: "0 \<le> B"
   assumes ai: "algebraic_int rho"
   assumes xK: "rho \<in> K"
-  assumes rho_def: "rho = (of_int c :: complex) *
+  assumes rho_def: "rho = of_int c *
     (gs_z d powi (- int r) *
       ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
         (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t)))"
@@ -1261,7 +1261,7 @@ lemma gs_house_rho_le_growth:
     (4 * of_nat (gs_m h) * of_nat D *
       (1 + gs_witness_growth_weight)) * of_nat r *
       gs_concrete_entry_growth_constant ^ r *
-      (of_nat r :: real) powr (of_nat r / 2)"
+      real r powr (of_nat r / 2)"
   shows "gs_house rho \<le>
     (2 * of_nat (gs_m h) *
       (4 * of_nat (gs_m h) * of_nat D *
@@ -1269,7 +1269,7 @@ lemma gs_house_rho_le_growth:
       (of_nat D * power_basis_entry_bound)) *
       (gs_concrete_entry_growth_constant *
         gs_concrete_entry_growth_constant) ^ r *
-      (of_nat r :: real) powr (of_nat r + 2)"
+      real r powr (of_nat r + 2)"
 proof -
   let ?C = "(of_int (abs (gs_c1 d)) :: real)"
   let ?H = "gs_data_emb_bound"
@@ -1295,7 +1295,7 @@ proof -
   have c_abs: "(of_int (abs c) :: real) = ?C ^ r * ?C ^ (2 * gs_m h * q)"
     using c_def by (simp add: abs_mult power_abs)
   have Fnonneg: "0 \<le> ?F" using Cge Hge by simp
-  have Fbound: "?F \<le> ?K ^ r * (of_nat r :: real) powr (of_nat r / 2)"
+  have Fbound: "?F \<le> ?K ^ r * real r powr (of_nat r / 2)"
     by (rule gs_house_aux_factor_le_growth[OF nle rpos])
   have Wnonneg: "0 \<le> ?W"
     using power_basis_inverse_bound_nonneg power_basis_entry_bound_nonneg
@@ -1307,7 +1307,7 @@ proof -
     using house_raw by (simp only: c_abs of_nat_mult ac_simps)
   have multiplied: "(of_nat (q * q) :: real) * of_int B * ?E * ?F \<le>
     (2 * of_nat (gs_m h) * ?W * ?E) * (?K * ?K) ^ r *
-      (of_nat r :: real) powr (of_nat r + 2)"
+      real r powr (of_nat r + 2)"
     by (rule gs_house_growth_multiply[OF rpos qsq _ Fnonneg Wnonneg _ Enonneg Bbound Fbound])
       (use B_nonneg gs_concrete_entry_growth_constant_ge_one in auto)
   show ?thesis using house_factor multiplied by simp
@@ -1321,7 +1321,7 @@ lemma gs_house_rho_le_growth_with_factor:
   assumes B_nonneg: "0 \<le> B"
   assumes ai: "algebraic_int rho"
   assumes xK: "rho \<in> K"
-  assumes rho_def: "rho = (of_int c :: complex) *
+  assumes rho_def: "rho = of_int c *
     (gs_z d powi (- int r) *
       ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
         (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t)))"
@@ -1333,7 +1333,7 @@ lemma gs_house_rho_le_growth_with_factor:
     (4 * of_nat (gs_m h) * of_nat D *
       (1 + gs_witness_growth_weight)) * of_nat r *
       (gs_concrete_entry_growth_constant * U) ^ r *
-      (of_nat r :: real) powr (of_nat r / 2)"
+      real r powr (of_nat r / 2)"
   shows "gs_house rho \<le>
     (2 * of_nat (gs_m h) *
       (4 * of_nat (gs_m h) * of_nat D *
@@ -1341,7 +1341,7 @@ lemma gs_house_rho_le_growth_with_factor:
       (of_nat D * power_basis_entry_bound)) *
       ((gs_concrete_entry_growth_constant * U) *
         (gs_concrete_entry_growth_constant * U)) ^ r *
-      (of_nat r :: real) powr (of_nat r + 2)"
+      real r powr (of_nat r + 2)"
 proof -
   let ?C = "(of_int (abs (gs_c1 d)) :: real)"
   let ?H = "gs_data_emb_bound"
@@ -1368,18 +1368,18 @@ proof -
     using c_def by (simp add: abs_mult power_abs)
   have Fnonneg: "0 \<le> ?F" using Cge Hge by simp
   have Fbase: "?F \<le> gs_concrete_entry_growth_constant ^ r *
-    (of_nat r :: real) powr (of_nat r / 2)"
+    real r powr (of_nat r / 2)"
     by (rule gs_house_aux_factor_le_growth[OF nle rpos])
   have Kge: "1 \<le> gs_concrete_entry_growth_constant"
     by (rule gs_concrete_entry_growth_constant_ge_one)
   have Knonneg: "0 \<le> ?K" using Kge Uone by simp
-  have Fbound: "?F \<le> ?K ^ r * (of_nat r :: real) powr (of_nat r / 2)"
+  have Fbound: "?F \<le> ?K ^ r * real r powr (of_nat r / 2)"
   proof -
     have pow: "gs_concrete_entry_growth_constant ^ r \<le> ?K ^ r"
       by (rule power_mono) (use Kge Uone in auto)
     have "gs_concrete_entry_growth_constant ^ r *
-      (of_nat r :: real) powr (of_nat r / 2) \<le>
-      ?K ^ r * (of_nat r :: real) powr (of_nat r / 2)"
+      real r powr (of_nat r / 2) \<le>
+      ?K ^ r * real r powr (of_nat r / 2)"
       by (rule mult_right_mono[OF pow]) simp
     then show ?thesis using Fbase by linarith
   qed
@@ -1393,7 +1393,7 @@ proof -
     using house_raw by (simp only: c_abs of_nat_mult ac_simps)
   have multiplied: "(of_nat (q * q) :: real) * of_int B * ?E * ?F \<le>
     (2 * of_nat (gs_m h) * ?W * ?E) * (?K * ?K) ^ r *
-      (of_nat r :: real) powr (of_nat r + 2)"
+      real r powr (of_nat r + 2)"
     by (rule gs_house_growth_multiply[OF rpos qsq _ Fnonneg Wnonneg _ Enonneg Bbound Fbound])
       (use B_nonneg Knonneg in auto)
   show ?thesis using house_factor multiplied by simp
@@ -1429,7 +1429,7 @@ lemma gs_house_rho_le_growth_absorbed:
   assumes B_nonneg: "0 \<le> B"
   assumes ai: "algebraic_int rho"
   assumes xK: "rho \<in> K"
-  assumes rho_def: "rho = (of_int c :: complex) *
+  assumes rho_def: "rho = of_int c *
     (gs_z d powi (- int r) *
       ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
         (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t)))"
@@ -1440,10 +1440,10 @@ lemma gs_house_rho_le_growth_absorbed:
     (4 * of_nat (gs_m h) * of_nat D *
       (1 + gs_witness_growth_weight)) * of_nat r *
       gs_concrete_entry_growth_constant ^ r *
-      (of_nat r :: real) powr (of_nat r / 2)"
+      real r powr (of_nat r / 2)"
   shows "gs_house rho \<le>
     gs_house_growth_base ^ r *
-      (of_nat r :: real) powr (of_nat r + 3 / 2)"
+      real r powr (of_nat r + 3 / 2)"
 proof -
   have Kone: "1 \<le> gs_concrete_entry_growth_constant"
     by (rule gs_concrete_entry_growth_constant_ge_one)
@@ -1457,16 +1457,16 @@ proof -
     gs_house_growth_prefactor *
       (gs_concrete_entry_growth_constant *
         gs_concrete_entry_growth_constant) ^ r *
-      (of_nat r :: real) powr (of_nat r + 2)"
+      real r powr (of_nat r + 2)"
     using gs_house_rho_le_growth[OF repr x_carrier x_bnd B_nonneg ai xK
       rho_def c_def nle rpos Bbound]
     by (simp only: gs_house_growth_prefactor_def)
   have absorb: "gs_house_growth_prefactor *
       (gs_concrete_entry_growth_constant *
         gs_concrete_entry_growth_constant) ^ r *
-      (of_nat r :: real) powr (of_nat r + 2) \<le>
+      real r powr (of_nat r + 2) \<le>
       gs_house_growth_base ^ r *
-        (of_nat r :: real) powr (of_nat r + 3 / 2)"
+        real r powr (of_nat r + 3 / 2)"
     using gs_house_growth_absorb[OF rpos Fnonneg, of gs_concrete_entry_growth_constant]
       Kone by (simp add: gs_house_growth_base_def)
   show ?thesis using raw absorb by linarith
@@ -1480,7 +1480,7 @@ lemma gs_house_rho_le_growth_absorbed_with_factor:
   assumes B_nonneg: "0 \<le> B"
   assumes ai: "algebraic_int rho"
   assumes xK: "rho \<in> K"
-  assumes rho_def: "rho = (of_int c :: complex) *
+  assumes rho_def: "rho = of_int c *
     (gs_z d powi (- int r) *
       ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
         (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t)))"
@@ -1492,10 +1492,10 @@ lemma gs_house_rho_le_growth_absorbed_with_factor:
     (4 * of_nat (gs_m h) * of_nat D *
       (1 + gs_witness_growth_weight)) * of_nat r *
       (gs_concrete_entry_growth_constant * U) ^ r *
-      (of_nat r :: real) powr (of_nat r / 2)"
+      real r powr (of_nat r / 2)"
   shows "gs_house rho \<le>
     (gs_house_growth_base * U ^ 2) ^ r *
-      (of_nat r :: real) powr (of_nat r + 3 / 2)"
+      real r powr (of_nat r + 3 / 2)"
 proof -
   have Kbase: "1 \<le> gs_concrete_entry_growth_constant"
     by (rule gs_concrete_entry_growth_constant_ge_one)
@@ -1515,16 +1515,16 @@ proof -
     gs_house_growth_prefactor *
       ((gs_concrete_entry_growth_constant * U) *
         (gs_concrete_entry_growth_constant * U)) ^ r *
-      (of_nat r :: real) powr (of_nat r + 2)"
+      real r powr (of_nat r + 2)"
     using gs_house_rho_le_growth_with_factor[OF repr x_carrier x_bnd B_nonneg ai xK
       rho_def c_def nle rpos Uone Bbound]
     by (simp only: gs_house_growth_prefactor_def)
   have absorb: "gs_house_growth_prefactor *
       ((gs_concrete_entry_growth_constant * U) *
         (gs_concrete_entry_growth_constant * U)) ^ r *
-      (of_nat r :: real) powr (of_nat r + 2) \<le>
+      real r powr (of_nat r + 2) \<le>
       (gs_house_growth_base * U ^ 2) ^ r *
-        (of_nat r :: real) powr (of_nat r + 3 / 2)"
+        real r powr (of_nat r + 3 / 2)"
     using gs_house_growth_absorb[OF rpos Fnonneg, of "gs_concrete_entry_growth_constant * U"]
       Kone by (simp add: gs_house_growth_base_def power2_eq_square algebra_simps)
   show ?thesis using raw absorb by linarith
@@ -1618,7 +1618,7 @@ lemma gs_rho_cmod_le_of_bounded_vec:
   assumes x_bnd: "x \<in> Bounded_vec B"
   assumes B_nonneg: "0 \<le> B"
   assumes req: "r = nat (gs_min_order (gs_m h) d q (\<lambda>t. Matrix.vec_index v t))"
-  assumes rho_def: "rho = (of_int c :: complex) *
+  assumes rho_def: "rho = of_int c *
     (gs_z d powi (- int r) *
       ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
         (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t)))"
@@ -1705,7 +1705,7 @@ lemma gs_rho_cmod_le_growth_absorbed:
   assumes x_bnd: "x \<in> Bounded_vec B"
   assumes B_nonneg: "0 \<le> B"
   assumes req: "r = nat (gs_min_order (gs_m h) d q (\<lambda>t. Matrix.vec_index v t))"
-  assumes rho_def: "rho = (of_int c :: complex) *
+  assumes rho_def: "rho = of_int c *
     (gs_z d powi (- int r) *
       ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
         (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t)))"
@@ -1716,13 +1716,13 @@ lemma gs_rho_cmod_le_growth_absorbed:
     (4 * of_nat (gs_m h) * of_nat D *
       (1 + gs_witness_growth_weight)) * of_nat r *
       gs_concrete_entry_growth_constant ^ r *
-      (of_nat r :: real) powr (of_nat r / 2)"
+      real r powr (of_nat r / 2)"
   shows "cmod rho \<le> gs_point_growth_base ^ r *
-    (of_nat r :: real) powr
+    real r powr
       (of_nat r * (3 - of_nat (gs_m h)) / 2 + 3 / 2)"
 proof -
   let ?m = "gs_m h"
-  let ?R = "(of_nat r :: real)"
+  let ?R = "real r"
   let ?W = "4 * of_nat ?m * of_nat D *
       (1 + gs_witness_growth_weight) :: real"
   let ?E = "of_nat D * power_basis_entry_bound :: real"
@@ -1808,7 +1808,7 @@ lemma gs_rho_cmod_le_growth_absorbed_with_factor:
   assumes x_bnd: "x \<in> Bounded_vec B"
   assumes B_nonneg: "0 \<le> B"
   assumes req: "r = nat (gs_min_order (gs_m h) d q (\<lambda>t. Matrix.vec_index v t))"
-  assumes rho_def: "rho = (of_int c :: complex) *
+  assumes rho_def: "rho = of_int c *
     (gs_z d powi (- int r) *
       ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
         (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t)))"
@@ -1820,13 +1820,13 @@ lemma gs_rho_cmod_le_growth_absorbed_with_factor:
     (4 * of_nat (gs_m h) * of_nat D *
       (1 + gs_witness_growth_weight)) * of_nat r *
       (gs_concrete_entry_growth_constant * U) ^ r *
-      (of_nat r :: real) powr (of_nat r / 2)"
+      real r powr (of_nat r / 2)"
   shows "cmod rho \<le> (gs_point_growth_base * U) ^ r *
-    (of_nat r :: real) powr
+    real r powr
       (of_nat r * (3 - of_nat (gs_m h)) / 2 + 3 / 2)"
 proof -
   let ?m = "gs_m h"
-  let ?R = "(of_nat r :: real)"
+  let ?R = "real r"
   let ?W = "4 * of_nat ?m * of_nat D *
       (1 + gs_witness_growth_weight) :: real"
   let ?E = "of_nat D * power_basis_entry_bound :: real"
@@ -1912,15 +1912,15 @@ lemma gs_norm_upper_from_concrete_house_point:
   assumes rpos: "r > 0"
   assumes house_bound: "gs_house rho \<le>
     gs_house_growth_base ^ r *
-      (of_nat r :: real) powr (of_nat r + 3 / 2)"
+      real r powr (of_nat r + 3 / 2)"
   assumes point_bound: "cmod rho \<le> gs_point_growth_base ^ r *
-    (of_nat r :: real) powr
+    real r powr
       (of_nat r * (3 - of_nat (gs_m h)) / 2 + 3 / 2)"
   assumes c14_big: "gs_house_growth_base ^ (D - 1) *
     gs_point_growth_base \<le> c14"
   shows "gs_abs_galois_norm rho \<le>
     c14 powr of_nat r *
-      (of_nat r :: real) powr (- of_nat r / 2 + 3 * of_nat h / 2)"
+      real r powr (- of_nat r / 2 + 3 * of_nat h / 2)"
 proof -
   have house_pos: "0 < gs_house_growth_base"
     by (rule gs_house_growth_base_pos)
@@ -1931,22 +1931,22 @@ proof -
   have point_power: "gs_point_growth_base ^ r =
       gs_point_growth_base powr of_nat r"
     by (simp only: powr_realpow[OF point_pos])
-  have point_exponent: "(of_nat r :: real) *
+  have point_exponent: "real r *
       (3 - of_nat (gs_m h)) / 2 + 3 / 2 =
       of_nat r * (3 - of_nat (2 * D + 2)) / 2 + 3 / 2"
     using hD by (simp add: gs_m_def)
   have point_le: "cmod (emb i0 rho) \<le>
       gs_point_growth_base powr of_nat r *
-      (of_nat r :: real) powr
+      real r powr
         (of_nat r * (3 - of_nat (2 * D + 2)) / 2 + 3 / 2)"
     using point_bound by (simp only: emb0_rho point_power point_exponent)
   have house_le: "gs_house rho \<le>
       gs_house_growth_base powr of_nat r *
-        (of_nat r :: real) powr (of_nat r + 3 / 2)"
+        real r powr (of_nat r + 3 / 2)"
     using house_bound by (simp add: powr_realpow[OF house_pos])
   have norm_le: "gs_abs_galois_norm rho \<le>
       (gs_house_growth_base ^ (D - 1) * gs_point_growth_base) powr of_nat r *
-        (of_nat r :: real) powr (- of_nat r / 2 + 3 * of_nat D / 2)"
+        real r powr (- of_nat r / 2 + 3 * of_nat D / 2)"
     by (rule gs_abs_galois_norm_le_from_analytic_house_bounds[OF i0lt xK ai
       house_pos point_pos rpos house_le point_le])
   have base_nonneg: "0 \<le> gs_house_growth_base ^ (D - 1) * gs_point_growth_base"
@@ -1954,7 +1954,7 @@ proof -
   have base_le: "(gs_house_growth_base ^ (D - 1) * gs_point_growth_base)
       powr of_nat r \<le> c14 powr of_nat r"
     by (rule powr_mono2[OF _ base_nonneg c14_big]) simp
-  have rp_nonneg: "0 \<le> (of_nat r :: real) powr
+  have rp_nonneg: "0 \<le> real r powr
       (- of_nat r / 2 + 3 * of_nat D / 2)"
     by simp
   show ?thesis using norm_le base_le rp_nonneg hD
@@ -1969,15 +1969,15 @@ lemma gs_norm_upper_from_concrete_house_point_with_factor:
   assumes Uone: "1 \<le> U"
   assumes house_bound: "gs_house rho \<le>
     (gs_house_growth_base * U ^ 2) ^ r *
-      (of_nat r :: real) powr (of_nat r + 3 / 2)"
+      real r powr (of_nat r + 3 / 2)"
   assumes point_bound: "cmod rho \<le> (gs_point_growth_base * U) ^ r *
-    (of_nat r :: real) powr
+    real r powr
       (of_nat r * (3 - of_nat (gs_m h)) / 2 + 3 / 2)"
   assumes c14_big: "(gs_house_growth_base * U ^ 2) ^ (D - 1) *
     (gs_point_growth_base * U) \<le> c14"
   shows "gs_abs_galois_norm rho \<le>
     c14 powr of_nat r *
-      (of_nat r :: real) powr (- of_nat r / 2 + 3 * of_nat h / 2)"
+      real r powr (- of_nat r / 2 + 3 * of_nat h / 2)"
 proof -
   have house_pos: "0 < (gs_house_growth_base * U ^ 2)"
     using gs_house_growth_base_pos Uone by simp
@@ -1988,22 +1988,22 @@ proof -
   have point_power: "(gs_point_growth_base * U) ^ r =
       (gs_point_growth_base * U) powr of_nat r"
     by (simp only: powr_realpow[OF point_pos])
-  have point_exponent: "(of_nat r :: real) *
+  have point_exponent: "real r *
       (3 - of_nat (gs_m h)) / 2 + 3 / 2 =
       of_nat r * (3 - of_nat (2 * D + 2)) / 2 + 3 / 2"
     using hD by (simp add: gs_m_def)
   have point_le: "cmod (emb i0 rho) \<le>
       (gs_point_growth_base * U) powr of_nat r *
-      (of_nat r :: real) powr
+      real r powr
         (of_nat r * (3 - of_nat (2 * D + 2)) / 2 + 3 / 2)"
     using point_bound by (simp only: emb0_rho point_power point_exponent)
   have house_le: "gs_house rho \<le>
       (gs_house_growth_base * U ^ 2) powr of_nat r *
-        (of_nat r :: real) powr (of_nat r + 3 / 2)"
+        real r powr (of_nat r + 3 / 2)"
     using house_bound by (simp add: powr_realpow[OF house_pos])
   have norm_le: "gs_abs_galois_norm rho \<le>
       ((gs_house_growth_base * U ^ 2) ^ (D - 1) * (gs_point_growth_base * U)) powr of_nat r *
-        (of_nat r :: real) powr (- of_nat r / 2 + 3 * of_nat D / 2)"
+        real r powr (- of_nat r / 2 + 3 * of_nat D / 2)"
     by (rule gs_abs_galois_norm_le_from_analytic_house_bounds[OF i0lt xK ai
       house_pos point_pos rpos house_le point_le])
   have base_nonneg: "0 \<le> (gs_house_growth_base * U ^ 2) ^ (D - 1) * (gs_point_growth_base * U)"
@@ -2011,7 +2011,7 @@ proof -
   have base_le: "((gs_house_growth_base * U ^ 2) ^ (D - 1) * (gs_point_growth_base * U))
       powr of_nat r \<le> c14 powr of_nat r"
     by (rule powr_mono2[OF _ base_nonneg c14_big]) simp
-  have rp_nonneg: "0 \<le> (of_nat r :: real) powr
+  have rp_nonneg: "0 \<le> real r powr
       (- of_nat r / 2 + 3 * of_nat D / 2)"
     by simp
   show ?thesis using norm_le base_le rp_nonneg hD
@@ -2035,7 +2035,7 @@ lemma gs_rho_upper_from_concrete_witness:
       max 1 (ceiling (of_nat (card E) * power_basis_inverse_bound * A *
         power_basis_entry_bound)))"
   assumes req: "r = nat (gs_min_order (gs_m h) d q (\<lambda>t. Matrix.vec_index v t))"
-  assumes rho_def: "rho = (of_int c :: complex) *
+  assumes rho_def: "rho = of_int c *
     (gs_z d powi (- int r) *
       ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
         (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t)))"
@@ -2046,7 +2046,7 @@ lemma gs_rho_upper_from_concrete_witness:
   assumes xK: "rho \<in> K"
   shows "gs_abs_galois_norm rho \<le>
     c14 powr of_nat r *
-      (of_nat r :: real) powr (- of_nat r / 2 + 3 * of_nat h / 2)"
+      real r powr (- of_nat r / 2 + 3 * of_nat h / 2)"
 proof -
   let ?B = "2 * int (q * q * D) *
       max 1 (ceiling (of_nat (card E) * power_basis_inverse_bound * A *
@@ -2056,16 +2056,16 @@ proof -
     (4 * of_nat (gs_m h) * of_nat D *
       (1 + gs_witness_growth_weight)) * of_nat r *
       gs_concrete_entry_growth_constant ^ r *
-      (of_nat r :: real) powr (of_nat r / 2)"
+      real r powr (of_nat r / 2)"
     using gs_witness_bound_le_growth_simple[OF nle rpos]
     by (simp only: A_choice)
   have house: "gs_house rho \<le>
     gs_house_growth_base ^ r *
-      (of_nat r :: real) powr (of_nat r + 3 / 2)"
+      real r powr (of_nat r + 3 / 2)"
     by (rule gs_house_rho_le_growth_absorbed[OF repr x_carrier x_bnd
       Bnonneg ai xK rho_def c_def nle rpos Bbound])
   have point: "cmod rho \<le> gs_point_growth_base ^ r *
-    (of_nat r :: real) powr
+    real r powr
       (of_nat r * (3 - of_nat (gs_m h)) / 2 + 3 / 2)"
     by (rule gs_rho_cmod_le_growth_absorbed[OF v_carrier v_nz v_ker repr
       x_carrier x_bnd Bnonneg req rho_def c_def nle rpos Bbound])
@@ -2096,7 +2096,7 @@ lemma gs_rho_upper_from_concrete_witness_with_denominator:
         (of_int (T ^ (gs_n h q + 2 * (gs_m h * q) + D)) * A *
           power_basis_entry_bound))))"
   assumes req: "r = nat (gs_min_order (gs_m h) d q (\<lambda>t. Matrix.vec_index v t))"
-  assumes rho_def: "rho = (of_int c :: complex) *
+  assumes rho_def: "rho = of_int c *
     (gs_z d powi (- int r) *
       ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
         (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t)))"
@@ -2107,7 +2107,7 @@ lemma gs_rho_upper_from_concrete_witness_with_denominator:
   assumes xK: "rho \<in> K"
   shows "gs_abs_galois_norm rho \<le>
     c14 powr of_nat r *
-      (of_nat r :: real) powr (- of_nat r / 2 + 3 * of_nat h / 2)"
+      real r powr (- of_nat r / 2 + 3 * of_nat h / 2)"
 proof -
   let ?U = "of_int (T ^ (1 + 4 * gs_m h * gs_m h + D)) :: real"
   have Tone: "1 \<le> T" using Tp by simp
@@ -2126,16 +2126,16 @@ proof -
     (4 * of_nat (gs_m h) * of_nat D *
       (1 + gs_witness_growth_weight)) * of_nat r *
       (gs_concrete_entry_growth_constant * ?U) ^ r *
-      (of_nat r :: real) powr (of_nat r / 2)"
+      real r powr (of_nat r / 2)"
     using gs_witness_bound_le_growth_with_denominator[OF nle rpos Tp]
     by (simp only: A_choice)
   have house: "gs_house rho \<le>
     (gs_house_growth_base * ?U ^ 2) ^ r *
-      (of_nat r :: real) powr (of_nat r + 3 / 2)"
+      real r powr (of_nat r + 3 / 2)"
     by (rule gs_house_rho_le_growth_absorbed_with_factor[OF repr x_carrier x_bnd
       Bnonneg ai xK rho_def c_def nle rpos Uone Bbound])
   have point: "cmod rho \<le> (gs_point_growth_base * ?U) ^ r *
-    (of_nat r :: real) powr
+    real r powr
       (of_nat r * (3 - of_nat (gs_m h)) / 2 + 3 / 2)"
     by (rule gs_rho_cmod_le_growth_absorbed_with_factor[OF v_carrier v_nz v_ker repr
       x_carrier x_bnd Bnonneg req rho_def c_def nle rpos Uone Bbound])
@@ -2164,7 +2164,7 @@ lemma gs_rho_upper_verified:
       ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
         (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t)) \<noteq> 0 \<Longrightarrow>
       c = gs_c1 d ^ r * gs_c1 d ^ (2 * gs_m h * q) \<Longrightarrow>
-      rho = (of_int c :: complex) *
+      rho = of_int c *
         (gs_z d powi (- int r) *
           ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
             (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t))) \<Longrightarrow>
@@ -2190,7 +2190,7 @@ proof -
   assume deriv_nz: "((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
     (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t)) \<noteq> 0"
   assume c_def: "c = gs_c1 d ^ r * gs_c1 d ^ (2 * gs_m h * q)"
-  assume rho_def: "rho = (of_int c :: complex) *
+  assume rho_def: "rho = of_int c *
     (gs_z d powi (- int r) *
       ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
         (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t)))"
@@ -2205,7 +2205,7 @@ proof -
     by (rule rho_in_K[OF repr rho_def])
   show "gs_abs_galois_norm rho \<le>
     c14 powr of_nat r *
-      (of_nat r :: real) powr (- of_nat r / 2 + 3 * of_nat h / 2)"
+      real r powr (- of_nat r / 2 + 3 * of_nat h / 2)"
     by (rule gs_rho_upper_from_concrete_witness[OF hD A_choice c14_big
       v_carrier v_nz v_ker repr x_carrier x_bnd req rho_def c_def
       nle rpos ai xK])
@@ -3716,37 +3716,27 @@ proof -
     unfolding r_def
     by (rule gs_min_order_deriv_nonzero_of_coeff_nonzero[OF d qpos coeff_nz])
   define c where "c = gs_c1 d ^ r * gs_c1 d ^ (2 * gs_m h * q)"
-  define rho where "rho = (of_int c :: complex) *
+  define rho where "rho \<equiv> of_int c *
     (gs_z d powi (- int r) *
-      ((deriv ^^ r) (gs_aux_fun_vec d q
-        (\<lambda>t. Matrix.vec_index v t)))
-        (gs_min_order_node (gs_m h) d q
-          (\<lambda>t. Matrix.vec_index v t)))"
-  have nle: "gs_n h q \<le> r"
-    by (rule rho_order_ge_n[OF vcar vnz ker r_def])
-  have rpos: "r > 0"
-    by (rule rho_order_pos[OF vcar vnz ker r_def])
-  have ai: "algebraic_int rho" and nz: "rho \<noteq> 0"
-    by (rule rho_algebraic_int_nonzero[OF vcar vnz vint r_def
-      deriv_nz c_def rho_def])+
+      ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
+        (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t)))"
+  obtain "0 < r" and nle: "gs_n h q \<le> r"
+    using vcar vnz ker r_def rho_order_pos rho_order_ge_n by presburger
+  obtain ai: "algebraic_int rho" and nz: "rho \<noteq> 0"
+    using rho_algebraic_int_nonzero[OF vcar vnz vint r_def deriv_nz c_def] rho_def by blast
   have xK: "rho \<in> K"
-    by (rule rho_in_K[OF repr rho_def])
-  have upper: "gs_abs_galois_norm rho \<le>
-    c14 powr of_nat r *
-      (of_nat r :: real) powr (- of_nat r / 2 + 3 * of_nat h / 2)"
-    by (rule gs_rho_upper_from_concrete_witness_with_denominator
-      [OF hD A_choice Tp c14_big vcar vnz ker repr xcar xbnd
-        r_def rho_def c_def nle rpos ai xK])
-  have pos: "0 < gs_abs_galois_norm rho"
+    using rho_in_K[OF repr] rho_def by blast
+  moreover have "gs_abs_galois_norm rho \<le> c14 powr of_nat r * real r powr (- of_nat r / 2 + 3 * of_nat h / 2)"
+    using r_def rho_def c_def nle \<open>r > 0\<close> ai xK
+    by (intro gs_rho_upper_from_concrete_witness_with_denominator [OF hD A_choice Tp c14_big vcar vnz ker repr xcar xbnd]) auto
+  moreover have "0 < gs_abs_galois_norm rho"
     by (rule gs_abs_galois_norm_pos[OF xK nz])
-  have inv: "inverse (gs_abs_galois_norm rho) < c5 powr of_nat r"
-    by (rule inverse_gs_abs_galois_norm_lt_powr[OF xK ai nz c5_gt1 rpos])
-  have choice: "gs_n h (gs_q_choice h (c14 * c5)) \<le> r"
+  moreover have "inverse (gs_abs_galois_norm rho) < c5 powr of_nat r"
+    by (rule inverse_gs_abs_galois_norm_lt_powr[OF xK ai nz c5_gt1 \<open>r > 0\<close>])
+  moreover have "gs_n h (gs_q_choice h (c14 * c5)) \<le> r"
     using nle by (simp add: q_def)
-  have c5ge: "1 \<le> c5" using c5_gt1 by linarith
-  show False
-    by (rule gs_growth_contradiction_with_q_choice
-      [OF hpos choice c14_ge1 c5ge pos upper inv])
+  ultimately show False
+    using c14_ge1 c5_gt1 gs_growth_contradiction_with_q_choice hpos  by fastforce
 qed
 
 end
