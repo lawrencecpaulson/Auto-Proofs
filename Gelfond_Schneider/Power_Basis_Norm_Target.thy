@@ -3462,9 +3462,17 @@ proof -
     "f = (\<lambda>u t j. SOME c::nat \<Rightarrow> int.
       of_int (T ^ ?N) * (?M $$ (u,t) * eta ^ j) =
         (\<Sum>i<D. of_int (c i) * eta ^ i))"
-  have rep: "\<forall>u<?m * ?n. \<forall>t<q * q. \<forall>j<D.
-    of_int (T ^ ?N) * (?M $$ (u,t) * eta ^ j) =
-      (\<Sum>i<D. of_int (f u t j i) * eta ^ i)"
+  have Mcar: "?M \<in> carrier_mat (?m * ?n) (q * q)" by simp
+  have mnpos: "?m * ?n > 0" using npos by simp
+  have bal: "q * q = 2 * (?m * ?n)"
+    using gs_q_sq_eq_two_mn[OF dvd] by (simp add: power2_eq_square)
+  have hpq: "2 * (?m * ?n) \<le> q * q" using bal by simp
+  have entryK: "?M $$ (u,t) \<in> K"
+    if up: "u < ?m * ?n" and tq: "t < q * q" for u t
+    by (rule row_scaled_entry_in_K_from_rational_coordinates [OF coords up tq])
+  have Lp: "T ^ ?N > 0" using Tp by simp
+  have repC: "\<forall>u<?m * ?n. \<forall>t<q * q. \<forall>j<D.
+    of_int (T ^ ?N) * (?M $$ (u,t) * eta ^ j) = (\<Sum>k<D. of_int ((\<lambda>u t k j. f u t j k) u t k j) * eta ^ k)"
   proof (intro allI impI)
     fix u t j
     assume up: "u < ?m * ?n" and tq: "t < q * q" and jd: "j < D"
@@ -3476,20 +3484,6 @@ proof -
       (\<Sum>i<D. of_int (f u t j i) * eta ^ i)"
       using someI_ex[OF ex] by (simp only: f_def)
   qed
-  have Mcar: "?M \<in> carrier_mat (?m * ?n) (q * q)" by simp
-  have mnpos: "?m * ?n > 0" using npos by simp
-  have bal: "q * q = 2 * (?m * ?n)"
-    using gs_q_sq_eq_two_mn[OF dvd] by (simp add: power2_eq_square)
-  have hpq: "2 * (?m * ?n) \<le> q * q" using bal by simp
-  have entryK: "?M $$ (u,t) \<in> K"
-    if up: "u < ?m * ?n" and tq: "t < q * q" for u t
-    by (rule row_scaled_entry_in_K_from_rational_coordinates
-      [OF coords up tq])
-  have Lp: "T ^ ?N > 0" using Tp by simp
-  have repC: "\<forall>u<?m * ?n. \<forall>t<q * q. \<forall>j<D.
-    of_int (T ^ ?N) * (?M $$ (u,t) * eta ^ j) =
-      (\<Sum>k<D. of_int ((\<lambda>u t k j. f u t j k) u t k j) * eta ^ k)"
-    using rep by simp
   show thesis
     by (rule finite_K_matrix_has_house_bounded_kernel_given_denominator
       [OF Mcar mnpos hpq entryK house Hnonneg Lp repC])
@@ -3516,27 +3510,20 @@ theorem row_scaled_matrix_has_exponential_denominator_bounded_kernel:
     "x \<in> carrier_vec (q * q * D)"
     "x \<noteq> 0\<^sub>v (q * q * D)"
     "x \<in> Bounded_vec (2 * int (q * q * D) * max 1
-      (ceiling (of_nat (card E) * power_basis_inverse_bound *
-        (of_int (T ^ (gs_n h q + 2 * (gs_m h * q) + D)) * H *
-          power_basis_entry_bound))))"
+      \<lceil>real (card E) * power_basis_inverse_bound *
+       (real_of_int (T ^ (gs_n h q + 2 * (gs_m h * q) + D)) * H * power_basis_entry_bound)\<rceil>)"
 proof -
   interpret Coords: rational_power_basis_coordinates D eta ca cb cw
     "gs_a d" "gs_b d" "gs_w d"
     by (rule coords)
-  have aK: "gs_a d \<in> K"
-    using sum_rat_power_in_K[OF Coords.ca_rat] by (simp only: Coords.a_eq)
-  have bK: "gs_b d \<in> K"
-    using sum_rat_power_in_K[OF Coords.cb_rat] by (simp only: Coords.b_eq)
-  have wK: "gs_w d \<in> K"
-    using sum_rat_power_in_K[OF Coords.cw_rat] by (simp only: Coords.w_eq)
+  obtain *: "gs_a d \<in> K" "gs_b d \<in> K" "gs_w d \<in> K"
+    using Coords.a_eq Coords.b_eq Coords.ca_rat Coords.cb_rat Coords.cw_rat Coords.w_eq
+      sum_rat_power_in_K by presburger
   obtain T::int where Tp: "T > 0" and prod:
-    "\<forall>xs. (\<forall>x\<in>set xs.
-      x = gs_a d \<or> x = gs_w d \<or> x = eta \<or>
+    "\<forall>xs. (\<forall>x\<in>set xs. x = gs_a d \<or> x = gs_w d \<or> x = eta \<or>
       (\<exists>u v::nat. x = of_nat u + of_nat v * gs_b d)) \<longrightarrow>
-      (\<exists>c::nat \<Rightarrow> int.
-        of_int (T ^ length xs) * prod_list xs =
-          (\<Sum>i<D. of_int (c i) * eta ^ i))"
-    using data_generators_and_affines_uniform_product_denominator[OF aK bK wK]
+      (\<exists>c. of_int (T ^ length xs) * prod_list xs = (\<Sum>i<D. of_int (c i) * eta ^ i))"
+    using data_generators_and_affines_uniform_product_denominator[OF *]
     by blast
   show thesis
     by (rule row_scaled_matrix_has_given_denominator_bounded_kernel
@@ -3559,17 +3546,13 @@ locale gelfond_schneider_power_basis_scaled_norm_verified =
   and A c5 c14 :: real +
   fixes T :: int
   assumes Tp: "T > 0"
-  assumes prod: "\<forall>xs. (\<forall>x\<in>set xs.
-    x = gs_a d \<or> x = gs_w d \<or> x = eta \<or>
-    (\<exists>u v::nat. x = of_nat u + of_nat v * gs_b d)) \<longrightarrow>
-    (\<exists>z::nat \<Rightarrow> int.
-      of_int (T ^ length xs) * prod_list xs =
-        (\<Sum>i<D. of_int (z i) * eta ^ i))"
+  assumes prod: "\<forall>xs. (\<forall>x\<in>set xs. x = gs_a d \<or> x = gs_w d \<or> x = eta \<or> (\<exists>u v. x = of_nat u + of_nat v * gs_b d))
+      \<longrightarrow> (\<exists>z. of_int (T ^ length xs) * prod_list xs = (\<Sum>i<D. of_int (z i) * eta ^ i))"
   assumes hD: "h = D"
   assumes A_choice: "A = gs_concrete_entry_bound"
   assumes c14_big:
     "(gs_house_growth_base *
-      (of_int (T ^ (1 + 4 * gs_m h * gs_m h + D)) :: real) ^ 2) ^ (D - 1) *
+      of_int (T ^ (1 + 4 * gs_m h * gs_m h + D)) ^ 2) ^ (D - 1) *
       (gs_point_growth_base *
         of_int (T ^ (1 + 4 * gs_m h * gs_m h + D))) \<le> c14"
 begin
@@ -3580,15 +3563,13 @@ proof -
   let ?B = "2 * int (q * q * D) * max 1
     (ceiling (of_nat (card E) * power_basis_inverse_bound *
       (of_int (T ^ ?N) * A * power_basis_entry_bound)))"
-  have house: "EH.ehouse (\<lambda>e. e
-    (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q $$ (u,t))) \<le> A"
+  have house: "EH.ehouse (\<lambda>e. e (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q $$ (u,t))) \<le> A"
     if up: "u < gs_m h * gs_n h q" and tq: "t < q * q" for u t
   proof -
     have bound: "EH.ehouse (Aemb u t) \<le> gs_concrete_entry_bound"
       by (rule gs_row_scaled_entry_concrete_house_le[OF up tq])
-    have fun_eq: "Aemb u t = (\<lambda>e. e
-      (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q $$ (u,t)))"
-      by (rule ext) (simp add: Aemb_def)
+    have fun_eq: "Aemb u t = (\<lambda>e. e (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q $$ (u,t)))"
+      by (force simp: Aemb_def)
     show ?thesis using bound by (simp only: A_choice fun_eq)
   qed
   have Anonneg: "0 \<le> A"
@@ -3615,8 +3596,7 @@ proof -
     using vcar vnz by force
   have deriv_nz:
     "((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
-      (gs_min_order_node (gs_m h) d q
-        (\<lambda>t. Matrix.vec_index v t)) \<noteq> 0"
+      (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t)) \<noteq> 0"
     unfolding r_def
     by (rule gs_min_order_deriv_nonzero_of_coeff_nonzero[OF d qpos coeff_nz])
   define c where "c = gs_scaled_auxiliary_multiplier r"
