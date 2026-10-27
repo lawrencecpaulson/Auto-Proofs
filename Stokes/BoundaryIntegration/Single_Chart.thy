@@ -211,12 +211,13 @@ proof -
         cont_normal cont_tangent])
 qed
 
-theorem Stokes_boundary_chart_integral_top_C1:
+context
   fixes A :: "real \<times> (real ^ 'n::finite) \<Rightarrow>
     real \<times> (real ^ 'n)"
     and K_P :: "(real \<times> (real ^ 'n)) set"
     and K_Q :: "real ^ 'n \<Rightarrow>
       (real \<times> (real ^ 'n)) set"
+    and i :: 'i
   assumes i: "i \<in> I"
     and dA: "\<And>p. p \<in> C i \<Longrightarrow>
       A differentiable (at p)"
@@ -236,7 +237,10 @@ theorem Stokes_boundary_chart_integral_top_C1:
     and cont_Q: "\<And>b. b \<in> Basis \<Longrightarrow>
       continuous_on (C i)
         (case_prod (product_tangential_derivative A b))"
-    and compatible: "boundary_top_coeff_compatible alpha"
+begin
+
+theorem Stokes_boundary_chart_integral_top_C1:
+  assumes compatible: "boundary_top_coeff_compatible alpha"
     and compact: "compact K"
     and Kchart: "K \<subseteq> boundary_carrier \<inter> D i"
     and support: "boundary_form_support alpha \<subseteq> K"
@@ -308,31 +312,7 @@ proof -
 qed
 
 theorem Stokes_boundary_chart_single_top_C1:
-  fixes A :: "real \<times> (real ^ 'n::finite) \<Rightarrow>
-    real \<times> (real ^ 'n)"
-    and K_P :: "(real \<times> (real ^ 'n)) set"
-    and K_Q :: "real ^ 'n \<Rightarrow>
-      (real \<times> (real ^ 'n)) set"
-  assumes i: "i \<in> I"
-    and dA: "\<And>p. p \<in> C i \<Longrightarrow>
-      A differentiable (at p)"
-    and compact_P: "compact K_P"
-    and K_P_chart: "K_P \<subseteq> C i"
-    and zero_P: "\<And>p. p \<in> C i \<Longrightarrow>
-      p \<notin> K_P \<Longrightarrow> fst (A p) = 0"
-    and cont_P: "continuous_on (C i)
-      (case_prod (product_normal_derivative A))"
-    and compact_Q: "\<And>b. b \<in> Basis \<Longrightarrow>
-      compact (K_Q b)"
-    and K_Q_chart: "\<And>b. b \<in> Basis \<Longrightarrow>
-      K_Q b \<subseteq> C i"
-    and zero_Q: "\<And>b p. b \<in> Basis \<Longrightarrow>
-      p \<in> C i \<Longrightarrow> p \<notin> K_Q b
-      \<Longrightarrow> snd (A p) \<bullet> b = 0"
-    and cont_Q: "\<And>b. b \<in> Basis \<Longrightarrow>
-      continuous_on (C i)
-        (case_prod (product_tangential_derivative A b))"
-    and edge_chart:
+  assumes edge_chart:
       "admissible_boundary_single_chart edge i K_edge"
     and compatible: "boundary_top_coeff_compatible edge"
     and coeff_cont: "\<And>j. j \<in> I \<Longrightarrow>
@@ -370,34 +350,7 @@ proof -
 qed
 
 theorem Stokes_single_boundary_chart_local_integrals_C1:
-  fixes A :: "real \<times> (real ^ 'n::finite) \<Rightarrow>
-    real \<times> (real ^ 'n)"
-    and K_P :: "(real \<times> (real ^ 'n)) set"
-    and K_Q :: "real ^ 'n \<Rightarrow>
-      (real \<times> (real ^ 'n)) set"
-    and body :: "'i \<Rightarrow>
-      real \<times> (real ^ 'n) \<Rightarrow> real"
-    and edge :: "'i \<Rightarrow> real ^ 'n \<Rightarrow> real"
-  assumes i: "i \<in> I"
-    and dA: "\<And>p. p \<in> C i \<Longrightarrow>
-      A differentiable (at p)"
-    and compact_P: "compact K_P"
-    and K_P_chart: "K_P \<subseteq> C i"
-    and zero_P: "\<And>p. p \<in> C i \<Longrightarrow>
-      p \<notin> K_P \<Longrightarrow> fst (A p) = 0"
-    and cont_P: "continuous_on (C i)
-      (case_prod (product_normal_derivative A))"
-    and compact_Q: "\<And>b. b \<in> Basis \<Longrightarrow>
-      compact (K_Q b)"
-    and K_Q_chart: "\<And>b. b \<in> Basis \<Longrightarrow>
-      K_Q b \<subseteq> C i"
-    and zero_Q: "\<And>b p. b \<in> Basis \<Longrightarrow>
-      p \<in> C i \<Longrightarrow> p \<notin> K_Q b
-      \<Longrightarrow> snd (A p) \<bullet> b = 0"
-    and cont_Q: "\<And>b. b \<in> Basis \<Longrightarrow>
-      continuous_on (C i)
-        (case_prod (product_tangential_derivative A b))"
-    and body_chart: "admissible_body_single_chart
+  assumes body_chart: "admissible_body_single_chart
       body i K_body"
     and body_compatible: "body_top_coeff_compatible body"
     and positive: "\<And>j k x.
@@ -444,44 +397,13 @@ proof -
       product_exterior_top A p) =
     integral_boundary_single_top edge"
     by (rule Stokes_boundary_chart_single_top_C1
-      [where A=A and K_P=K_P and K_Q=K_Q
-        and edge=edge,
-        OF i dA compact_P K_P_chart zero_P cont_P
-          compact_Q K_Q_chart zero_Q cont_Q
-          edge_chart edge_compatible edge_cont edge_coeff])
+      [OF edge_chart edge_compatible edge_cont edge_coeff])
   show ?thesis
     using local_body gauge coeff_eq stokes by simp
 qed
 
 theorem Stokes_single_boundary_chart_integrals_C1:
-  fixes A :: "real \<times> (real ^ 'n::finite) \<Rightarrow>
-    real \<times> (real ^ 'n)"
-    and K_P :: "(real \<times> (real ^ 'n)) set"
-    and K_Q :: "real ^ 'n \<Rightarrow>
-      (real \<times> (real ^ 'n)) set"
-    and body :: "'i \<Rightarrow>
-      real \<times> (real ^ 'n) \<Rightarrow> real"
-    and edge :: "'i \<Rightarrow> real ^ 'n \<Rightarrow> real"
-  assumes i: "i \<in> I"
-    and dA: "\<And>p. p \<in> C i \<Longrightarrow>
-      A differentiable (at p)"
-    and compact_P: "compact K_P"
-    and K_P_chart: "K_P \<subseteq> C i"
-    and zero_P: "\<And>p. p \<in> C i \<Longrightarrow>
-      p \<notin> K_P \<Longrightarrow> fst (A p) = 0"
-    and cont_P: "continuous_on (C i)
-      (case_prod (product_normal_derivative A))"
-    and compact_Q: "\<And>b. b \<in> Basis \<Longrightarrow>
-      compact (K_Q b)"
-    and K_Q_chart: "\<And>b. b \<in> Basis \<Longrightarrow>
-      K_Q b \<subseteq> C i"
-    and zero_Q: "\<And>b p. b \<in> Basis \<Longrightarrow>
-      p \<in> C i \<Longrightarrow> p \<notin> K_Q b
-      \<Longrightarrow> snd (A p) \<bullet> b = 0"
-    and cont_Q: "\<And>b. b \<in> Basis \<Longrightarrow>
-      continuous_on (C i)
-        (case_prod (product_tangential_derivative A b))"
-    and body_chart: "admissible_body_single_chart
+  assumes body_chart: "admissible_body_single_chart
       body i K_body"
     and body_compatible: "body_top_coeff_compatible body"
     and positive: "\<And>j k x.
@@ -533,42 +455,14 @@ proof -
       product_exterior_top A p) =
     integral_boundary_top edge"
     by (rule Stokes_boundary_chart_integral_top_C1
-      [where A=A and K_P=K_P and K_Q=K_Q
-        and alpha=edge,
-        OF i dA compact_P K_P_chart zero_P cont_P
-          compact_Q K_Q_chart zero_Q cont_Q
-          edge_compatible compact_edge K_edge_chart
+      [OF edge_compatible compact_edge K_edge_chart
           support_edge edge_cont edge_coeff partition])
   show ?thesis
     using local_body gauge coeff_eq stokes by simp
 qed
 
 corollary Stokes_boundary_chart_gauge_C1:
-  fixes A :: "real \<times> (real ^ 'n::finite) \<Rightarrow>
-    real \<times> (real ^ 'n)"
-    and K_P :: "(real \<times> (real ^ 'n)) set"
-    and K_Q :: "real ^ 'n \<Rightarrow>
-      (real \<times> (real ^ 'n)) set"
-  assumes i: "i \<in> I"
-    and dA: "\<And>p. p \<in> C i \<Longrightarrow>
-      A differentiable (at p)"
-    and compact_P: "compact K_P"
-    and K_P_chart: "K_P \<subseteq> C i"
-    and zero_P: "\<And>p. p \<in> C i \<Longrightarrow>
-      p \<notin> K_P \<Longrightarrow> fst (A p) = 0"
-    and cont_P: "continuous_on (C i)
-      (case_prod (product_normal_derivative A))"
-    and compact_Q: "\<And>b. b \<in> Basis \<Longrightarrow>
-      compact (K_Q b)"
-    and K_Q_chart: "\<And>b. b \<in> Basis \<Longrightarrow>
-      K_Q b \<subseteq> C i"
-    and zero_Q: "\<And>b p. b \<in> Basis \<Longrightarrow>
-      p \<in> C i \<Longrightarrow> p \<notin> K_Q b
-      \<Longrightarrow> snd (A p) \<bullet> b = 0"
-    and cont_Q: "\<And>b. b \<in> Basis \<Longrightarrow>
-      continuous_on (C i)
-        (case_prod (product_tangential_derivative A b))"
-    and compatible: "boundary_top_coeff_compatible alpha"
+  assumes compatible: "boundary_top_coeff_compatible alpha"
     and compact: "compact K"
     and Kchart: "K \<subseteq> boundary_carrier \<inter> D i"
     and support: "boundary_form_support alpha \<subseteq> K"
@@ -587,14 +481,15 @@ proof -
       product_exterior_top A p) =
     integral_boundary_top alpha"
     by (rule Stokes_boundary_chart_integral_top_C1
-      [OF i dA compact_P K_P_chart zero_P cont_P
-        compact_Q K_Q_chart zero_Q cont_Q compatible
-        compact Kchart support coeff_cont coeff_i partition])
+      [OF compatible compact Kchart support coeff_cont
+        coeff_i partition])
   show ?thesis
     using local
       set_borel_integral_eq_integral(2)[OF integrable_body]
     by simp
 qed
+
+end
 
 corollary integral_boundary_top_normal_sign:
   assumes i: "i \<in> I"
@@ -628,12 +523,13 @@ proof -
     using local eq by simp
 qed
 
-corollary Stokes_interior_chart_form_C1:
+context
   fixes A :: "real \<times> (real ^ 'n::finite) \<Rightarrow>
     real \<times> (real ^ 'n)"
     and K_P :: "(real \<times> (real ^ 'n)) set"
     and K_Q :: "real ^ 'n \<Rightarrow>
       (real \<times> (real ^ 'n)) set"
+    and i :: 'i
   assumes i: "i \<in> I"
     and no_face: "halfspace_face (C i) = {}"
     and dA: "\<And>p. p \<in> C i \<Longrightarrow>
@@ -654,6 +550,9 @@ corollary Stokes_interior_chart_form_C1:
     and cont_Q: "\<And>b. b \<in> Basis \<Longrightarrow>
       continuous_on (C i)
         (case_prod (product_tangential_derivative A b))"
+begin
+
+corollary Stokes_interior_chart_form_C1:
   shows "(LINT p : C i | lborel.
       product_exterior_top A p) = 0"
 proof -
@@ -669,74 +568,19 @@ proof -
 qed
 
 corollary Stokes_interior_chart_integral_top_C1:
-  fixes A :: "real \<times> (real ^ 'n::finite) \<Rightarrow>
-    real \<times> (real ^ 'n)"
-    and K_P :: "(real \<times> (real ^ 'n)) set"
-    and K_Q :: "real ^ 'n \<Rightarrow>
-      (real \<times> (real ^ 'n)) set"
-  assumes i: "i \<in> I"
-    and no_face: "halfspace_face (C i) = {}"
-    and dA: "\<And>p. p \<in> C i \<Longrightarrow>
-      A differentiable (at p)"
-    and compact_P: "compact K_P"
-    and K_P_chart: "K_P \<subseteq> C i"
-    and zero_P: "\<And>p. p \<in> C i \<Longrightarrow>
-      p \<notin> K_P \<Longrightarrow> fst (A p) = 0"
-    and cont_P: "continuous_on (C i)
-      (case_prod (product_normal_derivative A))"
-    and compact_Q: "\<And>b. b \<in> Basis \<Longrightarrow>
-      compact (K_Q b)"
-    and K_Q_chart: "\<And>b. b \<in> Basis \<Longrightarrow>
-      K_Q b \<subseteq> C i"
-    and zero_Q: "\<And>b p. b \<in> Basis \<Longrightarrow>
-      p \<in> C i \<Longrightarrow> p \<notin> K_Q b
-      \<Longrightarrow> snd (A p) \<bullet> b = 0"
-    and cont_Q: "\<And>b. b \<in> Basis \<Longrightarrow>
-      continuous_on (C i)
-        (case_prod (product_tangential_derivative A b))"
   shows "(LINT p : C i | lborel. product_exterior_top A p) =
     integral_boundary_top (\<lambda>j y. 0)"
 proof -
   have local: "(LINT p : C i | lborel.
       product_exterior_top A p) = 0"
-    by (rule Stokes_interior_chart_form_C1
-      [where A=A and K_P=K_P and K_Q=K_Q,
-        OF i no_face dA compact_P K_P_chart zero_P
-          cont_P compact_Q K_Q_chart zero_Q cont_Q])
+    by (rule Stokes_interior_chart_form_C1)
   show ?thesis
     using local integral_boundary_top_zero_coeff
     by (simp only: integral_boundary_top_zero_coeff)
 qed
 
 theorem Stokes_single_interior_chart_integrals_C1:
-  fixes A :: "real \<times> (real ^ 'n::finite) \<Rightarrow>
-    real \<times> (real ^ 'n)"
-    and K_P :: "(real \<times> (real ^ 'n)) set"
-    and K_Q :: "real ^ 'n \<Rightarrow>
-      (real \<times> (real ^ 'n)) set"
-    and body :: "'i \<Rightarrow>
-      real \<times> (real ^ 'n) \<Rightarrow> real"
-  assumes i: "i \<in> I"
-    and no_face: "halfspace_face (C i) = {}"
-    and dA: "\<And>p. p \<in> C i \<Longrightarrow>
-      A differentiable (at p)"
-    and compact_P: "compact K_P"
-    and K_P_chart: "K_P \<subseteq> C i"
-    and zero_P: "\<And>p. p \<in> C i \<Longrightarrow>
-      p \<notin> K_P \<Longrightarrow> fst (A p) = 0"
-    and cont_P: "continuous_on (C i)
-      (case_prod (product_normal_derivative A))"
-    and compact_Q: "\<And>b. b \<in> Basis \<Longrightarrow>
-      compact (K_Q b)"
-    and K_Q_chart: "\<And>b. b \<in> Basis \<Longrightarrow>
-      K_Q b \<subseteq> C i"
-    and zero_Q: "\<And>b p. b \<in> Basis \<Longrightarrow>
-      p \<in> C i \<Longrightarrow> p \<notin> K_Q b
-      \<Longrightarrow> snd (A p) \<bullet> b = 0"
-    and cont_Q: "\<And>b. b \<in> Basis \<Longrightarrow>
-      continuous_on (C i)
-        (case_prod (product_tangential_derivative A b))"
-    and body_chart: "admissible_body_single_chart
+  assumes body_chart: "admissible_body_single_chart
       body i K_body"
     and body_compatible: "body_top_coeff_compatible body"
     and positive: "\<And>j k x.
@@ -775,17 +619,15 @@ proof -
   have stokes: "(LINT p : C i | lborel.
       product_exterior_top A p) =
     integral_boundary_top (\<lambda>j y. 0)"
-    by (rule Stokes_interior_chart_integral_top_C1
-      [where A=A and K_P=K_P and K_Q=K_Q,
-        OF i no_face dA compact_P K_P_chart
-          zero_P cont_P compact_Q K_Q_chart zero_Q
-          cont_Q])
+    by (rule Stokes_interior_chart_integral_top_C1)
   have old: "integral_body_single_top body =
       integral_boundary_top (\<lambda>j y. 0)"
     using local_body gauge coeff_eq stokes by simp
   show ?thesis
     using old boundary_zero_integrals_agree by simp
 qed
+
+end
 
 end
 

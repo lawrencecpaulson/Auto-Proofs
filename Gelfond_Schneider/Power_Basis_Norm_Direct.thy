@@ -88,7 +88,9 @@ proof -
                 (\<exists>u v. x = of_nat u + of_nat v * gs_b d)) \<longrightarrow>
                 (\<exists>z. of_int (T ^ length xs) * prod_list xs = (\<Sum>i<D. of_int (z i) * eta ^ i))"
     using PB.data_generators_and_affines_uniform_product_denominator
-      [OF aK bK wK] by blast
+      [OF aK bK wK]
+    unfolding PB.uniform_product_denominator_def
+      PB.uniform_denominator_factor_def by blast
   let ?U = "(of_int (T ^ (1 + 4 * gs_m D * gs_m D + D)) :: real)"
   let ?HB = "gelfond_schneider_power_basis_field_norm_estimates.gs_house_growth_base eta D emb d D"
   let ?P = "gelfond_schneider_power_basis_field_norm_estimates.gs_point_growth_base eta D emb d D"

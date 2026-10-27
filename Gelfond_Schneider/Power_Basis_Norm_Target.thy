@@ -676,14 +676,8 @@ proof -
   have qle: "q \<le> 2 * gs_m h * r"
     using gs_q_choice_le_two_mr[OF hpos prod_ge1 nle_choice]
     by (simp add: q_def)
-  have bal: "q * q = 2 * gs_m h * gs_n h q"
-    using gs_q_sq_eq_two_mn[OF dvd] by (simp add: power2_eq_square)
   have qsq: "q * q \<le> 2 * gs_m h * r"
-  proof -
-    have "2 * gs_m h * gs_n h q \<le> 2 * gs_m h * r"
-      by (rule mult_left_mono[OF nle]) simp
-    then show ?thesis using bal by simp
-  qed
+    by (rule gs_q_sq_le_two_mr[OF dvd nle])
   have mpos: "gs_m h > 0" by simp
   have Cge1: "1 \<le> (of_int (abs (gs_c1 d)) :: real)"
     using gelfond_schneider_data_c1_ge1[OF d] by simp
@@ -765,14 +759,8 @@ lemma gs_witness_bound_le_growth:
     gs_witness_growth_prefactor * of_nat r *
       gs_entry_growth_envelope r"
 proof -
-  have bal: "q * q = 2 * gs_m h * gs_n h q"
-    using gs_q_sq_eq_two_mn[OF dvd] by (simp add: power2_eq_square)
   have qsq: "q * q \<le> 2 * gs_m h * r"
-  proof -
-    have "2 * gs_m h * gs_n h q \<le> 2 * gs_m h * r"
-      by (rule mult_left_mono[OF nle]) simp
-    then show ?thesis using bal by simp
-  qed
+    by (rule gs_q_sq_le_two_mr[OF dvd nle])
   have Anonneg: "0 \<le> gs_concrete_entry_bound"
     by (rule gs_concrete_entry_bound_nonneg)
   have Wnonneg: "0 \<le> gs_witness_growth_weight"
@@ -876,14 +864,8 @@ proof -
   let ?P = "real r powr (of_nat r / 2)"
   let ?G = "(?K * ?S) ^ r * ?P"
   let ?W = "gs_witness_growth_weight"
-  have bal: "q * q = 2 * gs_m h * gs_n h q"
-    using gs_q_sq_eq_two_mn[OF dvd] by (simp add: power2_eq_square)
   have qsq: "q * q \<le> 2 * gs_m h * r"
-  proof -
-    have "2 * gs_m h * gs_n h q \<le> 2 * gs_m h * r"
-      by (rule mult_left_mono[OF nle]) simp
-    then show ?thesis using bal by simp
-  qed
+    by (rule gs_q_sq_le_two_mr[OF dvd nle])
   have Lnonneg: "0 \<le> ?L" using Tp by simp
   have Anonneg: "0 \<le> ?A"
     using Lnonneg gs_concrete_entry_bound_nonneg by simp
@@ -953,14 +935,8 @@ proof -
   have qle: "q \<le> 2 * gs_m h * r"
     using gs_q_choice_le_two_mr[OF hpos prod_ge1 nle_choice]
     by (simp add: q_def)
-  have bal: "q * q = 2 * gs_m h * gs_n h q"
-    using gs_q_sq_eq_two_mn[OF dvd] by (simp add: power2_eq_square)
   have qsq: "q * q \<le> 2 * gs_m h * r"
-  proof -
-    have "2 * gs_m h * gs_n h q \<le> 2 * gs_m h * r"
-      by (rule mult_left_mono[OF nle]) simp
-    then show ?thesis using bal by simp
-  qed
+    by (rule gs_q_sq_le_two_mr[OF dvd nle])
   have Cge1: "1 \<le> (of_int (abs (gs_c1 d)) :: real)"
     using gelfond_schneider_data_c1_ge1[OF d] by simp
   have Hge1: "1 \<le> gs_data_emb_bound"
@@ -1271,14 +1247,8 @@ proof -
   let ?F = "?C ^ r * ?C ^ (2 * gs_m h * q) *
     (of_nat q * (1 + ?H)) ^ r *
     ?H ^ (gs_m h * q) * ?H ^ (gs_m h * q)"
-  have bal: "q * q = 2 * gs_m h * gs_n h q"
-    using gs_q_sq_eq_two_mn[OF dvd] by (simp add: power2_eq_square)
   have qsq: "q * q \<le> 2 * gs_m h * r"
-  proof -
-    have "2 * gs_m h * gs_n h q \<le> 2 * gs_m h * r"
-      by (rule mult_left_mono[OF nle]) simp
-    then show ?thesis using bal by simp
-  qed
+    by (rule gs_q_sq_le_two_mr[OF dvd nle])
   have Cge: "1 \<le> ?C"
     using gelfond_schneider_data_c1_ge1[OF d] by simp
   have Hge: "1 \<le> ?H"
@@ -1326,14 +1296,8 @@ proof -
   let ?F = "?C ^ r * ?C ^ (2 * gs_m h * q) *
     (of_nat q * (1 + ?H)) ^ r *
     ?H ^ (gs_m h * q) * ?H ^ (gs_m h * q)"
-  have bal: "q * q = 2 * gs_m h * gs_n h q"
-    using gs_q_sq_eq_two_mn[OF dvd] by (simp add: power2_eq_square)
   have qsq: "q * q \<le> 2 * gs_m h * r"
-  proof -
-    have "2 * gs_m h * gs_n h q \<le> 2 * gs_m h * r"
-      by (rule mult_left_mono[OF nle]) simp
-    then show ?thesis using bal by simp
-  qed
+    by (rule gs_q_sq_le_two_mr[OF dvd nle])
   have Cge: "1 \<le> ?C"
     using gelfond_schneider_data_c1_ge1[OF d] by simp
   have Hge: "1 \<le> ?H"
@@ -2493,15 +2457,17 @@ proof -
     using mult_repr[OF up tq jd] A up tq
     by (simp add: smult_mat_def map_mat_def algebra_simps)
   obtain v :: "complex vec" and x :: "int vec" where
-      vcar: "v \<in> carrier_vec q"
-    and vnz: "v \<noteq> 0\<^sub>v q"
-    and xcar: "x \<in> carrier_vec (q * d)"
-    and xnz: "x \<noteq> 0\<^sub>v (q * d)"
-    and Tker: "?T *\<^sub>v v = 0\<^sub>v p"
-    and repr: "\<forall>t<q. v $ t = (\<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j)"
-    and xbnd: "x \<in> Bounded_vec (2 * int (q * d) * max 1 Bnd)"
+      W: "bounded_basis_kernel ?T p q d basis
+        (2 * int (q * d) * max 1 Bnd) v x"
     by (rule exists_nonzero_bounded_kernel_vec_of_structure_constants_linear
       [OF Tcar ppos dpos hpq Trep C_bnd basis_indep])
+  note vcar = bounded_basis_kernel.v_carrier[OF W]
+    and vnz = bounded_basis_kernel.v_nonzero[OF W]
+    and xcar = bounded_basis_kernel.x_carrier[OF W]
+    and xnz = bounded_basis_kernel.x_nonzero[OF W]
+    and Tker = bounded_basis_kernel.kernel[OF W]
+    and repr = bounded_basis_kernel.coordinates[OF W]
+    and xbnd = bounded_basis_kernel.x_bounded[OF W]
   have scaled0: "of_int L \<cdot>\<^sub>v (A *\<^sub>v v) = 0\<^sub>v p"
     using Tker complex_smult_mat_vec[OF A vcar] by simp
   have Aker: "A *\<^sub>v v = 0\<^sub>v p"
@@ -2525,6 +2491,36 @@ qed
 
 context finite_normal_galois_power_basis
 begin
+
+definition uniform_denominator_factor :: "complex \<Rightarrow> complex \<Rightarrow> complex \<Rightarrow> complex \<Rightarrow> bool"
+  where "uniform_denominator_factor a b w x \<longleftrightarrow>
+    x = a \<or> x = w \<or> x = eta \<or>
+      (\<exists>u v::nat. x = of_nat u + of_nat v * b)"
+
+definition uniform_product_denominator :: "complex \<Rightarrow> complex \<Rightarrow> complex \<Rightarrow> int \<Rightarrow> bool"
+  where "uniform_product_denominator a b w T \<longleftrightarrow>
+    (\<forall>xs. (\<forall>x\<in>set xs. uniform_denominator_factor a b w x) \<longrightarrow>
+      (\<exists>c::nat \<Rightarrow> int.
+        of_int (T ^ length xs) * prod_list xs =
+          (\<Sum>k<D. of_int (c k) * eta ^ k)))"
+
+definition gs_denominator_factor :: "gelfond_schneider_data \<Rightarrow> complex \<Rightarrow> bool"
+  where "gs_denominator_factor d x \<longleftrightarrow>
+    uniform_denominator_factor (gs_a d) (gs_b d) (gs_w d) x"
+
+definition gs_uniform_product_denominator :: "gelfond_schneider_data \<Rightarrow> int \<Rightarrow> bool"
+  where "gs_uniform_product_denominator d T \<longleftrightarrow>
+    uniform_product_denominator (gs_a d) (gs_b d) (gs_w d) T"
+
+lemma gs_uniform_product_denominatorD:
+  assumes prod: "gs_uniform_product_denominator d T"
+    and factors: "\<forall>x\<in>set xs. gs_denominator_factor d x"
+  shows "\<exists>c::nat \<Rightarrow> int.
+    of_int (T ^ length xs) * prod_list xs =
+      (\<Sum>i<D. of_int (c i) * eta ^ i)"
+  using assms
+  unfolding gs_uniform_product_denominator_def uniform_product_denominator_def
+    gs_denominator_factor_def by blast
 
 lemma rational_coordinates_of_product:
   assumes xK: "x \<in> K"
@@ -2615,12 +2611,7 @@ lemma data_generators_and_affines_uniform_product_denominator:
   assumes aK: "a \<in> K"
     and bK: "b \<in> K"
     and wK: "w \<in> K"
-  shows "\<exists>T::int. T > 0 \<and>
-    (\<forall>xs. (\<forall>x\<in>set xs. x = a \<or> x = w \<or> x = eta \<or>
-      (\<exists>u v::nat. x = of_nat u + of_nat v * b)) \<longrightarrow>
-      (\<exists>c::nat \<Rightarrow> int.
-        of_int (T ^ length xs) * prod_list xs =
-          (\<Sum>k<D. of_int (c k) * eta ^ k)))"
+  shows "\<exists>T::int. T > 0 \<and> uniform_product_denominator a b w T"
 proof -
   let ?S = "{a,b,w,eta}"
   have Sfin: "finite ?S" by simp
@@ -2672,6 +2663,7 @@ proof -
     if xsA: "set xs \<subseteq> ?A" for xs
     by (rule scaled_integer_power_basis_coordinates_prod_list_weak[OF Dp arep xsA])
   show ?thesis
+    unfolding uniform_product_denominator_def uniform_denominator_factor_def
   proof (intro exI[of _ T] conjI allI impI)
     show "T > 0" by (rule Tp)
     fix xs
@@ -2705,27 +2697,23 @@ proof -
   have wK: "gs_w d \<in> K"
     using sum_rat_power_in_K[OF cw_rat] by (simp only: w_eq)
   obtain T::int where Tp: "T > 0"
-    and prod: "\<forall>xs. (\<forall>x\<in>set xs.
-      x = gs_a d \<or> x = gs_w d \<or> x = eta \<or>
-      (\<exists>u v::nat. x = of_nat u + of_nat v * gs_b d)) \<longrightarrow>
-      (\<exists>c::nat \<Rightarrow> int.
-        of_int (T ^ length xs) * prod_list xs =
-          (\<Sum>j<D. of_int (c j) * eta ^ j))"
+    and prod: "gs_uniform_product_denominator d T"
     using data_generators_and_affines_uniform_product_denominator
-      [OF aK bK wK] by blast
+      [OF aK bK wK]
+    unfolding gs_uniform_product_denominator_def by blast
   have one: "\<exists>c::nat \<Rightarrow> int.
       of_int (T ^ (k + a * l + b * l)) * gs_system_coeff d a b l k =
         (\<Sum>j<D. of_int (c j) * eta ^ j)" for a b l k
   proof -
     let ?xs = "gs_system_coeff_factor_list d a b l k"
-    have mem: "\<forall>x\<in>set ?xs.
-      x = gs_a d \<or> x = gs_w d \<or>
-      (\<exists>u v::nat. x = of_nat u + of_nat v * gs_b d)"
-      by (rule gs_system_coeff_factor_list_members)
-    from prod mem have "\<exists>c::nat \<Rightarrow> int.
+    have mem: "\<forall>x\<in>set ?xs. gs_denominator_factor d x"
+      using gs_system_coeff_factor_list_members
+      unfolding gs_denominator_factor_def uniform_denominator_factor_def
+      by blast
+    have "\<exists>c::nat \<Rightarrow> int.
       of_int (T ^ length ?xs) * prod_list ?xs =
         (\<Sum>j<D. of_int (c j) * eta ^ j)"
-      by blast
+      by (rule gs_uniform_product_denominatorD[OF prod mem])
     then show ?thesis
       by (simp only: gs_system_coeff_factor_list_length
         gs_system_coeff_factor_list_product)
@@ -2735,12 +2723,7 @@ qed
 
 lemma system_coefficients_times_basis_from_product_denominator:
   fixes T :: int
-  assumes prod: "\<forall>xs. (\<forall>x\<in>set xs.
-    x = gs_a d \<or> x = gs_w d \<or> x = eta \<or>
-    (\<exists>u v::nat. x = of_nat u + of_nat v * gs_b d)) \<longrightarrow>
-    (\<exists>c::nat \<Rightarrow> int.
-      of_int (T ^ length xs) * prod_list xs =
-        (\<Sum>i<D. of_int (c i) * eta ^ i))"
+  assumes prod: "gs_uniform_product_denominator d T"
   shows "\<forall>a b l k j. \<exists>c::nat \<Rightarrow> int.
     of_int (T ^ (k + a * l + b * l + j)) *
       (gs_system_coeff d a b l k * eta ^ j) =
@@ -2752,13 +2735,13 @@ proof -
         (\<Sum>i<D. of_int (c i) * eta ^ i)" for a b l k j
   proof -
     let ?xs = "gs_system_coeff_factor_list d a b l k @ replicate j eta"
-    have mem: "\<forall>x\<in>set ?xs.
-      x = gs_a d \<or> x = gs_w d \<or> x = eta \<or>
-      (\<exists>u v::nat. x = of_nat u + of_nat v * gs_b d)"
-      by (auto simp: gs_system_coeff_factor_list_def gs_affine_coeff_def)
-    from prod mem have ex: "\<exists>c::nat \<Rightarrow> int.
+    have mem: "\<forall>x\<in>set ?xs. gs_denominator_factor d x"
+      by (auto simp: gs_denominator_factor_def uniform_denominator_factor_def
+        gs_system_coeff_factor_list_def gs_affine_coeff_def)
+    have ex: "\<exists>c::nat \<Rightarrow> int.
       of_int (T ^ length ?xs) * prod_list ?xs =
-        (\<Sum>i<D. of_int (c i) * eta ^ i)" by blast
+        (\<Sum>i<D. of_int (c i) * eta ^ i)"
+      by (rule gs_uniform_product_denominatorD[OF prod mem])
     show ?thesis using ex
       by (simp add: gs_system_coeff_factor_list_length
         gs_system_coeff_factor_list_product)
@@ -2787,27 +2770,23 @@ proof -
   have wK: "gs_w d \<in> K"
     using sum_rat_power_in_K[OF cw_rat] by (simp only: w_eq)
   obtain T::int where Tp: "T > 0"
-    and prod: "\<forall>xs. (\<forall>x\<in>set xs.
-      x = gs_a d \<or> x = gs_w d \<or> x = eta \<or>
-      (\<exists>u v::nat. x = of_nat u + of_nat v * gs_b d)) \<longrightarrow>
-      (\<exists>c::nat \<Rightarrow> int.
-        of_int (T ^ length xs) * prod_list xs =
-          (\<Sum>i<D. of_int (c i) * eta ^ i))"
+    and prod: "gs_uniform_product_denominator d T"
     using data_generators_and_affines_uniform_product_denominator
-      [OF aK bK wK] by blast
+      [OF aK bK wK]
+    unfolding gs_uniform_product_denominator_def by blast
   have one: "\<exists>c::nat \<Rightarrow> int.
       of_int (T ^ (k + a * l + b * l + j)) *
         (gs_system_coeff d a b l k * eta ^ j) =
         (\<Sum>i<D. of_int (c i) * eta ^ i)" for a b l k j
   proof -
     let ?xs = "gs_system_coeff_factor_list d a b l k @ replicate j eta"
-    have mem: "\<forall>x\<in>set ?xs.
-      x = gs_a d \<or> x = gs_w d \<or> x = eta \<or>
-      (\<exists>u v::nat. x = of_nat u + of_nat v * gs_b d)"
-      by (auto simp: gs_system_coeff_factor_list_def gs_affine_coeff_def)
-    from prod mem have ex: "\<exists>c::nat \<Rightarrow> int.
+    have mem: "\<forall>x\<in>set ?xs. gs_denominator_factor d x"
+      by (auto simp: gs_denominator_factor_def uniform_denominator_factor_def
+        gs_system_coeff_factor_list_def gs_affine_coeff_def)
+    have ex: "\<exists>c::nat \<Rightarrow> int.
       of_int (T ^ length ?xs) * prod_list ?xs =
-        (\<Sum>i<D. of_int (c i) * eta ^ i)" by blast
+        (\<Sum>i<D. of_int (c i) * eta ^ i)"
+      by (rule gs_uniform_product_denominatorD[OF prod mem])
     show ?thesis using ex
       by (simp add: gs_system_coeff_factor_list_length
         gs_system_coeff_factor_list_product)
@@ -2915,12 +2894,7 @@ qed
 
 lemma row_scaled_matrix_entries_from_product_denominator:
   fixes T :: int
-  assumes prod: "\<forall>xs. (\<forall>x\<in>set xs.
-    x = gs_a d \<or> x = gs_w d \<or> x = eta \<or>
-    (\<exists>u v::nat. x = of_nat u + of_nat v * gs_b d)) \<longrightarrow>
-    (\<exists>c::nat \<Rightarrow> int.
-      of_int (T ^ length xs) * prod_list xs =
-        (\<Sum>i<D. of_int (c i) * eta ^ i))"
+  assumes prod: "gs_uniform_product_denominator d T"
     and npos: "gs_n h q > 0"
     and qpos: "q > 0"
   shows "\<forall>u<gs_m h * gs_n h q. \<forall>t<q * q. \<forall>j<D.
@@ -2991,14 +2965,8 @@ theorem finite_K_matrix_has_bounded_algebraic_integer_kernel:
     and hpq: "2 * p \<le> q"
     and entryK: "\<And>u t. u < p \<Longrightarrow> t < q \<Longrightarrow> A $$ (u,t) \<in> K"
   obtains B :: int and v :: "complex vec" and x :: "int vec" where
-    "v \<in> carrier_vec q"
-    "v \<noteq> 0\<^sub>v q"
-    "A *\<^sub>v v = 0\<^sub>v p"
-    "\<forall>t<q. algebraic_int (v $ t)"
-    "\<forall>t<q. v $ t = (\<Sum>j<D. of_int (x $ sg_pair_idx D t j) * eta ^ j)"
-    "x \<in> carrier_vec (q * D)"
-    "x \<noteq> 0\<^sub>v (q * D)"
-    "x \<in> Bounded_vec (2 * int (q * D) * max 1 B)"
+    "bounded_integral_basis_kernel A p q D (\<lambda>j. eta ^ j)
+      (2 * int (q * D) * max 1 B) v x"
 proof -
   obtain L::int and C::"nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> int"
     where Lp: "L > 0"
@@ -3054,15 +3022,13 @@ proof -
     by (rule bounded_kernel_of_scaled_integer_structure_constants
       [OF A ppos Dp hpq Lnz repp Cbnd indep])
   have vint: "\<forall>t<q. algebraic_int (v $ t)"
-  proof (intro allI impI)
-    fix t
-    assume tq: "t < q"
-    have ai_term: "algebraic_int (of_int (x $ sg_pair_idx D t j) * eta ^ j)" for j
-      by (intro algebraic_int_times algebraic_int_power eta_int) simp
-    show "algebraic_int (v $ t)"
-      using repr tq by (simp add: algebraic_int_sum ai_term)
-  qed
-  show thesis by (rule that[OF vcar vnz ker vint repr xcar xnz xbnd])
+    by (rule algebraic_int_coordinates_of_integral_basis[OF _ repr])
+      (simp add: algebraic_int_power eta_int)
+  have IW: "bounded_integral_basis_kernel A p q D (\<lambda>j. eta ^ j)
+    (2 * int (q * D) * max 1 ?B) v x"
+    by unfold_locales
+      (use vcar vnz ker vint repr xcar xnz xbnd in auto)
+  show thesis by (rule that[OF IW])
 qed
 
 lemma scaled_structure_constants_transport_to_embedding:
@@ -3161,16 +3127,10 @@ theorem finite_K_matrix_has_house_bounded_kernel_given_denominator:
       of_int L * (M $$ (u,t) * eta ^ j) =
         (\<Sum>k<D. of_int (C u t k j) * eta ^ k)"
   obtains v :: "complex vec" and x :: "int vec" where
-    "v \<in> carrier_vec q"
-    "v \<noteq> 0\<^sub>v q"
-    "M *\<^sub>v v = 0\<^sub>v p"
-    "\<forall>t<q. algebraic_int (v $ t)"
-    "\<forall>t<q. v $ t = (\<Sum>j<D. of_int (x $ sg_pair_idx D t j) * eta ^ j)"
-    "x \<in> carrier_vec (q * D)"
-    "x \<noteq> 0\<^sub>v (q * D)"
-    "x \<in> Bounded_vec (2 * int (q * D) * max 1
-      (ceiling (of_nat (card E) * power_basis_inverse_bound *
-        (of_int L * H * power_basis_entry_bound))))"
+    "bounded_integral_basis_kernel M p q D (\<lambda>j. eta ^ j)
+      (2 * int (q * D) * max 1
+        (ceiling (of_nat (card E) * power_basis_inverse_bound *
+          (of_int L * H * power_basis_entry_bound)))) v x"
 proof -
   let ?B = "ceiling (of_nat (card E) * power_basis_inverse_bound *
     (of_int L * H * power_basis_entry_bound))"
@@ -3209,15 +3169,13 @@ proof -
     by (rule bounded_kernel_of_scaled_integer_structure_constants
       [OF M ppos Dp hpq Lnz repp Cbnd indep])
   have vint: "\<forall>t<q. algebraic_int (v $ t)"
-  proof (intro allI impI)
-    fix t
-    assume tq: "t < q"
-    have ai_term: "algebraic_int (of_int (x $ sg_pair_idx D t j) * eta ^ j)" for j
-      by (intro algebraic_int_times algebraic_int_power eta_int) simp
-    show "algebraic_int (v $ t)"
-      using repr tq by (simp add: algebraic_int_sum ai_term)
-  qed
-  show thesis by (rule that[OF vcar vnz ker vint repr xcar xnz xbnd])
+    by (rule algebraic_int_coordinates_of_integral_basis[OF _ repr])
+      (simp add: algebraic_int_power eta_int)
+  have IW: "bounded_integral_basis_kernel M p q D (\<lambda>j. eta ^ j)
+    (2 * int (q * D) * max 1 ?B) v x"
+    by unfold_locales
+      (use vcar vnz ker vint repr xcar xnz xbnd in auto)
+  show thesis by (rule that[OF IW])
 qed
 
 theorem finite_K_matrix_has_house_bounded_algebraic_integer_kernel:
@@ -3231,16 +3189,10 @@ theorem finite_K_matrix_has_house_bounded_algebraic_integer_kernel:
     and Hnonneg: "0 \<le> H"
   obtains L :: int and v :: "complex vec" and x :: "int vec" where
     "L > 0"
-    "v \<in> carrier_vec q"
-    "v \<noteq> 0\<^sub>v q"
-    "M *\<^sub>v v = 0\<^sub>v p"
-    "\<forall>t<q. algebraic_int (v $ t)"
-    "\<forall>t<q. v $ t = (\<Sum>j<D. of_int (x $ sg_pair_idx D t j) * eta ^ j)"
-    "x \<in> carrier_vec (q * D)"
-    "x \<noteq> 0\<^sub>v (q * D)"
-    "x \<in> Bounded_vec (2 * int (q * D) * max 1
-      (ceiling (of_nat (card E) * power_basis_inverse_bound *
-        (of_int L * H * power_basis_entry_bound))))"
+    "bounded_integral_basis_kernel M p q D (\<lambda>j. eta ^ j)
+      (2 * int (q * D) * max 1
+        (ceiling (of_nat (card E) * power_basis_inverse_bound *
+          (of_int L * H * power_basis_entry_bound)))) v x"
 proof -
   obtain L::int and C::"nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> int"
     where Lp: "L > 0"
@@ -3349,16 +3301,10 @@ theorem row_scaled_matrix_has_bounded_algebraic_integer_kernel:
     and npos: "gs_n h q > 0"
     and dvd: "2 * gs_m h dvd q ^ 2"
   obtains B :: int and v :: "complex vec" and x :: "int vec" where
-    "v \<in> carrier_vec (q * q)"
-    "v \<noteq> 0\<^sub>v (q * q)"
-    "gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q *\<^sub>v v =
-      0\<^sub>v (gs_m h * gs_n h q)"
-    "\<forall>t<q * q. algebraic_int (v $ t)"
-    "\<forall>t<q * q. v $ t =
-      (\<Sum>j<D. of_int (x $ sg_pair_idx D t j) * eta ^ j)"
-    "x \<in> carrier_vec (q * q * D)"
-    "x \<noteq> 0\<^sub>v (q * q * D)"
-    "x \<in> Bounded_vec (2 * int (q * q * D) * max 1 B)"
+    "bounded_integral_basis_kernel
+      (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q)
+      (gs_m h * gs_n h q) (q * q) D (\<lambda>j. eta ^ j)
+      (2 * int (q * q * D) * max 1 B) v x"
 proof -
   let ?m = "gs_m h"
   let ?n = "gs_n h q"
@@ -3386,18 +3332,12 @@ theorem row_scaled_matrix_has_house_bounded_kernel:
     and Hnonneg: "0 \<le> H"
   obtains L :: int and v :: "complex vec" and x :: "int vec" where
     "L > 0"
-    "v \<in> carrier_vec (q * q)"
-    "v \<noteq> 0\<^sub>v (q * q)"
-    "gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q *\<^sub>v v =
-      0\<^sub>v (gs_m h * gs_n h q)"
-    "\<forall>t<q * q. algebraic_int (v $ t)"
-    "\<forall>t<q * q. v $ t =
-      (\<Sum>j<D. of_int (x $ sg_pair_idx D t j) * eta ^ j)"
-    "x \<in> carrier_vec (q * q * D)"
-    "x \<noteq> 0\<^sub>v (q * q * D)"
-    "x \<in> Bounded_vec (2 * int (q * q * D) * max 1
-      (ceiling (of_nat (card E) * power_basis_inverse_bound *
-        (of_int L * H * power_basis_entry_bound))))"
+    "bounded_integral_basis_kernel
+      (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q)
+      (gs_m h * gs_n h q) (q * q) D (\<lambda>j. eta ^ j)
+      (2 * int (q * q * D) * max 1
+        (ceiling (of_nat (card E) * power_basis_inverse_bound *
+          (of_int L * H * power_basis_entry_bound)))) v x"
 proof -
   let ?m = "gs_m h"
   let ?n = "gs_n h q"
@@ -3419,12 +3359,7 @@ qed
 theorem row_scaled_matrix_has_given_denominator_bounded_kernel:
   fixes T :: int
   assumes Tp: "T > 0"
-    and prod: "\<forall>xs. (\<forall>x\<in>set xs.
-      x = gs_a d \<or> x = gs_w d \<or> x = eta \<or>
-      (\<exists>u v::nat. x = of_nat u + of_nat v * gs_b d)) \<longrightarrow>
-      (\<exists>c::nat \<Rightarrow> int.
-        of_int (T ^ length xs) * prod_list xs =
-          (\<Sum>i<D. of_int (c i) * eta ^ i))"
+    and prod: "gs_uniform_product_denominator d T"
     and coords: "rational_power_basis_coordinates D eta ca cb cw (gs_a d) (gs_b d) (gs_w d)"
     and npos: "gs_n h q > 0"
     and qpos: "q > 0"
@@ -3433,19 +3368,13 @@ theorem row_scaled_matrix_has_given_denominator_bounded_kernel:
       EH.ehouse (\<lambda>e. e (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q $$ (u,t))) \<le> H"
     and Hnonneg: "0 \<le> H"
   obtains v :: "complex vec" and x :: "int vec" where
-    "v \<in> carrier_vec (q * q)"
-    "v \<noteq> 0\<^sub>v (q * q)"
-    "gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q *\<^sub>v v =
-      0\<^sub>v (gs_m h * gs_n h q)"
-    "\<forall>t<q * q. algebraic_int (v $ t)"
-    "\<forall>t<q * q. v $ t =
-      (\<Sum>j<D. of_int (x $ sg_pair_idx D t j) * eta ^ j)"
-    "x \<in> carrier_vec (q * q * D)"
-    "x \<noteq> 0\<^sub>v (q * q * D)"
-    "x \<in> Bounded_vec (2 * int (q * q * D) * max 1
-      (ceiling (of_nat (card E) * power_basis_inverse_bound *
-        (of_int (T ^ (gs_n h q + 2 * (gs_m h * q) + D)) * H *
-          power_basis_entry_bound))))"
+    "bounded_integral_basis_kernel
+      (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q)
+      (gs_m h * gs_n h q) (q * q) D (\<lambda>j. eta ^ j)
+      (2 * int (q * q * D) * max 1
+        (ceiling (of_nat (card E) * power_basis_inverse_bound *
+          (of_int (T ^ (gs_n h q + 2 * (gs_m h * q) + D)) * H *
+            power_basis_entry_bound)))) v x"
 proof -
   let ?m = "gs_m h"
   let ?n = "gs_n h q"
@@ -3500,18 +3429,13 @@ theorem row_scaled_matrix_has_exponential_denominator_bounded_kernel:
     and Hnonneg: "0 \<le> H"
   obtains T :: int and v :: "complex vec" and x :: "int vec" where
     "T > 0"
-    "v \<in> carrier_vec (q * q)"
-    "v \<noteq> 0\<^sub>v (q * q)"
-    "gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q *\<^sub>v v =
-      0\<^sub>v (gs_m h * gs_n h q)"
-    "\<forall>t<q * q. algebraic_int (v $ t)"
-    "\<forall>t<q * q. v $ t =
-      (\<Sum>j<D. of_int (x $ sg_pair_idx D t j) * eta ^ j)"
-    "x \<in> carrier_vec (q * q * D)"
-    "x \<noteq> 0\<^sub>v (q * q * D)"
-    "x \<in> Bounded_vec (2 * int (q * q * D) * max 1
-      \<lceil>real (card E) * power_basis_inverse_bound *
-       (real_of_int (T ^ (gs_n h q + 2 * (gs_m h * q) + D)) * H * power_basis_entry_bound)\<rceil>)"
+    "bounded_integral_basis_kernel
+      (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q)
+      (gs_m h * gs_n h q) (q * q) D (\<lambda>j. eta ^ j)
+      (2 * int (q * q * D) * max 1
+        \<lceil>real (card E) * power_basis_inverse_bound *
+          (real_of_int (T ^ (gs_n h q + 2 * (gs_m h * q) + D)) * H *
+            power_basis_entry_bound)\<rceil>) v x"
 proof -
   interpret Coords: rational_power_basis_coordinates D eta ca cb cw
     "gs_a d" "gs_b d" "gs_w d"
@@ -3519,12 +3443,9 @@ proof -
   obtain *: "gs_a d \<in> K" "gs_b d \<in> K" "gs_w d \<in> K"
     using Coords.a_eq Coords.b_eq Coords.ca_rat Coords.cb_rat Coords.cw_rat Coords.w_eq
       sum_rat_power_in_K by presburger
-  obtain T::int where Tp: "T > 0" and prod:
-    "\<forall>xs. (\<forall>x\<in>set xs. x = gs_a d \<or> x = gs_w d \<or> x = eta \<or>
-      (\<exists>u v::nat. x = of_nat u + of_nat v * gs_b d)) \<longrightarrow>
-      (\<exists>c. of_int (T ^ length xs) * prod_list xs = (\<Sum>i<D. of_int (c i) * eta ^ i))"
+  obtain T::int where Tp: "T > 0" and prod: "gs_uniform_product_denominator d T"
     using data_generators_and_affines_uniform_product_denominator[OF *]
-    by blast
+    unfolding gs_uniform_product_denominator_def by blast
   show thesis
     by (rule row_scaled_matrix_has_given_denominator_bounded_kernel
       [OF Tp prod coords npos qpos dvd house Hnonneg])
@@ -3574,19 +3495,25 @@ proof -
   qed
   have Anonneg: "0 \<le> A"
     using A_choice gs_concrete_entry_bound_nonneg by simp
+  have prod_named: "gs_uniform_product_denominator d T"
+    using prod
+    unfolding gs_uniform_product_denominator_def
+      uniform_product_denominator_def uniform_denominator_factor_def
+    by blast
   obtain v :: "complex vec" and x :: "int vec" where
-      vcar: "v \<in> carrier_vec (q * q)"
-    and vnz: "v \<noteq> 0\<^sub>v (q * q)"
-    and ker: "gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q *\<^sub>v v =
-      0\<^sub>v (gs_m h * gs_n h q)"
-    and vint: "\<forall>t<q * q. algebraic_int (v $ t)"
-    and vrepr: "\<forall>t<q * q. v $ t =
-      (\<Sum>j<D. of_int (x $ sg_pair_idx D t j) * eta ^ j)"
-    and xcar: "x \<in> carrier_vec (q * q * D)"
-    and xnz: "x \<noteq> 0\<^sub>v (q * q * D)"
-    and xbnd: "x \<in> Bounded_vec ?B"
+      IW: "bounded_integral_basis_kernel
+        (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q)
+        (gs_m h * gs_n h q) (q * q) D (\<lambda>j. eta ^ j) ?B v x"
     by (rule row_scaled_matrix_has_given_denominator_bounded_kernel
-      [OF Tp prod coords npos qpos dvd house Anonneg])
+      [OF Tp prod_named coords npos qpos dvd house Anonneg])
+  interpret W: bounded_integral_basis_kernel
+    "gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q"
+    "gs_m h * gs_n h q" "q * q" D "\<lambda>j. eta ^ j" ?B v x
+    by (rule IW)
+  note vcar = W.v_carrier and vnz = W.v_nonzero
+    and ker = W.kernel and vint = W.v_integral
+    and vrepr = W.coordinates and xcar = W.x_carrier
+    and xnz = W.x_nonzero and xbnd = W.x_bounded
   have repr: "\<forall>t<q * q. Matrix.vec_index v t =
     (\<Sum>j<D. of_int (Matrix.vec_index x (sg_pair_idx D t j)) * basis j (emb i0))"
     using vrepr by (simp add: basis_eq_power_at_identity_embedding[OF emb0])

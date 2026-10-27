@@ -13,6 +13,22 @@ section \<open>Structure-constant lifting of integer kernels\<close>
 definition sg_pair_idx :: "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat"
   where "sg_pair_idx d i j \<equiv> i * d + j"
 
+locale bounded_basis_kernel =
+  fixes A :: "complex mat"
+    and p q d :: nat
+    and basis :: "nat \<Rightarrow> complex"
+    and B :: int
+    and v :: "complex vec"
+    and x :: "int vec"
+  assumes v_carrier: "v \<in> carrier_vec q"
+    and v_nonzero: "v \<noteq> 0\<^sub>v q"
+    and x_carrier: "x \<in> carrier_vec (q * d)"
+    and x_nonzero: "x \<noteq> 0\<^sub>v (q * d)"
+    and kernel: "A *\<^sub>v v = 0\<^sub>v p"
+    and coordinates:
+      "\<forall>t<q. v $ t = (\<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j)"
+    and x_bounded: "x \<in> Bounded_vec B"
+
 lemma sg_pair_idx_lt:
   assumes "d > 0" "i < q" "j < d"
   shows "sg_pair_idx d i j < q * d"
@@ -309,13 +325,8 @@ theorem exists_nonzero_bounded_kernel_vec_of_structure_constants:
   assumes basis_indep:
     "\<And>c. (\<Sum>j<d. of_int (c j) * basis j) = 0 \<Longrightarrow> (\<forall>j<d. c j = 0)"
   obtains eta :: "complex vec" and x :: "int vec" where
-      "eta \<in> carrier_vec q"
-    and "eta \<noteq> 0\<^sub>v q"
-    and "x \<in> carrier_vec (q * d)"
-    and "x \<noteq> 0\<^sub>v (q * d)"
-    and "A *\<^sub>v eta = 0\<^sub>v p"
-    and "\<forall>t<q. eta $ t = (\<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j)"
-    and "x \<in> Bounded_vec (int (q * d + 1) * det_bound_hadamard (q * d) (max 1 Bnd))"
+    "bounded_basis_kernel A p q d basis
+      (int (q * d + 1) * det_bound_hadamard (q * d) (max 1 Bnd)) eta x"
 proof -
   define M :: "int mat" where
     "M \<equiv> mat (p * d) (q * d) (\<lambda>(uk,tj). C (uk div d) (tj div d) (uk mod d) (tj mod d))"
@@ -342,9 +353,10 @@ proof -
       "\<forall>t<q. eta $ t = (\<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j)"
     using lift_structure_constant_kernel[OF A dpos mult_repr basis_indep x_carrier x_nz kernel]
     by blast
-  show thesis
-    by (rule that[OF eta(1) eta(2) x_carrier x_nz eta(3)])
-       (use eta(4) x_bnd in auto)
+  have W: "bounded_basis_kernel A p q d basis
+    (int (q * d + 1) * det_bound_hadamard (q * d) (max 1 Bnd)) eta x"
+    by unfold_locales (use eta x_carrier x_nz x_bnd in auto)
+  show thesis by (rule that[OF W])
 qed
 
 theorem exists_nonzero_bounded_kernel_vec_of_structure_constants_linear:
@@ -363,13 +375,8 @@ theorem exists_nonzero_bounded_kernel_vec_of_structure_constants_linear:
   assumes basis_indep:
     "\<And>c. (\<Sum>j<d. of_int (c j) * basis j) = 0 \<Longrightarrow> (\<forall>j<d. c j = 0)"
   obtains eta :: "complex vec" and x :: "int vec" where
-      "eta \<in> carrier_vec q"
-    and "eta \<noteq> 0\<^sub>v q"
-    and "x \<in> carrier_vec (q * d)"
-    and "x \<noteq> 0\<^sub>v (q * d)"
-    and "A *\<^sub>v eta = 0\<^sub>v p"
-    and "\<forall>t<q. eta $ t = (\<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j)"
-    and "x \<in> Bounded_vec (2 * int (q * d) * max 1 Bnd)"
+    "bounded_basis_kernel A p q d basis
+      (2 * int (q * d) * max 1 Bnd) eta x"
 proof -
   define M :: "int mat" 
     where "M \<equiv> mat (p * d) (q * d) (\<lambda>(uk,tj). C (uk div d) (tj div d) (uk mod d) (tj mod d))"
@@ -393,8 +400,10 @@ proof -
       "\<forall>t<q. eta $ t = (\<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j)"
     using lift_structure_constant_kernel[OF A dpos mult_repr basis_indep x_carrier x_nz kernel]
     by blast
-  then show thesis
-    using that x_bnd x_carrier x_nz by meson
+  have W: "bounded_basis_kernel A p q d basis
+    (2 * int (q * d) * max 1 Bnd) eta x"
+    by unfold_locales (use eta x_carrier x_nz x_bnd in auto)
+  show thesis by (rule that[OF W])
 qed
 
 end

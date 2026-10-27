@@ -536,8 +536,9 @@ lemma roth_aux_polynomial_cast:
     (\<Sum>t<length Ks. MPoly_Type.monom (Ks ! t) (of_int (x $ t) :: real))"
   by (simp add: roth_replace_coeff_sum replace_coeff_monom)
 
-theorem roth_auxiliary_polynomial_monic:
+context
   fixes f :: "int poly" and a :: real
+    and d m :: nat and r :: "nat \<Rightarrow> nat" and eps :: real
   assumes monic: "Polynomial.lead_coeff f = 1"
     and d: "d = Polynomial.degree f"
     and dpos: "0 < d"
@@ -547,6 +548,9 @@ theorem roth_auxiliary_polynomial_monic:
     and epos: "0 < eps"
     and elt: "eps < 1"
     and gap: "2 * real d < real m * eps\<^sup>2"
+begin
+
+theorem roth_auxiliary_polynomial_monic:
   shows "\<exists>P :: int mpoly.
     P \<noteq> 0 \<and> roth_poly_in_box m r P \<and>
     ereal (real m * (1-eps) / 2) \<le>
@@ -678,16 +682,6 @@ proof -
 qed
 
 corollary roth_auxiliary_polynomial_monic_exp:
-  fixes f :: "int poly" and a :: real
-  assumes monic: "Polynomial.lead_coeff f = 1"
-    and d: "d = Polynomial.degree f"
-    and dpos: "0 < d"
-    and root: "poly (map_poly of_int f) a = 0"
-    and mpos: "0 < m"
-    and rpos: "\<And>v. v < m \<Longrightarrow> 0 < r v"
-    and epos: "0 < eps"
-    and elt: "eps < 1"
-    and gap: "2 * real d < real m * eps\<^sup>2"
   shows "\<exists>P :: int mpoly.
     P \<noteq> 0 \<and> roth_poly_in_box m r P \<and>
     ereal (real m * (1-eps) / 2) \<le>
@@ -732,9 +726,7 @@ proof -
       roth_index m r (\<lambda>_. a) (replace_coeff of_int P)"
     "\<forall>K. abs (MPoly_Type.coeff P K) \<le>
       2 * int (card ?S) * ?B"
-    using roth_auxiliary_polynomial_monic
-      [where f=f and a=a and d=d and m=m and r=r and eps=eps,
-       OF monic d dpos root mpos rpos epos elt gap] by blast
+    using roth_auxiliary_polynomial_monic by blast
   have Pbound: "\<forall>K. abs (MPoly_Type.coeff P K) \<le>
       2 * (4 * roth_power_base f) ^ ?R"
   proof
@@ -749,5 +741,7 @@ proof -
   show ?thesis
     using P(1-3) Pbound by (intro exI[of _ P]) auto
 qed
+
+end
 
 end

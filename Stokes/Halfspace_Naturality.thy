@@ -129,54 +129,10 @@ theorem piola_matrix_field_closed_halfspace:
   shows "exterior_top
     (\<lambda>y. Determinants.det (F y) *\<^sub>R
       (G y *v axis j 1)) x = 0"
-proof -
-  let ?H = "\<lambda>i. frechet_derivative F (at x) (axis i 1)"
-  let ?r = "Determinants.det (F x)"
-  let ?rho = "\<lambda>y. Determinants.det (F y)"
-  let ?V = "\<lambda>y. G y *v axis j 1"
-  have drho: "?rho differentiable (at x)"
-    by (rule matrix_det_differentiable[OF dF])
-  have dV: "?V differentiable (at x)"
-    by (rule matrix_column_field_differentiable[OF dG])
-  have det_term: "frechet_derivative ?rho (at x) (axis i 1) *
-      ?V x $ i =
-    ?r * (\<Sum>a\<in>UNIV. \<Sum>b\<in>UNIV.
-      G x $ b $ a * ?H i $ a $ b * G x $ i $ j)"
-    for i
-    by (simp add: matrix_det_field_derivative[OF dF left_inverse]
-      piola_trace_component)
-  have inv_term: "frechet_derivative ?V (at x) (axis i 1) $ i =
-    - (\<Sum>a\<in>UNIV. \<Sum>b\<in>UNIV.
-      G x $ i $ a * ?H i $ a $ b * G x $ b $ j)"
-    for i
-    by (simp add: matrix_column_field_derivative[OF dG]
-      matrix_inverse_field_derivative_halfspace
-        [OF openU xU xH inverse left_inverse dF dG]
-      matrix_vector_mul_minus_stokes piola_inverse_component)
-  have pos: "(\<Sum>i\<in>UNIV.
-      frechet_derivative ?rho (at x) (axis i 1) * ?V x $ i) =
-    ?r * (\<Sum>i\<in>UNIV. \<Sum>a\<in>UNIV. \<Sum>b\<in>UNIV.
-      G x $ b $ a * ?H i $ a $ b * G x $ i $ j)"
-    by (simp add: det_term sum_distrib_left)
-  have neg: "exterior_top ?V x =
-    - (\<Sum>i\<in>UNIV. \<Sum>a\<in>UNIV. \<Sum>b\<in>UNIV.
-      G x $ i $ a * ?H i $ a $ b * G x $ b $ j)"
-    by (simp add: exterior_top_coordinate inv_term sum_negf)
-  have cancel: "(\<Sum>i\<in>UNIV. \<Sum>a\<in>UNIV. \<Sum>b\<in>UNIV.
-      G x $ b $ a * ?H i $ a $ b * G x $ i $ j) =
-    (\<Sum>i\<in>UNIV. \<Sum>a\<in>UNIV. \<Sum>b\<in>UNIV.
-      G x $ i $ a * ?H i $ a $ b * G x $ b $ j)"
-    by (rule piola_coordinate_cancellation[OF mixed])
-  have "exterior_top
-    (\<lambda>y. Determinants.det (F y) *\<^sub>R
-      (G y *v axis j 1)) x =
-    ?r * exterior_top ?V x +
-      (\<Sum>i\<in>UNIV.
-        frechet_derivative ?rho (at x) (axis i 1) * ?V x $ i)"
-    by (rule exterior_top_scale[OF drho dV])
-  then show ?thesis
-    by (simp add: pos neg cancel)
-qed
+  by (rule piola_matrix_field_closed_from_inverse_derivative
+      [OF left_inverse dF dG mixed])
+    (rule matrix_inverse_field_derivative_halfspace
+      [OF openU xU xH inverse left_inverse dF dG])
 
 lemma jacobian_local_inverse_halfspace:
   fixes f g :: "real ^ (unit + 'n::finite) \<Rightarrow>

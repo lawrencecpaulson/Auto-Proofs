@@ -914,37 +914,6 @@ lemma roth_int_taylor_cast:
   by (simp add: roth_hasse_eval[symmetric] roth_hasse_cast[symmetric]
     roth_hasse_cast_real[symmetric] roth_integer_evaluation_cast)
 
-lemma roth_real_taylor_index_box:
-  fixes P :: "real mpoly"
-  assumes box: "roth_poly_in_box m r P"
-    and tc: "roth_taylor_coeff a I P \<noteq> 0"
-  shows "I \<in> roth_exponent_box m r"
-proof -
-  have hne: "roth_hasse I P \<noteq> 0"
-    using tc by (auto simp: roth_hasse_eval[symmetric])
-  obtain K where ck: "MPoly_Type.coeff (roth_hasse I P) K \<noteq> 0"
-    using hne coeff_all_0 by blast
-  have cp: "MPoly_Type.coeff P (K+I) \<noteq> 0"
-    by (rule roth_hasse_coeff_support[OF ck])
-  have ki: "K+I \<in> roth_exponent_box m r"
-    using box cp by (auto simp: roth_poly_in_box_def MPoly_Type.coeff_def in_keys_iff)
-  show ?thesis
-  proof (rule roth_exponent_boxI)
-    have sub: "Poly_Mapping.keys I \<subseteq> Poly_Mapping.keys (K+I)"
-      by (auto simp: in_keys_iff lookup_add)
-    show "Poly_Mapping.keys I \<subseteq> {..<m}"
-      using sub roth_exponent_boxD(1)[OF ki] by blast
-    fix v assume vm: "v<m"
-    have "Poly_Mapping.lookup I v \<le> Poly_Mapping.lookup (K+I) v"
-      by (simp add: lookup_add)
-    also have "... \<le> r v"
-      by (rule roth_exponent_boxD(2)[OF ki vm])
-    finally show "Poly_Mapping.lookup I v \<le> r v" .
-  qed
-qed
-
-
-
 lemma roth_real_taylor_card_bound:
   fixes P :: "real mpoly"
   assumes box: "roth_poly_in_box m r P"
@@ -954,7 +923,7 @@ proof (rule card_mono[OF finite_roth_exponent_box])
   show "Poly_Mapping.keys (mapping_of (roth_translate a P)) \<subseteq>
       roth_exponent_box m r"
     using box by (auto simp: roth_taylor_coeff_key[symmetric]
-      intro: roth_real_taylor_index_box)
+      intro: roth_taylor_index_box)
 qed
 
 

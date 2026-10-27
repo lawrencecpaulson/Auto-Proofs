@@ -261,7 +261,7 @@ qed
 
 lemma roth_permutes_sum:
   assumes q: "q permutes {..<k}"
-  shows "(\<Sum>i<k. f (q i)::nat) = (\<Sum>i<k. f i)"
+  shows "(\<Sum>i<k. f (q i)::'a::comm_monoid_add) = (\<Sum>i<k. f i)"
 proof -
   have inj: "inj_on q {..<k}"
     using q permutes_inj by (blast intro: inj_on_subset)

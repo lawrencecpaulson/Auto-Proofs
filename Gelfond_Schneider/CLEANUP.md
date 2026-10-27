@@ -1,42 +1,54 @@
-# Proof cleanup candidates
+# Proof cleanup
 
-When reviewing a theory, look for long repeated blocks of **formulas or
-proofs**, including blocks separated by renamed variables or a different
-bound. Compare theorem assumptions and conclusions as well as proof text.
-An exact contiguous-line scan is a useful first pass, but semantic comparison
-is needed before extracting a common lemma or locale. Prefer an extraction
-when it gives a meaningful shared mathematical statement.
+Review repeated assumptions, conclusions, formulas, and proofs together.
+An exact line scan is only a first pass: the same mathematical data may
+recur with renamed variables or a different quantitative bound. Prefer an
+extraction when it gives that data a meaningful name.
 
-Completed extractions:
+## Completed
 
-- `Power_Basis_Norm_Target.thy`, the proofs of
-  `row_scaled_matrix_entries_from_product_denominator` and
-  `row_scaled_matrix_entries_have_uniform_exponential_denominator`: roughly
-  45 identical lines pad the coefficient denominator exponent and scale a
-  matrix row. Both now use
-  `row_scaled_matrix_entries_from_coefficient_representation`.
-- `Scaled_Bounded.thy`, the Hadamard and linear versions of
-  `gs_exists_row_scaled_bounded_nonzero_algebraic_int_house_lower_bound`:
-  both now use `gs_scaled_auxiliary_value_house_lower_bound` after
-  constructing their respective bounded kernel vectors. This removed
-  34 lines overall.
-- `Power_Basis_Norm_Target.thy` now defines the scaled auxiliary value,
-  its integer multiplier, and the witness growth prefactor once. Three
-  pairs of house and point bound lemmas share their common assumptions
-  through local contexts. Together these changes remove 75 theory lines.
-- `Power_Basis_Norm_Target.thy` derives the exponential-denominator
-  bounded-kernel theorem from the given-denominator version and the
-  product-denominator existence result. This removes 24 theory lines
-  while making the dependency between the results explicit.
+- `Power_Basis_Norm_Target.thy` uses
+  `row_scaled_matrix_entries_from_coefficient_representation` for the
+  common denominator-padding and row-scaling argument. Its exponential
+  denominator result now follows from the given-denominator theorem.
+- `Structure_Constant_Kernels.thy` introduces `bounded_basis_kernel`.
+  `GS_Direct.thy` extends it with `bounded_integral_basis_kernel` and a
+  generic lemma deriving coordinate integrality from an integral basis.
+  Bounded-kernel results in `Embedding_Kernel_Bounds.thy`, `GS_Direct.thy`,
+  `Scaled_Bounded.thy`, and `Power_Basis_Norm_Target.thy` now use these
+  named witnesses. The quantitative bound remains an explicit parameter.
+- `GS_Direct.thy` defines `gs_bounded_auxiliary_witness` for the minimum
+  order and nonzero derivative. Both ordinary and row-scaled bounded
+  constructions use it. `Scaled_Bounded.thy` defines
+  `gs_integral_scaled_auxiliary_value` for the multiplier, scaled value,
+  integrality, and nonvanishing facts in the house and upper bounds.
+- `GS_System.thy` supplies common balance inequalities used throughout the
+  matrix and power-basis arguments.
+- `Power_Basis_Norm_Target.thy` defines the uniform product-denominator
+  properties instead of repeating their long universal formulas. It also
+  defines the scaled auxiliary value and growth prefactor used in its
+  final estimates.
+- Related bounds in `GS_Direct.thy`, `Scaled_Bounded.thy`, and
+  `Power_Basis_Norm_Target.thy` share common hypotheses through local
+  contexts. The Hadamard and linear house-lower-bound results use the same
+  lower-bound lemma after producing their respective vectors.
 
-Remaining candidates identified on 2026-10-26:
+The `Gelfond_Schneider` session built successfully after these edits.
 
-- `Power_Basis_Norm_Target.thy`, the two
-  `gs_rho_upper_from_concrete_witness` lemmas repeat their witness premises;
-  their denominator bounds differ. Grouping the common premises would
-  save few lines and may obscure the two quantitative hypotheses; keep
-  them explicit unless a broader witness interface is needed.
-- `Scaled_Bounded.thy` and `GS_Direct.thy` repeatedly state the
-  `basis_int`, `basis_indep`, `mult_repr`, and `C_bnd` conditions. Consider a
-  shared locale if further work touches several of those interfaces; a
-  local proof extraction is likely simpler for isolated duplicates.
+## Remaining candidates
+
+- The four initial bounded-kernel theorems in `GS_Direct.thy` and
+  `Scaled_Bounded.thy` still repeat the `basis_int`, `basis_indep`,
+  `mult_repr`, and `C_bnd` premises. A matrix-parameterized locale may
+  improve these theorem statements. The later results already share
+  these premises through their contexts.
+- `GS_Arithmetic.thy` still writes the raw multiplier and scaled-value
+  formulas in several interfaces. The downstream bounded results now use
+  a predicate. A shared definition at the arithmetic level could remove
+  the upstream copies, but would change several theorem interfaces.
+- The field-construction rules in `Galois_Root_Bounds.thy` strengthen their
+  conclusions stage by stage. `finite_normal_galois_power_basis` already
+  names the final state; it is not clear that another locale would improve
+  the intermediate rules.
+
+Keep bounds explicit where their exact formula is the point of a theorem.

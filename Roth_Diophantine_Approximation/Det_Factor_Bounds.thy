@@ -238,18 +238,6 @@ proof (rule roth_weight_tensor_bound[OF supp ord ib rp])
       (use half vn in auto)
 qed
 
-lemma roth_permutes_sum_real:
-  assumes q: "q permutes {..<k}"
-  shows "(\<Sum>i<k. f (q i)::real) = (\<Sum>i<k. f i)"
-proof -
-  have inj: "inj_on q {..<k}"
-    using q permutes_inj by (blast intro: inj_on_subset)
-  have img: "q ` {..<k} = {..<k}"
-    using permutes_image[OF q] .
-  show ?thesis using sum.reindex[OF inj, of f] img
-    by (simp add: o_def)
-qed
-
 lemma roth_index_det_hasse_weight:
   fixes P :: "rat mpoly"
   assumes ip: "roth_index m r a P = ereal t"
@@ -273,7 +261,7 @@ proof (rule roth_index_det_lower)
   qed
   have e: "(\<Sum>i<k. max 0 (t-rho-real (q i) / real R)) =
     (\<Sum>j<k. max 0 (t-rho-real j / real R))"
-    by (rule roth_permutes_sum_real[OF q])
+    by (rule roth_permutes_sum[OF q])
   show "ereal (\<Sum>j<k. max 0 (t-rho-real j / real R)) \<le>
     (\<Sum>i<k. roth_index m r a (roth_hasse (J i (q i)) P))"
     unfolding e[symmetric] sum_ereal[symmetric]
@@ -629,35 +617,6 @@ proof -
 qed
 
 section \<open>Index attained inside the degree box\<close>
-
-lemma roth_taylor_index_box:
-  fixes P :: "rat mpoly"
-  assumes box: "roth_poly_in_box m r P"
-    and tc: "roth_taylor_coeff a I P \<noteq> 0"
-  shows "I \<in> roth_exponent_box m r"
-proof -
-  have hne: "roth_hasse I P \<noteq> 0"
-    using tc by (auto simp: roth_hasse_eval[symmetric])
-  obtain K where ck: "MPoly_Type.coeff (roth_hasse I P) K \<noteq> 0"
-    using hne coeff_all_0 by blast
-  have cp: "MPoly_Type.coeff P (K+I) \<noteq> 0"
-    by (rule roth_hasse_coeff_support[OF ck])
-  have ki: "K+I \<in> roth_exponent_box m r"
-    using box cp by (auto simp: roth_poly_in_box_def coeff_def in_keys_iff)
-  show ?thesis
-  proof (rule roth_exponent_boxI)
-    have sub: "Poly_Mapping.keys I \<subseteq> Poly_Mapping.keys (K+I)"
-      by (auto simp: in_keys_iff lookup_add)
-    show "Poly_Mapping.keys I \<subseteq> {..<m}"
-      using sub roth_exponent_boxD(1)[OF ki] by blast
-    fix v assume vm: "v<m"
-    have "Poly_Mapping.lookup I v \<le> Poly_Mapping.lookup (K+I) v"
-      by (simp add: lookup_add)
-    also have "... \<le> r v"
-      by (rule roth_exponent_boxD(2)[OF ki vm])
-    finally show "Poly_Mapping.lookup I v \<le> r v" .
-  qed
-qed
 
 lemma roth_box_weight_le_dim:
   assumes box: "I \<in> roth_exponent_box m r"

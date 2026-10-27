@@ -32,45 +32,16 @@ lemma chartwise_C1_scalar_binary:
       Ck_on 1 (\<lambda>y. h (F y) (G y)) U"
   shows "chartwise_C1_scalar
     (\<lambda>p. h (a p) (b p))"
-proof (unfold chartwise_C1_scalar_def, intro ballI)
-  fix j x
-  assume j: "j \<in> I" and x: "x \<in> C j"
-  have exF: "\<exists>U F. Ck_on 1 F U \<and> x \<in> U \<and>
-    (\<forall>y\<in>U \<inter> C j. F y = a (from_chart j y))"
-    using a j x
-    by (auto simp: chartwise_C1_scalar_def)
-  obtain U F where F: "Ck_on 1 F U" "x \<in> U"
-    "\<forall>y\<in>U \<inter> C j. F y = a (from_chart j y)"
-    using exF by blast
-  have exG: "\<exists>V G. Ck_on 1 G V \<and> x \<in> V \<and>
-    (\<forall>y\<in>V \<inter> C j. G y = b (from_chart j y))"
-    using b j x
-    by (auto simp: chartwise_C1_scalar_def)
-  obtain V G where G: "Ck_on 1 G V" "x \<in> V"
-    "\<forall>y\<in>V \<inter> C j. G y = b (from_chart j y)"
-    using exG by blast
-  let ?W = "U \<inter> V"
-  have openW: "open ?W"
-    by (rule open_Int)
-       (use Ck_on_open[OF F(1)]
-         Ck_on_open[OF G(1)] in auto)
-  have FW: "Ck_on 1 F ?W"
-    by (rule Ck_on_subset[OF F(1) openW]) auto
-  have GW: "Ck_on 1 G ?W"
-    by (rule Ck_on_subset[OF G(1) openW]) auto
-  have hW: "Ck_on 1 (\<lambda>y. h (F y) (G y)) ?W"
-    by (rule closure[OF FW GW])
-  have eq: "h (F y) (G y) =
-      h (a (from_chart j y)) (b (from_chart j y))"
-    if y: "y \<in> ?W \<inter> C j" for y
-    using F(3) G(3) y by auto
-  show "\<exists>U H. Ck_on 1 H U \<and> x \<in> U \<and>
-    (\<forall>y\<in>U \<inter> C j.
-      H y = h (a (from_chart j y))
-        (b (from_chart j y)))"
-    by (rule exI[where x="?W"],
-        rule exI[where x="\<lambda>y. h (F y) (G y)"])
-       (use hW F(2) G(2) eq in auto)
+proof -
+  have A: "chartwise_C1_scalar_on I C from_chart a"
+    using a by (simp add: chartwise_C1_scalar_def chartwise_C1_scalar_on_def)
+  have B: "chartwise_C1_scalar_on I C from_chart b"
+    using b by (simp add: chartwise_C1_scalar_def chartwise_C1_scalar_on_def)
+  have R: "chartwise_C1_scalar_on I C from_chart
+      (\<lambda>p. h (a p) (b p))"
+    by (rule chartwise_C1_scalar_on_binary[OF A B closure])
+  show ?thesis using R
+    by (simp add: chartwise_C1_scalar_def chartwise_C1_scalar_on_def)
 qed
 
 lemma chartwise_C1_scalar_add:
@@ -94,251 +65,16 @@ lemma chartwise_C1_scalar_mult:
   by (rule chartwise_C1_scalar_binary
     [OF assms]) (rule Ck_on_mult; assumption)
 
-lemma finite_C1_partition_from_cutoffs:
-  fixes r :: "'i \<Rightarrow> 'a \<Rightarrow> real"
-    and X :: "'a set"
-  assumes finite: "finite F"
-    and C1: "\<And>i. i \<in> F \<Longrightarrow>
-      chartwise_C1_scalar (r i)"
-    and bounds: "\<And>i p. i \<in> F \<Longrightarrow>
-      0 \<le> r i p \<and> r i p \<le> 1"
-    and cont: "\<And>i. i \<in> F \<Longrightarrow>
-      continuous_on X (r i)"
-  shows "\<exists>phi.
-    (\<forall>i\<in>F. chartwise_C1_scalar (phi i)) \<and>
-    (\<forall>i\<in>F. continuous_on X (phi i)) \<and>
-    (\<forall>i\<in>F. \<forall>p. phi i p \<noteq> 0 \<longrightarrow> r i p \<noteq> 0) \<and>
-    (\<forall>i\<in>F. \<forall>p. 0 \<le> phi i p \<and> phi i p \<le> 1) \<and>
-    (\<forall>p. (\<Sum>i\<in>F. phi i p) =
-      1 - (\<Prod>i\<in>F. (1 - r i p)))"
-  using finite C1 bounds cont
-proof (induction F rule: finite_induct)
-  case empty
-  show ?case
-    by (rule exI[where x="\<lambda>i p. 0::real"])
-       simp
-next
-  case (insert i F)
-  have C1i: "chartwise_C1_scalar (r i)"
-    using insert.prems by auto
-  have C1F: "\<And>j. j \<in> F \<Longrightarrow>
-      chartwise_C1_scalar (r j)"
-    using insert.prems by auto
-  have boundsi: "\<And>p. 0 \<le> r i p \<and> r i p \<le> 1"
-    using insert.prems by auto
-  have boundsF: "\<And>j p. j \<in> F \<Longrightarrow>
-      0 \<le> r j p \<and> r j p \<le> 1"
-    using insert.prems by auto
-  have conti: "continuous_on X (r i)"
-    using insert.prems by auto
-  have contF: "\<And>j. j \<in> F \<Longrightarrow>
-      continuous_on X (r j)"
-    using insert.prems by auto
-  obtain psi where psi:
-    "\<forall>j\<in>F. chartwise_C1_scalar (psi j)"
-    "\<forall>j\<in>F. continuous_on X (psi j)"
-    "\<forall>j\<in>F. \<forall>p.
-      psi j p \<noteq> 0 \<longrightarrow> r j p \<noteq> 0"
-    "\<forall>j\<in>F. \<forall>p.
-      0 \<le> psi j p \<and> psi j p \<le> 1"
-    "\<forall>p. (\<Sum>j\<in>F. psi j p) =
-      1 - (\<Prod>j\<in>F. (1 - r j p))"
-    using insert.IH[OF C1F boundsF contF] by blast
-  let ?phi = "\<lambda>j p. if j = i then r i p
-    else (1 - r i p) * psi j p"
-  have one_minus: "chartwise_C1_scalar
-      (\<lambda>p. 1 - r i p)"
-    by (rule chartwise_C1_scalar_sub
-      [OF chartwise_C1_scalar_const C1i])
-  have C1phi: "chartwise_C1_scalar (?phi j)"
-    if j: "j \<in> insert i F" for j
-  proof (cases "j = i")
-    case True
-    then show ?thesis using C1i by simp
-  next
-    case False
-    have jF: "j \<in> F" using j False by auto
-    have C1psi: "chartwise_C1_scalar (psi j)"
-      using psi(1) jF by auto
-    show ?thesis
-      using False
-      by (simp add: chartwise_C1_scalar_mult
-        [OF one_minus C1psi])
-  qed
-  have cont_phi: "continuous_on X (?phi j)"
-    if j: "j \<in> insert i F" for j
-  proof (cases "j = i")
-    case True
-    then show ?thesis using conti by simp
-  next
-    case False
-    have jF: "j \<in> F" using j False by auto
-    have contpsi: "continuous_on X (psi j)"
-      using psi(2) jF by auto
-    show ?thesis
-      using False conti contpsi
-      by (auto intro!: continuous_intros)
-  qed
-  have support: "?phi j p \<noteq> 0 \<Longrightarrow> r j p \<noteq> 0"
-    if j: "j \<in> insert i F" for j p
-  proof -
-    assume nz: "?phi j p \<noteq> 0"
-    show "r j p \<noteq> 0"
-    proof (cases "j = i")
-      case True
-      then show ?thesis using nz by simp
-    next
-      case False
-      have jF: "j \<in> F" using j False by auto
-      have imp: "psi j p \<noteq> 0 \<Longrightarrow> r j p \<noteq> 0"
-        using psi(3) jF by auto
-      show ?thesis
-        using False imp nz by auto
-    qed
-  qed
-  have bounds_phi: "0 \<le> ?phi j p \<and> ?phi j p \<le> 1"
-    if j: "j \<in> insert i F" for j p
-  proof (cases "j = i")
-    case True
-    then show ?thesis using boundsi by simp
-  next
-    case False
-    have jF: "j \<in> F" using j False by auto
-    have psib: "0 \<le> psi j p \<and> psi j p \<le> 1"
-      using psi(4) jF by auto
-    have rb: "0 \<le> r i p \<and> r i p \<le> 1"
-      by (rule boundsi)
-    show ?thesis
-      using False rb psib
-      by (simp add: mult_le_one)
-  qed
-  have formula: "(\<Sum>j\<in>insert i F. ?phi j p) =
-      1 - (\<Prod>j\<in>insert i F. (1 - r j p))"
-    for p
-  proof -
-    have eqF: "(\<Sum>j\<in>F. ?phi j p) =
-      (\<Sum>j\<in>F. (1 - r i p) * psi j p)"
-      by (rule sum.cong)
-         (use insert.hyps(2) in auto)
-    have IH_eq: "(\<Sum>j\<in>F. psi j p) =
-      1 - (\<Prod>j\<in>F. (1 - r j p))"
-      using psi(5) by auto
-    have "(\<Sum>j\<in>insert i F. ?phi j p) =
-      r i p + (1 - r i p) * (\<Sum>j\<in>F. psi j p)"
-      using insert.hyps eqF
-      by (simp add: sum_distrib_left)
-    also have "\<dots> =
-      1 - (1 - r i p) *
-        (\<Prod>j\<in>F. (1 - r j p))"
-      by (simp add: IH_eq algebra_simps)
-    also have "\<dots> =
-      1 - (\<Prod>j\<in>insert i F. (1 - r j p))"
-      using insert.hyps by simp
-    finally show ?thesis .
-  qed
-  show ?case
-    by (rule exI[where x="?phi"])
-       (use C1phi cont_phi support bounds_phi formula in auto)
-qed
+interpretation scalar_partition: scalar_partition_algebra chartwise_C1_scalar
+  by unfold_locales
+    (auto intro: chartwise_C1_scalar_const chartwise_C1_scalar_sub
+      chartwise_C1_scalar_mult)
 
-lemma finite_C1_chart_partition:
-  fixes X :: "'a set" and E :: "'i \<Rightarrow> 'a set"
-  assumes finite: "finite F"
-    and cover: "K \<subseteq> (\<Union>i\<in>F. Q i)"
-    and cutoff: "\<And>i. i \<in> F \<Longrightarrow>
-      \<exists>r L. continuous_on X r \<and>
-        chartwise_C1_scalar r \<and> closed L \<and>
-        {p\<in>X. r p \<noteq> (0::real)} \<subseteq> L \<and>
-        L \<subseteq> E i \<and>
-        (\<forall>p\<in>Q i. r p = 1) \<and>
-        (\<forall>p. 0 \<le> r p \<and> r p \<le> 1)"
-  obtains phi :: "'i \<Rightarrow> 'a \<Rightarrow> real" where
-    "\<And>p. p \<in> K \<Longrightarrow> (\<Sum>i\<in>F. phi i p) = 1"
-    "\<And>i. i \<in> F \<Longrightarrow> continuous_on X (phi i)"
-    "\<And>i. i \<in> F \<Longrightarrow>
-      chartwise_C1_scalar (phi i)"
-    "\<And>i. i \<in> F \<Longrightarrow>
-      \<exists>L. closed L \<and>
-        {p\<in>X. phi i p \<noteq> 0} \<subseteq> L \<and>
-        L \<subseteq> E i"
-    "\<And>i p. i \<in> F \<Longrightarrow>
-      0 \<le> phi i p \<and> phi i p \<le> 1"
-proof -
-  let ?P = "\<lambda>i z. continuous_on X (fst z) \<and>
-    chartwise_C1_scalar (fst z) \<and>
-    closed (snd z) \<and>
-    {p\<in>X. fst z p \<noteq> (0::real)} \<subseteq> snd z \<and>
-    snd z \<subseteq> E i \<and>
-    (\<forall>p\<in>Q i. fst z p = 1) \<and>
-    (\<forall>p. 0 \<le> fst z p \<and> fst z p \<le> 1)"
-  let ?h = "\<lambda>i. SOME z. ?P i z"
-  let ?r = "\<lambda>i. fst (?h i)"
-  let ?L = "\<lambda>i. snd (?h i)"
-  have data: "?P i (?h i)" if i: "i \<in> F" for i
-  proof -
-    have "\<exists>z. ?P i z"
-      using cutoff[OF i] by auto
-    then show ?thesis by (rule someI_ex)
-  qed
-  have C1r: "chartwise_C1_scalar (?r i)"
-    if i: "i \<in> F" for i
-    using data[OF i] by simp
-  have contr: "continuous_on X (?r i)"
-    if i: "i \<in> F" for i
-    using data[OF i] by simp
-  have boundsr: "0 \<le> ?r i p \<and> ?r i p \<le> 1"
-    if i: "i \<in> F" for i p
-    using data[OF i] by simp
-  let ?A = "\<lambda>phi :: 'i \<Rightarrow> 'a \<Rightarrow> real.
-    (\<forall>i\<in>F. chartwise_C1_scalar (phi i)) \<and>
-    (\<forall>i\<in>F. continuous_on X (phi i)) \<and>
-    (\<forall>i\<in>F. \<forall>p.
-      phi i p \<noteq> 0 \<longrightarrow> ?r i p \<noteq> 0) \<and>
-    (\<forall>i\<in>F. \<forall>p.
-      0 \<le> phi i p \<and> phi i p \<le> 1) \<and>
-    (\<forall>p. (\<Sum>i\<in>F. phi i p) =
-      1 - (\<Prod>i\<in>F. (1 - ?r i p)))"
-  let ?phi = "SOME phi. ?A phi"
-  have ex: "\<exists>phi. ?A phi"
-    by (rule finite_C1_partition_from_cutoffs
-      [OF finite C1r boundsr contr])
-  have props: "?A ?phi"
-    by (rule someI_ex[OF ex])
-  have props_support:
-      "\<forall>i\<in>F. \<forall>p.
-        ?phi i p \<noteq> 0 \<longrightarrow> ?r i p \<noteq> 0"
-    using props by simp
-  have unity: "(\<Sum>i\<in>F. ?phi i p) = 1"
-    if p: "p \<in> K" for p
-  proof -
-    obtain i where i: "i \<in> F" "p \<in> Q i"
-      using cover p by auto
-    have one: "?r i p = 1"
-      using data[OF i(1)] i(2) by auto
-    have zero: "(\<Prod>j\<in>F. (1 - ?r j p)) = 0"
-      by (rule prod_zero[OF finite])
-         (use i(1) one in auto)
-    show ?thesis using props zero by auto
-  qed
-  have local: "\<exists>L. closed L \<and>
-      {p\<in>X. ?phi i p \<noteq> 0} \<subseteq> L \<and>
-      L \<subseteq> E i"
-    if i: "i \<in> F" for i
-  proof -
-    have nz: "?phi i p \<noteq> 0 \<Longrightarrow>
-        ?r i p \<noteq> 0" for p
-      using props_support i by auto
-    have rsub: "{p\<in>X. ?r i p \<noteq> 0} \<subseteq> ?L i"
-      using data[OF i] by simp
-    have sub: "{p\<in>X. ?phi i p \<noteq> 0} \<subseteq> ?L i"
-      using nz rsub by auto
-    show ?thesis
-      using sub data[OF i] by blast
-  qed
-  show thesis
-    by (rule that[where phi="?phi"])
-       (use props unity local in auto)
-qed
+lemmas finite_C1_partition_from_cutoffs =
+  scalar_partition.finite_C1_partition_from_cutoffs
+
+lemmas finite_C1_chart_partition =
+  scalar_partition.finite_C1_chart_partition
 
 lemma local_coordinate_transition_C2:
   assumes j: "j \<in> I" and i: "i \<in> I"

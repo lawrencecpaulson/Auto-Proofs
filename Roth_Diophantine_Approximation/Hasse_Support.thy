@@ -867,6 +867,36 @@ lemma roth_hasse_coeff_support:
   shows "coeff P (I + J) \<noteq> 0"
   using nz by (auto simp: roth_hasse_coeff_exact)
 
+lemma roth_taylor_index_box:
+  fixes P :: "'a::idom mpoly"
+  assumes box: "roth_poly_in_box m r P"
+    and tc: "roth_taylor_coeff a I P \<noteq> 0"
+  shows "I \<in> roth_exponent_box m r"
+proof -
+  have hne: "roth_hasse I P \<noteq> 0"
+    using tc by (auto simp: roth_hasse_eval[symmetric])
+  obtain K where ck: "coeff (roth_hasse I P) K \<noteq> 0"
+    using hne coeff_all_0 by blast
+  have cp: "coeff P (K+I) \<noteq> 0"
+    by (rule roth_hasse_coeff_support[OF ck])
+  have ki: "K+I \<in> roth_exponent_box m r"
+    using box cp by (auto simp: roth_poly_in_box_def coeff_def in_keys_iff)
+  show ?thesis
+  proof (rule roth_exponent_boxI)
+    have sub: "Poly_Mapping.keys I \<subseteq> Poly_Mapping.keys (K+I)"
+      by (auto simp: in_keys_iff lookup_add)
+    show "Poly_Mapping.keys I \<subseteq> {..<m}"
+      using sub roth_exponent_boxD(1)[OF ki] by blast
+    fix v
+    assume vm: "v<m"
+    have "Poly_Mapping.lookup I v \<le> Poly_Mapping.lookup (K+I) v"
+      by (simp add: lookup_add)
+    also have "... \<le> r v"
+      by (rule roth_exponent_boxD(2)[OF ki vm])
+    finally show "Poly_Mapping.lookup I v \<le> r v" .
+  qed
+qed
+
 lemma roth_hasse_taylor_support:
   fixes P :: "'a::idom mpoly"
   assumes nz: "roth_taylor_coeff a J (roth_hasse I P) \<noteq> 0"

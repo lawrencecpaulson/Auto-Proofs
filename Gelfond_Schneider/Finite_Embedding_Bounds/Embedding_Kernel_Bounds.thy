@@ -48,15 +48,16 @@ theorem exists_nonzero_bounded_kernel_vec_of_structure_constants_ehouse:
 proof -
   let ?X = "int (q * d + 1) * det_bound_hadamard (q * d) (max 1 Bnd)"
   obtain eta :: "complex vec" and x :: "int vec" where
-      eta_carrier: "eta \<in> carrier_vec q"
-    and eta_nz: "eta \<noteq> 0\<^sub>v q"
-    and x_carrier: "x \<in> carrier_vec (q * d)"
-    and x_nz: "x \<noteq> 0\<^sub>v (q * d)"
-    and ker: "A *\<^sub>v eta = 0\<^sub>v p"
-    and repr: "\<forall>t<q. eta $ t = (\<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j e0)"
-    and x_bnd: "x \<in> Bounded_vec ?X"
+      W: "bounded_basis_kernel A p q d (\<lambda>j. basis j e0) ?X eta x"
     by (rule exists_nonzero_bounded_kernel_vec_of_structure_constants
           [OF A dpos hpq mult_repr C_bnd basis_indep])
+  note eta_carrier = bounded_basis_kernel.v_carrier[OF W]
+    and eta_nz = bounded_basis_kernel.v_nonzero[OF W]
+    and x_carrier = bounded_basis_kernel.x_carrier[OF W]
+    and x_nz = bounded_basis_kernel.x_nonzero[OF W]
+    and ker = bounded_basis_kernel.kernel[OF W]
+    and repr = bounded_basis_kernel.coordinates[OF W]
+    and x_bnd = bounded_basis_kernel.x_bounded[OF W]
   have X_nonneg: "0 \<le> ?X"
   proof (rule ccontr)
     assume non: "\<not> 0 \<le> ?X"
@@ -133,15 +134,16 @@ theorem exists_nonzero_bounded_kernel_vec_of_structure_constants_ehouse_linear:
 proof -
   let ?X = "2 * int (q * d) * max 1 Bnd"
   obtain eta :: "complex vec" and x :: "int vec" where
-      eta_carrier: "eta \<in> carrier_vec q"
-    and eta_nz: "eta \<noteq> 0\<^sub>v q"
-    and x_carrier: "x \<in> carrier_vec (q * d)"
-    and x_nz: "x \<noteq> 0\<^sub>v (q * d)"
-    and ker: "A *\<^sub>v eta = 0\<^sub>v p"
-    and repr: "\<forall>t<q. eta $ t = (\<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j e0)"
-    and x_bnd: "x \<in> Bounded_vec ?X"
+      W: "bounded_basis_kernel A p q d (\<lambda>j. basis j e0) ?X eta x"
     by (rule exists_nonzero_bounded_kernel_vec_of_structure_constants_linear
           [OF A ppos dpos hpq mult_repr C_bnd basis_indep])
+  note eta_carrier = bounded_basis_kernel.v_carrier[OF W]
+    and eta_nz = bounded_basis_kernel.v_nonzero[OF W]
+    and x_carrier = bounded_basis_kernel.x_carrier[OF W]
+    and x_nz = bounded_basis_kernel.x_nonzero[OF W]
+    and ker = bounded_basis_kernel.kernel[OF W]
+    and repr = bounded_basis_kernel.coordinates[OF W]
+    and x_bnd = bounded_basis_kernel.x_bounded[OF W]
 
   have ehouse_bnd':
       "ehouse (\<lambda>e. \<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j e) \<le>

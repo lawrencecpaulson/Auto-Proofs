@@ -556,20 +556,8 @@ theorem gs_exists_row_scaled_integral_auxiliary_data:
     and "((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. v $ t)))
           (gs_min_order_node (gs_m h) d q (\<lambda>t. v $ t)) \<noteq> 0"
 proof -
-  have qsq: "q ^ 2 = 2 * gs_m h * gs_n h q"
-    by (rule gs_q_sq_eq_two_mn[OF dvd])
   have mnq: "gs_m h * gs_n h q < q * q"
-  proof -
-    have pos: "gs_m h * gs_n h q > 0"
-      using npos by simp
-    have "gs_m h * gs_n h q < 2 * (gs_m h * gs_n h q)"
-      using pos by linarith
-    also have "... = q ^ 2"
-      using qsq by simp
-    also have "... = q * q"
-      by (simp add: power2_eq_square)
-    finally show ?thesis .
-  qed
+    by (rule gs_balanced_rows_lt_columns[OF dvd npos])
   obtain v :: "complex vec" where
       v_carrier: "v \<in> carrier_vec (q * q)"
     and v_nz: "v \<noteq> 0\<^sub>v (q * q)"

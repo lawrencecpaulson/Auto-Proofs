@@ -923,16 +923,16 @@ lemma piola_inverse_component:
     matrix_vector_mult_basis column_def
     sum_distrib_left algebra_simps)
 
-theorem piola_matrix_field_closed:
+lemma piola_matrix_field_closed_from_inverse_derivative:
   fixes F G :: "real ^ 'n::finite \<Rightarrow> real ^ 'n ^ 'n"
-  assumes openU: "open U" and xU: "x \<in> U"
-    and inverse: "\<And>y. y \<in> U \<Longrightarrow> F y ** G y = mat 1"
-    and left_inverse: "G x ** F x = mat 1"
+  assumes left_inverse: "G x ** F x = mat 1"
     and dF: "F differentiable (at x)"
     and dG: "G differentiable (at x)"
     and mixed: "\<And>i a b.
       frechet_derivative F (at x) (axis i 1) $ a $ b =
       frechet_derivative F (at x) (axis b 1) $ a $ i"
+    and inverse_dG: "\<And>i. frechet_derivative G (at x) (axis i 1) =
+      - (G x ** (frechet_derivative F (at x) (axis i 1) ** G x))"
   shows "exterior_top
     (\<lambda>y. Determinants.det (F y) *\<^sub>R
       (G y *v axis j 1)) x = 0"
@@ -957,8 +957,7 @@ proof -
       G x $ i $ a * ?H i $ a $ b * G x $ b $ j)"
     for i
     by (simp add: matrix_column_field_derivative[OF dG]
-      matrix_inverse_field_derivative
-        [OF openU xU inverse left_inverse dF dG]
+      inverse_dG
       matrix_vector_mul_minus_stokes piola_inverse_component)
   have pos: "(\<Sum>i\<in>UNIV.
       frechet_derivative ?rho (at x) (axis i 1) * ?V x $ i) =
@@ -984,6 +983,24 @@ proof -
   then show ?thesis
     by (simp add: pos neg cancel)
 qed
+
+theorem piola_matrix_field_closed:
+  fixes F G :: "real ^ 'n::finite \<Rightarrow> real ^ 'n ^ 'n"
+  assumes openU: "open U" and xU: "x \<in> U"
+    and inverse: "\<And>y. y \<in> U \<Longrightarrow> F y ** G y = mat 1"
+    and left_inverse: "G x ** F x = mat 1"
+    and dF: "F differentiable (at x)"
+    and dG: "G differentiable (at x)"
+    and mixed: "\<And>i a b.
+      frechet_derivative F (at x) (axis i 1) $ a $ b =
+      frechet_derivative F (at x) (axis b 1) $ a $ i"
+  shows "exterior_top
+    (\<lambda>y. Determinants.det (F y) *\<^sub>R
+      (G y *v axis j 1)) x = 0"
+  by (rule piola_matrix_field_closed_from_inverse_derivative
+      [OF left_inverse dF dG mixed])
+    (rule matrix_inverse_field_derivative
+      [OF openU xU inverse left_inverse dF dG])
 
 theorem cofactor_column_closed_if_mixed:
   fixes f g :: "real ^ 'n::finite \<Rightarrow> real ^ 'n"

@@ -70,6 +70,29 @@ proof -
     using k by simp
 qed
 
+lemma gs_q_sq_le_two_mr:
+  assumes dvd: "2 * gs_m h dvd q ^ 2"
+    and nle: "gs_n h q \<le> r"
+  shows "q * q \<le> 2 * gs_m h * r"
+proof -
+  have "2 * gs_m h * gs_n h q \<le> 2 * gs_m h * r"
+    by (rule mult_left_mono[OF nle]) simp
+  then show ?thesis
+    using gs_q_sq_eq_two_mn[OF dvd] by (simp add: power2_eq_square)
+qed
+
+lemma gs_balanced_rows_lt_columns:
+  assumes dvd: "2 * gs_m h dvd q ^ 2"
+    and npos: "gs_n h q > 0"
+  shows "gs_m h * gs_n h q < q * q"
+proof -
+  have "gs_m h * gs_n h q < 2 * (gs_m h * gs_n h q)"
+    using npos by simp
+  also have "\<dots> = q * q"
+    using gs_q_sq_eq_two_mn[OF dvd] by (simp add: power2_eq_square)
+  finally show ?thesis .
+qed
+
 lemma div_lt_of_lt_mult:
   fixes u m n :: nat
   assumes npos: "n > 0"
