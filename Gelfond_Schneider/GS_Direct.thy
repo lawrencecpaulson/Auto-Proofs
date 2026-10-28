@@ -40,8 +40,7 @@ proof (intro allI impI)
     using repr tq sum_int by simp
 qed
 
-locale bounded_integral_basis_kernel =
-  bounded_basis_kernel A p q D basis B v x
+locale bounded_integral_basis_kernel = bounded_basis_kernel A p q D basis B v x
   for A :: "complex mat"
   and p q D :: nat
   and basis :: "nat \<Rightarrow> complex"
