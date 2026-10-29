@@ -516,21 +516,32 @@ proof -
 qed
 
 
+text \<open>A selected parameter family combines approximation quality,
+balanced degrees, separation of successive degrees, and a total degree
+budget.\<close>
+
+definition roth_selected_parameters ::
+  "real \<Rightarrow> real \<Rightarrow> nat \<Rightarrow> real \<Rightarrow> real \<Rightarrow> real \<Rightarrow>
+    real \<Rightarrow> (nat \<Rightarrow> rat) \<Rightarrow> (nat \<Rightarrow> nat) \<Rightarrow> bool"
+  where
+  "roth_selected_parameters alpha kappa' m B xi sigma T beta r \<longleftrightarrow>
+    (\<forall>v<m. 0 < r v \<and>
+      B \<le> roth_rat_log_height (beta v) \<and>
+      roth_rat_log_height (beta v) \<le> xi * T \<and>
+      T \<le> real (r v) * roth_rat_log_height (beta v) \<and>
+      real (r v) * roth_rat_log_height (beta v) \<le> (1 + xi) * T \<and>
+      \<bar>of_rat (beta v) - alpha\<bar> \<le>
+        exp (- kappa' * roth_rat_log_height (beta v))) \<and>
+    (\<forall>v. Suc v < m \<longrightarrow> real (r (Suc v)) \<le> sigma * real (r v)) \<and>
+    real (\<Sum>v<m. r v) \<le> real m * ((1 + xi) * T / B)"
+
 theorem roth_select_parameters:
   assumes inf: "infinite (roth_good_pairs alpha kappa)"
     and kap: "0 < kappa'" "kappa' < kappa"
     and sig: "0 < sigma" and xi: "0 < xi" and Bpos: "0 < B"
   shows "\<exists>beta :: nat \<Rightarrow> rat. \<exists>T r.
     A < (T::real) \<and> 0 < T \<and>
-    (\<forall>v<m. 0 < r v \<and>
-      B \<le> roth_rat_log_height (beta v) \<and>
-      roth_rat_log_height (beta v) \<le> xi * T \<and>
-      T \<le> real (r v) * roth_rat_log_height (beta v) \<and>
-      real (r v) * roth_rat_log_height (beta v) \<le> (1+xi)*T \<and>
-      abs (of_rat (beta v) - alpha) \<le>
-        exp (-kappa' * roth_rat_log_height (beta v))) \<and>
-    (\<forall>v. Suc v < m \<longrightarrow> real (r (Suc v)) \<le> sigma * real (r v)) \<and>
-    real (\<Sum>v<m. r v) \<le> real m * ((1+xi)*T/B)"
+    roth_selected_parameters alpha kappa' m B xi sigma T beta r"
 proof -
   obtain beta :: "nat \<Rightarrow> rat" where beta:
       "\<forall>v<m. B < roth_rat_log_height (beta v) \<and>
@@ -567,7 +578,8 @@ proof -
       T \<le> real (r v) * ?h v \<and> real (r v) * ?h v \<le> (1+xi)*T \<and>
       abs (of_rat (beta v) - alpha) \<le> exp (-kappa' * ?h v)"
     using rbounds beta by blast
-  show ?thesis using TA Tpos all ratio sumb by blast
+  show ?thesis using TA Tpos all ratio sumb
+    unfolding roth_selected_parameters_def by blast
 qed
 
 

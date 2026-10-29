@@ -5,6 +5,29 @@ begin
 context oriented_C1_halfline_atlas
 begin
 
+definition exact_chart_data where
+  "exact_chart_data K omega F phi Q g \<longleftrightarrow>
+    finite F \<and> F \<subseteq> I \<and>
+    K \<subseteq> (\<Union>i\<in>F. D i) \<and>
+    (\<forall>p\<in>K. (\<Sum>i\<in>F. phi i p) = 1) \<and>
+    (\<forall>i\<in>F. \<forall>p\<in>M - D i. phi i p = 0) \<and>
+    (\<forall>i\<in>F.
+      compact (Q i) \<and> Q i \<subseteq> C i \<and>
+      (\<forall>t\<in>C i. t \<notin> Q i \<longrightarrow>
+        phi i (from_chart i t) *
+          omega (from_chart i t) = 0) \<and>
+      (\<forall>t\<in>C i.
+        ((\<lambda>s. phi i (from_chart i s) *
+          omega (from_chart i s))
+          has_vector_derivative g i t)
+          (at t within {0..})) \<and>
+      continuous_on (C i) (g i))"
+
+definition exact_chart_value where
+  "exact_chart_value F g =
+    (\<Sum>i\<in>F.
+      eps i * (LINT t : C i | lborel. g i t))"
+
 theorem compact_support_one_dimensional_stokes:
   fixes omega :: "'a \<Rightarrow> real"
   assumes compact: "compact K"
@@ -13,36 +36,9 @@ theorem compact_support_one_dimensional_stokes:
       p \<notin> K \<Longrightarrow> omega p = 0"
     and smooth: "chartwise_C1_scalar omega"
   obtains F phi Q g where
-    "finite F"
-    "F \<subseteq> I"
-    "K \<subseteq> (\<Union>i\<in>F. D i)"
-    "\<And>p. p \<in> K \<Longrightarrow>
-      (\<Sum>i\<in>F. phi i p) = 1"
-    "\<And>i. i \<in> F \<Longrightarrow>
-      chartwise_C1_scalar (phi i)"
-    "\<And>i. i \<in> F \<Longrightarrow>
-      continuous_on M (phi i)"
-    "\<And>i. i \<in> F \<Longrightarrow>
-      \<exists>L. closed L \<and>
-        {p\<in>M. phi i p \<noteq> 0} \<subseteq> L \<and>
-        L \<subseteq> D i"
-    "\<And>i. i \<in> F \<Longrightarrow> compact (Q i)"
-    "\<And>i. i \<in> F \<Longrightarrow> Q i \<subseteq> C i"
-    "\<And>i t. i \<in> F \<Longrightarrow>
-      t \<in> C i \<Longrightarrow> t \<notin> Q i
-      \<Longrightarrow> phi i (from_chart i t) *
-        omega (from_chart i t) = 0"
-    "\<And>i t. i \<in> F \<Longrightarrow> t \<in> C i \<Longrightarrow>
-      ((\<lambda>s.
-        phi i (from_chart i s) *
-          omega (from_chart i s))
-        has_vector_derivative g i t)
-        (at t within {0..})"
-    "\<And>i. i \<in> F \<Longrightarrow>
-      continuous_on (C i) (g i)"
-    "(\<Sum>i\<in>F.
-      eps i *
-        (LINT t : C i | lborel. g i t)) =
+    "chartwise_C1_partition K phi F"
+    "exact_chart_data K omega F phi Q g"
+    "exact_chart_value F g =
       finite_boundary_zero_integral
         (K \<inter> boundary_carrier)
         (\<lambda>p.
@@ -59,7 +55,7 @@ proof -
       "\<forall>i\<in>F. \<forall>p.
         0 \<le> phi i p \<and> phi i p \<le> 1"
     using compact_C1_partition_exists[OF compact KM]
-    by blast
+    unfolding chartwise_C1_partition_def by blast
   let ?P = "\<lambda>i L. closed L \<and>
     {p\<in>M. phi i p \<noteq> 0} \<subseteq> L \<and>
     L \<subseteq> D i"
@@ -184,34 +180,19 @@ proof -
           omega (from_chart i 0)"
       by simp
   qed
+  have partition: "chartwise_C1_partition K phi F"
+    using F unfolding chartwise_C1_partition_def by blast
+  have outside: "phi i p = 0"
+    if iF: "i \<in> F" and pM: "p \<in> M"
+      and out: "p \<notin> D i" for i p
+    using F(6) iF pM out by auto
+  have data: "exact_chart_data K omega F phi ?Q ?g"
+    using F Z coverF outside
+    by (auto simp: exact_chart_data_def)
   show thesis
-    by (rule that[where F=F and phi=phi
-      and Q="?Q" and g="?g"])
-       (use F Z eq coverF in auto)
+    by (rule that[of phi F ?Q ?g])
+      (use partition data eq in \<open>auto simp: exact_chart_value_def\<close>)
 qed
-
-definition exact_chart_data where
-  "exact_chart_data K omega F phi Q g \<longleftrightarrow>
-    finite F \<and> F \<subseteq> I \<and>
-    K \<subseteq> (\<Union>i\<in>F. D i) \<and>
-    (\<forall>p\<in>K. (\<Sum>i\<in>F. phi i p) = 1) \<and>
-    (\<forall>i\<in>F. \<forall>p\<in>M - D i. phi i p = 0) \<and>
-    (\<forall>i\<in>F.
-      compact (Q i) \<and> Q i \<subseteq> C i \<and>
-      (\<forall>t\<in>C i. t \<notin> Q i \<longrightarrow>
-        phi i (from_chart i t) *
-          omega (from_chart i t) = 0) \<and>
-      (\<forall>t\<in>C i.
-        ((\<lambda>s. phi i (from_chart i s) *
-          omega (from_chart i s))
-          has_vector_derivative g i t)
-          (at t within {0..})) \<and>
-      continuous_on (C i) (g i))"
-
-definition exact_chart_value where
-  "exact_chart_value F g =
-    (\<Sum>i\<in>F.
-      eps i * (LINT t : C i | lborel. g i t))"
 
 theorem exact_chart_data_stokes:
   fixes omega :: "'a \<Rightarrow> real"
@@ -298,61 +279,13 @@ theorem exact_chart_data_exists:
 proof (rule compact_support_one_dimensional_stokes
     [OF compact KM support smooth])
   fix F phi Q g
-  assume F: "finite F" "F \<subseteq> I"
-    "K \<subseteq> (\<Union>i\<in>F. D i)"
-    and unity: "\<And>p. p \<in> K \<Longrightarrow>
-      (\<Sum>i\<in>F. phi i p) = 1"
-    and phi_C1: "\<And>i. i \<in> F \<Longrightarrow>
-      chartwise_C1_scalar (phi i)"
-    and phi_cont: "\<And>i. i \<in> F \<Longrightarrow>
-      continuous_on M (phi i)"
-    and phi_support: "\<And>i. i \<in> F \<Longrightarrow>
-      \<exists>L. closed L \<and>
-        {p\<in>M. phi i p \<noteq> 0} \<subseteq> L \<and>
-        L \<subseteq> D i"
-    and compactQ: "\<And>i. i \<in> F \<Longrightarrow>
-      compact (Q i)"
-    and QC: "\<And>i. i \<in> F \<Longrightarrow>
-      Q i \<subseteq> C i"
-    and zero: "\<And>i t. i \<in> F \<Longrightarrow>
-      t \<in> C i \<Longrightarrow> t \<notin> Q i
-      \<Longrightarrow> phi i (from_chart i t) *
-        omega (from_chart i t) = 0"
-    and deriv: "\<And>i t. i \<in> F \<Longrightarrow>
-      t \<in> C i \<Longrightarrow>
-      ((\<lambda>s. phi i (from_chart i s) *
-        omega (from_chart i s))
-        has_vector_derivative g i t)
-        (at t within {0..})"
-    and cont: "\<And>i. i \<in> F \<Longrightarrow>
-      continuous_on (C i) (g i)"
-    and stokes: "(\<Sum>i\<in>F.
-      eps i * (LINT t : C i | lborel. g i t)) =
+  assume partition: "chartwise_C1_partition K phi F"
+    and data: "exact_chart_data K omega F phi Q g"
+    and stokes: "exact_chart_value F g =
       finite_boundary_zero_integral
         (K \<inter> boundary_carrier)
-        (\<lambda>p.
-          boundary_orientation p * omega p)"
-  have outside: "phi i p = 0"
-    if iF: "i \<in> F" and pM: "p \<in> M"
-      and out: "p \<notin> D i" for i p
-  proof -
-    obtain L where L: "closed L"
-      "{p\<in>M. phi i p \<noteq> 0} \<subseteq> L"
-      "L \<subseteq> D i"
-      using phi_support[OF iF] by blast
-    show ?thesis using L pM out by auto
-  qed
-  have data: "exact_chart_data K omega F phi Q g"
-    using F unity outside compactQ QC zero
-      deriv cont
-    by (auto simp: exact_chart_data_def)
-  show "\<exists>F phi Q g.
-    exact_chart_data K omega F phi Q g"
-    by (rule exI[where x=F],
-        rule exI[where x=phi],
-        rule exI[where x=Q],
-        rule exI[where x=g])
-       (rule data)
+        (\<lambda>p. boundary_orientation p * omega p)"
+  show ?thesis using data by blast
 qed
 
 definition exact_body_integral where

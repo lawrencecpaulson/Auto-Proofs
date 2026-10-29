@@ -29,3 +29,12 @@ stating its integrability and integral premises, so that extraction was
 left for a later pass.
 
 The Stokes session and document built successfully after these changes.
+
+`One_Dimensional_Partition.thy` now defines `chartwise_C1_partition` for
+the finite chart family, partition of unity, regularity, support, and
+bounds returned by `compact_C1_partition_exists`. The global Stokes
+construction opens that condition when it needs its individual facts.
+`One_Dimensional_Global.thy` moves the existing `exact_chart_data` and
+`exact_chart_value` definitions before the compact-support theorem, so
+that theorem and its consumers use the named partition and chart data
+instead of repeating their long lists of properties.

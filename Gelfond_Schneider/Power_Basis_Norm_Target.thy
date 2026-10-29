@@ -868,13 +868,12 @@ proof -
 qed
 
 definition gs_scaled_auxiliary_multiplier :: "nat \<Rightarrow> int" where
-  "gs_scaled_auxiliary_multiplier r \<equiv> gs_c1 d ^ r * gs_c1 d ^ (2 * gs_m h * q)"
+  "gs_scaled_auxiliary_multiplier r \<equiv>
+    gs_auxiliary_multiplier d (gs_m h) q r"
 
 definition gs_scaled_auxiliary_value :: "complex vec \<Rightarrow> nat \<Rightarrow> int \<Rightarrow> complex" where
   "gs_scaled_auxiliary_value v r c \<equiv>
-    of_int c * (gs_z d powi (- int r) *
-      ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
-        (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t)))"
+    gs_auxiliary_scaled_value d (gs_m h) q v r c"
 
 lemma rho_in_K:
   assumes repr:
@@ -892,7 +891,7 @@ proof -
     using scaled_deriv_at_nat_in_K[OF coeffK] gs_min_order_node_eq_nat[OF gs_m_pos] by metis
   then show ?thesis
     using KS.mult_closed KS.of_int_closed
-    by (simp add: rho_def gs_scaled_auxiliary_value_def)
+    by (simp add: rho_def gs_scaled_auxiliary_value_def gs_auxiliary_scaled_value_def)
 qed
 
 lemma rho_order_ge_n:
@@ -974,7 +973,8 @@ proof -
   proof -
     have "cmod (emb j rho) = cmod (emb j (of_int c * (gs_z d powi (- int r) *
              ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t))) (of_nat (Suc l)))))"
-      by (simp add: rho_def gs_scaled_auxiliary_value_def node)
+      by (simp add: rho_def gs_scaled_auxiliary_value_def
+        gs_auxiliary_scaled_value_def node)
     also have "... \<le> ?H"
       by (rule gs_scaled_deriv_emb_bounded_vec_le[OF jlt repr x_carrier x_bnd B_nonneg lle])
     finally show ?thesis .
@@ -1021,7 +1021,8 @@ proof -
   have Hge: "1 \<le> ?H"
     by (rule gs_data_emb_bound_facts(1)[OF i0lt])
   have c_abs: "(of_int \<bar>c\<bar> :: real) = ?C ^ r * ?C ^ (2 * gs_m h * q)"
-    using c_def by (simp add: gs_scaled_auxiliary_multiplier_def abs_mult power_abs)
+    using c_def by (simp add: gs_scaled_auxiliary_multiplier_def
+      gs_auxiliary_multiplier_def abs_mult power_abs)
   have Fnonneg: "0 \<le> ?F" using Cge Hge by simp
   have Fbound: "?F \<le> ?K ^ r * real r powr (of_nat r / 2)"
     by (rule gs_house_aux_factor_le_growth[OF nle rpos])
@@ -1064,7 +1065,8 @@ proof -
   have Hge: "1 \<le> ?H"
     by (rule gs_data_emb_bound_facts(1)[OF i0lt])
   have c_abs: "\<bar>c\<bar> = ?C ^ r * ?C ^ (2 * gs_m h * q)"
-    using c_def by (simp add: gs_scaled_auxiliary_multiplier_def abs_mult power_abs)
+    using c_def by (simp add: gs_scaled_auxiliary_multiplier_def
+      gs_auxiliary_multiplier_def abs_mult power_abs)
   have Fnonneg: "0 \<le> ?F" using Cge Hge by simp
   have Fbase: "?F \<le> gs_concrete_entry_growth_constant ^ r * r powr (of_nat r / 2)"
     by (rule gs_house_aux_factor_le_growth[OF nle rpos])
@@ -1236,7 +1238,8 @@ proof -
   have scale: "real_of_int \<bar>c\<bar> \<le> gs_point_scale_base ^ r"
   proof -
     have eq: "(of_int \<bar>c\<bar> :: real) = ?C ^ r * ?C ^ (2 * ?m * q)"
-      using c_def by (simp add: gs_scaled_auxiliary_multiplier_def abs_mult power_abs)
+      using c_def by (simp add: gs_scaled_auxiliary_multiplier_def
+        gs_auxiliary_multiplier_def abs_mult power_abs)
     show ?thesis using gs_scale_factor_le_r_power[OF qle Cge]
       by (simp only: eq gs_point_scale_base_def)
   qed
@@ -1314,7 +1317,8 @@ proof -
   have "cmod rho = of_int \<bar>c\<bar> * cmod (gs_z d powi (- int r)) *
       cmod (((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
         (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t)))"
-    by (simp add: rho_def gs_scaled_auxiliary_value_def norm_mult)
+    by (simp add: rho_def gs_scaled_auxiliary_value_def
+      gs_auxiliary_scaled_value_def norm_mult)
   also have "... \<le> of_int \<bar>c\<bar> * cmod (gs_z d powi (- int r)) * ?B"
     using deriv_bound by (intro mult_left_mono mult_right_mono) auto
   finally show ?thesis .

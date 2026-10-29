@@ -19,9 +19,14 @@ extraction when it gives that data a meaningful name.
   named witnesses. The quantitative bound remains an explicit parameter.
 - `GS_Direct.thy` defines `gs_bounded_auxiliary_witness` for the minimum
   order and nonzero derivative. Both ordinary and row-scaled bounded
-  constructions use it. `Scaled_Bounded.thy` defines
-  `gs_integral_scaled_auxiliary_value` for the multiplier, scaled value,
-  integrality, and nonvanishing facts in the house and upper bounds.
+  constructions use it. It also defines `gs_integral_auxiliary_witness`
+  for the unbounded integral kernel and first nonzero derivative.
+  `GS_Arithmetic.thy` defines `gs_integral_scaled_auxiliary_value` for
+  the multiplier, scaled value, integrality, and nonvanishing facts in
+  the house and upper bounds. Its two existence theorems now return
+  these named witness concepts. The arithmetic multiplier and scaled
+  derivative value are defined there once; `Scaled_Bounded.thy` uses
+  them directly and the power-basis locale uses short local aliases.
 - `GS_System.thy` supplies common balance inequalities used throughout the
   matrix and power-basis arguments.
 - `Power_Basis_Norm_Target.thy` defines the uniform product-denominator

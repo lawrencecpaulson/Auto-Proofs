@@ -18,3 +18,10 @@ these specializations harder to read without eliminating substantial
 proof duplication.
 
 The Roth session and document built successfully after these changes.
+
+## Parameter selection
+
+`Roth_Parameter_Costs.thy` now defines `roth_selected_parameters` for the
+combined approximation, degree balance, degree ratio, and total degree
+budget. The selection theorem returns this named condition, and its
+consumer extracts the bounds it needs.

@@ -14,6 +14,35 @@ begin
 
 section \<open>Scaled Derivative Values\<close>
 
+definition gs_auxiliary_multiplier ::
+  "gelfond_schneider_data \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> int"
+  where
+  "gs_auxiliary_multiplier d m q r =
+    gs_c1 d ^ r * gs_c1 d ^ (2 * m * q)"
+
+definition gs_auxiliary_scaled_value ::
+  "gelfond_schneider_data \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow>
+    complex vec \<Rightarrow> nat \<Rightarrow> int \<Rightarrow> complex"
+  where
+  "gs_auxiliary_scaled_value d m q v r c =
+    (of_int c :: complex) *
+      (gs_z d powi (- int r) *
+        ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. v $ t)))
+          (gs_min_order_node m d q (\<lambda>t. v $ t)))"
+
+text \<open>The scaled first derivative is the algebraic integer used in the
+house lower bound.\<close>
+
+definition gs_integral_scaled_auxiliary_value ::
+  "gelfond_schneider_data \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow>
+    complex vec \<Rightarrow> nat \<Rightarrow> int \<Rightarrow> complex \<Rightarrow> bool"
+  where
+  "gs_integral_scaled_auxiliary_value d m q v r c rho \<longleftrightarrow>
+    c = gs_auxiliary_multiplier d m q r \<and>
+    c \<noteq> 0 \<and>
+    rho = gs_auxiliary_scaled_value d m q v r c \<and>
+    algebraic_int rho \<and> rho \<noteq> 0"
+
 lemma gs_aux_fun_vec_deriv_at_nat:
   assumes d: "is_gelfond_schneider_data d"
   shows "gs_z d powi (- int k) * ((deriv ^^ k) (gs_aux_fun_vec d q \<xi>)) (of_nat l) =
@@ -240,12 +269,8 @@ lemma gs_scaled_rho_algebraic_int_nonzero:
   assumes deriv_nz:
     "((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
       (gs_min_order_node m d q (\<lambda>t. Matrix.vec_index v t)) \<noteq> 0"
-  assumes c_def: "c = gs_c1 d ^ r * gs_c1 d ^ (2 * m * q)"
-  assumes rho_def:
-    "rho = (of_int c :: complex) *
-      (gs_z d powi (- int r) *
-        ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
-          (gs_min_order_node m d q (\<lambda>t. Matrix.vec_index v t)))"
+  assumes c_def: "c = gs_auxiliary_multiplier d m q r"
+  assumes rho_def: "rho = gs_auxiliary_scaled_value d m q v r c"
   shows "algebraic_int rho" and "rho \<noteq> 0"
 proof -
   have coeff_nz: "\<exists>t<q * q. Matrix.vec_index v t \<noteq> 0"
@@ -266,10 +291,12 @@ proof -
             (gs_min_order_node m d q (\<lambda>t. Matrix.vec_index v t))))"
       by (rule gs_scaled_min_deriv_algebraic_int[OF d qpos mpos vint coeff_nz])
     then show ?thesis
-      unfolding c_def using r_eq by simp
+      unfolding c_def using r_eq
+      by (simp add: gs_auxiliary_multiplier_def)
   qed
   have c_nz: "c \<noteq> 0"
-    unfolding c_def using gelfond_schneider_data_c1_nonzero[OF d] by auto
+    unfolding c_def using gelfond_schneider_data_c1_nonzero[OF d]
+    by (auto simp: gs_auxiliary_multiplier_def)
   have zfac_nz: "gs_z d powi (- int r) \<noteq> 0"
     using gelfond_schneider_data_z_nonzero[OF d] by (simp add: power_int_def)
   have rho_core_nz:
@@ -284,9 +311,9 @@ proof -
           (gs_min_order_node m d q (\<lambda>t. Matrix.vec_index v t))) \<noteq> 0"
     using c_nz rho_core_nz by auto
   show "algebraic_int rho"
-    using rho_int0 rho_def by simp
+    using rho_int0 rho_def by (simp add: gs_auxiliary_scaled_value_def)
   show "rho \<noteq> 0"
-    using rho_nz0 rho_def by simp
+    using rho_nz0 rho_def by (simp add: gs_auxiliary_scaled_value_def)
 qed
 
 theorem gs_exists_scaled_nonzero_algebraic_int_min_deriv:
@@ -294,61 +321,39 @@ theorem gs_exists_scaled_nonzero_algebraic_int_min_deriv:
   assumes qpos: "q > 0"
   assumes npos: "gs_n h q > 0"
   assumes dvd: "2 * gs_m h dvd q ^ 2"
-  obtains v :: "complex vec" and r and c where
-      "v \<in> carrier_vec (q * q)"
-    and "v \<noteq> 0\<^sub>v (q * q)"
-    and "gs_system_mat d (gs_m h) (gs_n h q) q *\<^sub>v v = 0\<^sub>v (gs_m h * gs_n h q)"
-    and "\<forall>i<q * q. algebraic_int (Matrix.vec_index v i)"
-    and "r = nat (gs_min_order (gs_m h) d q (\<lambda>t. Matrix.vec_index v t))"
-    and "((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
-          (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t)) \<noteq> 0"
-    and "c = gs_c1 d ^ r * gs_c1 d ^ (2 * gs_m h * q)"
-    and "c \<noteq> 0"
-    and "algebraic_int
-          ((of_int c :: complex) *
-            (gs_z d powi (- int r) *
-              ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
-                (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t))))"
-    and "(of_int c :: complex) *
-          (gs_z d powi (- int r) *
-            ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
-              (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t))) \<noteq> 0"
+  obtains v :: "complex vec" and r and c and rho :: complex where
+      "gs_integral_auxiliary_witness d (gs_m h) (gs_n h q) q v r"
+    and "gs_integral_scaled_auxiliary_value d (gs_m h) q v r c rho"
 proof -
   obtain v :: "complex vec" and r where
-      v_carrier: "v \<in> carrier_vec (q * q)"
+      W: "gs_integral_auxiliary_witness d (gs_m h) (gs_n h q) q v r"
+    by (rule gs_exists_integral_auxiliary_data[OF d qpos npos dvd])
+  have v_carrier: "v \<in> carrier_vec (q * q)"
     and v_nz: "v \<noteq> 0\<^sub>v (q * q)"
     and v_ker: "gs_system_mat d (gs_m h) (gs_n h q) q *\<^sub>v v = 0\<^sub>v (gs_m h * gs_n h q)"
-    and vint: "\<forall>i<q * q. algebraic_int (Matrix.vec_index v i)"
-    and min_ord: "gs_min_order (gs_m h) d q (\<lambda>t. Matrix.vec_index v t) \<ge> gs_n h q"
-    and r_eq: "r = nat (gs_min_order (gs_m h) d q (\<lambda>t. Matrix.vec_index v t))"
+    and vint: "\<forall>i<q * q. algebraic_int (v $ i)"
+    and r_eq: "r = nat (gs_min_order (gs_m h) d q (\<lambda>t. v $ t))"
     and deriv_nz:
-      "((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
-        (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t)) \<noteq> 0"
-    by (rule gs_exists_integral_auxiliary_data[OF d qpos npos dvd])
-  define c :: int where "c = gs_c1 d ^ r * gs_c1 d ^ (2 * gs_m h * q)"
+      "((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. v $ t)))
+        (gs_min_order_node (gs_m h) d q (\<lambda>t. v $ t)) \<noteq> 0"
+    using W unfolding gs_integral_auxiliary_witness_def by blast+
+  define c :: int where "c = gs_auxiliary_multiplier d (gs_m h) q r"
   have c_nz: "c \<noteq> 0"
-    unfolding c_def using gelfond_schneider_data_c1_nonzero[OF d] by auto
-  have rho_int:
-      "algebraic_int
-        ((of_int c :: complex) *
-          (gs_z d powi (- int r) *
-            ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
-              (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t))))"
-    using gs_scaled_rho_algebraic_int_nonzero(1)[OF d qpos gs_m_pos v_carrier v_nz vint r_eq deriv_nz c_def]
-    by simp
-  have scaled_nz:
-      "(of_int c :: complex) *
-        (gs_z d powi (- int r) *
-          ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
-            (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t))) \<noteq> 0"
-    using gs_scaled_rho_algebraic_int_nonzero(2)[OF d qpos gs_m_pos v_carrier v_nz vint r_eq deriv_nz c_def]
-    by simp
-  show thesis
-    by (rule that[OF v_carrier v_nz v_ker vint r_eq deriv_nz])
-       (use c_def c_nz rho_int scaled_nz in auto)
+    unfolding c_def using gelfond_schneider_data_c1_nonzero[OF d]
+    by (auto simp: gs_auxiliary_multiplier_def)
+  define rho :: complex where
+    "rho = gs_auxiliary_scaled_value d (gs_m h) q v r c"
+  have rho_int: "algebraic_int rho"
+    by (rule gs_scaled_rho_algebraic_int_nonzero(1)
+      [OF d qpos gs_m_pos v_carrier v_nz vint r_eq deriv_nz c_def rho_def])
+  have rho_nz: "rho \<noteq> 0"
+    by (rule gs_scaled_rho_algebraic_int_nonzero(2)
+      [OF d qpos gs_m_pos v_carrier v_nz vint r_eq deriv_nz c_def rho_def])
+  have S: "gs_integral_scaled_auxiliary_value d (gs_m h) q v r c rho"
+    using c_def c_nz rho_def rho_int rho_nz
+    unfolding gs_integral_scaled_auxiliary_value_def by blast
+  show thesis by (rule that[OF W S])
 qed
-
-
 
 theorem gs_exists_scaled_nonzero_algebraic_int_house_lower_bound:
   assumes d: "is_gelfond_schneider_data d"
@@ -356,56 +361,22 @@ theorem gs_exists_scaled_nonzero_algebraic_int_house_lower_bound:
   assumes npos: "gs_n h q > 0"
   assumes dvd: "2 * gs_m h dvd q ^ 2"
   obtains v :: "complex vec" and r and c and rho :: complex where
-      "v \<in> carrier_vec (q * q)"
-    and "v \<noteq> 0\<^sub>v (q * q)"
-    and "gs_system_mat d (gs_m h) (gs_n h q) q *\<^sub>v v = 0\<^sub>v (gs_m h * gs_n h q)"
-    and "\<forall>i<q * q. algebraic_int (Matrix.vec_index v i)"
-    and "r = nat (gs_min_order (gs_m h) d q (\<lambda>t. Matrix.vec_index v t))"
-    and "((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
-          (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t)) \<noteq> 0"
-    and "c = gs_c1 d ^ r * gs_c1 d ^ (2 * gs_m h * q)"
-    and "rho = (of_int c :: complex) *
-          (gs_z d powi (- int r) *
-            ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
-              (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t)))"
-    and "algebraic_int rho"
-    and "rho \<noteq> 0"
+      "gs_integral_auxiliary_witness d (gs_m h) (gs_n h q) q v r"
+    and "gs_integral_scaled_auxiliary_value d (gs_m h) q v r c rho"
     and "1 \<le> cmod rho * gs_house rho ^
           (card (set (complex_roots_of_int_poly (min_int_poly rho))) - 1)"
 proof -
-  obtain v :: "complex vec" and r and c where
-      v_carrier: "v \<in> carrier_vec (q * q)"
-    and v_nz: "v \<noteq> 0\<^sub>v (q * q)"
-    and v_ker: "gs_system_mat d (gs_m h) (gs_n h q) q *\<^sub>v v = 0\<^sub>v (gs_m h * gs_n h q)"
-    and vint: "\<forall>i<q * q. algebraic_int (Matrix.vec_index v i)"
-    and r_eq: "r = nat (gs_min_order (gs_m h) d q (\<lambda>t. Matrix.vec_index v t))"
-    and deriv_nz:
-      "((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
-        (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t)) \<noteq> 0"
-    and c_def: "c = gs_c1 d ^ r * gs_c1 d ^ (2 * gs_m h * q)"
-    and rho_int:
-      "algebraic_int
-        ((of_int c :: complex) *
-          (gs_z d powi (- int r) *
-            ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
-              (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t))))"
-    and rho_nz:
-      "(of_int c :: complex) *
-        (gs_z d powi (- int r) *
-          ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
-            (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t))) \<noteq> 0"
+  obtain v :: "complex vec" and r and c and rho :: complex where
+      W: "gs_integral_auxiliary_witness d (gs_m h) (gs_n h q) q v r"
+    and S: "gs_integral_scaled_auxiliary_value d (gs_m h) q v r c rho"
     by (rule gs_exists_scaled_nonzero_algebraic_int_min_deriv[OF d qpos npos dvd])
-  define rho :: complex where "rho = (of_int c :: complex) *
-      (gs_z d powi (- int r) *
-        ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
-          (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t)))"
+  have rho_int: "algebraic_int rho" and rho_nz: "rho \<noteq> 0"
+    using S unfolding gs_integral_scaled_auxiliary_value_def by blast+
   have rho_lb:
       "1 \<le> cmod rho * gs_house rho ^
         (card (set (complex_roots_of_int_poly (min_int_poly rho))) - 1)"
-    unfolding rho_def by (rule one_le_self_mul_house_pow_of_nonzero_algebraic_int[OF rho_int rho_nz])
-  show thesis
-    using c_def deriv_nz r_eq rho_int rho_lb rho_nz that v_carrier v_ker v_nz vint
-    unfolding rho_def by blast
+    by (rule one_le_self_mul_house_pow_of_nonzero_algebraic_int[OF rho_int rho_nz])
+  show thesis by (rule that[OF W S rho_lb])
 qed
 
 end

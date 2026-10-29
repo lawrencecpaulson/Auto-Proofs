@@ -2039,51 +2039,16 @@ theorem one_form_body_integral_stokes:
 proof (rule compact_support_one_dimensional_stokes
     [OF compact KM support smooth])
   fix F phi Q g
-  assume F: "finite F" "F \<subseteq> I"
-    "K \<subseteq> (\<Union>i\<in>F. D i)"
-    and unity: "\<And>p. p \<in> K \<Longrightarrow>
-      (\<Sum>i\<in>F. phi i p) = 1"
-    and phi_C1: "\<And>i. i \<in> F \<Longrightarrow>
-      chartwise_C1_scalar (phi i)"
-    and phi_cont: "\<And>i. i \<in> F \<Longrightarrow>
-      continuous_on M (phi i)"
-    and phi_support: "\<And>i. i \<in> F \<Longrightarrow>
-      \<exists>L. closed L \<and>
-        {p\<in>M. phi i p \<noteq> 0} \<subseteq> L \<and>
-        L \<subseteq> D i"
-    and compactQ: "\<And>i. i \<in> F \<Longrightarrow>
-      compact (Q i)"
-    and QC: "\<And>i. i \<in> F \<Longrightarrow>
-      Q i \<subseteq> C i"
-    and zero: "\<And>i t. i \<in> F \<Longrightarrow>
-      t \<in> C i \<Longrightarrow> t \<notin> Q i
-      \<Longrightarrow> phi i (from_chart i t) *
-        omega (from_chart i t) = 0"
-    and deriv: "\<And>i t. i \<in> F \<Longrightarrow>
-      t \<in> C i \<Longrightarrow>
-      ((\<lambda>s. phi i (from_chart i s) *
-        omega (from_chart i s))
-        has_vector_derivative g i t)
-        (at t within {0..})"
-    and cont: "\<And>i. i \<in> F \<Longrightarrow>
-      continuous_on (C i) (g i)"
-    and stokes: "(\<Sum>i\<in>F.
-      eps i * (LINT t : C i | lborel. g i t)) =
+  assume partition: "chartwise_C1_partition K phi F"
+    and data: "exact_chart_data K omega F phi Q g"
+    and stokes: "exact_chart_value F g =
       finite_boundary_zero_integral
         (K \<inter> boundary_carrier)
         (\<lambda>p. boundary_orientation p * omega p)"
-  have outside: "phi i p = 0"
-    if iF: "i \<in> F" and pM: "p \<in> M"
-      and out: "p \<notin> D i" for i p
-    using phi_support[OF iF] pM out
-    by auto
-  have data: "exact_chart_data K omega F phi Q g"
-    using F unity outside compactQ QC zero
-      deriv cont
-    by (auto simp: exact_chart_data_def)
   have part: "one_form_partition K F phi"
-    using F unity phi_cont phi_support
-    by (auto simp: one_form_partition_def)
+    using partition by (auto simp: chartwise_C1_partition_def one_form_partition_def)
+  have phi_C1: "\<And>i. i \<in> F \<Longrightarrow> chartwise_C1_scalar (phi i)"
+    using partition by (auto simp: chartwise_C1_partition_def)
   have regular: "one_form_regular K
     (exact_one_form omega)"
     by (rule exact_one_form_regular
@@ -2097,18 +2062,12 @@ proof (rule compact_support_one_dimensional_stokes
     one_form_chart_value F phi (exact_one_form omega)"
     by (rule one_form_body_integral_chart_value
       [OF compact regular part])
-  have exact: "exact_chart_value F g =
-    finite_boundary_zero_integral
-      (K \<inter> boundary_carrier)
-      (\<lambda>p. boundary_orientation p * omega p)"
-    using stokes
-    by (simp add: exact_chart_value_def)
   show "one_form_body_integral K
       (exact_one_form omega) =
     finite_boundary_zero_integral
       (K \<inter> boundary_carrier)
       (\<lambda>p. boundary_orientation p * omega p)"
-    using chosen bridge exact by simp
+    using chosen bridge stokes by simp
 qed
 
 corollary one_form_body_integral_eq_exact_body_integral:

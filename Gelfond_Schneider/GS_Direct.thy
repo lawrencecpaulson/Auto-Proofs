@@ -138,20 +138,30 @@ qed
 
 section \<open>Direct Auxiliary Witness Data\<close>
 
+text \<open>An integral auxiliary witness is a nonzero integral kernel vector
+whose chosen order is its first nonvanishing derivative order.\<close>
+
+definition gs_integral_auxiliary_witness ::
+  "gelfond_schneider_data \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow>
+    complex vec \<Rightarrow> nat \<Rightarrow> bool"
+  where
+  "gs_integral_auxiliary_witness d m n q v r \<longleftrightarrow>
+    v \<in> carrier_vec (q * q) \<and>
+    v \<noteq> 0\<^sub>v (q * q) \<and>
+    gs_system_mat d m n q *\<^sub>v v = 0\<^sub>v (m * n) \<and>
+    (\<forall>i<q * q. algebraic_int (v $ i)) \<and>
+    gs_min_order m d q (\<lambda>t. v $ t) \<ge> n \<and>
+    r = nat (gs_min_order m d q (\<lambda>t. v $ t)) \<and>
+    ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. v $ t)))
+      (gs_min_order_node m d q (\<lambda>t. v $ t)) \<noteq> 0"
+
 theorem gs_exists_integral_auxiliary_data:
   assumes d: "is_gelfond_schneider_data d"
   assumes qpos: "q > 0"
   assumes npos: "gs_n h q > 0"
   assumes dvd: "2 * gs_m h dvd q ^ 2"
   obtains v :: "complex vec" and r where
-      "v \<in> carrier_vec (q * q)"
-    and "v \<noteq> 0\<^sub>v (q * q)"
-    and "gs_system_mat d (gs_m h) (gs_n h q) q *\<^sub>v v = 0\<^sub>v (gs_m h * gs_n h q)"
-    and "\<forall>i<q * q. algebraic_int (Matrix.vec_index v i)"
-    and "gs_min_order (gs_m h) d q (\<lambda>t. Matrix.vec_index v t) \<ge> gs_n h q"
-    and "r = nat (gs_min_order (gs_m h) d q (\<lambda>t. Matrix.vec_index v t))"
-    and "((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
-          (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t)) \<noteq> 0"
+    "gs_integral_auxiliary_witness d (gs_m h) (gs_n h q) q v r"
 proof -
   have mnq: "gs_m h * gs_n h q < q * q"
     by (rule gs_balanced_rows_lt_columns[OF dvd npos])
@@ -181,7 +191,9 @@ proof -
     unfolding r0_def
     by (rule gs_min_order_deriv_nonzero_of_coeff_nonzero[OF d qpos coeff_nz])
   show thesis
-    by (rule that[OF v_carrier v_nz v_ker vint min_ord]) (use r0_def deriv_nz in auto)
+    by (rule that[of v r0])
+      (use v_carrier v_nz v_ker vint min_ord r0_def deriv_nz in
+        \<open>auto simp: gs_integral_auxiliary_witness_def\<close>)
 qed
 
 context

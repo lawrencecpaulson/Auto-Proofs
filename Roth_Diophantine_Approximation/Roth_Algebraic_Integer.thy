@@ -143,7 +143,12 @@ proof (rule ccontr)
       "\<forall>T>A. ln 2 < real m*T*xi/2 \<and> ln 2 \<le> ?sigma*T/2"
     using roth_choose_T_threshold[OF mpos xipos sigpos] by blast
   obtain beta :: "nat \<Rightarrow> rat" and T :: real and r :: "nat \<Rightarrow> nat"
-    where TA: "A < T" and Tpos: "0 < T" and rbounds:
+    where TA: "A < T" and Tpos: "0 < T" and selected:
+      "roth_selected_parameters alpha ?kappa m B xi ?sigma T beta r"
+    using roth_select_parameters[where alpha=alpha and kappa="2+delta"
+      and kappa'="?kappa" and m=m and sigma="?sigma" and xi=xi and B=B and A=A,
+      OF inf kap(2) kap(3) sigpos xipos Bpos] by blast
+  have rbounds:
       "\<forall>v<m. 0 < r v \<and> B \<le> roth_rat_log_height (beta v) \<and>
       roth_rat_log_height (beta v) \<le> xi*T \<and>
       T \<le> real (r v)*roth_rat_log_height (beta v) \<and>
@@ -153,9 +158,7 @@ proof (rule ccontr)
     and ratios: "\<forall>v. Suc v < m \<longrightarrow>
       real (r (Suc v)) \<le> ?sigma*real (r v)"
     and sumb: "real (\<Sum>v<m. r v) \<le> real m*((1+xi)*T/B)"
-    using roth_select_parameters[where alpha=alpha and kappa="2+delta"
-      and kappa'="?kappa" and m=m and sigma="?sigma" and xi=xi and B=B and A=A,
-      OF inf kap(2) kap(3) sigpos xipos Bpos] by blast
+    using selected unfolding roth_selected_parameters_def by blast+
   have Tgap: "ln 2 < real m*T*xi/2" and Theight: "ln 2 \<le> ?sigma*T/2"
     using Abounds TA by blast+
   let ?beta = "\<lambda>v. if v < m then beta v else beta 0"

@@ -365,10 +365,11 @@ proof -
   qed
 qed
 
-theorem compact_C1_partition_exists:
-  assumes compact: "compact K"
-    and KM: "K \<subseteq> M"
-  shows "\<exists>phi F.
+text \<open>A chartwise partition consists of finitely many chart-supported
+scalar functions which sum to one on the chosen set.\<close>
+
+definition chartwise_C1_partition where
+  "chartwise_C1_partition K phi F \<longleftrightarrow>
     finite F \<and> F \<subseteq> I \<and>
     (\<forall>p\<in>K. (\<Sum>i\<in>F. phi i p) = 1) \<and>
     (\<forall>i\<in>F. continuous_on M (phi i)) \<and>
@@ -376,8 +377,12 @@ theorem compact_C1_partition_exists:
     (\<forall>i\<in>F. \<exists>L. closed L \<and>
       {p\<in>M. phi i p \<noteq> 0} \<subseteq> L \<and>
       L \<subseteq> D i) \<and>
-    (\<forall>i\<in>F. \<forall>p.
-      0 \<le> phi i p \<and> phi i p \<le> 1)"
+    (\<forall>i\<in>F. \<forall>p. 0 \<le> phi i p \<and> phi i p \<le> 1)"
+
+theorem compact_C1_partition_exists:
+  assumes compact: "compact K"
+    and KM: "K \<subseteq> M"
+  shows "\<exists>phi F. chartwise_C1_partition K phi F"
 proof -
   have compactin: "compactin (top_of_set M) K"
     using compact KM by (simp add: compactin_subtopology)
@@ -450,7 +455,8 @@ proof -
     show ?thesis
       apply (rule exI[where x=phi])
       apply (rule exI[where x=F])
-      using F unity cont C1 local bounds by auto
+      using F unity cont C1 local bounds
+      by (auto simp: chartwise_C1_partition_def)
   qed
 qed
 

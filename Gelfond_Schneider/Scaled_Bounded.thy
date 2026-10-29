@@ -478,18 +478,6 @@ qed
 
 end
 
-definition gs_integral_scaled_auxiliary_value ::
-  "gelfond_schneider_data \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow>
-    complex vec \<Rightarrow> nat \<Rightarrow> int \<Rightarrow> complex \<Rightarrow> bool"
-  where
-  "gs_integral_scaled_auxiliary_value d h q v r c rho \<longleftrightarrow>
-    c = gs_c1 d ^ r * gs_c1 d ^ (2 * gs_m h * q) \<and>
-    rho = (of_int c :: complex) *
-      (gs_z d powi (- int r) *
-        ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. v $ t)))
-          (gs_min_order_node (gs_m h) d q (\<lambda>t. v $ t))) \<and>
-    algebraic_int rho \<and> rho \<noteq> 0"
-
 lemma gs_scaled_auxiliary_value_house_lower_bound:
   fixes v :: "complex vec"
   assumes d: "is_gelfond_schneider_data d"
@@ -502,29 +490,31 @@ lemma gs_scaled_auxiliary_value_house_lower_bound:
       "((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. v $ t)))
         (gs_min_order_node (gs_m h) d q (\<lambda>t. v $ t)) \<noteq> 0"
   obtains c :: int and rho :: complex where
-      "gs_integral_scaled_auxiliary_value d h q v r c rho"
+      "gs_integral_scaled_auxiliary_value d (gs_m h) q v r c rho"
     and "1 \<le> cmod rho * gs_house rho ^
           (card (set (complex_roots_of_int_poly (min_int_poly rho))) - 1)"
 proof -
-  let ?c = "gs_c1 d ^ r * gs_c1 d ^ (2 * gs_m h * q)"
-  let ?rho = "(of_int ?c :: complex) *
-    (gs_z d powi (- int r) *
-      ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. v $ t)))
-        (gs_min_order_node (gs_m h) d q (\<lambda>t. v $ t)))"
+  let ?c = "gs_auxiliary_multiplier d (gs_m h) q r"
+  let ?rho = "gs_auxiliary_scaled_value d (gs_m h) q v r ?c"
   have coeff_nz: "\<exists>t<q * q. v $ t \<noteq> 0"
     using v_carrier v_nz by force
   have rho_int: "algebraic_int ?rho"
     using gs_scaled_min_deriv_algebraic_int[OF d qpos gs_m_pos vint coeff_nz]
-      r_eq by simp
+      r_eq
+    by (simp add: gs_auxiliary_multiplier_def gs_auxiliary_scaled_value_def)
   have rho_nz: "?rho \<noteq> 0"
     using gelfond_schneider_data_c1_nonzero[OF d]
       gelfond_schneider_data_z_nonzero[OF d] deriv_nz
-    by (auto simp: power_int_def)
+    by (auto simp: gs_auxiliary_multiplier_def
+      gs_auxiliary_scaled_value_def power_int_def)
+  have c_nz: "?c \<noteq> 0"
+    using gelfond_schneider_data_c1_nonzero[OF d]
+    by (auto simp: gs_auxiliary_multiplier_def)
   have rho_lb: "1 \<le> cmod ?rho * gs_house ?rho ^
     (card (set (complex_roots_of_int_poly (min_int_poly ?rho))) - 1)"
     by (rule one_le_self_mul_house_pow_of_nonzero_algebraic_int[OF rho_int rho_nz])
   show thesis by (rule that[of ?c ?rho])
-    (use rho_int rho_nz rho_lb in \<open>auto simp: gs_integral_scaled_auxiliary_value_def\<close>)
+    (use c_nz rho_int rho_nz rho_lb in \<open>auto simp: gs_integral_scaled_auxiliary_value_def\<close>)
 qed
 
 context
@@ -555,7 +545,7 @@ theorem gs_exists_row_scaled_bounded_nonzero_algebraic_int_house_lower_bound:
       "gs_bounded_auxiliary_witness
         (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q)
         d h q D basis (int (q * q * D + 1) * det_bound_hadamard (q * q * D) (max 1 Bnd)) v x r"
-    and "gs_integral_scaled_auxiliary_value d h q v r c rho"
+    and "gs_integral_scaled_auxiliary_value d (gs_m h) q v r c rho"
     and "1 \<le> cmod rho * gs_house rho ^
       (card (set (complex_roots_of_int_poly (min_int_poly rho))) - 1)"
 proof -
@@ -591,7 +581,7 @@ theorem gs_exists_row_scaled_bounded_nonzero_algebraic_int_house_lower_bound_lin
       "gs_bounded_auxiliary_witness
         (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q)
         d h q D basis (2 * int (q * q * D) * max 1 Bnd) v x r"
-    and "gs_integral_scaled_auxiliary_value d h q v r c rho"
+    and "gs_integral_scaled_auxiliary_value d (gs_m h) q v r c rho"
     and "1 \<le> cmod rho * gs_house rho ^
       (card (set (complex_roots_of_int_poly (min_int_poly rho))) - 1)"
 proof -
@@ -629,7 +619,7 @@ theorem gs_exists_row_scaled_bounded_nonzero_algebraic_int_cmod_upper_bound:
       "gs_bounded_auxiliary_witness
         (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q)
         d h q D basis (int (q * q * D + 1) * det_bound_hadamard (q * q * D) (max 1 Bnd)) v x r"
-    and "gs_integral_scaled_auxiliary_value d h q v r c rho"
+    and "gs_integral_scaled_auxiliary_value d (gs_m h) q v r c rho"
     and "cmod rho \<le>
           of_nat (q * q) *
           ((of_int (int (q * q * D + 1) * det_bound_hadamard (q * q * D) (max 1 Bnd)) :: real) *
@@ -645,7 +635,7 @@ proof -
       BW: "gs_bounded_auxiliary_witness
         (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q)
         d h q D basis (int (q * q * D + 1) * det_bound_hadamard (q * q * D) (max 1 Bnd)) v x r"
-    and SW: "gs_integral_scaled_auxiliary_value d h q v r c rho"
+    and SW: "gs_integral_scaled_auxiliary_value d (gs_m h) q v r c rho"
     and "1 \<le> cmod rho * gs_house rho ^
       (card (set (complex_roots_of_int_poly (min_int_poly rho))) - 1)"
     by (rule gs_exists_row_scaled_bounded_nonzero_algebraic_int_house_lower_bound)
@@ -663,7 +653,8 @@ proof -
     (gs_z d powi (- int r) *
       ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. v $ t)))
         (gs_min_order_node (gs_m h) d q (\<lambda>t. v $ t)))"
-    using SW unfolding gs_integral_scaled_auxiliary_value_def by blast
+    using SW unfolding gs_integral_scaled_auxiliary_value_def
+      gs_auxiliary_scaled_value_def by blast
   have X_nonneg: "0 \<le> ?X"
   proof (rule ccontr)
     assume "\<not> 0 \<le> ?X"
@@ -725,7 +716,7 @@ theorem gs_exists_row_scaled_bounded_nonzero_algebraic_int_cmod_upper_bound_line
       "gs_bounded_auxiliary_witness
         (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q)
         d h q D basis (2 * int (q * q * D) * max 1 Bnd) v x r"
-    and "gs_integral_scaled_auxiliary_value d h q v r c rho"
+    and "gs_integral_scaled_auxiliary_value d (gs_m h) q v r c rho"
     and "cmod rho \<le>
           of_nat (q * q) *
           ((of_int (2 * int (q * q * D) * max 1 Bnd) :: real) * of_nat D * K) *
@@ -740,7 +731,7 @@ proof -
       BW: "gs_bounded_auxiliary_witness
         (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q)
         d h q D basis (2 * int (q * q * D) * max 1 Bnd) v x r"
-    and SW: "gs_integral_scaled_auxiliary_value d h q v r c rho"
+    and SW: "gs_integral_scaled_auxiliary_value d (gs_m h) q v r c rho"
     and "1 \<le> cmod rho * gs_house rho ^
       (card (set (complex_roots_of_int_poly (min_int_poly rho))) - 1)"
     by (rule gs_exists_row_scaled_bounded_nonzero_algebraic_int_house_lower_bound_linear)
@@ -758,7 +749,8 @@ proof -
     (gs_z d powi (- int r) *
       ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. v $ t)))
         (gs_min_order_node (gs_m h) d q (\<lambda>t. v $ t)))"
-    using SW unfolding gs_integral_scaled_auxiliary_value_def by blast
+    using SW unfolding gs_integral_scaled_auxiliary_value_def
+      gs_auxiliary_scaled_value_def by blast
   have X_nonneg: "0 \<le> ?X"
     using K_nonneg by simp
   let ?V = "(of_int ?X :: real) * of_nat D * K"
