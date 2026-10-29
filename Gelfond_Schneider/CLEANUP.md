@@ -28,6 +28,17 @@ extraction when it gives that data a meaningful name.
   properties instead of repeating their long universal formulas. It also
   defines the scaled auxiliary value and growth prefactor used in its
   final estimates.
+- `Power_Basis_Norm_Target.thy` now names the factor count of a system
+  coefficient, the row denominator budget and its order-based bound, the
+  integer-kernel witness size, and the power-basis witness coordinate
+  relation. The house and point growth exponents and their combined norm
+  base are named separately. The positive-order lemma now follows from
+  the stronger order bound instead of repeating its proof.
+- `Statement_Shell.thy` defines the norm growth exponent used by the
+  upper bound and final growth contradiction. The analytic field-norm
+  theorem keeps its exact arithmetic exponent visible.
+- The affected theories use Isabelle's ceiling and absolute-value notation
+  consistently. The remaining `abs` in a set image is a function value.
 - Related bounds in `GS_Direct.thy`, `Scaled_Bounded.thy`, and
   `Power_Basis_Norm_Target.thy` share common hypotheses through local
   contexts. The Hadamard and linear house-lower-bound results use the same
@@ -46,6 +57,10 @@ The `Gelfond_Schneider` session built successfully after these edits.
   formulas in several interfaces. The downstream bounded results now use
   a predicate. A shared definition at the arithmetic level could remove
   the upstream copies, but would change several theorem interfaces.
+- The ordinary and denominator-adjusted house and point growth proofs in
+  `Power_Basis_Norm_Target.thy` have similar structure. Their named bases
+  and exponents now make the common mathematics visible; their distinct
+  estimates remain explicit.
 - The field-construction rules in `Galois_Root_Bounds.thy` strengthen their
   conclusions stage by stage. `finite_normal_galois_power_basis` already
   names the final state; it is not clear that another locale would improve

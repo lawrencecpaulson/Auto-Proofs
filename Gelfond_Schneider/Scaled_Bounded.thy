@@ -35,14 +35,14 @@ proof -
   proof -
     have idx_lt: "sg_pair_idx D t j < q * q * D"
       by (rule sg_pair_idx_lt[OF Dpos tlt jlt])
-    have x_le: "abs (Matrix.vec_index x (sg_pair_idx D t j)) \<le> B"
+    have x_le: "\<bar>Matrix.vec_index x (sg_pair_idx D t j)\<bar> \<le> B"
       using x_bnd x_carrier idx_lt unfolding Bounded_vec_def by simp
     have x_nonneg: "0 \<le> cmod (basis j)"
       by simp
-    have cast_le: "(of_int (abs (Matrix.vec_index x (sg_pair_idx D t j))) :: real) \<le> of_int B"
+    have cast_le: "(of_int (\<bar>Matrix.vec_index x (sg_pair_idx D t j)\<bar>) :: real) \<le> of_int B"
       using x_le by simp
     have "cmod (of_int (Matrix.vec_index x (sg_pair_idx D t j)) * basis j) =
-        (of_int (abs (Matrix.vec_index x (sg_pair_idx D t j))) :: real) * cmod (basis j)"
+        (of_int (\<bar>Matrix.vec_index x (sg_pair_idx D t j)\<bar>) :: real) * cmod (basis j)"
       by (simp add: norm_mult)
     also have "\<dots> \<le> (of_int B :: real) * cmod (basis j)"
       by (rule mult_right_mono[OF cast_le]) simp
@@ -197,15 +197,15 @@ lemma cmod_scaled_gs_system_coeff_le_uniform:
   assumes bq: "b \<le> q"
   assumes lm: "l \<le> m"
   shows "cmod ((of_int c :: complex) * gs_system_coeff d a b l k) \<le>
-    of_int (abs c) *
+    of_int (\<bar>c\<bar>) *
     (of_nat q * (1 + cmod (gs_b d))) ^ k *
     (max 1 (cmod (gs_a d))) ^ (m * q) *
     (max 1 (cmod (gs_w d))) ^ (m * q)"
 proof -
   have "cmod ((of_int c :: complex) * gs_system_coeff d a b l k) =
-      of_int (abs c) * cmod (gs_system_coeff d a b l k)"
+      of_int (\<bar>c\<bar>) * cmod (gs_system_coeff d a b l k)"
     by (simp add: norm_mult)
-  also have "... \<le> of_int (abs c) *
+  also have "... \<le> of_int (\<bar>c\<bar>) *
       ((of_nat q * (1 + cmod (gs_b d))) ^ k *
         (max 1 (cmod (gs_a d))) ^ (m * q) *
         (max 1 (cmod (gs_w d))) ^ (m * q))"
@@ -222,13 +222,13 @@ lemma cmod_scaled_deriv_at_nat_le_uniform:
   shows "cmod ((of_int c :: complex) *
       (gs_z d powi (- int k) * ((deriv ^^ k) (gs_aux_fun_vec d q \<xi>)) (of_nat l))) \<le>
     of_nat (q * q) * V *
-      (of_int (abs c) *
+      (of_int (\<bar>c\<bar>) *
         (of_nat q * (1 + cmod (gs_b d))) ^ k *
         (max 1 (cmod (gs_a d))) ^ (m * q) *
         (max 1 (cmod (gs_w d))) ^ (m * q))"
 proof -
   let ?U =
-    "of_int (abs c) *
+    "of_int (\<bar>c\<bar>) *
       (of_nat q * (1 + cmod (gs_b d))) ^ k *
       (max 1 (cmod (gs_a d))) ^ (m * q) *
       (max 1 (cmod (gs_w d))) ^ (m * q)"
@@ -291,7 +291,7 @@ theorem gs_row_scaled_system_mat_exists_bounded_algebraic_int_kernel:
         (\<Sum>k<D. of_int (C u t k j) * basis k)"
   assumes C_bnd:
     "\<And>u t k j. u < m * n \<Longrightarrow> t < q * q \<Longrightarrow> k < D \<Longrightarrow> j < D \<Longrightarrow>
-      abs (C u t k j) \<le> Bnd"
+      \<bar>C u t k j\<bar> \<le> Bnd"
   obtains v :: "complex vec" and x :: "int vec" where
     "bounded_integral_basis_kernel (gs_row_scaled_system_mat d m n q) (m * n)
       (q * q) D basis
@@ -333,7 +333,7 @@ theorem gs_row_scaled_system_mat_exists_bounded_algebraic_int_kernel_linear:
         (\<Sum>k<D. of_int (C u t k j) * basis k)"
   assumes C_bnd:
     "\<And>u t k j. u < m * n \<Longrightarrow> t < q * q \<Longrightarrow> k < D \<Longrightarrow> j < D \<Longrightarrow>
-      abs (C u t k j) \<le> Bnd"
+      \<bar>C u t k j\<bar> \<le> Bnd"
   obtains v :: "complex vec" and x :: "int vec" where
     "bounded_integral_basis_kernel (gs_row_scaled_system_mat d m n q) (m * n)
       (q * q) D basis (2 * int (q * q * D) * max 1 Bnd) v x"
@@ -378,7 +378,7 @@ context
         (\<Sum>k<D. of_int (C u t k j) * basis k)"
   assumes C_bnd:
     "\<And>u t k j. u < gs_m h * gs_n h q \<Longrightarrow> t < q * q \<Longrightarrow> k < D \<Longrightarrow> j < D \<Longrightarrow>
-      abs (C u t k j) \<le> Bnd"
+      \<bar>C u t k j\<bar> \<le> Bnd"
 begin
 
 theorem gs_exists_row_scaled_bounded_integral_auxiliary_data:
@@ -546,7 +546,7 @@ context
         (\<Sum>k<D. of_int (C u t k j) * basis k)"
   assumes C_bnd:
     "\<And>u t k j. u < gs_m h * gs_n h q \<Longrightarrow> t < q * q \<Longrightarrow> k < D \<Longrightarrow> j < D \<Longrightarrow>
-      abs (C u t k j) \<le> Bnd"
+      \<bar>C u t k j\<bar> \<le> Bnd"
 begin
 
 theorem gs_exists_row_scaled_bounded_nonzero_algebraic_int_house_lower_bound:
@@ -634,7 +634,7 @@ theorem gs_exists_row_scaled_bounded_nonzero_algebraic_int_cmod_upper_bound:
           of_nat (q * q) *
           ((of_int (int (q * q * D + 1) * det_bound_hadamard (q * q * D) (max 1 Bnd)) :: real) *
             of_nat D * K) *
-          (of_int (abs c) *
+          (of_int (\<bar>c\<bar>) *
             (of_nat q * (1 + cmod (gs_b d))) ^ r *
             (max 1 (cmod (gs_a d))) ^ (gs_m h * q) *
             (max 1 (cmod (gs_w d))) ^ (gs_m h * q))"
@@ -678,9 +678,9 @@ proof -
       assume i: "i < dim_vec (0\<^sub>v (q * q * D))"
       then have ilt: "i < q * q * D"
         by simp
-      have le: "abs (x $ i) \<le> ?X"
+      have le: "\<bar>x $ i\<bar> \<le> ?X"
         using x_bnd x_carrier ilt unfolding Bounded_vec_def by fastforce
-      from le X_neg have "abs (x $ i) < 0"
+      from le X_neg have "\<bar>x $ i\<bar> < 0"
         by linarith
       then show "x $ i = (0\<^sub>v (q * q * D)) $ i"
         by simp
@@ -708,7 +708,7 @@ proof -
     using llt by simp
   have rho_ub:
       "cmod rho \<le> of_nat (q * q) * ?V *
-        (of_int (abs c) *
+        (of_int (\<bar>c\<bar>) *
           (of_nat q * (1 + cmod (gs_b d))) ^ r *
           (max 1 (cmod (gs_a d))) ^ (gs_m h * q) *
           (max 1 (cmod (gs_w d))) ^ (gs_m h * q))"
@@ -729,7 +729,7 @@ theorem gs_exists_row_scaled_bounded_nonzero_algebraic_int_cmod_upper_bound_line
     and "cmod rho \<le>
           of_nat (q * q) *
           ((of_int (2 * int (q * q * D) * max 1 Bnd) :: real) * of_nat D * K) *
-          (of_int (abs c) *
+          (of_int (\<bar>c\<bar>) *
             (of_nat q * (1 + cmod (gs_b d))) ^ r *
             (max 1 (cmod (gs_a d))) ^ (gs_m h * q) *
             (max 1 (cmod (gs_w d))) ^ (gs_m h * q))"
@@ -781,7 +781,7 @@ proof -
     using llt by simp
   have rho_ub:
       "cmod rho \<le> of_nat (q * q) * ?V *
-        (of_int (abs c) *
+        (of_int (\<bar>c\<bar>) *
           (of_nat q * (1 + cmod (gs_b d))) ^ r *
           (max 1 (cmod (gs_a d))) ^ (gs_m h * q) *
           (max 1 (cmod (gs_w d))) ^ (gs_m h * q))"

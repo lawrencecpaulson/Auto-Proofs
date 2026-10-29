@@ -75,7 +75,7 @@ proof -
 qed
 
 definition gs_c1 :: "gelfond_schneider_data \<Rightarrow> int"
-  where "gs_c1 d = abs (gs_c0 (gs_a d) * gs_c0 (gs_b d) * gs_c0 (gs_w d))"
+  where "gs_c1 d = \<bar>gs_c0 (gs_a d) * gs_c0 (gs_b d) * gs_c0 (gs_w d)\<bar>"
 
 lemma algebraic_int_of_int_scale [intro]:
   assumes "algebraic_int (x :: complex)"
@@ -85,7 +85,7 @@ lemma algebraic_int_of_int_scale [intro]:
 lemma algebraic_int_abs_scale:
   fixes x :: complex
   assumes "algebraic_int (of_int c * x)"
-  shows "algebraic_int (of_int (abs c) * x)"
+  shows "algebraic_int (of_int (\<bar>c\<bar>) * x)"
 proof (cases "0 \<le> c")
   case True
   then show ?thesis
@@ -173,7 +173,7 @@ proof -
       qed
     qed
   qed
-  have "0 < abs (gs_c0 (gs_a d) * gs_c0 (gs_b d) * gs_c0 (gs_w d))"
+  have "0 < \<bar>gs_c0 (gs_a d) * gs_c0 (gs_b d) * gs_c0 (gs_w d)\<bar>"
     using nz by simp
   then show ?thesis
     unfolding gs_c1_def by linarith

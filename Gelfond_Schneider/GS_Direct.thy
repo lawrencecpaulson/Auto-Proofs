@@ -72,7 +72,7 @@ theorem gs_system_mat_exists_bounded_algebraic_int_kernel:
     "\<And>u t j. u < m * n \<Longrightarrow> t < q * q \<Longrightarrow> j < D \<Longrightarrow>
       gs_system_mat d m n q $$ (u,t) * basis j = (\<Sum>k<D. of_int (C u t k j) * basis k)"
   assumes C_bnd:
-    "\<And>u t k j. u < m * n \<Longrightarrow> t < q * q \<Longrightarrow> k < D \<Longrightarrow> j < D \<Longrightarrow> abs (C u t k j) \<le> Bnd"
+    "\<And>u t k j. u < m * n \<Longrightarrow> t < q * q \<Longrightarrow> k < D \<Longrightarrow> j < D \<Longrightarrow> \<bar>C u t k j\<bar> \<le> Bnd"
   obtains v :: "complex vec" and x :: "int vec" where
     "bounded_integral_basis_kernel (gs_system_mat d m n q) (m * n) (q * q) D
       basis (int (q * q * D + 1) * det_bound_hadamard (q * q * D) (max 1 Bnd)) v x"
@@ -111,7 +111,7 @@ theorem gs_system_mat_exists_bounded_algebraic_int_kernel_linear:
     "\<And>u t j. u < m * n \<Longrightarrow> t < q * q \<Longrightarrow> j < D \<Longrightarrow>
       gs_system_mat d m n q $$ (u,t) * basis j = (\<Sum>k<D. of_int (C u t k j) * basis k)"
   assumes C_bnd:
-    "\<And>u t k j. u < m * n \<Longrightarrow> t < q * q \<Longrightarrow> k < D \<Longrightarrow> j < D \<Longrightarrow> abs (C u t k j) \<le> Bnd"
+    "\<And>u t k j. u < m * n \<Longrightarrow> t < q * q \<Longrightarrow> k < D \<Longrightarrow> j < D \<Longrightarrow> \<bar>C u t k j\<bar> \<le> Bnd"
   obtains v :: "complex vec" and x :: "int vec" where
     "bounded_integral_basis_kernel (gs_system_mat d m n q) (m * n) (q * q) D
       basis (2 * int (q * q * D) * max 1 Bnd) v x"
@@ -202,7 +202,7 @@ context
       gs_system_mat d (gs_m h) (gs_n h q) q $$ (u,t) * basis j =
         (\<Sum>k<D. of_int (C u t k j) * basis k)"
   assumes C_bnd:
-    "\<And>u t k j. u < gs_m h * gs_n h q \<Longrightarrow> t < q * q \<Longrightarrow> k < D \<Longrightarrow> j < D \<Longrightarrow> abs (C u t k j) \<le> Bnd"
+    "\<And>u t k j. u < gs_m h * gs_n h q \<Longrightarrow> t < q * q \<Longrightarrow> k < D \<Longrightarrow> j < D \<Longrightarrow> \<bar>C u t k j\<bar> \<le> Bnd"
 begin
 
 theorem gs_exists_bounded_integral_auxiliary_data:

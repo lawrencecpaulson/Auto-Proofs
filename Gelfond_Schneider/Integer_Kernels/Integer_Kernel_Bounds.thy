@@ -236,19 +236,19 @@ proof -
           using A up x_carrier by (simp add: atLeast0LessThan scalar_prod_def)
         finally show ?thesis .
       qed
-      have A_bound: "abs (A $$ (u,j)) \<le> int B" if j: "j < q" for j
+      have A_bound: "\<bar>A $$ (u,j)\<bar> \<le> int B" if j: "j < q" for j
         using ABnd A up j by (force simp: Bounded_mat_def B_int) 
-      have x_bound: "abs (x $ j) \<le> int C" if j: "j < q" for j
+      have x_bound: "\<bar>x $ j\<bar> \<le> int C" if j: "j < q" for j
         using x_bounds[rule_format, OF j] by auto
-      have "abs (y $ u) \<le> (\<Sum>j<q. abs (A $$ (u,j) * x $ j))"
+      have "\<bar>y $ u\<bar> \<le> (\<Sum>j<q. \<bar>A $$ (u,j) * x $ j\<bar>)"
         unfolding y_expand by (rule sum_abs)
-      also have "\<dots> = (\<Sum>j<q. abs (A $$ (u,j)) * abs (x $ j))"
+      also have "\<dots> = (\<Sum>j<q. \<bar>A $$ (u,j)\<bar> * \<bar>x $ j\<bar>)"
         by (simp add: abs_mult)
       also have "\<dots> \<le> (\<Sum>j<q. int B * int C)"
         by (intro sum_mono A_bound x_bound mult_mono) auto
       also have "\<dots> = int q * int B * int C"
         by simp
-      finally have abs_y: "abs (y $ u) \<le> M"
+      finally have abs_y: "\<bar>y $ u\<bar> \<le> M"
         unfolding M_def by simp
       then show "y $ u \<in> {-M..M}"
         by auto

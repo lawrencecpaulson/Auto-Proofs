@@ -344,9 +344,9 @@ qed
 lemma gs_max_ceiling_le:
   fixes x :: real
   assumes xnonneg: "0 \<le> x"
-  shows "(of_int (max 1 (ceiling x)) :: real) \<le> 1 + x"
+  shows "(of_int (max 1 (\<lceil>x\<rceil>)) :: real) \<le> 1 + x"
 proof -
-  have ceil: "(of_int (ceiling x) :: real) \<le> 1 + x"
+  have ceil: "(of_int (\<lceil>x\<rceil>) :: real) \<le> 1 + x"
     using ceiling_correct[of x] by linarith
   show ?thesis using ceil xnonneg by (simp add: max_def)
 qed
@@ -357,12 +357,12 @@ lemma gs_max_ceiling_mul_le:
   assumes Wnonneg: "0 \<le> W"
   assumes Ale: "A \<le> G"
   assumes Gone: "1 \<le> G"
-  shows "(of_int (max 1 (ceiling (W * A))) :: real) \<le> (1 + W) * G"
+  shows "(of_int (max 1 (\<lceil>W * A\<rceil>)) :: real) \<le> (1 + W) * G"
 proof -
   have WA: "0 \<le> W * A" using Anonneg Wnonneg by simp
   have Wle: "W * A \<le> W * G"
     by (rule mult_left_mono[OF Ale Wnonneg])
-  have "(of_int (max 1 (ceiling (W * A))) :: real) \<le> 1 + W * A"
+  have "(of_int (max 1 (\<lceil>W * A\<rceil>)) :: real) \<le> 1 + W * A"
     by (rule gs_max_ceiling_le[OF WA])
   also have "... \<le> G + W * G"
     using Wle Gone by linarith
@@ -378,10 +378,10 @@ lemma gs_witness_bound_le_growth:
   assumes Wnonneg: "0 \<le> W"
   assumes Ale: "A \<le> G"
   assumes Gone: "1 \<le> G"
-  shows "(of_int (2 * int (q * q * D) * max 1 (ceiling (W * A))) :: real) \<le>
+  shows "(of_int (2 * int (q * q * D) * max 1 (\<lceil>W * A\<rceil>)) :: real) \<le>
     (4 * of_nat m * of_nat D * (1 + W)) * of_nat r * G"
 proof -
-  let ?L = "(of_int (max 1 (ceiling (W * A))) :: real)"
+  let ?L = "(of_int (max 1 (\<lceil>W * A\<rceil>)) :: real)"
   have Lnonneg: "0 \<le> ?L" by simp
   have Lle: "?L \<le> (1 + W) * G"
     by (rule gs_max_ceiling_mul_le[OF Anonneg Wnonneg Ale Gone])
@@ -399,7 +399,7 @@ proof -
       by (intro mult_right_mono mult_left_mono qsq_real) simp_all
     then show ?thesis by (simp add: ac_simps)
   qed
-  have "(of_int (2 * int (q * q * D) * max 1 (ceiling (W * A))) :: real) =
+  have "(of_int (2 * int (q * q * D) * max 1 (\<lceil>W * A\<rceil>)) :: real) =
       (2 * of_nat (q * q) * of_nat D) * ?L"
     by (simp add: of_nat_mult ac_simps)
   also have "... \<le> ((4 * of_nat m * of_nat D) * of_nat r) * ?L"

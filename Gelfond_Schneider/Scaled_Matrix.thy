@@ -348,7 +348,7 @@ lemma cmod_gs_row_scaled_system_mat_entry_le:
   assumes ult: "u < m * n"
   assumes tlt: "t < q * q"
   shows "cmod (gs_row_scaled_system_mat d m n q $$ (u, t)) \<le>
-    abs (gs_row_scale d m n q u) *
+    \<bar>gs_row_scale d m n q u\<bar> *
     ((of_nat q * (1 + cmod (gs_b d))) ^ gs_k_idx n u *
       (max 1 (cmod (gs_a d))) ^ (gs_a_idx q t * gs_l_idx n u) *
       (max 1 (cmod (gs_w d))) ^ (gs_b_idx q t * gs_l_idx n u))"
@@ -358,9 +358,9 @@ proof -
         of_int (gs_row_scale d m n q u) * gs_system_coeff_idx d n q u t"
     using ult tlt unfolding gs_row_scaled_system_mat_def by simp
   have "cmod (gs_row_scaled_system_mat d m n q $$ (u, t)) =
-      abs (gs_row_scale d m n q u) * cmod (gs_system_coeff_idx d n q u t)"
+      \<bar>gs_row_scale d m n q u\<bar> * cmod (gs_system_coeff_idx d n q u t)"
     by (simp add: eq_term norm_mult)
-  also have "... \<le> abs (gs_row_scale d m n q u) *
+  also have "... \<le> \<bar>gs_row_scale d m n q u\<bar> *
       ((of_nat q * (1 + cmod (gs_b d))) ^ gs_k_idx n u *
         (max 1 (cmod (gs_a d))) ^ (gs_a_idx q t * gs_l_idx n u) *
         (max 1 (cmod (gs_w d))) ^ (gs_b_idx q t * gs_l_idx n u))"
@@ -375,11 +375,11 @@ lemma cmod_gs_row_scaled_system_mat_entry_le_uniform:
   assumes ult: "u < m * n"
   assumes tlt: "t < q * q"
   shows "cmod (gs_row_scaled_system_mat d m n q $$ (u, t)) \<le>
-    (of_int (abs (gs_c1 d)) * (of_nat q * (1 + cmod (gs_b d)))) ^ (n - 1) *
-    (of_int (abs (gs_c1 d)) * max 1 (cmod (gs_a d))) ^ (m * q) *
-    (of_int (abs (gs_c1 d)) * max 1 (cmod (gs_w d))) ^ (m * q)"
+    (of_int (\<bar>gs_c1 d\<bar>) * (of_nat q * (1 + cmod (gs_b d)))) ^ (n - 1) *
+    (of_int (\<bar>gs_c1 d\<bar>) * max 1 (cmod (gs_a d))) ^ (m * q) *
+    (of_int (\<bar>gs_c1 d\<bar>) * max 1 (cmod (gs_w d))) ^ (m * q)"
 proof -
-  let ?c = "of_int (abs (gs_c1 d))"
+  let ?c = "of_int (\<bar>gs_c1 d\<bar>)"
   let ?B0 = "of_nat q * (1 + cmod (gs_b d))"
   let ?A0 = "max 1 (cmod (gs_a d))"
   let ?W0 = "max 1 (cmod (gs_w d))"
@@ -416,7 +416,7 @@ proof -
     using gelfond_schneider_data_c1_ge1[OF d] .
   have c_nonneg: "0 \<le> gs_c1 d"
     using c1_ge1 by linarith
-  have c_abs_eq_int: "abs (gs_c1 d) = gs_c1 d"
+  have c_abs_eq_int: "\<bar>gs_c1 d\<bar> = gs_c1 d"
     using c_nonneg by simp
   have h_c_ge1: "1 \<le> (of_int (gs_c1 d) :: real)"
     using c1_ge1 by simp
@@ -456,10 +456,10 @@ proof -
     by simp
   have precise:
       "cmod (gs_row_scaled_system_mat d m n q $$ (u, t)) \<le>
-        of_int (abs (gs_row_scale d m n q u)) * (?B0 ^ ?k * ?A0 ^ ?ea * ?W0 ^ ?eb)"
+        of_int (\<bar>gs_row_scale d m n q u\<bar>) * (?B0 ^ ?k * ?A0 ^ ?ea * ?W0 ^ ?eb)"
     by (rule cmod_gs_row_scaled_system_mat_entry_le[OF qpos npos ult tlt])
   have scale_eq:
-      "of_int (abs (gs_row_scale d m n q u)) = ?c ^ ?k * ?c ^ (m * q) * ?c ^ (m * q)"
+      "of_int (\<bar>gs_row_scale d m n q u\<bar>) = ?c ^ ?k * ?c ^ (m * q) * ?c ^ (m * q)"
     unfolding gs_row_scale_def by (simp add: power_abs abs_mult algebra_simps)
   have k_part_le: "?c ^ ?k * ?B0 ^ ?k \<le> (?c * ?B0) ^ (n - 1)"
   proof -
@@ -490,10 +490,10 @@ proof -
     finally show ?thesis .
   qed
   have expand_eq:
-      "of_int (abs (gs_row_scale d m n q u)) * (?B0 ^ ?k * ?A0 ^ ?ea * ?W0 ^ ?eb) =
+      "of_int (\<bar>gs_row_scale d m n q u\<bar>) * (?B0 ^ ?k * ?A0 ^ ?ea * ?W0 ^ ?eb) =
         (?c ^ ?k * ?B0 ^ ?k) * (?c ^ (m * q) * ?A0 ^ ?ea) * (?c ^ (m * q) * ?W0 ^ ?eb)"
   proof -
-    have "of_int (abs (gs_row_scale d m n q u)) * (?B0 ^ ?k * ?A0 ^ ?ea * ?W0 ^ ?eb) =
+    have "of_int (\<bar>gs_row_scale d m n q u\<bar>) * (?B0 ^ ?k * ?A0 ^ ?ea * ?W0 ^ ?eb) =
         (?c ^ ?k * ?c ^ (m * q) * ?c ^ (m * q)) * (?B0 ^ ?k * ?A0 ^ ?ea * ?W0 ^ ?eb)"
       by (subst scale_eq) simp
     also have "... = (?c ^ ?k * ?B0 ^ ?k) * (?c ^ (m * q) * ?A0 ^ ?ea) * (?c ^ (m * q) * ?W0 ^ ?eb)"
@@ -505,10 +505,10 @@ proof -
         (?c * ?B0) ^ (n - 1) * (?c * ?A0) ^ (m * q)"
     using k_part_le a_part_le by (intro mult_mono) auto
   have combined_le0:
-      "of_int (abs (gs_row_scale d m n q u)) * (?B0 ^ ?k * ?A0 ^ ?ea * ?W0 ^ ?eb) \<le>
+      "of_int (\<bar>gs_row_scale d m n q u\<bar>) * (?B0 ^ ?k * ?A0 ^ ?ea * ?W0 ^ ?eb) \<le>
         ((?c * ?B0) ^ (n - 1) * (?c * ?A0) ^ (m * q)) * (?c * ?W0) ^ (m * q)"
   proof -
-    have "of_int (abs (gs_row_scale d m n q u)) * (?B0 ^ ?k * ?A0 ^ ?ea * ?W0 ^ ?eb) =
+    have "of_int (\<bar>gs_row_scale d m n q u\<bar>) * (?B0 ^ ?k * ?A0 ^ ?ea * ?W0 ^ ?eb) =
         (?c ^ ?k * ?B0 ^ ?k) * (?c ^ (m * q) * ?A0 ^ ?ea) * (?c ^ (m * q) * ?W0 ^ ?eb)"
       by (rule expand_eq)
     also have "... \<le> ((?c * ?B0) ^ (n - 1) * (?c * ?A0) ^ (m * q)) * (?c ^ (m * q) * ?W0 ^ ?eb)"
@@ -518,7 +518,7 @@ proof -
     finally show ?thesis .
   qed
   have combined_le:
-      "of_int (abs (gs_row_scale d m n q u)) * (?B0 ^ ?k * ?A0 ^ ?ea * ?W0 ^ ?eb) \<le>
+      "of_int (\<bar>gs_row_scale d m n q u\<bar>) * (?B0 ^ ?k * ?A0 ^ ?ea * ?W0 ^ ?eb) \<le>
         (?c * ?B0) ^ (n - 1) * (?c * ?A0) ^ (m * q) * (?c * ?W0) ^ (m * q)"
     using combined_le0 by (simp add: algebra_simps)
   show ?thesis

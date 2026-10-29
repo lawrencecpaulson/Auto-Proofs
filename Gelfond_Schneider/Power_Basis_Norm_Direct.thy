@@ -113,7 +113,8 @@ proof -
       if up: "u < gs_m D * gs_n D q" and tq: "t < q * q" for u t
       by (rule PB.row_scaled_entry_in_K_from_rational_coordinates
           [OF coords up tq])
-  qed (use assms ca_rat a_eq cb_rat b_eq cw_rat w_eq prod d Tp i0lt emb0 q_def A_def c14_def in auto)
+  qed (use assms ca_rat a_eq cb_rat b_eq cw_rat w_eq prod d Tp i0lt emb0 q_def A_def c14_def
+    in \<open>auto simp: gs_row_denominator_order_exponent_def\<close>)
   interpret V: gelfond_schneider_power_basis_scaled_norm_verified
     K eta D emb ca cb cw d q D i0 A 2 c14 T by (rule SV)
   show False by (rule V.coordinate_contradiction)

@@ -321,7 +321,7 @@ theorem exists_nonzero_bounded_kernel_vec_of_structure_constants:
     "\<And>u t j. u < p \<Longrightarrow> t < q \<Longrightarrow> j < d \<Longrightarrow>
       A $$ (u,t) * basis j = (\<Sum>k<d. of_int (C u t k j) * basis k)"
   assumes C_bnd:
-    "\<And>u t k j. u < p \<Longrightarrow> t < q \<Longrightarrow> k < d \<Longrightarrow> j < d \<Longrightarrow> abs (C u t k j) \<le> Bnd"
+    "\<And>u t k j. u < p \<Longrightarrow> t < q \<Longrightarrow> k < d \<Longrightarrow> j < d \<Longrightarrow> \<bar>C u t k j\<bar> \<le> Bnd"
   assumes basis_indep:
     "\<And>c. (\<Sum>j<d. of_int (c j) * basis j) = 0 \<Longrightarrow> (\<forall>j<d. c j = 0)"
   obtains eta :: "complex vec" and x :: "int vec" where
@@ -371,7 +371,7 @@ theorem exists_nonzero_bounded_kernel_vec_of_structure_constants_linear:
     "\<And>u t j. u < p \<Longrightarrow> t < q \<Longrightarrow> j < d \<Longrightarrow>
       A $$ (u,t) * basis j = (\<Sum>k<d. of_int (C u t k j) * basis k)"
   assumes C_bnd:
-    "\<And>u t k j. u < p \<Longrightarrow> t < q \<Longrightarrow> k < d \<Longrightarrow> j < d \<Longrightarrow> abs (C u t k j) \<le> Bnd"
+    "\<And>u t k j. u < p \<Longrightarrow> t < q \<Longrightarrow> k < d \<Longrightarrow> j < d \<Longrightarrow> \<bar>C u t k j\<bar> \<le> Bnd"
   assumes basis_indep:
     "\<And>c. (\<Sum>j<d. of_int (c j) * basis j) = 0 \<Longrightarrow> (\<forall>j<d. c j = 0)"
   obtains eta :: "complex vec" and x :: "int vec" where
