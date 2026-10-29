@@ -2525,6 +2525,7 @@ proof -
     by (rule scaled_structure_constant_abs_le[OF entryK[OF up tq] Lp
       _ house[OF up tq] Hnonneg kd jd]) (use rep up tq jd in blast)
   have indep: "(\<forall>j<D. c j = 0)" if zero: "(\<Sum>j<D. of_int (c j) * eta ^ j) = 0" for c
+      using Subfield.power_basis_indep[OF Rats_subfield algQ] zero
   proof -
     have cj: "(\<forall>j<D. complex_of_int (c j) = 0)"
       using Subfield.power_basis_indep[OF Rats_subfield algQ] zero
@@ -2590,23 +2591,14 @@ proof -
   have Ffin: "finite ?F" by simp
   have Frat: "?F \<subseteq> \<rat>"
     using ca_rat cb_rat cw_rat by auto
-  obtain L::int where Lp: "L > 0"
-    and Le: "\<forall>x\<in>?F. \<exists>z::int. of_int L * x = of_int z"
+  obtain L::int where "L > 0"
+    and "\<forall>x\<in>?F. \<exists>z::int. of_int L * x = of_int z"
     using finite_Rats_common_denominator[OF Ffin Frat] by blast
-  have "\<exists>z::int. of_int L * ca i = of_int z" if "i < D" for i
-    using Le that by auto
-  then obtain za where a: "\<And>i. i < D \<Longrightarrow> of_int L * ca i = of_int (za i)"
-    by metis
-  have "\<exists>z::int. of_int L * cb i = of_int z" if "i < D" for i
-    using Le that by auto
-  then obtain zb where b: "\<And>i. i < D \<Longrightarrow> of_int L * cb i = of_int (zb i)"
-    by metis
-  have "\<exists>z::int. of_int L * cw i = of_int z" if "i < D" for i
-    using Le that by auto
-  then obtain zw where w: "\<And>i. i < D \<Longrightarrow> of_int L * cw i = of_int (zw i)"
-    by metis
-  then show ?thesis
-    using Lp a b w by blast
+  then obtain za zb zw where "\<And>i. i < D \<Longrightarrow> of_int L * ca i = of_int (za i)"
+    and "\<And>i. i < D \<Longrightarrow> of_int L * cb i = of_int (zb i)"
+    and "\<And>i. i < D \<Longrightarrow> of_int L * cw i = of_int (zw i)"
+    by (force simp: bchoice_iff)
+  with \<open>L>0\<close> show ?thesis by blast
 qed
 
 lemma row_scaled_entry_in_K_from_rational_coordinates:
@@ -2804,13 +2796,7 @@ proof -
     (of_int (T ^ ?N) * A)"
   have house: "EH.ehouse (\<lambda>e. e (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q $$ (u,t))) \<le> A"
     if up: "u < gs_m h * gs_n h q" and tq: "t < q * q" for u t
-  proof -
-    have bound: "EH.ehouse (Aemb u t) \<le> gs_concrete_entry_bound"
-      by (rule gs_row_scaled_entry_concrete_house_le[OF up tq])
-    have fun_eq: "Aemb u t = (\<lambda>e. e (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q $$ (u,t)))"
-      by (force simp: Aemb_def)
-    show ?thesis using bound by (simp only: A_choice fun_eq)
-  qed
+    using A_choice Aemb_def gs_row_scaled_entry_concrete_house_le that(1,2) by presburger
   have Anonneg: "0 \<le> A"
     using A_choice gs_concrete_entry_bound_nonneg by simp
   have prod_named: "gs_uniform_product_denominator d T"
@@ -2818,21 +2804,12 @@ proof -
     unfolding gs_uniform_product_denominator_def
       uniform_product_denominator_def uniform_denominator_factor_def
     by blast
-  obtain v x where
-      IW_raw: "bounded_integral_basis_kernel
-        (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q)
-        (gs_m h * gs_n h q) (q * q) D (\<lambda>j. eta ^ j)
-        (2 * int (q * q * D) * max 1
-          (\<lceil>of_nat (card E) * power_basis_inverse_bound *
-            (of_int (T ^ ?N) * A * power_basis_entry_bound)\<rceil>)) v x"
-    by (rule row_scaled_matrix_has_given_denominator_bounded_kernel
-      [OF Tp prod_named coords npos qpos dvd house Anonneg])
-  have IW: "bounded_integral_basis_kernel
+  obtain v x where IW: "bounded_integral_basis_kernel
       (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q)
       (gs_m h * gs_n h q) (q * q) D (\<lambda>j. eta ^ j) ?B v x"
-    using IW_raw
-    by (simp add: gs_kernel_witness_bound_def gs_witness_growth_weight_def
-      ac_simps)
+    using row_scaled_matrix_has_given_denominator_bounded_kernel
+      [OF Tp prod_named coords npos qpos dvd house Anonneg]
+    by (force simp add: gs_kernel_witness_bound_def gs_witness_growth_weight_def ac_simps)
   interpret W: bounded_integral_basis_kernel
     "gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q"
     "gs_m h * gs_n h q" "q * q" D "\<lambda>j. eta ^ j" ?B v x
