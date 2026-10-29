@@ -128,12 +128,12 @@ lemma ehouse_bounded_int_linear_combination_le:
   assumes B_nonneg: "0 \<le> B"
   assumes basis_bnd: "\<And>j. j < D \<Longrightarrow> ehouse (basis j) \<le> K"
   assumes K_nonneg: "0 \<le> K"
-  assumes coeff_bnd: "\<And>j. j < D \<Longrightarrow> abs (c j) \<le> B"
+  assumes coeff_bnd: "\<And>j. j < D \<Longrightarrow> \<bar>c j\<bar> \<le> B"
   shows "ehouse (\<lambda>e. \<Sum>j<D. of_int (c j) * basis j e) \<le> (of_int B :: real) * of_nat D * K"
 proof -
   have term_bnd: "ehouse (\<lambda>e. of_int (c j) * basis j e) \<le> real_of_int B * K" if j: "j < D" for j
   proof -
-    have "ehouse (\<lambda>e. of_int (c j) * basis j e) \<le> abs (c j) * ehouse (basis j)"
+    have "ehouse (\<lambda>e. of_int (c j) * basis j e) \<le> \<bar>c j\<bar> * ehouse (basis j)"
       by (simp add: ehouse_of_int_mult_le)
     also have "\<dots> \<le> (of_int B :: real) * K"
       using coeff_bnd[OF j] basis_bnd[OF j] B_nonneg K_nonneg

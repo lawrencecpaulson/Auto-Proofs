@@ -99,6 +99,9 @@ proof -
     by linarith
 qed
 
+definition gs_norm_order_exponent :: "nat \<Rightarrow> nat \<Rightarrow> real"
+  where "gs_norm_order_exponent h r = - of_nat r / 2 + 3 * of_nat h / 2"
+
 lemma gs_use5_bound:
   fixes c5 c14 rho_norm :: real
   fixes h r :: nat
@@ -109,12 +112,12 @@ lemma gs_use5_bound:
   assumes rho_upper:
     "rho_norm <=
       c14 powr of_nat r *
-      of_nat r powr ((- of_nat r / 2 + 3 * of_nat h / 2) :: real)"
+      of_nat r powr (gs_norm_order_exponent h r)"
   assumes rho_inv_lt: "inverse rho_norm < c5 powr of_nat r"
   shows "of_nat r powr ((((of_nat r :: real) - 3 * of_nat h) / 2)) < (c14 * c5) powr of_nat r"
 proof -
   let ?x = "of_nat r powr ((((of_nat r :: real) - 3 * of_nat h) / 2))"
-  let ?y = "of_nat r powr (((- of_nat r / 2 + 3 * of_nat h / 2) :: real))"
+  let ?y = "of_nat r powr (gs_norm_order_exponent h r)"
   have x_nonneg: "0 <= ?x"
     by (intro powr_ge_zero)
   have mult_le: "rho_norm * ?x <= c14 powr of_nat r"
@@ -124,7 +127,7 @@ proof -
     also have "... = c14 powr of_nat r * (?y * ?x)"
       by (simp add: algebra_simps)
     also have "... = c14 powr of_nat r * (of_nat r powr 0)"
-      by (simp add: powr_add[symmetric] field_simps)
+      by (simp add: gs_norm_order_exponent_def powr_add[symmetric] field_simps)
     also have "... = c14 powr of_nat r"
       using rpos by simp
     finally show ?thesis .
@@ -161,7 +164,7 @@ lemma gs_growth_contradiction_from_norm_bounds:
   assumes rho_upper:
     "rho_norm <=
       c14 powr of_nat r *
-      of_nat r powr ((- of_nat r / 2 + 3 * of_nat h / 2) :: real)"
+      of_nat r powr (gs_norm_order_exponent h r)"
   assumes rho_inv_lt: "inverse rho_norm < c5 powr of_nat r"
   assumes six_h_le_r: "6 * h <= r"
   assumes c15_4_le_r: "(c14 * c5) powr 4 <= of_nat r"
@@ -183,12 +186,12 @@ qed
 section \<open>Choice of q\<close>
 
 definition gs_q_choice :: "nat \<Rightarrow> real \<Rightarrow> nat"
-  where "gs_q_choice h C = 2 * gs_m h * (6 * h * nat (ceiling (C powr 4)))"
+  where "gs_q_choice h C = 2 * gs_m h * (6 * h * nat (\<lceil>C powr 4\<rceil>))"
 
 lemma one_le_nat_ceiling_powr4:
   fixes C :: real
   assumes C_ge1: "1 \<le> C"
-  shows "1 \<le> nat (ceiling (C powr 4))"
+  shows "1 \<le> nat (\<lceil>C powr 4\<rceil>)"
   by (metis C_ge1 ceiling_mono ceiling_one ge_one_powr_ge_zero nat_mono nat_one_as_int zero_le_numeral)
 
 lemma gs_q_choice_pos:
@@ -206,7 +209,7 @@ lemma gs_q_choice_ge_four:
   assumes C_ge1: "1 \<le> C"
   shows "4 \<le> gs_q_choice h C"
 proof -
-  let ?X = "6 * h * nat (ceiling (C powr 4))"
+  let ?X = "6 * h * nat (\<lceil>C powr 4\<rceil>)"
   have Xone: "1 \<le> ?X"
     using hpos one_le_nat_ceiling_powr4[OF C_ge1] by simp
   have mfour: "4 \<le> 2 * gs_m h"
@@ -244,7 +247,7 @@ qed
 lemma gs_n_q_choice_closed_form:
   fixes C :: real
   shows "gs_n h (gs_q_choice h C) =
-    2 * gs_m h * (6 * h * nat (ceiling (C powr 4))) ^ 2"
+    2 * gs_m h * (6 * h * nat (\<lceil>C powr 4\<rceil>)) ^ 2"
   unfolding gs_n_def gs_q_choice_def
   by (rule square_multiple_div_self) simp
 
@@ -252,9 +255,9 @@ lemma gs_q_choice_factor_le_n:
   fixes C :: real
   assumes hpos: "h > 0"
   assumes C_ge1: "1 \<le> C"
-  shows "6 * h * nat (ceiling (C powr 4)) \<le> gs_n h (gs_q_choice h C)"
+  shows "6 * h * nat (\<lceil>C powr 4\<rceil>) \<le> gs_n h (gs_q_choice h C)"
 proof -
-  let ?X = "6 * h * nat (ceiling (C powr 4))"
+  let ?X = "6 * h * nat (\<lceil>C powr 4\<rceil>)"
   have one_le_X: "1 \<le> ?X"
     using hpos one_le_nat_ceiling_powr4[OF C_ge1] by simp
   have X_le_X2: "?X \<le> ?X ^ 2"
@@ -280,7 +283,7 @@ lemma gs_q_choice_six_h_le_n:
   assumes C_ge1: "1 \<le> C"
   shows "6 * h \<le> gs_n h (gs_q_choice h C)"
 proof -
-  have factor_ge: "6 * h \<le> 6 * h * nat (ceiling (C powr 4))"
+  have factor_ge: "6 * h \<le> 6 * h * nat (\<lceil>C powr 4\<rceil>)"
     using one_le_nat_ceiling_powr4[OF C_ge1]
     by simp
   also have "... \<le> gs_n h (gs_q_choice h C)"
@@ -294,11 +297,11 @@ lemma gs_q_choice_powr4_le_n:
   assumes C_ge1: "1 \<le> C"
   shows "C powr 4 \<le> of_nat (gs_n h (gs_q_choice h C))"
 proof -
-  let ?N = "nat (ceiling (C powr 4))"
+  let ?N = "nat (\<lceil>C powr 4\<rceil>)"
   let ?X = "6 * h * ?N"
   have pow_nonneg: "0 \<le> C powr 4"
     using C_ge1 by simp
-  have ceil_nonneg: "0 \<le> ceiling (C powr 4)"
+  have ceil_nonneg: "0 \<le> \<lceil>C powr 4\<rceil>"
     using pow_nonneg le_of_int_ceiling[of "C powr 4"] by linarith
   have N_le_X: "?N \<le> ?X"
   proof -
@@ -311,11 +314,11 @@ proof -
     by (rule gs_q_choice_factor_le_n[OF hpos C_ge1])
   have N_le_n: "?N \<le> gs_n h (gs_q_choice h C)"
     by (rule order_trans[OF N_le_X X_le_n])
-  have ceil_le_n_real: "real_of_int (ceiling (C powr 4)) \<le> real (gs_n h (gs_q_choice h C))"
+  have ceil_le_n_real: "real_of_int (\<lceil>C powr 4\<rceil>) \<le> real (gs_n h (gs_q_choice h C))"
   proof -
-    have ceil_le_int_n: "ceiling (C powr 4) \<le> int (gs_n h (gs_q_choice h C))"
+    have ceil_le_int_n: "\<lceil>C powr 4\<rceil> \<le> int (gs_n h (gs_q_choice h C))"
     proof -
-      have N_eq_int: "int ?N = ceiling (C powr 4)"
+      have N_eq_int: "int ?N = \<lceil>C powr 4\<rceil>"
         using ceil_nonneg by simp
       have "int ?N \<le> int (gs_n h (gs_q_choice h C))"
         using N_le_n by presburger
@@ -324,7 +327,7 @@ proof -
     qed
     then show ?thesis by simp
   qed
-  have "C powr 4 \<le> real_of_int (ceiling (C powr 4))"
+  have "C powr 4 \<le> real_of_int (\<lceil>C powr 4\<rceil>)"
     by (rule le_of_int_ceiling)
   also have "... \<le> real (gs_n h (gs_q_choice h C))"
     by (rule ceil_le_n_real)
@@ -366,7 +369,7 @@ theorem gs_growth_contradiction_with_q_choice:
   assumes rho_upper:
     "rho_norm \<le>
       c14 powr of_nat r *
-      of_nat r powr ((- of_nat r / 2 + 3 * of_nat h / 2) :: real)"
+      of_nat r powr (gs_norm_order_exponent h r)"
   assumes rho_inv_lt: "inverse rho_norm < c5 powr of_nat r"
   shows False
 proof -

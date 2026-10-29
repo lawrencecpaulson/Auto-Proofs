@@ -138,9 +138,9 @@ proof (rule ccontr)
   qed
   have coeff0_nz: "Polynomial.coeff ?p 0 \<noteq> 0"
     using alg nz by (simp add: poly_0_coeff_0 [symmetric])
-  have coeff0_ge1_int: "1 \<le> abs (Polynomial.coeff ?p 0)"
+  have coeff0_ge1_int: "1 \<le> \<bar>Polynomial.coeff ?p 0\<bar>"
   proof -
-    have "0 < abs (Polynomial.coeff ?p 0)"
+    have "0 < \<bar>Polynomial.coeff ?p 0\<bar>"
       using coeff0_nz by simp
     then show ?thesis
       by simp
@@ -242,7 +242,7 @@ proof -
     using alg nz by (simp add: poly_0_coeff_0 [symmetric])
   have coeff0_ge1: "1 \<le> cmod (of_int (Polynomial.coeff (min_int_poly x) 0) :: complex)"
   proof -
-    have "0 < abs (Polynomial.coeff (min_int_poly x) 0)"
+    have "0 < \<bar>Polynomial.coeff (min_int_poly x) 0\<bar>"
       using coeff0_nz by simp
     then show ?thesis
       by simp

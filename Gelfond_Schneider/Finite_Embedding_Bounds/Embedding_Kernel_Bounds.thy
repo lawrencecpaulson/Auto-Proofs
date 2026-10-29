@@ -26,7 +26,7 @@ theorem exists_nonzero_bounded_kernel_vec_of_structure_constants_ehouse:
       A $$ (u,t) * basis j e0 = (\<Sum>k<d. of_int (C u t k j) * basis k e0)"
   assumes C_bnd:
     "\<And>u t k j. u < p \<Longrightarrow> t < q \<Longrightarrow> k < d \<Longrightarrow> j < d \<Longrightarrow>
-      abs (C u t k j) \<le> Bnd"
+      \<bar>C u t k j\<bar> \<le> Bnd"
   assumes basis_indep:
     "\<And>c. (\<Sum>j<d. of_int (c j) * basis j e0) = 0 \<Longrightarrow> (\<forall>j<d. c j = 0)"
   assumes basis_bnd: "\<And>j. j < d \<Longrightarrow> ehouse (basis j) \<le> K"
@@ -112,7 +112,7 @@ theorem exists_nonzero_bounded_kernel_vec_of_structure_constants_ehouse_linear:
       A $$ (u,t) * basis j e0 = (\<Sum>k<d. of_int (C u t k j) * basis k e0)"
   assumes C_bnd:
     "\<And>u t k j. u < p \<Longrightarrow> t < q \<Longrightarrow> k < d \<Longrightarrow> j < d \<Longrightarrow>
-      abs (C u t k j) \<le> Bnd"
+      \<bar>C u t k j\<bar> \<le> Bnd"
   assumes basis_indep:
     "\<And>c. (\<Sum>j<d. of_int (c j) * basis j e0) = 0 \<Longrightarrow> (\<forall>j<d. c j = 0)"
   assumes basis_bnd: "\<And>j. j < d \<Longrightarrow> ehouse (basis j) \<le> K"
@@ -201,16 +201,16 @@ theorem exists_nonzero_bounded_kernel_vec_of_ehouse_entries:
     and "x \<in> Bounded_vec
       (int (q * d + 1) *
         det_bound_hadamard (q * d)
-          (max 1 (ceiling (of_nat (card E) * R * H * K))))"
+          (max 1 (\<lceil>of_nat (card E) * R * H * K\<rceil>)))"
     and "\<forall>t<q.
       ehouse (\<lambda>e. \<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j e) \<le>
         (of_int
-          (int (q * d + 1) * det_bound_hadamard (q * d) (max 1 (ceiling (of_nat (card E) * R * H * K)))) :: real) *
+          (int (q * d + 1) * det_bound_hadamard (q * d) (max 1 (\<lceil>of_nat (card E) * R * H * K\<rceil>))) :: real) *
           of_nat d * K"
     and "\<forall>t<q.
       cmod (eta $ t) \<le>
         (of_int
-          (int (q * d + 1) * det_bound_hadamard (q * d) (max 1 (ceiling (of_nat (card E) * R * H * K)))) :: real) *
+          (int (q * d + 1) * det_bound_hadamard (q * d) (max 1 (\<lceil>of_nat (card E) * R * H * K\<rceil>))) :: real) *
           of_nat d * K"
 proof -
   have mult_repr0:
@@ -261,14 +261,14 @@ theorem exists_nonzero_bounded_kernel_vec_of_ehouse_entries_linear:
     and "A *\<^sub>v eta = 0\<^sub>v p"
     and "\<forall>t<q. eta $ t = (\<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j e0)"
     and "x \<in> Bounded_vec
-      (2 * int (q * d) * max 1 (ceiling (of_nat (card E) * R * H * K)))"
+      (2 * int (q * d) * max 1 (\<lceil>of_nat (card E) * R * H * K\<rceil>))"
     and "\<forall>t<q.
       ehouse (\<lambda>e. \<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j e) \<le>
-        (of_int (2 * int (q * d) * max 1 (ceiling (of_nat (card E) * R * H * K))) :: real) *
+        (of_int (2 * int (q * d) * max 1 (\<lceil>of_nat (card E) * R * H * K\<rceil>)) :: real) *
           of_nat d * K"
     and "\<forall>t<q.
       cmod (eta $ t) \<le>
-        (of_int (2 * int (q * d) * max 1 (ceiling (of_nat (card E) * R * H * K))) :: real) *
+        (of_int (2 * int (q * d) * max 1 (\<lceil>of_nat (card E) * R * H * K\<rceil>)) :: real) *
           of_nat d * K"
 proof -
   have mult_repr0:
