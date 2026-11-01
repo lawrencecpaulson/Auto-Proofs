@@ -42,18 +42,26 @@ definition gs_house_order_exponent :: "nat \<Rightarrow> real"
 definition gs_point_order_exponent :: "nat \<Rightarrow> nat \<Rightarrow> real"
   where "gs_point_order_exponent m r = of_nat r * (3 - of_nat m) / 2 + 3 / 2"
 
-locale gelfond_schneider_power_basis_field_norm_estimates =
-  finite_normal_galois_power_basis K eta D emb
+locale gs_power_basis_data =
+  finite_normal_galois_power_basis K eta D emb +
+  gs_normalized_data alpha beta omega zeta
   for K :: "complex set"
   and eta :: complex
   and D :: nat
-  and emb :: "nat \<Rightarrow> complex \<Rightarrow> complex" +
+  and emb :: "nat \<Rightarrow> complex \<Rightarrow> complex"
+  and alpha beta omega zeta :: complex
+
+locale gelfond_schneider_power_basis_field_norm_estimates =
+  gs_power_basis_data K eta D emb alpha beta omega zeta
+  for K :: "complex set"
+  and eta :: complex
+  and D :: nat
+  and emb :: "nat \<Rightarrow> complex \<Rightarrow> complex"
+  and alpha beta omega zeta :: complex +
   fixes ca cb cw :: "nat \<Rightarrow> complex"
-  fixes d
   fixes q h i0
   fixes A c5 c14 :: real
-  assumes d: "is_gelfond_schneider_data d"
-  assumes coords: "rational_power_basis_coordinates D eta ca cb cw (gs_a d) (gs_b d) (gs_w d)"
+  assumes coords: "rational_power_basis_coordinates D eta ca cb cw alpha beta omega"
   assumes qpos: "q > 0"
   assumes npos: "gs_n h q > 0"
   assumes dvd: "2 * gs_m h dvd q ^ 2"
@@ -61,7 +69,7 @@ locale gelfond_schneider_power_basis_field_norm_estimates =
   assumes emb0: "emb i0 = identity K"
   assumes entryK:
     "\<And>u t. u < gs_m h * gs_n h q \<Longrightarrow> t < q * q \<Longrightarrow>
-      gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q $$ (u,t) \<in> K"
+      gs_row_scaled_system_mat (gs_m h) (gs_n h q) q $$ (u,t) \<in> K"
   assumes hpos: "h > 0"
   assumes q_def: "q = gs_q_choice h (c14 * c5)"
   assumes c14_ge1: "1 \<le> c14"
@@ -76,7 +84,7 @@ lemmas cw_rat = rational_power_basis_coordinates.cw_rat[OF coords]
 lemmas w_eq = rational_power_basis_coordinates.w_eq[OF coords]
 
 definition Aemb :: "nat \<Rightarrow> nat \<Rightarrow> (complex \<Rightarrow> complex) \<Rightarrow> complex"
-  where "Aemb u t e \<equiv> e (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q $$ (u,t))"
+  where "Aemb u t e \<equiv> e (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q $$ (u,t))"
 
 definition gs_power_basis_witness_coordinates :: "complex vec \<Rightarrow> int vec \<Rightarrow> bool"
   where "gs_power_basis_witness_coordinates v x \<longleftrightarrow>
@@ -91,29 +99,29 @@ lemma identity_apply_in_K:
 lemma row_scaled_entry0:
   assumes up: "u < gs_m h * gs_n h q"
   assumes tq: "t < q * q"
-  shows "gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q $$ (u,t) = Aemb u t (emb i0)"
+  shows "gs_row_scaled_system_mat (gs_m h) (gs_n h q) q $$ (u,t) = Aemb u t (emb i0)"
 proof -
-  have xK: "gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q $$ (u,t) \<in> K"
+  have xK: "gs_row_scaled_system_mat (gs_m h) (gs_n h q) q $$ (u,t) \<in> K"
     by (rule entryK[OF up tq])
-  have "Aemb u t (emb i0) = emb i0 (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q $$ (u,t))"
+  have "Aemb u t (emb i0) = emb i0 (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q $$ (u,t))"
     by (simp add: Aemb_def)
-  also have "... = gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q $$ (u,t)"
+  also have "... = gs_row_scaled_system_mat (gs_m h) (gs_n h q) q $$ (u,t)"
     using xK by (simp add: emb0 identity_apply_in_K)
   finally show ?thesis
     by simp
 qed
 
-lemma a_in_K: "gs_a d \<in> K"
+lemma a_in_K: "alpha \<in> K"
   using a_eq ca_rat sum_rat_power_in_K by presburger
 
-lemma b_in_K: "gs_b d \<in> K"
+lemma b_in_K: "beta \<in> K"
   using b_eq cb_rat sum_rat_power_in_K by presburger
 
-lemma w_in_K: "gs_w d \<in> K"
+lemma w_in_K: "omega \<in> K"
   using cw_rat sum_rat_power_in_K w_eq by presburger
 
 lemma gs_affine_coeff_in_K:
-  shows "gs_affine_coeff d a b \<in> K"
+  shows "gs_affine_coeff a b \<in> K"
 proof -
   interpret KS: Subfield K
     by (rule K_subfield)
@@ -121,7 +129,7 @@ proof -
     by auto
   have bK: "of_nat b \<in> K"
     by (simp add: KS.of_nat_closed)
-  have bgK: "of_nat b * gs_b d \<in> K"
+  have bgK: "of_nat b * beta \<in> K"
     by (rule KS.mult_closed[OF bK b_in_K])
   show ?thesis
     unfolding gs_affine_coeff_def
@@ -132,29 +140,29 @@ lemma gs_affine_coeff_emb_cmod_le:
   assumes ilt: "i < D"
   assumes aq: "a \<le> q"
   assumes bq: "b \<le> q"
-  shows "cmod (emb i (gs_affine_coeff d a b)) \<le> of_nat q * (1 + cmod (emb i (gs_b d)))"
+  shows "cmod (emb i (gs_affine_coeff a b)) \<le> of_nat q * (1 + cmod (emb i (beta)))"
 proof -
   interpret KS: Subfield K by (rule K_subfield)
   have sigma: "emb i \<in> field_auto K \<rat>"
     by (rule emb_in_field_auto[OF ilt])
-  have bgK: "of_nat b * gs_b d \<in> K"
+  have bgK: "of_nat b * beta \<in> K"
     using b_in_K by blast
   have afix: "emb i (of_nat a :: complex) = of_nat a"
     using sigma by (simp add: field_auto_mem_iff)
   have bfix: "emb i (of_nat b :: complex) = of_nat b"
     using sigma by (simp add: field_auto_mem_iff)
-  have eq: "emb i (gs_affine_coeff d a b) = of_nat a + of_nat b * emb i (gs_b d)"
+  have eq: "emb i (gs_affine_coeff a b) = of_nat a + of_nat b * emb i (beta)"
     using field_auto_mult[OF sigma] afix bfix Rats_subset_K
     unfolding gs_affine_coeff_def subset_iff
     by (simp add: field_auto_add[OF sigma _ bgK] field_auto_mult[OF sigma _ b_in_K] afix bfix)
-  have "cmod (emb i (gs_affine_coeff d a b)) \<le>
-      cmod (of_nat a :: complex) + cmod (of_nat b * emb i (gs_b d))"
+  have "cmod (emb i (gs_affine_coeff a b)) \<le>
+      cmod (of_nat a :: complex) + cmod (of_nat b * emb i (beta))"
     unfolding eq by (rule norm_triangle_ineq)
-  also have "... = of_nat a + of_nat b * cmod (emb i (gs_b d))"
+  also have "... = of_nat a + of_nat b * cmod (emb i (beta))"
     by (simp add: norm_mult)
-  also have "... \<le> of_nat q + of_nat q * cmod (emb i (gs_b d))"
+  also have "... \<le> of_nat q + of_nat q * cmod (emb i (beta))"
     using aq bq by (intro add_mono mult_right_mono) auto
-  also have "... = of_nat q * (1 + cmod (emb i (gs_b d)))"
+  also have "... = of_nat q * (1 + cmod (emb i (beta)))"
     by (simp add: algebra_simps)
   finally show ?thesis .
 qed
@@ -163,43 +171,43 @@ lemma gs_system_coeff_emb_cmod_le:
   assumes ilt: "i < D"
   assumes aq: "a \<le> q"
   assumes bq: "b \<le> q"
-  shows "cmod (emb i (gs_system_coeff d a b l k)) \<le>
-    (of_nat q * (1 + cmod (emb i (gs_b d)))) ^ k *
-    cmod (emb i (gs_a d)) ^ (a * l) * cmod (emb i (gs_w d)) ^ (b * l)"
+  shows "cmod (emb i (gs_system_coeff a b l k)) \<le>
+    (of_nat q * (1 + cmod (emb i (beta)))) ^ k *
+    cmod (emb i (alpha)) ^ (a * l) * cmod (emb i (omega)) ^ (b * l)"
 proof -
   interpret KS: Subfield K by (rule K_subfield)
   have sigma: "emb i \<in> field_auto K \<rat>"
     by (rule emb_in_field_auto[OF ilt])
   have hom: "field_hom_on K (emb i)"
     by (rule field_auto_as_hom[OF K_subfield sigma])
-  obtain affK: "gs_affine_coeff d a b ^ k \<in> K" and aPowK: "gs_a d ^ (a * l) \<in> K"
-    and wPowK: "gs_w d ^ (b * l) \<in> K"
+  obtain affK: "gs_affine_coeff a b ^ k \<in> K" and aPowK: "alpha ^ (a * l) \<in> K"
+    and wPowK: "omega ^ (b * l) \<in> K"
     using a_in_K gs_affine_coeff_in_K w_in_K by blast
-  have leftK: "gs_affine_coeff d a b ^ k * gs_a d ^ (a * l) \<in> K"
+  have leftK: "gs_affine_coeff a b ^ k * alpha ^ (a * l) \<in> K"
     by (rule KS.mult_closed[OF affK aPowK])
-  have eq: "emb i (gs_system_coeff d a b l k) =
-      emb i (gs_affine_coeff d a b) ^ k *
-      emb i (gs_a d) ^ (a * l) * emb i (gs_w d) ^ (b * l)"
+  have eq: "emb i (gs_system_coeff a b l k) =
+      emb i (gs_affine_coeff a b) ^ k *
+      emb i (alpha) ^ (a * l) * emb i (omega) ^ (b * l)"
     unfolding gs_system_coeff_def
     by (simp add: field_auto_mult[OF sigma leftK wPowK]
         field_auto_mult[OF sigma affK aPowK]
         field_hom_on.hom_power[OF hom gs_affine_coeff_in_K]
         field_hom_on.hom_power[OF hom a_in_K]
         field_hom_on.hom_power[OF hom w_in_K])
-  have affpow: "cmod (emb i (gs_affine_coeff d a b)) ^ k \<le>
-      (of_nat q * (1 + cmod (emb i (gs_b d)))) ^ k"
+  have affpow: "cmod (emb i (gs_affine_coeff a b)) ^ k \<le>
+      (of_nat q * (1 + cmod (emb i (beta)))) ^ k"
     by (rule power_mono[OF gs_affine_coeff_emb_cmod_le[OF ilt aq bq]]) auto
-  have "cmod (emb i (gs_system_coeff d a b l k)) =
-      cmod (emb i (gs_affine_coeff d a b)) ^ k *
-      cmod (emb i (gs_a d)) ^ (a * l) * cmod (emb i (gs_w d)) ^ (b * l)"
+  have "cmod (emb i (gs_system_coeff a b l k)) =
+      cmod (emb i (gs_affine_coeff a b)) ^ k *
+      cmod (emb i (alpha)) ^ (a * l) * cmod (emb i (omega)) ^ (b * l)"
     by (simp add: eq norm_mult norm_power)
-  also have "... \<le> (of_nat q * (1 + cmod (emb i (gs_b d)))) ^ k *
-      cmod (emb i (gs_a d)) ^ (a * l) * cmod (emb i (gs_w d)) ^ (b * l)"
+  also have "... \<le> (of_nat q * (1 + cmod (emb i (beta)))) ^ k *
+      cmod (emb i (alpha)) ^ (a * l) * cmod (emb i (omega)) ^ (b * l)"
     using affpow by (intro mult_right_mono) auto
   finally show ?thesis .
 qed
 
-lemma gs_system_coeff_in_K: "gs_system_coeff d a b l k \<in> K"
+lemma gs_system_coeff_in_K: "gs_system_coeff a b l k \<in> K"
   by (simp add: K_subfield Subfield.mult_closed Subfield.power_closed a_in_K gs_affine_coeff_in_K
       gs_system_coeff_def w_in_K)
 
@@ -209,14 +217,14 @@ lemma gs_row_scaled_entry_emb_cmod_le:
   assumes npos: "gs_n h q > 0"
   assumes ult: "u < gs_m h * gs_n h q"
   assumes tlt: "t < q * q"
-  shows "cmod (emb i (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q $$ (u,t))) \<le>
-    \<bar>gs_row_scale d (gs_m h) (gs_n h q) q u\<bar> *
-    (of_nat q * (1 + cmod (emb i (gs_b d)))) ^ gs_k_idx (gs_n h q) u *
-    cmod (emb i (gs_a d)) ^ (gs_a_idx q t * gs_l_idx (gs_n h q) u) *
-    cmod (emb i (gs_w d)) ^ (gs_b_idx q t * gs_l_idx (gs_n h q) u)"
+  shows "cmod (emb i (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q $$ (u,t))) \<le>
+    \<bar>gs_row_scale (gs_m h) (gs_n h q) q u\<bar> *
+    (of_nat q * (1 + cmod (emb i (beta)))) ^ gs_k_idx (gs_n h q) u *
+    cmod (emb i (alpha)) ^ (gs_a_idx q t * gs_l_idx (gs_n h q) u) *
+    cmod (emb i (omega)) ^ (gs_b_idx q t * gs_l_idx (gs_n h q) u)"
 proof -
-  let ?c = "gs_row_scale d (gs_m h) (gs_n h q) q u"
-  let ?s = "gs_system_coeff_idx d (gs_n h q) q u t"
+  let ?c = "gs_row_scale (gs_m h) (gs_n h q) q u"
+  let ?s = "gs_system_coeff_idx (gs_n h q) q u t"
   have sigma: "emb i \<in> field_auto K \<rat>"
     by (rule emb_in_field_auto[OF ilt])
   have cK: "(of_int ?c :: complex) \<in> K"
@@ -225,24 +233,24 @@ proof -
     unfolding gs_system_coeff_idx_def by (rule gs_system_coeff_in_K)
   have cfix: "emb i (of_int ?c :: complex) = of_int ?c"
     using sigma by (simp add: field_auto_mem_iff)
-  have eq: "emb i (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q $$ (u,t)) = of_int ?c * emb i ?s"
+  have eq: "emb i (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q $$ (u,t)) = of_int ?c * emb i ?s"
     using ult tlt
     by (simp add: gs_row_scaled_system_mat_def field_auto_mult[OF sigma cK sK] cfix)
   obtain ale: "gs_a_idx q t \<le> q" and ble: "gs_b_idx q t \<le> q"
     by (simp add: tlt gs_a_idx_le gs_b_idx_le qpos)
   have sbnd: "cmod (emb i ?s) \<le>
-      (of_nat q * (1 + cmod (emb i (gs_b d)))) ^ gs_k_idx (gs_n h q) u *
-      cmod (emb i (gs_a d)) ^ (gs_a_idx q t * gs_l_idx (gs_n h q) u) *
-      cmod (emb i (gs_w d)) ^ (gs_b_idx q t * gs_l_idx (gs_n h q) u)"
+      (of_nat q * (1 + cmod (emb i (beta)))) ^ gs_k_idx (gs_n h q) u *
+      cmod (emb i (alpha)) ^ (gs_a_idx q t * gs_l_idx (gs_n h q) u) *
+      cmod (emb i (omega)) ^ (gs_b_idx q t * gs_l_idx (gs_n h q) u)"
     unfolding gs_system_coeff_idx_def
     by (rule gs_system_coeff_emb_cmod_le[OF ilt ale ble])
-  have "cmod (emb i (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q $$ (u,t))) =
+  have "cmod (emb i (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q $$ (u,t))) =
       \<bar>?c\<bar> * cmod (emb i ?s)"
     by (simp add: eq norm_mult)
   also have "... \<le> \<bar>?c\<bar> *
-      ((of_nat q * (1 + cmod (emb i (gs_b d)))) ^ gs_k_idx (gs_n h q) u *
-      cmod (emb i (gs_a d)) ^ (gs_a_idx q t * gs_l_idx (gs_n h q) u) *
-      cmod (emb i (gs_w d)) ^ (gs_b_idx q t * gs_l_idx (gs_n h q) u))"
+      ((of_nat q * (1 + cmod (emb i (beta)))) ^ gs_k_idx (gs_n h q) u *
+      cmod (emb i (alpha)) ^ (gs_a_idx q t * gs_l_idx (gs_n h q) u) *
+      cmod (emb i (omega)) ^ (gs_b_idx q t * gs_l_idx (gs_n h q) u))"
     by (rule mult_left_mono[OF sbnd]) simp
   finally show ?thesis by (simp add: mult.assoc)
 qed
@@ -251,10 +259,10 @@ lemma gs_scaled_deriv_emb_sum_bound:
   assumes ilt: "i < D"
   assumes coeffK: "\<And>t. t < q * q \<Longrightarrow> \<xi> t \<in> K"
   shows "cmod (emb i (of_int c *
-    (gs_z d powi (- int k) * ((deriv ^^ k) (gs_aux_fun_vec d q \<xi>)) (of_nat l)))) \<le>
+    (zeta powi (- int k) * ((deriv ^^ k) (gs_aux_fun_vec q \<xi>)) (of_nat l)))) \<le>
     of_int \<bar>c\<bar> *
       (\<Sum>t<q * q. cmod (emb i (\<xi> t)) *
-        cmod (emb i (gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k)))"
+        cmod (emb i (gs_system_coeff (gs_a_idx q t) (gs_b_idx q t) l k)))"
 proof -
   interpret KS: Subfield K by (rule K_subfield)
   have sigma: "emb i \<in> field_auto K \<rat>"
@@ -263,40 +271,40 @@ proof -
     by (rule field_auto_as_hom[OF K_subfield sigma])
   have cK: "of_int c \<in> K"
     using Rats_subset_K by auto
-  have termK: "\<xi> t * gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k \<in> K"
+  have termK: "\<xi> t * gs_system_coeff (gs_a_idx q t) (gs_b_idx q t) l k \<in> K"
     if tlt: "t < q * q" for t
     by (rule KS.mult_closed[OF coeffK[OF tlt] gs_system_coeff_in_K])
   have sumK: "(\<Sum>t<q * q. \<xi> t *
-      gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k) \<in> K"
+      gs_system_coeff (gs_a_idx q t) (gs_b_idx q t) l k) \<in> K"
     by (rule KS.sum_closed) (use termK in auto)
   have cfix: "emb i (of_int c) = of_int c"
     using sigma by (simp add: field_auto_mem_iff)
   have "emb i (of_int c *
-    (gs_z d powi (- int k) * ((deriv ^^ k) (gs_aux_fun_vec d q \<xi>)) (of_nat l))) =
+    (zeta powi (- int k) * ((deriv ^^ k) (gs_aux_fun_vec q \<xi>)) (of_nat l))) =
       of_int c * emb i (\<Sum>t<q * q. \<xi> t *
-        gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k)"
-    by (simp add: gs_aux_fun_vec_deriv_at_nat[OF d] field_auto_mult[OF sigma cK sumK] cfix)
-  also have "... = of_int c * (\<Sum>t<q * q. emb i (\<xi> t * gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k))"
+        gs_system_coeff (gs_a_idx q t) (gs_b_idx q t) l k)"
+    by (simp add: gs_aux_fun_vec_deriv_at_nat field_auto_mult[OF sigma cK sumK] cfix)
+  also have "... = of_int c * (\<Sum>t<q * q. emb i (\<xi> t * gs_system_coeff (gs_a_idx q t) (gs_b_idx q t) l k))"
     using field_hom_on.hom_sum[OF hom] termK
     by (metis (no_types, lifting) ext lessThan_iff)
   also have "... = of_int c * (\<Sum>t<q * q. emb i (\<xi> t) *
-      emb i (gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k))"
+      emb i (gs_system_coeff (gs_a_idx q t) (gs_b_idx q t) l k))"
     by (intro arg_cong[where f="(\<lambda>x::complex. of_int c * x)"] sum.cong)
        (auto intro: field_auto_mult[OF sigma coeffK gs_system_coeff_in_K])
   finally  have "emb i (of_int c *
-    (gs_z d powi (- int k) * ((deriv ^^ k) (gs_aux_fun_vec d q \<xi>)) (of_nat l))) =
+    (zeta powi (- int k) * ((deriv ^^ k) (gs_aux_fun_vec q \<xi>)) (of_nat l))) =
     of_int c * (\<Sum>t<q * q. emb i (\<xi> t) *
-      emb i (gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k))" .
+      emb i (gs_system_coeff (gs_a_idx q t) (gs_b_idx q t) l k))" .
   then have "cmod (emb i (of_int c *
-    (gs_z d powi (- int k) * ((deriv ^^ k) (gs_aux_fun_vec d q \<xi>)) (of_nat l)))) =
+    (zeta powi (- int k) * ((deriv ^^ k) (gs_aux_fun_vec q \<xi>)) (of_nat l)))) =
       of_int \<bar>c\<bar> * cmod (\<Sum>t<q * q. emb i (\<xi> t) *
-        emb i (gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k))"
+        emb i (gs_system_coeff (gs_a_idx q t) (gs_b_idx q t) l k))"
     by (simp add: norm_mult)
   also have "... \<le> of_int \<bar>c\<bar> * (\<Sum>t<q * q.
-      cmod (emb i (\<xi> t) * emb i (gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k)))"
+      cmod (emb i (\<xi> t) * emb i (gs_system_coeff (gs_a_idx q t) (gs_b_idx q t) l k)))"
     by (intro mult_left_mono sum_norm_le) auto
   also have "... = of_int \<bar>c\<bar> * (\<Sum>t<q * q. cmod (emb i (\<xi> t)) *
-        cmod (emb i (gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k)))"
+        cmod (emb i (gs_system_coeff (gs_a_idx q t) (gs_b_idx q t) l k)))"
     by (simp add: norm_mult)
   finally show ?thesis .
 qed
@@ -339,19 +347,19 @@ lemma gs_scaled_deriv_emb_uniform_bound:
   assumes Unonneg: "0 \<le> U"
   assumes coeff_bnd: "\<And>t. t < q * q \<Longrightarrow> cmod (emb i (\<xi> t)) \<le> V"
   assumes system_bnd: "\<And>t. t < q * q \<Longrightarrow>
-    cmod (emb i (gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k)) \<le> U"
+    cmod (emb i (gs_system_coeff (gs_a_idx q t) (gs_b_idx q t) l k)) \<le> U"
   shows "cmod (emb i (of_int c *
-    (gs_z d powi (- int k) * ((deriv ^^ k) (gs_aux_fun_vec d q \<xi>)) (of_nat l)))) \<le>
+    (zeta powi (- int k) * ((deriv ^^ k) (gs_aux_fun_vec q \<xi>)) (of_nat l)))) \<le>
     of_int \<bar>c\<bar> * of_nat (q * q) * V * U"
 proof -
   have term_bnd: "cmod (emb i (\<xi> t)) *
-      cmod (emb i (gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k)) \<le> V * U"
+      cmod (emb i (gs_system_coeff (gs_a_idx q t) (gs_b_idx q t) l k)) \<le> V * U"
     if "t < q * q" for t
     by (intro mult_mono coeff_bnd[OF that] system_bnd[OF that]) (use Vnonneg Unonneg in auto)
   have "cmod (emb i (of_int c *
-    (gs_z d powi (- int k) * ((deriv ^^ k) (gs_aux_fun_vec d q \<xi>)) (of_nat l)))) \<le>
+    (zeta powi (- int k) * ((deriv ^^ k) (gs_aux_fun_vec q \<xi>)) (of_nat l)))) \<le>
       of_int \<bar>c\<bar> * (\<Sum>t<q * q. cmod (emb i (\<xi> t)) *
-        cmod (emb i (gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k)))"
+        cmod (emb i (gs_system_coeff (gs_a_idx q t) (gs_b_idx q t) l k)))"
     by (rule gs_scaled_deriv_emb_sum_bound[OF ilt coeffK])
   also have "... \<le> of_int \<bar>c\<bar> * (\<Sum>t<q * q. V * U)"
     by (intro mult_left_mono sum_mono term_bnd) auto
@@ -367,39 +375,39 @@ lemma gs_system_coeff_emb_uniform_le:
   assumes bq: "b \<le> q"
   assumes lm: "l \<le> m"
   assumes Hone: "1 \<le> H"
-  assumes aH: "cmod (emb i (gs_a d)) \<le> H"
-  assumes bH: "cmod (emb i (gs_b d)) \<le> H"
-  assumes wH: "cmod (emb i (gs_w d)) \<le> H"
-  shows "cmod (emb i (gs_system_coeff d a b l k)) \<le> (of_nat q * (1 + H)) ^ k * H ^ (m * q) * H ^ (m * q)"
+  assumes aH: "cmod (emb i (alpha)) \<le> H"
+  assumes bH: "cmod (emb i (beta)) \<le> H"
+  assumes wH: "cmod (emb i (omega)) \<le> H"
+  shows "cmod (emb i (gs_system_coeff a b l k)) \<le> (of_nat q * (1 + H)) ^ k * H ^ (m * q) * H ^ (m * q)"
 proof -
   let ?B = "of_nat q * (1 + H)"
   have ale: "a * l \<le> m * q"
     using aq lm by (metis mult.commute mult_le_mono)
   have ble: "b * l \<le> m * q"
     using bq lm by (metis mult.commute mult_le_mono)
-  have Bbound: "of_nat q * (1 + cmod (emb i (gs_b d))) \<le> ?B"
+  have Bbound: "of_nat q * (1 + cmod (emb i (beta))) \<le> ?B"
     using bH by (intro mult_left_mono) auto
-  have first: "(of_nat q * (1 + cmod (emb i (gs_b d)))) ^ k \<le> ?B ^ k"
+  have first: "(of_nat q * (1 + cmod (emb i (beta)))) ^ k \<le> ?B ^ k"
     by (rule power_mono[OF Bbound]) auto
-  have second: "cmod (emb i (gs_a d)) ^ (a * l) \<le> H ^ (m * q)"
+  have second: "cmod (emb i (alpha)) ^ (a * l) \<le> H ^ (m * q)"
   proof -
-    have "cmod (emb i (gs_a d)) ^ (a * l) \<le> H ^ (a * l)"
+    have "cmod (emb i (alpha)) ^ (a * l) \<le> H ^ (a * l)"
       by (rule power_mono[OF aH]) auto
     also have "... \<le> H ^ (m * q)"
       by (rule power_increasing) (use Hone ale in auto)
     finally show ?thesis .
   qed
-  have third: "cmod (emb i (gs_w d)) ^ (b * l) \<le> H ^ (m * q)"
+  have third: "cmod (emb i (omega)) ^ (b * l) \<le> H ^ (m * q)"
   proof -
-    have "cmod (emb i (gs_w d)) ^ (b * l) \<le> H ^ (b * l)"
+    have "cmod (emb i (omega)) ^ (b * l) \<le> H ^ (b * l)"
       by (rule power_mono[OF wH]) auto
     also have "... \<le> H ^ (m * q)"
       by (rule power_increasing) (use Hone ble in auto)
     finally show ?thesis .
   qed
-  have "cmod (emb i (gs_system_coeff d a b l k)) \<le>
-      (of_nat q * (1 + cmod (emb i (gs_b d)))) ^ k *
-      cmod (emb i (gs_a d)) ^ (a * l) * cmod (emb i (gs_w d)) ^ (b * l)"
+  have "cmod (emb i (gs_system_coeff a b l k)) \<le>
+      (of_nat q * (1 + cmod (emb i (beta)))) ^ k *
+      cmod (emb i (alpha)) ^ (a * l) * cmod (emb i (omega)) ^ (b * l)"
     by (rule gs_system_coeff_emb_cmod_le[OF ilt aq bq])
   also have "... \<le> ?B ^ k * H ^ (m * q) * H ^ (m * q)"
     using first second third Hone by (intro mult_mono) auto
@@ -408,35 +416,35 @@ qed
 
 definition gs_data_emb_bound :: real where
   "gs_data_emb_bound \<equiv> max 1
-    (EH.ehouse (\<lambda>e. e (gs_a d)) + EH.ehouse (\<lambda>e. e (gs_b d)) + EH.ehouse (\<lambda>e. e (gs_w d)))"
+    (EH.ehouse (\<lambda>e. e (alpha)) + EH.ehouse (\<lambda>e. e (beta)) + EH.ehouse (\<lambda>e. e (omega)))"
 
 lemma gs_data_emb_bound_facts:
   assumes ilt: "i < D"
   shows "1 \<le> gs_data_emb_bound"
-    and "cmod (emb i (gs_a d)) \<le> gs_data_emb_bound"
-    and "cmod (emb i (gs_b d)) \<le> gs_data_emb_bound"
-    and "cmod (emb i (gs_w d)) \<le> gs_data_emb_bound"
+    and "cmod (emb i (alpha)) \<le> gs_data_emb_bound"
+    and "cmod (emb i (beta)) \<le> gs_data_emb_bound"
+    and "cmod (emb i (omega)) \<le> gs_data_emb_bound"
 proof -
   have eE: "emb i \<in> E"
     using ilt by (auto simp: E_def)
-  have a_le: "cmod (emb i (gs_a d)) \<le> EH.ehouse (\<lambda>e. e (gs_a d))"
+  have a_le: "cmod (emb i (alpha)) \<le> EH.ehouse (\<lambda>e. e (alpha))"
     by (rule EH.cmod_le_ehouse[OF eE])
-  have b_le: "cmod (emb i (gs_b d)) \<le> EH.ehouse (\<lambda>e. e (gs_b d))"
+  have b_le: "cmod (emb i (beta)) \<le> EH.ehouse (\<lambda>e. e (beta))"
     by (rule EH.cmod_le_ehouse[OF eE])
-  have w_le: "cmod (emb i (gs_w d)) \<le> EH.ehouse (\<lambda>e. e (gs_w d))"
+  have w_le: "cmod (emb i (omega)) \<le> EH.ehouse (\<lambda>e. e (omega))"
     by (rule EH.cmod_le_ehouse[OF eE])
-  have a0: "0 \<le> EH.ehouse (\<lambda>e. e (gs_a d))" and b0: "0 \<le> EH.ehouse (\<lambda>e. e (gs_b d))" 
-    and w0: "0 \<le> EH.ehouse (\<lambda>e. e (gs_w d))" by auto
-  have sum_le: "EH.ehouse (\<lambda>e. e (gs_a d)) + EH.ehouse (\<lambda>e. e (gs_b d)) + EH.ehouse (\<lambda>e. e (gs_w d)) 
+  have a0: "0 \<le> EH.ehouse (\<lambda>e. e (alpha))" and b0: "0 \<le> EH.ehouse (\<lambda>e. e (beta))"
+    and w0: "0 \<le> EH.ehouse (\<lambda>e. e (omega))" by auto
+  have sum_le: "EH.ehouse (\<lambda>e. e (alpha)) + EH.ehouse (\<lambda>e. e (beta)) + EH.ehouse (\<lambda>e. e (omega))
                 \<le> gs_data_emb_bound"
     by (simp add: gs_data_emb_bound_def)
   show "1 \<le> gs_data_emb_bound"
     by (simp add: gs_data_emb_bound_def)
-  show "cmod (emb i (gs_a d)) \<le> gs_data_emb_bound"
+  show "cmod (emb i (alpha)) \<le> gs_data_emb_bound"
     using a_le b0 w0 sum_le by linarith
-  show "cmod (emb i (gs_b d)) \<le> gs_data_emb_bound"
+  show "cmod (emb i (beta)) \<le> gs_data_emb_bound"
     using b_le a0 w0 sum_le by linarith
-  show "cmod (emb i (gs_w d)) \<le> gs_data_emb_bound"
+  show "cmod (emb i (omega)) \<le> gs_data_emb_bound"
     using w_le a0 b0 sum_le by linarith
 qed
 
@@ -445,7 +453,7 @@ lemma gs_system_coeff_emb_data_bound:
   assumes aq: "a \<le> q"
   assumes bq: "b \<le> q"
   assumes lm: "l \<le> m"
-  shows "cmod (emb i (gs_system_coeff d a b l k)) \<le>
+  shows "cmod (emb i (gs_system_coeff a b l k)) \<le>
     (of_nat q * (1 + gs_data_emb_bound)) ^ k *
     gs_data_emb_bound ^ (m * q) * gs_data_emb_bound ^ (m * q)"
   by (rule gs_system_coeff_emb_uniform_le[OF ilt aq bq lm
@@ -456,8 +464,8 @@ lemma gs_row_scaled_entry_emb_data_uniform_le:
   assumes ilt: "i < D"
   assumes ult: "u < gs_m h * gs_n h q"
   assumes tlt: "t < q * q"
-  shows "cmod (emb i (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q $$ (u,t))) \<le>
-    (of_int \<bar>gs_c1 d\<bar>) ^ (gs_n h q) * (of_int \<bar>gs_c1 d\<bar>) ^ (gs_m h * q) * (of_int \<bar>gs_c1 d\<bar>) ^ (gs_m h * q) *
+  shows "cmod (emb i (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q $$ (u,t))) \<le>
+    (of_int \<bar>gs_c1\<bar>) ^ (gs_n h q) * (of_int \<bar>gs_c1\<bar>) ^ (gs_m h * q) * (of_int \<bar>gs_c1\<bar>) ^ (gs_m h * q) *
     (of_nat q * (1 + gs_data_emb_bound)) ^ (gs_n h q) * gs_data_emb_bound ^ (gs_m h * q) *
     gs_data_emb_bound ^ (gs_m h * q)"
 proof -
@@ -467,15 +475,15 @@ proof -
   let ?ea = "gs_a_idx q t * gs_l_idx ?n u"
   let ?eb = "gs_b_idx q t * gs_l_idx ?n u"
   let ?H = "gs_data_emb_bound"
-  let ?C = "(of_int \<bar>gs_c1 d\<bar> :: real)"
+  let ?C = "(of_int \<bar>gs_c1\<bar> :: real)"
   let ?B = "of_nat q * (1 + ?H)"
-  let ?scale = "real_of_int \<bar>gs_row_scale d (gs_m h) (gs_n h q) q u\<bar>"
+  let ?scale = "real_of_int \<bar>gs_row_scale (gs_m h) (gs_n h q) q u\<bar>"
   have Hone: "1 \<le> ?H" by (rule gs_data_emb_bound_facts(1)[OF ilt])
-  have aH: "cmod (emb i (gs_a d)) \<le> ?H"
+  have aH: "cmod (emb i (alpha)) \<le> ?H"
     by (rule gs_data_emb_bound_facts(2)[OF ilt])
-  have bH: "cmod (emb i (gs_b d)) \<le> ?H"
+  have bH: "cmod (emb i (beta)) \<le> ?H"
     by (rule gs_data_emb_bound_facts(3)[OF ilt])
-  have wH: "cmod (emb i (gs_w d)) \<le> ?H"
+  have wH: "cmod (emb i (omega)) \<le> ?H"
     by (rule gs_data_emb_bound_facts(4)[OF ilt])
   have kle: "?k \<le> ?n"
     using gs_k_idx_le[OF npos, of u] by linarith
@@ -492,40 +500,40 @@ proof -
   have bone: "1 \<le> ?B"
     using Hone qpos by fastforce
   have cone: "1 \<le> ?C"
-    using gelfond_schneider_data_c1_ge1[OF d] by simp
+    using gelfond_schneider_data_c1_ge1 by simp
   have scale_eq: "?scale = ?C ^ ?k * ?C ^ (?m * q) * ?C ^ (?m * q)"
     unfolding gs_row_scale_def by (simp add: power_abs abs_mult algebra_simps)
   have cpower: "?C ^ ?k \<le> ?C ^ ?n"
     by (rule power_increasing) (use cone kle in auto)
   have scale_up: "?scale \<le> ?C ^ ?n * ?C ^ (?m * q) * ?C ^ (?m * q)"
     by (metis cpower scale_eq less_le_not_le mult_le_cancel_right)
-  have bpow: "(of_nat q * (1 + cmod (emb i (gs_b d)))) ^ ?k \<le> ?B ^ ?n"
+  have bpow: "(of_nat q * (1 + cmod (emb i (beta)))) ^ ?k \<le> ?B ^ ?n"
   proof -
-    have "of_nat q * (1 + cmod (emb i (gs_b d))) \<le> ?B"
+    have "of_nat q * (1 + cmod (emb i (beta))) \<le> ?B"
       using bH by (intro mult_left_mono) auto
-    then have "(of_nat q * (1 + cmod (emb i (gs_b d)))) ^ ?k \<le> ?B ^ ?k"
+    then have "(of_nat q * (1 + cmod (emb i (beta)))) ^ ?k \<le> ?B ^ ?k"
       by (rule power_mono) auto
     also have "... \<le> ?B ^ ?n"
       by (rule power_increasing) (use bone kle in auto)
     finally show ?thesis .
   qed
-  have apow: "cmod (emb i (gs_a d)) ^ ?ea \<le> ?H ^ (?m * q)"
+  have apow: "cmod (emb i (alpha)) ^ ?ea \<le> ?H ^ (?m * q)"
     using Hone aH eale by (smt (verit, best) norm_ge_zero power_increasing power_mono)
-  have wpow: "cmod (emb i (gs_w d)) ^ ?eb \<le> ?H ^ (?m * q)"
+  have wpow: "cmod (emb i (omega)) ^ ?eb \<le> ?H ^ (?m * q)"
     using power_mono[OF wH] Hone eble by (smt (verit, best) norm_ge_zero power_both_mono)
-  have raw: "cmod (emb i (gs_row_scaled_system_mat d ?m ?n q $$ (u,t))) \<le>
-      ?scale * ((of_nat q * (1 + cmod (emb i (gs_b d)))) ^ ?k *
-      cmod (emb i (gs_a d)) ^ ?ea * cmod (emb i (gs_w d)) ^ ?eb)"
+  have raw: "cmod (emb i (gs_row_scaled_system_mat ?m ?n q $$ (u,t))) \<le>
+      ?scale * ((of_nat q * (1 + cmod (emb i (beta)))) ^ ?k *
+      cmod (emb i (alpha)) ^ ?ea * cmod (emb i (omega)) ^ ?eb)"
     using gs_row_scaled_entry_emb_cmod_le[OF ilt qpos npos ult tlt]
     by (simp add: mult.assoc)
-  have factor: "(of_nat q * (1 + cmod (emb i (gs_b d)))) ^ ?k *
-      cmod (emb i (gs_a d)) ^ ?ea * cmod (emb i (gs_w d)) ^ ?eb \<le>
+  have factor: "(of_nat q * (1 + cmod (emb i (beta)))) ^ ?k *
+      cmod (emb i (alpha)) ^ ?ea * cmod (emb i (omega)) ^ ?eb \<le>
       ?B ^ ?n * ?H ^ (?m * q) * ?H ^ (?m * q)"
     using bpow apow wpow Hone bone by (intro mult_mono) auto
   have scale_nonneg: "0 \<le> ?scale" by simp
   have factor_nonneg: "0 \<le> ?B ^ ?n * ?H ^ (?m * q) * ?H ^ (?m * q)"
     using bone Hone by simp
-  have "cmod (emb i (gs_row_scaled_system_mat d ?m ?n q $$ (u,t))) \<le>
+  have "cmod (emb i (gs_row_scaled_system_mat ?m ?n q $$ (u,t))) \<le>
       ?scale * (?B ^ ?n * ?H ^ (?m * q) * ?H ^ (?m * q))"
     using raw factor scale_nonneg by (meson mult_left_mono order_trans)
   also have "... \<le> (?C ^ ?n * ?C ^ (?m * q) * ?C ^ (?m * q)) *
@@ -536,9 +544,9 @@ qed
 
 definition gs_concrete_entry_bound :: real where
   "gs_concrete_entry_bound \<equiv>
-    (of_int \<bar>gs_c1 d\<bar> :: real) ^ (gs_n h q) *
-    (of_int \<bar>gs_c1 d\<bar> :: real) ^ (gs_m h * q) *
-    (of_int \<bar>gs_c1 d\<bar> :: real) ^ (gs_m h * q) *
+    (of_int \<bar>gs_c1\<bar> :: real) ^ (gs_n h q) *
+    (of_int \<bar>gs_c1\<bar> :: real) ^ (gs_m h * q) *
+    (of_int \<bar>gs_c1\<bar> :: real) ^ (gs_m h * q) *
     (of_nat q * (1 + gs_data_emb_bound)) ^ (gs_n h q) *
     gs_data_emb_bound ^ (gs_m h * q) *
     gs_data_emb_bound ^ (gs_m h * q)"
@@ -564,9 +572,9 @@ qed
 
 definition gs_concrete_entry_growth_constant :: real where
   "gs_concrete_entry_growth_constant \<equiv>
-    (of_int \<bar>gs_c1 d\<bar> :: real) *
-    (of_int \<bar>gs_c1 d\<bar> :: real) ^ (2 * gs_m h * gs_m h) *
-    (of_int \<bar>gs_c1 d\<bar> :: real) ^ (2 * gs_m h * gs_m h) *
+    (of_int \<bar>gs_c1\<bar> :: real) *
+    (of_int \<bar>gs_c1\<bar> :: real) ^ (2 * gs_m h * gs_m h) *
+    (of_int \<bar>gs_c1\<bar> :: real) ^ (2 * gs_m h * gs_m h) *
     (sqrt (2 * of_nat (gs_m h)) * (1 + gs_data_emb_bound)) *
     gs_data_emb_bound ^ (2 * gs_m h * gs_m h) *
     gs_data_emb_bound ^ (2 * gs_m h * gs_m h)"
@@ -586,8 +594,8 @@ proof -
   have qsq: "q * q \<le> 2 * gs_m h * r"
     by (rule gs_q_sq_le_two_mr[OF dvd nle])
   have mpos: "gs_m h > 0" by simp
-  have Cge1: "1 \<le> (of_int \<bar>gs_c1 d\<bar> :: real)"
-    using gelfond_schneider_data_c1_ge1[OF d] by simp
+  have Cge1: "1 \<le> (of_int \<bar>gs_c1\<bar> :: real)"
+    using gelfond_schneider_data_c1_ge1 by simp
   have Hge1: "1 \<le> gs_data_emb_bound"
     by (rule gs_data_emb_bound_facts(1)[OF i0lt])
   show ?thesis
@@ -599,6 +607,10 @@ qed
 definition gs_witness_growth_weight :: real where
   "gs_witness_growth_weight \<equiv>
     of_nat (card E) * power_basis_inverse_bound * power_basis_entry_bound"
+
+definition gs_coordinate_witness_bound :: "real \<Rightarrow> int" where
+  "gs_coordinate_witness_bound H =
+    gs_kernel_witness_bound (q * q) D gs_witness_growth_weight H"
 
 definition gs_witness_growth_prefactor :: real where
   "gs_witness_growth_prefactor \<equiv>
@@ -612,11 +624,11 @@ definition gs_entry_growth_envelope :: "nat \<Rightarrow> real" where
 lemma gs_concrete_entry_growth_constant_ge_one:
   "1 \<le> gs_concrete_entry_growth_constant"
 proof -
-  let ?C = "(of_int \<bar>gs_c1 d\<bar> :: real)"
+  let ?C = "(of_int \<bar>gs_c1\<bar> :: real)"
   let ?H = "gs_data_emb_bound"
   let ?m = "gs_m h"
   have Cone: "1 \<le> ?C"
-    using gelfond_schneider_data_c1_ge1[OF d] by simp
+    using gelfond_schneider_data_c1_ge1 by simp
   have Hone: "1 \<le> ?H"
     by (rule gs_data_emb_bound_facts(1)[OF i0lt])
   have middle: "1 \<le> sqrt (2 * of_nat ?m) * (1 + ?H)"
@@ -645,8 +657,7 @@ qed
 lemma gs_witness_bound_le_growth:
   assumes nle: "gs_n h q \<le> r"
   assumes rpos: "r > 0"
-  shows "(of_int (gs_kernel_witness_bound (q * q) D
-    gs_witness_growth_weight gs_concrete_entry_bound) :: real) \<le>
+  shows "(of_int (gs_coordinate_witness_bound gs_concrete_entry_bound) :: real) \<le>
     gs_witness_growth_prefactor * of_nat r * gs_entry_growth_envelope r"
 proof -
   have qsq: "q * q \<le> 2 * gs_m h * r"
@@ -661,10 +672,9 @@ proof -
     by (simp add: gs_entry_growth_envelope_def)
   have Gone: "1 \<le> gs_entry_growth_envelope r"
     by (simp add: gs_entry_growth_envelope_def)
-  have bound: "(of_int (gs_kernel_witness_bound (q * q) D
-    gs_witness_growth_weight gs_concrete_entry_bound) :: real) \<le>
+  have bound: "(of_int (gs_coordinate_witness_bound gs_concrete_entry_bound) :: real) \<le>
     gs_witness_growth_prefactor * of_nat r * gs_entry_growth_envelope r"
-    unfolding gs_kernel_witness_bound_def gs_witness_growth_prefactor_def
+    unfolding gs_coordinate_witness_bound_def gs_kernel_witness_bound_def gs_witness_growth_prefactor_def
     by (rule gs_witness_bound_le_growth[OF qsq Anonneg Wnonneg Ale Gone])
   show ?thesis using bound .
 qed
@@ -710,8 +720,7 @@ qed
 lemma gs_witness_bound_le_growth_simple:
   assumes nle: "gs_n h q \<le> r"
   assumes rpos: "r > 0"
-  shows "(of_int (gs_kernel_witness_bound (q * q) D
-    gs_witness_growth_weight gs_concrete_entry_bound) :: real) \<le>
+  shows "(of_int (gs_coordinate_witness_bound gs_concrete_entry_bound) :: real) \<le>
     gs_witness_growth_prefactor * of_nat r *
       gs_concrete_entry_growth_constant ^ r *
       real r powr (of_nat r / 2)"
@@ -722,9 +731,9 @@ lemma gs_witness_bound_le_growth_with_denominator:
   assumes nle: "gs_n h q \<le> r"
     and rpos: "r > 0"
     and Tp: "T > 0"
-  shows "(of_int (gs_kernel_witness_bound (q * q) D gs_witness_growth_weight
+  shows "of_int (gs_coordinate_witness_bound
     (of_int (T ^ (gs_row_denominator_exponent (gs_m h) (gs_n h q) q D)) *
-      gs_concrete_entry_bound))) \<le>
+      gs_concrete_entry_bound)) \<le>
     gs_witness_growth_prefactor * of_nat r * (gs_concrete_entry_growth_constant *
         of_int (T ^ (gs_row_denominator_order_exponent (gs_m h) D))) ^ r *
       r powr (of_nat r / 2)"
@@ -774,14 +783,14 @@ proof -
       (4 * of_nat (gs_m h) * of_nat D * (1 + ?W)) * of_nat r * ?G"
     by (rule Rho_Bounds.gs_witness_bound_le_growth [OF qsq Anonneg Wnonneg Ale Gone])
   show ?thesis using bound
-    by (simp add: gs_kernel_witness_bound_def gs_witness_growth_prefactor_def
-      ac_simps)
+    by (simp add: gs_coordinate_witness_bound_def gs_kernel_witness_bound_def
+      gs_witness_growth_prefactor_def ac_simps)
 qed
 
 lemma gs_house_aux_factor_le_growth:
   assumes nle: "gs_n h q \<le> r"
   assumes rpos: "r > 0"
-  shows "(of_int \<bar>gs_c1 d\<bar>) ^ r * (of_int \<bar>gs_c1 d\<bar>) ^ (2 * gs_m h * q) *
+  shows "(of_int \<bar>gs_c1\<bar>) ^ r * (of_int \<bar>gs_c1\<bar>) ^ (2 * gs_m h * q) *
     (of_nat q * (1 + gs_data_emb_bound)) ^ r *
     gs_data_emb_bound ^ (gs_m h * q) * gs_data_emb_bound ^ (gs_m h * q) \<le>
     gs_concrete_entry_growth_constant ^ r * real r powr (of_nat r / 2)"
@@ -795,13 +804,13 @@ proof -
     by (simp add: q_def)
   have qsq: "q * q \<le> 2 * gs_m h * r"
     by (rule gs_q_sq_le_two_mr[OF dvd nle])
-  have Cge1: "1 \<le> (of_int \<bar>gs_c1 d\<bar> :: real)"
-    using gelfond_schneider_data_c1_ge1[OF d] by simp
+  have Cge1: "1 \<le> (of_int \<bar>gs_c1\<bar> :: real)"
+    using gelfond_schneider_data_c1_ge1 by simp
   have Hge1: "1 \<le> gs_data_emb_bound"
     by (rule gs_data_emb_bound_facts(1)[OF i0lt])
   note bound = gs_entry_power_le_r_half[OF gs_m_pos rpos le_refl qle qsq Cge1 Hge1]
-  have split: "real_of_int \<bar>gs_c1 d\<bar> ^ (2 * gs_m h * q) =
-                 (of_int \<bar>gs_c1 d\<bar>) ^ (gs_m h * q) * (of_int \<bar>gs_c1 d\<bar>) ^ (gs_m h * q)"
+  have split: "real_of_int \<bar>gs_c1\<bar> ^ (2 * gs_m h * q) =
+                 (of_int \<bar>gs_c1\<bar>) ^ (gs_m h * q) * (of_int \<bar>gs_c1\<bar>) ^ (gs_m h * q)"
     by (simp add: more_arith_simps(11) power2_eq_square power_even_eq)
   show ?thesis using bound
     by (simp only: split gs_concrete_entry_growth_constant_def)
@@ -823,8 +832,8 @@ lemma gs_scaled_deriv_emb_bounded_vec_le:
   assumes B_nonneg: "0 \<le> B"
   assumes "l \<le> gs_m h"
   shows "cmod (emb i (of_int c *
-    (gs_z d powi (- int k) *
-      ((deriv ^^ k) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t))) (of_nat l)))) \<le>
+    (zeta powi (- int k) *
+      ((deriv ^^ k) (gs_aux_fun_vec q (\<lambda>t. Matrix.vec_index v t))) (of_nat l)))) \<le>
     of_int \<bar>c\<bar> * of_nat (q * q) *
       ((of_int B) * of_nat D * power_basis_entry_bound) *
       ((of_nat q * (1 + gs_data_emb_bound)) ^ k *
@@ -845,7 +854,7 @@ proof -
   have coeffB: "\<And>t. t < q * q \<Longrightarrow>
     cmod (emb i (Matrix.vec_index v t)) \<le> ?V"
     by (rule represented_coordinate_emb_cmod_le[OF \<open>i < D\<close> repr x_carrier x_bnd B_nonneg])
-  have sysB: "\<And>t. t < q * q \<Longrightarrow> cmod (emb i (gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k)) \<le> ?U"
+  have sysB: "\<And>t. t < q * q \<Longrightarrow> cmod (emb i (gs_system_coeff (gs_a_idx q t) (gs_b_idx q t) l k)) \<le> ?U"
     by (simp add: \<open>i < D\<close> \<open>l \<le> gs_m h\<close> gs_a_idx_le gs_b_idx_le gs_system_coeff_emb_data_bound qpos)
   show ?thesis
     by (rule gs_scaled_deriv_emb_uniform_bound[OF \<open>i < D\<close> coeffK Vnonneg Unonneg coeffB sysB])
@@ -853,27 +862,27 @@ qed
 
 lemma scaled_deriv_at_nat_in_K:
   assumes coeffK: "\<forall>t<q * q. Matrix.vec_index v t \<in> K"
-  shows "gs_z d powi (- int k) *
-      ((deriv ^^ k) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t))) (of_nat l) \<in> K"
+  shows "zeta powi (- int k) *
+      ((deriv ^^ k) (gs_aux_fun_vec q (\<lambda>t. Matrix.vec_index v t))) (of_nat l) \<in> K"
 proof -
   interpret KS: Subfield K
     by (rule K_subfield)
-  have "Matrix.vec_index v t * gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k \<in> K"
+  have "Matrix.vec_index v t * gs_system_coeff (gs_a_idx q t) (gs_b_idx q t) l k \<in> K"
     if "t \<in> {..<q * q}" for t
     using assms gs_system_coeff_in_K that by auto
-  then have "(\<Sum>t<q * q. Matrix.vec_index v t * gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k) \<in> K"
+  then have "(\<Sum>t<q * q. Matrix.vec_index v t * gs_system_coeff (gs_a_idx q t) (gs_b_idx q t) l k) \<in> K"
     by (intro KS.sum_closed) auto
   then show ?thesis
-    by (simp add: gs_aux_fun_vec_deriv_at_nat[OF d])
+    by (simp add: gs_aux_fun_vec_deriv_at_nat)
 qed
 
 definition gs_scaled_auxiliary_multiplier :: "nat \<Rightarrow> int" where
   "gs_scaled_auxiliary_multiplier r \<equiv>
-    gs_auxiliary_multiplier d (gs_m h) q r"
+    gs_auxiliary_multiplier (gs_m h) q r"
 
 definition gs_scaled_auxiliary_value :: "complex vec \<Rightarrow> nat \<Rightarrow> int \<Rightarrow> complex" where
   "gs_scaled_auxiliary_value v r c \<equiv>
-    gs_auxiliary_scaled_value d (gs_m h) q v r c"
+    gs_auxiliary_scaled_value (gs_m h) q v r c"
 
 lemma rho_in_K:
   assumes repr:
@@ -886,8 +895,8 @@ proof -
     by (rule K_subfield)
   have coeffK: "\<forall>t<q * q. Matrix.vec_index v t \<in> K"
     using repr represented_coordinate_in_K by blast
-  have "gs_z d powi (- int r) * ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
-          (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t)) \<in> K"
+  have "zeta powi (- int r) * ((deriv ^^ r) (gs_aux_fun_vec q (\<lambda>t. Matrix.vec_index v t)))
+          (gs_min_order_node (gs_m h) q (\<lambda>t. Matrix.vec_index v t)) \<in> K"
     using scaled_deriv_at_nat_in_K[OF coeffK] gs_min_order_node_eq_nat[OF gs_m_pos] by metis
   then show ?thesis
     using KS.mult_closed KS.of_int_closed
@@ -897,20 +906,20 @@ qed
 lemma rho_order_ge_n:
   assumes v_carrier: "v \<in> carrier_vec (q * q)"
   assumes v_nz: "v \<noteq> 0\<^sub>v (q * q)"
-  assumes v_ker: "gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q *\<^sub>v v = 0\<^sub>v (gs_m h * gs_n h q)"
-  assumes r_eq: "r = nat (gs_min_order (gs_m h) d q (\<lambda>t. Matrix.vec_index v t))"
+  assumes v_ker: "gs_row_scaled_system_mat (gs_m h) (gs_n h q) q *\<^sub>v v = 0\<^sub>v (gs_m h * gs_n h q)"
+  assumes r_eq: "r = nat (gs_min_order (gs_m h) q (\<lambda>t. Matrix.vec_index v t))"
   shows "gs_n h q \<le> r"
 proof -
   have coeff_nz: "\<exists>t<q * q. Matrix.vec_index v t \<noteq> 0"
     using v_carrier v_nz by force
   have ker_coeff:
-    "gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q *\<^sub>v
+    "gs_row_scaled_system_mat (gs_m h) (gs_n h q) q *\<^sub>v
       gs_coeff_vec q (\<lambda>t. Matrix.vec_index v t) =
       0\<^sub>v (gs_m h * gs_n h q)"
     by (simp add: gs_coeff_vec_eqI[OF v_carrier] v_ker)
   have min_ord:
-    "gs_min_order (gs_m h) d q (\<lambda>t. Matrix.vec_index v t) \<ge> gs_n h q"
-    by (rule gs_min_order_ge_of_row_scaled_kernel_nonzero[OF d qpos gs_m_pos
+    "gs_min_order (gs_m h) q (\<lambda>t. Matrix.vec_index v t) \<ge> gs_n h q"
+    by (rule gs_min_order_ge_of_row_scaled_kernel_nonzero[OF qpos gs_m_pos
       npos coeff_nz ker_coeff])
   show ?thesis using min_ord r_eq by linarith
 qed
@@ -919,8 +928,8 @@ lemma rho_order_pos:
   assumes v_carrier: "v \<in> carrier_vec (q * q)"
   assumes v_nz: "v \<noteq> 0\<^sub>v (q * q)"
   assumes v_ker:
-    "gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q *\<^sub>v v = 0\<^sub>v (gs_m h * gs_n h q)"
-  assumes r_eq: "r = nat (gs_min_order (gs_m h) d q (\<lambda>t. Matrix.vec_index v t))"
+    "gs_row_scaled_system_mat (gs_m h) (gs_n h q) q *\<^sub>v v = 0\<^sub>v (gs_m h * gs_n h q)"
+  assumes r_eq: "r = nat (gs_min_order (gs_m h) q (\<lambda>t. Matrix.vec_index v t))"
   shows "0 < r"
   using rho_order_ge_n[OF v_carrier v_nz v_ker r_eq] npos by linarith
 
@@ -928,10 +937,10 @@ lemma rho_algebraic_int_nonzero:
   assumes v_carrier: "v \<in> carrier_vec (q * q)"
   assumes v_nz: "v \<noteq> 0\<^sub>v (q * q)"
   assumes vint: "\<forall>i<q * q. algebraic_int (Matrix.vec_index v i)"
-  assumes r_eq: "r = nat (gs_min_order (gs_m h) d q (\<lambda>t. Matrix.vec_index v t))"
+  assumes r_eq: "r = nat (gs_min_order (gs_m h) q (\<lambda>t. Matrix.vec_index v t))"
   assumes deriv_nz:
-    "((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
-      (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t)) \<noteq> 0"
+    "((deriv ^^ r) (gs_aux_fun_vec q (\<lambda>t. Matrix.vec_index v t)))
+      (gs_min_order_node (gs_m h) q (\<lambda>t. Matrix.vec_index v t)) \<noteq> 0"
   assumes c_def: "c = gs_scaled_auxiliary_multiplier r"
   assumes rho_def: "rho = gs_scaled_auxiliary_value v r c"
   shows "algebraic_int rho" and "rho \<noteq> 0"
@@ -940,7 +949,7 @@ proof -
   note rho_raw = rho_def[unfolded gs_scaled_auxiliary_value_def]
   show "algebraic_int rho" "rho \<noteq> 0"
     using gs_scaled_rho_algebraic_int_nonzero
-      [OF d qpos gs_m_pos v_carrier v_nz vint r_eq deriv_nz c_raw rho_raw] .
+      [OF qpos gs_m_pos v_carrier v_nz vint r_eq deriv_nz c_raw rho_raw] .
 qed
 
 lemma gs_house_rho_le_of_bounded_vec:
@@ -965,14 +974,14 @@ proof -
         gs_data_emb_bound ^ (gs_m h * q))"
   have Hnonneg: "0 \<le> ?H"
     using B_nonneg power_basis_entry_bound_nonneg gs_data_emb_bound_facts(1)[OF i0lt] by simp
-  obtain l where llt: "l < gs_m h" 
-           and node: "gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t) = of_nat (Suc l)"
+  obtain l where llt: "l < gs_m h"
+           and node: "gs_min_order_node (gs_m h) q (\<lambda>t. Matrix.vec_index v t) = of_nat (Suc l)"
     by (rule gs_min_order_node_eq_nat[OF gs_m_pos])
   have lle: "Suc l \<le> gs_m h" using llt by simp
   have bound: "cmod (emb j rho) \<le> ?H" if jlt: "j < D" for j
   proof -
-    have "cmod (emb j rho) = cmod (emb j (of_int c * (gs_z d powi (- int r) *
-             ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t))) (of_nat (Suc l)))))"
+    have "cmod (emb j rho) = cmod (emb j (of_int c * (zeta powi (- int r) *
+             ((deriv ^^ r) (gs_aux_fun_vec q (\<lambda>t. Matrix.vec_index v t))) (of_nat (Suc l)))))"
       by (simp add: rho_def gs_scaled_auxiliary_value_def
         gs_auxiliary_scaled_value_def node)
     also have "... \<le> ?H"
@@ -1008,7 +1017,7 @@ lemma gs_house_rho_le_growth:
       (of_nat D * power_basis_entry_bound)) * (gs_concrete_entry_growth_constant *
         gs_concrete_entry_growth_constant) ^ r * r powr (of_nat r + 2)"
 proof -
-  let ?C = "(of_int \<bar>gs_c1 d\<bar> :: real)"
+  let ?C = "(of_int \<bar>gs_c1\<bar> :: real)"
   let ?H = "gs_data_emb_bound"
   let ?K = "gs_concrete_entry_growth_constant"
   let ?W = "gs_witness_growth_prefactor :: real"
@@ -1017,7 +1026,7 @@ proof -
   have qsq: "q * q \<le> 2 * gs_m h * r"
     by (rule gs_q_sq_le_two_mr[OF dvd nle])
   have Cge: "1 \<le> ?C"
-    using gelfond_schneider_data_c1_ge1[OF d] by simp
+    using gelfond_schneider_data_c1_ge1 by simp
   have Hge: "1 \<le> ?H"
     by (rule gs_data_emb_bound_facts(1)[OF i0lt])
   have c_abs: "(of_int \<bar>c\<bar> :: real) = ?C ^ r * ?C ^ (2 * gs_m h * q)"
@@ -1050,7 +1059,7 @@ lemma gs_house_rho_le_growth_with_factor:
       (of_nat D * power_basis_entry_bound)) * ((gs_concrete_entry_growth_constant * U) *
         (gs_concrete_entry_growth_constant * U)) ^ r * real r powr (of_nat r + 2)"
 proof -
-  let ?C = "real_of_int \<bar>gs_c1 d\<bar>"
+  let ?C = "real_of_int \<bar>gs_c1\<bar>"
   let ?H = "gs_data_emb_bound"
   let ?K = "gs_concrete_entry_growth_constant * U"
   let ?W = "gs_witness_growth_prefactor :: real"
@@ -1061,7 +1070,7 @@ proof -
   have qsq: "q * q \<le> 2 * gs_m h * r"
     by (rule gs_q_sq_le_two_mr[OF dvd nle])
   have Cge: "1 \<le> ?C"
-    using gelfond_schneider_data_c1_ge1[OF d] by simp
+    using gelfond_schneider_data_c1_ge1 by simp
   have Hge: "1 \<le> ?H"
     by (rule gs_data_emb_bound_facts(1)[OF i0lt])
   have c_abs: "\<bar>c\<bar> = ?C ^ r * ?C ^ (2 * gs_m h * q)"
@@ -1077,7 +1086,7 @@ proof -
   proof -
     have pow: "gs_concrete_entry_growth_constant ^ r \<le> ?K ^ r"
       by (rule power_mono) (use Kge Uone in auto)
-    have "gs_concrete_entry_growth_constant ^ r * r powr (of_nat r / 2) 
+    have "gs_concrete_entry_growth_constant ^ r * r powr (of_nat r / 2)
         \<le> ?K ^ r * real r powr (of_nat r / 2)"
       by (rule mult_right_mono[OF pow]) simp
     then show ?thesis using Fbase by linarith
@@ -1192,20 +1201,20 @@ end
 
 definition gs_point_scale_base :: real where
   "gs_point_scale_base \<equiv>
-    (of_int \<bar>gs_c1 d\<bar> :: real) * (of_int \<bar>gs_c1 d\<bar> :: real) ^ (4 * gs_m h * gs_m h)"
+    (of_int \<bar>gs_c1\<bar> :: real) * (of_int \<bar>gs_c1\<bar> :: real) ^ (4 * gs_m h * gs_m h)"
 
 definition gs_point_fixed_base :: real where
-  "gs_point_fixed_base \<equiv> gs_point_scale_base * inverse (cmod (gs_z d)) *
+  "gs_point_fixed_base \<equiv> gs_point_scale_base * inverse (cmod (zeta)) *
                           exp (of_nat (gs_m h) * (2 * of_nat (gs_m h) + 1) *
-                          (1 + cmod (gs_b d)) * cmod (gs_z d)) *
+                          (1 + cmod (beta)) * cmod (zeta)) *
                           (2 * of_nat (gs_m h) + 1) ^ (gs_m h)"
 
 lemma gs_point_fixed_base_pos: "0 < gs_point_fixed_base"
 proof -
-  have Cge: "1 \<le> (of_int \<bar>gs_c1 d\<bar> :: real)"
-    using gelfond_schneider_data_c1_ge1[OF d] by simp
-  have zpos: "0 < cmod (gs_z d)"
-    using gelfond_schneider_data_z_nonzero[OF d] by simp
+  have Cge: "1 \<le> (of_int \<bar>gs_c1\<bar> :: real)"
+    using gelfond_schneider_data_c1_ge1 by simp
+  have zpos: "0 < cmod (zeta)"
+    using gelfond_schneider_data_z_nonzero by simp
   show ?thesis using Cge zpos
     by (simp add: gs_point_fixed_base_def gs_point_scale_base_def)
 qed
@@ -1214,17 +1223,17 @@ lemma gs_rho_fixed_factor_le_growth:
   assumes c_def: "c = gs_scaled_auxiliary_multiplier r"
   assumes nle: "gs_n h q \<le> r"
   assumes rpos: "r > 0"
-  shows "(of_int \<bar>c\<bar>) * cmod (gs_z d powi (- int r)) *
-    exp ((of_nat q * (1 + cmod (gs_b d)) * cmod (gs_z d)) *
+  shows "(of_int \<bar>c\<bar>) * cmod (zeta powi (- int r)) *
+    exp ((of_nat q * (1 + cmod (beta)) * cmod (zeta)) *
       (of_nat (gs_m h) * (1 + of_nat r / of_nat q))) *
     (2 * of_nat (gs_m h) + 1) ^ (gs_m h * r) \<le>
     gs_point_fixed_base ^ r"
 proof -
-  let ?C = "(of_int \<bar>gs_c1 d\<bar> :: real)"
+  let ?C = "(of_int \<bar>gs_c1\<bar> :: real)"
   let ?m = "gs_m h"
-  let ?Z = "inverse (cmod (gs_z d))"
+  let ?Z = "inverse (cmod (zeta))"
   let ?X = "exp (of_nat ?m * (2 * of_nat ?m + 1) *
-      (1 + cmod (gs_b d)) * cmod (gs_z d))"
+      (1 + cmod (beta)) * cmod (zeta))"
   let ?P = "2 * of_nat ?m + 1 :: real"
   have prod_ge1: "1 \<le> c14 * c5"
     using c14_ge1 c5_gt1 by force
@@ -1234,7 +1243,7 @@ proof -
     using gs_q_choice_le_two_mr[OF hpos prod_ge1 nle_choice]
     by (simp add: q_def)
   have Cge: "1 \<le> ?C"
-    using gelfond_schneider_data_c1_ge1[OF d] by simp
+    using gelfond_schneider_data_c1_ge1 by simp
   have scale: "real_of_int \<bar>c\<bar> \<le> gs_point_scale_base ^ r"
   proof -
     have eq: "(of_int \<bar>c\<bar> :: real) = ?C ^ r * ?C ^ (2 * ?m * q)"
@@ -1243,16 +1252,16 @@ proof -
     show ?thesis using gs_scale_factor_le_r_power[OF qle Cge]
       by (simp only: eq gs_point_scale_base_def)
   qed
-  have z_eq: "cmod (gs_z d powi (- int r)) = ?Z ^ r"
-    by (rule gs_negative_powi_norm[OF gelfond_schneider_data_z_nonzero[OF d]])
-  have exp_le: "exp ((of_nat q * (1 + cmod (gs_b d)) * cmod (gs_z d)) *
+  have z_eq: "cmod (zeta powi (- int r)) = ?Z ^ r"
+    by (rule gs_negative_powi_norm[OF gelfond_schneider_data_z_nonzero])
+  have exp_le: "exp ((of_nat q * (1 + cmod (beta)) * cmod (zeta)) *
       (of_nat ?m * (1 + of_nat r / of_nat q))) \<le> ?X ^ r"
     by (rule gs_aux_exp_growth_le[OF qpos qle])
   have p_eq: "?P ^ (?m * r) = (?P ^ ?m) ^ r"
     by (simp add: power_mult)
   have nonneg: "0 \<le> (of_int \<bar>c\<bar> :: real)" by simp
-  have all: "(of_int \<bar>c\<bar> :: real) * cmod (gs_z d powi (- int r)) *
-    exp ((of_nat q * (1 + cmod (gs_b d)) * cmod (gs_z d)) *
+  have all: "(of_int \<bar>c\<bar> :: real) * cmod (zeta powi (- int r)) *
+    exp ((of_nat q * (1 + cmod (beta)) * cmod (zeta)) *
       (of_nat ?m * (1 + of_nat r / of_nat q))) * ?P ^ (?m * r) \<le>
     gs_point_scale_base ^ r * ?Z ^ r * ?X ^ r * (?P ^ ?m) ^ r"
     using scale exp_le z_eq p_eq
@@ -1264,25 +1273,25 @@ qed
 lemma gs_rho_cmod_le_of_bounded_vec:
   assumes v_carrier: "v \<in> carrier_vec (q * q)"
   assumes v_nz: "v \<noteq> 0\<^sub>v (q * q)"
-  assumes v_ker: "gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q *\<^sub>v v =
+  assumes v_ker: "gs_row_scaled_system_mat (gs_m h) (gs_n h q) q *\<^sub>v v =
     0\<^sub>v (gs_m h * gs_n h q)"
   assumes repr: "gs_power_basis_witness_coordinates v x"
   assumes x_carrier: "x \<in> carrier_vec (q * q * D)"
   assumes x_bnd: "x \<in> Bounded_vec B"
   assumes B_nonneg: "0 \<le> B"
-  assumes req: "r = nat (gs_min_order (gs_m h) d q (\<lambda>t. Matrix.vec_index v t))"
+  assumes req: "r = nat (gs_min_order (gs_m h) q (\<lambda>t. Matrix.vec_index v t))"
   assumes rho_def: "rho = gs_scaled_auxiliary_value v r c"
-  shows "cmod rho \<le> of_int \<bar>c\<bar> * cmod (gs_z d powi (- int r)) *
+  shows "cmod rho \<le> of_int \<bar>c\<bar> * cmod (zeta powi (- int r)) *
     (fact r * (of_nat (q * q) *
       ((of_int B) * of_nat D * power_basis_entry_bound) *
-      exp ((of_nat q * (1 + cmod (gs_b d)) * cmod (gs_z d)) *
+      exp ((of_nat q * (1 + cmod (beta)) * cmod (zeta)) *
         (of_nat (gs_m h) * (1 + of_nat r / of_nat q))) /
       (of_nat (gs_m h) * of_nat r / of_nat q) ^ (gs_m h * r)) *
       (2 * of_nat (gs_m h) + 1) ^ (gs_m h * r))"
 proof -
   let ?B = "fact r * (of_nat (q * q) *
       ((of_int B) * of_nat D * power_basis_entry_bound) *
-      exp ((of_nat q * (1 + cmod (gs_b d)) * cmod (gs_z d)) *
+      exp ((of_nat q * (1 + cmod (beta)) * cmod (zeta)) *
         (of_nat (gs_m h) * (1 + of_nat r / of_nat q))) /
       (of_nat (gs_m h) * of_nat r / of_nat q) ^ (gs_m h * r)) *
       (2 * of_nat (gs_m h) + 1) ^ (gs_m h * r)"
@@ -1295,31 +1304,31 @@ proof -
     using gs_q_sq_eq_two_mn[OF dvd] by (simp add: power2_eq_square)
   have coeff_nz: "\<exists>t<q * q. Matrix.vec_index v t \<noteq> 0"
     using v_carrier v_nz by force
-  have ker_coeff: "gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q *\<^sub>v
+  have ker_coeff: "gs_row_scaled_system_mat (gs_m h) (gs_n h q) q *\<^sub>v
       gs_coeff_vec q (\<lambda>t. Matrix.vec_index v t) =
       0\<^sub>v (gs_m h * gs_n h q)"
     by (simp add: gs_coeff_vec_eqI[OF v_carrier] v_ker)
-  have min_ord: "gs_min_order (gs_m h) d q (\<lambda>t. Matrix.vec_index v t) \<ge> gs_n h q"
-    by (rule gs_min_order_ge_of_row_scaled_kernel_nonzero[OF d qpos gs_m_pos npos coeff_nz ker_coeff])
+  have min_ord: "gs_min_order (gs_m h) q (\<lambda>t. Matrix.vec_index v t) \<ge> gs_n h q"
+    by (rule gs_min_order_ge_of_row_scaled_kernel_nonzero[OF qpos gs_m_pos npos coeff_nz ker_coeff])
   have nle: "gs_n h q \<le> r"
     using min_ord req by linarith
   have rpos: "r > 0"
     by (rule rho_order_pos[OF v_carrier v_nz v_ker req])
-  have nz: "gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t) \<noteq> (\<lambda>_. 0)"
-    by (rule gs_aux_fun_vec_nonzero[OF d qpos coeff_nz])
+  have nz: "gs_aux_fun_vec q (\<lambda>t. Matrix.vec_index v t) \<noteq> (\<lambda>_. 0)"
+    by (rule gs_aux_fun_vec_nonzero[OF qpos coeff_nz])
   have basis_bnd: "\<And>j. j < D \<Longrightarrow> cmod (basis j (emb i0)) \<le> power_basis_entry_bound"
     by (rule basis_cmod_le_power_basis_entry_bound[OF i0lt])
-  have deriv_bound: "cmod (((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
-      (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t))) \<le> ?B"
+  have deriv_bound: "cmod (((deriv ^^ r) (gs_aux_fun_vec q (\<lambda>t. Matrix.vec_index v t)))
+      (gs_min_order_node (gs_m h) q (\<lambda>t. Matrix.vec_index v t))) \<le> ?B"
     by (rule gs_bounded_vec_min_order_derivative_bound[OF qge bal nle gs_m_pos rpos Dpos
         repr[unfolded gs_power_basis_witness_coordinates_def] x_carrier x_bnd
         B_nonneg power_basis_entry_bound_nonneg basis_bnd nz req])
-  have "cmod rho = of_int \<bar>c\<bar> * cmod (gs_z d powi (- int r)) *
-      cmod (((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
-        (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t)))"
+  have "cmod rho = of_int \<bar>c\<bar> * cmod (zeta powi (- int r)) *
+      cmod (((deriv ^^ r) (gs_aux_fun_vec q (\<lambda>t. Matrix.vec_index v t)))
+        (gs_min_order_node (gs_m h) q (\<lambda>t. Matrix.vec_index v t)))"
     by (simp add: rho_def gs_scaled_auxiliary_value_def
       gs_auxiliary_scaled_value_def norm_mult)
-  also have "... \<le> of_int \<bar>c\<bar> * cmod (gs_z d powi (- int r)) * ?B"
+  also have "... \<le> of_int \<bar>c\<bar> * cmod (zeta powi (- int r)) * ?B"
     using deriv_bound by (intro mult_left_mono mult_right_mono) auto
   finally show ?thesis .
 qed
@@ -1349,13 +1358,13 @@ context
     and rho :: complex and c :: int and r :: nat
   assumes v_carrier: "v \<in> carrier_vec (q * q)"
     and v_nz: "v \<noteq> 0\<^sub>v (q * q)"
-    and v_ker: "gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q *\<^sub>v v =
+    and v_ker: "gs_row_scaled_system_mat (gs_m h) (gs_n h q) q *\<^sub>v v =
       0\<^sub>v (gs_m h * gs_n h q)"
     and repr: "gs_power_basis_witness_coordinates v x"
     and x_carrier: "x \<in> carrier_vec (q * q * D)"
     and x_bnd: "x \<in> Bounded_vec B"
     and B_nonneg: "0 \<le> B"
-    and req: "r = nat (gs_min_order (gs_m h) d q (\<lambda>t. Matrix.vec_index v t))"
+    and req: "r = nat (gs_min_order (gs_m h) q (\<lambda>t. Matrix.vec_index v t))"
     and rho_def: "rho = gs_scaled_auxiliary_value v r c"
     and c_def: "c = gs_scaled_auxiliary_multiplier r"
     and nle: "gs_n h q \<le> r"
@@ -1375,8 +1384,8 @@ proof -
   let ?K = "gs_concrete_entry_growth_constant"
   let ?L = "gs_point_fixed_base"
   let ?radius = "(of_nat ?m * ?R / of_nat q :: real) ^ (?m * r)"
-  let ?G = "(of_int \<bar>c\<bar> :: real) * cmod (gs_z d powi (- int r)) *
-    exp ((of_nat q * (1 + cmod (gs_b d)) * cmod (gs_z d)) *
+  let ?G = "(of_int \<bar>c\<bar> :: real) * cmod (zeta powi (- int r)) *
+    exp ((of_nat q * (1 + cmod (beta)) * cmod (zeta)) *
       (of_nat ?m * (1 + ?R / of_nat q))) *
     (2 * of_nat ?m + 1) ^ (?m * r)"
   have bal: "q * q = 2 * ?m * gs_n h q"
@@ -1447,8 +1456,8 @@ proof -
   let ?K = "gs_concrete_entry_growth_constant * U"
   let ?L = "gs_point_fixed_base"
   let ?radius = "(of_nat ?m * ?R / of_nat q :: real) ^ (?m * r)"
-  let ?G = "(of_int \<bar>c\<bar> :: real) * cmod (gs_z d powi (- int r)) *
-    exp ((of_nat q * (1 + cmod (gs_b d)) * cmod (gs_z d)) *
+  let ?G = "(of_int \<bar>c\<bar> :: real) * cmod (zeta powi (- int r)) *
+    exp ((of_nat q * (1 + cmod (beta)) * cmod (zeta)) *
       (of_nat ?m * (1 + ?R / of_nat q))) *
     (2 * of_nat ?m + 1) ^ (?m * r)"
   have bal: "q * q = 2 * ?m * gs_n h q"
@@ -1609,13 +1618,12 @@ lemma gs_rho_upper_from_concrete_witness:
     gs_point_growth_base \<le> c14"
   assumes v_carrier: "v \<in> carrier_vec (q * q)"
   assumes v_nz: "v \<noteq> 0\<^sub>v (q * q)"
-  assumes v_ker: "gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q *\<^sub>v v =
+  assumes v_ker: "gs_row_scaled_system_mat (gs_m h) (gs_n h q) q *\<^sub>v v =
     0\<^sub>v (gs_m h * gs_n h q)"
   assumes repr: "gs_power_basis_witness_coordinates v x"
   assumes x_carrier: "x \<in> carrier_vec (q * q * D)"
-  assumes x_bnd: "x \<in> Bounded_vec
-    (gs_kernel_witness_bound (q * q) D gs_witness_growth_weight A)"
-  assumes req: "r = nat (gs_min_order (gs_m h) d q (\<lambda>t. Matrix.vec_index v t))"
+  assumes x_bnd: "x \<in> Bounded_vec (gs_coordinate_witness_bound A)"
+  assumes req: "r = nat (gs_min_order (gs_m h) q (\<lambda>t. Matrix.vec_index v t))"
   assumes rho_def: "rho = gs_scaled_auxiliary_value v r c"
   assumes c_def: "c = gs_scaled_auxiliary_multiplier r"
   assumes nle: "gs_n h q \<le> r"
@@ -1626,8 +1634,8 @@ lemma gs_rho_upper_from_concrete_witness:
     c14 powr of_nat r *
       real r powr (gs_norm_order_exponent h r)"
 proof -
-  let ?B = "gs_kernel_witness_bound (q * q) D gs_witness_growth_weight A"
-  have Bnonneg: "0 \<le> ?B" by (simp add: gs_kernel_witness_bound_def)
+  let ?B = "gs_coordinate_witness_bound A"
+  have Bnonneg: "0 \<le> ?B" by (simp add: gs_coordinate_witness_bound_def gs_kernel_witness_bound_def)
   have Bbound: "(of_int ?B :: real) \<le>
     gs_witness_growth_prefactor * of_nat r * gs_concrete_entry_growth_constant ^ r * real r powr (of_nat r / 2)"
     using gs_witness_bound_le_growth_simple[OF nle rpos]
@@ -1652,14 +1660,13 @@ lemma gs_rho_upper_from_concrete_witness_with_denominator:
       (of_int (T ^ (gs_row_denominator_order_exponent (gs_m h) D))) \<le> c14"
   assumes v_carrier: "v \<in> carrier_vec (q * q)"
   assumes v_nz: "v \<noteq> 0\<^sub>v (q * q)"
-  assumes v_ker: "gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q *\<^sub>v v =
+  assumes v_ker: "gs_row_scaled_system_mat (gs_m h) (gs_n h q) q *\<^sub>v v =
     0\<^sub>v (gs_m h * gs_n h q)"
   assumes repr: "gs_power_basis_witness_coordinates v x"
   assumes x_carrier: "x \<in> carrier_vec (q * q * D)"
-  assumes x_bnd: "x \<in> Bounded_vec
-    (gs_kernel_witness_bound (q * q) D gs_witness_growth_weight
+  assumes x_bnd: "x \<in> Bounded_vec (gs_coordinate_witness_bound
       (of_int (T ^ (gs_row_denominator_exponent (gs_m h) (gs_n h q) q D)) * A))"
-  assumes req: "r = nat (gs_min_order (gs_m h) d q (\<lambda>t. Matrix.vec_index v t))"
+  assumes req: "r = nat (gs_min_order (gs_m h) q (\<lambda>t. Matrix.vec_index v t))"
   assumes rho_def: "rho = gs_scaled_auxiliary_value v r c"
   assumes c_def: "c = gs_scaled_auxiliary_multiplier r"
   assumes nle: "gs_n h q \<le> r"
@@ -1671,9 +1678,9 @@ proof -
   let ?U = "of_int (T ^ (gs_row_denominator_order_exponent (gs_m h) D)) :: real"
   have Uone: "1 \<le> ?U"
     using Tp by fastforce
-  let ?B = "gs_kernel_witness_bound (q * q) D gs_witness_growth_weight
+  let ?B = "gs_coordinate_witness_bound
     (of_int (T ^ (gs_row_denominator_exponent (gs_m h) (gs_n h q) q D)) * A)"
-  have Bnonneg: "0 \<le> ?B" by (simp add: gs_kernel_witness_bound_def)
+  have Bnonneg: "0 \<le> ?B" by (simp add: gs_coordinate_witness_bound_def gs_kernel_witness_bound_def)
   have Bbound: "?B \<le> gs_witness_growth_prefactor * of_nat r *
     (gs_concrete_entry_growth_constant * ?U) ^ r * real r powr (of_nat r / 2)"
     using gs_witness_bound_le_growth_with_denominator[OF nle rpos Tp] A_choice by auto
@@ -1696,17 +1703,16 @@ lemma gs_rho_upper_verified:
     gs_point_growth_base \<le> c14"
   assumes v_carrier: "v \<in> carrier_vec (q * q)"
   assumes v_nz: "v \<noteq> 0\<^sub>v (q * q)"
-  assumes v_ker: "gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q *\<^sub>v v =
+  assumes v_ker: "gs_row_scaled_system_mat (gs_m h) (gs_n h q) q *\<^sub>v v =
     0\<^sub>v (gs_m h * gs_n h q)"
   assumes vint: "\<forall>i<q * q. algebraic_int (Matrix.vec_index v i)"
   assumes repr: "gs_power_basis_witness_coordinates v x"
   assumes x_carrier: "x \<in> carrier_vec (q * q * D)"
   assumes x_nz: "x \<noteq> 0\<^sub>v (q * q * D)"
-  assumes x_bnd: "x \<in> Bounded_vec
-    (gs_kernel_witness_bound (q * q) D gs_witness_growth_weight A)"
-  assumes req: "r = nat (gs_min_order (gs_m h) d q (\<lambda>t. Matrix.vec_index v t))"
-  assumes deriv_nz: "((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
-    (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t)) \<noteq> 0"
+  assumes x_bnd: "x \<in> Bounded_vec (gs_coordinate_witness_bound A)"
+  assumes req: "r = nat (gs_min_order (gs_m h) q (\<lambda>t. Matrix.vec_index v t))"
+  assumes deriv_nz: "((deriv ^^ r) (gs_aux_fun_vec q (\<lambda>t. Matrix.vec_index v t)))
+    (gs_min_order_node (gs_m h) q (\<lambda>t. Matrix.vec_index v t)) \<noteq> 0"
   assumes c_def: "c = gs_scaled_auxiliary_multiplier r"
   assumes rho_def: "rho = gs_scaled_auxiliary_value v r c"
   shows "gs_abs_galois_norm rho \<le>
@@ -1907,26 +1913,31 @@ proof -
     by (rule scaled_integer_power_basis_coordinates_prod_list[OF Dpos rep xsS])
 qed
 
+context gs_normalized_data
+begin
+
 definition gs_system_coeff_factor_list ::
-  "gelfond_schneider_data \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> complex list"
-  where "gs_system_coeff_factor_list d a b l k \<equiv>
-    replicate k (gs_affine_coeff d a b) @
-    replicate (a * l) (gs_a d) @ replicate (b * l) (gs_w d)"
+  "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> complex list"
+  where "gs_system_coeff_factor_list a b l k \<equiv>
+    replicate k (gs_affine_coeff a b) @
+    replicate (a * l) alpha @ replicate (b * l) omega"
 
 lemma gs_system_coeff_factor_list_product:
-  "prod_list (gs_system_coeff_factor_list d a b l k) =
-    gs_system_coeff d a b l k"
+  "prod_list (gs_system_coeff_factor_list a b l k) =
+    gs_system_coeff a b l k"
   by (simp add: gs_system_coeff_factor_list_def gs_system_coeff_def)
 
 lemma gs_system_coeff_factor_list_length:
-  "length (gs_system_coeff_factor_list d a b l k) = gs_system_coeff_factor_count a b l k"
+  "length (gs_system_coeff_factor_list a b l k) = gs_system_coeff_factor_count a b l k"
   by (simp add: gs_system_coeff_factor_list_def gs_system_coeff_factor_count_def)
 
 lemma gs_system_coeff_factor_list_members:
-  "\<forall>x\<in>set (gs_system_coeff_factor_list d a b l k).
-    x = gs_a d \<or> x = gs_w d \<or>
-      (\<exists>u v::nat. x = of_nat u + of_nat v * gs_b d)"
+  "\<forall>x\<in>set (gs_system_coeff_factor_list a b l k).
+    x = alpha \<or> x = omega \<or>
+      (\<exists>u v::nat. x = of_nat u + of_nat v * beta)"
   by (auto simp: gs_system_coeff_factor_list_def gs_affine_coeff_def)
+
+end
 
 lemma scaled_integer_power_basis_coordinate_pad_exponent:
   fixes eta y :: complex
@@ -2046,23 +2057,33 @@ definition uniform_product_denominator :: "complex \<Rightarrow> complex \<Right
     (\<forall>xs. (\<forall>x\<in>set xs. uniform_denominator_factor a b w x) \<longrightarrow>
       (\<exists>c. of_int (T ^ length xs) * prod_list xs = (\<Sum>k<D. of_int (c k) * eta ^ k)))"
 
-definition gs_denominator_factor :: "gelfond_schneider_data \<Rightarrow> complex \<Rightarrow> bool"
-  where "gs_denominator_factor d x \<equiv>
-    uniform_denominator_factor (gs_a d) (gs_b d) (gs_w d) x"
+end
 
-definition gs_uniform_product_denominator :: "gelfond_schneider_data \<Rightarrow> int \<Rightarrow> bool"
-  where "gs_uniform_product_denominator d T \<equiv>
-    uniform_product_denominator (gs_a d) (gs_b d) (gs_w d) T"
+context gs_power_basis_data
+begin
+
+definition gs_denominator_factor :: "complex \<Rightarrow> bool"
+  where "gs_denominator_factor x \<equiv>
+    uniform_denominator_factor alpha beta omega x"
+
+definition gs_uniform_product_denominator :: "int \<Rightarrow> bool"
+  where "gs_uniform_product_denominator T \<equiv>
+    uniform_product_denominator alpha beta omega T"
 
 lemma gs_uniform_product_denominatorD:
-  assumes prod: "gs_uniform_product_denominator d T"
-    and factors: "\<forall>x\<in>set xs. gs_denominator_factor d x"
+  assumes prod: "gs_uniform_product_denominator T"
+    and factors: "\<forall>x\<in>set xs. gs_denominator_factor x"
   shows "\<exists>c::nat \<Rightarrow> int.
     of_int (T ^ length xs) * prod_list xs =
       (\<Sum>i<D. of_int (c i) * eta ^ i)"
   using assms
   unfolding gs_uniform_product_denominator_def uniform_product_denominator_def
     gs_denominator_factor_def by blast
+
+end
+
+context finite_normal_galois_power_basis
+begin
 
 lemma rational_coordinates_of_product:
   assumes xK: "x \<in> K"
@@ -2105,7 +2126,7 @@ proof -
   qed
   have eq: "of_int L * (x * eta ^ j) = (\<Sum>k<D. of_int (C x j k) * eta ^ k)"
     if "x \<in> S" and "j < D" for x j
-    using c \<open>x \<in> S\<close> LC[OF that] 
+    using c \<open>x \<in> S\<close> LC[OF that]
     by (auto simp add: sum_distrib_left algebra_simps intro!: sum.cong)
   show ?thesis by (intro exI[of _ L] exI[of _ C]) (use Lp eq in auto)
 qed
@@ -2168,28 +2189,33 @@ proof -
     using Tp by (intro exI[of _ T]) fastforce
 qed
 
+end
+
+context gs_power_basis_data
+begin
+
 theorem system_coefficients_have_uniform_exponential_denominator:
-  assumes coords: "rational_power_basis_coordinates D eta ca cb cw (gs_a d) (gs_b d) (gs_w d)"
+  assumes coords: "rational_power_basis_coordinates D eta ca cb cw (alpha) (beta) (omega)"
   shows "\<exists>T::int. T > 0 \<and> (\<forall>a b l k.
     \<exists>c::nat \<Rightarrow> int.
-      of_int (T ^ (gs_system_coeff_factor_count a b l k)) * gs_system_coeff d a b l k =
+      of_int (T ^ (gs_system_coeff_factor_count a b l k)) * gs_system_coeff a b l k =
         (\<Sum>j<D. of_int (c j) * eta ^ j))"
 proof -
-  interpret rational_power_basis_coordinates D eta ca cb cw "gs_a d" "gs_b d" "gs_w d"
+  interpret rational_power_basis_coordinates D eta ca cb cw "alpha" "beta" "omega"
     using assms by blast
-  obtain aK: "gs_a d \<in> K" and bK: "gs_b d \<in> K" and wK: "gs_w d \<in> K"
+  obtain aK: "alpha \<in> K" and bK: "beta \<in> K" and wK: "omega \<in> K"
     using a_eq b_eq ca_rat cb_rat cw_rat w_eq sum_rat_power_in_K
     by presburger
   obtain T::int where Tp: "T > 0"
-    and prod: "gs_uniform_product_denominator d T"
+    and prod: "gs_uniform_product_denominator T"
     using data_generators_and_affines_uniform_product_denominator
       [OF aK bK wK]
     unfolding gs_uniform_product_denominator_def by blast
-  have one: "\<exists>c. of_int (T ^ (gs_system_coeff_factor_count a b l k)) * gs_system_coeff d a b l k =
+  have one: "\<exists>c. of_int (T ^ (gs_system_coeff_factor_count a b l k)) * gs_system_coeff a b l k =
         (\<Sum>j<D. of_int (c j) * eta ^ j)" for a b l k
   proof -
-    let ?xs = "gs_system_coeff_factor_list d a b l k"
-    have mem: "\<forall>x\<in>set ?xs. gs_denominator_factor d x"
+    let ?xs = "gs_system_coeff_factor_list a b l k"
+    have mem: "\<forall>x\<in>set ?xs. gs_denominator_factor x"
       using gs_system_coeff_factor_list_members
       unfolding gs_denominator_factor_def uniform_denominator_factor_def
       by blast
@@ -2206,12 +2232,12 @@ qed
 
 lemma system_coefficients_times_basis_from_product_denominator:
   fixes T :: int
-  assumes prod: "gs_uniform_product_denominator d T"
-  shows "\<exists>c. of_int (T ^ (gs_system_coeff_factor_count a b l k + j)) * (gs_system_coeff d a b l k * eta ^ j) =
+  assumes prod: "gs_uniform_product_denominator T"
+  shows "\<exists>c. of_int (T ^ (gs_system_coeff_factor_count a b l k + j)) * (gs_system_coeff a b l k * eta ^ j) =
       (\<Sum>i<D. of_int (c i) * eta ^ i)"
 proof -
-  let ?xs = "gs_system_coeff_factor_list d a b l k @ replicate j eta"
-  have mem: "\<forall>x\<in>set ?xs. gs_denominator_factor d x"
+  let ?xs = "gs_system_coeff_factor_list a b l k @ replicate j eta"
+  have mem: "\<forall>x\<in>set ?xs. gs_denominator_factor x"
     by (auto simp: gs_denominator_factor_def uniform_denominator_factor_def
         gs_system_coeff_factor_list_def gs_affine_coeff_def)
   have ex: "\<exists>c. of_int (T ^ length ?xs) * prod_list ?xs = (\<Sum>i<D. of_int (c i) * eta ^ i)"
@@ -2222,25 +2248,25 @@ proof -
 qed
 
 theorem system_coefficients_times_basis_have_uniform_denominator:
-  assumes coords: "rational_power_basis_coordinates D eta ca cb cw (gs_a d) (gs_b d) (gs_w d)"
+  assumes coords: "rational_power_basis_coordinates D eta ca cb cw (alpha) (beta) (omega)"
   shows "\<exists>T::int. T > 0 \<and> (\<forall>a b l k j.
-    \<exists>c. of_int (T ^ (gs_system_coeff_factor_count a b l k + j)) * (gs_system_coeff d a b l k * eta ^ j) =
+    \<exists>c. of_int (T ^ (gs_system_coeff_factor_count a b l k + j)) * (gs_system_coeff a b l k * eta ^ j) =
         (\<Sum>i<D. of_int (c i) * eta ^ i))"
 proof -
-  interpret rational_power_basis_coordinates D eta ca cb cw "gs_a d" "gs_b d" "gs_w d"
+  interpret rational_power_basis_coordinates D eta ca cb cw "alpha" "beta" "omega"
     using assms by blast
-  obtain aK: "gs_a d \<in> K" and bK: "gs_b d \<in> K" and wK: "gs_w d \<in> K"
+  obtain aK: "alpha \<in> K" and bK: "beta \<in> K" and wK: "omega \<in> K"
     using a_eq b_eq ca_rat cb_rat cw_rat w_eq sum_rat_power_in_K
     by presburger
   obtain T::int where Tp: "T > 0"
-    and prod: "gs_uniform_product_denominator d T"
+    and prod: "gs_uniform_product_denominator T"
     using data_generators_and_affines_uniform_product_denominator [OF aK bK wK]
     unfolding gs_uniform_product_denominator_def by blast
-  have one: "\<exists>c. of_int (T ^ (gs_system_coeff_factor_count a b l k + j)) * (gs_system_coeff d a b l k * eta ^ j) =
+  have one: "\<exists>c. of_int (T ^ (gs_system_coeff_factor_count a b l k + j)) * (gs_system_coeff a b l k * eta ^ j) =
         (\<Sum>i<D. of_int (c i) * eta ^ i)" for a b l k j
   proof -
-    let ?xs = "gs_system_coeff_factor_list d a b l k @ replicate j eta"
-    have mem: "\<forall>x\<in>set ?xs. gs_denominator_factor d x"
+    let ?xs = "gs_system_coeff_factor_list a b l k @ replicate j eta"
+    have mem: "\<forall>x\<in>set ?xs. gs_denominator_factor x"
       by (auto simp: gs_denominator_factor_def uniform_denominator_factor_def
         gs_system_coeff_factor_list_def gs_affine_coeff_def)
     have ex: "\<exists>c::nat \<Rightarrow> int.
@@ -2281,19 +2307,19 @@ lemma row_scaled_matrix_entries_from_coefficient_representation:
   fixes T :: int
   assumes rep: "\<forall>a b l k j. \<exists>c::nat \<Rightarrow> int.
       of_int (T ^ (gs_system_coeff_factor_count a b l k + j)) *
-        (gs_system_coeff d a b l k * eta ^ j) =
+        (gs_system_coeff a b l k * eta ^ j) =
         (\<Sum>i<D. of_int (c i) * eta ^ i)"
     and npos: "gs_n h q > 0"
     and qpos: "q > 0"
   shows "\<forall>u<gs_m h * gs_n h q. \<forall>t<q * q. \<forall>j<D.
     \<exists>c::nat \<Rightarrow> int.
       of_int (T ^ (gs_row_denominator_exponent (gs_m h) (gs_n h q) q D)) *
-        (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q $$ (u,t) * eta ^ j) =
+        (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q $$ (u,t) * eta ^ j) =
         (\<Sum>i<D. of_int (c i) * eta ^ i)"
 proof -
   have one: "\<exists>c::nat \<Rightarrow> int.
     of_int (T ^ (gs_row_denominator_exponent (gs_m h) (gs_n h q) q D)) *
-      (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q $$ (u,t) * eta ^ j) =
+      (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q $$ (u,t) * eta ^ j) =
       (\<Sum>i<D. of_int (c i) * eta ^ i)"
     if ult: "u < gs_m h * gs_n h q" and tlt: "t < q * q" and jlt: "j < D"
     for u t j
@@ -2307,21 +2333,21 @@ proof -
     have eN: "?e \<le> ?N"
       by (rule gs_system_coeff_idx_basis_exponent_le[OF npos qpos ult tlt jlt])
     obtain c::"nat \<Rightarrow> int" where crep:
-      "of_int (T ^ ?e) * (gs_system_coeff d ?a ?b ?l ?k * eta ^ j) = (\<Sum>i<D. of_int (c i) * eta ^ i)"
+      "of_int (T ^ ?e) * (gs_system_coeff ?a ?b ?l ?k * eta ^ j) = (\<Sum>i<D. of_int (c i) * eta ^ i)"
       using rep unfolding gs_system_coeff_factor_count_def by blast
-    have padded: "of_int (T ^ ?N) * (gs_system_coeff d ?a ?b ?l ?k * eta ^ j) =
+    have padded: "of_int (T ^ ?N) * (gs_system_coeff ?a ?b ?l ?k * eta ^ j) =
         (\<Sum>i<D. of_int (T ^ (?N - ?e) * c i) * eta ^ i)"
       by (rule scaled_integer_power_basis_coordinate_pad_exponent[OF eN crep])
-    let ?s = "gs_row_scale d (gs_m h) (gs_n h q) q u"
-    have row: "gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q $$ (u,t) =
-      of_int ?s * gs_system_coeff d ?a ?b ?l ?k"
+    let ?s = "gs_row_scale (gs_m h) (gs_n h q) q u"
+    have row: "gs_row_scaled_system_mat (gs_m h) (gs_n h q) q $$ (u,t) =
+      of_int ?s * gs_system_coeff ?a ?b ?l ?k"
       using ult tlt by (simp add: gs_row_scaled_system_mat_def gs_system_coeff_idx_def)
-    have "of_int (T ^ ?N) * (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q $$ (u,t) * eta ^ j) =
+    have "of_int (T ^ ?N) * (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q $$ (u,t) * eta ^ j) =
       (\<Sum>i<D. of_int (?s * (T ^ (?N - ?e) * c i)) * eta ^ i)"
     proof -
       have "of_int (T ^ ?N) *
-        (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q $$ (u,t) * eta ^ j) =
-        of_int ?s * (of_int (T ^ ?N) * (gs_system_coeff d ?a ?b ?l ?k * eta ^ j))"
+        (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q $$ (u,t) * eta ^ j) =
+        of_int ?s * (of_int (T ^ ?N) * (gs_system_coeff ?a ?b ?l ?k * eta ^ j))"
         by (simp add: row algebra_simps)
       also have "... = of_int ?s * (\<Sum>i<D. of_int (T ^ (?N - ?e) * c i) * eta ^ i)"
         by (simp only: padded)
@@ -2336,29 +2362,29 @@ qed
 
 lemma row_scaled_matrix_entries_from_product_denominator:
   fixes T :: int
-  assumes prod: "gs_uniform_product_denominator d T"
+  assumes prod: "gs_uniform_product_denominator T"
     and npos: "gs_n h q > 0"
     and qpos: "q > 0"
   shows "\<forall>u<gs_m h * gs_n h q. \<forall>t<q * q. \<forall>j<D.
     \<exists>c::nat \<Rightarrow> int.
       of_int (T ^ (gs_row_denominator_exponent (gs_m h) (gs_n h q) q D)) *
-        (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q $$ (u,t) * eta ^ j) =
+        (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q $$ (u,t) * eta ^ j) =
         (\<Sum>i<D. of_int (c i) * eta ^ i)"
   using row_scaled_matrix_entries_from_coefficient_representation
      system_coefficients_times_basis_from_product_denominator[OF prod] npos qpos
   by blast
 
 theorem row_scaled_matrix_entries_have_uniform_exponential_denominator:
-  assumes coords: "rational_power_basis_coordinates D eta ca cb cw (gs_a d) (gs_b d) (gs_w d)"
+  assumes coords: "rational_power_basis_coordinates D eta ca cb cw (alpha) (beta) (omega)"
     and npos: "gs_n h q > 0"
     and qpos: "q > 0"
   shows "\<exists>T::int. T > 0 \<and>
     (\<forall>u<gs_m h * gs_n h q. \<forall>t<q * q. \<forall>j<D.
       \<exists>c::nat \<Rightarrow> int.
         of_int (T ^ (gs_row_denominator_exponent (gs_m h) (gs_n h q) q D)) *
-          (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q $$ (u,t) * eta ^ j) =
+          (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q $$ (u,t) * eta ^ j) =
           (\<Sum>i<D. of_int (c i) * eta ^ i))"
-  using assms row_scaled_matrix_entries_from_coefficient_representation  
+  using assms row_scaled_matrix_entries_from_coefficient_representation
     system_coefficients_times_basis_have_uniform_denominator [OF coords]
   by blast
 
@@ -2410,7 +2436,7 @@ proof -
   proof -
     have cj: "(\<forall>j<D. complex_of_int (c j) = 0)"
       using Subfield.power_basis_indep[OF Rats_subfield algQ] zero
-      using D_def by (metis (full_types) Rats_of_int) 
+      using D_def by (metis (full_types) Rats_of_int)
     show "\<forall>j<D. c j = 0" using cj by auto
   qed
   have Dp: "D > 0" by (rule Dpos)
@@ -2533,7 +2559,7 @@ proof -
   proof -
     have cj: "(\<forall>j<D. complex_of_int (c j) = 0)"
       using Subfield.power_basis_indep[OF Rats_subfield algQ] zero
-      using D_def by (metis (full_types) Rats_of_int) 
+      using D_def by (metis (full_types) Rats_of_int)
     show "\<forall>j<D. c j = 0" using cj by auto
   qed
   have Lnz: "L \<noteq> (0::int)" using Lp by simp
@@ -2578,7 +2604,7 @@ proof -
     using finite_matrix_has_scaled_integer_structure_constants[OF M entryK] by blast
   show thesis
     using finite_K_matrix_has_house_bounded_kernel_given_denominator
-      [OF M ppos hpq entryK house Hnonneg Lp rep] 
+      [OF M ppos hpq entryK house Hnonneg Lp rep]
     using that [OF Lp] by auto
 qed
 
@@ -2606,44 +2632,44 @@ proof -
 qed
 
 lemma row_scaled_entry_in_K_from_rational_coordinates:
-  assumes coords: "rational_power_basis_coordinates D eta ca cb cw (gs_a d) (gs_b d) (gs_w d)"
+  assumes coords: "rational_power_basis_coordinates D eta ca cb cw (alpha) (beta) (omega)"
     and up: "u < m * n"
     and tq: "t < q * q"
-  shows "gs_row_scaled_system_mat d m n q $$ (u,t) \<in> K"
+  shows "gs_row_scaled_system_mat m n q $$ (u,t) \<in> K"
 proof -
   interpret KS: Subfield K by (rule K_subfield)
-  interpret rational_power_basis_coordinates D eta ca cb cw "gs_a d" "gs_b d" "gs_w d"
+  interpret rational_power_basis_coordinates D eta ca cb cw "alpha" "beta" "omega"
     using assms by blast
-  obtain aK: "gs_a d \<in> K" and bK: "gs_b d \<in> K" and wK: "gs_w d \<in> K"
+  obtain aK: "alpha \<in> K" and bK: "beta \<in> K" and wK: "omega \<in> K"
     using a_eq b_eq ca_rat cb_rat cw_rat w_eq sum_rat_power_in_K
     by presburger
   have natK: "(of_nat z :: complex) \<in> K" for z
     using Rats_subset_K by auto
-  have affK: "gs_affine_coeff d a b \<in> K" for a b
+  have affK: "gs_affine_coeff a b \<in> K" for a b
     using bK gs_affine_coeff_def by auto
-  have sysK: "gs_system_coeff d a b l k \<in> K" for a b l k
+  have sysK: "gs_system_coeff a b l k \<in> K" for a b l k
     by (simp add: KS.mult_closed KS.power_closed aK affK gs_system_coeff_def wK)
-  have scaleK: "(of_int (gs_row_scale d m n q u) :: complex) \<in> K"
+  have scaleK: "(of_int (gs_row_scale m n q u) :: complex) \<in> K"
     using Rats_subset_K by auto
-  have coeffK: "gs_system_coeff_idx d n q u t \<in> K"
+  have coeffK: "gs_system_coeff_idx n q u t \<in> K"
     unfolding gs_system_coeff_idx_def by (rule sysK)
   show ?thesis using KS.mult_closed[OF scaleK coeffK] up tq
     by (simp add: gs_row_scaled_system_mat_def)
 qed
 
 theorem row_scaled_matrix_has_bounded_algebraic_integer_kernel:
-  assumes coords: "rational_power_basis_coordinates D eta ca cb cw (gs_a d) (gs_b d) (gs_w d)"
+  assumes coords: "rational_power_basis_coordinates D eta ca cb cw (alpha) (beta) (omega)"
     and npos: "gs_n h q > 0"
     and dvd: "2 * gs_m h dvd q ^ 2"
   obtains B :: int and v :: "complex vec" and x :: "int vec" where
     "bounded_integral_basis_kernel
-      (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q)
+      (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q)
       (gs_m h * gs_n h q) (q * q) D (\<lambda>j. eta ^ j)
       (2 * int (q * q * D) * max 1 B) v x"
 proof -
   let ?m = "gs_m h"
   let ?n = "gs_n h q"
-  let ?M = "gs_row_scaled_system_mat d ?m ?n q"
+  let ?M = "gs_row_scaled_system_mat ?m ?n q"
   have Mcar: "?M \<in> carrier_mat (?m * ?n) (q * q)" by simp
   have mnpos: "?m * ?n > 0" using npos by simp
   have bal: "q * q = 2 * (?m * ?n)"
@@ -2658,16 +2684,16 @@ proof -
 qed
 
 theorem row_scaled_matrix_has_house_bounded_kernel:
-  assumes coords: "rational_power_basis_coordinates D eta ca cb cw (gs_a d) (gs_b d) (gs_w d)"
+  assumes coords: "rational_power_basis_coordinates D eta ca cb cw (alpha) (beta) (omega)"
     and npos: "gs_n h q > 0"
     and dvd: "2 * gs_m h dvd q ^ 2"
     and house: "\<And>u t. u < gs_m h * gs_n h q \<Longrightarrow> t < q * q \<Longrightarrow>
-      EH.ehouse (\<lambda>e. e (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q $$ (u,t))) \<le> H"
+      EH.ehouse (\<lambda>e. e (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q $$ (u,t))) \<le> H"
     and Hnonneg: "0 \<le> H"
   obtains L :: int and v :: "complex vec" and x :: "int vec" where
     "L > 0"
     "bounded_integral_basis_kernel
-      (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q)
+      (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q)
       (gs_m h * gs_n h q) (q * q) D (\<lambda>j. eta ^ j)
       (2 * int (q * q * D) * max 1
         (\<lceil>of_nat (card E) * power_basis_inverse_bound *
@@ -2675,7 +2701,7 @@ theorem row_scaled_matrix_has_house_bounded_kernel:
 proof -
   let ?m = "gs_m h"
   let ?n = "gs_n h q"
-  let ?M = "gs_row_scaled_system_mat d ?m ?n q"
+  let ?M = "gs_row_scaled_system_mat ?m ?n q"
   have Mcar: "?M \<in> carrier_mat (?m * ?n) (q * q)" by simp
   have mnpos: "?m * ?n > 0" using npos by simp
   have bal: "q * q = 2 * (?m * ?n)"
@@ -2692,17 +2718,17 @@ qed
 theorem row_scaled_matrix_has_given_denominator_bounded_kernel:
   fixes T :: int
   assumes Tp: "T > 0"
-    and prod: "gs_uniform_product_denominator d T"
-    and coords: "rational_power_basis_coordinates D eta ca cb cw (gs_a d) (gs_b d) (gs_w d)"
+    and prod: "gs_uniform_product_denominator T"
+    and coords: "rational_power_basis_coordinates D eta ca cb cw (alpha) (beta) (omega)"
     and npos: "gs_n h q > 0"
     and qpos: "q > 0"
     and dvd: "2 * gs_m h dvd q ^ 2"
     and house: "\<And>u t. u < gs_m h * gs_n h q \<Longrightarrow> t < q * q \<Longrightarrow>
-      EH.ehouse (\<lambda>e. e (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q $$ (u,t))) \<le> H"
+      EH.ehouse (\<lambda>e. e (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q $$ (u,t))) \<le> H"
     and Hnonneg: "0 \<le> H"
   obtains v :: "complex vec" and x :: "int vec" where
     "bounded_integral_basis_kernel
-      (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q)
+      (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q)
       (gs_m h * gs_n h q) (q * q) D (\<lambda>j. eta ^ j)
       (2 * int (q * q * D) * max 1
         (\<lceil>of_nat (card E) * power_basis_inverse_bound *
@@ -2711,7 +2737,7 @@ theorem row_scaled_matrix_has_given_denominator_bounded_kernel:
 proof -
   let ?m = "gs_m h"
   let ?n = "gs_n h q"
-  let ?M = "gs_row_scaled_system_mat d ?m ?n q"
+  let ?M = "gs_row_scaled_system_mat ?m ?n q"
   let ?N = "gs_row_denominator_exponent ?m ?n q D"
   have Mcar: "?M \<in> carrier_mat (?m * ?n) (q * q)" by simp
   have mnpos: "?m * ?n > 0" using npos by simp
@@ -2725,7 +2751,7 @@ proof -
   have "\<forall>u<?m * ?n. \<forall>t<q * q. \<forall>j<D.
       \<exists>c. of_int (T ^ ?N) * (?M $$ (u,t) * eta ^ j) = (\<Sum>i<D. of_int (c i) * eta ^ i)"
     by (rule row_scaled_matrix_entries_from_product_denominator [OF prod npos qpos])
-  then obtain f where f: "\<forall>u<?m * ?n. \<forall>t<q * q. \<forall>j<D. of_int (T ^ ?N) * (?M $$ (u,t) * eta ^ j) 
+  then obtain f where f: "\<forall>u<?m * ?n. \<forall>t<q * q. \<forall>j<D. of_int (T ^ ?N) * (?M $$ (u,t) * eta ^ j)
        = (\<Sum>k<D. of_int ((\<lambda>u t k j. f u t j k) u t k j) * eta ^ k)"
     unfolding choice_iff' by presburger
   then show thesis
@@ -2735,17 +2761,17 @@ proof -
 qed
 
 theorem row_scaled_matrix_has_exponential_denominator_bounded_kernel:
-  assumes coords: "rational_power_basis_coordinates D eta ca cb cw (gs_a d) (gs_b d) (gs_w d)"
+  assumes coords: "rational_power_basis_coordinates D eta ca cb cw (alpha) (beta) (omega)"
     and npos: "gs_n h q > 0"
     and qpos: "q > 0"
     and dvd: "2 * gs_m h dvd q ^ 2"
     and house: "\<And>u t. u < gs_m h * gs_n h q \<Longrightarrow> t < q * q \<Longrightarrow>
-      EH.ehouse (\<lambda>e. e (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q $$ (u,t))) \<le> H"
+      EH.ehouse (\<lambda>e. e (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q $$ (u,t))) \<le> H"
     and Hnonneg: "0 \<le> H"
   obtains T :: int and v :: "complex vec" and x :: "int vec" where
     "T > 0"
     "bounded_integral_basis_kernel
-      (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q)
+      (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q)
       (gs_m h * gs_n h q) (q * q) D (\<lambda>j. eta ^ j)
       (2 * int (q * q * D) * max 1
         \<lceil>real (card E) * power_basis_inverse_bound *
@@ -2753,12 +2779,12 @@ theorem row_scaled_matrix_has_exponential_denominator_bounded_kernel:
             power_basis_entry_bound)\<rceil>) v x"
 proof -
   interpret Coords: rational_power_basis_coordinates D eta ca cb cw
-    "gs_a d" "gs_b d" "gs_w d"
+    "alpha" "beta" "omega"
     by (rule coords)
-  obtain *: "gs_a d \<in> K" "gs_b d \<in> K" "gs_w d \<in> K"
+  obtain *: "alpha \<in> K" "beta \<in> K" "omega \<in> K"
     using Coords.a_eq Coords.b_eq Coords.ca_rat Coords.cb_rat Coords.cw_rat Coords.w_eq
       sum_rat_power_in_K by presburger
-  obtain T where Tp: "T > 0" and prod: "gs_uniform_product_denominator d T"
+  obtain T where Tp: "T > 0" and prod: "gs_uniform_product_denominator T"
     using data_generators_and_affines_uniform_product_denominator[OF *]
     unfolding gs_uniform_product_denominator_def by blast
   show thesis
@@ -2771,51 +2797,42 @@ end
 
 locale gelfond_schneider_power_basis_scaled_norm_verified =
   gelfond_schneider_power_basis_field_norm_estimates
-    K eta D emb ca cb cw d q h i0 A c5 c14
+    K eta D emb alpha beta omega zeta ca cb cw q h i0 A c5 c14
   for K :: "complex set"
   and eta :: complex
   and D :: nat
   and emb :: "nat \<Rightarrow> complex \<Rightarrow> complex"
+  and alpha beta omega zeta :: complex
   and ca cb cw :: "nat \<Rightarrow> complex"
-  and d
   and q h i0 :: nat
   and A c5 c14 :: real +
   fixes T :: int
   assumes Tp: "T > 0"
-  assumes prod: "\<forall>xs. (\<forall>x\<in>set xs. x = gs_a d \<or> x = gs_w d \<or> x = eta \<or> (\<exists>u v. x = of_nat u + of_nat v * gs_b d))
-      \<longrightarrow> (\<exists>z. of_int (T ^ length xs) * prod_list xs = (\<Sum>i<D. of_int (z i) * eta ^ i))"
+  assumes prod: "gs_uniform_product_denominator T"
   assumes hD: "h = D"
   assumes A_choice: "A = gs_concrete_entry_bound"
   assumes c14_big:
-    "(gs_house_growth_base *
-      of_int (T ^ (gs_row_denominator_order_exponent (gs_m h) D)) ^ 2) ^ (D - 1) *
-      (gs_point_growth_base *
-        of_int (T ^ (gs_row_denominator_order_exponent (gs_m h) D))) \<le> c14"
+    "gs_norm_growth_base
+      (of_int (T ^ (gs_row_denominator_order_exponent (gs_m h) D))) \<le> c14"
 begin
 
 theorem coordinate_contradiction: False
 proof -
   let ?N = "gs_row_denominator_exponent (gs_m h) (gs_n h q) q D"
-  let ?B = "gs_kernel_witness_bound (q * q) D gs_witness_growth_weight
-    (of_int (T ^ ?N) * A)"
-  have house: "EH.ehouse (\<lambda>e. e (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q $$ (u,t))) \<le> A"
+  let ?B = "gs_coordinate_witness_bound (of_int (T ^ ?N) * A)"
+  have house: "EH.ehouse (\<lambda>e. e (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q $$ (u,t))) \<le> A"
     if up: "u < gs_m h * gs_n h q" and tq: "t < q * q" for u t
     using A_choice Aemb_def gs_row_scaled_entry_concrete_house_le that(1,2) by presburger
   have Anonneg: "0 \<le> A"
     using A_choice gs_concrete_entry_bound_nonneg by simp
-  have prod_named: "gs_uniform_product_denominator d T"
-    using prod
-    unfolding gs_uniform_product_denominator_def
-      uniform_product_denominator_def uniform_denominator_factor_def
-    by blast
   obtain v x where IW: "bounded_integral_basis_kernel
-      (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q)
+      (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q)
       (gs_m h * gs_n h q) (q * q) D (\<lambda>j. eta ^ j) ?B v x"
     using row_scaled_matrix_has_given_denominator_bounded_kernel
-      [OF Tp prod_named coords npos qpos dvd house Anonneg]
-    by (force simp add: gs_kernel_witness_bound_def gs_witness_growth_weight_def ac_simps)
+      [OF Tp prod coords npos qpos dvd house Anonneg]
+    by (force simp add: gs_coordinate_witness_bound_def gs_kernel_witness_bound_def gs_witness_growth_weight_def ac_simps)
   interpret W: bounded_integral_basis_kernel
-    "gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q"
+    "gs_row_scaled_system_mat (gs_m h) (gs_n h q) q"
     "gs_m h * gs_n h q" "q * q" D "\<lambda>j. eta ^ j" ?B v x
     by (rule IW)
   note vcar = W.v_carrier and vnz = W.v_nonzero
@@ -2825,13 +2842,13 @@ proof -
   have repr: "gs_power_basis_witness_coordinates v x"
     using vrepr by (simp add: gs_power_basis_witness_coordinates_def
       basis_eq_power_at_identity_embedding[OF emb0])
-  define r where "r \<equiv> nat (gs_min_order (gs_m h) d q (\<lambda>t. Matrix.vec_index v t))"
+  define r where "r \<equiv> nat (gs_min_order (gs_m h) q (\<lambda>t. Matrix.vec_index v t))"
   have coeff_nz: "\<exists>t<q * q. Matrix.vec_index v t \<noteq> 0"
     using vcar vnz by force
-  have deriv_nz: "((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
-      (gs_min_order_node (gs_m h) d q (\<lambda>t. Matrix.vec_index v t)) \<noteq> 0"
+  have deriv_nz: "((deriv ^^ r) (gs_aux_fun_vec q (\<lambda>t. Matrix.vec_index v t)))
+      (gs_min_order_node (gs_m h) q (\<lambda>t. Matrix.vec_index v t)) \<noteq> 0"
     unfolding r_def
-    by (rule gs_min_order_deriv_nonzero_of_coeff_nonzero[OF d qpos coeff_nz])
+    by (rule gs_min_order_deriv_nonzero_of_coeff_nonzero[OF qpos coeff_nz])
   define c where "c \<equiv> gs_scaled_auxiliary_multiplier r"
   define rho where "rho \<equiv> gs_scaled_auxiliary_value v r c"
   obtain "0 < r" and nle: "gs_n h q \<le> r"
@@ -2840,14 +2857,10 @@ proof -
     using rho_algebraic_int_nonzero[OF vcar vnz vint] r_def deriv_nz c_def rho_def by blast
   have xK: "rho \<in> K"
     using rho_in_K[OF repr] rho_def by blast
-  have c14_named:
-    "gs_norm_growth_base
-      (of_int (T ^ (gs_row_denominator_order_exponent (gs_m h) D))) \<le> c14"
-    using c14_big by (simp add: gs_norm_growth_base_def)
   moreover have "gs_abs_galois_norm rho \<le> c14 powr of_nat r * real r powr (gs_norm_order_exponent h r)"
     using r_def rho_def c_def nle \<open>r > 0\<close> ai xK
     by (intro gs_rho_upper_from_concrete_witness_with_denominator
-      [OF hD A_choice Tp c14_named vcar vnz ker repr xcar xbnd]) auto
+      [OF hD A_choice Tp c14_big vcar vnz ker repr xcar xbnd]) auto
   moreover have "0 < gs_abs_galois_norm rho"
     by (rule gs_abs_galois_norm_pos[OF xK nz])
   moreover have "inverse (gs_abs_galois_norm rho) < c5 powr of_nat r"

@@ -35,10 +35,15 @@ next
     using insert.hyps by simp
 qed
 
+context gs_normalized_data
+begin
+
 lemma gs_aux_fun_holomorphic [holomorphic_intros]:
-  "(gs_aux_fun d q \<eta>) holomorphic_on A"
+  "(gs_aux_fun q \<eta>) holomorphic_on A"
   unfolding gs_aux_fun_def
   by (rule finite_exp_sum_holomorphic) (simp add: gs_grid_def)
+
+end
 
 lemma holomorphic_nonzero_zorder_ge:
   assumes holo: "f holomorphic_on UNIV"
@@ -54,34 +59,39 @@ proof -
     by (rule zorder_geI[where A = UNIV and z = w]) (use ana holo w vanish in auto)
 qed
 
+context gs_normalized_data
+begin
+
 lemma gs_aux_fun_zorder_ge:
-  assumes nz: "gs_aux_fun d q \<eta> \<noteq> (\<lambda>_. 0)"
-  assumes vanish: "\<And>k. k < n \<Longrightarrow> ((deriv ^^ k) (gs_aux_fun d q \<eta>)) z = 0"
-  shows "zorder (gs_aux_fun d q \<eta>) z \<ge> n"
-  by (rule holomorphic_nonzero_zorder_ge[OF gs_aux_fun_holomorphic[of d q \<eta> UNIV] nz vanish])
+  assumes nz: "gs_aux_fun q \<eta> \<noteq> (\<lambda>_. 0)"
+  assumes vanish: "\<And>k. k < n \<Longrightarrow> ((deriv ^^ k) (gs_aux_fun q \<eta>)) z = 0"
+  shows "zorder (gs_aux_fun q \<eta>) z \<ge> n"
+  by (rule holomorphic_nonzero_zorder_ge[OF gs_aux_fun_holomorphic[of q \<eta> UNIV] nz vanish])
 
 lemma gs_aux_fun_zorder_nonneg:
-  assumes nz: "gs_aux_fun d q \<eta> \<noteq> (\<lambda>_. 0)"
-  shows "0 \<le> zorder (gs_aux_fun d q \<eta>) z"
+  assumes nz: "gs_aux_fun q \<eta> \<noteq> (\<lambda>_. 0)"
+  shows "0 \<le> zorder (gs_aux_fun q \<eta>) z"
 proof -
-  have "zorder (gs_aux_fun d q \<eta>) z \<ge> (0::nat)"
+  have "zorder (gs_aux_fun q \<eta>) z \<ge> (0::nat)"
     by (rule gs_aux_fun_zorder_ge[OF nz, of 0 z]) simp
   then show ?thesis
     by simp
 qed
 
 lemma gs_aux_fun_zor_poly_eq:
-  assumes nz: "gs_aux_fun d q \<eta> \<noteq> (\<lambda>_. 0)"
+  assumes nz: "gs_aux_fun q \<eta> \<noteq> (\<lambda>_. 0)"
   shows "eventually (\<lambda>w.
-      zor_poly (gs_aux_fun d q \<eta>) z w =
-      gs_aux_fun d q \<eta> w / (w - z) ^ nat (zorder (gs_aux_fun d q \<eta>) z)) (at z)"
+      zor_poly (gs_aux_fun q \<eta>) z w =
+      gs_aux_fun q \<eta> w / (w - z) ^ nat (zorder (gs_aux_fun q \<eta>) z)) (at z)"
 proof -
-  obtain w where w: "gs_aux_fun d q \<eta> w \<noteq> 0"
+  obtain w where w: "gs_aux_fun q \<eta> w \<noteq> 0"
     using nz by (auto simp: fun_eq_iff)
   show ?thesis
     by (rule zor_poly_zero_eq[where S = UNIV])
-       (use gs_aux_fun_holomorphic[of d q \<eta> UNIV] w in auto)
+       (use gs_aux_fun_holomorphic[of q \<eta> UNIV] w in auto)
 qed
+
+end
 
 lemma holomorphic_nonzero_deriv_zorder_nonzero:
   assumes holo: "f holomorphic_on UNIV"
@@ -189,14 +199,19 @@ next
     by blast
 qed
 
+context gs_normalized_data
+begin
+
 lemma gs_aux_fun_arg_min_on_nodes:
   assumes mpos: "m > 0"
-  shows "arg_min_on (zorder (gs_aux_fun d q \<eta>)) (gs_order_nodes m) \<in> gs_order_nodes m"
+  shows "arg_min_on (zorder (gs_aux_fun q \<eta>)) (gs_order_nodes m) \<in> gs_order_nodes m"
     and "\<And>z. z \<in> gs_order_nodes m \<Longrightarrow>
-      zorder (gs_aux_fun d q \<eta>)
-        (arg_min_on (zorder (gs_aux_fun d q \<eta>)) (gs_order_nodes m))
-      \<le> zorder (gs_aux_fun d q \<eta>) z"
+      zorder (gs_aux_fun q \<eta>)
+        (arg_min_on (zorder (gs_aux_fun q \<eta>)) (gs_order_nodes m))
+      \<le> zorder (gs_aux_fun q \<eta>) z"
   by (rule finite_arg_min_on_zorder; simp add: mpos)+
+
+end
 
 lemma gs_circle_node_distance_lower_bound:
   fixes z :: complex

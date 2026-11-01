@@ -17,11 +17,16 @@ section \<open>Finite Exponential Sums\<close>
 definition gs_grid :: "nat \<Rightarrow> (nat \<times> nat) set"
   where "gs_grid q = {..<q} \<times> {..<q}"
 
+context gs_normalized_data
+begin
+
 definition gs_aux_fun ::
-  "gelfond_schneider_data \<Rightarrow> nat \<Rightarrow> ((nat \<times> nat) \<Rightarrow> complex) \<Rightarrow> complex \<Rightarrow> complex"
+  "nat \<Rightarrow> ((nat \<times> nat) \<Rightarrow> complex) \<Rightarrow> complex \<Rightarrow> complex"
   where
-    "gs_aux_fun d q \<eta> x =
-      (\<Sum>ab\<in>gs_grid q. \<eta> ab * exp (gs_rho d (Suc (fst ab)) (Suc (snd ab)) * x))"
+    "gs_aux_fun q \<eta> x =
+      (\<Sum>ab\<in>gs_grid q. \<eta> ab * exp (gs_rho (Suc (fst ab)) (Suc (snd ab)) * x))"
+
+end
 
 lemma has_field_derivative_exp_linear_right:
   "((\<lambda>x::complex. exp (x * z)) has_field_derivative z * exp (x * z)) (at x)"
@@ -221,64 +226,66 @@ qed
 
 section \<open>Specialization to the Gelfond-Schneider Grid\<close>
 
+context gs_normalized_data
+begin
+
 lemma gelfond_schneider_data_rho_inj_on_grid:
-  assumes d: "is_gelfond_schneider_data d"
-  shows "inj_on (\<lambda>ab. gs_rho d (Suc (fst ab)) (Suc (snd ab))) (gs_grid q)"
+  shows "inj_on (\<lambda>ab. gs_rho (Suc (fst ab)) (Suc (snd ab))) (gs_grid q)"
 proof (rule inj_onI)
   fix ab ab'
   assume ab: "ab \<in> gs_grid q"
   assume ab': "ab' \<in> gs_grid q"
-  assume eq: "gs_rho d (Suc (fst ab)) (Suc (snd ab)) =
-    gs_rho d (Suc (fst ab')) (Suc (snd ab'))"
+  assume eq: "gs_rho (Suc (fst ab)) (Suc (snd ab)) =
+    gs_rho (Suc (fst ab')) (Suc (snd ab'))"
   have "Suc (fst ab) = Suc (fst ab') \<and> Suc (snd ab) = Suc (snd ab')"
-    by (rule gelfond_schneider_data_rho_injective[OF d eq])
+    by (rule gelfond_schneider_data_rho_injective[OF eq])
   then show "ab = ab'"
     by (cases ab; cases ab'; simp)
 qed
 
 lemma gelfond_schneider_data_aux_fun_iterated_deriv:
-  "((deriv ^^ k) (gs_aux_fun d q \<eta>)) x =
+  "((deriv ^^ k) (gs_aux_fun q \<eta>)) x =
     (\<Sum>ab\<in>gs_grid q.
       \<eta> ab *
-      gs_rho d (Suc (fst ab)) (Suc (snd ab)) ^ k *
-      exp (gs_rho d (Suc (fst ab)) (Suc (snd ab)) * x))"
+      gs_rho (Suc (fst ab)) (Suc (snd ab)) ^ k *
+      exp (gs_rho (Suc (fst ab)) (Suc (snd ab)) * x))"
   unfolding gs_aux_fun_def
   by (rule iterated_deriv_exp_sum) (simp add: gs_grid_def)
 
 lemma gelfond_schneider_data_aux_fun_eq_zero_imp_coeff_zero:
-  assumes d: "is_gelfond_schneider_data d"
-  assumes zero: "gs_aux_fun d q \<eta> = (\<lambda>_. 0)"
+  assumes zero: "gs_aux_fun q \<eta> = (\<lambda>_. 0)"
   shows "\<forall>ab\<in>gs_grid q. \<eta> ab = 0"
   unfolding gs_aux_fun_def
 proof (rule finite_exp_sum_eq_zero_imp_coeff_zero)
   show "finite (gs_grid q)"
     by (simp add: gs_grid_def)
-  show "inj_on (\<lambda>ab. gs_rho d (Suc (fst ab)) (Suc (snd ab))) (gs_grid q)"
-    by (rule gelfond_schneider_data_rho_inj_on_grid[OF d])
+  show "inj_on (\<lambda>ab. gs_rho (Suc (fst ab)) (Suc (snd ab))) (gs_grid q)"
+    by (rule gelfond_schneider_data_rho_inj_on_grid)
   show "\<forall>x. (\<Sum>i\<in>gs_grid q.
-      \<eta> i * exp (gs_rho d (Suc (fst i)) (Suc (snd i)) * x)) = 0"
+      \<eta> i * exp (gs_rho (Suc (fst i)) (Suc (snd i)) * x)) = 0"
   proof
     fix x
-    have "(gs_aux_fun d q \<eta>) x = (\<lambda>_. 0) x"
+    have "(gs_aux_fun q \<eta>) x = (\<lambda>_. 0) x"
       using fun_cong[OF zero, of x] .
     then show "(\<Sum>i\<in>gs_grid q.
-        \<eta> i * exp (gs_rho d (Suc (fst i)) (Suc (snd i)) * x)) = 0"
+        \<eta> i * exp (gs_rho (Suc (fst i)) (Suc (snd i)) * x)) = 0"
       unfolding gs_aux_fun_def by simp
   qed
 qed
 
 lemma gelfond_schneider_data_aux_fun_nonzero:
-  assumes d: "is_gelfond_schneider_data d"
   assumes nz: "\<exists>ab\<in>gs_grid q. \<eta> ab \<noteq> 0"
-  shows "gs_aux_fun d q \<eta> \<noteq> (\<lambda>_. 0)"
+  shows "gs_aux_fun q \<eta> \<noteq> (\<lambda>_. 0)"
   unfolding gs_aux_fun_def
 proof (rule finite_exp_sum_nonzero)
   show "finite (gs_grid q)"
     by (simp add: gs_grid_def)
-  show "inj_on (\<lambda>ab. gs_rho d (Suc (fst ab)) (Suc (snd ab))) (gs_grid q)"
-    by (rule gelfond_schneider_data_rho_inj_on_grid[OF d])
+  show "inj_on (\<lambda>ab. gs_rho (Suc (fst ab)) (Suc (snd ab))) (gs_grid q)"
+    by (rule gelfond_schneider_data_rho_inj_on_grid)
   show "\<exists>i\<in>gs_grid q. \<eta> i \<noteq> 0"
     using nz .
 qed
+
+end
 
 end

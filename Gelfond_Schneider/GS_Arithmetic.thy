@@ -14,115 +14,116 @@ begin
 
 section \<open>Scaled Derivative Values\<close>
 
+context gs_normalized_data
+begin
+
 definition gs_auxiliary_multiplier ::
-  "gelfond_schneider_data \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> int"
+  "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> int"
   where
-  "gs_auxiliary_multiplier d m q r =
-    gs_c1 d ^ r * gs_c1 d ^ (2 * m * q)"
+  "gs_auxiliary_multiplier m q r =
+    gs_c1 ^ r * gs_c1 ^ (2 * m * q)"
 
 definition gs_auxiliary_scaled_value ::
-  "gelfond_schneider_data \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow>
+  "nat \<Rightarrow> nat \<Rightarrow>
     complex vec \<Rightarrow> nat \<Rightarrow> int \<Rightarrow> complex"
   where
-  "gs_auxiliary_scaled_value d m q v r c =
+  "gs_auxiliary_scaled_value m q v r c =
     (of_int c :: complex) *
-      (gs_z d powi (- int r) *
-        ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. v $ t)))
-          (gs_min_order_node m d q (\<lambda>t. v $ t)))"
+      (zeta powi (- int r) *
+        ((deriv ^^ r) (gs_aux_fun_vec q (\<lambda>t. v $ t)))
+          (gs_min_order_node m q (\<lambda>t. v $ t)))"
 
 text \<open>The scaled first derivative is the algebraic integer used in the
 house lower bound.\<close>
 
 definition gs_integral_scaled_auxiliary_value ::
-  "gelfond_schneider_data \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow>
+  "nat \<Rightarrow> nat \<Rightarrow>
     complex vec \<Rightarrow> nat \<Rightarrow> int \<Rightarrow> complex \<Rightarrow> bool"
   where
-  "gs_integral_scaled_auxiliary_value d m q v r c rho \<longleftrightarrow>
-    c = gs_auxiliary_multiplier d m q r \<and>
+  "gs_integral_scaled_auxiliary_value m q v r c rho \<longleftrightarrow>
+    c = gs_auxiliary_multiplier m q r \<and>
     c \<noteq> 0 \<and>
-    rho = gs_auxiliary_scaled_value d m q v r c \<and>
+    rho = gs_auxiliary_scaled_value m q v r c \<and>
     algebraic_int rho \<and> rho \<noteq> 0"
 
 lemma gs_aux_fun_vec_deriv_at_nat:
-  assumes d: "is_gelfond_schneider_data d"
-  shows "gs_z d powi (- int k) * ((deriv ^^ k) (gs_aux_fun_vec d q \<xi>)) (of_nat l) =
-    (\<Sum>t<q * q. \<xi> t * gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k)"
+  shows "zeta powi (- int k) * ((deriv ^^ k) (gs_aux_fun_vec q \<xi>)) (of_nat l) =
+    (\<Sum>t<q * q. \<xi> t * gs_system_coeff (gs_a_idx q t) (gs_b_idx q t) l k)"
 proof -
-  have z_nz: "gs_z d \<noteq> 0"
-    by (rule gelfond_schneider_data_z_nonzero[OF d])
-  have "gs_z d powi (- int k) * ((deriv ^^ k) (gs_aux_fun_vec d q \<xi>)) (of_nat l) =
+  have z_nz: "zeta \<noteq> 0"
+    by (rule gelfond_schneider_data_z_nonzero)
+  have "zeta powi (- int k) * ((deriv ^^ k) (gs_aux_fun_vec q \<xi>)) (of_nat l) =
       (\<Sum>t<q * q.
-        gs_z d powi (- int k) * (\<xi> t * gs_rho_idx d q t ^ k *
-          exp (gs_rho_idx d q t * of_nat l)))"
+         zeta powi (- int k) * (\<xi> t * gs_rho_idx q t ^ k *
+          exp (gs_rho_idx q t * of_nat l)))"
     by (simp add: gs_aux_fun_vec_iterated_deriv sum_distrib_left algebra_simps)
-  also have "\<dots> = (\<Sum>t<q * q. \<xi> t * gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k)"
+  also have "\<dots> = (\<Sum>t<q * q. \<xi> t * gs_system_coeff (gs_a_idx q t) (gs_b_idx q t) l k)"
   proof (rule sum.cong[OF refl])
     fix t
     assume tmem: "t \<in> {..<q * q}"
     have exp_eq:
-        "exp (gs_rho_idx d q t * of_nat l) =
-          gs_a d ^ (gs_a_idx q t * l) * gs_w d ^ (gs_b_idx q t * l)"
+        "exp (gs_rho_idx q t * of_nat l) =
+          alpha ^ (gs_a_idx q t * l) * omega ^ (gs_b_idx q t * l)"
     proof -
-      have "exp (gs_rho_idx d q t * of_nat l) =
-          exp (gs_rho d (gs_a_idx q t * l) (gs_b_idx q t * l))"
+      have "exp (gs_rho_idx q t * of_nat l) =
+          exp (gs_rho (gs_a_idx q t * l) (gs_b_idx q t * l))"
         unfolding gs_rho_idx_def gs_rho_def gs_affine_coeff_def
         by (simp add: algebra_simps)
-      also have "\<dots> = gs_a d ^ (gs_a_idx q t * l) * gs_w d ^ (gs_b_idx q t * l)"
-        by (rule gelfond_schneider_data_rho_exp[OF d])
+      also have "\<dots> = alpha ^ (gs_a_idx q t * l) * omega ^ (gs_b_idx q t * l)"
+        by (rule gelfond_schneider_data_rho_exp)
       finally show ?thesis .
     qed
     have coeff_eq:
-        "gs_z d powi (- int k) *
-          (gs_rho_idx d q t ^ k * exp (gs_rho_idx d q t * of_nat l)) =
-          gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k"
+        "zeta powi (- int k) *
+          (gs_rho_idx q t ^ k * exp (gs_rho_idx q t * of_nat l)) =
+          gs_system_coeff (gs_a_idx q t) (gs_b_idx q t) l k"
     proof -
-      have "gs_z d powi (- int k) *
-          (gs_rho_idx d q t ^ k * exp (gs_rho_idx d q t * of_nat l)) =
-          (gs_z d powi (- int k) * gs_rho_idx d q t ^ k) * exp (gs_rho_idx d q t * of_nat l)"
+      have "zeta powi (- int k) *
+          (gs_rho_idx q t ^ k * exp (gs_rho_idx q t * of_nat l)) =
+          (zeta powi (- int k) * gs_rho_idx q t ^ k) * exp (gs_rho_idx q t * of_nat l)"
         by (simp add: algebra_simps)
       also have "\<dots> =
-          gs_affine_coeff d (gs_a_idx q t) (gs_b_idx q t) ^ k *
-          exp (gs_rho_idx d q t * of_nat l)"
+          gs_affine_coeff (gs_a_idx q t) (gs_b_idx q t) ^ k *
+          exp (gs_rho_idx q t * of_nat l)"
       proof -
-        have "gs_z d powi (- int k) * gs_rho_idx d q t ^ k =
-            gs_z d powi (- int k) *
-              ((gs_affine_coeff d (gs_a_idx q t) (gs_b_idx q t) * gs_z d) ^ k)"
+        have "zeta powi (- int k) * gs_rho_idx q t ^ k =
+             zeta powi (- int k) *
+              ((gs_affine_coeff (gs_a_idx q t) (gs_b_idx q t) * zeta) ^ k)"
           unfolding gs_rho_idx_def gs_rho_def by simp
         also have "\<dots> =
-            gs_affine_coeff d (gs_a_idx q t) (gs_b_idx q t) ^ k *
-              (gs_z d powi (- int k) * gs_z d ^ k)"
+            gs_affine_coeff (gs_a_idx q t) (gs_b_idx q t) ^ k *
+              (zeta powi (- int k) * zeta ^ k)"
           by (simp add: algebra_simps)
-        also have "\<dots> = gs_affine_coeff d (gs_a_idx q t) (gs_b_idx q t) ^ k"
+        also have "\<dots> = gs_affine_coeff (gs_a_idx q t) (gs_b_idx q t) ^ k"
           using z_nz by (simp add: power_int_def field_simps)
         finally show ?thesis
           by simp
       qed
-      also have "\<dots> = gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k"
+      also have "\<dots> = gs_system_coeff (gs_a_idx q t) (gs_b_idx q t) l k"
         unfolding gs_system_coeff_def
         by (simp add: exp_eq)
       finally show ?thesis .
     qed
-    have "gs_z d powi (- int k) * (\<xi> t * gs_rho_idx d q t ^ k * exp (gs_rho_idx d q t * of_nat l)) =
-        \<xi> t * (gs_z d powi (- int k) * (gs_rho_idx d q t ^ k * exp (gs_rho_idx d q t * of_nat l)))"
+    have "zeta powi (- int k) * (\<xi> t * gs_rho_idx q t ^ k * exp (gs_rho_idx q t * of_nat l)) =
+        \<xi> t * (zeta powi (- int k) * (gs_rho_idx q t ^ k * exp (gs_rho_idx q t * of_nat l)))"
       by (simp add: algebra_simps)
-    also have "\<dots> = \<xi> t * gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k"
+    also have "\<dots> = \<xi> t * gs_system_coeff (gs_a_idx q t) (gs_b_idx q t) l k"
       by (simp add: coeff_eq)
-    finally show "gs_z d powi (- int k) * (\<xi> t * gs_rho_idx d q t ^ k * exp (gs_rho_idx d q t * of_nat l)) =
-      \<xi> t * gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k" .
+    finally show "zeta powi (- int k) * (\<xi> t * gs_rho_idx q t ^ k * exp (gs_rho_idx q t * of_nat l)) =
+      \<xi> t * gs_system_coeff (gs_a_idx q t) (gs_b_idx q t) l k" .
   qed
   finally show ?thesis .
 qed
 
 lemma gelfond_schneider_data_system_coeff_scaled_uniform_algebraic_int:
-  assumes d: "is_gelfond_schneider_data d"
   assumes aq: "a \<le> q"
   assumes bq: "b \<le> q"
   assumes lm: "l \<le> m"
   shows "algebraic_int
-    (of_int (gs_c1 d ^ k * gs_c1 d ^ (m * q) * gs_c1 d ^ (m * q)) * gs_system_coeff d a b l k)"
+    (of_int (gs_c1 ^ k * gs_c1 ^ (m * q) * gs_c1 ^ (m * q)) * gs_system_coeff a b l k)"
 proof -
-  have h1: "algebraic_int (of_int (gs_c1 d ^ k) * gs_affine_coeff d a b ^ k)"
-    by (rule gelfond_schneider_data_c1_affine_power_algebraic_int[OF d]) simp
+  have h1: "algebraic_int (of_int (gs_c1 ^ k) * gs_affine_coeff a b ^ k)"
+    by (rule gelfond_schneider_data_c1_affine_power_algebraic_int) simp
   have al: "a * l \<le> m * q"
   proof -
     have "a * l \<le> q * l"
@@ -141,14 +142,14 @@ proof -
     finally show ?thesis
       by (simp add: mult.commute)
   qed
-  have h2: "algebraic_int (of_int (gs_c1 d ^ (m * q)) * gs_a d ^ (a * l))"
-    by (rule gelfond_schneider_data_c1_a_power_bound_algebraic_int[OF d al])
-  have h3: "algebraic_int (of_int (gs_c1 d ^ (m * q)) * gs_w d ^ (b * l))"
-    by (rule gelfond_schneider_data_c1_w_power_bound_algebraic_int[OF d bl])
+  have h2: "algebraic_int (of_int (gs_c1 ^ (m * q)) * alpha ^ (a * l))"
+    by (rule gelfond_schneider_data_c1_a_power_bound_algebraic_int[OF al])
+  have h3: "algebraic_int (of_int (gs_c1 ^ (m * q)) * omega ^ (b * l))"
+    by (rule gelfond_schneider_data_c1_w_power_bound_algebraic_int[OF bl])
   have "algebraic_int
-      ((of_int (gs_c1 d ^ k) * gs_affine_coeff d a b ^ k) *
-       (of_int (gs_c1 d ^ (m * q)) * gs_a d ^ (a * l)) *
-       (of_int (gs_c1 d ^ (m * q)) * gs_w d ^ (b * l)))"
+      ((of_int (gs_c1 ^ k) * gs_affine_coeff a b ^ k) *
+       (of_int (gs_c1 ^ (m * q)) * alpha ^ (a * l)) *
+       (of_int (gs_c1 ^ (m * q)) * omega ^ (b * l)))"
     by (intro algebraic_int_times h1 h2 h3)
   then show ?thesis
     unfolding gs_system_coeff_def
@@ -156,17 +157,16 @@ proof -
 qed
 
 lemma gs_scaled_deriv_at_nat_algebraic_int:
-  assumes d: "is_gelfond_schneider_data d"
   assumes qpos: "q > 0"
   assumes coeff_int: "\<forall>t<q * q. algebraic_int (\<xi> t)"
   assumes lm: "l \<le> m"
   shows "algebraic_int
-    (of_int (gs_c1 d ^ k * gs_c1 d ^ (m * q) * gs_c1 d ^ (m * q)) *
-      (gs_z d powi (- int k) * ((deriv ^^ k) (gs_aux_fun_vec d q \<xi>)) (of_nat l)))"
+    (of_int (gs_c1 ^ k * gs_c1 ^ (m * q) * gs_c1 ^ (m * q)) *
+      (zeta powi (- int k) * ((deriv ^^ k) (gs_aux_fun_vec q \<xi>)) (of_nat l)))"
 proof -
-  define c :: int where "c = gs_c1 d ^ k * gs_c1 d ^ (m * q) * gs_c1 d ^ (m * q)"
+  define c :: int where "c = gs_c1 ^ k * gs_c1 ^ (m * q) * gs_c1 ^ (m * q)"
   have sum_int: "algebraic_int
-      (\<Sum>t<q * q. of_int c * (\<xi> t * gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k))"
+      (\<Sum>t<q * q. of_int c * (\<xi> t * gs_system_coeff (gs_a_idx q t) (gs_b_idx q t) l k))"
   proof (rule algebraic_int_sum)
     fix t
     assume tmem: "t \<in> {..<q * q}"
@@ -180,77 +180,76 @@ proof -
       by (rule gs_b_idx_le[OF qpos])
     have coeff_term_int:
         "algebraic_int
-          (of_int c * gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k)"
+          (of_int c * gs_system_coeff (gs_a_idx q t) (gs_b_idx q t) l k)"
       unfolding c_def
-      by (rule gelfond_schneider_data_system_coeff_scaled_uniform_algebraic_int[OF d aq bq lm])
+      by (rule gelfond_schneider_data_system_coeff_scaled_uniform_algebraic_int[OF aq bq lm])
     have "algebraic_int (\<xi> t *
-        (of_int c * gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k))"
+        (of_int c * gs_system_coeff (gs_a_idx q t) (gs_b_idx q t) l k))"
       by (rule algebraic_int_times[OF xi_int coeff_term_int])
-    then show "algebraic_int (of_int c * (\<xi> t * gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k))"
+    then show "algebraic_int (of_int c * (\<xi> t * gs_system_coeff (gs_a_idx q t) (gs_b_idx q t) l k))"
       by (simp add: algebra_simps)
   qed
-  also have "(\<Sum>t<q * q. of_int c * (\<xi> t * gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k)) =
-      of_int c * (\<Sum>t<q * q. \<xi> t * gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k)"
+  also have "(\<Sum>t<q * q. of_int c * (\<xi> t * gs_system_coeff (gs_a_idx q t) (gs_b_idx q t) l k)) =
+      of_int c * (\<Sum>t<q * q. \<xi> t * gs_system_coeff (gs_a_idx q t) (gs_b_idx q t) l k)"
     by (simp add: sum_distrib_left algebra_simps)
   also have "\<dots> = of_int c *
-      (gs_z d powi (- int k) * ((deriv ^^ k) (gs_aux_fun_vec d q \<xi>)) (of_nat l))"
-    by (simp add: gs_aux_fun_vec_deriv_at_nat[OF d] algebra_simps)
+      (zeta powi (- int k) * ((deriv ^^ k) (gs_aux_fun_vec q \<xi>)) (of_nat l))"
+    by (simp add: gs_aux_fun_vec_deriv_at_nat algebra_simps)
   finally show ?thesis
     unfolding c_def by simp
 qed
 
 corollary gs_scaled_min_deriv_algebraic_int:
-  assumes d: "is_gelfond_schneider_data d"
   assumes qpos: "q > 0"
   assumes mpos: "m > 0"
   assumes coeff_int: "\<forall>t<q * q. algebraic_int (\<xi> t)"
   assumes coeff_nz: "\<exists>t<q * q. \<xi> t \<noteq> 0"
   shows "algebraic_int
-    (of_int (gs_c1 d ^ nat (gs_min_order m d q \<xi>) * gs_c1 d ^ (2 * m * q)) *
-      (gs_z d powi (- int (nat (gs_min_order m d q \<xi>))) *
-        ((deriv ^^ nat (gs_min_order m d q \<xi>)) (gs_aux_fun_vec d q \<xi>))
-          (gs_min_order_node m d q \<xi>)))"
+    (of_int (gs_c1 ^ nat (gs_min_order m q \<xi>) * gs_c1 ^ (2 * m * q)) *
+      (zeta powi (- int (nat (gs_min_order m q \<xi>))) *
+        ((deriv ^^ nat (gs_min_order m q \<xi>)) (gs_aux_fun_vec q \<xi>))
+          (gs_min_order_node m q \<xi>)))"
 proof -
-  have nz: "gs_aux_fun_vec d q \<xi> \<noteq> (\<lambda>_. 0)"
-    by (rule gs_aux_fun_vec_nonzero[OF d qpos coeff_nz])
-  have ord_nonneg: "0 \<le> gs_min_order m d q \<xi>"
+  have nz: "gs_aux_fun_vec q \<xi> \<noteq> (\<lambda>_. 0)"
+    by (rule gs_aux_fun_vec_nonzero[OF qpos coeff_nz])
+  have ord_nonneg: "0 \<le> gs_min_order m q \<xi>"
   proof -
-    have "zorder (gs_aux_fun_vec d q \<xi>) (gs_min_order_node m d q \<xi>) \<ge> (0::nat)"
-      by (rule holomorphic_nonzero_zorder_ge[OF gs_aux_fun_vec_holomorphic[of d q \<xi> UNIV] nz, of 0 "gs_min_order_node m d q \<xi>"])
+    have "zorder (gs_aux_fun_vec q \<xi>) (gs_min_order_node m q \<xi>) \<ge> (0::nat)"
+      by (rule holomorphic_nonzero_zorder_ge[OF gs_aux_fun_vec_holomorphic[of q \<xi> UNIV] nz, of 0 "gs_min_order_node m q \<xi>"])
          simp
     then show ?thesis
       unfolding gs_min_order_def by simp
   qed
-  obtain l where llt: "l < m" and node: "gs_min_order_node m d q \<xi> = of_nat (Suc l)"
+  obtain l where llt: "l < m" and node: "gs_min_order_node m q \<xi> = of_nat (Suc l)"
     by (rule gs_min_order_node_eq_nat[OF mpos])
   have l_le_m: "Suc l \<le> m"
     using llt by simp
   have scaled_nat_int:
       "algebraic_int
-        (of_int (gs_c1 d ^ nat (gs_min_order m d q \<xi>) * gs_c1 d ^ (m * q) * gs_c1 d ^ (m * q)) *
-          (gs_z d powi (- int (nat (gs_min_order m d q \<xi>))) *
-            ((deriv ^^ nat (gs_min_order m d q \<xi>)) (gs_aux_fun_vec d q \<xi>)) (of_nat (Suc l))))"
-    by (rule gs_scaled_deriv_at_nat_algebraic_int[OF d qpos coeff_int l_le_m])
+        (of_int (gs_c1 ^ nat (gs_min_order m q \<xi>) * gs_c1 ^ (m * q) * gs_c1 ^ (m * q)) *
+          (zeta powi (- int (nat (gs_min_order m q \<xi>))) *
+            ((deriv ^^ nat (gs_min_order m q \<xi>)) (gs_aux_fun_vec q \<xi>)) (of_nat (Suc l))))"
+    by (rule gs_scaled_deriv_at_nat_algebraic_int[OF qpos coeff_int l_le_m])
   have coeff_scale_eq:
-      "gs_c1 d ^ nat (gs_min_order m d q \<xi>) * gs_c1 d ^ (m * q) * gs_c1 d ^ (m * q) =
-        gs_c1 d ^ nat (gs_min_order m d q \<xi>) * gs_c1 d ^ (2 * m * q)"
+      "gs_c1 ^ nat (gs_min_order m q \<xi>) * gs_c1 ^ (m * q) * gs_c1 ^ (m * q) =
+        gs_c1 ^ nat (gs_min_order m q \<xi>) * gs_c1 ^ (2 * m * q)"
   proof -
     have bb_eq: "m * q + m * q = 2 * m * q"
       by simp
-    have "gs_c1 d ^ nat (gs_min_order m d q \<xi>) * gs_c1 d ^ (m * q) * gs_c1 d ^ (m * q) =
-        gs_c1 d ^ nat (gs_min_order m d q \<xi>) * (gs_c1 d ^ (m * q) * gs_c1 d ^ (m * q))"
+    have "gs_c1 ^ nat (gs_min_order m q \<xi>) * gs_c1 ^ (m * q) * gs_c1 ^ (m * q) =
+        gs_c1 ^ nat (gs_min_order m q \<xi>) * (gs_c1 ^ (m * q) * gs_c1 ^ (m * q))"
       by (simp add: mult.assoc)
-    also have "... = gs_c1 d ^ nat (gs_min_order m d q \<xi>) * gs_c1 d ^ (m * q + m * q)"
+    also have "... = gs_c1 ^ nat (gs_min_order m q \<xi>) * gs_c1 ^ (m * q + m * q)"
       by (simp add: power_add [symmetric])
-    also have "... = gs_c1 d ^ nat (gs_min_order m d q \<xi>) * gs_c1 d ^ (2 * m * q)"
+    also have "... = gs_c1 ^ nat (gs_min_order m q \<xi>) * gs_c1 ^ (2 * m * q)"
       by (simp add: bb_eq)
     finally show ?thesis .
   qed
   have scaled_node_int:
       "algebraic_int
-        (of_int (gs_c1 d ^ nat (gs_min_order m d q \<xi>) * gs_c1 d ^ (2 * m * q)) *
-          (gs_z d powi (- int (nat (gs_min_order m d q \<xi>))) *
-            ((deriv ^^ nat (gs_min_order m d q \<xi>)) (gs_aux_fun_vec d q \<xi>)) (of_nat (Suc l))))"
+        (of_int (gs_c1 ^ nat (gs_min_order m q \<xi>) * gs_c1 ^ (2 * m * q)) *
+          (zeta powi (- int (nat (gs_min_order m q \<xi>))) *
+            ((deriv ^^ nat (gs_min_order m q \<xi>)) (gs_aux_fun_vec q \<xi>)) (of_nat (Suc l))))"
     using scaled_nat_int by (simp add: coeff_scale_eq)
   show ?thesis
     using scaled_node_int node by simp
@@ -259,18 +258,17 @@ qed
 lemma gs_scaled_rho_algebraic_int_nonzero:
   fixes v :: "complex vec"
   fixes rho :: complex
-  assumes d: "is_gelfond_schneider_data d"
   assumes qpos: "q > 0"
   assumes mpos: "m > 0"
   assumes v_carrier: "v \<in> carrier_vec (q * q)"
   assumes v_nz: "v \<noteq> 0\<^sub>v (q * q)"
   assumes vint: "\<forall>i<q * q. algebraic_int (Matrix.vec_index v i)"
-  assumes r_eq: "r = nat (gs_min_order m d q (\<lambda>t. Matrix.vec_index v t))"
+  assumes r_eq: "r = nat (gs_min_order m q (\<lambda>t. Matrix.vec_index v t))"
   assumes deriv_nz:
-    "((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
-      (gs_min_order_node m d q (\<lambda>t. Matrix.vec_index v t)) \<noteq> 0"
-  assumes c_def: "c = gs_auxiliary_multiplier d m q r"
-  assumes rho_def: "rho = gs_auxiliary_scaled_value d m q v r c"
+    "((deriv ^^ r) (gs_aux_fun_vec q (\<lambda>t. Matrix.vec_index v t)))
+      (gs_min_order_node m q (\<lambda>t. Matrix.vec_index v t)) \<noteq> 0"
+  assumes c_def: "c = gs_auxiliary_multiplier m q r"
+  assumes rho_def: "rho = gs_auxiliary_scaled_value m q v r c"
   shows "algebraic_int rho" and "rho \<noteq> 0"
 proof -
   have coeff_nz: "\<exists>t<q * q. Matrix.vec_index v t \<noteq> 0"
@@ -278,37 +276,37 @@ proof -
   have rho_int0:
     "algebraic_int
       ((of_int c :: complex) *
-        (gs_z d powi (- int r) *
-          ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
-            (gs_min_order_node m d q (\<lambda>t. Matrix.vec_index v t))))"
+        (zeta powi (- int r) *
+          ((deriv ^^ r) (gs_aux_fun_vec q (\<lambda>t. Matrix.vec_index v t)))
+            (gs_min_order_node m q (\<lambda>t. Matrix.vec_index v t))))"
   proof -
     have "algebraic_int
-      (of_int (gs_c1 d ^ nat (gs_min_order m d q (\<lambda>t. Matrix.vec_index v t)) *
-               gs_c1 d ^ (2 * m * q)) *
-        (gs_z d powi (- int (nat (gs_min_order m d q (\<lambda>t. Matrix.vec_index v t)))) *
-          ((deriv ^^ nat (gs_min_order m d q (\<lambda>t. Matrix.vec_index v t)))
-            (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
-            (gs_min_order_node m d q (\<lambda>t. Matrix.vec_index v t))))"
-      by (rule gs_scaled_min_deriv_algebraic_int[OF d qpos mpos vint coeff_nz])
+      (of_int (gs_c1 ^ nat (gs_min_order m q (\<lambda>t. Matrix.vec_index v t)) *
+               gs_c1 ^ (2 * m * q)) *
+        (zeta powi (- int (nat (gs_min_order m q (\<lambda>t. Matrix.vec_index v t)))) *
+          ((deriv ^^ nat (gs_min_order m q (\<lambda>t. Matrix.vec_index v t)))
+            (gs_aux_fun_vec q (\<lambda>t. Matrix.vec_index v t)))
+            (gs_min_order_node m q (\<lambda>t. Matrix.vec_index v t))))"
+      by (rule gs_scaled_min_deriv_algebraic_int[OF qpos mpos vint coeff_nz])
     then show ?thesis
       unfolding c_def using r_eq
       by (simp add: gs_auxiliary_multiplier_def)
   qed
   have c_nz: "c \<noteq> 0"
-    unfolding c_def using gelfond_schneider_data_c1_nonzero[OF d]
+    unfolding c_def using gelfond_schneider_data_c1_nonzero
     by (auto simp: gs_auxiliary_multiplier_def)
-  have zfac_nz: "gs_z d powi (- int r) \<noteq> 0"
-    using gelfond_schneider_data_z_nonzero[OF d] by (simp add: power_int_def)
+  have zfac_nz: "zeta powi (- int r) \<noteq> 0"
+    using gelfond_schneider_data_z_nonzero by (simp add: power_int_def)
   have rho_core_nz:
-    "gs_z d powi (- int r) *
-      ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
-        (gs_min_order_node m d q (\<lambda>t. Matrix.vec_index v t)) \<noteq> 0"
+    "zeta powi (- int r) *
+      ((deriv ^^ r) (gs_aux_fun_vec q (\<lambda>t. Matrix.vec_index v t)))
+        (gs_min_order_node m q (\<lambda>t. Matrix.vec_index v t)) \<noteq> 0"
     using zfac_nz deriv_nz by simp
   have rho_nz0:
     "(of_int c :: complex) *
-      (gs_z d powi (- int r) *
-        ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
-          (gs_min_order_node m d q (\<lambda>t. Matrix.vec_index v t))) \<noteq> 0"
+      (zeta powi (- int r) *
+        ((deriv ^^ r) (gs_aux_fun_vec q (\<lambda>t. Matrix.vec_index v t)))
+          (gs_min_order_node m q (\<lambda>t. Matrix.vec_index v t))) \<noteq> 0"
     using c_nz rho_core_nz by auto
   show "algebraic_int rho"
     using rho_int0 rho_def by (simp add: gs_auxiliary_scaled_value_def)
@@ -317,59 +315,57 @@ proof -
 qed
 
 theorem gs_exists_scaled_nonzero_algebraic_int_min_deriv:
-  assumes d: "is_gelfond_schneider_data d"
   assumes qpos: "q > 0"
   assumes npos: "gs_n h q > 0"
   assumes dvd: "2 * gs_m h dvd q ^ 2"
   obtains v :: "complex vec" and r and c and rho :: complex where
-      "gs_integral_auxiliary_witness d (gs_m h) (gs_n h q) q v r"
-    and "gs_integral_scaled_auxiliary_value d (gs_m h) q v r c rho"
+      "gs_integral_auxiliary_witness (gs_m h) (gs_n h q) q v r"
+    and "gs_integral_scaled_auxiliary_value (gs_m h) q v r c rho"
 proof -
   obtain v :: "complex vec" and r where
-      W: "gs_integral_auxiliary_witness d (gs_m h) (gs_n h q) q v r"
-    by (rule gs_exists_integral_auxiliary_data[OF d qpos npos dvd])
+      W: "gs_integral_auxiliary_witness (gs_m h) (gs_n h q) q v r"
+    by (rule gs_exists_integral_auxiliary_data[OF qpos npos dvd])
   have v_carrier: "v \<in> carrier_vec (q * q)"
     and v_nz: "v \<noteq> 0\<^sub>v (q * q)"
-    and v_ker: "gs_system_mat d (gs_m h) (gs_n h q) q *\<^sub>v v = 0\<^sub>v (gs_m h * gs_n h q)"
+    and v_ker: "gs_system_mat (gs_m h) (gs_n h q) q *\<^sub>v v = 0\<^sub>v (gs_m h * gs_n h q)"
     and vint: "\<forall>i<q * q. algebraic_int (v $ i)"
-    and r_eq: "r = nat (gs_min_order (gs_m h) d q (\<lambda>t. v $ t))"
+    and r_eq: "r = nat (gs_min_order (gs_m h) q (\<lambda>t. v $ t))"
     and deriv_nz:
-      "((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. v $ t)))
-        (gs_min_order_node (gs_m h) d q (\<lambda>t. v $ t)) \<noteq> 0"
+      "((deriv ^^ r) (gs_aux_fun_vec q (\<lambda>t. v $ t)))
+        (gs_min_order_node (gs_m h) q (\<lambda>t. v $ t)) \<noteq> 0"
     using W unfolding gs_integral_auxiliary_witness_def by blast+
-  define c :: int where "c = gs_auxiliary_multiplier d (gs_m h) q r"
+  define c :: int where "c = gs_auxiliary_multiplier (gs_m h) q r"
   have c_nz: "c \<noteq> 0"
-    unfolding c_def using gelfond_schneider_data_c1_nonzero[OF d]
+    unfolding c_def using gelfond_schneider_data_c1_nonzero
     by (auto simp: gs_auxiliary_multiplier_def)
   define rho :: complex where
-    "rho = gs_auxiliary_scaled_value d (gs_m h) q v r c"
+    "rho = gs_auxiliary_scaled_value (gs_m h) q v r c"
   have rho_int: "algebraic_int rho"
     by (rule gs_scaled_rho_algebraic_int_nonzero(1)
-      [OF d qpos gs_m_pos v_carrier v_nz vint r_eq deriv_nz c_def rho_def])
+      [OF qpos gs_m_pos v_carrier v_nz vint r_eq deriv_nz c_def rho_def])
   have rho_nz: "rho \<noteq> 0"
     by (rule gs_scaled_rho_algebraic_int_nonzero(2)
-      [OF d qpos gs_m_pos v_carrier v_nz vint r_eq deriv_nz c_def rho_def])
-  have S: "gs_integral_scaled_auxiliary_value d (gs_m h) q v r c rho"
+      [OF qpos gs_m_pos v_carrier v_nz vint r_eq deriv_nz c_def rho_def])
+  have S: "gs_integral_scaled_auxiliary_value (gs_m h) q v r c rho"
     using c_def c_nz rho_def rho_int rho_nz
     unfolding gs_integral_scaled_auxiliary_value_def by blast
   show thesis by (rule that[OF W S])
 qed
 
 theorem gs_exists_scaled_nonzero_algebraic_int_house_lower_bound:
-  assumes d: "is_gelfond_schneider_data d"
   assumes qpos: "q > 0"
   assumes npos: "gs_n h q > 0"
   assumes dvd: "2 * gs_m h dvd q ^ 2"
   obtains v :: "complex vec" and r and c and rho :: complex where
-      "gs_integral_auxiliary_witness d (gs_m h) (gs_n h q) q v r"
-    and "gs_integral_scaled_auxiliary_value d (gs_m h) q v r c rho"
+      "gs_integral_auxiliary_witness (gs_m h) (gs_n h q) q v r"
+    and "gs_integral_scaled_auxiliary_value (gs_m h) q v r c rho"
     and "1 \<le> cmod rho * gs_house rho ^
           (card (set (complex_roots_of_int_poly (min_int_poly rho))) - 1)"
 proof -
   obtain v :: "complex vec" and r and c and rho :: complex where
-      W: "gs_integral_auxiliary_witness d (gs_m h) (gs_n h q) q v r"
-    and S: "gs_integral_scaled_auxiliary_value d (gs_m h) q v r c rho"
-    by (rule gs_exists_scaled_nonzero_algebraic_int_min_deriv[OF d qpos npos dvd])
+      W: "gs_integral_auxiliary_witness (gs_m h) (gs_n h q) q v r"
+    and S: "gs_integral_scaled_auxiliary_value (gs_m h) q v r c rho"
+    by (rule gs_exists_scaled_nonzero_algebraic_int_min_deriv[OF qpos npos dvd])
   have rho_int: "algebraic_int rho" and rho_nz: "rho \<noteq> 0"
     using S unfolding gs_integral_scaled_auxiliary_value_def by blast+
   have rho_lb:
@@ -378,5 +374,7 @@ proof -
     by (rule one_le_self_mul_house_pow_of_nonzero_algebraic_int[OF rho_int rho_nz])
   show thesis by (rule that[OF W S rho_lb])
 qed
+
+end
 
 end

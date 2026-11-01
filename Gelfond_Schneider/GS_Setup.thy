@@ -12,23 +12,16 @@ begin
 
 section \<open>Gelfond-Schneider Setup\<close>
 
-record gelfond_schneider_data =
-  gs_a :: complex
-  gs_b :: complex
-  gs_w :: complex
-  gs_z :: complex
-
-definition is_gelfond_schneider_data :: "gelfond_schneider_data \<Rightarrow> bool"
-  where
-    "is_gelfond_schneider_data d \<longleftrightarrow>
-      algebraic (gs_a d) \<and>
-      algebraic (gs_b d) \<and>
-      algebraic (gs_w d) \<and>
-      gs_a d \<noteq> 0 \<and>
-      gs_a d \<noteq> 1 \<and>
-      gs_b d \<notin> \<rat> \<and>
-      gs_z d \<in> log_values (gs_a d) \<and>
-      gs_b d * gs_z d \<in> log_values (gs_w d)"
+locale gs_normalized_data =
+  fixes alpha beta omega zeta :: complex
+  assumes alpha_alg: "algebraic alpha"
+    and beta_alg: "algebraic beta"
+    and omega_alg: "algebraic omega"
+    and alpha_nonzero: "alpha \<noteq> 0"
+    and alpha_nonunit: "alpha \<noteq> 1"
+    and beta_irrational: "beta \<notin> \<rat>"
+    and zeta_log_alpha: "zeta \<in> log_values alpha"
+    and beta_zeta_log_omega: "beta * zeta \<in> log_values omega"
 
 lemma exists_int_mul_algebraic_int:
   fixes x :: complex
@@ -74,9 +67,6 @@ proof -
     by blast
 qed
 
-definition gs_c1 :: "gelfond_schneider_data \<Rightarrow> int"
-  where "gs_c1 d = \<bar>gs_c0 (gs_a d) * gs_c0 (gs_b d) * gs_c0 (gs_w d)\<bar>"
-
 lemma algebraic_int_of_int_scale [intro]:
   assumes "algebraic_int (x :: complex)"
   shows "algebraic_int (of_int n * x)"
@@ -98,106 +88,89 @@ next
     by (simp add: algebra_simps)
 qed
 
+context gs_normalized_data
+begin
+
+definition gs_c1 :: int
+  where "gs_c1 = \<bar>gs_c0 alpha * gs_c0 beta * gs_c0 omega\<bar>"
+
 lemma gelfond_schneider_data_z_nonzero:
-  assumes d: "is_gelfond_schneider_data d"
-  shows "gs_z d \<noteq> 0"
-proof
-  assume z0: "gs_z d = 0"
-  have "gs_z d \<in> log_values (gs_a d)"
-    using d unfolding is_gelfond_schneider_data_def by blast
-  then have "gs_a d = 1"
-    using z0 by simp
-  with d show False
-    unfolding is_gelfond_schneider_data_def by blast
-qed
+  "zeta \<noteq> 0"
+  using alpha_nonunit zeta_log_alpha by auto
 
 lemma gelfond_schneider_data_z_transcendental:
-  assumes d: "is_gelfond_schneider_data d"
-  shows "\<not> algebraic (gs_z d)"
-proof -
-  have alg_a: "algebraic (gs_a d)"
-    using d unfolding is_gelfond_schneider_data_def by blast
-  have a_nz: "gs_a d \<noteq> 0"
-    using d unfolding is_gelfond_schneider_data_def by blast
-  have a_not1: "gs_a d \<noteq> 1"
-    using d unfolding is_gelfond_schneider_data_def by blast
-  have log_z: "gs_z d \<in> log_values (gs_a d)"
-    using d unfolding is_gelfond_schneider_data_def by blast
-  show ?thesis
-    by (rule algebraic_log_value_transcendental[OF alg_a a_nz a_not1 log_z])
-qed
+  "\<not> algebraic zeta"
+  by (rule algebraic_log_value_transcendental
+    [OF alpha_alg alpha_nonzero alpha_nonunit zeta_log_alpha])
 
 lemma gelfond_schneider_data_c1_ge1:
-  assumes d: "is_gelfond_schneider_data d"
-  shows "1 \<le> gs_c1 d"
+  shows "1 \<le> gs_c1"
 proof -
-  have nz: "gs_c0 (gs_a d) * gs_c0 (gs_b d) * gs_c0 (gs_w d) \<noteq> 0"
+  have nz: "gs_c0 (alpha) * gs_c0 (beta) * gs_c0 (omega) \<noteq> 0"
   proof
-    assume "gs_c0 (gs_a d) * gs_c0 (gs_b d) * gs_c0 (gs_w d) = 0"
-    then have disj: "gs_c0 (gs_a d) = 0 \<or> gs_c0 (gs_b d) = 0 \<or> gs_c0 (gs_w d) = 0"
+    assume "gs_c0 (alpha) * gs_c0 (beta) * gs_c0 (omega) = 0"
+    then have disj: "gs_c0 (alpha) = 0 \<or> gs_c0 (beta) = 0 \<or> gs_c0 (omega) = 0"
       by auto
-    have alg_a: "algebraic (gs_a d)"
-      using d unfolding is_gelfond_schneider_data_def by blast
-    have alg_b: "algebraic (gs_b d)"
-      using d unfolding is_gelfond_schneider_data_def by blast
-    have alg_w: "algebraic (gs_w d)"
-      using d unfolding is_gelfond_schneider_data_def by blast
-    moreover have "gs_c0 (gs_a d) \<noteq> 0"
+    have alg_a: "algebraic (alpha)"
+      by (rule alpha_alg)
+    have alg_b: "algebraic (beta)"
+      by (rule beta_alg)
+    have alg_w: "algebraic (omega)"
+      by (rule omega_alg)
+    moreover have "gs_c0 (alpha) \<noteq> 0"
       by (rule gs_c0_nonzero[OF alg_a])
-    moreover have "gs_c0 (gs_b d) \<noteq> 0"
+    moreover have "gs_c0 (beta) \<noteq> 0"
       by (rule gs_c0_nonzero[OF alg_b])
-    moreover have "gs_c0 (gs_w d) \<noteq> 0"
+    moreover have "gs_c0 (omega) \<noteq> 0"
       by (rule gs_c0_nonzero[OF alg_w])
     from disj show False
     proof
-      assume "gs_c0 (gs_a d) = 0"
-      moreover have "gs_c0 (gs_a d) \<noteq> 0"
+      assume "gs_c0 (alpha) = 0"
+      moreover have "gs_c0 (alpha) \<noteq> 0"
         by (rule gs_c0_nonzero[OF alg_a])
       ultimately show False
         by contradiction
     next
-      assume "gs_c0 (gs_b d) = 0 \<or> gs_c0 (gs_w d) = 0"
+      assume "gs_c0 (beta) = 0 \<or> gs_c0 (omega) = 0"
       then show False
       proof
-        assume "gs_c0 (gs_b d) = 0"
-        moreover have "gs_c0 (gs_b d) \<noteq> 0"
+        assume "gs_c0 (beta) = 0"
+        moreover have "gs_c0 (beta) \<noteq> 0"
           by (rule gs_c0_nonzero[OF alg_b])
         ultimately show False
           by contradiction
       next
-        assume "gs_c0 (gs_w d) = 0"
-        moreover have "gs_c0 (gs_w d) \<noteq> 0"
+        assume "gs_c0 (omega) = 0"
+        moreover have "gs_c0 (omega) \<noteq> 0"
           by (rule gs_c0_nonzero[OF alg_w])
         ultimately show False
           by contradiction
       qed
     qed
   qed
-  have "0 < \<bar>gs_c0 (gs_a d) * gs_c0 (gs_b d) * gs_c0 (gs_w d)\<bar>"
+  have "0 < \<bar>gs_c0 (alpha) * gs_c0 (beta) * gs_c0 (omega)\<bar>"
     using nz by simp
   then show ?thesis
     unfolding gs_c1_def by linarith
 qed
 
 lemma gelfond_schneider_data_c1_nonzero:
-  assumes d: "is_gelfond_schneider_data d"
-  shows "gs_c1 d \<noteq> 0"
-  using gelfond_schneider_data_c1_ge1[OF d] by linarith
+  shows "gs_c1 \<noteq> 0"
+  using gelfond_schneider_data_c1_ge1 by linarith
 
 lemma gelfond_schneider_data_c1_a_algebraic_int:
-  assumes d: "is_gelfond_schneider_data d"
-  shows "algebraic_int (of_int (gs_c1 d) * gs_a d)"
+  shows "algebraic_int (of_int (gs_c1) * alpha)"
 proof -
-  have alg_a: "algebraic (gs_a d)"
-    using d unfolding is_gelfond_schneider_data_def by blast
-  have "algebraic_int (of_int (gs_c0 (gs_a d) * gs_c0 (gs_b d) * gs_c0 (gs_w d)) * gs_a d)"
+  have alg_a: "algebraic (alpha)"
+    by (rule alpha_alg)
+  have "algebraic_int (of_int (gs_c0 (alpha) * gs_c0 (beta) * gs_c0 (omega)) * alpha)"
   proof -
-    have "algebraic_int (of_int (gs_c0 (gs_a d)) * gs_a d)"
+    have "algebraic_int (of_int (gs_c0 (alpha)) * alpha)"
       by (rule gs_c0_algebraic_int[OF alg_a])
-    then have h1: "algebraic_int (of_int (gs_c0 (gs_b d)) * (of_int (gs_c0 (gs_a d)) * gs_a d))"
+    then have h1: "algebraic_int (of_int (gs_c0 (beta)) * (of_int (gs_c0 (alpha)) * alpha))"
       by (rule algebraic_int_of_int_scale)
-    from h1 have "algebraic_int (of_int (gs_c0 (gs_w d)) *
-      (of_int (gs_c0 (gs_b d)) * (of_int (gs_c0 (gs_a d)) * gs_a d)))"
+    from h1 have "algebraic_int (of_int (gs_c0 (omega)) *
+      (of_int (gs_c0 (beta)) * (of_int (gs_c0 (alpha)) * alpha)))"
       by (rule algebraic_int_of_int_scale)
     then show ?thesis
       by (simp add: algebra_simps)
@@ -207,19 +180,18 @@ proof -
 qed
 
 lemma gelfond_schneider_data_c1_b_algebraic_int:
-  assumes d: "is_gelfond_schneider_data d"
-  shows "algebraic_int (of_int (gs_c1 d) * gs_b d)"
+  shows "algebraic_int (of_int (gs_c1) * beta)"
 proof -
-  have alg_b: "algebraic (gs_b d)"
-    using d unfolding is_gelfond_schneider_data_def by blast
-  have "algebraic_int (of_int (gs_c0 (gs_a d) * gs_c0 (gs_b d) * gs_c0 (gs_w d)) * gs_b d)"
+  have alg_b: "algebraic (beta)"
+    by (rule beta_alg)
+  have "algebraic_int (of_int (gs_c0 (alpha) * gs_c0 (beta) * gs_c0 (omega)) * beta)"
   proof -
-    have "algebraic_int (of_int (gs_c0 (gs_b d)) * gs_b d)"
+    have "algebraic_int (of_int (gs_c0 (beta)) * beta)"
       by (rule gs_c0_algebraic_int[OF alg_b])
-    then have h1: "algebraic_int (of_int (gs_c0 (gs_a d)) * (of_int (gs_c0 (gs_b d)) * gs_b d))"
+    then have h1: "algebraic_int (of_int (gs_c0 (alpha)) * (of_int (gs_c0 (beta)) * beta))"
       by (rule algebraic_int_of_int_scale)
-    from h1 have "algebraic_int (of_int (gs_c0 (gs_w d)) *
-      (of_int (gs_c0 (gs_a d)) * (of_int (gs_c0 (gs_b d)) * gs_b d)))"
+    from h1 have "algebraic_int (of_int (gs_c0 (omega)) *
+      (of_int (gs_c0 (alpha)) * (of_int (gs_c0 (beta)) * beta)))"
       by (rule algebraic_int_of_int_scale)
     then show ?thesis
       by (simp add: algebra_simps)
@@ -229,19 +201,18 @@ proof -
 qed
 
 lemma gelfond_schneider_data_c1_w_algebraic_int:
-  assumes d: "is_gelfond_schneider_data d"
-  shows "algebraic_int (of_int (gs_c1 d) * gs_w d)"
+  shows "algebraic_int (of_int (gs_c1) * omega)"
 proof -
-  have alg_w: "algebraic (gs_w d)"
-    using d unfolding is_gelfond_schneider_data_def by blast
-  have "algebraic_int (of_int (gs_c0 (gs_a d) * gs_c0 (gs_b d) * gs_c0 (gs_w d)) * gs_w d)"
+  have alg_w: "algebraic (omega)"
+    by (rule omega_alg)
+  have "algebraic_int (of_int (gs_c0 (alpha) * gs_c0 (beta) * gs_c0 (omega)) * omega)"
   proof -
-    have "algebraic_int (of_int (gs_c0 (gs_w d)) * gs_w d)"
+    have "algebraic_int (of_int (gs_c0 (omega)) * omega)"
       by (rule gs_c0_algebraic_int[OF alg_w])
-    then have h1: "algebraic_int (of_int (gs_c0 (gs_b d)) * (of_int (gs_c0 (gs_w d)) * gs_w d))"
+    then have h1: "algebraic_int (of_int (gs_c0 (beta)) * (of_int (gs_c0 (omega)) * omega))"
       by (rule algebraic_int_of_int_scale)
-    from h1 have "algebraic_int (of_int (gs_c0 (gs_a d)) *
-      (of_int (gs_c0 (gs_b d)) * (of_int (gs_c0 (gs_w d)) * gs_w d)))"
+    from h1 have "algebraic_int (of_int (gs_c0 (alpha)) *
+      (of_int (gs_c0 (beta)) * (of_int (gs_c0 (omega)) * omega)))"
       by (rule algebraic_int_of_int_scale)
     then show ?thesis
       by (simp add: algebra_simps)
@@ -250,23 +221,6 @@ proof -
     unfolding gs_c1_def by (rule algebraic_int_abs_scale)
 qed
 
-theorem exists_gelfond_schneider_data_of_counterexample:
-  fixes a b w :: complex
-  assumes algs: "algebraic a" "algebraic b" "algebraic w"
-  assumes nontriv: "a \<noteq> 0" "a \<noteq> 1"
-  assumes b_irr: "b \<notin> \<rat>"
-  assumes wmem: "w \<in> power_values a b"
-  shows "\<exists>d. is_gelfond_schneider_data d"
-proof -
-  from power_value_log_valueE[OF wmem]
-  obtain z where z: "z \<in> log_values a" "b * z \<in> log_values w" .
-  define d :: gelfond_schneider_data
-    where "d = \<lparr>gs_a = a, gs_b = b, gs_w = w, gs_z = z\<rparr>"
-  have "is_gelfond_schneider_data d"
-    unfolding d_def is_gelfond_schneider_data_def
-    using algs nontriv b_irr z by auto
-  then show ?thesis
-    by blast
-qed
+end
 
 end

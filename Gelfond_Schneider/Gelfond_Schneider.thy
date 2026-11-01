@@ -17,30 +17,6 @@ matrix, and the verified field-norm estimate. The public transcendence
 statement follows from the normalized counterexample reduction.
 \<close>
 
-theorem no_gelfond_schneider_data:
-  assumes "is_gelfond_schneider_data d"
-  shows False
-  by (rule no_gelfond_schneider_data_scaled[OF assms])
-
-lemma gelfond_schneider_of_no_data:
-  fixes a b w :: complex
-  assumes no_data: "\<And>d. is_gelfond_schneider_data d \<Longrightarrow> False"
-  assumes "algebraic a"
-  assumes "algebraic b"
-  assumes "a \<noteq> 0"
-  assumes "a \<noteq> 1"
-  assumes "b \<notin> \<rat>"
-  assumes "w \<in> power_values a b"
-  shows "\<not> algebraic w"
-proof
-  assume alg_w: "algebraic w"
-  from exists_gelfond_schneider_data_of_counterexample[OF assms(2,3) alg_w assms(4-7)]
-  obtain d where "is_gelfond_schneider_data d"
-    by blast
-  then show False
-    by (rule no_data)
-qed
-
 theorem gelfond_schneider:
   fixes a b w :: complex
   assumes "algebraic a"
@@ -50,7 +26,16 @@ theorem gelfond_schneider:
   assumes "b \<notin> \<rat>"
   assumes "w \<in> power_values a b"
   shows "\<not> algebraic w"
-  by (rule gelfond_schneider_of_no_data[OF no_gelfond_schneider_data]) (use assms in auto)
+proof
+  assume alg_w: "algebraic w"
+  obtain zeta where zeta_log: "zeta \<in> log_values a"
+    and beta_zeta_log: "b * zeta \<in> log_values w"
+    by (rule power_value_log_valueE[OF assms(6)])
+  interpret GS: gs_normalized_data a b w zeta
+    by unfold_locales (use assms alg_w zeta_log beta_zeta_log in auto)
+  show False
+    by (rule GS.normalized_data_contradiction)
+qed
 
 section \<open>Corollaries\<close>
 

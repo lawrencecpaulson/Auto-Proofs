@@ -84,6 +84,9 @@ proof -
   finally show ?thesis .
 qed
 
+context gs_normalized_data
+begin
+
 lemma gs_bounded_vec_min_order_derivative_bound:
   fixes basis :: "nat \<Rightarrow> complex"
   fixes K :: real
@@ -100,18 +103,18 @@ lemma gs_bounded_vec_min_order_derivative_bound:
   assumes B_nonneg: "0 \<le> B"
   assumes Knonneg: "0 \<le> K"
   assumes basis_bnd: "\<And>j. j < D \<Longrightarrow> cmod (basis j) \<le> K"
-  assumes nz: "gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t) \<noteq> (\<lambda>_. 0)"
-  assumes req: "r = nat (gs_min_order m d q (\<lambda>t. Matrix.vec_index v t))"
-  shows "cmod (((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. Matrix.vec_index v t)))
-      (gs_min_order_node m d q (\<lambda>t. Matrix.vec_index v t))) \<le>
+  assumes nz: "gs_aux_fun_vec q (\<lambda>t. Matrix.vec_index v t) \<noteq> (\<lambda>_. 0)"
+  assumes req: "r = nat (gs_min_order m q (\<lambda>t. Matrix.vec_index v t))"
+  shows "cmod (((deriv ^^ r) (gs_aux_fun_vec q (\<lambda>t. Matrix.vec_index v t)))
+      (gs_min_order_node m q (\<lambda>t. Matrix.vec_index v t))) \<le>
     fact r * (of_nat (q * q) * ((of_int B :: real) * of_nat D * K) *
-      exp ((of_nat q * (1 + cmod (gs_b d)) * cmod (gs_z d)) *
+      exp ((of_nat q * (1 + cmod (beta)) * cmod (zeta)) *
         (of_nat m * (1 + of_nat r / of_nat q))) /
       (of_nat m * of_nat r / of_nat q) ^ (m * r)) *
       (2 * of_nat m + 1) ^ (m * r)"
 proof -
   let ?V = "(of_int B :: real) * of_nat D * K"
-  let ?T = "of_nat q * (1 + cmod (gs_b d)) * cmod (gs_z d)"
+  let ?T = "of_nat q * (1 + cmod (beta)) * cmod (zeta)"
   have qpos: "q > 0" using qge by simp
   have dgt: "1 < (of_nat m * of_nat r / of_nat q :: real)"
     by (rule gs_circle_clearance_of_balanced_dimensions[OF qge bal nle])
@@ -120,7 +123,7 @@ proof -
   have Tnonneg: "0 \<le> ?T" by simp
   have coeff: "\<And>t. t < q * q \<Longrightarrow> cmod (Matrix.vec_index v t) \<le> ?V"
     by (rule cmod_repr_by_bounded_int_vec_uniform_le[OF Dpos repr x_carrier x_bnd B_nonneg basis_bnd])
-  have rho: "\<And>t. t < q * q \<Longrightarrow> cmod (gs_rho_idx d q t) \<le> ?T"
+  have rho: "\<And>t. t < q * q \<Longrightarrow> cmod (gs_rho_idx q t) \<le> ?T"
     by (rule gs_rho_idx_cmod_le[OF qpos])
   show ?thesis
     by (rule gs_aux_fun_vec_min_order_derivative_bound[OF qpos mpos rpos dgt Vnonneg Tnonneg nz req coeff rho])
@@ -132,19 +135,19 @@ lemma cmod_gs_system_coeff_le_uniform:
   assumes aq: "a \<le> q"
   assumes bq: "b \<le> q"
   assumes lm: "l \<le> m"
-  shows "cmod (gs_system_coeff d a b l k) \<le>
-    (of_nat q * (1 + cmod (gs_b d))) ^ k *
-    (max 1 (cmod (gs_a d))) ^ (m * q) *
-    (max 1 (cmod (gs_w d))) ^ (m * q)"
+  shows "cmod (gs_system_coeff a b l k) \<le>
+    (of_nat q * (1 + cmod (beta))) ^ k *
+    (max 1 (cmod (alpha))) ^ (m * q) *
+    (max 1 (cmod (omega))) ^ (m * q)"
 proof -
-  let ?B = "of_nat q * (1 + cmod (gs_b d))"
-  let ?A = "max 1 (cmod (gs_a d))"
-  let ?W = "max 1 (cmod (gs_w d))"
+  let ?B = "of_nat q * (1 + cmod (beta))"
+  let ?A = "max 1 (cmod (alpha))"
+  let ?W = "max 1 (cmod (omega))"
   let ?ea = "a * l"
   let ?eb = "b * l"
-  have aff_le: "cmod (gs_affine_coeff d a b) \<le> ?B"
+  have aff_le: "cmod (gs_affine_coeff a b) \<le> ?B"
     by (rule cmod_gs_affine_coeff_le[OF aq bq])
-  have aff_pow_le: "cmod (gs_affine_coeff d a b) ^ k \<le> ?B ^ k"
+  have aff_pow_le: "cmod (gs_affine_coeff a b) ^ k \<le> ?B ^ k"
     by (rule power_mono[OF aff_le]) auto
   have ea_le: "?ea \<le> m * q"
   proof -
@@ -164,28 +167,28 @@ proof -
     finally show ?thesis
       by (simp add: mult.commute)
   qed
-  have a_pow_le: "cmod (gs_a d) ^ ?ea \<le> ?A ^ (m * q)"
+  have a_pow_le: "cmod (alpha) ^ ?ea \<le> ?A ^ (m * q)"
   proof -
-    have "cmod (gs_a d) ^ ?ea \<le> ?A ^ ?ea"
+    have "cmod (alpha) ^ ?ea \<le> ?A ^ ?ea"
       by (rule power_mono) auto
     also have "... \<le> ?A ^ (m * q)"
       by (rule power_increasing) (use ea_le in auto)
     finally show ?thesis .
   qed
-  have w_pow_le: "cmod (gs_w d) ^ ?eb \<le> ?W ^ (m * q)"
+  have w_pow_le: "cmod (omega) ^ ?eb \<le> ?W ^ (m * q)"
   proof -
-    have "cmod (gs_w d) ^ ?eb \<le> ?W ^ ?eb"
+    have "cmod (omega) ^ ?eb \<le> ?W ^ ?eb"
       by (rule power_mono) auto
     also have "... \<le> ?W ^ (m * q)"
       by (rule power_increasing) (use eb_le in auto)
     finally show ?thesis .
   qed
   have eq_term:
-      "gs_system_coeff d a b l k =
-        gs_affine_coeff d a b ^ k * gs_a d ^ ?ea * gs_w d ^ ?eb"
+      "gs_system_coeff a b l k =
+        gs_affine_coeff a b ^ k * alpha ^ ?ea * omega ^ ?eb"
     unfolding gs_system_coeff_def by simp
-  have "cmod (gs_system_coeff d a b l k) =
-      cmod (gs_affine_coeff d a b) ^ k * cmod (gs_a d) ^ ?ea * cmod (gs_w d) ^ ?eb"
+  have "cmod (gs_system_coeff a b l k) =
+      cmod (gs_affine_coeff a b) ^ k * cmod (alpha) ^ ?ea * cmod (omega) ^ ?eb"
     by (simp add: eq_term norm_mult norm_power mult.assoc)
   also have "... \<le> ?B ^ k * ?A ^ (m * q) * ?W ^ (m * q)"
     using aff_pow_le a_pow_le w_pow_le by (intro mult_mono) auto
@@ -196,81 +199,80 @@ lemma cmod_scaled_gs_system_coeff_le_uniform:
   assumes aq: "a \<le> q"
   assumes bq: "b \<le> q"
   assumes lm: "l \<le> m"
-  shows "cmod ((of_int c :: complex) * gs_system_coeff d a b l k) \<le>
+  shows "cmod ((of_int c :: complex) * gs_system_coeff a b l k) \<le>
     of_int (\<bar>c\<bar>) *
-    (of_nat q * (1 + cmod (gs_b d))) ^ k *
-    (max 1 (cmod (gs_a d))) ^ (m * q) *
-    (max 1 (cmod (gs_w d))) ^ (m * q)"
+    (of_nat q * (1 + cmod (beta))) ^ k *
+    (max 1 (cmod (alpha))) ^ (m * q) *
+    (max 1 (cmod (omega))) ^ (m * q)"
 proof -
-  have "cmod ((of_int c :: complex) * gs_system_coeff d a b l k) =
-      of_int (\<bar>c\<bar>) * cmod (gs_system_coeff d a b l k)"
+  have "cmod ((of_int c :: complex) * gs_system_coeff a b l k) =
+      of_int (\<bar>c\<bar>) * cmod (gs_system_coeff a b l k)"
     by (simp add: norm_mult)
   also have "... \<le> of_int (\<bar>c\<bar>) *
-      ((of_nat q * (1 + cmod (gs_b d))) ^ k *
-        (max 1 (cmod (gs_a d))) ^ (m * q) *
-        (max 1 (cmod (gs_w d))) ^ (m * q))"
+      ((of_nat q * (1 + cmod (beta))) ^ k *
+        (max 1 (cmod (alpha))) ^ (m * q) *
+        (max 1 (cmod (omega))) ^ (m * q))"
     by (intro mult_left_mono cmod_gs_system_coeff_le_uniform[OF aq bq lm]) auto
   finally show ?thesis by argo
 qed
 
 lemma cmod_scaled_deriv_at_nat_le_uniform:
-  assumes d: "is_gelfond_schneider_data d"
   assumes qpos: "q > 0"
   assumes coeff_bnd: "\<forall>t<q * q. cmod (\<xi> t) \<le> V"
   assumes V_nonneg: "0 \<le> V"
   assumes lm: "l \<le> m"
   shows "cmod ((of_int c :: complex) *
-      (gs_z d powi (- int k) * ((deriv ^^ k) (gs_aux_fun_vec d q \<xi>)) (of_nat l))) \<le>
+      (zeta powi (- int k) * ((deriv ^^ k) (gs_aux_fun_vec q \<xi>)) (of_nat l))) \<le>
     of_nat (q * q) * V *
       (of_int (\<bar>c\<bar>) *
-        (of_nat q * (1 + cmod (gs_b d))) ^ k *
-        (max 1 (cmod (gs_a d))) ^ (m * q) *
-        (max 1 (cmod (gs_w d))) ^ (m * q))"
+        (of_nat q * (1 + cmod (beta))) ^ k *
+        (max 1 (cmod (alpha))) ^ (m * q) *
+        (max 1 (cmod (omega))) ^ (m * q))"
 proof -
   let ?U =
     "of_int (\<bar>c\<bar>) *
-      (of_nat q * (1 + cmod (gs_b d))) ^ k *
-      (max 1 (cmod (gs_a d))) ^ (m * q) *
-      (max 1 (cmod (gs_w d))) ^ (m * q)"
+      (of_nat q * (1 + cmod (beta))) ^ k *
+      (max 1 (cmod (alpha))) ^ (m * q) *
+      (max 1 (cmod (omega))) ^ (m * q)"
   have sum_eq:
       "(of_int c :: complex) *
-        (gs_z d powi (- int k) * ((deriv ^^ k) (gs_aux_fun_vec d q \<xi>)) (of_nat l)) =
+        (zeta powi (- int k) * ((deriv ^^ k) (gs_aux_fun_vec q \<xi>)) (of_nat l)) =
       (\<Sum>t<q * q. (of_int c :: complex) *
-        (\<xi> t * gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k))"
-    by (simp add: gs_aux_fun_vec_deriv_at_nat[OF d] sum_distrib_left algebra_simps)
+        (\<xi> t * gs_system_coeff (gs_a_idx q t) (gs_b_idx q t) l k))"
+    by (simp add: gs_aux_fun_vec_deriv_at_nat sum_distrib_left algebra_simps)
   have term_le:
       "cmod ((of_int c :: complex) *
-        (\<xi> t * gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k)) \<le> V * ?U"
+        (\<xi> t * gs_system_coeff (gs_a_idx q t) (gs_b_idx q t) l k)) \<le> V * ?U"
     if tlt: "t < q * q" for t
   proof -
     have xi_le: "cmod (\<xi> t) \<le> V"
       using coeff_bnd tlt by blast
     have coeff_le:
         "cmod ((of_int c :: complex) *
-          gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k) \<le> ?U"
+          gs_system_coeff (gs_a_idx q t) (gs_b_idx q t) l k) \<le> ?U"
       by (rule cmod_scaled_gs_system_coeff_le_uniform[OF gs_a_idx_le[OF qpos tlt] gs_b_idx_le[OF qpos] lm])
     have "cmod ((of_int c :: complex) *
-        (\<xi> t * gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k)) =
+        (\<xi> t * gs_system_coeff (gs_a_idx q t) (gs_b_idx q t) l k)) =
         cmod (\<xi> t) *
-        cmod ((of_int c :: complex) * gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k)"
+        cmod ((of_int c :: complex) * gs_system_coeff (gs_a_idx q t) (gs_b_idx q t) l k)"
       by (simp add: norm_mult algebra_simps)
     also have "... \<le> V * ?U"
       by (intro mult_mono xi_le coeff_le) (use V_nonneg in auto)
     finally show ?thesis .
   qed
   have "cmod ((of_int c :: complex) *
-      (gs_z d powi (- int k) * ((deriv ^^ k) (gs_aux_fun_vec d q \<xi>)) (of_nat l))) =
+      (zeta powi (- int k) * ((deriv ^^ k) (gs_aux_fun_vec q \<xi>)) (of_nat l))) =
       cmod (\<Sum>t<q * q. (of_int c :: complex) *
-        (\<xi> t * gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k))"
+        (\<xi> t * gs_system_coeff (gs_a_idx q t) (gs_b_idx q t) l k))"
     by (simp add: sum_eq)
   also have "... \<le> (\<Sum>t<q * q. cmod ((of_int c :: complex) *
-      (\<xi> t * gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k)))"
+      (\<xi> t * gs_system_coeff (gs_a_idx q t) (gs_b_idx q t) l k)))"
     by (rule sum_norm_le) simp
   also have "... \<le> (\<Sum>t<q * q. V * ?U)"
   proof (rule sum_mono)
     fix t
     assume "t \<in> {..<q * q}"
-    then show "cmod ((of_int c :: complex) * (\<xi> t * gs_system_coeff d (gs_a_idx q t) (gs_b_idx q t) l k)) \<le> V * ?U"
+    then show "cmod ((of_int c :: complex) * (\<xi> t * gs_system_coeff (gs_a_idx q t) (gs_b_idx q t) l k)) \<le> V * ?U"
       by (meson lessThan_iff term_le)
   qed
   also have "... = of_nat (q * q) * V * ?U"
@@ -287,18 +289,18 @@ theorem gs_row_scaled_system_mat_exists_bounded_algebraic_int_kernel:
   assumes basis_indep: "\<And>c. (\<Sum>j<D. of_int (c j) * basis j) = 0 \<Longrightarrow> (\<forall>j<D. c j = 0)"
   assumes mult_repr:
     "\<And>u t j. u < m * n \<Longrightarrow> t < q * q \<Longrightarrow> j < D \<Longrightarrow>
-      gs_row_scaled_system_mat d m n q $$ (u,t) * basis j =
+      gs_row_scaled_system_mat m n q $$ (u,t) * basis j =
         (\<Sum>k<D. of_int (C u t k j) * basis k)"
   assumes C_bnd:
     "\<And>u t k j. u < m * n \<Longrightarrow> t < q * q \<Longrightarrow> k < D \<Longrightarrow> j < D \<Longrightarrow>
       \<bar>C u t k j\<bar> \<le> Bnd"
   obtains v :: "complex vec" and x :: "int vec" where
-    "bounded_integral_basis_kernel (gs_row_scaled_system_mat d m n q) (m * n)
+    "bounded_integral_basis_kernel (gs_row_scaled_system_mat m n q) (m * n)
       (q * q) D basis
       (int (q * q * D + 1) * det_bound_hadamard (q * q * D) (max 1 Bnd)) v x"
 proof -
   obtain v :: "complex vec" and x :: "int vec" where
-      W: "bounded_basis_kernel (gs_row_scaled_system_mat d m n q) (m * n)
+      W: "bounded_basis_kernel (gs_row_scaled_system_mat m n q) (m * n)
         (q * q) D basis
         (int (q * q * D + 1) * det_bound_hadamard (q * q * D) (max 1 Bnd)) v x"
     by (rule exists_nonzero_bounded_kernel_vec_of_structure_constants[OF gs_row_scaled_system_mat_carrier dpos mnq mult_repr C_bnd basis_indep])
@@ -311,7 +313,7 @@ proof -
     and x_bnd = bounded_basis_kernel.x_bounded[OF W]
   have vint: "\<forall>i<q * q. algebraic_int (v $ i)"
     by (rule algebraic_int_coordinates_of_integral_basis[OF basis_int repr])
-  have IW: "bounded_integral_basis_kernel (gs_row_scaled_system_mat d m n q)
+  have IW: "bounded_integral_basis_kernel (gs_row_scaled_system_mat m n q)
     (m * n) (q * q) D basis
     (int (q * q * D + 1) * det_bound_hadamard (q * q * D) (max 1 Bnd)) v x"
     by unfold_locales
@@ -329,17 +331,17 @@ theorem gs_row_scaled_system_mat_exists_bounded_algebraic_int_kernel_linear:
   assumes basis_indep: "\<And>c. (\<Sum>j<D. of_int (c j) * basis j) = 0 \<Longrightarrow> (\<forall>j<D. c j = 0)"
   assumes mult_repr:
     "\<And>u t j. u < m * n \<Longrightarrow> t < q * q \<Longrightarrow> j < D \<Longrightarrow>
-      gs_row_scaled_system_mat d m n q $$ (u,t) * basis j =
+      gs_row_scaled_system_mat m n q $$ (u,t) * basis j =
         (\<Sum>k<D. of_int (C u t k j) * basis k)"
   assumes C_bnd:
     "\<And>u t k j. u < m * n \<Longrightarrow> t < q * q \<Longrightarrow> k < D \<Longrightarrow> j < D \<Longrightarrow>
       \<bar>C u t k j\<bar> \<le> Bnd"
   obtains v :: "complex vec" and x :: "int vec" where
-    "bounded_integral_basis_kernel (gs_row_scaled_system_mat d m n q) (m * n)
+    "bounded_integral_basis_kernel (gs_row_scaled_system_mat m n q) (m * n)
       (q * q) D basis (2 * int (q * q * D) * max 1 Bnd) v x"
 proof -
   obtain v :: "complex vec" and x :: "int vec" where
-      W: "bounded_basis_kernel (gs_row_scaled_system_mat d m n q) (m * n)
+      W: "bounded_basis_kernel (gs_row_scaled_system_mat m n q) (m * n)
         (q * q) D basis (2 * int (q * q * D) * max 1 Bnd) v x"
     by (rule exists_nonzero_bounded_kernel_vec_of_structure_constants_linear
           [OF gs_row_scaled_system_mat_carrier mnpos dpos mnq mult_repr C_bnd basis_indep])
@@ -352,7 +354,7 @@ proof -
     and x_bnd = bounded_basis_kernel.x_bounded[OF W]
   have vint: "\<forall>i<q * q. algebraic_int (v $ i)"
     by (rule algebraic_int_coordinates_of_integral_basis[OF basis_int repr])
-  have IW: "bounded_integral_basis_kernel (gs_row_scaled_system_mat d m n q)
+  have IW: "bounded_integral_basis_kernel (gs_row_scaled_system_mat m n q)
     (m * n) (q * q) D basis (2 * int (q * q * D) * max 1 Bnd) v x"
     by unfold_locales
       (use v_carrier v_nz ker vint repr x_carrier x_nz x_bnd in auto)
@@ -360,12 +362,10 @@ proof -
 qed
 
 context
-  fixes d :: gelfond_schneider_data
-    and q h D :: nat
+  fixes q h D :: nat
     and Bnd :: int
   fixes basis :: "nat \<Rightarrow> complex"
   fixes C :: "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> int"
-  assumes d: "is_gelfond_schneider_data d"
   assumes qpos: "q > 0"
   assumes npos: "gs_n h q > 0"
   assumes dvd: "2 * gs_m h dvd q ^ 2"
@@ -374,7 +374,7 @@ context
   assumes basis_indep: "\<And>c. (\<Sum>j<D. of_int (c j) * basis j) = 0 \<Longrightarrow> (\<forall>j<D. c j = 0)"
   assumes mult_repr:
     "\<And>u t j. u < gs_m h * gs_n h q \<Longrightarrow> t < q * q \<Longrightarrow> j < D \<Longrightarrow>
-      gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q $$ (u,t) * basis j =
+      gs_row_scaled_system_mat (gs_m h) (gs_n h q) q $$ (u,t) * basis j =
         (\<Sum>k<D. of_int (C u t k j) * basis k)"
   assumes C_bnd:
     "\<And>u t k j. u < gs_m h * gs_n h q \<Longrightarrow> t < q * q \<Longrightarrow> k < D \<Longrightarrow> j < D \<Longrightarrow>
@@ -383,20 +383,19 @@ begin
 
 theorem gs_exists_row_scaled_bounded_integral_auxiliary_data:
   obtains v :: "complex vec" and x :: "int vec" and r where
-    "gs_bounded_auxiliary_witness
-      (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q)
-      d h q D basis (int (q * q * D + 1) * det_bound_hadamard (q * q * D) (max 1 Bnd)) v x r"
+    "gs_bounded_auxiliary_witness (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q)
+      h q D basis (int (q * q * D + 1) * det_bound_hadamard (q * q * D) (max 1 Bnd)) v x r"
 proof -
   have mnq: "gs_m h * gs_n h q < q * q"
     by (rule gs_balanced_rows_lt_columns[OF dvd npos])
   obtain v :: "complex vec" and x :: "int vec" where
       IW: "bounded_integral_basis_kernel
-        (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q)
+        (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q)
         (gs_m h * gs_n h q) (q * q) D basis
         (int (q * q * D + 1) * det_bound_hadamard (q * q * D) (max 1 Bnd)) v x"
     by (rule gs_row_scaled_system_mat_exists_bounded_algebraic_int_kernel[OF Dpos mnq basis_int basis_indep mult_repr C_bnd])
   interpret W: bounded_integral_basis_kernel
-    "gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q"
+    "gs_row_scaled_system_mat (gs_m h) (gs_n h q) q"
     "gs_m h * gs_n h q" "q * q" D basis
     "int (q * q * D + 1) * det_bound_hadamard (q * q * D) (max 1 Bnd)" v x
     by (rule IW)
@@ -404,23 +403,22 @@ proof -
     and v_ker = W.kernel
   have coeff_nz: "\<exists>t<q * q. v $ t \<noteq> 0"
     using v_carrier v_nz by force
-  have min_ord: "gs_min_order (gs_m h) d q (\<lambda>t. v $ t) \<ge> gs_n h q"
+  have min_ord: "gs_min_order (gs_m h) q (\<lambda>t. v $ t) \<ge> gs_n h q"
   proof -
-    have ker: "gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q *\<^sub>v gs_coeff_vec q (\<lambda>t. v $ t) =
+    have ker: "gs_row_scaled_system_mat (gs_m h) (gs_n h q) q *\<^sub>v gs_coeff_vec q (\<lambda>t. v $ t) =
         0\<^sub>v (gs_m h * gs_n h q)"
       by (simp add: gs_coeff_vec_eqI[OF v_carrier] v_ker)
     show ?thesis
-      by (rule gs_min_order_ge_of_row_scaled_kernel_nonzero[OF d qpos gs_m_pos npos coeff_nz ker])
+      by (rule gs_min_order_ge_of_row_scaled_kernel_nonzero[OF qpos gs_m_pos npos coeff_nz ker])
   qed
-  define r0 where "r0 = nat (gs_min_order (gs_m h) d q (\<lambda>t. v $ t))"
+  define r0 where "r0 = nat (gs_min_order (gs_m h) q (\<lambda>t. v $ t))"
   have deriv_nz:
-      "((deriv ^^ r0) (gs_aux_fun_vec d q (\<lambda>t. v $ t)))
-        (gs_min_order_node (gs_m h) d q (\<lambda>t. v $ t)) \<noteq> 0"
+      "((deriv ^^ r0) (gs_aux_fun_vec q (\<lambda>t. v $ t)))
+        (gs_min_order_node (gs_m h) q (\<lambda>t. v $ t)) \<noteq> 0"
     unfolding r0_def
-    by (rule gs_min_order_deriv_nonzero_of_coeff_nonzero[OF d qpos coeff_nz])
-  have BW: "gs_bounded_auxiliary_witness
-    (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q)
-    d h q D basis (int (q * q * D + 1) * det_bound_hadamard (q * q * D) (max 1 Bnd)) v x r0"
+    by (rule gs_min_order_deriv_nonzero_of_coeff_nonzero[OF qpos coeff_nz])
+  have BW: "gs_bounded_auxiliary_witness (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q)
+    h q D basis (int (q * q * D + 1) * det_bound_hadamard (q * q * D) (max 1 Bnd)) v x r0"
     using IW min_ord r0_def deriv_nz
     unfolding gs_bounded_auxiliary_witness_def by blast
   show thesis by (rule that[OF BW])
@@ -428,9 +426,8 @@ qed
 
 theorem gs_exists_row_scaled_bounded_integral_auxiliary_data_linear:
   obtains v :: "complex vec" and x :: "int vec" and r where
-    "gs_bounded_auxiliary_witness
-      (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q)
-      d h q D basis (2 * int (q * q * D) * max 1 Bnd) v x r"
+    "gs_bounded_auxiliary_witness (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q)
+      h q D basis (2 * int (q * q * D) * max 1 Bnd) v x r"
 proof -
   have qsq: "q ^ 2 = 2 * gs_m h * gs_n h q"
     by (rule gs_q_sq_eq_two_mn[OF dvd])
@@ -440,13 +437,13 @@ proof -
     using qsq by (simp add: power2_eq_square)
   obtain v :: "complex vec" and x :: "int vec" where
       IW: "bounded_integral_basis_kernel
-        (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q)
+        (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q)
         (gs_m h * gs_n h q) (q * q) D basis
         (2 * int (q * q * D) * max 1 Bnd) v x"
     by (rule gs_row_scaled_system_mat_exists_bounded_algebraic_int_kernel_linear
           [OF Dpos mnpos mnq basis_int basis_indep mult_repr C_bnd])
   interpret W: bounded_integral_basis_kernel
-    "gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q"
+    "gs_row_scaled_system_mat (gs_m h) (gs_n h q) q"
     "gs_m h * gs_n h q" "q * q" D basis
     "2 * int (q * q * D) * max 1 Bnd" v x
     by (rule IW)
@@ -454,23 +451,22 @@ proof -
     and v_ker = W.kernel
   have coeff_nz: "\<exists>t<q * q. v $ t \<noteq> 0"
     using v_carrier v_nz by force
-  have min_ord: "gs_min_order (gs_m h) d q (\<lambda>t. v $ t) \<ge> gs_n h q"
+  have min_ord: "gs_min_order (gs_m h) q (\<lambda>t. v $ t) \<ge> gs_n h q"
   proof -
-    have ker: "gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q *\<^sub>v gs_coeff_vec q (\<lambda>t. v $ t) =
+    have ker: "gs_row_scaled_system_mat (gs_m h) (gs_n h q) q *\<^sub>v gs_coeff_vec q (\<lambda>t. v $ t) =
         0\<^sub>v (gs_m h * gs_n h q)"
       by (simp add: gs_coeff_vec_eqI[OF v_carrier] v_ker)
     show ?thesis
-      by (rule gs_min_order_ge_of_row_scaled_kernel_nonzero[OF d qpos gs_m_pos npos coeff_nz ker])
+      by (rule gs_min_order_ge_of_row_scaled_kernel_nonzero[OF qpos gs_m_pos npos coeff_nz ker])
   qed
-  define r0 where "r0 = nat (gs_min_order (gs_m h) d q (\<lambda>t. v $ t))"
+  define r0 where "r0 = nat (gs_min_order (gs_m h) q (\<lambda>t. v $ t))"
   have deriv_nz:
-      "((deriv ^^ r0) (gs_aux_fun_vec d q (\<lambda>t. v $ t)))
-        (gs_min_order_node (gs_m h) d q (\<lambda>t. v $ t)) \<noteq> 0"
+      "((deriv ^^ r0) (gs_aux_fun_vec q (\<lambda>t. v $ t)))
+        (gs_min_order_node (gs_m h) q (\<lambda>t. v $ t)) \<noteq> 0"
     unfolding r0_def
-    by (rule gs_min_order_deriv_nonzero_of_coeff_nonzero[OF d qpos coeff_nz])
-  have BW: "gs_bounded_auxiliary_witness
-    (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q)
-    d h q D basis (2 * int (q * q * D) * max 1 Bnd) v x r0"
+    by (rule gs_min_order_deriv_nonzero_of_coeff_nonzero[OF qpos coeff_nz])
+  have BW: "gs_bounded_auxiliary_witness (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q)
+    h q D basis (2 * int (q * q * D) * max 1 Bnd) v x r0"
     using IW min_ord r0_def deriv_nz
     unfolding gs_bounded_auxiliary_witness_def by blast
   show thesis by (rule that[OF BW])
@@ -480,35 +476,34 @@ end
 
 lemma gs_scaled_auxiliary_value_house_lower_bound:
   fixes v :: "complex vec"
-  assumes d: "is_gelfond_schneider_data d"
-    and qpos: "q > 0"
+  assumes qpos: "q > 0"
     and v_carrier: "v \<in> carrier_vec (q * q)"
     and v_nz: "v \<noteq> 0\<^sub>v (q * q)"
     and vint: "\<forall>i<q * q. algebraic_int (v $ i)"
-    and r_eq: "r = nat (gs_min_order (gs_m h) d q (\<lambda>t. v $ t))"
+    and r_eq: "r = nat (gs_min_order (gs_m h) q (\<lambda>t. v $ t))"
     and deriv_nz:
-      "((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. v $ t)))
-        (gs_min_order_node (gs_m h) d q (\<lambda>t. v $ t)) \<noteq> 0"
+      "((deriv ^^ r) (gs_aux_fun_vec q (\<lambda>t. v $ t)))
+        (gs_min_order_node (gs_m h) q (\<lambda>t. v $ t)) \<noteq> 0"
   obtains c :: int and rho :: complex where
-      "gs_integral_scaled_auxiliary_value d (gs_m h) q v r c rho"
+      "gs_integral_scaled_auxiliary_value (gs_m h) q v r c rho"
     and "1 \<le> cmod rho * gs_house rho ^
           (card (set (complex_roots_of_int_poly (min_int_poly rho))) - 1)"
 proof -
-  let ?c = "gs_auxiliary_multiplier d (gs_m h) q r"
-  let ?rho = "gs_auxiliary_scaled_value d (gs_m h) q v r ?c"
+  let ?c = "gs_auxiliary_multiplier (gs_m h) q r"
+  let ?rho = "gs_auxiliary_scaled_value (gs_m h) q v r ?c"
   have coeff_nz: "\<exists>t<q * q. v $ t \<noteq> 0"
     using v_carrier v_nz by force
   have rho_int: "algebraic_int ?rho"
-    using gs_scaled_min_deriv_algebraic_int[OF d qpos gs_m_pos vint coeff_nz]
+    using gs_scaled_min_deriv_algebraic_int[OF qpos gs_m_pos vint coeff_nz]
       r_eq
     by (simp add: gs_auxiliary_multiplier_def gs_auxiliary_scaled_value_def)
   have rho_nz: "?rho \<noteq> 0"
-    using gelfond_schneider_data_c1_nonzero[OF d]
-      gelfond_schneider_data_z_nonzero[OF d] deriv_nz
+    using gelfond_schneider_data_c1_nonzero
+      gelfond_schneider_data_z_nonzero deriv_nz
     by (auto simp: gs_auxiliary_multiplier_def
       gs_auxiliary_scaled_value_def power_int_def)
   have c_nz: "?c \<noteq> 0"
-    using gelfond_schneider_data_c1_nonzero[OF d]
+    using gelfond_schneider_data_c1_nonzero
     by (auto simp: gs_auxiliary_multiplier_def)
   have rho_lb: "1 \<le> cmod ?rho * gs_house ?rho ^
     (card (set (complex_roots_of_int_poly (min_int_poly ?rho))) - 1)"
@@ -518,12 +513,10 @@ proof -
 qed
 
 context
-  fixes d :: gelfond_schneider_data
-    and q h D :: nat
+  fixes q h D :: nat
     and Bnd :: int
   fixes basis :: "nat \<Rightarrow> complex"
   fixes C :: "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> int"
-  assumes d: "is_gelfond_schneider_data d"
   assumes qpos: "q > 0"
   assumes npos: "gs_n h q > 0"
   assumes dvd: "2 * gs_m h dvd q ^ 2"
@@ -532,7 +525,7 @@ context
   assumes basis_indep: "\<And>c. (\<Sum>j<D. of_int (c j) * basis j) = 0 \<Longrightarrow> (\<forall>j<D. c j = 0)"
   assumes mult_repr:
     "\<And>u t j. u < gs_m h * gs_n h q \<Longrightarrow> t < q * q \<Longrightarrow> j < D \<Longrightarrow>
-      gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q $$ (u,t) * basis j =
+      gs_row_scaled_system_mat (gs_m h) (gs_n h q) q $$ (u,t) * basis j =
         (\<Sum>k<D. of_int (C u t k j) * basis k)"
   assumes C_bnd:
     "\<And>u t k j. u < gs_m h * gs_n h q \<Longrightarrow> t < q * q \<Longrightarrow> k < D \<Longrightarrow> j < D \<Longrightarrow>
@@ -542,28 +535,26 @@ begin
 theorem gs_exists_row_scaled_bounded_nonzero_algebraic_int_house_lower_bound:
   obtains v :: "complex vec" and x :: "int vec" and r
     and c :: int and rho :: complex where
-      "gs_bounded_auxiliary_witness
-        (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q)
-        d h q D basis (int (q * q * D + 1) * det_bound_hadamard (q * q * D) (max 1 Bnd)) v x r"
-    and "gs_integral_scaled_auxiliary_value d (gs_m h) q v r c rho"
+      "gs_bounded_auxiliary_witness (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q)
+        h q D basis (int (q * q * D + 1) * det_bound_hadamard (q * q * D) (max 1 Bnd)) v x r"
+    and "gs_integral_scaled_auxiliary_value (gs_m h) q v r c rho"
     and "1 \<le> cmod rho * gs_house rho ^
       (card (set (complex_roots_of_int_poly (min_int_poly rho))) - 1)"
 proof -
   obtain v :: "complex vec" and x :: "int vec" and r where
-      BW: "gs_bounded_auxiliary_witness
-        (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q)
-        d h q D basis (int (q * q * D + 1) * det_bound_hadamard (q * q * D) (max 1 Bnd)) v x r"
-    by (rule gs_exists_row_scaled_bounded_integral_auxiliary_data[OF d qpos npos dvd Dpos basis_int basis_indep mult_repr C_bnd])
+      BW: "gs_bounded_auxiliary_witness (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q)
+        h q D basis (int (q * q * D + 1) * det_bound_hadamard (q * q * D) (max 1 Bnd)) v x r"
+    by (rule gs_exists_row_scaled_bounded_integral_auxiliary_data[OF qpos npos dvd Dpos basis_int basis_indep mult_repr C_bnd])
   have IW: "bounded_integral_basis_kernel
-        (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q)
+        (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q)
         (gs_m h * gs_n h q) (q * q) D basis (int (q * q * D + 1) * det_bound_hadamard (q * q * D) (max 1 Bnd)) v x"
-    and r_eq: "r = nat (gs_min_order (gs_m h) d q (\<lambda>t. v $ t))"
+    and r_eq: "r = nat (gs_min_order (gs_m h) q (\<lambda>t. v $ t))"
     and deriv_nz:
-      "((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. v $ t)))
-        (gs_min_order_node (gs_m h) d q (\<lambda>t. v $ t)) \<noteq> 0"
+      "((deriv ^^ r) (gs_aux_fun_vec q (\<lambda>t. v $ t)))
+        (gs_min_order_node (gs_m h) q (\<lambda>t. v $ t)) \<noteq> 0"
     using BW unfolding gs_bounded_auxiliary_witness_def by blast+
   interpret W: bounded_integral_basis_kernel
-    "gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q"
+    "gs_row_scaled_system_mat (gs_m h) (gs_n h q) q"
     "gs_m h * gs_n h q" "q * q" D basis
     "int (q * q * D + 1) * det_bound_hadamard (q * q * D) (max 1 Bnd)" v x
     by (rule IW)
@@ -571,35 +562,33 @@ proof -
     and vint = W.v_integral
   show thesis
     by (rule gs_scaled_auxiliary_value_house_lower_bound
-      [OF d qpos v_carrier v_nz vint r_eq deriv_nz])
+      [OF qpos v_carrier v_nz vint r_eq deriv_nz])
        (rule that[OF BW])
 qed
 
 theorem gs_exists_row_scaled_bounded_nonzero_algebraic_int_house_lower_bound_linear:
   obtains v :: "complex vec" and x :: "int vec" and r
     and c :: int and rho :: complex where
-      "gs_bounded_auxiliary_witness
-        (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q)
-        d h q D basis (2 * int (q * q * D) * max 1 Bnd) v x r"
-    and "gs_integral_scaled_auxiliary_value d (gs_m h) q v r c rho"
+      "gs_bounded_auxiliary_witness (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q)
+        h q D basis (2 * int (q * q * D) * max 1 Bnd) v x r"
+    and "gs_integral_scaled_auxiliary_value (gs_m h) q v r c rho"
     and "1 \<le> cmod rho * gs_house rho ^
       (card (set (complex_roots_of_int_poly (min_int_poly rho))) - 1)"
 proof -
   obtain v :: "complex vec" and x :: "int vec" and r where
-      BW: "gs_bounded_auxiliary_witness
-        (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q)
-        d h q D basis (2 * int (q * q * D) * max 1 Bnd) v x r"
-    by (rule gs_exists_row_scaled_bounded_integral_auxiliary_data_linear[OF d qpos npos dvd Dpos basis_int basis_indep mult_repr C_bnd])
+      BW: "gs_bounded_auxiliary_witness (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q)
+        h q D basis (2 * int (q * q * D) * max 1 Bnd) v x r"
+    by (rule gs_exists_row_scaled_bounded_integral_auxiliary_data_linear[OF qpos npos dvd Dpos basis_int basis_indep mult_repr C_bnd])
   have IW: "bounded_integral_basis_kernel
-        (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q)
+        (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q)
         (gs_m h * gs_n h q) (q * q) D basis (2 * int (q * q * D) * max 1 Bnd) v x"
-    and r_eq: "r = nat (gs_min_order (gs_m h) d q (\<lambda>t. v $ t))"
+    and r_eq: "r = nat (gs_min_order (gs_m h) q (\<lambda>t. v $ t))"
     and deriv_nz:
-      "((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. v $ t)))
-        (gs_min_order_node (gs_m h) d q (\<lambda>t. v $ t)) \<noteq> 0"
+      "((deriv ^^ r) (gs_aux_fun_vec q (\<lambda>t. v $ t)))
+        (gs_min_order_node (gs_m h) q (\<lambda>t. v $ t)) \<noteq> 0"
     using BW unfolding gs_bounded_auxiliary_witness_def by blast+
   interpret W: bounded_integral_basis_kernel
-    "gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q"
+    "gs_row_scaled_system_mat (gs_m h) (gs_n h q) q"
     "gs_m h * gs_n h q" "q * q" D basis
     "2 * int (q * q * D) * max 1 Bnd" v x
     by (rule IW)
@@ -607,7 +596,7 @@ proof -
     and vint = W.v_integral
   show thesis
     by (rule gs_scaled_auxiliary_value_house_lower_bound
-      [OF d qpos v_carrier v_nz vint r_eq deriv_nz])
+      [OF qpos v_carrier v_nz vint r_eq deriv_nz])
        (rule that[OF BW])
 qed
 
@@ -616,43 +605,41 @@ theorem gs_exists_row_scaled_bounded_nonzero_algebraic_int_cmod_upper_bound:
   assumes K_nonneg: "0 \<le> K"
   obtains v :: "complex vec" and x :: "int vec" and r
     and c :: int and rho :: complex where
-      "gs_bounded_auxiliary_witness
-        (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q)
-        d h q D basis (int (q * q * D + 1) * det_bound_hadamard (q * q * D) (max 1 Bnd)) v x r"
-    and "gs_integral_scaled_auxiliary_value d (gs_m h) q v r c rho"
+      "gs_bounded_auxiliary_witness (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q)
+        h q D basis (int (q * q * D + 1) * det_bound_hadamard (q * q * D) (max 1 Bnd)) v x r"
+    and "gs_integral_scaled_auxiliary_value (gs_m h) q v r c rho"
     and "cmod rho \<le>
           of_nat (q * q) *
           ((of_int (int (q * q * D + 1) * det_bound_hadamard (q * q * D) (max 1 Bnd)) :: real) *
             of_nat D * K) *
           (of_int (\<bar>c\<bar>) *
-            (of_nat q * (1 + cmod (gs_b d))) ^ r *
-            (max 1 (cmod (gs_a d))) ^ (gs_m h * q) *
-            (max 1 (cmod (gs_w d))) ^ (gs_m h * q))"
+            (of_nat q * (1 + cmod (beta))) ^ r *
+            (max 1 (cmod (alpha))) ^ (gs_m h * q) *
+            (max 1 (cmod (omega))) ^ (gs_m h * q))"
 proof -
   let ?X = "int (q * q * D + 1) * det_bound_hadamard (q * q * D) (max 1 Bnd)"
   obtain v :: "complex vec" and x :: "int vec" and r
     and c :: int and rho :: complex where
-      BW: "gs_bounded_auxiliary_witness
-        (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q)
-        d h q D basis (int (q * q * D + 1) * det_bound_hadamard (q * q * D) (max 1 Bnd)) v x r"
-    and SW: "gs_integral_scaled_auxiliary_value d (gs_m h) q v r c rho"
+      BW: "gs_bounded_auxiliary_witness (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q)
+        h q D basis (int (q * q * D + 1) * det_bound_hadamard (q * q * D) (max 1 Bnd)) v x r"
+    and SW: "gs_integral_scaled_auxiliary_value (gs_m h) q v r c rho"
     and "1 \<le> cmod rho * gs_house rho ^
       (card (set (complex_roots_of_int_poly (min_int_poly rho))) - 1)"
     by (rule gs_exists_row_scaled_bounded_nonzero_algebraic_int_house_lower_bound)
   have IW: "bounded_integral_basis_kernel
-    (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q)
+    (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q)
     (gs_m h * gs_n h q) (q * q) D basis (int (q * q * D + 1) * det_bound_hadamard (q * q * D) (max 1 Bnd)) v x"
     using BW unfolding gs_bounded_auxiliary_witness_def by blast
   interpret W: bounded_integral_basis_kernel
-    "gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q"
+    "gs_row_scaled_system_mat (gs_m h) (gs_n h q) q"
     "gs_m h * gs_n h q" "q * q" D basis "int (q * q * D + 1) * det_bound_hadamard (q * q * D) (max 1 Bnd)" v x
     by (rule IW)
   note repr = W.coordinates and x_carrier = W.x_carrier
     and x_nz = W.x_nonzero and x_bnd = W.x_bounded
   have rho_def: "rho = (of_int c :: complex) *
-    (gs_z d powi (- int r) *
-      ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. v $ t)))
-        (gs_min_order_node (gs_m h) d q (\<lambda>t. v $ t)))"
+    (zeta powi (- int r) *
+      ((deriv ^^ r) (gs_aux_fun_vec q (\<lambda>t. v $ t)))
+        (gs_min_order_node (gs_m h) q (\<lambda>t. v $ t)))"
     using SW unfolding gs_integral_scaled_auxiliary_value_def
       gs_auxiliary_scaled_value_def by blast
   have X_nonneg: "0 \<le> ?X"
@@ -693,18 +680,18 @@ proof -
     qed
   qed
   obtain l where llt: "l < gs_m h"
-    and node: "gs_min_order_node (gs_m h) d q (\<lambda>t. v $ t) = of_nat (Suc l)"
+    and node: "gs_min_order_node (gs_m h) q (\<lambda>t. v $ t) = of_nat (Suc l)"
     by (rule gs_min_order_node_eq_nat[OF gs_m_pos])
   have l_le_m: "Suc l \<le> gs_m h"
     using llt by simp
   have rho_ub:
       "cmod rho \<le> of_nat (q * q) * ?V *
         (of_int (\<bar>c\<bar>) *
-          (of_nat q * (1 + cmod (gs_b d))) ^ r *
-          (max 1 (cmod (gs_a d))) ^ (gs_m h * q) *
-          (max 1 (cmod (gs_w d))) ^ (gs_m h * q))"
+          (of_nat q * (1 + cmod (beta))) ^ r *
+          (max 1 (cmod (alpha))) ^ (gs_m h * q) *
+          (max 1 (cmod (omega))) ^ (gs_m h * q))"
     unfolding rho_def node
-    by (rule cmod_scaled_deriv_at_nat_le_uniform[OF d qpos coeff_bnd V_nonneg l_le_m])
+    by (rule cmod_scaled_deriv_at_nat_le_uniform[OF qpos coeff_bnd V_nonneg l_le_m])
   show thesis by (rule that[OF BW SW]) (use rho_ub in auto)
 qed
 
@@ -713,42 +700,40 @@ theorem gs_exists_row_scaled_bounded_nonzero_algebraic_int_cmod_upper_bound_line
   assumes K_nonneg: "0 \<le> K"
   obtains v :: "complex vec" and x :: "int vec" and r
     and c :: int and rho :: complex where
-      "gs_bounded_auxiliary_witness
-        (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q)
-        d h q D basis (2 * int (q * q * D) * max 1 Bnd) v x r"
-    and "gs_integral_scaled_auxiliary_value d (gs_m h) q v r c rho"
+      "gs_bounded_auxiliary_witness (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q)
+        h q D basis (2 * int (q * q * D) * max 1 Bnd) v x r"
+    and "gs_integral_scaled_auxiliary_value (gs_m h) q v r c rho"
     and "cmod rho \<le>
           of_nat (q * q) *
           ((of_int (2 * int (q * q * D) * max 1 Bnd) :: real) * of_nat D * K) *
           (of_int (\<bar>c\<bar>) *
-            (of_nat q * (1 + cmod (gs_b d))) ^ r *
-            (max 1 (cmod (gs_a d))) ^ (gs_m h * q) *
-            (max 1 (cmod (gs_w d))) ^ (gs_m h * q))"
+            (of_nat q * (1 + cmod (beta))) ^ r *
+            (max 1 (cmod (alpha))) ^ (gs_m h * q) *
+            (max 1 (cmod (omega))) ^ (gs_m h * q))"
 proof -
   let ?X = "2 * int (q * q * D) * max 1 Bnd"
   obtain v :: "complex vec" and x :: "int vec" and r
     and c :: int and rho :: complex where
-      BW: "gs_bounded_auxiliary_witness
-        (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q)
-        d h q D basis (2 * int (q * q * D) * max 1 Bnd) v x r"
-    and SW: "gs_integral_scaled_auxiliary_value d (gs_m h) q v r c rho"
+      BW: "gs_bounded_auxiliary_witness (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q)
+        h q D basis (2 * int (q * q * D) * max 1 Bnd) v x r"
+    and SW: "gs_integral_scaled_auxiliary_value (gs_m h) q v r c rho"
     and "1 \<le> cmod rho * gs_house rho ^
       (card (set (complex_roots_of_int_poly (min_int_poly rho))) - 1)"
     by (rule gs_exists_row_scaled_bounded_nonzero_algebraic_int_house_lower_bound_linear)
   have IW: "bounded_integral_basis_kernel
-    (gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q)
+    (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q)
     (gs_m h * gs_n h q) (q * q) D basis (2 * int (q * q * D) * max 1 Bnd) v x"
     using BW unfolding gs_bounded_auxiliary_witness_def by blast
   interpret W: bounded_integral_basis_kernel
-    "gs_row_scaled_system_mat d (gs_m h) (gs_n h q) q"
+    "gs_row_scaled_system_mat (gs_m h) (gs_n h q) q"
     "gs_m h * gs_n h q" "q * q" D basis "2 * int (q * q * D) * max 1 Bnd" v x
     by (rule IW)
   note repr = W.coordinates and x_carrier = W.x_carrier
     and x_nz = W.x_nonzero and x_bnd = W.x_bounded
   have rho_def: "rho = (of_int c :: complex) *
-    (gs_z d powi (- int r) *
-      ((deriv ^^ r) (gs_aux_fun_vec d q (\<lambda>t. v $ t)))
-        (gs_min_order_node (gs_m h) d q (\<lambda>t. v $ t)))"
+    (zeta powi (- int r) *
+      ((deriv ^^ r) (gs_aux_fun_vec q (\<lambda>t. v $ t)))
+        (gs_min_order_node (gs_m h) q (\<lambda>t. v $ t)))"
     using SW unfolding gs_integral_scaled_auxiliary_value_def
       gs_auxiliary_scaled_value_def by blast
   have X_nonneg: "0 \<le> ?X"
@@ -767,20 +752,22 @@ proof -
     qed
   qed
   obtain l where llt: "l < gs_m h"
-    and node: "gs_min_order_node (gs_m h) d q (\<lambda>t. v $ t) = of_nat (Suc l)"
+    and node: "gs_min_order_node (gs_m h) q (\<lambda>t. v $ t) = of_nat (Suc l)"
     by (rule gs_min_order_node_eq_nat[OF gs_m_pos])
   have l_le_m: "Suc l \<le> gs_m h"
     using llt by simp
   have rho_ub:
       "cmod rho \<le> of_nat (q * q) * ?V *
         (of_int (\<bar>c\<bar>) *
-          (of_nat q * (1 + cmod (gs_b d))) ^ r *
-          (max 1 (cmod (gs_a d))) ^ (gs_m h * q) *
-          (max 1 (cmod (gs_w d))) ^ (gs_m h * q))"
+          (of_nat q * (1 + cmod (beta))) ^ r *
+          (max 1 (cmod (alpha))) ^ (gs_m h * q) *
+          (max 1 (cmod (omega))) ^ (gs_m h * q))"
     unfolding rho_def node
-    by (rule cmod_scaled_deriv_at_nat_le_uniform[OF d qpos coeff_bnd V_nonneg l_le_m])
+    by (rule cmod_scaled_deriv_at_nat_le_uniform[OF qpos coeff_bnd V_nonneg l_le_m])
   show thesis by (rule that[OF BW SW]) (use rho_ub in auto)
 qed
+
+end
 
 end
 

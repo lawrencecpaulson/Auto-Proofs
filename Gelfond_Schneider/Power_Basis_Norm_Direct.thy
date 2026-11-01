@@ -46,34 +46,21 @@ proof -
     by (rule that[OF PB Dpos coords])
 qed
 
-theorem no_gelfond_schneider_data_of_power_basis_house_coordinate_contradiction:
-  assumes d: "is_gelfond_schneider_data d"
-  assumes coord_contradiction:
-    "\<And>K eta D emb ca cb cw.
-      finite_normal_galois_power_basis K eta D emb \<Longrightarrow>
-      is_gelfond_schneider_data d \<Longrightarrow>
-      D > 0 \<Longrightarrow>
-      rational_power_basis_coordinates D eta ca cb cw (gs_a d) (gs_b d) (gs_w d) \<Longrightarrow>
-      False"
-  shows False
-proof -
-  have alg_a: "algebraic (gs_a d)"
-    and alg_b: "algebraic (gs_b d)"
-    and alg_w: "algebraic (gs_w d)"
-    using d unfolding is_gelfond_schneider_data_def by auto
-  with exists_finite_normal_galois_power_basis_coordinates_of_algebraic_triple[OF alg_a alg_b alg_w] 
-       coord_contradiction d show False by auto
-qed
+context gs_normalized_data
+begin
 
 theorem scaled_norm_contradiction_for_power_basis:
   assumes PB: "finite_normal_galois_power_basis K eta D emb"
-    and d: "is_gelfond_schneider_data d"
     and Dpos: "D > 0"
-    and coords: "rational_power_basis_coordinates D eta ca cb cw (gs_a d) (gs_b d) (gs_w d)"
+    and coords: "rational_power_basis_coordinates D eta ca cb cw alpha beta omega"
   shows False
 proof -
   interpret PB: finite_normal_galois_power_basis K eta D emb by (rule PB)
-  interpret Coords: rational_power_basis_coordinates D eta ca cb cw "gs_a d" "gs_b d" "gs_w d"
+  interpret PBGS: gs_power_basis_data K eta D emb alpha beta omega zeta
+    by unfold_locales
+      (use PB alpha_alg beta_alg omega_alg alpha_nonzero alpha_nonunit
+        beta_irrational zeta_log_alpha beta_zeta_log_omega in auto)
+  interpret Coords: rational_power_basis_coordinates D eta ca cb cw "alpha" "beta" "omega"
     by (rule coords)
   note ca_rat = Coords.ca_rat
   note a_eq = Coords.a_eq
@@ -81,27 +68,25 @@ proof -
   note b_eq = Coords.b_eq
   note cw_rat = Coords.cw_rat
   note w_eq = Coords.w_eq
-  obtain aK: "gs_a d \<in> K" and  bK: "gs_b d \<in> K" and wK: "gs_w d \<in> K"
+  obtain aK: "alpha \<in> K" and  bK: "beta \<in> K" and wK: "omega \<in> K"
     using PB.sum_rat_power_in_K a_eq b_eq ca_rat cb_rat cw_rat w_eq by presburger
-  obtain T::int where Tp: "T > 0" and prod:
-              "\<forall>xs. (\<forall>x\<in>set xs. x = gs_a d \<or> x = gs_w d \<or> x = eta \<or>
-                (\<exists>u v. x = of_nat u + of_nat v * gs_b d)) \<longrightarrow>
-                (\<exists>z. of_int (T ^ length xs) * prod_list xs = (\<Sum>i<D. of_int (z i) * eta ^ i))"
-    using PB.data_generators_and_affines_uniform_product_denominator
-      [OF aK bK wK]
-    unfolding PB.uniform_product_denominator_def
-      PB.uniform_denominator_factor_def by blast
+  obtain T::int where Tp: "T > 0"
+    and prod: "PBGS.gs_uniform_product_denominator T"
+    using PB.data_generators_and_affines_uniform_product_denominator[OF aK bK wK]
+    unfolding PBGS.gs_uniform_product_denominator_def by blast
   let ?U = "(of_int (T ^ (1 + 4 * gs_m D * gs_m D + D)) :: real)"
-  let ?HB = "gelfond_schneider_power_basis_field_norm_estimates.gs_house_growth_base eta D emb d D"
-  let ?P = "gelfond_schneider_power_basis_field_norm_estimates.gs_point_growth_base eta D emb d D"
-  define c14 where "c14 \<equiv> max 1 ((?HB * ?U ^ 2) ^ (D - 1) * (?P * ?U))"
+  define c14 where "c14 \<equiv> max 1
+    (gelfond_schneider_power_basis_field_norm_estimates.gs_norm_growth_base
+      eta D emb alpha beta omega zeta D ?U)"
   have Cge: "1 \<le> c14 * 2"
     using c14_def by linarith 
   define q where "q \<equiv> gs_q_choice D (c14 * (2::real))"
-  define A where "A \<equiv> gelfond_schneider_power_basis_field_norm_estimates.gs_concrete_entry_bound D emb d q D"
+  define A where "A \<equiv> gelfond_schneider_power_basis_field_norm_estimates.gs_concrete_entry_bound
+    D emb alpha beta omega q D"
   obtain i0 where i0lt: "i0 < D" and emb0: "emb i0 = identity K"
     by (rule PB.obtains_identity_embedding_index)
-  have SV: "gelfond_schneider_power_basis_scaled_norm_verified K eta D emb ca cb cw d q D i0 A 2 c14 T"
+  have SV: "gelfond_schneider_power_basis_scaled_norm_verified
+    K eta D emb alpha beta omega zeta ca cb cw q D i0 A 2 c14 T"
   proof 
     show "q > 0"       
       unfolding q_def by (rule gs_q_choice_pos[OF Dpos Cge])
@@ -109,21 +94,30 @@ proof -
       using \<open>0 < q\<close> gs_n_q_choice_closed_form gs_q_choice_def q_def by auto
     show "2 * gs_m D dvd q ^ 2" 
       unfolding q_def by (rule gs_q_choice_dvd)
-    show "gs_row_scaled_system_mat d (gs_m D) (gs_n D q) q $$ (u,t) \<in> K"
+    show "gs_row_scaled_system_mat (gs_m D) (gs_n D q) q $$ (u,t) \<in> K"
       if up: "u < gs_m D * gs_n D q" and tq: "t < q * q" for u t
-      by (rule PB.row_scaled_entry_in_K_from_rational_coordinates
+      by (rule PBGS.row_scaled_entry_in_K_from_rational_coordinates
           [OF coords up tq])
-  qed (use assms ca_rat a_eq cb_rat b_eq cw_rat w_eq prod d Tp i0lt emb0 q_def A_def c14_def
+  qed (use assms ca_rat a_eq cb_rat b_eq cw_rat w_eq prod Tp i0lt emb0 q_def A_def c14_def
     in \<open>auto simp: gs_row_denominator_order_exponent_def\<close>)
   interpret V: gelfond_schneider_power_basis_scaled_norm_verified
-    K eta D emb ca cb cw d q D i0 A 2 c14 T by (rule SV)
+    K eta D emb alpha beta omega zeta ca cb cw q D i0 A 2 c14 T by (rule SV)
   show False by (rule V.coordinate_contradiction)
 qed
 
-theorem no_gelfond_schneider_data_scaled:
-  assumes d: "is_gelfond_schneider_data d"
+theorem normalized_data_contradiction:
   shows False
-  using assms no_gelfond_schneider_data_of_power_basis_house_coordinate_contradiction
-    scaled_norm_contradiction_for_power_basis by blast
+proof -
+  obtain K eta D emb ca cb cw where
+    PB: "finite_normal_galois_power_basis K eta D emb"
+    and Dpos: "D > 0"
+    and coords: "rational_power_basis_coordinates D eta ca cb cw alpha beta omega"
+    by (rule exists_finite_normal_galois_power_basis_coordinates_of_algebraic_triple
+      [OF alpha_alg beta_alg omega_alg])
+  show False
+    by (rule scaled_norm_contradiction_for_power_basis[OF PB Dpos coords])
+qed
+
+end
 
 end

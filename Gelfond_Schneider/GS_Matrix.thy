@@ -15,17 +15,18 @@ begin
 
 section \<open>Matrix Form of the Indexed Linear System\<close>
 
+context gs_normalized_data
+begin
+
 definition gs_system_mat ::
-  "gelfond_schneider_data \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> complex mat"
+  "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> complex mat"
   where
-    "gs_system_mat d m n q \<equiv> mat (m * n) (q * q) (\<lambda>(u,t). gs_system_coeff_idx d n q u t)"
+    "gs_system_mat m n q \<equiv> mat (m * n) (q * q) (\<lambda>(u,t). gs_system_coeff_idx n q u t)"
+
+end
 
 definition gs_coeff_vec :: "nat \<Rightarrow> (nat \<Rightarrow> complex) \<Rightarrow> complex vec"
   where "gs_coeff_vec q \<xi> \<equiv> vec (q * q) \<xi>"
-
-lemma gs_system_mat_carrier [simp]:
-  "gs_system_mat d m n q \<in> carrier_mat (m * n) (q * q)"
-  unfolding gs_system_mat_def by simp
 
 lemma gs_coeff_vec_carrier [simp]:
   "gs_coeff_vec q \<xi> \<in> carrier_vec (q * q)"
@@ -113,83 +114,88 @@ lemma gs_coeff_vec_eqI:
   using assms
   by (metis Matrix.vec_eq_iff carrier_vecD dim_vec gs_coeff_vec_def index_vec)
 
+context gs_normalized_data
+begin
+
+lemma gs_system_mat_carrier [simp]:
+  "gs_system_mat m n q \<in> carrier_mat (m * n) (q * q)"
+  unfolding gs_system_mat_def by simp
+
 lemma gs_system_mat_mult_component:
   assumes ult: "u < m * n"
-  shows "((gs_system_mat d m n q *\<^sub>v gs_coeff_vec q \<xi>) $ u) =
-    (\<Sum>t<q * q. \<xi> t * gs_system_coeff_idx d n q u t)"
+  shows "((gs_system_mat m n q *\<^sub>v gs_coeff_vec q \<xi>) $ u) =
+    (\<Sum>t<q * q. \<xi> t * gs_system_coeff_idx n q u t)"
 proof -
-  have urow: "u < dim_row (gs_system_mat d m n q)"
+  have urow: "u < dim_row (gs_system_mat m n q)"
     using ult unfolding gs_system_mat_def by simp
-  have "((gs_system_mat d m n q *\<^sub>v gs_coeff_vec q \<xi>) $ u) = row (gs_system_mat d m n q) u \<bullet> gs_coeff_vec q \<xi>"
+  have "((gs_system_mat m n q *\<^sub>v gs_coeff_vec q \<xi>) $ u) = row (gs_system_mat m n q) u \<bullet> gs_coeff_vec q \<xi>"
     by (rule index_mult_mat_vec[OF urow])
-  also have "\<dots> = (\<Sum>i = 0..<q * q. \<xi> i * gs_system_coeff_idx d n q u i)"
+  also have "\<dots> = (\<Sum>i = 0..<q * q. \<xi> i * gs_system_coeff_idx n q u i)"
     using ult
     unfolding scalar_prod_def gs_system_mat_def gs_coeff_vec_def
     by (simp add: index_mat index_vec mult.commute)
-  also have "\<dots> = (\<Sum>t<q * q. \<xi> t * gs_system_coeff_idx d n q u t)"
+  also have "\<dots> = (\<Sum>t<q * q. \<xi> t * gs_system_coeff_idx n q u t)"
     by (simp add: atLeast0LessThan)
   finally show ?thesis .
 qed
 
 lemma gs_system_mat_kernel_iff:
-  "gs_system_mat d m n q *\<^sub>v gs_coeff_vec q \<xi> = 0\<^sub>v (m * n) \<longleftrightarrow>
-    (\<forall>u<m * n. (\<Sum>t<q * q. \<xi> t * gs_system_coeff_idx d n q u t) = 0)"
+  "gs_system_mat m n q *\<^sub>v gs_coeff_vec q \<xi> = 0\<^sub>v (m * n) \<longleftrightarrow>
+    (\<forall>u<m * n. (\<Sum>t<q * q. \<xi> t * gs_system_coeff_idx n q u t) = 0)"
 proof
-  assume ker: "gs_system_mat d m n q *\<^sub>v gs_coeff_vec q \<xi> = 0\<^sub>v (m * n)"
-  show "\<forall>u<m * n. (\<Sum>t<q * q. \<xi> t * gs_system_coeff_idx d n q u t) = 0"
+  assume ker: "gs_system_mat m n q *\<^sub>v gs_coeff_vec q \<xi> = 0\<^sub>v (m * n)"
+  show "\<forall>u<m * n. (\<Sum>t<q * q. \<xi> t * gs_system_coeff_idx n q u t) = 0"
     by (metis (lifting) gs_system_mat_mult_component index_zero_vec(1) ker)
 next
-  assume sys0: "\<forall>u<m * n. (\<Sum>t<q * q. \<xi> t * gs_system_coeff_idx d n q u t) = 0"
-  show "gs_system_mat d m n q *\<^sub>v gs_coeff_vec q \<xi> = 0\<^sub>v (m * n)"
+  assume sys0: "\<forall>u<m * n. (\<Sum>t<q * q. \<xi> t * gs_system_coeff_idx n q u t) = 0"
+  show "gs_system_mat m n q *\<^sub>v gs_coeff_vec q \<xi> = 0\<^sub>v (m * n)"
   proof (rule eq_vecI)
-    show "dim_vec (gs_system_mat d m n q *\<^sub>v gs_coeff_vec q \<xi>) = dim_vec (0\<^sub>v (m * n))"
+    show "dim_vec (gs_system_mat m n q *\<^sub>v gs_coeff_vec q \<xi>) = dim_vec (0\<^sub>v (m * n))"
       unfolding gs_system_mat_def by simp
   next
     fix u
     assume ult: "u < dim_vec (0\<^sub>v (m * n))"
-    then have "(\<Sum>t<q * q. \<xi> t * gs_system_coeff_idx d n q u t) = 0"
+    then have "(\<Sum>t<q * q. \<xi> t * gs_system_coeff_idx n q u t) = 0"
       using sys0 by force
-    then show "(gs_system_mat d m n q *\<^sub>v gs_coeff_vec q \<xi>) $ u = (0\<^sub>v (m * n)) $ u"
+    then show "(gs_system_mat m n q *\<^sub>v gs_coeff_vec q \<xi>) $ u = (0\<^sub>v (m * n)) $ u"
       using ult by (simp add: gs_system_mat_mult_component)
   qed
 qed
 
 corollary gs_aux_fun_vec_deriv_vanish_at_node_of_kernel:
-  assumes d: "is_gelfond_schneider_data d"
   assumes npos: "n > 0"
-  assumes ker: "gs_system_mat d m n q *\<^sub>v gs_coeff_vec q \<xi> = 0\<^sub>v (m * n)"
+  assumes ker: "gs_system_mat m n q *\<^sub>v gs_coeff_vec q \<xi> = 0\<^sub>v (m * n)"
   assumes llt: "l < m"
   assumes klt: "k < n"
-  shows "((deriv ^^ k) (gs_aux_fun_vec d q \<xi>)) (of_nat (Suc l)) = 0"
+  shows "((deriv ^^ k) (gs_aux_fun_vec q \<xi>)) (of_nat (Suc l)) = 0"
 proof -
-  have sys0: "\<And>u. u < m * n \<Longrightarrow> (\<Sum>t<q * q. \<xi> t * gs_system_coeff_idx d n q u t) = 0"
-    using gs_system_mat_kernel_iff[of d m n q \<xi>] ker by blast
+  have sys0: "\<And>u. u < m * n \<Longrightarrow> (\<Sum>t<q * q. \<xi> t * gs_system_coeff_idx n q u t) = 0"
+    using gs_system_mat_kernel_iff[of m n q \<xi>] ker by blast
   show ?thesis
-    by (rule gs_aux_fun_vec_deriv_vanish_at_node[OF d npos sys0 llt klt])
+    by (rule gs_aux_fun_vec_deriv_vanish_at_node[OF npos sys0 llt klt])
 qed
 
 corollary gs_min_order_ge_of_kernel_nonzero:
-  assumes d: "is_gelfond_schneider_data d"
   assumes qpos: "q > 0"
   assumes mpos: "m > 0"
   assumes npos: "n > 0"
   assumes coeff_nz: "\<exists>t<q * q. \<xi> t \<noteq> 0"
-  assumes ker: "gs_system_mat d m n q *\<^sub>v gs_coeff_vec q \<xi> = 0\<^sub>v (m * n)"
-  shows "gs_min_order m d q \<xi> \<ge> n"
+  assumes ker: "gs_system_mat m n q *\<^sub>v gs_coeff_vec q \<xi> = 0\<^sub>v (m * n)"
+  shows "gs_min_order m q \<xi> \<ge> n"
 proof -
-  have sys0: "\<And>u. u < m * n \<Longrightarrow> (\<Sum>t<q * q. \<xi> t * gs_system_coeff_idx d n q u t) = 0"
-    using gs_system_mat_kernel_iff[of d m n q \<xi>] ker by blast
+  have sys0: "\<And>u. u < m * n \<Longrightarrow> (\<Sum>t<q * q. \<xi> t * gs_system_coeff_idx n q u t) = 0"
+    using gs_system_mat_kernel_iff[of m n q \<xi>] ker by blast
   show ?thesis
-    by (rule gs_min_order_ge_of_coeff_nonzero[OF d qpos mpos npos coeff_nz sys0])
+    by (rule gs_min_order_ge_of_coeff_nonzero[OF qpos mpos npos coeff_nz sys0])
 qed
 
 corollary gs_system_mat_exists_nonzero_coeffs:
   assumes mnq: "m * n < q * q"
   obtains \<xi> where "\<exists>t<q * q. \<xi> t \<noteq> 0"
-    and "gs_system_mat d m n q *\<^sub>v gs_coeff_vec q \<xi> = 0\<^sub>v (m * n)"
+    and "gs_system_mat m n q *\<^sub>v gs_coeff_vec q \<xi> = 0\<^sub>v (m * n)"
 proof -
   obtain v where v: "v \<in> carrier_vec (q * q)" "v \<noteq> 0\<^sub>v (q * q)"
-                   "gs_system_mat d m n q *\<^sub>v v = 0\<^sub>v (m * n)"
+                   "gs_system_mat m n q *\<^sub>v v = 0\<^sub>v (m * n)"
     using exists_nonzero_kernel_vec_rectangular[OF gs_system_mat_carrier mnq]
     by blast
   then obtain t where "t < q * q" "v $ t \<noteq> 0"
@@ -199,39 +205,37 @@ proof -
 qed
 
 corollary gs_exists_auxiliary_coeffs_with_min_order:
-  assumes d: "is_gelfond_schneider_data d"
   assumes qpos: "q > 0"
   assumes mpos: "m > 0"
   assumes npos: "n > 0"
   assumes mnq: "m * n < q * q"
   obtains \<xi> where "\<exists>t<q * q. \<xi> t \<noteq> 0"
-    and "gs_system_mat d m n q *\<^sub>v gs_coeff_vec q \<xi> = 0\<^sub>v (m * n)"
-    and "gs_min_order m d q \<xi> \<ge> n"
+    and "gs_system_mat m n q *\<^sub>v gs_coeff_vec q \<xi> = 0\<^sub>v (m * n)"
+    and "gs_min_order m q \<xi> \<ge> n"
   using assms
   by (metis gs_min_order_ge_of_kernel_nonzero gs_system_mat_exists_nonzero_coeffs)
 
 corollary gs_exists_auxiliary_coeffs_with_min_order_witness:
-  assumes d: "is_gelfond_schneider_data d"
   assumes qpos: "q > 0"
   assumes mpos: "m > 0"
   assumes npos: "n > 0"
   assumes mnq: "m * n < q * q"
   obtains \<xi> r where "\<exists>t<q * q. \<xi> t \<noteq> 0"
-        and "gs_system_mat d m n q *\<^sub>v gs_coeff_vec q \<xi> = 0\<^sub>v (m * n)"
-        and "gs_min_order m d q \<xi> \<ge> n"
-        and "r = nat (gs_min_order m d q \<xi>)"
-        and "((deriv ^^ r) (gs_aux_fun_vec d q \<xi>)) (gs_min_order_node m d q \<xi>) \<noteq> 0"
+        and "gs_system_mat m n q *\<^sub>v gs_coeff_vec q \<xi> = 0\<^sub>v (m * n)"
+        and "gs_min_order m q \<xi> \<ge> n"
+        and "r = nat (gs_min_order m q \<xi>)"
+        and "((deriv ^^ r) (gs_aux_fun_vec q \<xi>)) (gs_min_order_node m q \<xi>) \<noteq> 0"
 proof -
   obtain \<xi> where nz: "\<exists>t<q * q. \<xi> t \<noteq> 0"
-    and ker: "gs_system_mat d m n q *\<^sub>v gs_coeff_vec q \<xi> = 0\<^sub>v (m * n)"
-    and ord: "gs_min_order m d q \<xi> \<ge> n"
-    by (rule gs_exists_auxiliary_coeffs_with_min_order[OF d qpos mpos npos mnq])
-  define r where "r = nat (gs_min_order m d q \<xi>)"
+    and ker: "gs_system_mat m n q *\<^sub>v gs_coeff_vec q \<xi> = 0\<^sub>v (m * n)"
+    and ord: "gs_min_order m q \<xi> \<ge> n"
+    by (rule gs_exists_auxiliary_coeffs_with_min_order[OF qpos mpos npos mnq])
+  define r where "r = nat (gs_min_order m q \<xi>)"
   have deriv_nz0:
-      "((deriv ^^ nat (gs_min_order m d q \<xi>)) (gs_aux_fun_vec d q \<xi>))
-        (gs_min_order_node m d q \<xi>) \<noteq> 0"
-    by (rule gs_min_order_deriv_nonzero_of_coeff_nonzero[OF d qpos nz])
-  have deriv_nz: "((deriv ^^ r) (gs_aux_fun_vec d q \<xi>)) (gs_min_order_node m d q \<xi>) \<noteq> 0"
+      "((deriv ^^ nat (gs_min_order m q \<xi>)) (gs_aux_fun_vec q \<xi>))
+        (gs_min_order_node m q \<xi>) \<noteq> 0"
+    by (rule gs_min_order_deriv_nonzero_of_coeff_nonzero[OF qpos nz])
+  have deriv_nz: "((deriv ^^ r) (gs_aux_fun_vec q \<xi>)) (gs_min_order_node m q \<xi>) \<noteq> 0"
     using deriv_nz0 by (simp add: r_def)
   show thesis
     using deriv_nz ker local.ord nz r_def that by metis
@@ -239,25 +243,31 @@ qed
 
 section \<open>Algebraic Kernel Vectors\<close>
 
+end
+
 definition algebraic_mat :: "complex mat \<Rightarrow> bool"
   where "algebraic_mat A \<equiv> (\<forall>i<dim_row A. \<forall>j<dim_col A. algebraic (A $$ (i, j)))"
 
 definition algebraic_vec :: "complex vec \<Rightarrow> bool"
   where "algebraic_vec v \<equiv> (\<forall>i<dim_vec v. algebraic (v $ i))"
 
+context gs_normalized_data
+begin
+
 lemma gs_system_mat_algebraic:
-  assumes d: "is_gelfond_schneider_data d"
-  shows "algebraic_mat (gs_system_mat d m n q)"
+  shows "algebraic_mat (gs_system_mat m n q)"
   unfolding algebraic_mat_def
 proof (intro allI impI)
   fix i j
-  assume ij: "i < dim_row (gs_system_mat d m n q)" "j < dim_col (gs_system_mat d m n q)"
+  assume ij: "i < dim_row (gs_system_mat m n q)" "j < dim_col (gs_system_mat m n q)"
   then have ij': "i < m * n" "j < q * q"
     unfolding gs_system_mat_def by simp_all
-  show "algebraic (gs_system_mat d m n q $$ (i, j))"
+  show "algebraic (gs_system_mat m n q $$ (i, j))"
     unfolding gs_system_mat_def
-    using ij' by (simp add: gelfond_schneider_data_system_coeff_idx_algebraic[OF d])
+    using ij' by (simp add: gelfond_schneider_data_system_coeff_idx_algebraic)
 qed
+
+end
 
 lemma algebraic_matD:
   assumes "algebraic_mat A"
