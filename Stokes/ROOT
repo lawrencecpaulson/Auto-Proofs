@@ -3,11 +3,23 @@ chapter AFP
 session Stokes = Smooth_Manifolds +
   description "Stokes' theorem for smooth manifolds with boundary"
   options [timeout = 600]
+  sessions
+    "HOL-Complex_Analysis"
   directories
     "Boundary"
     "BoundaryIntegration"
   theories [document = false]
     Stokes_Local
+    Green_Rectangle_Contour
+    Green_Rectangular_Union
+    Green_Edge_Subdivision
+    Green_Edge_Orientation
+    Green_Edge_Contour
+    Green_Edge_Flow
+    Green_Boundary_Walks
+    Green_Boundary_Contour
+    Green_Walk_Paths
+    Green_Curl
     Basis_Fubini
     Chart_Local
     Chart_Theorem
