@@ -44,12 +44,11 @@ number. `Green_AC_Winding.thy` bounds the change of the Cauchy-kernel
 contour integral under this approximation and proves its equality with
 the path's winding number. Its final result needs only absolute continuity
 and a point outside the path image.
-`Green_AC_Measure.thy` proves that every rectifiable complex path, hence
-every absolutely continuous complex path, has a negligible image.
+`Green_AC_Winding.thy` also proves that every rectifiable complex path,
+hence every absolutely continuous complex path, has a negligible image.
 `Green_Cauchy_Area.thy` proves local integrability of the planar Cauchy
-kernel and a bound uniform over a bounded set of path points.
-`Green_Cauchy_Fubini.thy` uses this bound to establish product-space
-integrability and exchange the time and area integrals.
+kernel, a bound uniform over a bounded set of path points, product-space
+integrability, and exchange of the time and area integrals.
 `Green_Cauchy_Winding_Area.thy` proves continuity of the Cauchy area
 transform and a winding-weighted area identity for its contour integral
 along an absolutely continuous path, for a compactly supported
@@ -98,12 +97,11 @@ The principal results are in:
 - `Green_AC_Approximation.thy`: endpoint-preserving valid-path approximation
   and stability of winding number.
 - `Green_AC_Winding.thy`: the Cauchy-kernel contour-integral formula for
-  absolutely continuous paths, with or without a specified velocity.
-- `Green_AC_Measure.thy`: negligible image of a rectifiable complex path.
+  absolutely continuous paths, with or without a specified velocity, and
+  negligible image of a rectifiable complex path.
 - `Green_Cauchy_Area.thy`: local integrability and uniform area bounds for
-  the Cauchy kernel against a compactly supported continuous function.
-- `Green_Cauchy_Fubini.thy`: product-space integrability and Fubini exchange
-  for the Cauchy area kernel along a path.
+  the Cauchy kernel against a compactly supported continuous function,
+  product-space integrability, and Fubini exchange along a path.
 - `Green_Cauchy_Winding_Area.thy`: continuity of the Cauchy area transform
   and its contour-integral identity with winding-weighted area.
 - `Green_Cauchy_Differentiability.thy`: Fréchet differentiability and \(C^1\)

@@ -1,5 +1,5 @@
 theory Green_Cauchy_Winding_Area
-  imports Green_Cauchy_Fubini
+  imports Green_Cauchy_Area
 begin
 
 definition green_cauchy_area_transform ::
@@ -255,12 +255,8 @@ proof -
       (\<lambda>(t,z). u z * v t / (z - g t))"
     by (rule green_cauchy_area_path_product_integrable
       [OF uc C supp R Cnonneg gc gb vi])
-  have finM: "finite_measure ?M"
-    by (rule finite_measure_lebesgue_on) simp
-  have sigmaM: "sigma_finite_measure ?M"
-    using finM by (rule finite_measure.axioms(1))
   have pair: "pair_sigma_finite ?M (lborel :: complex measure)"
-    by (rule pair_sigma_finite.intro[OF sigmaM sigma_finite_lborel])
+    by (rule green_cauchy_time_area_pair_sigma_finite)
   have Lint: "integrable (lborel :: complex measure) ?L"
     by (rule pair_sigma_finite.integrable_snd[OF pair prod])
   have ae_tint: "AE z in (lborel :: complex measure).
@@ -306,10 +302,8 @@ proof -
         (-(2 * pi * \<i>) * ?W z)) = ?W"
     by (simp only: fun_eq_iff mult.assoc[symmetric]
       left_inverse[OF scale_ne] mult_1_left refl; simp)
-  have Wint: "integrable (lborel :: complex measure) ?W"
-    using unscaled_int by (simp only: unscaled_eq)
   show "integrable (lborel :: complex measure) ?W"
-    by (rule Wint)
+    using unscaled_int by (simp only: unscaled_eq)
   have eq_int: "(\<integral>z. ?L z \<partial>(lborel :: complex measure)) =
       (\<integral>z. -(2 * pi * \<i>) * ?W z \<partial>lborel)"
     by (rule integral_cong_AE[OF Lmeas scale_meas ae_eq])

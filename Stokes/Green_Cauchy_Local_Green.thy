@@ -315,13 +315,15 @@ lemma green_closed_path_filled_compact:
   assumes path: "path g"
   shows "compact (path_image g \<union> inside (path_image g))"
 proof -
-  have bdp: "bounded (path_image g)" by (rule bounded_path_image[OF path])
-  have bdi: "bounded (inside (path_image g))" by (rule bounded_inside[OF bdp])
-  have bdk: "bounded (path_image g \<union> inside (path_image g))"
-    using bdp bdi by simp
-  have clk: "closed (path_image g \<union> inside (path_image g))"
+  have bdp: "bounded (path_image g)"
+    by (rule bounded_path_image[OF path])
+  then have "bounded (inside (path_image g))"
+    by (rule bounded_inside)
+  then have "bounded (path_image g \<union> inside (path_image g))"
+    using bdp by simp
+  moreover have "closed (path_image g \<union> inside (path_image g))"
     by (rule closed_path_image_Un_inside[OF path])
-  show ?thesis using bdk clk by (simp add: compact_eq_bounded_closed)
+  ultimately show ?thesis by (simp add: compact_eq_bounded_closed)
 qed
 
 theorem green_ac_contour_dbar_winding_local_C1:
@@ -401,10 +403,9 @@ proof -
     using that KU \<phi>one[OF that] by auto
   have Feq_path: "\<And>z. z \<in> path_image g \<Longrightarrow> ?F z = f z"
     using Feq by auto
-  have cint: "f contour_integrable_on g"
+  show "f contour_integrable_on g"
     using Fcint unfolding contour_integrable_on_def
     by (simp only: has_contour_integral_cong[OF Feq_path refl refl])
-  show "f contour_integrable_on g" by (rule cint)
   have ceq: "contour_integral g ?F = contour_integral g f"
     by (rule contour_integral_cong[OF refl]) (use Feq in auto)
   have dbar_eq: "green_wirtinger_dbar ?F z = green_wirtinger_dbar f z"

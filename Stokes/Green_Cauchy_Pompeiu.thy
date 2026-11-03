@@ -51,8 +51,6 @@ proof -
           norm (h (2*x-1) - h (2*y-1))"
       proof (cases "x = 1/2")
         case True
-        have hx: "g (2*x) = h (2*x-1)"
-          using join by (simp add: True)
         show ?thesis
           unfolding True
           using False join by (simp add: joinpaths_def)

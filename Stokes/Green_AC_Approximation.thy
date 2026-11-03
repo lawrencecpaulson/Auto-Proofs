@@ -102,9 +102,6 @@ proof -
     by (rule continuous_on_subset[OF hc]) simp
   have hi: "h integrable_on ?I"
     by (rule integrable_continuous_real[OF hI])
-  have ki: "k integrable_on ?I"
-    by (rule integrable_continuous_real)
-      (rule continuous_on_subset[OF kc], simp)
   have peq: "p t = p0 t + t *\<^sub>R d" if t: "t \<in> ?I" for t
   proof -
     have sub: "{0..t} \<subseteq> ?I"

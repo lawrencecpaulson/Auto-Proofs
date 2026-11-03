@@ -965,9 +965,9 @@ proof -
     by (rule borel_measurable_integrable[OF fint])
   have smeas: "?F t \<in> borel_measurable lborel" for t
   proof -
-    have Sm: "?S (inverse t) \<in> sets (lborel :: (real \<times> real) measure)"
+    have "?S (inverse t) \<in> sets (lborel :: (real \<times> real) measure)"
       by (simp add: borel_closed closed_Times)
-    show ?thesis using fmeas Sm by measurable
+    then show ?thesis using fmeas by measurable
   qed
   have normint: "integrable lborel (\<lambda>p. norm (f p))"
     by (rule integrable_norm[OF fint])
@@ -976,9 +976,9 @@ proof -
   have ae: "AE p in (lborel :: (real \<times> real) measure).
       ((\<lambda>t. ?F t p) \<longlongrightarrow> 0) at_top"
   proof -
-    have nz: "AE p in (lborel :: (real \<times> real) measure).
+    have "AE p in (lborel :: (real \<times> real) measure).
       p \<noteq> (x,y)" by (rule AE_lborel_singleton)
-    show ?thesis using nz
+    then show ?thesis
     proof eventually_elim
     fix p :: "real \<times> real"
     assume p: "p \<noteq> (x,y)"

@@ -23,9 +23,7 @@ session Stokes = Smooth_Manifolds +
     Green_AC_Paths
     Green_AC_Approximation
     Green_AC_Winding
-    Green_AC_Measure
     Green_Cauchy_Area
-    Green_Cauchy_Fubini
     Green_Cauchy_Winding_Area
     Green_Cauchy_Differentiability
     Green_Cauchy_Curl
