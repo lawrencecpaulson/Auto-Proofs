@@ -92,14 +92,12 @@ context gs_normalized_data
 begin
 
 definition gs_c1 :: int
-  where "gs_c1 = \<bar>gs_c0 alpha * gs_c0 beta * gs_c0 omega\<bar>"
+  where "gs_c1 \<equiv> \<bar>gs_c0 alpha * gs_c0 beta * gs_c0 omega\<bar>"
 
-lemma gelfond_schneider_data_z_nonzero:
-  "zeta \<noteq> 0"
+lemma gelfond_schneider_data_z_nonzero: "zeta \<noteq> 0"
   using alpha_nonunit zeta_log_alpha by auto
 
-lemma gelfond_schneider_data_z_transcendental:
-  "\<not> algebraic zeta"
+lemma gelfond_schneider_data_z_transcendental: "\<not> algebraic zeta"
   by (rule algebraic_log_value_transcendental
     [OF alpha_alg alpha_nonzero alpha_nonunit zeta_log_alpha])
 
@@ -107,47 +105,7 @@ lemma gelfond_schneider_data_c1_ge1:
   shows "1 \<le> gs_c1"
 proof -
   have nz: "gs_c0 (alpha) * gs_c0 (beta) * gs_c0 (omega) \<noteq> 0"
-  proof
-    assume "gs_c0 (alpha) * gs_c0 (beta) * gs_c0 (omega) = 0"
-    then have disj: "gs_c0 (alpha) = 0 \<or> gs_c0 (beta) = 0 \<or> gs_c0 (omega) = 0"
-      by auto
-    have alg_a: "algebraic (alpha)"
-      by (rule alpha_alg)
-    have alg_b: "algebraic (beta)"
-      by (rule beta_alg)
-    have alg_w: "algebraic (omega)"
-      by (rule omega_alg)
-    moreover have "gs_c0 (alpha) \<noteq> 0"
-      by (rule gs_c0_nonzero[OF alg_a])
-    moreover have "gs_c0 (beta) \<noteq> 0"
-      by (rule gs_c0_nonzero[OF alg_b])
-    moreover have "gs_c0 (omega) \<noteq> 0"
-      by (rule gs_c0_nonzero[OF alg_w])
-    from disj show False
-    proof
-      assume "gs_c0 (alpha) = 0"
-      moreover have "gs_c0 (alpha) \<noteq> 0"
-        by (rule gs_c0_nonzero[OF alg_a])
-      ultimately show False
-        by contradiction
-    next
-      assume "gs_c0 (beta) = 0 \<or> gs_c0 (omega) = 0"
-      then show False
-      proof
-        assume "gs_c0 (beta) = 0"
-        moreover have "gs_c0 (beta) \<noteq> 0"
-          by (rule gs_c0_nonzero[OF alg_b])
-        ultimately show False
-          by contradiction
-      next
-        assume "gs_c0 (omega) = 0"
-        moreover have "gs_c0 (omega) \<noteq> 0"
-          by (rule gs_c0_nonzero[OF alg_w])
-        ultimately show False
-          by contradiction
-      qed
-    qed
-  qed
+    by (simp add: alpha_alg beta_alg gs_c0_nonzero omega_alg)
   have "0 < \<bar>gs_c0 (alpha) * gs_c0 (beta) * gs_c0 (omega)\<bar>"
     using nz by simp
   then show ?thesis
@@ -161,41 +119,20 @@ lemma gelfond_schneider_data_c1_nonzero:
 lemma gelfond_schneider_data_c1_a_algebraic_int:
   shows "algebraic_int (of_int (gs_c1) * alpha)"
 proof -
-  have alg_a: "algebraic (alpha)"
-    by (rule alpha_alg)
-  have "algebraic_int (of_int (gs_c0 (alpha) * gs_c0 (beta) * gs_c0 (omega)) * alpha)"
-  proof -
-    have "algebraic_int (of_int (gs_c0 (alpha)) * alpha)"
-      by (rule gs_c0_algebraic_int[OF alg_a])
-    then have h1: "algebraic_int (of_int (gs_c0 (beta)) * (of_int (gs_c0 (alpha)) * alpha))"
-      by (rule algebraic_int_of_int_scale)
-    from h1 have "algebraic_int (of_int (gs_c0 (omega)) *
-      (of_int (gs_c0 (beta)) * (of_int (gs_c0 (alpha)) * alpha)))"
-      by (rule algebraic_int_of_int_scale)
-    then show ?thesis
-      by (simp add: algebra_simps)
-  qed
+  have "algebraic_int (of_int (gs_c0 (omega)) * (of_int (gs_c0 (beta)) * (of_int (gs_c0 (alpha)) * alpha)))"
+    using alpha_alg gs_c0_algebraic_int by blast
+  then have "algebraic_int (of_int (gs_c0 (alpha) * gs_c0 (beta) * gs_c0 (omega)) * alpha)"
+    by (simp add: algebra_simps)
   then show ?thesis
     unfolding gs_c1_def by (rule algebraic_int_abs_scale)
 qed
 
-lemma gelfond_schneider_data_c1_b_algebraic_int:
-  shows "algebraic_int (of_int (gs_c1) * beta)"
+lemma gelfond_schneider_data_c1_b_algebraic_int: "algebraic_int (of_int (gs_c1) * beta)"
 proof -
-  have alg_b: "algebraic (beta)"
-    by (rule beta_alg)
-  have "algebraic_int (of_int (gs_c0 (alpha) * gs_c0 (beta) * gs_c0 (omega)) * beta)"
-  proof -
-    have "algebraic_int (of_int (gs_c0 (beta)) * beta)"
-      by (rule gs_c0_algebraic_int[OF alg_b])
-    then have h1: "algebraic_int (of_int (gs_c0 (alpha)) * (of_int (gs_c0 (beta)) * beta))"
-      by (rule algebraic_int_of_int_scale)
-    from h1 have "algebraic_int (of_int (gs_c0 (omega)) *
-      (of_int (gs_c0 (alpha)) * (of_int (gs_c0 (beta)) * beta)))"
-      by (rule algebraic_int_of_int_scale)
-    then show ?thesis
-      by (simp add: algebra_simps)
-  qed
+  have "algebraic_int (of_int (gs_c0 (omega)) * (of_int (gs_c0 (alpha)) * (of_int (gs_c0 (beta)) * beta)))"
+    by (simp add: algebraic_int_of_int_scale beta_alg gs_c0_algebraic_int)
+  then have "algebraic_int (of_int (gs_c0 (alpha) * gs_c0 (beta) * gs_c0 (omega)) * beta)"
+    by (simp add: algebra_simps)
   then show ?thesis
     unfolding gs_c1_def by (rule algebraic_int_abs_scale)
 qed
@@ -203,20 +140,8 @@ qed
 lemma gelfond_schneider_data_c1_w_algebraic_int:
   shows "algebraic_int (of_int (gs_c1) * omega)"
 proof -
-  have alg_w: "algebraic (omega)"
-    by (rule omega_alg)
   have "algebraic_int (of_int (gs_c0 (alpha) * gs_c0 (beta) * gs_c0 (omega)) * omega)"
-  proof -
-    have "algebraic_int (of_int (gs_c0 (omega)) * omega)"
-      by (rule gs_c0_algebraic_int[OF alg_w])
-    then have h1: "algebraic_int (of_int (gs_c0 (beta)) * (of_int (gs_c0 (omega)) * omega))"
-      by (rule algebraic_int_of_int_scale)
-    from h1 have "algebraic_int (of_int (gs_c0 (alpha)) *
-      (of_int (gs_c0 (beta)) * (of_int (gs_c0 (omega)) * omega)))"
-      by (rule algebraic_int_of_int_scale)
-    then show ?thesis
-      by (simp add: algebra_simps)
-  qed
+    by (simp add: algebraic_int_of_int_scale gs_c0_algebraic_int mult.assoc omega_alg)
   then show ?thesis
     unfolding gs_c1_def by (rule algebraic_int_abs_scale)
 qed

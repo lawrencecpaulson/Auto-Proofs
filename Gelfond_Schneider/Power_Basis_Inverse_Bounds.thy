@@ -103,29 +103,18 @@ next
     by (rule K_subfield)
   have hom: "field_hom_on K \<sigma>"
     by (rule field_auto_imp_field_hom_on[OF K_subfield sigma])
-  have mdom: "m \<in> {0..<D} - {i}"
-    using insert.prems by auto
   have facK: "emb i eta - emb m eta \<in> K"
-    by (rule lagrange_factor_in_K[OF \<open>i < D\<close> mdom])
+    using \<open>i<D\<close> insert.prems lagrange_factor_in_K by force
   have Ssub': "S \<subseteq> {0..<D} - {i}"
     using insert.prems by auto
-  have prodK: "(\<Prod>x\<in>S. emb i eta - emb x eta) \<in> K"
-  proof (rule KS.prod_closed)
-    fix x
-    assume xS: "x \<in> S"
-    with Ssub' have xdom: "x \<in> {0..<D} - {i}"
-      by auto
-    show "emb i eta - emb x eta \<in> K"
-      by (rule lagrange_factor_in_K[OF \<open>i < D\<close> xdom])
-  qed
+  then have prodK: "(\<Prod>x\<in>S. emb i eta - emb x eta) \<in> K"
+    using lagrange_factor_in_K[OF \<open>i < D\<close>] by (meson KS.prod_closed subset_iff)
   have "\<sigma> (\<Prod>x\<in>insert m S. emb i eta - emb x eta) = \<sigma> ((emb i eta - emb m eta) * (\<Prod>x\<in>S. emb i eta - emb x eta))"
     using insert.hyps by simp
   also have "\<dots> = \<sigma> (emb i eta - emb m eta) * \<sigma> (\<Prod>x\<in>S. emb i eta - emb x eta)"
     by (rule field_hom_on.hom_mult[OF hom facK prodK])
-  also have "\<dots> = \<sigma> (emb i eta - emb m eta) * (\<Prod>x\<in>S. \<sigma> (emb i eta - emb x eta))"
-    by (simp add: insert.IH[OF Ssub'])
   also have "\<dots> = (\<Prod>x\<in>insert m S. \<sigma> (emb i eta - emb x eta))"
-    using insert.hyps by simp
+    using insert by simp
   finally show ?case .
 qed
 
@@ -134,20 +123,12 @@ lemma cmod_sigma_lagrange_denom_le:
     and sigma: "\<sigma> \<in> field_auto K \<rat>"
   shows "cmod (\<sigma> (lagrange_denom i)) \<le> (2 * max 1 (gs_house eta)) ^ (D - 1)"
 proof -
-  have finS: "finite ({0..<D} - {i})"
-    by simp
-  have Ssub: "{0..<D} - {i} \<subseteq> {0..<D} - {i}"
-    by simp
   have sigma_prod: "\<sigma> (lagrange_denom i) = (\<Prod>m\<in>{0..<D} - {i}. \<sigma> (emb i eta - emb m eta))"
-    unfolding lagrange_denom_def by (rule sigma_prod_lagrange_factor_eq[OF \<open>i < D\<close> sigma finS Ssub])
-  have "cmod (\<sigma> (lagrange_denom i)) = cmod (\<Prod>m\<in>{0..<D} - {i}. \<sigma> (emb i eta - emb m eta))"
-    by (simp add: sigma_prod)
-  also have "\<dots> \<le> (\<Prod>m\<in>{0..<D} - {i}. cmod (\<sigma> (emb i eta - emb m eta)))"
-    by (rule norm_prod_le)
+    by (simp add: assms lagrange_denom_def sigma_prod_lagrange_factor_eq)
+  have "cmod (\<sigma> (lagrange_denom i)) \<le> (\<Prod>m\<in>{0..<D} - {i}. cmod (\<sigma> (emb i eta - emb m eta)))"
+    by (simp add: local.sigma_prod prod_norm_le)
   also have "\<dots> \<le> (\<Prod>m\<in>{0..<D} - {i}. 2 * max 1 (gs_house eta))"
     by (intro prod_mono conjI cmod_sigma_lagrange_factor_le[OF \<open>i < D\<close> _ sigma]) auto
-  also have "\<dots> = (2 * max 1 (gs_house eta)) ^ card ({0..<D} - {i})"
-    by simp
   also have "\<dots> = (2 * max 1 (gs_house eta)) ^ (D - 1)"
     using \<open>i < D\<close> by simp
   finally show ?thesis .
@@ -157,13 +138,11 @@ lemma gs_house_lagrange_denom_le:
   assumes "i < D"
   shows "gs_house (lagrange_denom i) \<le> (2 * max 1 (gs_house eta)) ^ (D - 1)"
 proof (rule gs_house_le_of_emb_bound[OF finite normal separable lagrange_denom_algebraic_int[OF \<open>i < D\<close>] lagrange_denom_in_K[OF \<open>i < D\<close>]])
-  show "0 \<le> (2 * max 1 (gs_house eta)) ^ (D - 1)"
-    by simp
   fix j
-  assume jlt: "j < D"
-  show "cmod (emb j (lagrange_denom i)) \<le> (2 * max 1 (gs_house eta)) ^ (D - 1)"
-    by (rule cmod_sigma_lagrange_denom_le[OF \<open>i < D\<close> emb_in_field_auto[OF jlt]])
-qed
+  assume "j < D"
+  then show "cmod (emb j (lagrange_denom i)) \<le> (2 * max 1 (gs_house eta)) ^ (D - 1)"
+    using assms cmod_sigma_lagrange_denom_le emb_in_field_auto by blast
+qed auto
 
 lemma inverse_lagrange_denom_le:
   assumes "i < D"
@@ -177,20 +156,16 @@ proof -
     by (rule lagrange_denom_algebraic_int[OF \<open>i < D\<close>])
   have nz: "lagrange_denom i \<noteq> 0"
     by (rule lagrange_denom_nonzero[OF \<open>i < D\<close>])
-  have one_le: "1 \<le> cmod (lagrange_denom i) * gs_house (lagrange_denom i) ^ ?r"
+  have "1 \<le> cmod (lagrange_denom i) * gs_house (lagrange_denom i) ^ ?r"
     by (rule one_le_self_mul_house_pow_of_nonzero_algebraic_int[OF ai nz])
-  have cpos: "0 < cmod (lagrange_denom i)"
-    using nz by simp
-  have inv_le_real: "inverse (cmod (lagrange_denom i)) \<le> gs_house (lagrange_denom i) ^ ?r"
-    using one_le cpos by (simp add: field_simps)
-  have inv_le_house: "cmod (inverse (lagrange_denom i)) \<le> gs_house (lagrange_denom i) ^ ?r"
-    using inv_le_real by (simp add: norm_inverse)
+  then have "inverse (cmod (lagrange_denom i)) \<le> gs_house (lagrange_denom i) ^ ?r"
+    using nz by (simp add: field_simps)
+  then have inv_le_house: "cmod (inverse (lagrange_denom i)) \<le> gs_house (lagrange_denom i) ^ ?r"
+    by (simp add: norm_inverse)
   have house_le: "gs_house (lagrange_denom i) \<le> ?H"
     by (rule gs_house_lagrange_denom_le[OF \<open>i < D\<close>])
-  have H_nonneg: "0 \<le> ?H"
-    by simp
   have house_pow_le: "gs_house (lagrange_denom i) ^ ?r \<le> ?H ^ ?r"
-    by (rule power_mono[OF house_le]) (use H_nonneg in auto)
+    by (rule power_mono[OF house_le]) auto
   show ?thesis
     using inv_le_house house_pow_le by linarith
 qed
@@ -201,16 +176,12 @@ lemma coeff_linear_factor_mult_le:
   shows "cmod (Polynomial.coeff ([:-a, 1:] * p) n) \<le> (1 + cmod a) * B"
 proof (cases n)
   case 0
-  have "cmod (Polynomial.coeff ([:-a, 1:] * p) 0) = cmod (a * Polynomial.coeff p 0)"
-    by simp
-  also have "\<dots> = cmod a * cmod (Polynomial.coeff p 0)"
+  have "cmod (Polynomial.coeff ([:-a, 1:] * p) 0) = cmod a * cmod (Polynomial.coeff p 0)"
     by (simp add: norm_mult)
   also have "\<dots> \<le> cmod a * B"
     using coeff_bnd[of 0] by (intro mult_left_mono) auto
-  also have "\<dots> \<le> cmod a * B + B"
-    using B_nonneg by linarith
-  also have "\<dots> = (1 + cmod a) * B"
-    by (simp add: distrib_right)
+  also have "\<dots> \<le> (1 + cmod a) * B"
+    using B_nonneg by (simp add: distrib_right)
   finally show ?thesis
     using 0 by simp
 next
@@ -257,36 +228,20 @@ qed
 lemma coeff_lagrange_numerator_le:
   assumes "i < D"
   shows "cmod (Polynomial.coeff (\<Prod>m\<in>{0..<D} - {i}. [:- emb m eta, 1:]) k) \<le>
-      (2 * max 1 (gs_house eta)) ^ (D - 1)"
+        (2 * max 1 (gs_house eta)) ^ (D - 1)"  (is "?L \<le> ?R")
 proof -
-  have coeff_le_prod:
-    "cmod (Polynomial.coeff (\<Prod>m\<in>{0..<D} - {i}. [:- emb m eta, 1:]) k) \<le>
-      (\<Prod>m\<in>{0..<D} - {i}. (1 + cmod (emb m eta)))"
+  have coeff_le_prod: "?L \<le> (\<Prod>m\<in>{0..<D} - {i}. (1 + cmod (emb m eta)))"
     by (rule coeff_prod_linear_factors_le_prod) simp
-  have prod_le: "(\<Prod>m\<in>{0..<D} - {i}. (1 + cmod (emb m eta))) \<le>
-      (\<Prod>m\<in>{0..<D} - {i}. (2 * max 1 (gs_house eta)))"
-  proof (intro prod_mono)
+  also have prod_le: "\<dots> \<le> (\<Prod>m\<in>{0..<D} - {i}. (2 * max 1 (gs_house eta)))"
+  proof (intro prod_mono conjI)
     fix m
-    assume m: "m \<in> {0..<D} - {i}"
-    have mlt: "m < D"
-      using m by simp
-    have emb_le: "cmod (emb m eta) \<le> max 1 (gs_house eta)"
-      using cmod_emb_eta_le_gs_house[OF mlt] by simp
-    have nonneg: "0 \<le> 1 + cmod (emb m eta)"
-      by simp
-    have le: "1 + cmod (emb m eta) \<le> 2 * max 1 (gs_house eta)"
-      using emb_le by linarith
-    show "0 \<le> 1 + cmod (emb m eta) \<and> 1 + cmod (emb m eta) \<le> 2 * max 1 (gs_house eta)"
-      using nonneg le by blast
+    assume "m \<in> {0..<D} - {i}"
+    then have "cmod (emb m eta) \<le> max 1 (gs_house eta)"
+      using cmod_emb_eta_le_gs_house by (simp add: max.coboundedI2)
+    then show "0 \<le> 1 + cmod (emb m eta)" "1 + cmod (emb m eta) \<le> 2 * max 1 (gs_house eta)"
+      by auto
   qed
-  have "cmod (Polynomial.coeff (\<Prod>m\<in>{0..<D} - {i}. [:- emb m eta, 1:]) k) \<le>
-      (\<Prod>m\<in>{0..<D} - {i}. (1 + cmod (emb m eta)))"
-    by (rule coeff_le_prod)
-  also have "\<dots> \<le> (\<Prod>m\<in>{0..<D} - {i}. (2 * max 1 (gs_house eta)))"
-    by (rule prod_le)
-  also have "\<dots> = (2 * max 1 (gs_house eta)) ^ card ({0..<D} - {i})"
-    by simp
-  also have "\<dots> = (2 * max 1 (gs_house eta)) ^ (D - 1)"
+  also have "\<dots> = ?R"
     using \<open>i < D\<close> by simp
   finally show ?thesis .
 qed
@@ -305,16 +260,9 @@ proof -
   have finImg: "finite ((\<lambda>\<sigma>. \<sigma> x) ` field_auto K \<rat>)"
     using finG by simp
   have "card ?R \<le> card (field_auto K \<rat>)"
-    using finG card_mono[OF finImg sub] sub surj_card_le by blast
+    using finG card_mono sub surj_card_le by metis
   also have "\<dots> = D"
-  proof -
-    have img_eq: "field_auto K \<rat>= emb ` {0..<D}"
-      using ebij by (simp add: bij_betw_def)
-    have "inj_on emb {0..<D}"
-      using ebij by (simp add: bij_betw_def)
-    then show ?thesis
-      using img_eq by (simp add: card_image)
-  qed
+    using E_def REC.card_E ebij by (metis bij_betw_imp_surj_on)
   finally show ?thesis .
 qed
 

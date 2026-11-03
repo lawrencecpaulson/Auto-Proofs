@@ -94,14 +94,6 @@ lemma basis_eq_power_at_identity_embedding:
   shows "basis j (emb i0) = eta ^ j"
   using emb0 by simp
 
-lemma basis_indep_at_identity_embedding:
-  assumes i0lt: "i0 < D"
-    and emb0: "emb i0 = identity K"
-    and zero: "(\<Sum>j<D. of_int (c j) * basis j (emb i0)) = 0"
-    and "j<D"
-  shows "c j = 0"
-  using basis_indep_at_emb[OF i0lt] assms by simp
-
 lemma emb_eta_in_K:
   assumes ilt: "i < D"
   shows "emb i eta \<in> K"
@@ -119,15 +111,7 @@ proof -
   interpret KS: Subfield K
     by (rule K_subfield)
   show ?thesis
-  proof (rule KS.sum_closed)
-    show "c i * eta ^ i \<in> K" if "i \<in> {..<D}" for i
-    proof -
-      have"c i \<in> K"
-        using that coeff_rat Rats_subset_K by blast
-      then show ?thesis
-        using eta_in_K by blast
-    qed
-  qed
+    using eta_in_K coeff_rat Rats_subset_K by blast
 qed
 
 lemma sum_int_basis_at_emb_in_K:
@@ -160,7 +144,7 @@ proof -
   proof -
     have "emb i (of_int (c j) * eta ^ j) = emb i (of_int (c j)) * emb i (eta ^ j)"
       using eta_in_K field_hom_on.hom_mult hom by blast
-    also have "... = of_int (c j) * basis j (emb i)"
+    also have "\<dots> = of_int (c j) * basis j (emb i)"
       by (simp add: basis_def coeff_fix field_hom_on.hom_power[OF hom eta_in_K])
     finally show ?thesis .
   qed
@@ -189,14 +173,8 @@ lemma represented_coordinate_as_integral_element:
         (\<Sum>j<D. of_int (Matrix.vec_index x (sg_pair_idx D t j)) * basis j (emb i))"
   assumes tlt: "t < q * q"
   obtains y where "y \<in> K" "algebraic_int y" "emb i y = Matrix.vec_index v t"
-proof -
-  have "Matrix.vec_index v t =
-      (\<Sum>j<D. of_int (Matrix.vec_index x (sg_pair_idx D t j)) * basis j (emb i))"
-    using repr tlt by blast
-  with sum_int_basis_at_emb_as_integral_element[OF ilt,
-      where c = "\<lambda>j. Matrix.vec_index x (sg_pair_idx D t j)"] that
-  show thesis by auto
-qed
+  using assms sum_int_basis_at_emb_as_integral_element[OF ilt, where c = "\<lambda>j. Matrix.vec_index x (_ j)"]
+  by auto
 
 lemma sum_int_basis_at_emb_as_integral_element_with_house_bound:
   assumes finite: "finite_subfield_tower \<rat> K"
@@ -211,10 +189,9 @@ proof -
   let ?x = "(\<Sum>k<D. of_int (c k) * eta ^ k)"
   have xK: "?x \<in> K"
     by (rule sum_rat_power_in_K) auto
-  have xint: "algebraic_int ?x"
-    by (rule sum_int_power_algebraic_int)
   have "gs_house ?x \<le> H"
-    using gs_house_le_of_indexed_galois_image_bound[OF finite normal separable ebij xK xint H_nonneg]
+    using gs_house_le_of_indexed_galois_image_bound
+             [OF finite normal separable ebij xK sum_int_power_algebraic_int H_nonneg]
     using emb_bound emb_sum_int_power by presburger
   with emb_sum_int_power[OF ilt] show thesis
     using sum_int_power_algebraic_int that xK by blast
@@ -301,7 +278,7 @@ lemma cmod_sigma_eta_le_gs_house:
   using cmod_le_gs_house_of_root sigma sigma_eta_root_of_min_int_poly by blast
 
 definition power_basis_entry_bound :: real
-  where "power_basis_entry_bound = max 1 (gs_house eta) ^ (D - 1)"
+  where "power_basis_entry_bound \<equiv> max 1 (gs_house eta) ^ (D - 1)"
 
 lemma power_basis_entry_bound_nonneg [simp]:
   shows "0 \<le> power_basis_entry_bound"
