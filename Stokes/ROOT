@@ -20,6 +20,9 @@ session Stokes = Smooth_Manifolds +
     Green_Boundary_Contour
     Green_Walk_Paths
     Green_Curl
+    Green_AC_Paths
+    Green_AC_Approximation
+    Green_AC_Winding
     Basis_Fubini
     Chart_Local
     Chart_Theorem

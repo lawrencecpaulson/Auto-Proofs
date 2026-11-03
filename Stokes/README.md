@@ -32,6 +32,18 @@ Green's theorem as a sum of contour integrals over those paths.
 `Green_Curl.thy` packages the same result for a C¹ planar vector field:
 the integral of its scalar curl over the region equals the sum of
 circulations around the closed boundary paths.
+`Green_AC_Paths.thy` relates contour integrals and path length of an
+absolutely continuous path to its almost-everywhere velocity. It also
+derives almost-everywhere differentiability from absolute continuity.
+The `green_ac_velocity` locale collects the velocity assumptions.
+`Green_AC_Approximation.thy` approximates such a path by valid paths
+with continuous velocity, preserving endpoints and controlling both
+uniform path error and integrated velocity error. For a point off the
+original path, sufficiently close approximants have the same winding
+number. `Green_AC_Winding.thy` bounds the change of the Cauchy-kernel
+contour integral under this approximation and proves its equality with
+the path's winding number. Its final result needs only absolute continuity
+and a point outside the path image.
 
 The principal results are in:
 
@@ -50,6 +62,11 @@ The principal results are in:
   identities and the contour sum over the boundary.
 - `Green_Walk_Paths.thy`: Green's theorem for closed polygonal boundary paths.
 - `Green_Curl.thy`: the planar vector-field curl and circulation form.
+- `Green_AC_Paths.thy`: the absolutely continuous path and velocity bridge.
+- `Green_AC_Approximation.thy`: endpoint-preserving valid-path approximation
+  and stability of winding number.
+- `Green_AC_Winding.thy`: the Cauchy-kernel contour-integral formula for
+  absolutely continuous paths, with or without a specified velocity.
 
 When this directory is placed alongside `Smooth_Manifolds` in an AFP theories
 tree, build and check the document with:
