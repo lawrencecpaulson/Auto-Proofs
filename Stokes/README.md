@@ -44,6 +44,38 @@ number. `Green_AC_Winding.thy` bounds the change of the Cauchy-kernel
 contour integral under this approximation and proves its equality with
 the path's winding number. Its final result needs only absolute continuity
 and a point outside the path image.
+`Green_AC_Measure.thy` proves that every rectifiable complex path, hence
+every absolutely continuous complex path, has a negligible image.
+`Green_Cauchy_Area.thy` proves local integrability of the planar Cauchy
+kernel and a bound uniform over a bounded set of path points.
+`Green_Cauchy_Fubini.thy` uses this bound to establish product-space
+integrability and exchange the time and area integrals.
+`Green_Cauchy_Winding_Area.thy` proves continuity of the Cauchy area
+transform and a winding-weighted area identity for its contour integral
+along an absolutely continuous path, for a compactly supported
+continuous density.
+`Green_Cauchy_Differentiability.thy` differentiates the translated area
+integral for a compactly supported density with uniformly continuous
+bounded derivative, expressing the derivative by integrating the density's
+derivative against the fixed Cauchy kernel.
+`Green_Cauchy_Curl.thy` packages the area transform as a planar field,
+identifies its circulation with the real part of the contour integral,
+and relates the field's curl to the Wirtinger \(\bar\partial\) derivative
+where the transform is differentiable.
+`Green_Cauchy_Pompeiu.thy` combines rectangular Green with the winding-area
+identity and proves both \(T(\bar\partial u)=-\pi u\) and
+\(\bar\partial(Tu)=-\pi u\) for a regular compactly supported density.
+It also derives a winding-weighted complex Green formula for absolutely
+continuous paths and a Cauchy-kernel contour identity for rectangles away
+from the pole, using only local \(C^1\) regularity.
+`Green_Cauchy_Pompeiu_Interior.thy` proves the interior rectangular
+Cauchy–Pompeiu formula for a locally \(C^1\) function. Its punctured
+rectangle identity and shrinking-square estimates establish both local
+integrability of the singular area kernel and the residue contribution.
+`Green_Cauchy_Local_Green.thy` proves winding-weighted complex Green for
+a closed absolutely continuous path and a locally \(C^1\) function on an
+open neighborhood of the path and its bounded interior. It also proves
+integrability of the winding-weighted Wirtinger derivative.
 
 The principal results are in:
 
@@ -67,6 +99,27 @@ The principal results are in:
   and stability of winding number.
 - `Green_AC_Winding.thy`: the Cauchy-kernel contour-integral formula for
   absolutely continuous paths, with or without a specified velocity.
+- `Green_AC_Measure.thy`: negligible image of a rectifiable complex path.
+- `Green_Cauchy_Area.thy`: local integrability and uniform area bounds for
+  the Cauchy kernel against a compactly supported continuous function.
+- `Green_Cauchy_Fubini.thy`: product-space integrability and Fubini exchange
+  for the Cauchy area kernel along a path.
+- `Green_Cauchy_Winding_Area.thy`: continuity of the Cauchy area transform
+  and its contour-integral identity with winding-weighted area.
+- `Green_Cauchy_Differentiability.thy`: Fréchet differentiability and \(C^1\)
+  regularity of the Cauchy area transform for a regular compactly supported
+  density.
+- `Green_Cauchy_Curl.thy`: the planar field associated with a complex
+  coefficient, its circulation, and its curl in terms of \(\bar\partial\).
+  For a regular density, \(\bar\partial\) commutes with the Cauchy area
+  transform, and the resulting curl is continuous.
+- `Green_Cauchy_Pompeiu.thy`: complex rectangular Green, coordinate and
+  measure bridges, the two Cauchy–Pompeiu inverse identities, and the
+  winding-weighted Green formula `green_ac_contour_wirtinger_dbar_winding_area`.
+- `Green_Cauchy_Pompeiu_Interior.thy`: the interior rectangular
+  Cauchy–Pompeiu representation for locally \(C^1\) functions.
+- `Green_Cauchy_Local_Green.thy`: winding-weighted Green for closed
+  absolutely continuous paths and local \(C^1\) functions.
 
 When this directory is placed alongside `Smooth_Manifolds` in an AFP theories
 tree, build and check the document with:
