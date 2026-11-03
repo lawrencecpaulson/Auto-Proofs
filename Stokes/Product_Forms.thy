@@ -182,34 +182,6 @@ proof -
     using dsum by simp
 qed
 
-lemma frechet_derivative_along_line:
-  fixes F :: "'a::real_normed_vector \<Rightarrow> 'b::real_normed_vector"
-    and l :: "real \<Rightarrow> 'a"
-  assumes dF: "F differentiable (at (l s))"
-    and dl: "(l has_vector_derivative v) (at s)"
-  shows "((\<lambda>u. F (l u)) has_vector_derivative
-      frechet_derivative F (at (l s)) v) (at s)"
-proof -
-  let ?D = "frechet_derivative F (at (l s))"
-  have dl': "(l has_derivative (\<lambda>r. r *\<^sub>R v)) (at s)"
-    using dl by (simp add: has_vector_derivative_def)
-  have dF': "(F has_derivative ?D) (at (l s))"
-    using dF by (simp add: frechet_derivative_works)
-  have comp: "((F \<circ> l) has_derivative
-      (?D \<circ> (\<lambda>r. r *\<^sub>R v))) (at s)"
-    by (rule diff_chain_at[OF dl' dF'])
-  have eq: "(?D \<circ> (\<lambda>r. r *\<^sub>R v)) =
-      (\<lambda>r. r *\<^sub>R ?D v)"
-    by (rule ext)
-       (simp add: linear.scaleR[OF linear_frechet_derivative[OF dF]])
-  have comp': "((F \<circ> l) has_derivative
-      (\<lambda>r. r *\<^sub>R ?D v)) (at s)"
-    using comp unfolding eq .
-  show ?thesis
-    using comp'
-    by (simp add: comp_def has_vector_derivative_def)
-qed
-
 lemma product_normal_line_derivative:
   fixes F :: "real \<times> 'a::euclidean_space \<Rightarrow> 'b::real_normed_vector"
   assumes dF: "F differentiable (at (t,y))"

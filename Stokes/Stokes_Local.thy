@@ -1,6 +1,7 @@
 theory Stokes_Local
   imports "HOL-Analysis.Interval_Integral"
     "HOL-Analysis.Topology_Euclidean_Space"
+    "HOL-Analysis.Higher_Differentiability_Multi"
 begin
 
 text \<open>
@@ -186,6 +187,211 @@ proof -
     by (rule second_slice_FTC_integral[OF cd deriv_Q cont_Q int_Q])
   show ?thesis using split normal tangential by simp
 qed
+
+lemma frechet_derivative_along_line:
+  fixes F :: "'a::real_normed_vector \<Rightarrow> 'b::real_normed_vector"
+    and l :: "real \<Rightarrow> 'a"
+  assumes dF: "F differentiable (at (l s))"
+    and dl: "(l has_vector_derivative v) (at s)"
+  shows "((\<lambda>u. F (l u)) has_vector_derivative
+      frechet_derivative F (at (l s)) v) (at s)"
+proof -
+  let ?D = "frechet_derivative F (at (l s))"
+  have dl': "(l has_derivative (\<lambda>r. r *\<^sub>R v)) (at s)"
+    using dl by (simp add: has_vector_derivative_def)
+  have dF': "(F has_derivative ?D) (at (l s))"
+    using dF by (simp add: frechet_derivative_works)
+  have comp: "((F \<circ> l) has_derivative
+      (?D \<circ> (\<lambda>r. r *\<^sub>R v))) (at s)"
+    by (rule diff_chain_at[OF dl' dF'])
+  have eq: "(?D \<circ> (\<lambda>r. r *\<^sub>R v)) =
+      (\<lambda>r. r *\<^sub>R ?D v)"
+    by (rule ext)
+       (simp add: linear.scaleR[OF linear_frechet_derivative[OF dF]])
+  have comp': "((F \<circ> l) has_derivative
+      (\<lambda>r. r *\<^sub>R ?D v)) (at s)"
+    using comp unfolding eq .
+  show ?thesis
+    using comp'
+    by (simp add: comp_def has_vector_derivative_def)
+qed
+
+text \<open>The counterclockwise Green formula on a rectangle.  Its
+  coefficient field is \<open>P dx + Q dy\<close>; the four terms below
+  traverse the bottom, right, top, and left edges in that order.\<close>
+
+theorem Green_rectangle_four_edges:
+  fixes P Q P_y Q_x :: "real \<Rightarrow> real \<Rightarrow> real"
+  assumes ab: "a \<le> b" and cd: "c \<le> d"
+    and deriv_Q: "\<And>y x. y \<in> {c..d} \<Longrightarrow> x \<in> {a..b} \<Longrightarrow>
+      ((\<lambda>s. Q s y) has_vector_derivative Q_x x y) (at x within {a..b})"
+    and cont_Q_x: "\<And>y. y \<in> {c..d} \<Longrightarrow>
+      continuous_on {a..b} (\<lambda>x. Q_x x y)"
+    and int_Q_x: "set_integrable lborel ({a..b} \<times> {c..d}) (case_prod Q_x)"
+    and deriv_P: "\<And>x y. x \<in> {a..b} \<Longrightarrow> y \<in> {c..d} \<Longrightarrow>
+      ((\<lambda>s. P x s) has_vector_derivative P_y x y) (at y within {c..d})"
+    and cont_P_y: "\<And>x. x \<in> {a..b} \<Longrightarrow> continuous_on {c..d} (P_y x)"
+    and int_P_y: "set_integrable lborel ({a..b} \<times> {c..d}) (case_prod P_y)"
+    and int_P_bottom: "set_integrable lborel {a..b} (\<lambda>x. P x c)"
+    and int_P_top: "set_integrable lborel {a..b} (\<lambda>x. P x d)"
+    and int_Q_right: "set_integrable lborel {c..d} (\<lambda>y. Q b y)"
+    and int_Q_left: "set_integrable lborel {c..d} (\<lambda>y. Q a y)"
+  shows "(LINT p : {a..b} \<times> {c..d} | lborel.
+      case_prod (\<lambda>x y. Q_x x y - P_y x y) p) =
+    (LINT x : {a..b} | lborel. P x c) +
+    (LINT y : {c..d} | lborel. Q b y) -
+    (LINT x : {a..b} | lborel. P x d) -
+    (LINT y : {c..d} | lborel. Q a y)"
+proof -
+  have box: "(LINT p : {a..b} \<times> {c..d} | lborel.
+      case_prod (\<lambda>x y. Q_x x y - P_y x y) p) =
+    (LINT y : {c..d} | lborel. Q b y - Q a y) -
+    (LINT x : {a..b} | lborel. P x d - P x c)"
+    by (rule Stokes_box_2D[OF ab cd deriv_Q cont_Q_x int_Q_x
+      deriv_P cont_P_y int_P_y])
+  have Q_edges: "(LINT y : {c..d} | lborel. Q b y - Q a y) =
+      (LINT y : {c..d} | lborel. Q b y) -
+      (LINT y : {c..d} | lborel. Q a y)"
+    using int_Q_right int_Q_left
+    by (simp add: set_lebesgue_integral_def set_integrable_def algebra_simps)
+  have P_edges: "(LINT x : {a..b} | lborel. P x d - P x c) =
+      (LINT x : {a..b} | lborel. P x d) -
+      (LINT x : {a..b} | lborel. P x c)"
+    using int_P_top int_P_bottom
+    by (simp add: set_lebesgue_integral_def set_integrable_def algebra_simps)
+  show ?thesis using box Q_edges P_edges by (simp add: algebra_simps)
+qed
+
+
+text \<open>\<open>Ck_on 1\<close> supplies the multivariable \<open>C\<^sup>1\<close> condition
+  for both scalar coefficients on one neighbourhood of the rectangle.\<close>
+
+definition green_rectangle_C1 ::
+    "(real \<times> real \<Rightarrow> real) \<Rightarrow>
+      (real \<times> real \<Rightarrow> real) \<Rightarrow>
+      real \<Rightarrow> real \<Rightarrow> real \<Rightarrow> real \<Rightarrow> bool" where
+  "green_rectangle_C1 P Q a b c d \<longleftrightarrow>
+    (\<exists>U. {a..b} \<times> {c..d} \<subseteq> U \<and>
+      Ck_on 1 P U \<and> Ck_on 1 Q U)"
+
+lemma green_rectangle_C1_continuous_on:
+  fixes P Q :: "real \<times> real \<Rightarrow> real"
+  assumes "green_rectangle_C1 P Q a b c d"
+  shows "continuous_on ({a..b} \<times> {c..d}) P"
+    and "continuous_on ({a..b} \<times> {c..d}) Q"
+proof -
+  obtain U where RU: "{a..b} \<times> {c..d} \<subseteq> U"
+    and PC1: "Ck_on 1 P U" and QC1: "Ck_on 1 Q U"
+    using assms by (auto simp: green_rectangle_C1_def)
+  show "continuous_on ({a..b} \<times> {c..d}) P"
+    by (rule continuous_on_subset[OF Ck_on_imp_continuous_on[OF PC1] RU])
+  show "continuous_on ({a..b} \<times> {c..d}) Q"
+    by (rule continuous_on_subset[OF Ck_on_imp_continuous_on[OF QC1] RU])
+qed
+
+theorem Green_rectangle_four_edges_C1:
+  fixes P Q :: "real \<times> real \<Rightarrow> real"
+  assumes ab: "a \<le> b" and cd: "c \<le> d"
+    and C1: "green_rectangle_C1 P Q a b c d"
+  shows "(LINT p : {a..b} \<times> {c..d} | lborel.
+      frechet_derivative Q (at p) (1,0) -
+      frechet_derivative P (at p) (0,1)) =
+    (LINT x : {a..b} | lborel. P (x,c)) +
+    (LINT y : {c..d} | lborel. Q (b,y)) -
+    (LINT x : {a..b} | lborel. P (x,d)) -
+    (LINT y : {c..d} | lborel. Q (a,y))"
+proof -
+  let ?R = "{a..b} \<times> {c..d}"
+  obtain U where RU: "?R \<subseteq> U"
+    and PC1: "Ck_on 1 P U" and QC1: "Ck_on 1 Q U"
+    using C1 by (auto simp: green_rectangle_C1_def)
+  have compact_R: "compact ?R"
+    by (intro compact_Times compact_Icc)
+  have dP: "P differentiable (at p)" if "p \<in> ?R" for p
+    using PC1 RU that by (auto simp: One_nat_def Ck_on_Suc_iff)
+  have dQ: "Q differentiable (at p)" if "p \<in> ?R" for p
+    using QC1 RU that by (auto simp: One_nat_def Ck_on_Suc_iff)
+  have P_cont: "continuous_on ?R P"
+    by (rule green_rectangle_C1_continuous_on(1)[OF C1])
+  have Q_cont: "continuous_on ?R Q"
+    by (rule green_rectangle_C1_continuous_on(2)[OF C1])
+  have P_y_cont_U: "continuous_on U (\<lambda>p. frechet_derivative P (at p) (0,1))"
+    using PC1 by (auto simp: One_nat_def Ck_on_Suc_iff Ck_on_0_iff)
+  have Q_x_cont_U: "continuous_on U (\<lambda>p. frechet_derivative Q (at p) (1,0))"
+    using QC1 by (auto simp: One_nat_def Ck_on_Suc_iff Ck_on_0_iff)
+  have P_y_cont: "continuous_on ?R (\<lambda>p. frechet_derivative P (at p) (0,1))"
+    by (rule continuous_on_subset[OF P_y_cont_U RU])
+  have Q_x_cont: "continuous_on ?R (\<lambda>p. frechet_derivative Q (at p) (1,0))"
+    by (rule continuous_on_subset[OF Q_x_cont_U RU])
+  have P_y_int: "set_integrable lborel ?R (\<lambda>p. frechet_derivative P (at p) (0,1))"
+    unfolding set_integrable_def
+    by (rule borel_integrable_compact[OF compact_R P_y_cont])
+  have Q_x_int: "set_integrable lborel ?R (\<lambda>p. frechet_derivative Q (at p) (1,0))"
+    unfolding set_integrable_def
+    by (rule borel_integrable_compact[OF compact_R Q_x_cont])
+  have xline: "((\<lambda>s::real. (s,y)) has_vector_derivative (1,0)) (at x)" for x y
+    by (intro derivative_eq_intros) simp_all
+  have yline: "((\<lambda>s::real. (x,s)) has_vector_derivative (0,1)) (at y)" for x y
+    by (intro derivative_eq_intros) simp_all
+  have Q_x_deriv: "((\<lambda>s. Q (s,y)) has_vector_derivative
+      frechet_derivative Q (at (x,y)) (1,0)) (at x within {a..b})"
+    if x: "x \<in> {a..b}" and y: "y \<in> {c..d}" for x y
+    by (rule has_vector_derivative_at_within)
+      (rule frechet_derivative_along_line[OF dQ[of "(x,y)"] xline]; use x y in auto)
+  have P_y_deriv: "((\<lambda>s. P (x,s)) has_vector_derivative
+      frechet_derivative P (at (x,y)) (0,1)) (at y within {c..d})"
+    if x: "x \<in> {a..b}" and y: "y \<in> {c..d}" for x y
+    by (rule has_vector_derivative_at_within)
+      (rule frechet_derivative_along_line[OF dP[of "(x,y)"] yline]; use x y in auto)
+  have Q_x_slice_cont: "continuous_on {a..b}
+      (\<lambda>x. frechet_derivative Q (at (x,y)) (1,0))"
+    if y: "y \<in> {c..d}" for y
+    by (rule continuous_on_compose2[OF Q_x_cont])
+      (use y in \<open>auto intro!: continuous_intros\<close>)
+  have P_y_slice_cont: "continuous_on {c..d}
+      (\<lambda>y. frechet_derivative P (at (x,y)) (0,1))"
+    if x: "x \<in> {a..b}" for x
+    by (rule continuous_on_compose2[OF P_y_cont])
+      (use x in \<open>auto intro!: continuous_intros\<close>)
+  have P_horizontal_cont: "continuous_on {a..b} (\<lambda>x. P (x,y))"
+    if "y \<in> {c..d}" for y
+    by (rule continuous_on_compose2[OF P_cont])
+      (use that in \<open>auto intro!: continuous_intros\<close>)
+  have Q_vertical_cont: "continuous_on {c..d} (\<lambda>y. Q (x,y))"
+    if "x \<in> {a..b}" for x
+    by (rule continuous_on_compose2[OF Q_cont])
+      (use that in \<open>auto intro!: continuous_intros\<close>)
+  have P_bottom_int: "set_integrable lborel {a..b} (\<lambda>x. P (x,c))"
+    by (rule borel_integrable_atLeastAtMost'[OF P_horizontal_cont])
+      (use cd in simp)
+  have P_top_int: "set_integrable lborel {a..b} (\<lambda>x. P (x,d))"
+    by (rule borel_integrable_atLeastAtMost'[OF P_horizontal_cont])
+      (use cd in simp)
+  have Q_right_int: "set_integrable lborel {c..d} (\<lambda>y. Q (b,y))"
+    by (rule borel_integrable_atLeastAtMost'[OF Q_vertical_cont])
+      (use ab in simp)
+  have Q_left_int: "set_integrable lborel {c..d} (\<lambda>y. Q (a,y))"
+    by (rule borel_integrable_atLeastAtMost'[OF Q_vertical_cont])
+      (use ab in simp)
+  have box: "(LINT p : ?R | lborel.
+      case_prod (\<lambda>x y.
+        frechet_derivative Q (at (x,y)) (1,0) -
+        frechet_derivative P (at (x,y)) (0,1)) p) =
+    (LINT x : {a..b} | lborel. P (x,c)) +
+    (LINT y : {c..d} | lborel. Q (b,y)) -
+    (LINT x : {a..b} | lborel. P (x,d)) -
+    (LINT y : {c..d} | lborel. Q (a,y))"
+    apply (rule Green_rectangle_four_edges
+      [where P="\<lambda>x y. P (x,y)" and Q="\<lambda>x y. Q (x,y)"
+        and P_y="\<lambda>x y. frechet_derivative P (at (x,y)) (0,1)"
+        and Q_x="\<lambda>x y. frechet_derivative Q (at (x,y)) (1,0)"])
+    using ab cd Q_x_deriv Q_x_slice_cont Q_x_int
+      P_y_deriv P_y_slice_cont P_y_int
+      P_bottom_int P_top_int Q_right_int Q_left_int
+    by (auto simp: split_def)
+  show ?thesis using box by (simp add: split_def)
+qed
+
 
 theorem Stokes_halfspace_2D:
   fixes P Q P_t Q_y :: "real \<Rightarrow> real \<Rightarrow> real"
