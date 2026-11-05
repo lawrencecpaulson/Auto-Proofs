@@ -68,7 +68,7 @@ proof -
     using qsq mmr by linarith
   have qsq_real: "real q ^ 2 \<le> (of_nat m) ^ 2 * of_nat r"
   proof -
-    have "(of_nat (q * q) :: real) \<le> of_nat (m * m * r)"
+    have "real(q * q) \<le> of_nat (m * m * r)"
       using qsq_le by (simp only: of_nat_le_iff)
     then show ?thesis by (simp add: power2_eq_square of_nat_mult)
   qed
@@ -91,26 +91,13 @@ lemma gs_balanced_radius_power_ge:
   assumes mge: "2 \<le> m"
   assumes "r > 0"
   assumes qsq: "q * q \<le> 2 * m * r"
-  shows "of_nat r powr (of_nat m * of_nat r / 2) \<le>
-    (of_nat m * of_nat r / of_nat q :: real) ^ (m * r)"
+  shows "of_nat r powr (of_nat m * of_nat r / 2) \<le> (of_nat m * of_nat r / real q) ^ (m * r)"
 proof -
-  have rad: "sqrt (of_nat r) \<le> (of_nat m * of_nat r / of_nat q :: real)"
-    by (rule gs_balanced_radius_ge_sqrt[OF \<open>q > 0\<close> mge \<open>r > 0\<close> qsq])
-  have pw: "sqrt (of_nat r) ^ (m * r) \<le>
-      (of_nat m * of_nat r / of_nat q :: real) ^ (m * r)"
-    by (rule power_mono[OF rad]) simp
-  have eq: "sqrt (of_nat r) ^ (m * r) =
-      of_nat r powr (of_nat m * of_nat r / 2)"
-  proof -
-    have sqrt_pos: "0 < sqrt (of_nat r)" using \<open>r > 0\<close> by simp
-    have "sqrt (of_nat r) ^ (m * r) =
-        (of_nat r powr (1/2)) powr of_nat (m * r)"
-      by (simp only: powr_half_sqrt powr_realpow[OF sqrt_pos])
-    also have "\<dots> = of_nat r powr (of_nat m * of_nat r / 2)"
-      by (simp add: powr_powr of_nat_mult algebra_simps)
-    finally show ?thesis .
-  qed
-  show ?thesis using pw by (simp only: eq)
+  have "sqrt (real r) ^ (m * r) \<le> (real m * real r / real q) ^ (m * r)"
+    using gs_balanced_radius_ge_sqrt[OF \<open>q > 0\<close> mge \<open>r > 0\<close> qsq]
+    by (simp add: power_mono)
+  then show ?thesis
+    using \<open>r > 0\<close> by (simp flip: real_sqrt_power powr_realpow powr_half_sqrt_powr)
 qed
 
 lemma gs_q_choice_radius_power_ge:
@@ -119,9 +106,8 @@ lemma gs_q_choice_radius_power_ge:
   assumes C_ge1: "1 \<le> C"
   assumes nle: "gs_n h (gs_q_choice h C) \<le> r"
   assumes "r > 0"
-  shows "of_nat r powr (of_nat (gs_m h) * of_nat r / 2) \<le>
-    (of_nat (gs_m h) * of_nat r / of_nat (gs_q_choice h C) :: real) ^
-      (gs_m h * r)"
+  shows "r powr (of_nat (gs_m h) * r / 2) \<le>
+    (real (gs_m h) * of_nat r / of_nat (gs_q_choice h C)) ^ (gs_m h * r)"
 proof -
   let ?q = "gs_q_choice h C"
   have "?q > 0"
@@ -146,37 +132,19 @@ lemma gs_q_power_le_r_power:
   assumes nle: "n \<le> r"
   assumes qle: "q \<le> 2 * m * r"
   assumes Cone: "1 \<le> C"
-  shows "(of_nat q * C) ^ n \<le>
-    (2 * of_nat m * C) ^ r * real r ^ r"
+  shows "(of_nat q * C) ^ n \<le> (2 * of_nat m * C) ^ r * real r ^ r"
 proof -
   let ?U = "(2 * of_nat m * C) * of_nat r :: real"
   have qle_real: "real q \<le> 2 * of_nat m * of_nat r"
-  proof -
-    have "real q \<le> of_nat (2 * m * r)"
-      using qle by (simp only: of_nat_le_iff)
-    then show ?thesis by (simp add: of_nat_mult)
-  qed
+    using qle by (metis of_nat_mult of_nat_le_iff of_nat_numeral)
   have qC: "real q * C \<le> ?U"
-  proof -
-    have "real q * C \<le>
-        (2 * of_nat m * of_nat r) * C"
-      by (rule mult_right_mono[OF qle_real]) (use Cone in auto)
-    then show ?thesis by (simp add: ac_simps)
-  qed
+    using Cone qle_real by auto
   have Uone: "1 \<le> ?U"
-  proof -
-    have mone: "1 \<le> 2 * real m" using \<open>m > 0\<close> by simp
-    have rone: "1 \<le> real r" using \<open>r > 0\<close> by simp
-    have "(1::real) * 1 * 1 \<le> (2 * of_nat m) * C * of_nat r"
-      by (intro mult_mono mone Cone rone) (use \<open>m > 0\<close> Cone in auto)
-    then show ?thesis by simp
-  qed
+    using assms mult_ge1_I by force
   have "(of_nat q * C) ^ n \<le> ?U ^ n"
     by (rule power_mono[OF qC]) (use Cone in auto)
-  also have "\<dots> \<le> ?U ^ r"
-    by (rule power_increasing[OF nle Uone])
-  also have "\<dots> = (2 * of_nat m * C) ^ r * real r ^ r"
-    by (simp add: power_mult_distrib)
+  also have "\<dots> \<le> (2 * of_nat m * C) ^ r * real r ^ r"
+    using Uone nle by (metis pow_mono_exp power_mult_distrib)
   finally show ?thesis .
 qed
 
@@ -185,14 +153,9 @@ lemma gs_balanced_q_le_sqrt:
   shows "real q \<le> sqrt (2 * of_nat m) * sqrt (of_nat r)"
 proof -
   have sqr: "real q ^ 2 \<le> (2 * of_nat m) * of_nat r"
-  proof -
-    have "(of_nat (q * q) :: real) \<le> of_nat (2 * m * r)"
-      using qsq by (simp only: of_nat_le_iff)
-    then show ?thesis by (simp add: power2_eq_square of_nat_mult)
-  qed
-  have "real q \<le> sqrt ((2 * of_nat m) * of_nat r)"
-    by (rule real_le_rsqrt[OF sqr])
-  then show ?thesis by (simp add: real_sqrt_mult)
+    using of_nat_mono [OF qsq] by (simp add: power2_eq_square)
+  then show ?thesis
+    by (metis real_le_rsqrt real_sqrt_mult)
 qed
 
 lemma gs_balanced_q_power_le_r_half:
@@ -202,53 +165,23 @@ lemma gs_balanced_q_power_le_r_half:
   assumes nle: "n \<le> r"
   assumes qsq: "q * q \<le> 2 * m * r"
   assumes Cone: "1 \<le> C"
-  shows "(of_nat q * C) ^ n \<le>
-    (sqrt (2 * of_nat m) * C) ^ r *
-      real r powr (of_nat r / 2)"
+  shows "(of_nat q * C) ^ n \<le> (sqrt (2 * of_nat m) * C) ^ r * real r powr (of_nat r / 2)"
 proof -
   let ?K = "sqrt (2 * of_nat m) * C :: real"
   let ?U = "?K * sqrt (of_nat r)"
-  have qs: "real q \<le> sqrt (2 * of_nat m) * sqrt (of_nat r)"
-    by (rule gs_balanced_q_le_sqrt[OF qsq])
   have qC: "real q * C \<le> ?U"
-  proof -
-    have "real q * C \<le>
-        (sqrt (2 * of_nat m) * sqrt (of_nat r)) * C"
-      by (rule mult_right_mono[OF qs]) (use Cone in auto)
-    then show ?thesis by (simp add: ac_simps)
-  qed
+    using Cone gs_balanced_q_le_sqrt qsq by auto
   have Kone: "1 \<le> ?K"
-  proof -
-    have sqone: "1 \<le> sqrt (2 * real m)"
-      using \<open>m > 0\<close> by simp
-    have "(1::real) * 1 \<le> sqrt (2 * of_nat m) * C"
-      by (intro mult_mono sqone Cone) auto
-    then show ?thesis by simp
-  qed
+    using \<open>m > 0\<close> Cone by fastforce
   have Uone: "1 \<le> ?U"
-  proof -
-    have srone: "1 \<le> sqrt r"
-      using \<open>r > 0\<close> by simp
-    have "(1::real) * 1 \<le> ?K * sqrt (of_nat r)"
-      by (intro mult_mono Kone srone) (use Kone in auto)
-    then show ?thesis by simp
-  qed
+    using Kone \<open>r > 0\<close> by auto
   have "(of_nat q * C) ^ n \<le> ?U ^ n"
     by (rule power_mono[OF qC]) (use Cone in auto)
   also have "\<dots> \<le> ?U ^ r"
     by (rule power_increasing[OF nle Uone])
   also have "\<dots> = ?K ^ r * real r powr (of_nat r / 2)"
-  proof -
-    have srpos: "0 < sqrt r" using \<open>r > 0\<close> by simp
-    have "sqrt r ^ r =
-        (of_nat r powr (1/2)) powr of_nat r"
-      by (simp only: powr_half_sqrt powr_realpow[OF srpos])
-    also have "\<dots> = of_nat r powr (of_nat r / 2)"
-      by (simp add: powr_powr)
-    finally have sr: "sqrt r ^ r =
-        of_nat r powr (of_nat r / 2)" .
-    show ?thesis by (simp add: power_mult_distrib sr)
-  qed
+    by (simp add: \<open>r > 0\<close> power_mult_distrib powr_half_sqrt_powr powr_realpow
+        real_sqrt_power)
   finally show ?thesis .
 qed
 
@@ -257,52 +190,8 @@ lemma gs_mq_power_le_r_power:
   assumes qle: "q \<le> 2 * m * r"
   assumes Cone: "1 \<le> C"
   shows "C ^ (m * q) \<le> (C ^ (2 * m * m)) ^ r"
-proof -
-  have exp_le: "m * q \<le> (2 * m * m) * r"
-  proof -
-    have "m * q \<le> m * (2 * m * r)"
-      by (rule mult_left_mono[OF qle]) simp
-    then show ?thesis by (simp add: ac_simps)
-  qed
-  have "C ^ (m * q) \<le> C ^ ((2 * m * m) * r)"
-    by (rule power_increasing[OF exp_le Cone])
-  also have "\<dots> = (C ^ (2 * m * m)) ^ r"
-    by (simp add: power_mult)
-  finally show ?thesis .
-qed
-
-lemma gs_entry_power_le_r_power:
-  fixes C H :: real
-  assumes "m > 0"
-  assumes "r > 0"
-  assumes nle: "n \<le> r"
-  assumes qle: "q \<le> 2 * m * r"
-  assumes Cone: "1 \<le> C"
-  assumes Hone: "1 \<le> H"
-  shows "C ^ n * C ^ (m * q) * C ^ (m * q) *
-    (of_nat q * (1 + H)) ^ n * H ^ (m * q) * H ^ (m * q) \<le>
-    (C * C ^ (2 * m * m) * C ^ (2 * m * m) *
-      (2 * of_nat m * (1 + H)) * H ^ (2 * m * m) * H ^ (2 * m * m)) ^ r *
-      real r ^ r"
-proof -
-  let ?k = "2 * m * m"
-  have Cn: "C ^ n \<le> C ^ r"
-    by (rule power_increasing[OF nle Cone])
-  have Cmq: "C ^ (m * q) \<le> (C ^ ?k) ^ r"
-    by (rule gs_mq_power_le_r_power[OF qle Cone])
-  have Hmq: "H ^ (m * q) \<le> (H ^ ?k) ^ r"
-    by (rule gs_mq_power_le_r_power[OF qle Hone])
-  have qn: "(of_nat q * (1 + H)) ^ n \<le>
-      (2 * of_nat m * (1 + H)) ^ r * real r ^ r"
-    by (rule gs_q_power_le_r_power[OF \<open>m > 0\<close> \<open>r > 0\<close> nle qle]) (use Hone in auto)
-  have all: "C ^ n * C ^ (m * q) * C ^ (m * q) *
-    (of_nat q * (1 + H)) ^ n * H ^ (m * q) * H ^ (m * q) \<le>
-    C ^ r * (C ^ ?k) ^ r * (C ^ ?k) ^ r *
-    ((2 * of_nat m * (1 + H)) ^ r * real r ^ r) *
-    (H ^ ?k) ^ r * (H ^ ?k) ^ r"
-    by (intro mult_mono Cn Cmq qn Hmq) (use Cone Hone in auto)
-  show ?thesis using all by (simp add: power_mult_distrib ac_simps)
-qed
+  using assms 
+  by (metis mult.left_commute mult_le_mono2 power_increasing power_mult)
 
 lemma gs_entry_power_le_r_half:
   fixes C H :: real
@@ -326,17 +215,12 @@ proof -
     by (rule gs_mq_power_le_r_power[OF qle Cone])
   have Hmq: "H ^ (m * q) \<le> (H ^ ?k) ^ r"
     by (rule gs_mq_power_le_r_power[OF qle Hone])
-  have qn: "(of_nat q * (1 + H)) ^ n \<le>
-      (sqrt (2 * of_nat m) * (1 + H)) ^ r *
-        real r powr (of_nat r / 2)"
-    by (rule gs_balanced_q_power_le_r_half[OF \<open>m > 0\<close> \<open>r > 0\<close> nle qsq])
-      (use Hone in auto)
+  have qn: "(of_nat q * (1 + H)) ^ n \<le> (sqrt (2 * of_nat m) * (1 + H)) ^ r * real r powr (of_nat r / 2)"
+    using assms gs_balanced_q_power_le_r_half qsq by auto
   have all: "C ^ n * C ^ (m * q) * C ^ (m * q) *
     (of_nat q * (1 + H)) ^ n * H ^ (m * q) * H ^ (m * q) \<le>
-    C ^ r * (C ^ ?k) ^ r * (C ^ ?k) ^ r *
-    ((sqrt (2 * of_nat m) * (1 + H)) ^ r *
-      real r powr (of_nat r / 2)) *
-    (H ^ ?k) ^ r * (H ^ ?k) ^ r"
+    C ^ r * (C ^ ?k) ^ r * (C ^ ?k) ^ r * ((sqrt (2 * of_nat m) * (1 + H)) ^ r *
+      real r powr (of_nat r / 2)) * (H ^ ?k) ^ r * (H ^ ?k) ^ r"
     by (intro mult_mono Cn Cmq qn Hmq) (use Cone Hone in auto)
   show ?thesis using all by (simp add: power_mult_distrib ac_simps)
 qed
@@ -344,12 +228,8 @@ qed
 lemma gs_max_ceiling_le:
   fixes x :: real
   assumes "0 \<le> x"
-  shows "(of_int (max 1 (\<lceil>x\<rceil>)) :: real) \<le> 1 + x"
-proof -
-  have ceil: "(of_int (\<lceil>x\<rceil>) :: real) \<le> 1 + x"
-    using ceiling_correct[of x] by linarith
-  show ?thesis using ceil \<open>x \<ge> 0\<close> by (simp add: max_def)
-qed
+  shows "of_int (max 1 (\<lceil>x\<rceil>)) \<le> 1 + x"
+  using assms by linarith
 
 lemma gs_max_ceiling_mul_le:
   fixes A W G :: real
@@ -357,18 +237,11 @@ lemma gs_max_ceiling_mul_le:
   assumes "0 \<le> W"
   assumes Ale: "A \<le> G"
   assumes Gone: "1 \<le> G"
-  shows "(of_int (max 1 (\<lceil>W * A\<rceil>)) :: real) \<le> (1 + W) * G"
+  shows "of_int (max 1 (\<lceil>W * A\<rceil>)) \<le> (1 + W) * G"
 proof -
   have WA: "0 \<le> W * A" using \<open>A \<ge> 0\<close> \<open>W \<ge> 0\<close> by simp
-  have Wle: "W * A \<le> W * G"
-    by (rule mult_left_mono[OF Ale \<open>W \<ge> 0\<close>])
-  have "(of_int (max 1 (\<lceil>W * A\<rceil>)) :: real) \<le> 1 + W * A"
-    by (rule gs_max_ceiling_le[OF WA])
-  also have "\<dots> \<le> G + W * G"
-    using Wle Gone by linarith
-  also have "\<dots> = (1 + W) * G"
-    by (simp add: algebra_simps)
-  finally show ?thesis .
+  show ?thesis
+    using mult_left_mono[OF Ale \<open>W \<ge> 0\<close>] gs_max_ceiling_le[OF WA] Gone by argo
 qed
 
 lemma gs_witness_bound_le_growth:
@@ -385,22 +258,11 @@ proof -
   have "0 \<le> ?L" by simp
   have Lle: "?L \<le> (1 + W) * G"
     by (rule gs_max_ceiling_mul_le[OF \<open>A \<ge> 0\<close> \<open>W \<ge> 0\<close> Ale Gone])
-  have qsq_real: "(of_nat (q * q) :: real) \<le> 2 * of_nat m * of_nat r"
-  proof -
-    have "(of_nat (q * q) :: real) \<le> of_nat (2 * m * r)"
-      using qsq by (simp only: of_nat_le_iff)
-    then show ?thesis by (simp add: of_nat_mult)
-  qed
-  have qfac: "2 * (of_nat (q * q) :: real) * of_nat D \<le>
-      (4 * of_nat m * of_nat D) * of_nat r"
-  proof -
-    have "(2 * (of_nat (q * q) :: real) * of_nat D) \<le>
-        (2 * (2 * of_nat m * of_nat r)) * of_nat D"
-      by (intro mult_right_mono mult_left_mono qsq_real) simp_all
-    then show ?thesis by (simp add: ac_simps)
-  qed
-  have "(of_int (2 * int (q * q * D) * max 1 (\<lceil>W * A\<rceil>)) :: real) =
-      (2 * of_nat (q * q) * of_nat D) * ?L"
+  have qsq_real: "real(q * q) \<le> 2 * of_nat m * of_nat r"
+    using of_nat_mono qsq by fastforce
+  then have qfac: "2 * real(q * q) * of_nat D \<le> (4 * of_nat m * of_nat D) * of_nat r"
+    by (simp add: algebra_simps mult_left_mono)
+  have "of_int (2 * int (q * q * D) * max 1 (\<lceil>W * A\<rceil>)) = (2 * real (q * q) * real D) * ?L"
     by (simp add: of_nat_mult ac_simps)
   also have "\<dots> \<le> ((4 * of_nat m * of_nat D) * of_nat r) * ?L"
     by (rule mult_right_mono[OF qfac \<open>?L \<ge> 0\<close>])
@@ -413,18 +275,9 @@ qed
 
 lemma gs_half_growth_product:
   assumes "r > 0"
-  shows "real r * of_nat r *
-    (of_nat r powr (of_nat r / 2)) *
-    (of_nat r powr (of_nat r / 2)) =
-    of_nat r powr (of_nat r + 2)"
-proof -
-  have rrpos: "(0::real) < of_nat r" using \<open>r > 0\<close> by simp
-  have halves: "real r powr (of_nat r / 2) *
-      (of_nat r powr (of_nat r / 2)) = of_nat r powr of_nat r"
-    by (simp only: powr_add[symmetric]) simp
-  show ?thesis using halves rrpos
-    by (simp add: powr_add powr_realpow power2_eq_square ac_simps)
-qed
+  shows "real r * of_nat r * (r powr (r / 2)) * (r powr (r / 2)) = r powr (of_nat r + 2)"
+  using assms
+  by (simp add: power2_eq_square ac_simps powr_mult_base flip: powr_realpow powr_add)
 
 lemma gs_house_growth_multiply:
   fixes B F W K E :: real
@@ -435,78 +288,46 @@ lemma gs_house_growth_multiply:
   assumes "0 \<le> W"
   assumes "0 \<le> K"
   assumes "0 \<le> E"
-  assumes Bbound: "B \<le> W * of_nat r * K ^ r *
-    real r powr (of_nat r / 2)"
-  assumes Fbound: "F \<le> K ^ r *
-    real r powr (of_nat r / 2)"
-  shows "(of_nat (q * q) :: real) * B * E * F \<le>
-    (2 * of_nat m * W * E) * (K * K) ^ r *
-      real r powr (of_nat r + 2)"
+  assumes Bbound: "B \<le> W * of_nat r * K ^ r * r powr (r / 2)"
+  assumes Fbound: "F \<le> K ^ r * real r powr (of_nat r / 2)"
+  shows "real(q * q) * B * E * F
+       \<le> (2 * of_nat m * W * E) * (K * K) ^ r * real r powr (of_nat r + 2)"
 proof -
   let ?R = "real r"
   let ?P = "?R powr (?R / 2)"
-  have qbound: "(of_nat (q * q) :: real) \<le> 2 * of_nat m * of_nat r"
-  proof -
-    have "(of_nat (q * q) :: real) \<le> of_nat (2 * m * r)"
-      using qsq by (simp only: of_nat_le_iff)
-    then show ?thesis by (simp add: of_nat_mult)
-  qed
-  have all: "(of_nat (q * q) :: real) * B * E * F \<le>
+  have qbound: "real(q * q) \<le> 2 * of_nat m * of_nat r"
+    using of_nat_mono qsq by fastforce
+  have all: "real(q * q) * B * E * F \<le>
       (2 * of_nat m * ?R) * (W * ?R * K ^ r * ?P) * E * (K ^ r * ?P)"
-    by (intro mult_mono qbound Bbound Fbound)
-      (use \<open>B \<ge> 0\<close> \<open>F \<ge> 0\<close> \<open>W \<ge> 0\<close> \<open>K \<ge> 0\<close> \<open>E \<ge> 0\<close> in auto)
-  have eq: "(2 * of_nat m * ?R) * (W * ?R * K ^ r * ?P) * E *
-      (K ^ r * ?P) =
-      (2 * of_nat m * W * E) * (K * K) ^ r *
-        ?R powr (?R + 2)"
+    using assms by (intro mult_mono qbound Bbound Fbound) auto
+  have eq: "(2 * of_nat m * ?R) * (W * ?R * K ^ r * ?P) * E * (K ^ r * ?P) =
+            (2 * of_nat m * W * E) * (K * K) ^ r * ?R powr (?R + 2)"
     using gs_half_growth_product[OF \<open>r > 0\<close>]
     by (simp add: power_mult_distrib ac_simps)
   show ?thesis using all by (simp only: eq)
-qed
-
-lemma gs_nat_le_two_power:
-  "real r \<le> 2 ^ r"
-proof (induction r)
-  case 0
-  then show ?case by simp
-next
-  case (Suc r)
-  have "(of_nat (Suc r) :: real) \<le> 2 ^ r + 1"
-    using Suc.IH by simp
-  also have "\<dots> \<le> 2 ^ r + 2 ^ r"
-    by simp
-  also have "\<dots> = 2 ^ (Suc r)"
-    by simp
-  finally show ?case .
 qed
 
 lemma gs_sqrt_nat_le_two_power:
   assumes "r > 0"
   shows "sqrt r \<le> 2 ^ r"
 proof -
-  have rone: "1 \<le> real r" using \<open>r > 0\<close> by simp
-  have r_sq: "real r \<le> (of_nat r) ^ 2"
-    by (rule self_le_power[OF rone]) simp
   have "sqrt r \<le> of_nat r"
-    by (rule real_le_lsqrt[OF _ r_sq]) simp
+    by (simp add: real_le_lsqrt power2_nat_le_imp_le)
   also have "\<dots> \<le> 2 ^ r"
-    by (rule gs_nat_le_two_power)
+    by simp
   finally show ?thesis .
 qed
 
 lemma gs_absorb_sqrt_growth:
   assumes "r > 0"
-  shows "real r powr (of_nat r + 2) \<le>
-    2 ^ r * of_nat r powr (of_nat r + 3 / 2)"
+  shows "r powr (of_nat r + 2) \<le> 2 ^ r * r powr (r + 3 / 2)"
 proof -
-  let ?R = "real r"
-  have eq: "?R + 2 = (?R + 3 / 2) + 1 / 2" by simp
-  have "?R powr (?R + 2) =
-      (?R powr (?R + 3 / 2)) * sqrt ?R"
+  have eq: "real r + 2 = (r + 3 / 2) + 1 / 2" by simp
+  have "r powr (real r + 2) = (r powr (r + 3 / 2)) * sqrt r"
     by (simp only: eq powr_add powr_half_sqrt)
-  also have "\<dots> \<le> (?R powr (?R + 3 / 2)) * 2 ^ r"
+  also have "\<dots> \<le> (r powr (r + 3 / 2)) * 2 ^ r"
     by (rule mult_left_mono[OF gs_sqrt_nat_le_two_power[OF \<open>r > 0\<close>]]) simp
-  also have "\<dots> = 2 ^ r * ?R powr (?R + 3 / 2)"
+  also have "\<dots> = 2 ^ r * r powr (r + 3 / 2)"
     by (simp add: ac_simps)
   finally show ?thesis .
 qed
@@ -516,34 +337,14 @@ lemma gs_house_growth_absorb:
   assumes "r > 0"
   assumes "0 \<le> F"
   assumes "0 \<le> K"
-  shows "F * (K * K) ^ r * real r powr (of_nat r + 2) \<le>
-    (2 * max 1 F * (K * K)) ^ r *
-      real r powr (of_nat r + 3 / 2)"
+  shows "F * (K * K) ^ r * r powr (of_nat r + 2) \<le>
+    (2 * max 1 F * (K * K)) ^ r * real r powr (r + 3 / 2)"
 proof -
-  let ?R = "real r"
-  have Fle: "F \<le> (max 1 F) ^ r"
-  proof -
-    have "F \<le> max 1 F" by simp
-    also have "\<dots> \<le> (max 1 F) ^ r"
-      by (rule self_le_power) (use \<open>r > 0\<close> in auto)
-    finally show ?thesis .
-  qed
-  have nonneg: "0 \<le> (K * K) ^ r * ?R powr (?R + 2)"
-    using \<open>K \<ge> 0\<close> by simp
-  have "F * (K * K) ^ r * ?R powr (?R + 2) \<le>
-      (max 1 F) ^ r * (K * K) ^ r * ?R powr (?R + 2)"
-  proof -
-    have "F * ((K * K) ^ r * ?R powr (?R + 2)) \<le>
-        (max 1 F) ^ r * ((K * K) ^ r * ?R powr (?R + 2))"
-      by (rule mult_right_mono[OF Fle nonneg])
-    then show ?thesis by (simp add: ac_simps)
-  qed
-  also have "\<dots> \<le> (max 1 F) ^ r * (K * K) ^ r *
-      (2 ^ r * ?R powr (?R + 3 / 2))"
-    using gs_absorb_sqrt_growth[OF \<open>r > 0\<close>]
-    by (intro mult_left_mono) (use \<open>K \<ge> 0\<close> in simp_all)
-  also have "\<dots> = (2 * max 1 F * (K * K)) ^ r *
-      ?R powr (?R + 3 / 2)"
+  have "F * (K * K) ^ r * r powr (real r + 2) \<le> (max 1 F) ^ r * (K * K) ^ r * r powr (real r + 2)"
+    by (simp add: \<open>r > 0\<close> max_def mult_right_mono self_le_power)
+  also have "\<dots> \<le> (max 1 F) ^ r * (K * K) ^ r * (2 ^ r * r powr (r + 3 / 2))"
+    by (simp add: \<open>r > 0\<close> gs_absorb_sqrt_growth mult_left_mono)
+  also have "\<dots> = (2 * max 1 F * (K * K)) ^ r * r powr (r + 3 / 2)"
     by (simp add: power_mult_distrib ac_simps)
   finally show ?thesis .
 qed
@@ -552,19 +353,12 @@ lemma gs_scale_factor_le_r_power:
   fixes C :: real
   assumes qle: "q \<le> 2 * m * r"
   assumes Cone: "1 \<le> C"
-  shows "C ^ r * C ^ (2 * m * q) \<le>
-    (C * C ^ (4 * m * m)) ^ r"
+  shows "C ^ r * C ^ (2 * m * q) \<le> (C * C ^ (4 * m * m)) ^ r"
 proof -
   have exp_le: "2 * m * q \<le> (4 * m * m) * r"
-  proof -
-    have "2 * m * q \<le> 2 * m * (2 * m * r)"
-      by (rule mult_left_mono[OF qle]) simp
-    then show ?thesis by (simp add: ac_simps)
-  qed
-  have p_le: "C ^ (2 * m * q) \<le> C ^ ((4 * m * m) * r)"
-    by (rule power_increasing[OF exp_le Cone])
-  have "C ^ r * C ^ (2 * m * q) \<le> C ^ r * C ^ ((4 * m * m) * r)"
-    by (rule mult_left_mono[OF p_le]) (use Cone in simp)
+    using qle by force
+  then  have "C ^ r * C ^ (2 * m * q) \<le> C ^ r * C ^ ((4 * m * m) * r)"
+    using Cone by (smt (verit) mult_mono one_le_power power_increasing)
   also have "\<dots> = (C * C ^ (4 * m * m)) ^ r"
     by (simp add: power_mult_distrib power_mult)
   finally show ?thesis .
@@ -584,16 +378,12 @@ lemma gs_point_growth_power_identity:
 proof -
   let ?R = "real r"
   let ?M = "real m"
-  have "0 < ?R" using \<open>r > 0\<close> by simp
-  have exponent: "2 + ?R / 2 + ?R - ?M * ?R / 2 =
-      ?R * (3 - ?M) / 2 + 2"
-    by (simp add: field_simps algebra_simps)
-  have "(?R * ?R * (?R powr (?R / 2)) * ?R ^ r) /
-      (?R powr (?M * ?R / 2)) =
+  have "(?R * ?R * (?R powr (?R / 2)) * ?R ^ r) / (?R powr (?M * ?R / 2)) =
       ?R powr (2 + ?R / 2 + ?R - ?M * ?R / 2)"
-    by (simp only: powr_add powr_diff powr_realpow[OF \<open>?R > 0\<close>] powr_numeral[OF less_imp_le[OF \<open>?R > 0\<close>]] power2_eq_square ac_simps)
-  also have "\<dots> = ?R powr (?R * (3 - ?M) / 2 + 2)"
-    by (simp only: exponent)
+    using \<open>r > 0\<close>
+    by (simp only: powr_add powr_diff powr_realpow powr_numeral[OF less_imp_le] power2_eq_square ac_simps)
+  also have "(2 + ?R / 2 + ?R - ?M * ?R / 2) = (?R * (3 - ?M) / 2 + 2)"
+    by (simp add: field_simps algebra_simps)
   finally show ?thesis .
 qed
 
@@ -610,49 +400,29 @@ lemma gs_point_growth_multiply:
     real r powr (of_nat r / 2)"
   assumes Gbound: "G \<le> L ^ r"
   assumes radius_bound: "real r powr (of_nat m * of_nat r / 2) \<le> radius"
-  shows "((of_nat (q * q) :: real) * B * fact r * G) / radius \<le>
-    (2 * of_nat m * W) * (K * L) ^ r *
-      real r powr (of_nat r * (3 - of_nat m) / 2 + 2)"
+  shows "(real(q * q) * B * fact r * G) / radius \<le>
+    (2 * of_nat m * W) * (K * L) ^ r * r powr (r * (3 - of_nat m) / 2 + 2)"
 proof -
-  let ?R = "real r"
-  let ?P = "?R powr (?R / 2)"
-  let ?D = "?R powr (of_nat m * ?R / 2)"
+  let ?P = "r powr (r / 2)"
+  let ?D = "r powr (of_nat m * real r / 2)"
   have "0 < ?D" using \<open>r > 0\<close> by simp
-  have radius_pos: "0 < radius" using \<open>?D > 0\<close> radius_bound by linarith
-  have qbound: "(of_nat (q * q) :: real) \<le> 2 * of_nat m * ?R"
-  proof -
-    have "(of_nat (q * q) :: real) \<le> of_nat (2 * m * r)"
-      using qsq by (simp only: of_nat_le_iff)
-    then show ?thesis by (simp add: of_nat_mult)
-  qed
-  have factbound: "(fact r :: real) \<le> ?R ^ r"
+  have qbound: "real(q * q) \<le> 2 * of_nat m * real r"
+    using qsq by (simp add: mult.assoc flip: of_nat_mult of_nat_le_iff)
+  have factbound: "fact r \<le> real r ^ r"
     using fact_le_power[of r] by (simp add: of_nat_power)
-  have all: "(of_nat (q * q) :: real) * B * fact r * G \<le>
-      (2 * of_nat m * ?R) * (W * ?R * K ^ r * ?P) * ?R ^ r * L ^ r"
-    by (intro mult_mono qbound Bbound factbound Gbound)
-      (use \<open>B \<ge> 0\<close> \<open>G \<ge> 0\<close> \<open>W \<ge> 0\<close> \<open>K \<ge> 0\<close> \<open>L \<ge> 0\<close> in auto)
-  have *: "0 \<le> (of_nat (q * q) :: real) * B * fact r * G"
+  have all: "real(q * q) * B * fact r * G \<le>
+      (2 * of_nat m * real r) * (W * r * K ^ r * ?P) * real r ^ r * L ^ r"
+    using assms by (intro mult_mono qbound Bbound factbound Gbound) auto
+  have "0 \<le> real(q * q) * B * fact r * G"
     using \<open>B \<ge> 0\<close> \<open>G \<ge> 0\<close> by simp
-  have "((of_nat (q * q) :: real) * B * fact r * G) / radius \<le>
-      ((of_nat (q * q) :: real) * B * fact r * G) / ?D"
-    by (rule divide_left_mono[OF radius_bound *])
-      (use radius_pos \<open>?D > 0\<close> in auto)
-  also have "\<dots> \<le>
-      ((2 * of_nat m * ?R) * (W * ?R * K ^ r * ?P) * ?R ^ r * L ^ r) / ?D"
-    by (rule divide_right_mono[OF all]) (use \<open>?D > 0\<close> in auto)
+  then have "(real(q * q) * B * fact r * G) / radius \<le> (real(q * q) * B * fact r * G) / ?D"
+    using radius_bound frac_le \<open>?D > 0\<close> by blast
+  also have "\<dots> \<le> ((2 * of_nat m * real r) * (W * r * K ^ r * ?P) * real r ^ r * L ^ r) / ?D"
+    using all divide_le_cancel powr_non_neg by blast
   also have "\<dots> = (2 * of_nat m * W) * (K * L) ^ r *
-      ?R powr (?R * (3 - of_nat m) / 2 + 2)"
-  proof -
-    have factor: "((2 * of_nat m * ?R) * (W * ?R * K ^ r * ?P) *
-      ?R ^ r * L ^ r) / ?D =
-      (2 * of_nat m * W) * (K * L) ^ r *
-        ((?R * ?R * ?P * ?R ^ r) / ?D)"
-      by (simp add: power_mult_distrib ac_simps)
-    have id: "(?R * ?R * ?P * ?R ^ r) / ?D =
-        ?R powr (?R * (3 - of_nat m) / 2 + 2)"
-      by (rule gs_point_growth_power_identity[OF \<open>r > 0\<close>])
-    show ?thesis by (simp only: factor id)
-  qed
+      r powr (real r * (3 - of_nat m) / 2 + 2)"
+    using gs_point_growth_power_identity[of r] \<open>r > 0\<close>
+    by (simp add: algebra_simps divide_simps power_mult_distrib)
   finally show ?thesis .
 qed
 
