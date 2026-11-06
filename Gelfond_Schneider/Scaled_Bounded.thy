@@ -116,7 +116,7 @@ proof -
   let ?V = "(of_int B :: real) * of_nat D * K"
   let ?T = "of_nat q * (1 + cmod (beta)) * cmod (zeta)"
   have qpos: "q > 0" using qge by simp
-  have dgt: "1 < (of_nat m * of_nat r / of_nat q :: real)"
+  have dgt: "1 < (real m * real r / real q)"
     by (rule gs_circle_clearance_of_balanced_dimensions[OF qge bal nle])
   have Vnonneg: "0 \<le> ?V"
     using B_nonneg Knonneg by simp

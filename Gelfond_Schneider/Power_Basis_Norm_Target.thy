@@ -33,15 +33,6 @@ definition gs_kernel_witness_bound :: "nat \<Rightarrow> nat \<Rightarrow> real 
   where "gs_kernel_witness_bound \<equiv>
     (\<lambda>ncols nbasis W H. 2 * int (ncols * nbasis) * max 1 \<lceil>W * H\<rceil>)"
 
-text \<open>The house and distinguished-embedding estimates use different powers
-of the derivative order. Their product gives the exponent in the norm bound.\<close>
-
-definition gs_house_order_exponent :: "nat \<Rightarrow> real"
-  where "gs_house_order_exponent r = of_nat r + 3 / 2"
-
-definition gs_point_order_exponent :: "nat \<Rightarrow> nat \<Rightarrow> real"
-  where "gs_point_order_exponent m r = of_nat r * (3 - of_nat m) / 2 + 3 / 2"
-
 locale gs_power_basis_data =
   finite_normal_galois_power_basis K eta D emb +
   gs_normalized_data alpha beta omega zeta
@@ -572,12 +563,7 @@ qed
 
 definition gs_concrete_entry_growth_constant :: real where
   "gs_concrete_entry_growth_constant \<equiv>
-    (of_int \<bar>gs_c1\<bar> :: real) *
-    (of_int \<bar>gs_c1\<bar> :: real) ^ (2 * gs_m h * gs_m h) *
-    (of_int \<bar>gs_c1\<bar> :: real) ^ (2 * gs_m h * gs_m h) *
-    (sqrt (2 * of_nat (gs_m h)) * (1 + gs_data_emb_bound)) *
-    gs_data_emb_bound ^ (2 * gs_m h * gs_m h) *
-    gs_data_emb_bound ^ (2 * gs_m h * gs_m h)"
+    gs_entry_growth_base (gs_m h) (of_int \<bar>gs_c1\<bar>) gs_data_emb_bound"
 
 lemma gs_concrete_entry_bound_le_growth:
   assumes nle: "gs_n h q \<le> r"
@@ -601,7 +587,7 @@ proof -
   show ?thesis
     using gs_entry_power_le_r_half[OF mpos rpos nle qle qsq Cge1 Hge1]
     by (simp add: gs_concrete_entry_bound_def
-      gs_concrete_entry_growth_constant_def)
+      gs_concrete_entry_growth_constant_def gs_entry_growth_base_def gs_order_growth_def)
 qed
 
 definition gs_witness_growth_weight :: real where
@@ -638,7 +624,8 @@ proof -
       (sqrt (2 * of_nat ?m) * (1 + ?H)) *
       ?H ^ (2 * ?m * ?m) * ?H ^ (2 * ?m * ?m)"
     by (intro mult_mono Cone middle power_increasing Hone) (use Cone Hone in auto)
-  then show ?thesis by (simp add: gs_concrete_entry_growth_constant_def)
+  then show ?thesis
+    by (simp add: gs_concrete_entry_growth_constant_def gs_entry_growth_base_def)
 qed
 
 lemma gs_entry_growth_envelope_eq:
@@ -813,7 +800,8 @@ proof -
                  (of_int \<bar>gs_c1\<bar>) ^ (gs_m h * q) * (of_int \<bar>gs_c1\<bar>) ^ (gs_m h * q)"
     by (simp add: more_arith_simps(11) power2_eq_square power_even_eq)
   show ?thesis using bound
-    by (simp only: split gs_concrete_entry_growth_constant_def)
+    by (simp only: split gs_concrete_entry_growth_constant_def
+      gs_entry_growth_base_def gs_order_growth_def)
 qed
 
 lemma represented_coordinate_in_K:
@@ -1021,7 +1009,7 @@ proof -
   let ?H = "gs_data_emb_bound"
   let ?K = "gs_concrete_entry_growth_constant"
   let ?W = "gs_witness_growth_prefactor :: real"
-  let ?E = "of_nat D * power_basis_entry_bound :: real"
+  let ?E = "real D * power_basis_entry_bound"
   let ?F = "?C ^ r * ?C ^ (2 * gs_m h * q) * (of_nat q * (1 + ?H)) ^ r * ?H ^ (gs_m h * q) * ?H ^ (gs_m h * q)"
   have qsq: "q * q \<le> 2 * gs_m h * r"
     by (rule gs_q_sq_le_two_mr[OF dvd nle])
@@ -1063,7 +1051,7 @@ proof -
   let ?H = "gs_data_emb_bound"
   let ?K = "gs_concrete_entry_growth_constant * U"
   let ?W = "gs_witness_growth_prefactor :: real"
-  let ?E = "of_nat D * power_basis_entry_bound :: real"
+  let ?E = "real D * power_basis_entry_bound"
   let ?F = "?C ^ r * ?C ^ (2 * gs_m h * q) *
     (of_nat q * (1 + ?H)) ^ r *
     ?H ^ (gs_m h * q) * ?H ^ (gs_m h * q)"
@@ -1097,7 +1085,7 @@ proof -
   have Enonneg: "0 \<le> ?E"
     using power_basis_entry_bound_nonneg by simp
   note house_raw = gs_house_rho_le_of_bounded_vec[OF repr x_carrier x_bnd B_nonneg ai xK rho_def]
-  have house_factor: "gs_house rho \<le> (of_nat (q * q) :: real) * of_int B * ?E * ?F"
+  have house_factor: "gs_house rho \<le> real (q * q) * of_int B * ?E * ?F"
     using house_raw by (simp only: c_abs of_nat_mult ac_simps)
   have multiplied: "(of_nat (q * q)) * of_int B * ?E * ?F \<le>
     (2 * of_nat (gs_m h) * ?W * ?E) * (?K * ?K) ^ r * real r powr (of_nat r + 2)"
@@ -1234,7 +1222,7 @@ proof -
   let ?Z = "inverse (cmod (zeta))"
   let ?X = "exp (of_nat ?m * (2 * of_nat ?m + 1) *
       (1 + cmod (beta)) * cmod (zeta))"
-  let ?P = "2 * of_nat ?m + 1 :: real"
+  let ?P = "2 * real ?m + 1"
   have prod_ge1: "1 \<le> c14 * c5"
     using c14_ge1 c5_gt1 by force
   have nle_choice: "gs_n h (gs_q_choice h (c14 * c5)) \<le> r"
@@ -1334,10 +1322,7 @@ proof -
 qed
 
 definition gs_point_growth_prefactor :: real where
-  "gs_point_growth_prefactor \<equiv>
-    2 * of_nat (gs_m h) *
-      gs_witness_growth_prefactor *
-      (of_nat D * power_basis_entry_bound)"
+  "gs_point_growth_prefactor = gs_house_growth_prefactor"
 
 definition gs_point_growth_base :: real where
   "gs_point_growth_base \<equiv>
@@ -1380,10 +1365,10 @@ proof -
   let ?m = "gs_m h"
   let ?R = "real r"
   let ?W = "gs_witness_growth_prefactor"
-  let ?E = "of_nat D * power_basis_entry_bound :: real"
+  let ?E = "real D * power_basis_entry_bound"
   let ?K = "gs_concrete_entry_growth_constant"
   let ?L = "gs_point_fixed_base"
-  let ?radius = "(of_nat ?m * ?R / of_nat q :: real) ^ (?m * r)"
+  let ?radius = "(real ?m * ?R / real q) ^ (?m * r)"
   let ?G = "(of_int \<bar>c\<bar> :: real) * cmod (zeta powi (- int r)) *
     exp ((of_nat q * (1 + cmod (beta)) * cmod (zeta)) *
       (of_nat ?m * (1 + ?R / of_nat q))) *
@@ -1412,7 +1397,7 @@ proof -
     x_carrier x_bnd B_nonneg req rho_def]
   have raw_refactor: "cmod rho \<le> ((of_nat (q * q) * of_int B * fact r * ?G) / ?radius) * ?E"
     using raw by (simp add: ac_simps)
-  have point_num: "(((of_nat (q * q) :: real) * of_int B * fact r * ?G) /
+  have point_num: "((real (q * q) * of_int B * fact r * ?G) /
       ?radius) \<le> (2 * of_nat ?m * ?W) * (?K * ?L) ^ r *
         ?R powr (?R * (3 - of_nat ?m) / 2 + 2)"
     by (rule gs_point_growth_multiply[OF rpos qsq Bnonneg Gnonneg Wnonneg
@@ -1420,17 +1405,17 @@ proof -
   have point_pref: "cmod rho \<le> gs_point_growth_prefactor *
       (?K * ?L) ^ r * ?R powr (?R * (3 - of_nat ?m) / 2 + 2)"
   proof -
-    have "(((of_nat (q * q) :: real) * of_int B * fact r * ?G) /
+    have "((real (q * q) * of_int B * fact r * ?G) /
         ?radius) * ?E \<le> ((2 * of_nat ?m * ?W) * (?K * ?L) ^ r *
           ?R powr (?R * (3 - of_nat ?m) / 2 + 2)) * ?E"
       by (rule mult_right_mono[OF point_num Enonneg])
     then show ?thesis using raw_refactor
-      by (simp add: gs_point_growth_prefactor_def ac_simps)
+      by (simp add: gs_point_growth_prefactor_def gs_house_growth_prefactor_def ac_simps)
   qed
   have Wscaled: "0 \<le> 2 * of_nat ?m * ?W"
     by (rule mult_nonneg_nonneg) (use Wnonneg in auto)
   have pref_eq: "gs_point_growth_prefactor = (2 * of_nat ?m * ?W) * ?E"
-    by (simp only: gs_point_growth_prefactor_def)
+    by (simp only: gs_point_growth_prefactor_def gs_house_growth_prefactor_def)
   have Fnonneg: "0 \<le> gs_point_growth_prefactor"
     by (simp add: Wnonneg pref_eq)
   have absorb: "gs_point_growth_prefactor * (?K * ?L) ^ r *
@@ -1452,10 +1437,10 @@ proof -
   let ?m = "gs_m h"
   let ?R = "real r"
   let ?W = "gs_witness_growth_prefactor"
-  let ?E = "of_nat D * power_basis_entry_bound :: real"
+  let ?E = "real D * power_basis_entry_bound"
   let ?K = "gs_concrete_entry_growth_constant * U"
   let ?L = "gs_point_fixed_base"
-  let ?radius = "(of_nat ?m * ?R / of_nat q :: real) ^ (?m * r)"
+  let ?radius = "(real ?m * ?R / real q) ^ (?m * r)"
   let ?G = "(of_int \<bar>c\<bar> :: real) * cmod (zeta powi (- int r)) *
     exp ((of_nat q * (1 + cmod (beta)) * cmod (zeta)) *
       (of_nat ?m * (1 + ?R / of_nat q))) *
@@ -1484,20 +1469,21 @@ proof -
     x_carrier x_bnd B_nonneg req rho_def]
   have raw_refactor: "cmod rho \<le> ((real (q * q) * of_int B * fact r * ?G) / ?radius) * ?E"
     using raw by argo
-  have point_num: "(((of_nat (q * q) :: real) * of_int B * fact r * ?G) /
+  have point_num: "((real (q * q) * of_int B * fact r * ?G) /
       ?radius) \<le> (2 * of_nat ?m * ?W) * (?K * ?L) ^ r *
         ?R powr (?R * (3 - of_nat ?m) / 2 + 2)"
     by (rule gs_point_growth_multiply[OF rpos qsq Bnonneg Gnonneg Wnonneg
           Knonneg Lnonneg Bbound Gbound radbound])
-  have "(((of_nat (q * q) :: real) * of_int B * fact r * ?G) /
+  have "((real (q * q) * of_int B * fact r * ?G) /
         ?radius) * ?E \<le> ((2 * of_nat ?m * ?W) * (?K * ?L) ^ r *
           ?R powr (?R * (3 - of_nat ?m) / 2 + 2)) * ?E"
     by (rule mult_right_mono[OF point_num Enonneg])
   then have point_pref: "cmod rho \<le> gs_point_growth_prefactor *
       (?K * ?L) ^ r * ?R powr (?R * (3 - of_nat ?m) / 2 + 2)"
-    using raw_refactor by (simp add: gs_point_growth_prefactor_def ac_simps)
+    using raw_refactor
+    by (simp add: gs_point_growth_prefactor_def gs_house_growth_prefactor_def ac_simps)
   have Fnonneg: "0 \<le> gs_point_growth_prefactor"
-    by (simp add: Wnonneg gs_point_growth_prefactor_def)
+    by (simp add: Wnonneg gs_point_growth_prefactor_def gs_house_growth_prefactor_def)
   have base_eq: "gs_point_growth_base * U = 2 * max 1 gs_point_growth_prefactor * (?K * ?L)"
     by (simp add: gs_point_growth_base_def algebra_simps)
   have "0 \<le> ?K * ?L" using Knonneg Lnonneg by simp

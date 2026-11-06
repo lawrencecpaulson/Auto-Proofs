@@ -282,7 +282,7 @@ lemma gs_abs_galois_norm_le_from_analytic_house_bounds:
   shows "gs_abs_galois_norm x \<le>
     (c8 ^ (D - 1) * c13) powr of_nat r * of_nat r powr (- of_nat r / 2 + 3 * of_nat D / 2)"
 proof -
-  let ?R = "of_nat r :: real"
+  let ?R = "real r"
   let ?H = "c8 powr ?R * ?R powr (?R + 3 / 2)"
   let ?P = "c13 powr ?R * ?R powr (?R * (3 - of_nat (2 * D + 2)) / 2 + 3 / 2)"
   have Hpow: "gs_house x ^ (D - 1) \<le> ?H ^ (D - 1)"

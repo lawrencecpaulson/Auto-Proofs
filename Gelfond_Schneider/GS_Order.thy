@@ -450,7 +450,7 @@ lemma gs_node_product_lower_bound_on_circle:
     cmod (\<Prod>a\<in>gs_order_nodes m. (z - a) ^ n)"
 proof -
   let ?X = "gs_order_nodes m"
-  let ?d = "of_nat m * of_nat r / of_nat q :: real"
+  let ?d = "real m * real r / real q"
   have dpos: "?d > 0"
     using qpos mpos rpos by simp
   have cardX: "card ?X = m"

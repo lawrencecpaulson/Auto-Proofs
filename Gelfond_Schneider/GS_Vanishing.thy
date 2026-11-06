@@ -332,8 +332,8 @@ lemma gs_normalized_circle_bound:
   assumes w: "cmod w < of_nat m * (1 + of_nat r / of_nat q)"
   shows "cmod (S w) \<le> M / (of_nat m * of_nat r / of_nat q) ^ (m * n)"
 proof -
-  let ?R = "of_nat m * (1 + of_nat r / of_nat q) :: real"
-  let ?d = "of_nat m * of_nat r / of_nat q :: real"
+  let ?R = "real m * (1 + real r / real q)"
+  let ?d = "real m * real r / real q"
   have dpos: "?d > 0"
     using \<open>q > 0\<close> \<open>m > 0\<close> \<open>r > 0\<close> by simp
   have Rgt: "?R > of_nat m"
@@ -430,7 +430,7 @@ lemma gs_normalized_derivative_bound:
     fact n * B * (2 * of_nat m + 1) ^ (m * n)"
 proof -
   let ?X = "gs_order_nodes m"
-  let ?C = "2 * of_nat m + 1 :: real"
+  let ?C = "2 * real m + 1"
   have apos: "cmod a \<le> of_nat m"
     by (metis gs_order_nodes_imp_cmod_le anode)
   have bpos: "cmod b \<le> of_nat m" if "b \<in> ?X" for b
@@ -480,7 +480,7 @@ lemma gs_aux_fun_vec_min_order_derivative_bound:
   assumes "q > 0"
   assumes "m > 0"
   assumes "r > 0"
-  assumes dgt: "1 < (of_nat m * of_nat r / of_nat q :: real)"
+  assumes dgt: "1 < (real m * real r / real q)"
   assumes Vnonneg: "0 \<le> V"
   assumes Tnonneg: "0 \<le> T"
   assumes nz: "gs_aux_fun_vec q \<xi> \<noteq> (\<lambda>_. 0)"
@@ -494,8 +494,8 @@ lemma gs_aux_fun_vec_min_order_derivative_bound:
 proof -
   let ?f = "gs_aux_fun_vec q \<xi>"
   let ?a = "gs_min_order_node m q \<xi>"
-  let ?R = "of_nat m * (1 + of_nat r / of_nat q) :: real"
-  let ?d = "of_nat m * of_nat r / of_nat q :: real"
+  let ?R = "real m * (1 + real r / real q)"
+  let ?d = "real m * real r / real q"
   let ?M = "of_nat (q * q) * V * exp (T * ?R)"
   let ?B = "?M / ?d ^ (m * r)"
   obtain S where Shol: "S holomorphic_on UNIV"
@@ -536,7 +536,7 @@ lemma gs_circle_clearance_of_balanced_dimensions:
   assumes qge: "4 \<le> q"
   assumes bal: "q * q = 2 * m * n"
   assumes nle: "n \<le> r"
-  shows "1 < (of_nat m * of_nat r / of_nat q :: real)"
+  shows "1 < (real m * real r / real q)"
   using assms
 proof -
   have qlt: "2 * q < q * q"

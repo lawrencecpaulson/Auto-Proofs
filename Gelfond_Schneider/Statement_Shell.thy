@@ -114,9 +114,9 @@ lemma gs_use5_bound:
       c14 powr of_nat r *
       of_nat r powr (gs_norm_order_exponent h r)"
   assumes rho_inv_lt: "inverse rho_norm < c5 powr of_nat r"
-  shows "of_nat r powr ((((of_nat r :: real) - 3 * of_nat h) / 2)) < (c14 * c5) powr of_nat r"
+  shows "of_nat r powr (((real r - 3 * of_nat h) / 2)) < (c14 * c5) powr of_nat r"
 proof -
-  let ?x = "of_nat r powr ((((of_nat r :: real) - 3 * of_nat h) / 2))"
+  let ?x = "of_nat r powr (((real r - 3 * of_nat h) / 2))"
   let ?y = "of_nat r powr (gs_norm_order_exponent h r)"
   have x_nonneg: "0 <= ?x"
     by (intro powr_ge_zero)
@@ -170,7 +170,7 @@ lemma gs_growth_contradiction_from_norm_bounds:
   assumes c15_4_le_r: "(c14 * c5) powr 4 <= of_nat r"
   shows False
 proof -
-  have growth: "of_nat r powr ((((of_nat r :: real) - 3 * of_nat h) / 2)) < (c14 * c5) powr of_nat r"
+  have growth: "of_nat r powr (((real r - 3 * of_nat h) / 2)) < (c14 * c5) powr of_nat r"
     by (rule gs_use5_bound[OF rpos c14_ge1 _ rho_pos rho_upper rho_inv_lt]) (use c5_ge1 in auto)
   have c15_ge1: "1 \<le> c14 * c5"
   proof -

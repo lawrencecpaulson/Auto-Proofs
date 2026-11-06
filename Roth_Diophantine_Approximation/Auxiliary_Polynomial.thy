@@ -533,7 +533,7 @@ lemma roth_aux_polynomial_cast:
   fixes x :: "int vec"
   shows "replace_coeff of_int
       (\<Sum>t<length Ks. MPoly_Type.monom (Ks ! t) (x $ t)) =
-    (\<Sum>t<length Ks. MPoly_Type.monom (Ks ! t) (of_int (x $ t) :: real))"
+    (\<Sum>t<length Ks. MPoly_Type.monom (Ks ! t) (real_of_int (x $ t)))"
   by (simp add: roth_replace_coeff_sum replace_coeff_monom)
 
 context
@@ -627,7 +627,7 @@ proof -
     unfolding P_def by (rule roth_aux_polynomial_in_box[OF Ksbox])
   have Preal: "replace_coeff of_int P =
       (\<Sum>t<length Ks.
-        MPoly_Type.monom (Ks ! t) (of_int (x $ t) :: real))"
+        MPoly_Type.monom (Ks ! t) (real_of_int (x $ t)))"
     unfolding P_def by (rule roth_aux_polynomial_cast)
   have Pindex: "ereal (real m * (1-eps) / 2) \<le>
       roth_index m r (\<lambda>_. a) (replace_coeff of_int P)"

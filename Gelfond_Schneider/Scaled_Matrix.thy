@@ -419,11 +419,11 @@ proof -
     using c_abs_eq_int by (simp del: of_int_abs)
   have q_ge1_nat: "1 \<le> q"
     using qpos by simp
-  have q_ge1: "1 \<le> (of_nat q :: real)"
+  have q_ge1: "1 \<le> real q"
     using q_ge1_nat by simp
   have B0_ge1': "1 \<le> 1 + cmod (beta)"
     by simp
-  have q_nonneg: "0 \<le> (of_nat q :: real)"
+  have q_nonneg: "0 \<le> real q"
     by simp
   have B0_nonneg: "0 \<le> ?B0"
     by simp

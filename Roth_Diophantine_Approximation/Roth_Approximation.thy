@@ -62,7 +62,7 @@ lemma rational_approximant_height_bound:
     and near: "\<bar>\<alpha> - of_int p / of_int q\<bar> < E"
   shows "\<bar>p\<bar> \<le> \<lceil>of_int q * (\<bar>\<alpha>\<bar> + E)\<rceil>"
 proof -
-  have q0: "(of_int q :: real) \<noteq> 0"
+  have q0: "real_of_int q \<noteq> 0"
     using q by simp
   have q_real: "(0::real) < of_int q"
     using q by simp
@@ -71,7 +71,7 @@ proof -
     by linarith
   have pd_lt: "\<bar>of_int p / of_int q\<bar> < \<bar>\<alpha>\<bar> + E"
     using pd near by linarith
-  have "(of_int (\<bar>p\<bar>) :: real) =
+  have "real_of_int \<bar>p\<bar> =
       \<bar>of_int q * (of_int p / of_int q)\<bar>"
     using q0 by (simp add: abs_mult)
   also have "\<dots> = of_int q * \<bar>of_int p / of_int q\<bar>"
@@ -263,7 +263,7 @@ lemma roth_scaled_pair_properties:
   defines "pq' \<equiv> roth_scaled_pair c (p,q)"
   shows "snd pq' > 0" "coprime (fst pq') (snd pq')"
     "snd pq' \<le> q" "q \<le> c * snd pq'"
-    "(of_int (fst pq') :: real) / of_int (snd pq') =
+    "real_of_int (fst pq') / of_int (snd pq') =
       of_int c * (of_int p / of_int q)"
 proof -
   let ?g = "gcd (c * p) q"
@@ -279,14 +279,14 @@ proof -
     using roth_scaled_denominator[OF c q cop] norm by simp_all
   have r: "Fract (fst pq') (snd pq') = Fract (c * p) q"
     using Rat.normalize_eq by (simp add: pq'_def roth_scaled_pair_def)
-  have "(of_int (fst pq') :: real) / of_int (snd pq') =
+  have "real_of_int (fst pq') / of_int (snd pq') =
       of_rat (Fract (fst pq') (snd pq'))"
     using q'pos by (simp add: of_rat_rat)
   also have "\<dots> = of_rat (Fract (c * p) q)"
     using r by simp
   also have "\<dots> = of_int c * (of_int p / of_int q)"
     using q by (simp add: of_rat_rat)
-  finally show "(of_int (fst pq') :: real) / of_int (snd pq') =
+  finally show "real_of_int (fst pq') / of_int (snd pq') =
     of_int c * (of_int p / of_int q)" .
 qed
 
@@ -334,7 +334,7 @@ proof -
     using roth_scaled_pair_properties(2)[OF c q cop] by simp
   have q'le: "snd ?pq' \<le> q"
     using roth_scaled_pair_properties(3)[OF c q cop] by simp
-  have frac: "(of_int (fst ?pq') :: real) / of_int (snd ?pq') =
+  have frac: "real_of_int (fst ?pq') / of_int (snd ?pq') =
     of_int c * (of_int p / of_int q)"
     using roth_scaled_pair_properties(5)[OF c q cop] by simp
   have qreal: "(0::real) < of_int q"

@@ -10,6 +10,25 @@ theory Rho_Bounds
   imports Scaled_Bounded Statement_Shell
 begin
 
+text \<open>A growth budget consists of an exponential base and a power of the
+order. The house and distinguished embeddings use different order exponents;
+their product gives the exponent in the norm bound.\<close>
+
+definition gs_order_growth :: "real \<Rightarrow> real \<Rightarrow> nat \<Rightarrow> real"
+  where "gs_order_growth K a r = K ^ r * real r powr a"
+
+definition gs_house_order_exponent :: "nat \<Rightarrow> real"
+  where "gs_house_order_exponent r = real r + 3 / 2"
+
+definition gs_point_order_exponent :: "nat \<Rightarrow> nat \<Rightarrow> real"
+  where "gs_point_order_exponent m r = real r * (3 - real m) / 2 + 3 / 2"
+
+lemma gs_order_growth_mult:
+  assumes "r > 0"
+  shows "gs_order_growth K a r * gs_order_growth L b r =
+    gs_order_growth (K * L) (a + b) r"
+  using assms by (simp add: gs_order_growth_def power_mult_distrib powr_add ac_simps)
+
 lemma gs_q_choice_circle_clearance:
   fixes C :: real
   assumes "h > 0"
@@ -174,6 +193,16 @@ lemma gs_mq_power_le_r_power:
   using assms 
   by (metis mult.left_commute mult_le_mono2 power_increasing power_mult)
 
+text \<open>The entry base records one row-scaling factor, two symmetric
+coefficient factors, and the square-root contribution from the column
+index.\<close>
+
+definition gs_entry_growth_base :: "nat \<Rightarrow> real \<Rightarrow> real \<Rightarrow> real"
+  where "gs_entry_growth_base m C H =
+    C * C ^ (2 * m * m) * C ^ (2 * m * m) *
+      (sqrt (2 * real m) * (1 + H)) *
+      H ^ (2 * m * m) * H ^ (2 * m * m)"
+
 lemma gs_entry_power_le_r_half:
   fixes C H :: real
   assumes "m > 0"
@@ -185,9 +214,7 @@ lemma gs_entry_power_le_r_half:
   assumes Hone: "1 \<le> H"
   shows "C ^ n * C ^ (m * q) * C ^ (m * q) *
     (real q * (1 + H)) ^ n * H ^ (m * q) * H ^ (m * q) \<le>
-    (C * C ^ (2 * m * m) * C ^ (2 * m * m) *
-      (sqrt (2 * real m) * (1 + H)) * H ^ (2 * m * m) * H ^ (2 * m * m)) ^ r *
-      real r powr (real r / 2)"
+    gs_order_growth (gs_entry_growth_base m C H) (real r / 2) r"
 proof -
   let ?k = "2 * m * m"
   have Cn: "C ^ n \<le> C ^ r"
@@ -203,7 +230,8 @@ proof -
     C ^ r * (C ^ ?k) ^ r * (C ^ ?k) ^ r * ((sqrt (2 * real m) * (1 + H)) ^ r *
       real r powr (real r / 2)) * (H ^ ?k) ^ r * (H ^ ?k) ^ r"
     by (intro mult_mono Cn Cmq qn Hmq) (use Cone Hone in auto)
-  show ?thesis using all by (simp add: power_mult_distrib ac_simps)
+  show ?thesis using all
+    by (simp add: gs_order_growth_def gs_entry_growth_base_def power_mult_distrib ac_simps)
 qed
 
 lemma gs_max_ceiling_le:
@@ -299,18 +327,42 @@ proof -
   finally show ?thesis .
 qed
 
+lemma gs_absorb_sqrt_growth_general:
+  assumes "r > 0"
+  shows "real r powr (a + 2) \<le> 2 ^ r * real r powr (a + 3 / 2)"
+proof -
+  have eq: "a + 2 = (a + 3 / 2) + 1 / 2" by simp
+  have "r powr (a + 2) = (r powr (a + 3 / 2)) * sqrt r"
+    by (simp only: eq powr_add powr_half_sqrt)
+  also have "\<dots> \<le> (r powr (a + 3 / 2)) * 2 ^ r"
+    by (rule mult_left_mono[OF gs_sqrt_nat_le_two_power[OF \<open>r > 0\<close>]]) simp
+  also have "\<dots> = 2 ^ r * r powr (a + 3 / 2)"
+    by (simp add: ac_simps)
+  finally show ?thesis .
+qed
+
 lemma gs_absorb_sqrt_growth:
   assumes "r > 0"
   shows "r powr (real r + 2) \<le> 2 ^ r * r powr (r + 3 / 2)"
+  using gs_absorb_sqrt_growth_general[OF assms, of "real r"] by simp
+
+lemma gs_order_growth_absorb:
+  fixes F K a :: real
+  assumes "r > 0" "0 \<le> F" "0 \<le> K"
+  shows "F * gs_order_growth K (a + 2) r \<le>
+    gs_order_growth (2 * max 1 F * K) (a + 3 / 2) r"
 proof -
-  have eq: "real r + 2 = (r + 3 / 2) + 1 / 2" by simp
-  have "r powr (real r + 2) = (r powr (r + 3 / 2)) * sqrt r"
-    by (simp only: eq powr_add powr_half_sqrt)
-  also have "\<dots> \<le> (r powr (r + 3 / 2)) * 2 ^ r"
-    by (rule mult_left_mono[OF gs_sqrt_nat_le_two_power[OF \<open>r > 0\<close>]]) simp
-  also have "\<dots> = 2 ^ r * r powr (r + 3 / 2)"
-    by (simp add: ac_simps)
-  finally show ?thesis .
+  have "F \<le> (max 1 F) ^ r"
+    by (simp add: \<open>r > 0\<close> max_def self_le_power)
+  then have "F * K ^ r * r powr (a + 2) \<le>
+      (max 1 F) ^ r * K ^ r * r powr (a + 2)"
+    by (simp add: \<open>K \<ge> 0\<close> mult_right_mono)
+  also have "\<dots> \<le> (max 1 F) ^ r * K ^ r * (2 ^ r * r powr (a + 3 / 2))"
+    using gs_absorb_sqrt_growth_general[OF \<open>r > 0\<close>]
+    by (intro mult_left_mono) (use \<open>K \<ge> 0\<close> in simp_all)
+  also have "\<dots> = (2 * max 1 F * K) ^ r * r powr (a + 3 / 2)"
+    by (simp add: power_mult_distrib ac_simps)
+  finally show ?thesis by (simp add: gs_order_growth_def)
 qed
 
 lemma gs_house_growth_absorb:
@@ -321,13 +373,10 @@ lemma gs_house_growth_absorb:
   shows "F * (K * K) ^ r * r powr (real r + 2) \<le>
     (2 * max 1 F * (K * K)) ^ r * real r powr (r + 3 / 2)"
 proof -
-  have "F * (K * K) ^ r * r powr (real r + 2) \<le> (max 1 F) ^ r * (K * K) ^ r * r powr (real r + 2)"
-    by (simp add: \<open>r > 0\<close> max_def mult_right_mono self_le_power)
-  also have "\<dots> \<le> (max 1 F) ^ r * (K * K) ^ r * (2 ^ r * r powr (r + 3 / 2))"
-    by (simp add: \<open>r > 0\<close> gs_absorb_sqrt_growth mult_left_mono)
-  also have "\<dots> = (2 * max 1 F * (K * K)) ^ r * r powr (r + 3 / 2)"
-    by (simp add: power_mult_distrib ac_simps)
-  finally show ?thesis .
+  have "F * gs_order_growth (K * K) (real r + 2) r \<le>
+      gs_order_growth (2 * max 1 F * (K * K)) (real r + 3 / 2) r"
+    by (rule gs_order_growth_absorb) (use assms in auto)
+  then show ?thesis by (simp add: gs_order_growth_def)
 qed
 
 lemma gs_scale_factor_le_r_power:
@@ -406,20 +455,6 @@ proof -
   finally show ?thesis .
 qed
 
-lemma gs_absorb_sqrt_growth_general:
-  assumes "r > 0"
-  shows "real r powr (a + 2) \<le> 2 ^ r * real r powr (a + 3 / 2)"
-proof -
-  have eq: "a + 2 = (a + 3 / 2) + 1 / 2" by simp
-  have "r powr (a + 2) = (r powr (a + 3 / 2)) * sqrt r"
-    by (simp only: eq powr_add powr_half_sqrt)
-  also have "\<dots> \<le> (r powr (a + 3 / 2)) * 2 ^ r"
-    by (rule mult_left_mono[OF gs_sqrt_nat_le_two_power[OF \<open>r > 0\<close>]]) simp
-  also have "\<dots> = 2 ^ r * r powr (a + 3 / 2)"
-    by (simp add: ac_simps)
-  finally show ?thesis .
-qed
-
 lemma gs_point_growth_absorb:
   fixes F K a :: real
   assumes "r > 0"
@@ -427,16 +462,10 @@ lemma gs_point_growth_absorb:
   assumes "K \<ge> 0"
   shows "F * K ^ r * real r powr (a + 2) \<le> (2 * max 1 F * K) ^ r * real r powr (a + 3 / 2)"
 proof -
-  have "F \<le> (max 1 F) ^ r"
-    by (simp add: \<open>r > 0\<close> max_def self_le_power)
-  then have "F * K ^ r * r powr (a + 2) \<le> (max 1 F) ^ r * K ^ r * r powr (a + 2)"
-    by (simp add: \<open>K \<ge> 0\<close> mult_right_mono)
-  also have "\<dots> \<le> (max 1 F) ^ r * K ^ r * (2 ^ r * r powr (a + 3 / 2))"
-    using gs_absorb_sqrt_growth_general[OF \<open>r > 0\<close>]
-    by (intro mult_left_mono) (use \<open>K \<ge> 0\<close> in simp_all)
-  also have "\<dots> = (2 * max 1 F * K) ^ r * r powr (a + 3 / 2)"
-    by (simp add: power_mult_distrib ac_simps)
-  finally show ?thesis .
+  have "F * gs_order_growth K (a + 2) r \<le>
+      gs_order_growth (2 * max 1 F * K) (a + 3 / 2) r"
+    by (rule gs_order_growth_absorb) (use assms in auto)
+  then show ?thesis by (simp add: gs_order_growth_def)
 qed
 
 lemma gs_aux_exp_growth_le:
