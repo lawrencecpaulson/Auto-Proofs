@@ -15,13 +15,13 @@ order. The house and distinguished embeddings use different order exponents;
 their product gives the exponent in the norm bound.\<close>
 
 definition gs_order_growth :: "real \<Rightarrow> real \<Rightarrow> nat \<Rightarrow> real"
-  where "gs_order_growth K a r = K ^ r * real r powr a"
+  where "gs_order_growth K a r \<equiv> K ^ r * real r powr a"
 
 definition gs_house_order_exponent :: "nat \<Rightarrow> real"
-  where "gs_house_order_exponent r = real r + 3 / 2"
+  where "gs_house_order_exponent r \<equiv> real r + 3 / 2"
 
 definition gs_point_order_exponent :: "nat \<Rightarrow> nat \<Rightarrow> real"
-  where "gs_point_order_exponent m r = real r * (3 - real m) / 2 + 3 / 2"
+  where "gs_point_order_exponent m r \<equiv> real r * (3 - real m) / 2 + 3 / 2"
 
 lemma gs_order_growth_mult:
   assumes "r > 0"
@@ -35,7 +35,6 @@ lemma gs_q_choice_circle_clearance:
   assumes C_ge1: "1 \<le> C"
   assumes nle: "gs_n h (gs_q_choice h C) \<le> r"
   shows "1 < real (gs_m h) * real r / real (gs_q_choice h C)"
-  using gs_circle_clearance_of_balanced_dimensions assms
 proof -
   let ?q = "gs_q_choice h C"
   have qge: "4 \<le> ?q"
@@ -198,9 +197,8 @@ coefficient factors, and the square-root contribution from the column
 index.\<close>
 
 definition gs_entry_growth_base :: "nat \<Rightarrow> real \<Rightarrow> real \<Rightarrow> real"
-  where "gs_entry_growth_base m C H =
-    C * C ^ (2 * m * m) * C ^ (2 * m * m) *
-      (sqrt (2 * real m) * (1 + H)) *
+  where "gs_entry_growth_base m C H \<equiv>
+    C * C ^ (2 * m * m) * C ^ (2 * m * m) * (sqrt (2 * real m) * (1 + H)) *
       H ^ (2 * m * m) * H ^ (2 * m * m)"
 
 lemma gs_entry_power_le_r_half:
@@ -306,18 +304,15 @@ proof -
   let ?P = "?R powr (?R / 2)"
   have qbound: "real(q * q) \<le> 2 * real m * real r"
     using of_nat_mono qsq by fastforce
-  have all: "real(q * q) * B * E * F \<le>
+  have "real(q * q) * B * E * F \<le>
       (2 * real m * ?R) * (W * ?R * K ^ r * ?P) * E * (K ^ r * ?P)"
     using assms by (intro mult_mono qbound Bbound Fbound) auto
-  have eq: "(2 * real m * ?R) * (W * ?R * K ^ r * ?P) * E * (K ^ r * ?P) =
-            (2 * real m * W * E) * (K * K) ^ r * ?R powr (?R + 2)"
+  then show ?thesis
     using gs_half_growth_product[OF \<open>r > 0\<close>]
-    by (simp add: power_mult_distrib ac_simps)
-  show ?thesis using all by (simp only: eq)
+    by (smt (verit, del_insts) mult_ac cmult_pow_simp)
 qed
 
 lemma gs_sqrt_nat_le_two_power:
-  assumes "r > 0"
   shows "sqrt r \<le> 2 ^ r"
 proof -
   have "sqrt r \<le> real r"
@@ -349,8 +344,7 @@ lemma gs_absorb_sqrt_growth:
 lemma gs_order_growth_absorb:
   fixes F K a :: real
   assumes "r > 0" "0 \<le> F" "0 \<le> K"
-  shows "F * gs_order_growth K (a + 2) r \<le>
-    gs_order_growth (2 * max 1 F * K) (a + 3 / 2) r"
+  shows "F * gs_order_growth K (a + 2) r \<le> gs_order_growth (2 * max 1 F * K) (a + 3 / 2) r"
 proof -
   have "F \<le> (max 1 F) ^ r"
     by (simp add: \<open>r > 0\<close> max_def self_le_power)
@@ -461,12 +455,8 @@ lemma gs_point_growth_absorb:
   assumes "0 \<le> F"
   assumes "K \<ge> 0"
   shows "F * K ^ r * real r powr (a + 2) \<le> (2 * max 1 F * K) ^ r * real r powr (a + 3 / 2)"
-proof -
-  have "F * gs_order_growth K (a + 2) r \<le>
-      gs_order_growth (2 * max 1 F * K) (a + 3 / 2) r"
-    by (rule gs_order_growth_absorb) (use assms in auto)
-  then show ?thesis by (simp add: gs_order_growth_def)
-qed
+  using assms 
+  by (metis gs_order_growth_absorb gs_order_growth_def mult.assoc)
 
 lemma gs_aux_exp_growth_le:
   assumes "q > 0"
@@ -476,7 +466,7 @@ lemma gs_aux_exp_growth_le:
     exp (real m * (2 * real m + 1) * (1 + cmod b) * cmod z) ^ r"
 proof -
   let ?L = "(1 + cmod b) * cmod z"
-  let ?C = "real m * ?L :: real"
+  let ?C = "real m * ?L"
   have qpos_real: "real q > 0" using \<open>q > 0\<close> by simp
   have eq: "(real q * (1 + cmod b) * cmod z) * (real m * (1 + real r / real q)) =
       ?C * (real q + real r)"
