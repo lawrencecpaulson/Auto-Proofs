@@ -30,12 +30,8 @@ proof (intro allI impI)
   assume tq: "t < q"
   have sum_int: "algebraic_int
     (\<Sum>j<D. of_int (x $ sg_pair_idx D t j) * basis j)"
-  proof (rule algebraic_int_sum)
-    fix j
-    assume "j \<in> {..<D}"
-    then show "algebraic_int (of_int (x $ sg_pair_idx D t j) * basis j)"
-      by (intro algebraic_int_times) (auto intro: basis_int)
-  qed
+    using basis_int
+    by (meson algebraic_int_of_int_scale algebraic_int_sum lessThan_iff)
   show "algebraic_int (v $ t)"
     using repr tq sum_int by simp
 qed
@@ -56,7 +52,7 @@ definition gs_bounded_auxiliary_witness ::
   "complex mat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow>
     (nat \<Rightarrow> complex) \<Rightarrow> int \<Rightarrow> complex vec \<Rightarrow> int vec \<Rightarrow> nat \<Rightarrow> bool"
   where
-  "gs_bounded_auxiliary_witness A h q D basis B v x r \<longleftrightarrow>
+  "gs_bounded_auxiliary_witness A h q D basis B v x r \<equiv>
     bounded_integral_basis_kernel A (gs_m h * gs_n h q) (q * q) D basis B v x \<and>
     gs_min_order (gs_m h) q (\<lambda>t. v $ t) \<ge> gs_n h q \<and>
     r = nat (gs_min_order (gs_m h) q (\<lambda>t. v $ t)) \<and>
@@ -83,22 +79,14 @@ proof -
   obtain v :: "complex vec" and x :: "int vec" where
       W: "bounded_basis_kernel (gs_system_mat m n q) (m * n) (q * q) D basis
         (int (q * q * D + 1) * det_bound_hadamard (q * q * D) (max 1 Bnd)) v x"
-    by (rule exists_nonzero_bounded_kernel_vec_of_structure_constants[OF gs_system_mat_carrier dpos mnq mult_repr C_bnd basis_indep])
-  note v_carrier = bounded_basis_kernel.v_carrier[OF W]
-    and v_nz = bounded_basis_kernel.v_nonzero[OF W]
-    and x_carrier = bounded_basis_kernel.x_carrier[OF W]
-    and x_nz = bounded_basis_kernel.x_nonzero[OF W]
-    and ker = bounded_basis_kernel.kernel[OF W]
-    and repr = bounded_basis_kernel.coordinates[OF W]
-    and x_bnd = bounded_basis_kernel.x_bounded[OF W]
+    by (rule exists_nonzero_bounded_kernel_vec_of_structure_constants
+          [OF gs_system_mat_carrier dpos mnq mult_repr C_bnd basis_indep])
   have vint: "\<forall>i<q * q. algebraic_int (v $ i)"
-    by (rule algebraic_int_coordinates_of_integral_basis[OF basis_int repr])
-  have IW: "bounded_integral_basis_kernel (gs_system_mat m n q) (m * n)
-    (q * q) D basis
-    (int (q * q * D + 1) * det_bound_hadamard (q * q * D) (max 1 Bnd)) v x"
-    by unfold_locales
-      (use v_carrier v_nz ker vint repr x_carrier x_nz x_bnd in auto)
-  show thesis by (rule that[OF IW])
+    by (rule algebraic_int_coordinates_of_integral_basis[OF basis_int 
+           bounded_basis_kernel.coordinates[OF W]])
+  show thesis
+    using W bounded_integral_basis_kernel.intro
+      bounded_integral_basis_kernel_axioms_def that vint by blast
 qed
 
 theorem gs_system_mat_exists_bounded_algebraic_int_kernel_linear:
@@ -122,21 +110,14 @@ proof -
   obtain v :: "complex vec" and x :: "int vec" where
       W: "bounded_basis_kernel (gs_system_mat m n q) (m * n) (q * q) D basis
         (2 * int (q * q * D) * max 1 Bnd) v x"
-    by (rule exists_nonzero_bounded_kernel_vec_of_structure_constants_linear[OF gs_system_mat_carrier mnpos dpos mnq mult_repr C_bnd basis_indep])
-  note v_carrier = bounded_basis_kernel.v_carrier[OF W]
-    and v_nz = bounded_basis_kernel.v_nonzero[OF W]
-    and ker = bounded_basis_kernel.kernel[OF W]
-    and repr = bounded_basis_kernel.coordinates[OF W]
-    and x_carrier = bounded_basis_kernel.x_carrier[OF W]
-    and x_nz = bounded_basis_kernel.x_nonzero[OF W]
-    and x_bnd = bounded_basis_kernel.x_bounded[OF W]
+    by (rule exists_nonzero_bounded_kernel_vec_of_structure_constants_linear
+            [OF gs_system_mat_carrier mnpos dpos mnq mult_repr C_bnd basis_indep])
   have vint: "\<forall>i<q * q. algebraic_int (v $ i)"
-    by (rule algebraic_int_coordinates_of_integral_basis[OF basis_int repr])
-  have IW: "bounded_integral_basis_kernel (gs_system_mat m n q) (m * n)
-    (q * q) D basis (2 * int (q * q * D) * max 1 Bnd) v x"
-    by unfold_locales
-      (use v_carrier v_nz ker vint repr x_carrier x_nz x_bnd in auto)
-  show thesis by (rule that[OF IW])
+    by (rule algebraic_int_coordinates_of_integral_basis[OF basis_int bounded_basis_kernel.coordinates[OF W]
+])
+  then show ?thesis
+    using W bounded_integral_basis_kernel.intro
+      bounded_integral_basis_kernel_axioms.intro that by blast
 qed
 
 section \<open>Direct Auxiliary Witness Data\<close>
@@ -148,7 +129,7 @@ definition gs_integral_auxiliary_witness ::
   "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow>
     complex vec \<Rightarrow> nat \<Rightarrow> bool"
   where
-  "gs_integral_auxiliary_witness m n q v r \<longleftrightarrow>
+  "gs_integral_auxiliary_witness m n q v r \<equiv>
     v \<in> carrier_vec (q * q) \<and>
     v \<noteq> 0\<^sub>v (q * q) \<and>
     gs_system_mat m n q *\<^sub>v v = 0\<^sub>v (m * n) \<and>
@@ -179,14 +160,9 @@ proof -
   have coeff_nz: "\<exists>t<q * q. Matrix.vec_index v t \<noteq> 0"
     using v_carrier v_nz by force
   have min_ord: "gs_min_order (gs_m h) q (\<lambda>t. Matrix.vec_index v t) \<ge> gs_n h q"
-  proof -
-    have ker: "gs_system_mat (gs_m h) (gs_n h q) q *\<^sub>v gs_coeff_vec q (\<lambda>t. Matrix.vec_index v t) =
-        0\<^sub>v (gs_m h * gs_n h q)"
-      by (simp add: gs_coeff_vec_eqI[OF v_carrier] v_ker)
-    show ?thesis
-      by (rule gs_min_order_ge_of_kernel_nonzero[OF qpos gs_m_pos npos coeff_nz ker])
-  qed
-  define r0 where "r0 = nat (gs_min_order (gs_m h) q (\<lambda>t. Matrix.vec_index v t))"
+    by (simp add: assms(2) coeff_nz gs_coeff_vec_eqI
+        gs_min_order_ge_of_kernel_nonzero qpos v_carrier v_ker)
+  define r0 where "r0 \<equiv> nat (gs_min_order (gs_m h) q (\<lambda>t. Matrix.vec_index v t))"
   have deriv_nz:
       "((deriv ^^ r0) (gs_aux_fun_vec q (\<lambda>t. Matrix.vec_index v t)))
         (gs_min_order_node (gs_m h) q (\<lambda>t. Matrix.vec_index v t)) \<noteq> 0"
@@ -225,7 +201,7 @@ theorem gs_exists_bounded_integral_auxiliary_data:
 proof -
   have mnq: "gs_m h * gs_n h q < q * q"
     by (rule gs_balanced_rows_lt_columns[OF dvd npos])
-  obtain v :: "complex vec" and x :: "int vec" where
+  obtain v x where
       IW: "bounded_integral_basis_kernel
         (gs_system_mat (gs_m h) (gs_n h q) q)
         (gs_m h * gs_n h q) (q * q) D basis
@@ -236,19 +212,12 @@ proof -
     "gs_m h * gs_n h q" "q * q" D basis
     "int (q * q * D + 1) * det_bound_hadamard (q * q * D) (max 1 Bnd)" v x
     by (rule IW)
-  note v_carrier = W.v_carrier and v_nz = W.v_nonzero
-    and v_ker = W.kernel
   have coeff_nz: "\<exists>t<q * q. v $ t \<noteq> 0"
-    using v_carrier v_nz by force
+    using W.v_carrier W.v_nonzero by force
   have min_ord: "gs_min_order (gs_m h) q (\<lambda>t. v $ t) \<ge> gs_n h q"
-  proof -
-    have ker: "gs_system_mat (gs_m h) (gs_n h q) q *\<^sub>v gs_coeff_vec q (\<lambda>t. v $ t) =
-        0\<^sub>v (gs_m h * gs_n h q)"
-      by (simp add: gs_coeff_vec_eqI[OF v_carrier] v_ker)
-    show ?thesis
-      by (rule gs_min_order_ge_of_kernel_nonzero[OF qpos gs_m_pos npos coeff_nz ker])
-  qed
-  define r0 where "r0 = nat (gs_min_order (gs_m h) q (\<lambda>t. v $ t))"
+    using gs_min_order_ge_of_kernel_nonzero[OF qpos gs_m_pos npos coeff_nz]
+    by (simp add: W.kernel gs_coeff_vec_eqI W.v_carrier)
+  define r0 where "r0 \<equiv> nat (gs_min_order (gs_m h) q (\<lambda>t. v $ t))"
   have deriv_nz:
       "((deriv ^^ r0) (gs_aux_fun_vec q (\<lambda>t. v $ t)))
         (gs_min_order_node (gs_m h) q (\<lambda>t. v $ t)) \<noteq> 0"
@@ -274,7 +243,7 @@ proof -
     using npos by simp
   have mnq: "2 * (gs_m h * gs_n h q) \<le> q * q"
     using qsq by (simp add: power2_eq_square)
-  obtain v :: "complex vec" and x :: "int vec" where
+  obtain v x where
       IW: "bounded_integral_basis_kernel
         (gs_system_mat (gs_m h) (gs_n h q) q)
         (gs_m h * gs_n h q) (q * q) D basis
@@ -285,30 +254,18 @@ proof -
     "gs_m h * gs_n h q" "q * q" D basis
     "2 * int (q * q * D) * max 1 Bnd" v x
     by (rule IW)
-  note v_carrier = W.v_carrier and v_nz = W.v_nonzero
-    and v_ker = W.kernel
   have coeff_nz: "\<exists>t<q * q. v $ t \<noteq> 0"
-    using v_carrier v_nz by force
+    using W.v_carrier W.v_nonzero by force
   have min_ord: "gs_min_order (gs_m h) q (\<lambda>t. v $ t) \<ge> gs_n h q"
-  proof -
-    have ker: "gs_system_mat (gs_m h) (gs_n h q) q *\<^sub>v gs_coeff_vec q (\<lambda>t. v $ t) =
-        0\<^sub>v (gs_m h * gs_n h q)"
-      by (simp add: gs_coeff_vec_eqI[OF v_carrier] v_ker)
-    show ?thesis
-      by (rule gs_min_order_ge_of_kernel_nonzero[OF qpos gs_m_pos npos coeff_nz ker])
-  qed
+    by (simp add: W.kernel coeff_nz gs_coeff_vec_eqI
+        gs_min_order_ge_of_kernel_nonzero npos qpos W.v_carrier)
   define r0 where "r0 = nat (gs_min_order (gs_m h) q (\<lambda>t. v $ t))"
-  have deriv_nz:
-      "((deriv ^^ r0) (gs_aux_fun_vec q (\<lambda>t. v $ t)))
+  have "((deriv ^^ r0) (gs_aux_fun_vec q (\<lambda>t. v $ t)))
         (gs_min_order_node (gs_m h) q (\<lambda>t. v $ t)) \<noteq> 0"
     unfolding r0_def
     by (rule gs_min_order_deriv_nonzero_of_coeff_nonzero[OF qpos coeff_nz])
-  have BW: "gs_bounded_auxiliary_witness
-    (gs_system_mat (gs_m h) (gs_n h q) q) h q D basis
-    (2 * int (q * q * D) * max 1 Bnd) v x r0"
-    using IW min_ord r0_def deriv_nz
-    unfolding gs_bounded_auxiliary_witness_def by blast
-  show thesis by (rule that[OF BW])
+  then show thesis
+    using IW min_ord r0_def gs_bounded_auxiliary_witness_def that by blast
 qed
 
 end

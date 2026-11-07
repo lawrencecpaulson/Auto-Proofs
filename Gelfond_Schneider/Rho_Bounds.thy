@@ -330,7 +330,7 @@ proof -
   have "r powr (a + 2) = (r powr (a + 3 / 2)) * sqrt r"
     by (simp only: eq powr_add powr_half_sqrt)
   also have "\<dots> \<le> (r powr (a + 3 / 2)) * 2 ^ r"
-    by (rule mult_left_mono[OF gs_sqrt_nat_le_two_power[OF \<open>r > 0\<close>]]) simp
+    by (simp add: gs_sqrt_nat_le_two_power mult_left_mono)
   also have "\<dots> = 2 ^ r * r powr (a + 3 / 2)"
     by (simp add: ac_simps)
   finally show ?thesis .

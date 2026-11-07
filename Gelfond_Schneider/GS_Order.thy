@@ -18,22 +18,7 @@ lemma finite_exp_sum_holomorphic:
   assumes fin: "finite S"
   shows "(\<lambda>x::complex. \<Sum>i\<in>S. c i * exp (\<rho> i * x)) holomorphic_on A"
   using fin
-proof (induction rule: finite_induct)
-  case empty
-  then show ?case
-    by simp
-next
-  case (insert i S)
-  have "(\<lambda>x::complex. c i * exp (\<rho> i * x)) holomorphic_on A"
-    by (intro holomorphic_intros)
-  moreover have "(\<lambda>x::complex. \<Sum>j\<in>S. c j * exp (\<rho> j * x)) holomorphic_on A"
-    by (rule insert.IH)
-  ultimately have "(\<lambda>x::complex. c i * exp (\<rho> i * x) + (\<Sum>j\<in>S. c j * exp (\<rho> j * x)))
-      holomorphic_on A"
-    by (intro holomorphic_intros)
-  then show ?case
-    using insert.hyps by simp
-qed
+by (induction rule: finite_induct) (auto simp: holomorphic_intros)
 
 context gs_normalized_data
 begin
@@ -53,10 +38,10 @@ lemma holomorphic_nonzero_zorder_ge:
 proof -
   obtain w where w: "f w \<noteq> 0"
     using nz by (auto simp: fun_eq_iff)
-  have ana: "f analytic_on {z}"
+  have "f analytic_on {z}"
     by (rule holomorphic_on_imp_analytic_at[OF holo]) auto
-  show ?thesis
-    by (rule zorder_geI[where A = UNIV and z = w]) (use ana holo w vanish in auto)
+  with assms w show ?thesis
+    by (intro zorder_geI) auto
 qed
 
 context gs_normalized_data
@@ -71,25 +56,13 @@ lemma gs_aux_fun_zorder_ge:
 lemma gs_aux_fun_zorder_nonneg:
   assumes nz: "gs_aux_fun q \<eta> \<noteq> (\<lambda>_. 0)"
   shows "0 \<le> zorder (gs_aux_fun q \<eta>) z"
-proof -
-  have "zorder (gs_aux_fun q \<eta>) z \<ge> (0::nat)"
-    by (rule gs_aux_fun_zorder_ge[OF nz, of 0 z]) simp
-  then show ?thesis
-    by simp
-qed
+  using assms gs_aux_fun_zorder_ge of_nat_0_le_iff order.trans by blast
 
 lemma gs_aux_fun_zor_poly_eq:
   assumes nz: "gs_aux_fun q \<eta> \<noteq> (\<lambda>_. 0)"
-  shows "eventually (\<lambda>w.
-      zor_poly (gs_aux_fun q \<eta>) z w =
+  shows "eventually (\<lambda>w. zor_poly (gs_aux_fun q \<eta>) z w =
       gs_aux_fun q \<eta> w / (w - z) ^ nat (zorder (gs_aux_fun q \<eta>) z)) (at z)"
-proof -
-  obtain w where w: "gs_aux_fun q \<eta> w \<noteq> 0"
-    using nz by (auto simp: fun_eq_iff)
-  show ?thesis
-    by (rule zor_poly_zero_eq[where S = UNIV])
-       (use gs_aux_fun_holomorphic[of q \<eta> UNIV] w in auto)
-qed
+  using gs_aux_fun_holomorphic zor_poly_zero_eq nz by fastforce
 
 end
 
@@ -100,8 +73,8 @@ lemma holomorphic_nonzero_deriv_zorder_nonzero:
 proof -
   have ana: "f analytic_on {z}"
     by (rule holomorphic_on_imp_analytic_at[OF holo]) auto
-  define g where "g = f \<circ> (\<lambda>w. z + w)"
-  define F where "F = fps_expansion g 0"
+  define g where "g \<equiv> f \<circ> (\<lambda>w. z + w)"
+  define F where "F \<equiv> fps_expansion g 0"
   have fps: "g has_fps_expansion F"
     unfolding g_def F_def
     by (intro analytic_at_imp_has_fps_expansion_0
@@ -123,22 +96,12 @@ proof -
   qed
   have ord0: "zorder g 0 = int (subdegree F)"
     by (rule has_fps_expansion_zorder_0[OF fps F_nz])
-  have ord: "zorder f z = int (subdegree F)"
-  proof -
-    have shift_eq: "(\<lambda>u. f (u + z)) = g"
-      unfolding g_def by (rule ext) (simp add: add.commute)
-    have "zorder f z = zorder (\<lambda>u. f (u + z)) 0"
-      by (rule zorder_shift)
-    also have "\<dots> = zorder g 0"
-      unfolding shift_eq by simp
-    also have "\<dots> = int (subdegree F)"
-      by (rule ord0)
-    finally show ?thesis .
-  qed
-  have r_eq: "nat (zorder f z) = subdegree F"
-    using ord by simp
+  have shift_eq: "(\<lambda>u. f (u + z)) = g"
+    unfolding g_def by (force simp: add.commute)
+  then have ord: "zorder f z = int (subdegree F)"
+    using ord0 zorder_shift by fastforce
   have coeff_nz: "fps_nth F (nat (zorder f z)) \<noteq> 0"
-    unfolding r_eq using F_nz by simp
+    unfolding ord using F_nz by simp
   have coeff_eq0: "fps_nth F (nat (zorder f z)) =
       ((deriv ^^ nat (zorder f z)) g) 0 / fact (nat (zorder f z))"
     by (rule fps_nth_fps_expansion[OF fps])
@@ -148,17 +111,14 @@ proof -
   have deriv_shift: "((deriv ^^ nat (zorder f z)) g) 0 =
       ((deriv ^^ nat (zorder f z)) f) z"
     using deriv_shift0 by simp
-  have coeff_eq: "fps_nth F (nat (zorder f z)) =
-      ((deriv ^^ nat (zorder f z)) f) z / fact (nat (zorder f z))"
-    using coeff_eq0 deriv_shift by simp
-  show ?thesis
-    using coeff_nz coeff_eq by simp
+  then show ?thesis
+    using coeff_nz coeff_eq0 by force
 qed
 
 section \<open>Choosing a Minimal Order Point\<close>
 
 definition gs_order_nodes :: "nat \<Rightarrow> complex set"
-  where "gs_order_nodes m = of_nat ` {1..m}"
+  where "gs_order_nodes m \<equiv> of_nat ` {1..m}"
 
 lemma finite_arg_min_on_zorder:
   assumes fin: "finite S"
@@ -181,23 +141,9 @@ proof
   assume "z \<in> of_nat ` {1..m}"
   then obtain n where n: "n \<in> {1..m}" "z = of_nat n"
     by blast
-  from n have "n > 0" and "n \<le> m"
-    by auto
-  then have "n - 1 < m"
-    by auto
-  moreover from n \<open>n > 0\<close> have "z = of_nat (Suc (n - 1))"
-    by simp
-  ultimately show "\<exists>l<m. z = of_nat (Suc l)"
-    by blast
-next
-  assume "\<exists>l<m. z = of_nat (Suc l)"
-  then obtain l where l: "l < m" "z = of_nat (Suc l)"
-    by blast
-  have "Suc l \<in> {1..m}"
-    using l by auto
-  with l show "z \<in> of_nat ` {1..m}"
-    by blast
-qed
+  then show "\<exists>l<m. z = of_nat (Suc l)"
+    using Suc_le_D by fastforce
+qed force
 
 context gs_normalized_data
 begin
@@ -225,30 +171,24 @@ proof -
   have "cmod z - of_nat m \<le> cmod z - of_nat u"
     using um by simp
   also have "... \<le> cmod (z - of_nat u)"
-    using norm_triangle_ineq2[of z "of_nat u :: complex"] by simp
+    by (metis norm_of_nat norm_triangle_ineq2)
   finally show ?thesis
     by (simp add: rad_eq)
 qed
 
 lemma gs_circle_maximum_modulus:
   fixes f :: "complex \<Rightarrow> complex"
-  assumes Rpos: "R > 0"
+  assumes "R > 0"
   assumes hol: "f holomorphic_on cball 0 R"
-  assumes bnd: "\<And>z. cmod z = R \<Longrightarrow> cmod (f z) \<le> B"
-  assumes w: "cmod w < R"
+  assumes "\<And>z. cmod z = R \<Longrightarrow> cmod (f z) \<le> B"
+  assumes "cmod w < R"
   shows "cmod (f w) \<le> B"
-proof (rule maximum_modulus_frontier[where f = f and S = "cball 0 R" and \<xi> = w])
+proof (rule maximum_modulus_frontier[where f = f])
   show "f holomorphic_on interior (cball 0 R)"
     using hol by (rule holomorphic_on_subset) auto
   show "continuous_on (closure (cball 0 R)) f"
-    using hol Rpos by (simp add: holomorphic_on_imp_continuous_on)
-  show "bounded (cball 0 R)"
-    by simp
-  show "\<And>z. z \<in> frontier (cball 0 R) \<Longrightarrow> cmod (f z) \<le> B"
-    using bnd Rpos by (simp add: frontier_cball)
-  show "w \<in> cball 0 R"
-    using w by simp
-qed
+    using assms by (simp add: holomorphic_on_imp_continuous_on)
+qed (use assms in auto)
 
 lemma gs_entire_quotient_of_zorder:
   fixes f :: "complex \<Rightarrow> complex"
@@ -262,8 +202,8 @@ proof -
   let ?h = "zor_poly f a"
   obtain rad where radpos: "rad > 0"
     and hhol: "?h holomorphic_on cball a rad"
-    and fac: "\<forall>w\<in>cball a rad. f w = ?h w * (w - a) ^ ?k"
-    using zorder_exist_zero[where f = f and z = a and S = UNIV] hol nz by auto
+    and fac: "\<And>w. w\<in>cball a rad \<Longrightarrow> f w = ?h w * (w - a) ^ ?k"
+    using zorder_exist_zero[where f = f and z = a] hol nz by blast
   define eps where "eps = min rad 1"
   have epspos: "eps > 0"
     using radpos by (simp add: eps_def)
@@ -274,12 +214,7 @@ proof -
   have hcont: "continuous_on (cball a eps) ?h"
     by (rule holomorphic_on_imp_continuous_on[OF hhol_eps])
   have hbdd: "bounded (?h ` cball a eps)"
-  proof -
-    have "compact (?h ` cball a eps)"
-      by (rule compact_continuous_image[OF hcont]) simp
-    then show ?thesis
-      by (rule compact_imp_bounded)
-  qed
+    using compact_continuous_image compact_eq_bounded_closed hcont by blast
   obtain B where B: "\<And>w. w \<in> cball a eps \<Longrightarrow> cmod (?h w) \<le> B"
     using hbdd unfolding bounded_iff by blast
   have Ba: "cmod (?h a) \<le> B"
@@ -289,8 +224,8 @@ proof -
   let ?F = "\<lambda>w. f w / (w - a) ^ n"
   have Fhol: "?F holomorphic_on UNIV - {a}"
     using hol by (intro holomorphic_intros) auto
-  have Fbnd: "\<exists>C. eventually (\<lambda>w. cmod (?F w) \<le> C) (at a)"
-  proof (intro exI[of _ B])
+  have "\<exists>C. eventually (\<lambda>w. cmod (?F w) \<le> C) (at a)"
+  proof (intro exI)
     have evpun: "eventually (\<lambda>w. w \<in> ball a eps - {a}) (at a)"
       using epspos eventually_at_ball'[of eps a UNIV] by auto
     from evpun show "eventually (\<lambda>w. cmod (?F w) \<le> B) (at a)"
@@ -304,7 +239,7 @@ proof -
       have poweq: "(w - a) ^ ?k / (w - a) ^ n = (w - a) ^ (?k - n)"
         using power_diff[of "w - a" n ?k] ord wa by simp
       have feq: "?F w = ?h w * (w - a) ^ (?k - n)"
-        using fac[rule_format, OF wbig] poweq
+        using fac[OF wbig] poweq
         by (simp add: times_divide_eq_right[symmetric])
       have base: "cmod (w - a) \<le> (1::real)"
         using wb epsone by (auto simp: dist_norm norm_minus_commute)
@@ -320,13 +255,8 @@ proof -
         by simp
     qed
   qed
-  have aint: "a \<in> interior UNIV"
-    by simp
-  obtain g where ghol: "g holomorphic_on UNIV"
-    and geq: "\<forall>w\<in>UNIV - {a}. g w = ?F w"
-    using holomorphic_on_extend_bounded[OF Fhol aint] Fbnd by auto
-  show thesis
-    by (rule that[OF ghol]) (use geq in auto)
+  then show thesis
+    using holomorphic_on_extend_bounded[OF Fhol] that by auto
 qed
 
 lemma gs_entire_extend_finite_local:
@@ -335,17 +265,10 @@ lemma gs_entire_extend_finite_local:
   assumes hol: "F holomorphic_on UNIV - X"
   assumes local: "\<And>a. a \<in> X \<Longrightarrow>
     \<exists>h. continuous (at a) h \<and> eventually (\<lambda>w. F w = h w) (at a)"
-  obtains G where "G holomorphic_on UNIV"
-    and "\<And>w. w \<notin> X \<Longrightarrow> G w = F w"
+  obtains G where "G holomorphic_on UNIV" and "\<And>w. w \<notin> X \<Longrightarrow> G w = F w"
 proof -
   have ex: "\<exists>G. G holomorphic_on UNIV \<and> (\<forall>w\<in>UNIV - X. G w = F w)"
-  proof (rule removable_singularities[where X = X and S = UNIV and f = F])
-    show "finite X"
-      by (rule fin)
-    show "X \<subseteq> interior UNIV"
-      by simp
-    show "F holomorphic_on UNIV - X"
-      by (rule hol)
+  proof (rule removable_singularities)
     fix a
     assume aX: "a \<in> X"
     obtain h where hc: "continuous (at a) h"
@@ -357,12 +280,9 @@ proof -
       by (rule bigthetaI_cong[OF eq])
     show "F \<in> O[at a](\<lambda>_. 1)"
       by (rule landau_o.big.bigtheta_trans2[OF FTheta hO])
-  qed
-  then obtain G where Ghol: "G holomorphic_on UNIV"
-    and Geq: "\<forall>w\<in>UNIV - X. G w = F w"
-    by blast
-  show thesis
-    by (rule that[OF Ghol]) (use Geq in auto)
+  qed (use assms in auto)
+  then show thesis
+    using that by force
 qed
 
 lemma gs_entire_quotient_of_finite_zeros:
@@ -382,13 +302,11 @@ proof -
   have Pnz: "\<And>w. w \<notin> X \<Longrightarrow> ?P w \<noteq> 0"
     by (intro prod_nonzeroI) auto
   have Fhol: "?F holomorphic_on UNIV - X"
-    by (intro holomorphic_intros Phol holomorphic_on_subset[OF hol])
-       (use Pnz in auto)
-  have local: "\<And>a. a \<in> X \<Longrightarrow>
-    \<exists>h. continuous (at a) h \<and> eventually (\<lambda>w. ?F w = h w) (at a)"
+    using Pnz
+    by (intro holomorphic_intros Phol holomorphic_on_subset[OF hol]) auto
+  have local: "\<exists>h. continuous (at a) h \<and> eventually (\<lambda>w. ?F w = h w) (at a)"
+                 if aX: "a \<in> X" for a
   proof -
-    fix a
-    assume aX: "a \<in> X"
     obtain Q where Qhol: "Q holomorphic_on UNIV"
       and Qeq: "\<And>w. w \<noteq> a \<Longrightarrow> Q w = f w / (w - a) ^ n"
       using gs_entire_quotient_of_zorder[OF hol nz ord[OF aX]] by blast
@@ -397,20 +315,13 @@ proof -
       by (intro holomorphic_intros)
     have PaNe: "?Pa a \<noteq> 0"
       by (intro prod_nonzeroI) auto
-    have Qcont: "continuous (at a) Q"
-      using holomorphic_on_imp_continuous_on[OF Qhol]
-      by (simp add: continuous_on_eq_continuous_at)
-    have Pacont: "continuous (at a) ?Pa"
-      using holomorphic_on_imp_continuous_on[OF PaHol]
-      by (simp add: continuous_on_eq_continuous_at)
+    obtain Qcont: "continuous (at a) Q" and Pacont: "continuous (at a) ?Pa"
+      by (simp add: PaHol Qhol field_differentiable_imp_continuous_at
+          holomorphic_onD)
     have Hcont: "continuous (at a) (\<lambda>w. Q w / ?Pa w)"
       using Qcont Pacont PaNe by (intro continuous_intros) auto
     have Uopen: "open (UNIV - (X - {a}))"
-    proof -
-      have "closed (X - {a})"
-        using fin by (intro finite_imp_closed) auto
-      then show ?thesis by (rule open_Diff[OF open_UNIV])
-    qed
+      by (simp add: fin finite_imp_closed open_Diff)
     have aU: "a \<in> UNIV - (X - {a})"
       by simp
     have evU: "eventually (\<lambda>w. w \<notin> X - {a}) (at a)"
@@ -433,11 +344,8 @@ proof -
     show "\<exists>h. continuous (at a) h \<and> eventually (\<lambda>w. ?F w = h w) (at a)"
       using Hcont Fev by blast
   qed
-  obtain G where Ghol: "G holomorphic_on UNIV"
-    and Geq: "\<And>w. w \<notin> X \<Longrightarrow> G w = ?F w"
-    using gs_entire_extend_finite_local[OF fin Fhol local] by blast
-  show thesis
-    by (rule that[OF Ghol]) (use Geq in auto)
+  then show thesis
+    using gs_entire_extend_finite_local[OF fin Fhol local] that by blast 
 qed
 
 lemma gs_node_product_lower_bound_on_circle:
@@ -456,17 +364,8 @@ proof -
   have cardX: "card ?X = m"
     by (simp add: gs_order_nodes_def card_image inj_on_def)
   have each: "\<And>a. a \<in> ?X \<Longrightarrow> ?d \<le> cmod (z - a)"
-  proof -
-    fix a
-    assume "a \<in> ?X"
-    then obtain j where jlt: "j < m" and aeq: "a = of_nat (Suc j)"
-      using mem_gs_order_nodes_iff by blast
-    have ule: "Suc j \<le> m"
-      using jlt by simp
-    show "?d \<le> cmod (z - a)"
-      using gs_circle_node_distance_lower_bound[OF qpos ule circle]
-      by (simp add: aeq)
-  qed
+    using gs_circle_node_distance_lower_bound[OF qpos _ circle] 
+    unfolding mem_gs_order_nodes_iff by (force simp flip: of_nat_Suc)
   have each_power: "\<And>a. a \<in> ?X \<Longrightarrow> ?d ^ n \<le> cmod (z - a) ^ n"
     by (rule power_mono) (use each dpos in auto)
   have "?d ^ (m * n) = (\<Prod>a\<in>?X. ?d ^ n)"
