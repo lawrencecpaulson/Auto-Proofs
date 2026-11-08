@@ -1,0 +1,212 @@
+\documentclass[11pt,reqno]{amsart}
+
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{fullpage}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+
+% Theorem environments
+\numberwithin{equation}{section}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+
+% Number systems
+\newcommand{\Z}{\mathbf{Z}}
+\newcommand{\Q}{\mathbf{Q}}
+\newcommand{\C}{\mathbf{C}}
+
+% Mathematical notation
+\newcommand{\ord}{\operatorname{ord}}
+\newcommand{\Res}{\operatorname{Res}}
+\newcommand\eps{\varepsilon}
+
+\renewcommand{\le}{\leqslant}
+\renewcommand{\ge}{\geqslant}
+
+% Title
+\title{On Landau--Siegel zeros}
+\author{Ben Green}
+\email{ben.green@maths.ox.ac.uk}
+
+
+
+
+\begin{document}
+
+
+\maketitle
+
+\section{Introduction}
+
+In this note we give a variant of the OpenAI proof \cite{openai-no-siegel} of no Landau-Siegel zeros. The proof was obtained by a `vibemathing' session with ChatGPT 6 Astra followed by rewriting the argument myself. No human originality is claimed. The approach here has, arguably, two advantages over the OpenAI one. First, it avoids the rather unnatural passage to a biquadratic field $\Q(\sqrt{d}, \sqrt{2})$, and instead works entirely in $\Q(\sqrt{d})$. Second, it replaces the linear-algebraic interpolation argument of that paper with a proof that some readers may find more natural and straightforward. While both arguments compare archimedian and $p$-adic sizes of a certain determinant, the one in \cite{openai-no-siegel} is specified by an algorithm, whereas the one considered here is explicit. We note that expositions of the original OpenAI proof have already been given by Banks \cite{banks} and Kerr \cite{kerr}. Both have their advantages; Banks gives explicit constants, while Kerr's argument is only 6 pages modulo a result of Masser.
+
+Let $\chi$ be a primitive, nonprincipal real Dirichlet character of sufficiently large conductor $q$, given by $\chi(p) = (d \mid p)$ for some $d$, for all $p \nmid q$. Let $C$ be a sufficiently large even integer.
+\begin{theorem}\label{mainthm}   Set $X := q^{C}$. Then we have
+\[ \sum_{\substack{p \le X \\ \chi(p) = -1}} \frac{\log p}{p} \le \big(\frac{1}{2} + O(\frac{1}{C})\big)\log X + O_C(1).\] 
+\end{theorem}
+Note that the trivial bound for the LHS is essentially $\log X$. That Theorem \ref{mainthm} implies that no Landau-Siegel zero can exist is a standard piece of analytic number theory, described perfectly well in \cite{openai-no-siegel}.
+
+
+
+\section{Sketch of the proof}
+
+Set $K = \Q(\sqrt{d})$ and $X = q^{C}$. We will also require integer parameters $R, S, N, J$ which, with hindsight, we take to have values
+\begin{equation}\label{parameters} R = X,\quad S =  J = \lfloor X/C\rfloor, \quad \mbox{and} \quad N = 2X^{1/2}. \end{equation} 
+
+We first describe some row vectors $v_{r,s} \in K^{N^2 J}$. These will be given by 
+\[ v_{r,s} := \big( \partial_z^j (z^r (z')^s)|_{(z,z') = P_i}\big)_{1 \le i \le N^2, 0 \le j < J} ,\] where the $P_i \in \C^2$ are the points $(x + y \sqrt{d}, x - y \sqrt{d})$, with $x, y \in \Z$ and $0 \le x, y < N$ (listed in some arbitrary order).
+
+We will consider these $v_{r,s}$ for pairs $(r,s)$ with $0 \le r < R$ and $0 \le s < S$. Finally, consider the Gram matrix $G$, which is an $(RS) \times (RS)$ matrix with entries $\langle v_{r,s}, v_{r', s'}\rangle$, all of which are (rational) integers. Here, the inner product on $K^{N^2 J}$ is extended coordinatewise from the pairing on $K$ given by $\langle \alpha, \beta\rangle = \operatorname{tr}_{K/\Q}(\alpha \overline{\beta})$, where the bar is complex conjugation.
+
+We will prove the following three things about $\det G$:
+
+\begin{enumerate}
+\item $\det G \in \Z_{> 0}$;
+\item An (archimedean) upper bound for $\det G$;
+\item A lower bound for the $p$-adic valuation $e_p$ of $\det G$, for primes $p$ with $p \le X$ with $\chi(p) = -1$.
+\end{enumerate}
+Since $\det G \ne 0$, we have $\prod_p p^{e_p} \le \det G$ and this (followed by a short calculation) will lead to our theorem. \vspace*{8pt}
+
+\emph{Remark.} Instead of considering the Gram matrix $G$, one could run a very similar argument using a non-singular $(RS) \times (RS)$ submatrix of the matrix formed by the $v_{r,s}$. The existence of such a matrix follows from Lemma \ref{lem31} below.
+
+\section{The Gram matrix is nonsingular}
+
+Any Gram matrix is positive semi-definite, so the key part of (1) is to show that $G$ is non-singular. By standard linear algebra, this is equivalent to the rows $v_{r,s}$ being linearly independent. For this, almost nothing specific is used about the points $P_i$ as defined above, and indeed we will prove the following general statement.
+ 
+
+\begin{lemma}\label{lem31}
+Let $R, S, J, n$ be any positive integers. Suppose we have points $P_i := (z_i, z'_i)$, $i = 1,\dots, n$, in $\C^2$. Suppose that: 
+\begin{enumerate}
+    \item the $z'_i$ are pairwise distinct, and
+    \item for every non-zero polynomial $F \in \C[z, z']$, 
+    \begin{equation}\label{bezout} \# \{ i : F(P_i) = 0 \} \le J \deg F, \end{equation}
+where $\deg F$ is the total degree of $F$.
+\end{enumerate}
+Consider, for any $r, s \in \Z_{\ge 0}$, the vectors
+\[ v_{r,s} := \big( \partial_z^j (z^r (z')^s)|_{(z,z') = P_i}\big)_{1 \le i \le n, 0 \le j < J} \in \C^{nJ}.\]
+Suppose that 
+\begin{equation}\label{rows-cond} nJ  > 2RS + J(R + S).\end{equation} Then the $RS$ vectors $v_{r,s}$, $0 \le r < R, 0 \le s < S$, are linearly independent in $\C^{nJ}$.
+
+\end{lemma}
+Before turning to the proof, we remark on how this applies to our particular set of points $P_i$, namely the $(x + y \sqrt{d}, x - y \sqrt{d})$ with $0 \le x, y < N$ (in some order), with the parameter choice in \eqref{parameters}. In this setting, item (1) is obvious, while (2) is an immediate consequence of the Schwarz-Zippel lemma provided that $J \ge N$, which is the case for the choice of parameters \eqref{parameters}. Finally, the condition \eqref{rows-cond} is satisfied with $n = N^2$ by the choice of parameters \eqref{parameters}.
+
+\begin{proof}[Proof of Lemma \ref{lem31}]
+Suppose not. Then there is a polynomial $F \in \C[z,z']$ of degree $\le (R,S)$ in the variables $z, z'$ such that \begin{equation}\label{der-assumption} (\partial_z^j F)(P_i) = 0 \quad \mbox{for all $i = 1,\dots, n$ and $0 \le j < J$}.\end{equation} Factor \[ F(z,z') = F_0(z') \prod_{\ell = 1}^k F_{\ell}(z,z')\] where the $F_{\ell}$ are irreducibles (not necessarily distinct) with $d_{\ell} := \deg_z F_{\ell} > 0$ for $\ell = 1,\dots, k$. In particular, each specialisation $F_{\ell}(z, z'_i)$ is not identically zero.
+
+Let $d'_{\ell}$ be the $z'$-degree of $F_{\ell}$ for $0 \le \ell \le k$. Clearly
+\begin{equation}\label{degrees} \sum_{\ell = 1}^k d_{\ell} \le R, \quad \sum_{\ell=0}^k d'_{\ell} \le S.\end{equation}
+We use some basic facts about resultants, for details of which the reader may consult Appendix \ref{appA}. In particular by Lemma \ref{lema1} we have
+\begin{equation}\label{ords} \ord_{z = z_i} F_{\ell}(z, z'_i) \le 1 + \ord_{z' = z'_i} \Res_z(F_{\ell}, \partial_z F_{\ell}).\end{equation}
+Summing over $i$ gives
+\begin{equation}\label{ord-vanish-claim} \sum_{i = 1}^n \ord_{z = z_i} F_{\ell}(z, z'_i) \le J(d_{\ell} + d'_{\ell}) + 2 d_{\ell} d'_{\ell}\end{equation}
+for each $\ell$; here we used that the number of $i$ for which $F_{\ell}(z_i, z'_i) = 0$ is bounded above by $J(d_{\ell} + d'_{\ell})$ (which is assumption (2)) together with the fact that the degree of the resultant is $\le 2 d_{\ell} d'_{\ell}$, which is \eqref{resultant-degree}. 
+
+Remove from $\{1,\dots, n\}$ the indices for which $F_0(z'_i) = 0$; there are at most $d'_0$ of these. For the remaining indices $i$, $F(z, z'_i)$ is not identically zero and so by \eqref{der-assumption} it has a zero of multiplicity at least $J$ at $z = z_i$. We thus have
+\[ J(n - d'_0)  \le \sum_{\ell = 1}^k \sum_{i= 1}^n \ord_{z = z_i} F_{\ell}(z, z'_i) \le \sum_{\ell = 1}^k \big( J(d_{\ell} + d'_{\ell}) + 2 d_{\ell} d'_{\ell} \big) \le J(R+S - d'_0) + 2RS,\]
+where the final step follows using \eqref{degrees} and the crude bound $\sum_{\ell=1}^k d_{\ell} d'_{\ell} \le \big( \sum_{\ell = 1}^k d_{\ell} \big) \big( \sum_{\ell = 1}^k d'_{\ell} \big)$. This gives $n \le \frac{2RS}{J} + R + S$, which is contrary to the assumption \eqref{rows-cond}. The result is proved.
+\end{proof}
+
+
+
+\section{Archimedean bound}
+
+In this section we give an upper bound on $\det G$. For this we use the Hadamard bound
+\begin{equation}\label{hadamard} \det G \le \prod_{r,s} \Vert v_{r,s}\Vert_2^2.\end{equation}
+If $0 \le x, y < N$ then $|x \pm y \sqrt{d}| \le N(1 +\sqrt{|d|}) \le 2N\sqrt{q}$, and so each entry of the row $v_{r,s}$ is bounded in size by $R^J(2N \sqrt{q})^{r + s}$ where the $R$ comes from the $z$-derivatives. Thus
+\[ \Vert v_{r,s} \Vert_2  \le 2 (N^2 J)^{1/2} R^{J}(2N \sqrt{q})^{r + s}, \] where the factor of $2$ comes from the choice of $\langle , \rangle$.
+By Hadamard's inequality,
+\begin{align}\nonumber \log \det G & \le RS\log (2N^2 J)  + 2JRS \log R + RS(R+S)\log (2N\sqrt{q}) \\ & = R^2 S \big(\frac{1}{2} + O(\frac{1}{C})\big) \log X+ O(X^3),\label{log-g-arch}\end{align}
+where for the last step we used the choice of parameters \eqref{parameters}. This is the required upper bound.
+
+
+\section{$p$-adic bound}
+
+We now show that if $\chi(p) = -1$ then a large power of $p$ divides $\det G$. Let $e_p$ denote the exponent of the largest power of $p$ dividing $\det G$.
+
+\begin{lemma}\label{lem51} Let $p$ be an odd prime with $\chi(p) = -1$. Then
+\[ e_p \ge 2\sum_{\substack{0 \le r < R \\ 0 \le s < S}} \min \big( \lfloor \frac{r}{p}\rfloor , S - 1 - s\big).\]
+\end{lemma}
+\begin{proof}
+Order the rows $v_{r,s}$ so that $(r', s') \prec (r,s)$ if $r' < r$; the precise order does not matter.
+
+Now the key observation is that if $\psi(z, z') := z^p - z'$ then $\psi(P) \in p \Z[\sqrt{d}]$ for any $P = (x + y \sqrt{d}, x - y \sqrt{d})$, $x, y \in \Z$, and in particular for $P = P_i$. This is just the Frobenius relation that 
+\[ (\sqrt{d})^p = d^{(p-1)/2}\sqrt{d} \equiv -\sqrt{d} \pmod{p \Z[\sqrt{d}]},\] which implies that 
+\[ (x + y \sqrt{d})^p \equiv x - y \sqrt{d} \pmod{p \Z[\sqrt{d}]}.\]
+Fix, for now, $r$ and $s$. Recall that the elements of row $v_{r,s}$ are $\partial_z^j \big( z^r (z')^s\big)|_{(z,z') = P_i}$, for $1 \le i \le N^2$ and $0 \le j < J$. Set 
+\begin{equation}\label{h-choice} h = h_{r,s} := \min \big( \lfloor \frac{r}{p}\rfloor , S - 1 - s\big).\end{equation}
+We now consider the new row $\tilde v_{r,s}$ in which the entries are $\partial_z^j \big( z^{r - ph} \psi(z,z')^h (z')^s\big) |_{(z,z') = P_i}$.
+
+We claim two things:
+\begin{enumerate}
+\item Every element of $\tilde v_{r,s}$ lies in $p^h \Z[\sqrt{d}]$;
+\item $\tilde v_{r,s} = v_{r,s} + \mbox{linear combination of $v_{r',s'}$ with $(r', s') \prec (r,s)$}$.
+\end{enumerate}
+Item (1) follows from repeated applications of the product rule and the fact that $\psi(P_i) \in p \Z[\sqrt{d}]$, noting that all $z$-derivatives of $\psi$ (of order at least 1) take values in $p \Z[\sqrt{d}]$ on all of $\Z[\sqrt{d}] \times \Z[\sqrt{d}]$.
+
+For (2), first consider the case $j = 0$ where there is no derivative. Then by binomial expansion we have
+\[ z^{r - ph} (z^p - z')^h (z')^s = z^{r} (z')^s + \sum_{i = 1}^h (-1)^i\binom{h}{i} z^{r - p i} (z')^{i + s}.\]
+Thus (after considering derivatives) we in fact have
+\[ \tilde v_{r,s} = v_{r,s} + \sum_{i = 1}^h (-1)^i\binom{h}{i} v_{r - pi, i + s}.\]
+Note that, by the choice \eqref{h-choice} of $h$, all the pairs $(r - pi, i + s)$ do lie in $\{0,1,\dots, R - 1\} \times \{0,1,\dots, S - 1\}$, and clearly $(r - pi , s + i) \prec (r, s)$. This establishes (2).
+
+Let $\tilde G$ be the Gram matrix formed by the $\tilde v_{r,s}$. Due to the lower triangular nature of the relation (2), we have $\det \tilde G = \det G$.
+
+By (1) and the definition of the Gram matrix, $p^{h + h'} \mid \tilde G_{(r,s), (r', s')}$, where $h = h_{r,s}$ and $h' := h_{r',s'}$, as defined in \eqref{h-choice}. We may extract a $p^{h_{r,s}}$ from the $(r,s)$-column of $\tilde G$, and $p^{h_{r',s'}}$ from the $(r', s')$-row, and thus obtain that $\det \tilde G$ is divisible by $p^{2 \sum_{r,s} h_{r,s}}$. This concludes the proof.
+\end{proof}
+
+\section{Completion of the proof}
+
+All that remains is to compare \eqref{hadamard} with the information in Lemma \ref{lem51}. Since, in the notation of Lemma \ref{lem51}, we have $\log \det G = \sum_p e_p \log p$, we immediately obtain 
+\begin{equation}\label{chi-p-bd} 2 \sum_{\substack{p \le X \\ \chi(p) = -1}} \log p \sum_{r,s} \min\big( \lfloor \frac{r}{p}\rfloor, S - 1 - s\big) \le R^2 S \big(\frac{1}{2} + O(\frac{1}{C})\big) \log X  + O(X^3).\end{equation}
+By use of the inequality $\sum_{0 \le s < S} \min(k, S -s - 1) \ge Sk - k^2$ (taking $k = \lfloor r/p\rfloor$ for each $p$) one can show that the LHS is 
+\[ \ge 2S \sum_{\substack{p \le X \\ \chi(p) = -1}} \log p \sum_{0 \le r < R} \lfloor \frac{r}{p}\rfloor - O(X^3).\] The error in replacing $\lfloor r/p\rfloor$ by $r/p$ is $O( RS\sum_{p \le X} \log p) = O(X^3)$, so this is
+\[ \ge 2S \sum_{\substack{p \le X \\ \chi(p) = -1}} \log p \sum_{0 \le r < R} \frac{r}{p} - O(X^3) = R^2S\sum_{\substack{p \le X \\ \chi(p) = -1}} \frac{\log p}{p} - O(X^3).\]
+Comparing with \eqref{chi-p-bd} gives the bound claimed in Theorem \ref{mainthm}.
+
+\appendix
+
+\section{Resultants}\label{appA}
+
+We collect basic facts about resultants. First, let $k$ be a field and let $f, g \in k[z]$ be polynomials in some indeterminate $z$, of degrees $d, e$ respectively. Consider the map
+\[ \Phi : k[z]_{< e} \oplus k[z]_{< d} \rightarrow k[z]_{ < d + e}\] given by $\Phi(P, Q) := f P  + g Q$. The matrix of this linear map with respect to the descending monomial bases of the respective vector spaces (that is, \[ \{ (z^{e-1}, 0), \cdots (z, 0), (1, 0), (0, z^{d-1}), (0, z^{d-2}),\dots, (0,1)\}\]  on the left, and $\{ z^{d + e - 1},z^{d + e - 2},\dots, 1\}$ on the right) is called the \emph{Sylvester matrix}, and its determinant is defined to be $\Res_z (f, g)$; this is just an element of $k$. A well-known fact is that $\Res_z(f,g) = 0$ if and only if $f, g$ have a non-constant common factor.
+
+
+In the main part of the note we apply this construction with $k = \C(z')$, with $f \in \C[z, z'] \subset k[z]$ some irreducible polynomial with degree $(d, d')$, $d > 0$, and with $g = \partial_z f$. Consider the resultant $\Res_z (f, \partial_z f)$. By construction, this is a polynomial in $z'$, and it is non-zero since $f$ is irreducible, and hence has no common factor with $\partial_z f$.
+
+$\Res_z (f, \partial_z f)$ is given by a $(2d - 1) \times (2d - 1)$ determinant, each of whose entries is a polynomial in $z'$ of degree $\le d'$, so (crudely) 
+\begin{equation}\label{resultant-degree} \deg_{z'} \Res_z (f, \partial_z f) \le 2 dd'.\end{equation}
+Now we prove the key fact used in the main text, \eqref{ords}. 
+\begin{lemma}\label{lema1}
+With the setup as above, suppose that for some fixed $z'_0$ we have that $f(z, z'_0)$ is not identically zero, and has a root of multiplicity $\mu \ge 1$ at some $z = z_0$. Then
+\[ \ord_{z = z_0} f(z, z'_0) \le 1 + \ord_{z' = z'_0} \Res_z(f, \partial_z f).\]
+\end{lemma}
+\begin{proof}
+The assumption implies that both $f(z,z'_0)$ and $\partial_z f(z, z'_0)$ are divisible by $(z - z_0)^{\mu - 1}$, and so every polynomial in $\operatorname{im} \Phi$ is divisible by $(z - z_0)^{\mu - 1}$ when we specialize to $z' = z'_0$. Therefore, $\dim \operatorname{im} \Phi|_{z' = z'_0} \le (2 d - 1) - (\mu - 1) = 2d - \mu$.
+
+Thus, if we write $S(z')$ for the Sylvester matrix, $\operatorname{rk} (S(z'_0)) \le 2d - \mu$. Therefore there are $\mu - 1$ linearly independent vectors $u_1,\dots, u_{\mu - 1} \in \C^{2d - 1}$ such that $u_i^T S(z'_0) = 0$.  Complete to a basis $u_1,\dots, u_{2d-1}$ of $\C^{2d - 1}$, and let $U$ be the matrix formed from the $u_i^T$. Thus the first $\mu - 1$ rows of $U S(z'_0)$ are zero. Consider now $U S(z')$, which is a matrix whose entries are polynomials in $z'$. By what we just said, the first $\mu - 1$ rows of $US(z')$ are divisible by $z' - z'_0$, and so $\det (US(z'))$ is divisible by $(z' - z'_0)^{\mu - 1}$. Since $\Res_z(f, \partial_z f) = \det S(z') = (\det U)^{-1} \det (US(z'))$, we have $\ord_{z' = z'_0} \Res_z(f, \partial_z f) \ge \mu - 1$ and the result follows.
+\end{proof}
+
+
+
+\begin{thebibliography}{9}
+
+\bibitem{banks}
+W. D. Banks,
+\emph{On the OpenAI proof that Landau--Siegel zeros do not exist},
+arXiv:2610.15483.
+
+\bibitem{kerr}
+B. Kerr,
+\emph{A simpler proof that there are no Landau--Siegel zeros},
+arXiv:2610.21099.
+
+\bibitem{openai-no-siegel}
+OpenAI,
+\emph{Uniform exclusion of Landau--Siegel zeros},
+OpenAI Math Release preprint (2026).
+\href{https://github.com/openai/math/blob/main/preprints/Uniform-exclusion-of-Landau-Siegel-zeros-October-1-2026/paper.pdf}
+{Available online}.
+
+\end{thebibliography}
+
+
+\end{document}

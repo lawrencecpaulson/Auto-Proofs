@@ -1,0 +1,11 @@
+chapter AFP
+
+session No_Siegel = Schwartz_Zippel +
+  sessions
+    Diophantine_Universal_Pairs
+  theories
+    Finite_Grid
+    Bivariate_Polynomial
+    Resultant_Multiplicity
+    Quantitative_Finish
+    Statement_Audit

@@ -1,0 +1,209 @@
+# Formalising Green's weighted prime bound
+
+Planning date: 7 November 2026. Source: [Green's note](no-siegel.tex).
+Target prover: Isabelle2026, using the installed AFP where appropriate.
+
+## Scope and completion criteria
+
+The required goal is to formalise the theorem proved in Green's note and
+all prerequisites used in its proof: for a primitive, nonprincipal real
+Dirichlet character of sufficiently large conductor \(q\), and sufficiently
+large even \(C\), with \(X=q^C\),
+\[
+  \sum_{\substack{p\leq X\\\chi(p)=-1}}\frac{\log p}{p}
+    \leq \left(\frac12+O(1/C)\right)\log X+O_C(1).
+\]
+Milestone 1 must fix the order of quantifiers and explicit constants in this
+statement. A checked fixed-\(C\) instance is useful progress, but does not
+by itself establish the full theorem stated in the paper.
+
+The note cites an external analytic argument for deducing a Landau–Siegel
+zero-free region from this bound. Formalising that deduction would be a
+valuable **optional extension**; it is not part of the paper's proof and is
+not a completion criterion for this project.
+
+Completion means a checked Isabelle proof of the note's theorem and its
+prerequisites, with no admitted steps, and all required sessions building
+under Isabelle2026. Record and resolve any errors found in the paper's
+arguments.
+
+In each theory, and near a major theorem when helpful, identify the
+corresponding section or result of the paper in the Isabelle source.
+
+After each mathematical milestone, review the affected theories for
+repeated assumptions, formulas, and proof arguments. Name useful shared
+mathematics with definitions, locales, or general lemmas, while keeping
+distinct estimates explicit.
+
+## Milestones and estimates
+
+Estimates are full-time **person-weeks for one experienced Isabelle
+developer**. A day means roughly one fifth of a person-week. These are
+planning ranges, not timings from proof attempts.
+
+| No. | Milestone and deliverable | Estimate |
+| --- | --- | ---: |
+| 1 | **Statement and source audit.** Fix explicit inequalities, the order of quantifiers for \(C,q\), and dependencies of the error constants. Check each argument in the note and record corrections. | **1–2 weeks** |
+| 2 | **Finite-grid bound.** Obtain the exact zero-counting corollary of Schwartz–Zippel for Green's lattice of points, including the coordinate change. | **2–5 days** |
+| 3 | **Bivariate polynomial infrastructure.** Establish the factorisation, specialisation, degree, and multiplicity API needed for the independence proof, choosing one representation for bivariate polynomials. | **2–4 weeks** |
+| 4 | **Resultant multiplicity bound.** Formalise the appendix lemma that bounds the multiplicity of a specialised root by the order of a resultant, together with the necessary degree bound. | **2–4 weeks** |
+| 5 | **Quadratic-character bridge.** Relate the relevant primitive real characters and their conductors to the quadratic description used for the lattice points and inert primes. Account explicitly for primes dividing the conductor. | **3–6 weeks** |
+| 6 | **Core of Green's proof.** Prove independence of the evaluation rows, positivity and integrality of the Gram determinant, the Hadamard bound, the Frobenius congruence, and the determinant valuation bound. | **2–4 weeks once milestones 2–5 are ready** |
+| 7 | **Quantitative finish.** Check the chosen \(R,S,J,N\), prove the floor-sum estimates, and obtain the weighted inert-prime theorem with the uniformity fixed in milestone 1. | **1–2 weeks** |
+| 8 | **Integration and cleanup.** Stabilise imports and theorem interfaces, review duplicated mathematics throughout the new development, document the results, and run full Isabelle2026 session builds. | **1–2 weeks** |
+
+**Required-project estimate: approximately 12–25 person-weeks, or 3–6
+full-time months.** An optional analytic zero-free deduction would add an
+estimated **8–18 person-weeks**. Green's argument from its algebraic
+prerequisites to the weighted prime bound is approximately milestones 6–7, **3–6 weeks**; this is consistent
+with a **2–4 week** estimate for the core paper when all prerequisites
+and suitable theorem interfaces are already available.
+
+## Progress (7 November 2026)
+
+Milestone 2 is checked in `Finite_Grid.thy`. The theorem
+`natural_diagonal_grid_bound` proves that for any nonzero bivariate complex
+polynomial and any nonzero coordinate parameter `a`, the number of zeros on
+`diagonal_grid a (natural_grid N)` is at most `J * total_degree P` when
+`0 < N <= J`. The proof includes an invertible polynomial coordinate
+substitution and an injective map from the parameter grid to the point set.
+The `No_Siegel` session builds with Isabelle2026 and AFP `devel`.
+
+`Finite_Grid.thy` also proves `natural_diagonal_grid_second_distinct`:
+the second-coordinate projection is injective on the point set whenever
+the slope `a` is irrational over `Rats`. The quadratic-character bridge
+must still establish irrationality for the paper's particular square root;
+the finite-grid estimate itself needs only `a != 0`.
+
+Milestone 1 is recorded in `STATEMENT_AUDIT.md` and the arithmetic deduction
+is checked in `Statement_Audit.thy`.  The audit reconstructs an explicit
+fixed-parameter version of Green's claimed prime bound: at the even parameter
+`C = 64`, it suffices to prove `S_{-1}(q^64) ≤ 43 log q + 517` for all
+sufficiently large eligible conductors.  Together with Banks's explicit
+zero-sensitive prime-bias inequality, Mertens' theorem, and the ramified-prime
+bound, it implies `(1-β) log q ≥ 77/32768` once `log q ≥ 54`.
+The note's Hadamard logarithm loses a factor of two in the stated norm bound,
+and its valuation lemma omits the possible inert prime `2`; the audit records
+both corrections. The numerical prime bound remains a required proof
+obligation. The analytic prime-bias inequality is needed only for the optional zero-free
+extension; the checked arithmetic deduction is exploratory work towards it.
+
+Milestone 3 is checked in `Bivariate_Polynomial.thy`. The chosen
+representation is `complex mpoly`, viewed as a univariate polynomial with
+multivariate coefficients by AFP's `mpoly_to_mpoly_poly`; specialisation uses
+AFP's `partial_insertion`. The theory supplies evaluation and ring laws,
+coordinate-degree bounds, formal derivative commutation, derivative vanishing
+implying root multiplicity, and degree and multiplicity sums for products.
+
+The theorem `green_factorization_regular` gives exactly the algebraic split
+used in Green's independence proof: a nonzero bivariate polynomial is a factor
+in the second variable times a list of irreducible factors of positive
+first-variable degree. Every such irreducible factor has a nonzero
+specialisation at every second coordinate. This follows from the checked
+factor-theorem bridge `bivariate_specialization_zero_divisor`: if a
+specialisation is identically zero, then the polynomial is divisible by
+`Var 1 - Const a`. The exceptional indices where the pure second-variable
+factor vanishes number at most its second-variable degree when those
+coordinates are distinct. The new theory is in `ROOT` and I/Q reports no
+errors, warnings, or admitted proofs.
+
+## Milestone 4 progress (8 November 2026)
+
+`Resultant_Multiplicity.thy` now defines the first-variable resultant of a
+bivariate polynomial and its ordinary polynomial in the second variable.
+The checked `first_resultant_poly_degree_le` proves Green's explicit
+`2 * degree F 0 * degree F 1` bound. Generic lemmas establish the determinant
+and Sylvester-resultant degree estimates, and
+`determinant_zero_rows_order_set` proves the final divisibility step of the
+appendix argument for any specified set of rows vanishing at a parameter.
+`first_resultant_double_root` proves the double-root consequence for
+specialisations that preserve first-variable degree, and
+`first_resultant_double_root_any` now covers every nonzero fibre.
+`first_resultant_specialize_matrix` now proves the fixed-size Sylvester
+formula even when the degree drops. `sylvester_det_degree_drop` proves that
+such a matrix has a zero column after degree loss. The new predicate
+`exceptional_first_fibre` names degree-losing and multiple-root fibres;
+each lies in the resultant's zero set, so there are at most `2*d*d'` of them
+conditional on resultant nonvanishing. Degree preservation at some
+parameter, a nonvanishing criterion from one squarefree fibre, and the
+full degree-one case are also proved.
+
+The full multiplicity lemma and nonvanishing of the resultant for an
+irreducible bivariate polynomial of arbitrary positive first-variable degree
+remain open. `root_power_dvd_sylvester_image` proves the polynomial
+divisibility part of the paper's rank argument. The UFD lemma
+`irreducible_resultant_pderiv_nonzero` proves nonvanishing for an
+irreducible polynomial over `complex poly`. `Bivariate_Polynomial.thy`
+converts to that nested-polynomial representation and proves reconstruction,
+injectivity, nonzero reflection, first-degree preservation, and
+multiplicativity. Transport of irreducibility, derivatives, and resultants
+is still required, as are the fixed-size Sylvester rank defect and a constant
+invertible row transformation. See `RESULTANT_AUDIT.md` for the proof map.
+
+`first_resultant_nonroot_fibre_simple` shows that a parameter where the
+resultant does not vanish has full first-variable degree and only simple
+roots. `first_resultant_multiplicity_degree_le_two` proves the appendix order
+bound for degree at most two, conditional on resultant nonvanishing.
+Milestone 4 remains in progress.
+
+`Quantitative_Finish.thy` starts milestone 7 with checked Section 6
+arithmetic: the minimum and reversed-index sums, a floor-division estimate,
+the exact index sum, and a square-error bound. `green_double_min_sum_real_bound`
+combines these into the paper's per-prime lower estimate.
+`green_weighted_min_mass_bound` sums it with arbitrary nonnegative weights
+under an explicit upper-bound hypothesis for the valuation mass. The theory
+names the row-sum mass, floor main term, and floor error as definitions.
+The determinant valuation bound, bounds for the remaining prime sums, and
+the uniform final theorem still need proofs. The full Isabelle2026 `No_Siegel`
+session build passed on 8 November 2026, with no admitted steps.
+
+## Dependencies and useful intermediate results
+
+The milestone 1 audit identifies Banks, Lemma 2.1(2.3), as the
+zero-sensitive Dirichlet-\(L\) input for the optional zero-free deduction.
+It is not a prerequisite of the weighted prime theorem.
+
+The main proof path is:
+
+```text
+statement and source audit
+    ├── finite-grid bound ───────────────┐
+    ├── bivariate tools → resultant ─────┼→ Green's determinant
+    └── quadratic-character bridge ─────┘         ↓
+                                          weighted prime bound
+                                          (required project complete)
+```
+
+The finite-grid lemma, polynomial and resultant lemmas, and determinant
+divisibility argument should be stated generally enough to be useful
+beyond this proof. Keep the character-specific facts and the numerical
+parameter choices separate from those general results.
+
+At milestone 7, the theorem actually proved by Green's note is a
+standalone, checked result. Milestone 8 completes the required project.
+
+An optional follow-on project could develop the missing zero-sensitive
+Dirichlet-\(L\) estimates, combine them with milestone 7, and prove a
+uniform zero-free theorem. The present estimate for that extension is
+8–18 person-weeks, excluding any treatment of finitely many small
+conductors if a statement for every \(q\geq3\) is desired.
+
+## Principal uncertainties
+
+- **Uniformity:** the dependencies of the \(O(1/C)\) and \(O_C(1)\)
+  terms must match the theorem stated in the note, with their quantifier
+  dependencies made explicit.
+- **Polynomial representation:** specialisation, factorisation, and
+  resultant order must work together; representation changes could add
+  substantial time to milestones 3–4.
+- **Character classification:** the bridge from an arbitrary primitive
+  real character to the required quadratic data may require more
+  infrastructure than the existing Dirichlet-character library supplies.
+- **Optional analytic bridge:** a later zero-free deduction would need
+  zero-sensitive Dirichlet-\(L\) and prime-number-theorem estimates in a
+  precise uniform form. This is a major risk for that optional extension.
+
+The estimates assume one developer, the existing Isabelle2026 and AFP
+libraries, and that the mathematical arguments withstand the initial
+audit. They do not include research time to repair a substantive gap in
+the source arguments.
