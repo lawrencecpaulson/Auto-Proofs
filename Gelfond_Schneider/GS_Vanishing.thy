@@ -2,19 +2,26 @@
     Author:     OpenAI Codex
 
 Abstract vanishing-order consequences of a solution to the indexed
-Gelfond-Schneider linear system. This ports the Lean `MainOrder` /
-`MainAnalytic` bridge at the level of an arbitrary nonzero coefficient vector:
-once the first `n` derivative constraints hold at each interpolation node,
-the auxiliary function has zorder at least `n` there, and one can choose a
-node of minimal order among `1, \<dots>, m`.
+Gelfond-Schneider linear system. From Mathlib.
 *)
 
 theory GS_Vanishing
   imports GS_System GS_Order
 begin
 
-
 section \<open>Vanishing at the Interpolation Nodes\<close>
+
+lemma gs_k_idx_mul_add [simp]:
+  assumes "n > 0"
+  assumes "k < n"
+  shows "gs_k_idx n (l * n + k) = k"
+  unfolding gs_k_idx_def using assms by simp
+
+lemma gs_l_idx_mul_add [simp]:
+  assumes "n > 0"
+  assumes "k < n"
+  shows "gs_l_idx n (l * n + k) = Suc l"
+  unfolding gs_l_idx_def using assms by simp
 
 context gs_normalized_data
 begin
@@ -24,25 +31,8 @@ lemma gs_aux_fun_vec_holomorphic [holomorphic_intros]:
   unfolding gs_aux_fun_vec_def
   by (rule finite_exp_sum_holomorphic) simp
 
-end
-
-lemma gs_k_idx_mul_add [simp]:
-  assumes npos: "n > 0"
-  assumes "k < n"
-  shows "gs_k_idx n (l * n + k) = k"
-  unfolding gs_k_idx_def using assms by simp
-
-lemma gs_l_idx_mul_add [simp]:
-  assumes npos: "n > 0"
-  assumes "k < n"
-  shows "gs_l_idx n (l * n + k) = Suc l"
-  unfolding gs_l_idx_def using assms by simp
-
-context gs_normalized_data
-begin
-
 lemma gs_aux_fun_vec_deriv_vanish_at_node:
-  assumes npos: "n > 0"
+  assumes "n > 0"
   assumes sys0: "\<And>u. u < m * n \<Longrightarrow> (\<Sum>t<q * q. \<xi> t * gs_system_coeff_idx n q u t) = 0"
   assumes "l < m"
   assumes "k < n"
@@ -58,12 +48,12 @@ proof -
     using gs_aux_fun_vec_deriv_at_node_eq_zeroI
     using sys0 ult by (metis (lifting))
   then show ?thesis
-    using npos \<open>k < n\<close> by simp
+    using \<open>n > 0\<close> \<open>k < n\<close> by simp
 qed
 
 lemma gs_aux_fun_vec_zorder_ge_at_node:
   assumes nz: "gs_aux_fun_vec q \<xi> \<noteq> (\<lambda>_. 0)"
-  assumes npos: "n > 0"
+  assumes "n > 0"
   assumes sys0: "\<And>u. u < m * n \<Longrightarrow> (\<Sum>t<q * q. \<xi> t * gs_system_coeff_idx n q u t) = 0"
   assumes "l < m"
   shows "zorder (gs_aux_fun_vec q \<xi>) (of_nat (Suc l)) \<ge> n"
@@ -71,17 +61,17 @@ proof (rule holomorphic_nonzero_zorder_ge[OF gs_aux_fun_vec_holomorphic[of q \<x
   fix k
   assume "k < n"
   show "((deriv ^^ k) (gs_aux_fun_vec q \<xi>)) (of_nat (Suc l)) = 0"
-    by (rule gs_aux_fun_vec_deriv_vanish_at_node[OF npos sys0 \<open>l < m\<close> \<open>k < n\<close>])
+    by (rule gs_aux_fun_vec_deriv_vanish_at_node[OF \<open>n > 0\<close> sys0 \<open>l < m\<close> \<open>k < n\<close>])
 qed
 
 corollary gs_aux_fun_vec_zorder_ge_at_node_of_coeff_nonzero:
   assumes "q > 0"
-  assumes npos: "n > 0"
+  assumes "n > 0"
   assumes coeff_nz: "\<exists>t<q * q. \<xi> t \<noteq> 0"
   assumes sys0: "\<And>u. u < m * n \<Longrightarrow> (\<Sum>t<q * q. \<xi> t * gs_system_coeff_idx n q u t) = 0"
   assumes "l < m"
   shows "zorder (gs_aux_fun_vec q \<xi>) (of_nat (Suc l)) \<ge> n"
-  using gs_aux_fun_vec_zorder_ge_at_node[OF _ npos sys0 \<open>l < m\<close>]
+  using gs_aux_fun_vec_zorder_ge_at_node[OF _ \<open>n > 0\<close> sys0 \<open>l < m\<close>]
   using assms by (metis gs_aux_fun_vec_nonzero)
 
 section \<open>Choosing a Minimal-Order Node\<close>
@@ -106,20 +96,12 @@ lemma gs_aux_fun_vec_exists_min_order_node:
           \<le> zorder (gs_aux_fun_vec q \<xi>) (of_nat (Suc j))"
 proof -
   define z0 where "z0 = arg_min_on (zorder (gs_aux_fun_vec q \<xi>)) (gs_order_nodes m)"
-  have "z0 \<in> gs_order_nodes m"
-    unfolding z0_def
-    by (rule finite_arg_min_on_zorder(1)) (simp_all add: \<open>m > 0\<close>)
-  then obtain l where l: "l < m" "z0 = of_nat (Suc l)"
-    using mem_gs_order_nodes_iff by blast
-  have z0_min: "\<And>z. z \<in> gs_order_nodes m \<Longrightarrow>
+  obtain "z0 \<in> gs_order_nodes m"
+  and "\<And>z. z \<in> gs_order_nodes m \<Longrightarrow>
       zorder (gs_aux_fun_vec q \<xi>) z0 \<le> zorder (gs_aux_fun_vec q \<xi>) z"
-    unfolding z0_def
-    by (rule finite_arg_min_on_zorder(2)) (simp_all add: \<open>m > 0\<close>)
-  then have z0_min_nat: "\<And>j. j < m \<Longrightarrow>
-      zorder (gs_aux_fun_vec q \<xi>) z0 \<le> zorder (gs_aux_fun_vec q \<xi>) (of_nat (Suc j))"
-    by (metis mem_gs_order_nodes_iff)
-  with l that show thesis
-    by metis
+    using finite_arg_min_on_zorder by (simp add: z0_def assms)
+  then show thesis
+    using mem_gs_order_nodes_iff that by force
 qed
 
 lemma gs_min_order_node_mem:
@@ -141,24 +123,21 @@ proof -
   have node_mem: "of_nat (Suc j) \<in> gs_order_nodes m"
     using \<open>j < m\<close> unfolding gs_order_nodes_def by force
   show ?thesis
-    unfolding gs_min_order_node_def
-  proof (rule finite_arg_min_on_zorder(2))
-    show "of_nat (Suc j) \<in> gs_order_nodes m"
-      by (rule node_mem)
-  qed (use \<open>m>0\<close> in auto)
+    using \<open>m > 0\<close> finite_arg_min_on_zorder(2) gs_min_order_node_def node_mem
+    by auto
 qed
 
 lemma gs_min_order_ge:
   assumes nz: "gs_aux_fun_vec q \<xi> \<noteq> (\<lambda>_. 0)"
   assumes "m > 0"
-  assumes npos: "n > 0"
+  assumes "n > 0"
   assumes sys0: "\<And>u. u < m * n \<Longrightarrow> (\<Sum>t<q * q. \<xi> t * gs_system_coeff_idx n q u t) = 0"
   shows "gs_min_order m q \<xi> \<ge> n"
 proof -
   obtain l where "l < m" and node: "gs_min_order_node m q \<xi> = of_nat (Suc l)"
     by (rule gs_min_order_node_eq_nat[OF \<open>m > 0\<close>])
   have "zorder (gs_aux_fun_vec q \<xi>) (of_nat (Suc l)) \<ge> n"
-    by (rule gs_aux_fun_vec_zorder_ge_at_node[OF nz npos sys0 \<open>l < m\<close>])
+    by (rule gs_aux_fun_vec_zorder_ge_at_node[OF nz \<open>n > 0\<close> sys0 \<open>l < m\<close>])
   then show ?thesis
     unfolding gs_min_order_def using node by simp
 qed
@@ -166,40 +145,25 @@ qed
 lemma gs_min_order_deriv_nonzero:
   assumes nz: "gs_aux_fun_vec q \<xi> \<noteq> (\<lambda>_. 0)"
   shows "((deriv ^^ nat (gs_min_order m q \<xi>)) (gs_aux_fun_vec q \<xi>))
-    (gs_min_order_node m q \<xi>) \<noteq> 0"
-proof -
-  have "((deriv ^^ nat (zorder (gs_aux_fun_vec q \<xi>) (gs_min_order_node m q \<xi>)))
-      (gs_aux_fun_vec q \<xi>)) (gs_min_order_node m q \<xi>) \<noteq> 0"
-    by (rule holomorphic_nonzero_deriv_zorder_nonzero[OF gs_aux_fun_vec_holomorphic nz])
-  then show ?thesis
-    unfolding gs_min_order_def by simp
-qed
+         (gs_min_order_node m q \<xi>) \<noteq> 0"
+  using  holomorphic_nonzero_deriv_zorder_nonzero[OF gs_aux_fun_vec_holomorphic nz]
+  by (simp add: gs_min_order_def)
 
 corollary gs_min_order_ge_of_coeff_nonzero:
   assumes "q > 0"
   assumes "m > 0"
-  assumes npos: "n > 0"
+  assumes "n > 0"
   assumes coeff_nz: "\<exists>t<q * q. \<xi> t \<noteq> 0"
   assumes sys0: "\<And>u. u < m * n \<Longrightarrow> (\<Sum>t<q * q. \<xi> t * gs_system_coeff_idx n q u t) = 0"
   shows "gs_min_order m q \<xi> \<ge> n"
-proof -
-  have nz: "gs_aux_fun_vec q \<xi> \<noteq> (\<lambda>_. 0)"
-    by (rule gs_aux_fun_vec_nonzero[OF \<open>q > 0\<close> coeff_nz])
-  show ?thesis
-    by (rule gs_min_order_ge[OF nz \<open>m > 0\<close> npos sys0])
-qed
+  using assms gs_min_order_ge gs_aux_fun_vec_nonzero[OF \<open>q > 0\<close> coeff_nz] by blast
 
 corollary gs_min_order_deriv_nonzero_of_coeff_nonzero:
   assumes "q > 0"
   assumes coeff_nz: "\<exists>t<q * q. \<xi> t \<noteq> 0"
   shows "((deriv ^^ nat (gs_min_order m q \<xi>)) (gs_aux_fun_vec q \<xi>))
-    (gs_min_order_node m q \<xi>) \<noteq> 0"
-proof -
-  have nz: "gs_aux_fun_vec q \<xi> \<noteq> (\<lambda>_. 0)"
-    by (rule gs_aux_fun_vec_nonzero[OF \<open>q > 0\<close> coeff_nz])
-  show ?thesis
-    by (rule gs_min_order_deriv_nonzero[OF nz])
-qed
+         (gs_min_order_node m q \<xi>) \<noteq> 0"
+  by (simp add: assms gs_aux_fun_vec_nonzero gs_min_order_deriv_nonzero)
 
 lemma gs_aux_fun_vec_exists_min_order_node_ge:
   assumes "gs_aux_fun_vec q \<xi> \<noteq> (\<lambda>_. 0)"
@@ -217,7 +181,7 @@ lemma gs_aux_fun_vec_exists_min_order_node_ge:
 corollary gs_aux_fun_vec_exists_min_order_node_ge_of_coeff_nonzero:
   assumes "q > 0"
   assumes "m > 0"
-  assumes npos: "n > 0"
+  assumes "n > 0"
   assumes coeff_nz: "\<exists>t<q * q. \<xi> t \<noteq> 0"
   assumes sys0: "\<And>u. u < m * n \<Longrightarrow> (\<Sum>t<q * q. \<xi> t * gs_system_coeff_idx n q u t) = 0"
   obtains l
@@ -229,16 +193,8 @@ proof -
   have nz: "gs_aux_fun_vec q \<xi> \<noteq> (\<lambda>_. 0)"
     by (rule gs_aux_fun_vec_nonzero[OF \<open>q > 0\<close> coeff_nz])
   show thesis
-  proof (rule gs_aux_fun_vec_exists_min_order_node_ge[OF nz \<open>m > 0\<close> npos sys0])
-    fix l
-    assume "l < m"
-    assume lmin: "\<And>j. j < m \<Longrightarrow>
-        zorder (gs_aux_fun_vec q \<xi>) (of_nat (Suc l))
-          \<le> zorder (gs_aux_fun_vec q \<xi>) (of_nat (Suc j))"
-    assume lbound: "zorder (gs_aux_fun_vec q \<xi>) (of_nat (Suc l)) \<ge> n"
-    show thesis
-      by (rule that[OF \<open>l < m\<close> lmin lbound])
-  qed
+    using assms gs_aux_fun_vec_exists_min_order_node_ge nz that
+    by blast
 qed
 
 lemma gs_aux_fun_vec_entire_normalized:
@@ -249,26 +205,15 @@ lemma gs_aux_fun_vec_entire_normalized:
       S w = gs_aux_fun_vec q \<xi> w / (\<Prod>a\<in>gs_order_nodes m. (w - a) ^ nat (gs_min_order m q \<xi>))"
 proof -
   let ?f = "gs_aux_fun_vec q \<xi>"
-  have fhol: "?f holomorphic_on UNIV"
-    by (rule gs_aux_fun_vec_holomorphic)
   have fnz: "\<exists>w. ?f w \<noteq> 0"
     using nz by (auto simp: fun_eq_iff)
   have ord: "nat (gs_min_order m q \<xi>) \<le> nat (zorder ?f a)" if "a \<in> gs_order_nodes m" for a
-  proof -
-    have "gs_min_order m q \<xi> \<le> zorder ?f a"
-      using that
-      by (metis all_not_in_conv arg_min_least finite_gs_order_nodes gs_min_order_def
-          gs_min_order_node_def)
-    then show "nat (gs_min_order m q \<xi>) \<le> nat (zorder ?f a)"
-      by (rule nat_mono)
-  qed
+    by (simp add: \<open>m > 0\<close> finite_arg_min_on_zorder gs_min_order_def
+        gs_min_order_node_def nat_mono that)
   have fin: "finite (gs_order_nodes m)" by simp
-  obtain S where Shol: "S holomorphic_on UNIV"
-    and Seq: "\<And>w. w \<notin> gs_order_nodes m \<Longrightarrow>
-                   S w = ?f w / (\<Prod>a\<in>gs_order_nodes m. (w - a) ^ nat (gs_min_order m q \<xi>))"
-    using gs_entire_quotient_of_finite_zeros[OF fin fhol fnz ord] by blast
-  show thesis
-    using Seq Shol that by metis
+  show ?thesis
+    using gs_entire_quotient_of_finite_zeros[OF fin gs_aux_fun_vec_holomorphic fnz ord] that
+    by blast
 qed
 
 lemma gs_aux_fun_vec_cmod_le_uniform_exp:
@@ -281,10 +226,10 @@ lemma gs_aux_fun_vec_cmod_le_uniform_exp:
   shows "cmod (gs_aux_fun_vec q \<xi> w) \<le> of_nat (q * q) * V * exp (T * R)"
 proof -
   have exp_bnd: "cmod (exp (gs_rho_idx q t * w)) \<le> exp (T * R)"
-    if tlt: "t < q * q" for t
+    if "t < q * q" for t
   proof -
     have mult_bnd: "cmod (gs_rho_idx q t * w) \<le> T * R"
-      using rho[OF tlt] wbnd Tnonneg
+      using rho[OF that] wbnd Tnonneg
       by (metis mult_mono' norm_ge_zero norm_mult)
     have re_bnd: "Re (gs_rho_idx q t * w) \<le> T * R"
       using complex_Re_le_cmod[of "gs_rho_idx q t * w"] mult_bnd by linarith
@@ -292,9 +237,9 @@ proof -
       using re_bnd by simp
   qed
   have term_bnd: "cmod (\<xi> t * exp (gs_rho_idx q t * w)) \<le> V * exp (T * R)"
-    if tlt: "t < q * q" for t
-    using coeff[OF tlt] exp_bnd[OF tlt] Vnonneg
-    by (metis ge_trans mult_mono norm_ge_zero norm_mult_ineq)
+    if "t < q * q" for t
+    using coeff[OF that] exp_bnd[OF that]
+    by (metis mult_mono' norm_ge_zero norm_mult)
   have "cmod (gs_aux_fun_vec q \<xi> w) \<le>
       (\<Sum>t<q * q. cmod (\<xi> t * exp (gs_rho_idx q t * w)))"
     unfolding gs_aux_fun_vec_def by (rule sum_norm_le) simp
@@ -369,52 +314,40 @@ lemma gs_normalized_product_identity:
   assumes Shol: "S holomorphic_on UNIV"
   assumes Seq: "\<And>z. z \<notin> gs_order_nodes m \<Longrightarrow> S z = f z / (\<Prod>a\<in>gs_order_nodes m. (z - a) ^ n)"
   shows "f z = S z * (\<Prod>a\<in>gs_order_nodes m. (z - a) ^ n)"
-proof -
+proof (cases "z \<in> gs_order_nodes m")
+  case False
+  then show ?thesis using Seq  by auto
+next
+  case True
   let ?X = "gs_order_nodes m"
   let ?P = "\<lambda>w. \<Prod>a\<in>?X. (w - a) ^ n"
-  have Phol: "?P holomorphic_on UNIV"
-    by (intro holomorphic_intros)
+  have Uopen: "open (UNIV - (?X - {z}))"
+    by (intro open_Diff finite_imp_closed) auto
+  have zU: "z \<in> UNIV - (?X - {z})"
+    by simp
+  have evU: "eventually (\<lambda>w. w \<notin> ?X - {z}) (at z)"
+    using eventually_nhds_in_open[OF Uopen zU]
+    by (auto simp: eventually_at_filter elim: eventually_mono)
+  have evne: "eventually (\<lambda>w. w \<noteq> z) (at z)"
+    by (auto simp: eventually_at_filter elim: eventually_mono)
+  have both: "eventually (\<lambda>w. w \<notin> ?X - {z} \<and> w \<noteq> z) (at z)"
+    using evU evne by (simp add: eventually_conj_iff)
+  have evout: "eventually (\<lambda>w. w \<notin> ?X) (at z)"
+    by (rule eventually_mono[OF both]) auto
+  have ev: "eventually (\<lambda>w. f w = S w * ?P w) (at z)"
+    by (rule eventually_mono[OF evout]) (use Seq in auto)
+  have fcont: "isCont f z"
+    using holomorphic_on_imp_continuous_on[OF fhol]
+    by (simp add: continuous_on_eq_continuous_at)
+  have limg': "((\<lambda>w. S w * ?P w) \<longlongrightarrow> f z) (at z)"
+    using isContD[OF fcont] ev by (simp add: tendsto_cong)
   have Ghol: "(\<lambda>w. S w * ?P w) holomorphic_on UNIV"
-    by (intro holomorphic_intros Shol Phol)
-  have away: "f w = S w * ?P w" if wout: "w \<notin> ?X" for w
-  proof -
-    have Pnz: "?P w \<noteq> 0"
-      by (intro prod_nonzeroI) (use wout in auto)
-    show ?thesis
-      using Seq[OF wout] Pnz by (simp add: nonzero_eq_divide_eq mult.commute)
-  qed
+    by (intro holomorphic_intros Shol)
+  have Gcont: "isCont (\<lambda>w. S w * ?P w) z"
+    using holomorphic_on_imp_continuous_on[OF Ghol]
+    by (simp add: continuous_on_eq_continuous_at)
   show ?thesis
-  proof (cases "z \<in> ?X")
-    case False
-    then show ?thesis by (rule away)
-  next
-    case True
-    have Uopen: "open (UNIV - (?X - {z}))"
-      by (intro open_Diff finite_imp_closed) auto
-    have zU: "z \<in> UNIV - (?X - {z})"
-      by simp
-    have evU: "eventually (\<lambda>w. w \<notin> ?X - {z}) (at z)"
-      using eventually_nhds_in_open[OF Uopen zU]
-      by (auto simp: eventually_at_filter elim: eventually_mono)
-    have evne: "eventually (\<lambda>w. w \<noteq> z) (at z)"
-      by (auto simp: eventually_at_filter elim: eventually_mono)
-    have both: "eventually (\<lambda>w. w \<notin> ?X - {z} \<and> w \<noteq> z) (at z)"
-      using evU evne by (simp add: eventually_conj_iff)
-    have evout: "eventually (\<lambda>w. w \<notin> ?X) (at z)"
-      by (rule eventually_mono[OF both]) auto
-    have ev: "eventually (\<lambda>w. f w = S w * ?P w) (at z)"
-      by (rule eventually_mono[OF evout]) (use away in auto)
-    have fcont: "isCont f z"
-      using holomorphic_on_imp_continuous_on[OF fhol]
-      by (simp add: continuous_on_eq_continuous_at)
-    have limg': "((\<lambda>w. S w * ?P w) \<longlongrightarrow> f z) (at z)"
-      using isContD[OF fcont] ev by (simp add: tendsto_cong)
-    have Gcont: "isCont (\<lambda>w. S w * ?P w) z"
-      using holomorphic_on_imp_continuous_on[OF Ghol]
-      by (simp add: continuous_on_eq_continuous_at)
-    show ?thesis
-      using tendsto_unique[OF _ limg' isContD[OF Gcont]] by simp
-  qed
+    using tendsto_unique[OF _ limg' isContD[OF Gcont]] by simp
 qed
 
 lemma gs_normalized_derivative_bound:
@@ -426,8 +359,7 @@ lemma gs_normalized_derivative_bound:
   assumes Shol: "S holomorphic_on UNIV"
   assumes Seq: "\<And>z. z \<notin> gs_order_nodes m \<Longrightarrow> S z = f z / (\<Prod>b\<in>gs_order_nodes m. (z - b) ^ n)"
   assumes Sbnd: "\<And>z. cmod (z - a) = 1 \<Longrightarrow> cmod (S z) \<le> B"
-  shows "cmod ((deriv ^^ n) f a) \<le>
-    fact n * B * (2 * of_nat m + 1) ^ (m * n)"
+  shows "cmod ((deriv ^^ n) f a) \<le> fact n * B * (2 * of_nat m + 1) ^ (m * n)"
 proof -
   let ?X = "gs_order_nodes m"
   let ?C = "2 * real m + 1"
@@ -501,8 +433,7 @@ proof -
   obtain S where Shol: "S holomorphic_on UNIV"
     and Seq: "\<And>w. w \<notin> gs_order_nodes m \<Longrightarrow>
       S w = ?f w / (\<Prod>a\<in>gs_order_nodes m. (w - a) ^ r)"
-    using gs_aux_fun_vec_entire_normalized[OF \<open>m > 0\<close> nz]
-    by (simp add: req[symmetric]) blast
+    using gs_aux_fun_vec_entire_normalized[OF \<open>m > 0\<close> nz] req by blast
   have Mnonneg: "0 \<le> ?M"
     using Vnonneg by simp
   have Bnonneg: "0 \<le> ?B"
