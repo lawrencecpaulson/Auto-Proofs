@@ -74,6 +74,28 @@ proof (rule poly_ext)
     by (simp add: insertion_mult)
 qed
 
+lemma vars_poly_to_mpoly_subset:
+  "vars (poly_to_mpoly v (p :: complex poly)) \<subseteq> {v}"
+proof -
+  have lookup: "Poly_Mapping.lookup (mapping_of (poly_to_mpoly v p)) m =
+      (Polynomial.coeff p (Poly_Mapping.lookup m v) when Poly_Mapping.keys m \<subseteq> {v})"
+    for m
+    unfolding poly_to_mpoly_def MPoly_inverse[OF Set.UNIV_I]
+      Poly_Mapping.lookup_Abs_poly_mapping[OF poly_to_mpoly_finite]
+    by simp
+  show ?thesis
+  proof (rule subsetI)
+    fix x
+    assume "x \<in> vars (poly_to_mpoly v p)"
+    then obtain m where m: "m \<in> Poly_Mapping.keys (mapping_of (poly_to_mpoly v p))"
+      "x \<in> Poly_Mapping.keys m"
+      unfolding vars_def by blast
+    have "Poly_Mapping.keys m \<subseteq> {v}"
+      using m(1) by (auto simp: in_keys_iff lookup when_def split: if_splits)
+    with m(2) show "x \<in> {v}" by blast
+  qed
+qed
+
 definition bivariate_as_poly_poly :: "complex mpoly \<Rightarrow> complex poly poly" where
   "bivariate_as_poly_poly F =
     map_poly (mpoly_to_poly 1) (mpoly_to_mpoly_poly 0 F)"
@@ -124,6 +146,88 @@ proof (rule poly_eqI)
     coeff (bivariate_as_poly_poly F * bivariate_as_poly_poly G) n" .
 qed
 
+lemma bivariate_poly_eval_pure:
+  fixes P :: "complex mpoly poly"
+  assumes pure: "\<And>k. vars (coeff P k) \<subseteq> {1}"
+  shows "bivariate (poly P (Var 0))"
+proof -
+  have vterm: "vars (coeff P k * Var 0 ^ k) \<subseteq> {0, 1}" for k
+    using vars_mult[of "coeff P k" "Var 0 ^ k"]
+      vars_power[of "Var 0" k] pure[of k]
+    by (auto simp: vars_Var)
+  have "vars (poly P (Var 0)) =
+      vars (\<Sum>k\<le>degree P. coeff P k * Var 0 ^ k)"
+    by (simp add: poly_altdef)
+  also have "... \<subseteq> (\<Union>k\<in>{..degree P}. vars (coeff P k * Var 0 ^ k))"
+    by (rule vars_setsum) simp
+  also have "... \<subseteq> {0, 1}"
+    using vterm by blast
+  finally show ?thesis by (simp add: bivariate_def)
+qed
+
+lemma poly_poly_as_bivariate_bivariate:
+  "bivariate (poly_poly_as_bivariate P)"
+proof -
+  have "vars (coeff (map_poly (poly_to_mpoly 1) P) k) \<subseteq> {1}" for k
+    by (subst coeff_map_poly[where f="poly_to_mpoly 1"])
+      (simp_all add: vars_poly_to_mpoly_subset poly_to_mpoly0)
+  then show ?thesis
+    unfolding poly_poly_as_bivariate_def by (rule bivariate_poly_eval_pure)
+qed
+
+lemma mpoly_to_mpoly_poly_pure_second:
+  fixes A :: "complex mpoly"
+  assumes pure: "vars A \<subseteq> {1}"
+  shows "mpoly_to_mpoly_poly 0 A = [:A:]"
+proof -
+  have "0 \<notin> vars A" using pure by auto
+  then have "MPoly_Type.degree A 0 = 0"
+    by (simp add: degree_eq_0_iff)
+  then have "degree (mpoly_to_mpoly_poly 0 A) = 0" by simp
+  then obtain C where eq: "mpoly_to_mpoly_poly 0 A = [:C:]"
+    by (rule degree_eq_zeroE) blast
+  have "A = C"
+    using poly_mpoly_to_mpoly_poly[of 0 A] eq by simp
+  with eq show ?thesis by simp
+qed
+
+lemma mpoly_to_mpoly_poly_eval_pure:
+  fixes P :: "complex mpoly poly"
+  assumes pure: "\<And>k. vars (coeff P k) \<subseteq> {1}"
+  shows "mpoly_to_mpoly_poly 0 (poly P (Var 0)) = P"
+  using pure
+proof (induction P rule: pCons_induct)
+  case 0
+  then show ?case by simp
+next
+  case (pCons A P)
+  have av: "vars A \<subseteq> {1}" using pCons.prems[of 0] by simp
+  have pv: "vars (coeff P k) \<subseteq> {1}" for k
+    using pCons.prems[of "Suc k"] by simp
+  have ih: "mpoly_to_mpoly_poly 0 (poly P (Var 0)) = P"
+    by (rule pCons.IH[OF pv])
+  show ?case
+    by (simp add: mpoly_to_mpoly_poly_pure_second[OF av] ih)
+qed
+
+lemma bivariate_as_poly_poly_inverse:
+  "bivariate_as_poly_poly (poly_poly_as_bivariate P) = P"
+proof (rule poly_eqI)
+  fix k
+  let ?Q = "map_poly (poly_to_mpoly 1) P"
+  have pure: "vars (coeff ?Q j) \<subseteq> {1}" for j
+    by (subst coeff_map_poly[where f="poly_to_mpoly 1"])
+      (simp_all add: vars_poly_to_mpoly_subset poly_to_mpoly0)
+  have eq: "mpoly_to_mpoly_poly 0 (poly ?Q (Var 0)) = ?Q"
+    by (rule mpoly_to_mpoly_poly_eval_pure[OF pure])
+  have full: "bivariate_as_poly_poly (poly_poly_as_bivariate P) =
+      map_poly (mpoly_to_poly 1) ?Q"
+    unfolding bivariate_as_poly_poly_def poly_poly_as_bivariate_def
+    by (simp only: eq)
+  show "coeff (bivariate_as_poly_poly (poly_poly_as_bivariate P)) k = coeff P k"
+    using full by (simp add: coeff_map_poly poly_to_mpoly_inverse poly_to_mpoly0)
+qed
+
 lemma poly_poly_as_bivariate_inverse:
   assumes bv: "bivariate F"
   shows "poly_poly_as_bivariate (bivariate_as_poly_poly F) = F"
@@ -157,6 +261,51 @@ lemma bivariate_as_poly_poly_inj:
   shows "F = G"
   using assms poly_poly_as_bivariate_inverse by metis
 
+lemma bivariate_as_poly_poly_one [simp]:
+  "bivariate_as_poly_poly 1 = 1"
+proof -
+  have one: "mpoly_to_poly 1 (1 :: complex mpoly) = 1"
+  proof (rule poly_ext)
+    fix x
+    show "poly (mpoly_to_poly 1 (1 :: complex mpoly)) x = poly 1 x"
+      using poly_eq_insertion[of "1 :: complex mpoly" 1 x]
+      by (simp add: vars_empty_iff)
+  qed
+  have "map_poly (mpoly_to_poly 1) (1 :: complex mpoly poly) =
+      [:mpoly_to_poly 1 (1 :: complex mpoly):]"
+    by (rule map_poly_1)
+  also have "... = (1 :: complex poly poly)"
+    using one by simp
+  finally show ?thesis by (simp add: bivariate_as_poly_poly_def)
+qed
+
+lemma poly_poly_as_bivariate_one [simp]:
+  "poly_poly_as_bivariate 1 = 1"
+  using poly_poly_as_bivariate_inverse[of 1]
+  by (simp add: bivariate_def vars_empty_iff)
+
+lemma poly_poly_as_bivariate_zero [simp]:
+  "poly_poly_as_bivariate 0 = 0"
+  by (simp add: poly_poly_as_bivariate_def poly_to_mpoly0)
+
+lemma poly_poly_as_bivariate_mult:
+  "poly_poly_as_bivariate (P * Q) =
+    poly_poly_as_bivariate P * poly_poly_as_bivariate Q"
+proof -
+  have bvP: "bivariate (poly_poly_as_bivariate P)"
+    by (rule poly_poly_as_bivariate_bivariate)
+  have bvQ: "bivariate (poly_poly_as_bivariate Q)"
+    by (rule poly_poly_as_bivariate_bivariate)
+  have bvPQ: "bivariate (poly_poly_as_bivariate P * poly_poly_as_bivariate Q)"
+    using vars_mult[of "poly_poly_as_bivariate P" "poly_poly_as_bivariate Q"]
+      bvP bvQ unfolding bivariate_def by blast
+  show ?thesis
+    by (rule bivariate_as_poly_poly_inj
+      [OF poly_poly_as_bivariate_bivariate bvPQ])
+      (simp add: bivariate_as_poly_poly_inverse
+        bivariate_as_poly_poly_mult[OF bvP bvQ])
+qed
+
 lemma bivariate_as_poly_poly_nonzero:
   assumes bv: "bivariate F" and nz: "F \<noteq> 0"
   shows "bivariate_as_poly_poly F \<noteq> 0"
@@ -166,6 +315,67 @@ proof
     using poly_poly_as_bivariate_inverse[OF bv] z by simp
   then show False using nz
     by (simp add: poly_poly_as_bivariate_def poly_to_mpoly0)
+qed
+
+lemma poly_poly_as_bivariate_unit_reflect:
+  assumes unit: "poly_poly_as_bivariate P dvd 1"
+  shows "P dvd 1"
+proof -
+  obtain H where eq: "(1 :: complex mpoly) = poly_poly_as_bivariate P * H"
+    using unit unfolding dvd_def by blast
+  have pnz: "poly_poly_as_bivariate P \<noteq> 0" using eq by auto
+  have hnz: "H \<noteq> 0" using eq by auto
+  have bv1: "bivariate (1 :: complex mpoly)"
+    by (simp add: bivariate_def vars_empty_iff)
+  have bvprod: "bivariate (poly_poly_as_bivariate P * H)"
+    using eq bv1 by simp
+  have bvH: "bivariate H"
+    using bivariate_factors[OF pnz hnz bvprod] by blast
+  have "(1 :: complex poly poly) =
+      bivariate_as_poly_poly (poly_poly_as_bivariate P * H)"
+    using eq by simp
+  also have "... = P * bivariate_as_poly_poly H"
+    using bivariate_as_poly_poly_mult
+      [OF poly_poly_as_bivariate_bivariate bvH]
+    by (simp add: bivariate_as_poly_poly_inverse)
+  finally show ?thesis unfolding dvd_def by blast
+qed
+
+lemma bivariate_as_poly_poly_unit_reflect:
+  assumes bv: "bivariate F" and unit: "bivariate_as_poly_poly F dvd 1"
+  shows "F dvd 1"
+proof -
+  obtain Q where eq: "(1 :: complex poly poly) = bivariate_as_poly_poly F * Q"
+    using unit unfolding dvd_def by blast
+  have "(1 :: complex mpoly) =
+      poly_poly_as_bivariate (bivariate_as_poly_poly F * Q)"
+    using eq by simp
+  also have "... = F * poly_poly_as_bivariate Q"
+    by (simp add: poly_poly_as_bivariate_mult
+      poly_poly_as_bivariate_inverse[OF bv])
+  finally show ?thesis unfolding dvd_def by blast
+qed
+
+lemma bivariate_as_poly_poly_irreducible:
+  assumes bv: "bivariate F" and irr: "irreducible F"
+  shows "irreducible (bivariate_as_poly_poly F)"
+proof (rule irreducibleI)
+  show "bivariate_as_poly_poly F \<noteq> 0"
+    by (rule bivariate_as_poly_poly_nonzero[OF bv])
+      (use irr in \<open>auto simp: irreducible_def\<close>)
+  show "\<not> bivariate_as_poly_poly F dvd 1"
+    using bivariate_as_poly_poly_unit_reflect[OF bv]
+      irreducible_not_unit[OF irr] by blast
+  fix P Q :: "complex poly poly"
+  assume eq: "bivariate_as_poly_poly F = P * Q"
+  have "F = poly_poly_as_bivariate P * poly_poly_as_bivariate Q"
+    using poly_poly_as_bivariate_inverse[OF bv] eq
+    by (simp add: poly_poly_as_bivariate_mult)
+  then have "poly_poly_as_bivariate P dvd 1 \<or>
+      poly_poly_as_bivariate Q dvd 1"
+    by (rule irreducibleD[OF irr])
+  then show "P dvd 1 \<or> Q dvd 1"
+    using poly_poly_as_bivariate_unit_reflect by blast
 qed
 
 abbreviation specialize_first :: "(nat \<Rightarrow> complex) \<Rightarrow> nat \<Rightarrow> complex mpoly \<Rightarrow> complex poly" where
@@ -411,6 +621,26 @@ next
       by (auto simp: mapc coeff_eq_0)
   qed
   show ?thesis using lo hi by simp
+qed
+
+lemma specialize_bivariate_as_poly_poly:
+  assumes bv: "bivariate F"
+  shows "map_poly (\<lambda>q. poly q a) (bivariate_as_poly_poly F) =
+    specialize_second a F"
+proof (rule poly_eqI)
+  fix k
+  let ?C = "coeff (mpoly_to_mpoly_poly 0 F) k"
+  have cv: "vars ?C \<subseteq> {1}"
+    by (rule bivariate_coeff_first[OF bv])
+  have "coeff (map_poly (\<lambda>q. poly q a) (bivariate_as_poly_poly F)) k =
+      poly (mpoly_to_poly 1 ?C) a"
+    by (simp add: bivariate_as_poly_poly_def coeff_map_poly)
+  also have "... = insertion (\<lambda>_. a) ?C"
+    by (rule poly_eq_insertion[OF cv])
+  also have "... = coeff (specialize_second a F) k"
+    by simp
+  finally show "coeff (map_poly (\<lambda>q. poly q a) (bivariate_as_poly_poly F)) k =
+    coeff (specialize_second a F) k" .
 qed
 
 lemma degree_mpoly_to_poly_le:

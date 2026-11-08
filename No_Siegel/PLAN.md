@@ -107,44 +107,28 @@ factor vanishes number at most its second-variable degree when those
 coordinates are distinct. The new theory is in `ROOT` and I/Q reports no
 errors, warnings, or admitted proofs.
 
-## Milestone 4 progress (8 November 2026)
+## Milestone 4 result (8 November 2026)
 
-`Resultant_Multiplicity.thy` now defines the first-variable resultant of a
-bivariate polynomial and its ordinary polynomial in the second variable.
-The checked `first_resultant_poly_degree_le` proves Green's explicit
-`2 * degree F 0 * degree F 1` bound. Generic lemmas establish the determinant
-and Sylvester-resultant degree estimates, and
-`determinant_zero_rows_order_set` proves the final divisibility step of the
-appendix argument for any specified set of rows vanishing at a parameter.
-`first_resultant_double_root` proves the double-root consequence for
-specialisations that preserve first-variable degree, and
-`first_resultant_double_root_any` now covers every nonzero fibre.
-`first_resultant_specialize_matrix` now proves the fixed-size Sylvester
-formula even when the degree drops. `sylvester_det_degree_drop` proves that
-such a matrix has a zero column after degree loss. The new predicate
-`exceptional_first_fibre` names degree-losing and multiple-root fibres;
-each lies in the resultant's zero set, so there are at most `2*d*d'` of them
-conditional on resultant nonvanishing. Degree preservation at some
-parameter, a nonvanishing criterion from one squarefree fibre, and the
-full degree-one case are also proved.
+`Resultant_Multiplicity.thy` proves the degree bound
+`degree (first_resultant_poly F) <= 2 * degree F 0 * degree F 1`.
+It also proves that the resultant is nonzero for every irreducible bivariate
+`F` of positive first-variable degree. The conversion in
+`Bivariate_Polynomial.thy` is now multiplicative in both directions, preserves
+units and irreducibility, and commutes with specialisation. The checked
+`first_resultant_poly_nested` identifies the multivariate resultant with the
+resultant over `complex poly`, including at degree-dropping fibres. These
+facts reduce nonvanishing to AFP's UFD resultant lemma.
 
-The full multiplicity lemma and nonvanishing of the resultant for an
-irreducible bivariate polynomial of arbitrary positive first-variable degree
-remain open. `root_power_dvd_sylvester_image` proves the polynomial
-divisibility part of the paper's rank argument. The UFD lemma
-`irreducible_resultant_pderiv_nonzero` proves nonvanishing for an
-irreducible polynomial over `complex poly`. `Bivariate_Polynomial.thy`
-converts to that nested-polynomial representation and proves reconstruction,
-injectivity, nonzero reflection, first-degree preservation, and
-multiplicativity. Transport of irreducibility, derivatives, and resultants
-is still required, as are the fixed-size Sylvester rank defect and a constant
-invertible row transformation. See `RESULTANT_AUDIT.md` for the proof map.
-
-`first_resultant_nonroot_fibre_simple` shows that a parameter where the
-resultant does not vanish has full first-variable degree and only simple
-roots. `first_resultant_multiplicity_degree_le_two` proves the appendix order
-bound for degree at most two, conditional on resultant nonvanishing.
-Milestone 4 remains in progress.
+The count of degree-losing or multiple-root fibres is unconditional under
+those irreducibility and positive-degree hypotheses. The full Appendix A
+multiplicity inequality is checked for arbitrary first-variable degree and
+an arbitrary root, including fibres whose degree drops. Its proof uses the
+fixed-size Sylvester matrix and a triangular Taylor column change of
+determinant `1`. A fibre root of multiplicity `mu` makes the last `mu-1`
+columns of the changed matrix vanish, forcing that much order in the
+resultant. The former zero-root proof is now a one-line corollary of this
+general result. Milestone 4's principal estimates build in Isabelle2026
+without admitted proofs; see `RESULTANT_AUDIT.md` for the paper-to-code map.
 
 `Quantitative_Finish.thy` starts milestone 7 with checked Section 6
 arithmetic: the minimum and reversed-index sums, a floor-division estimate,

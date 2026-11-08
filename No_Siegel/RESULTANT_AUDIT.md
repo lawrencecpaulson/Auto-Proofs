@@ -6,7 +6,8 @@ Date: 8 November 2026. Source: Appendix A of `no-siegel.tex`.
 
 For a bivariate irreducible `F :: complex mpoly` of positive first-variable
 degree, write `r = first_resultant_poly F` and `f_a = specialize_second a F`.
-The outstanding theorem is `r != 0` and, for every `a,x`,
+Both nonvanishing `r != 0` and the following estimate for every `a,x`
+are checked:
 
     Polynomial.order x f_a <= 1 + Polynomial.order a r.
 
@@ -43,55 +44,54 @@ The preceding bivariate theory already proves `f_a != 0` for every `a`.
   are full-degree squarefree fibres. The target multiplicity inequality also
   holds for first-variable degree at most two, conditional on nonvanishing.
 - `exceptional_first_fibre` names degree-losing or multiple-root fibres.
-  For irreducible `F`, each is in the zero set of `r`; their number is at
-  most `2*d*d'` conditional on `r != 0`.
+  For irreducible `F` of positive first-variable degree, each is in the
+  zero set of `r`; their number is at most `2*d*d'`, without an extra
+  nonvanishing hypothesis.
 - `root_power_dvd_sylvester_image` proves the appendix's polynomial
   divisibility claim for every specialized Sylvester image.
 - `irreducible_resultant_pderiv_nonzero` proves the UFD argument over
-  `complex poly poly`. `Bivariate_Polynomial.thy` now has conversions
-  `bivariate_as_poly_poly` and `poly_poly_as_bivariate`, proves reconstruction
-  of bivariate polynomials, injectivity, nonzero reflection, preservation
-  of first-variable degree, and multiplicativity. Irreducibility, derivative,
-  and resultant transport remain open.
-- `determinant_zero_rows_order_set` proves that if `m` rows of a square
-  polynomial matrix vanish at `a`, then its nonzero determinant has order
-  at least `m` at `a`.
+  `complex poly poly`. `Bivariate_Polynomial.thy` now proves that its
+  conversions to and from this nested-polynomial representation preserve
+  multiplication and units, recover bivariate polynomials, preserve
+  first-variable degree, and transport irreducibility. The checked
+  `first_resultant_poly_nested` identifies the two resultant definitions.
+  Thus `first_resultant_nonzero_irreducible` proves general nonvanishing.
+- `determinant_zero_rows_order_set` and its transpose form
+  `determinant_zero_columns_order_set` give a lower bound on determinant
+  order from rows or columns vanishing after specialisation.
+- `first_resultant_multiplicity_irreducible` proves the full Appendix A
+  inequality for arbitrary first-variable degree and arbitrary roots,
+  including degree-dropping fibres. The older degree-at-most-two theorem
+  remains as a useful conditional result; the zero-root theorem is now a
+  corollary of the general theorem.
+- `coeff_translate_below_order` and `coeff_pcompose_shift_zero` give the
+  vanishing of translated coefficients. `taylor_column_change` is upper
+  triangular with determinant `1`.
+- `sylvester_descending_row_polynomial` identifies each Sylvester row with
+  a monomial shift of the input polynomial or derivative.
+  `specialized_sylvester_descending_row` carries this identity through
+  fibre specialization. `taylor_product_entry` identifies the changed
+  matrix entries with Taylor coefficients.
+- `determinant_zero_columns_order_after_constant_change` lifts the Taylor
+  matrix to constant polynomials and preserves determinant order. The final
+  theorem applies it to the last `mu-1` columns.
 
 All these components have checked Isabelle proofs, without admitted steps.
 The full Isabelle2026 `No_Siegel` session build passed on 8 November 2026 after the resultant and conversion edits.
 
-## Remaining proof map
+## Proof structure
 
-1. **Nonzero resultant in general.** Prove that irreducibility of `F` of
-   positive variable-0 degree makes `F` coprime to its variable-0 derivative
-   over `complex(z')`, or prove the equivalent existence of a
-   degree-preserving squarefree fibre. AFP's
-   `resultant_zero_imp_common_factor` handles polynomials over the UFD
-   `complex poly`; the checked lemma above now completes the argument
-   *after* translating the bivariate polynomial to `complex poly poly`.
-   The new conversion reconstructs bivariate polynomials, preserves
-   first-variable degree, and preserves multiplication. What remains is
-   ring-compatible transport of irreducibility, the derivative, and the
-   resultant. The coefficient ring
-   `complex mpoly` has no UFD instance here.
-2. **Rank defect.** If `mu = Polynomial.order x f_a`, show that the image
-   of the specialised Sylvester multiplication map consists of polynomials
-   divisible by `(z-x)^(mu-1)`; this divisibility is now proved by
-   `root_power_dvd_sylvester_image`. It remains to connect the fixed-size
-   Sylvester matrix to the map and prove that the codimension in polynomials
-   of degree less than `2*d-1` is `mu-1`, yielding rank at most `2*d-mu`.
-3. **Row transformation.** Use AFP Gauss-Jordan or a basis extension to
-   obtain an invertible constant matrix whose product with the specialised
-   Sylvester matrix has at least `mu-1` zero rows. Lift the matrix to
-   constant polynomial entries and apply
-   `determinant_zero_rows_order_set`. Its determinant identity must carry
-   the result back to `first_resultant_poly F`.
+The proof keeps the Sylvester matrix at its generic size `2*d-1`, even
+when a fibre loses degree. For a root of multiplicity `mu`, its derivative
+has order `mu-1`. The specialized Sylvester rows are monomial shifts of
+the fibre polynomial and its derivative. After the Taylor column change,
+the last `mu-1` columns vanish at the parameter. The column determinant
+lemma therefore gives order at least `mu-1` for the resultant.
 
 ## Fidelity and source errors
 
-The checked degree estimate and zero-row divisibility follow the appendix's
-Sylvester determinant proof. The paper's rank and basis-extension steps
-remain explicit proof obligations; no replacement claim has been assumed.
-No error has been identified in Appendix A. Degree loss on specialisation
-is a formalisation pitfall, not a paper error: the appendix correctly keeps
-its matrix at the generic size.
+The checked degree estimate and full multiplicity theorem follow the
+appendix's Sylvester determinant argument. The Taylor column matrix makes
+the paper's change of basis explicit. No error has been identified in
+Appendix A. Degree loss on specialisation is a formalisation pitfall, not
+a paper error: the appendix correctly keeps its matrix at the generic size.
