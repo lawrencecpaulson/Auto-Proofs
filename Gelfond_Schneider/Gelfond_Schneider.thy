@@ -65,17 +65,9 @@ proof
   have wmem: "of_real (a powr b) \<in> power_values (of_real a) (of_real b)"
   proof -
     have eq: "of_real (a powr b) = exp (of_real b * Ln (of_real a))"
-    proof -
-      have "of_real (a powr b) = of_real a powr (of_real b :: complex)"
-        using assms(3) by (simp add: powr_of_real)
-      also have "... = exp (of_real b * Ln (of_real a))"
-        using assms(4) by (simp add: powr_def)
-      finally show ?thesis .
-    qed
-    have "of_real a \<noteq> (0 :: complex)"
-      using assms(4) by simp
-    then have "exp (of_real b * Ln (of_real a)) \<in> power_values (of_real a) (of_real b)"
-      by (rule principal_power_value_mem)
+      using \<open>0 \<le> a\<close> \<open>a \<noteq> 0\<close> by (metis of_real_hom.hom_0 powr_def powr_of_real)
+    have "exp (of_real b * Ln (of_real a)) \<in> power_values (of_real a) (of_real b)"
+      using \<open>a \<noteq> 0\<close> by (simp add: principal_power_value_mem)
     with eq show ?thesis
       by simp
   qed
