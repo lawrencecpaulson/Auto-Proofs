@@ -3,9 +3,25 @@ chapter AFP
 session No_Siegel = Schwartz_Zippel +
   sessions
     Diophantine_Universal_Pairs
+    Dirichlet_L
+    Continued_Fractions
+    Gauss_Sums
+    Probabilistic_Prime_Tests
   theories
     Finite_Grid
+    Quadratic_Character
+    Quadratic_Classification
+    Odd_Prime_Power
+    Two_Prime_Power
+    Prime_Power_Values
+    CRT_Assembly
+    Character_Conductor_Shape
     Bivariate_Polynomial
     Resultant_Multiplicity
+    Row_Independence
+    Row_Vector
+    Lattice_Rows
+    Parameter_Rows
+    Paper_Parameters
     Quantitative_Finish
     Statement_Audit

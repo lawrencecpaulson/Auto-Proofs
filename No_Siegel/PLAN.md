@@ -52,9 +52,10 @@ planning ranges, not timings from proof attempts.
 | 7 | **Quantitative finish.** Check the chosen \(R,S,J,N\), prove the floor-sum estimates, and obtain the weighted inert-prime theorem with the uniformity fixed in milestone 1. | **1–2 weeks** |
 | 8 | **Integration and cleanup.** Stabilise imports and theorem interfaces, review duplicated mathematics throughout the new development, document the results, and run full Isabelle2026 session builds. | **1–2 weeks** |
 
-**Required-project estimate: approximately 12–25 person-weeks, or 3–6
-full-time months.** An optional analytic zero-free deduction would add an
-estimated **8–18 person-weeks**. Green's argument from its algebraic
+**Initial required-project estimate: approximately 12–25 person-weeks, or 3–6
+full-time months.** The remaining-work estimate is below. An optional
+analytic zero-free deduction would add an estimated **8–18 person-weeks**.
+Green's argument from its algebraic
 prerequisites to the weighted prime bound is approximately milestones 6–7, **3–6 weeks**; this is consistent
 with a **2–4 week** estimate for the core paper when all prerequisites
 and suitable theorem interfaces are already available.
@@ -71,8 +72,8 @@ The `No_Siegel` session builds with Isabelle2026 and AFP `devel`.
 
 `Finite_Grid.thy` also proves `natural_diagonal_grid_second_distinct`:
 the second-coordinate projection is injective on the point set whenever
-the slope `a` is irrational over `Rats`. The quadratic-character bridge
-must still establish irrationality for the paper's particular square root;
+the slope `a` is irrational over `Rats`. `Quadratic_Character.thy` now
+establishes this for the paper's square root under its locale assumptions;
 the finite-grid estimate itself needs only `a != 0`.
 
 Milestone 1 is recorded in `STATEMENT_AUDIT.md` and the arithmetic deduction
@@ -141,6 +142,133 @@ The determinant valuation bound, bounds for the remaining prime sums, and
 the uniform final theorem still need proofs. The full Isabelle2026 `No_Siegel`
 session build passed on 8 November 2026, with no admitted steps.
 
+## Milestone 5 progress (9 November 2026)
+
+`Quadratic_Character.thy` supplies a locale for Green's quadratic character
+data. Within it, the Isabelle2026-checked results give `|d| = q`,
+`|sqrt(d)| = sqrt(q)`, irrationality of the complex square root, distinct
+second coordinates for the paper's lattice, and the specialised finite-grid
+bound. They also give `p | q` iff `p | d`, `chi p = 0` iff `p | q` for primes,
+the corresponding zero Legendre value at ramified primes, and (for odd primes)
+`chi p = -1` iff the Legendre symbol is `-1`. Euler's criterion then proves
+the congruence used in Green's Frobenius argument.
+
+This is a **conditional interface**, not the character-classification
+theorem. The locale assumes that `d` is a fundamental discriminant,
+`q = nat (abs d)`, and agreement of `chi` with the Legendre symbol at odd
+primes not dividing `q`. Nonsquareness of `d` is derived from these
+assumptions and the nontriviality of the character. A proof that every
+relevant primitive real Dirichlet character admits a fundamental
+discriminant satisfying those conditions remains to be developed.
+The AFP supplies `real_dcharacter` in `Dirichlet_L` and
+`primitive_dchar`, induced moduli, and a conductor in `Gauss_Sums`.
+These provide the starting assumptions and conductor facts for the
+classification, but no theorem classifying primitive real characters by
+fundamental discriminants. The prime `2` remains separate, as required
+by the paper's odd-prime valuation lemma.
+
+`Quadratic_Classification.thy` now starts from AFP's primitive real
+Dirichlet-character locales. It proves that the conductor is the modulus,
+the character is nonprincipal, and its square is principal. It also
+derives the character's value on square residues, translates this to
+`QuadRes` and `Legendre`, and proves that at prime modulus the character
+agrees at every argument with the Legendre symbol. This settles the
+prime-modulus local character calculation.
+
+`Odd_Prime_Power.thy` proves that every unit congruent to `1` modulo
+an odd prime `p` is a square modulo `p^k`. It follows that a primitive
+real character of modulus `p^k` has `k = 1`. `Two_Prime_Power.thy`
+proves the analogous lifting statement for residues congruent to `1`
+modulo `8`, using the order of `25` modulo `2^k`. A primitive real
+character of modulus `2^k` therefore has `k = 2` or `k = 3`.
+The common step from square lifting to an induced modulus is factored
+into `induced_modulus_of_square_lifts`.
+
+`Prime_Power_Values.thy` determines the surviving two-power local
+characters on unit generators: at modulus `4`, `chi 3 = -1`; at modulus
+`8`, `chi 5 = -1`, `chi 7 = -chi 3`, and `chi 3` is either `1` or `-1`.
+Together with periodicity and multiplicativity, these are the complete
+local value tables.
+
+Assembly across coprime prime powers by the Chinese remainder theorem,
+quadratic reciprocity, and identification of a fundamental
+discriminant are still needed to discharge the
+`green_quadratic_character` locale for arbitrary primitive real
+characters.
+
+## Milestone 6 progress (9 November 2026)
+
+`Row_Independence.thy` now assembles the finite zero count, regular
+factorisation, resultant multiplicity estimate, and degree budgets from
+Green's Section 3. Its checked `vanishing_polynomial_degree_bound` proves
+the paper's counting inequality for a nonzero bivariate polynomial whose
+first `J` derivatives vanish at every configured point.
+`no_vanishing_polynomial` rules out such a polynomial under Green's strict
+dimension condition. This is the polynomial core of Lemma 3.1.
+
+`Row_Vector.thy` now supplies that bridge. Its checked
+`green_rows_independent` encodes a relation among all derivative rows as a
+bivariate coefficient polynomial and recovers each coefficient from the
+zero polynomial. This proves the general finite-configuration form of
+Green's Lemma 3.1. `Lattice_Rows.thy` applies it to the diagonal grid using
+the checked zero count and distinct-coordinate bounds. Its dimension lemma
+reduces the strict inequality to `N² ≥ 4R`, `S = J`, and `0 < J < R`.
+`Parameter_Rows.thy` checks these inequalities and `J ≥ N` for
+`R = t²`, `N = 2t`, and `S = J = R div C`, assuming `C ≥ 2` and `t ≥ 2C`.
+`Paper_Parameters.thy` checks the paper's substitution
+`t = q^(C div 2)` for even `C`, names `X`, `N`, and `J`, and proves
+both inequalities under the explicit sufficient-size condition
+`2C ≤ q^(C div 2)`. Its checked `green_paper_rows_independent` states
+the row-independence result for Green's quadratic lattice in the
+quadratic-character locale. `green_row_relation` names the derivative
+relation shared by the general, lattice, and paper-specific versions.
+
+## Remaining verification path (9 November 2026)
+
+**Green's paper is not yet verified.** Milestones 2–4 check component
+results used in its Section 3 and Appendix A, and milestone 7 has checked
+arithmetic lemmas. Milestone 6 now has Green's Section 3 row-independence
+proof, including the quadratic-lattice instance and paper parameters
+under the explicit sufficient-size hypothesis. The Gram determinant
+arguments, valuation lemma, and weighted prime theorem are still missing.
+Milestone 5 has a checked conditional locale and the prime-power
+conductor restrictions, but not the classification needed to apply it to
+arbitrary primitive real characters.
+
+The remaining obligations are:
+
+1. **External prerequisite: character classification (milestone 5).**
+   Starting from an arbitrary primitive, nonprincipal real Dirichlet
+   character, construct a fundamental discriminant `d` with
+   `q = nat (abs d)` and the required Legendre values at odd unramified
+   primes. Connect this result to the existing locale; handle ramified
+   primes and `p = 2` explicitly.
+2. **Paper proof: positive integral Gram determinant and upper bound
+   (Sections 2 and 4, milestone 6).** Define the rows and trace pairing,
+   prove integrality and positive definiteness, and formalise Hadamard's
+   estimate with the corrected factor `4` inside its first logarithm.
+3. **Paper proof: odd-prime valuation (Section 5, milestone 6).** Lift
+   the checked Euler congruence to the Frobenius statement in `ℤ[√d]`;
+   formalise the derivative and triangular row transformation, its
+   divisibility, and Green's valuation lemma. Bound a possible inert
+   prime `2` separately.
+4. **Paper proof: uniform quantitative theorem (Section 6, milestone 7).**
+   Combine the checked floor-sum lemmas with determinant bounds and
+   explicit prime-sum estimates. Prove the parameter inequalities and a
+   bound with constants and quantifiers valid for all sufficiently large
+   even `C` and eligible conductors `q`. The audited `C = 64` inequality
+   is an intermediate target, not a replacement for the paper's theorem.
+5. **Final verification (milestone 8).** Connect the theorem to the character
+   classification, check every source correction and prerequisite, review
+   duplicated mathematics, and rebuild all required Isabelle2026 sessions.
+
+At the original milestone ranges, the external character prerequisite is
+**3–6 person-weeks**; the remaining paper proof and final verification are
+**4–8 person-weeks**. Together these are roughly **7–14 remaining
+person-weeks** for one experienced Isabelle developer. These are planning
+estimates; character classification and determinant integration carry the
+greatest uncertainty.
+
 ## Dependencies and useful intermediate results
 
 The milestone 1 audit identifies Banks, Lemma 2.1(2.3), as the
@@ -177,9 +305,9 @@ conductors if a statement for every \(q\geq3\) is desired.
 - **Uniformity:** the dependencies of the \(O(1/C)\) and \(O_C(1)\)
   terms must match the theorem stated in the note, with their quantifier
   dependencies made explicit.
-- **Polynomial representation:** specialisation, factorisation, and
-  resultant order must work together; representation changes could add
-  substantial time to milestones 3–4.
+- **Determinant integration:** the checked Section 3 row independence
+  must be connected to the integral trace pairing and its positive
+  determinant.
 - **Character classification:** the bridge from an arbitrary primitive
   real character to the required quadratic data may require more
   infrastructure than the existing Dirichlet-character library supplies.
