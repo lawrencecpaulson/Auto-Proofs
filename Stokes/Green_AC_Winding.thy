@@ -419,4 +419,26 @@ corollary green_ac_path_image_negligible:
   by (rule green_rectifiable_path_image_negligible
     [OF green_ac_path_rectifiable[OF assms]])
 
+corollary green_ac_cauchy_contour_integrable_ae:
+  fixes g :: "real \<Rightarrow> complex"
+  assumes ac: "absolutely_continuous_on {0..1} g"
+  shows "negligible
+    {z. \<not> (\<lambda>w. 1 / (w - z)) contour_integrable_on g}"
+proof -
+  let ?N = "{t \<in> {0..1}. \<not> g differentiable (at t)}"
+  have null: "negligible ?N"
+    by (rule green_ac_path_derivative_ae[OF ac])
+  have deriv: "(g has_vector_derivative (vector_derivative g (at t))) (at t)"
+    if "t \<in> {0..1} - ?N" for t
+    using that by (simp add: vector_derivative_works)
+  have integrable: "(\<lambda>w. 1 / (w - z)) contour_integrable_on g"
+    if "z \<notin> path_image g" for z
+    by (rule green_ac_winding_kernel_integrable[OF ac null deriv that])
+  have "{z. \<not> (\<lambda>w. 1 / (w - z)) contour_integrable_on g}
+      \<subseteq> path_image g"
+    using integrable by blast
+  then show ?thesis
+    by (rule negligible_subset[OF green_ac_path_image_negligible[OF ac]])
+qed
+
 end

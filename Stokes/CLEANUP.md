@@ -38,3 +38,13 @@ construction opens that condition when it needs its individual facts.
 `exact_chart_value` definitions before the compact-support theorem, so
 that theorem and its consumers use the named partition and chart data
 instead of repeating their long lists of properties.
+
+## Stokes verification (2026-11-10)
+
+Moved `green_ac_cauchy_contour_integrable_ae` into `Green_AC_Winding.thy`
+from the duplicate `Green_AC_Measure.thy` draft. The duplicate
+`Green_Cauchy_Fubini.thy` draft added no distinct theorem. Both drafts
+were removed. The Isabelle2026 `Stokes` session and PDF document built
+successfully on 10 November 2026 with `isabelle build -d
+/Users/lawrpau/isabelle/afp/devel/thys -D . -o document=pdf` from the
+`Stokes` directory.
