@@ -16,6 +16,8 @@ session No_Siegel = Schwartz_Zippel +
     Prime_Power_Values
     CRT_Assembly
     Character_Conductor_Shape
+    Quadratic_Local_Identification
+    Character_Discriminant_Assembly
     Bivariate_Polynomial
     Resultant_Multiplicity
     Row_Independence

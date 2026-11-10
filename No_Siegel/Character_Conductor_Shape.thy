@@ -49,22 +49,9 @@ proof -
     case False
     then have rgt: "1 < r" using rpos by simp
     have pkgt: "1 < p ^ ?k" by (rule one_less_power[OF pgt kpos])
-    interpret C: crt_dcharacter n "residue_mult_group n" \<chi> "p ^ ?k" r
-      by (unfold_locales; use nr cp pkgt rgt in \<open>auto\<close>)
-    have source_real: "real_dcharacter n \<chi>"
-      using dcharacter_axioms real_dcharacter_axioms
-      unfolding real_dcharacter_def by blast
-    have source_primitive: "primitive_dchar n \<chi>"
-      using dcharacter_axioms primitive_dchar_axioms
-      unfolding primitive_dchar_def by blast
-    have local_real: "real_dcharacter (p ^ ?k) C.chi_left"
-      by (rule C.chi_left_real[OF source_real])
-    have local_primitive: "primitive_dchar (p ^ ?k) C.chi_left"
-      by (rule C.chi_left_primitive[OF source_primitive])
-    have local_green: "green_primitive_real_dcharacter (p ^ ?k) C.chi_left"
-      using local_real local_primitive
-      unfolding green_primitive_real_dcharacter_def by blast
-    show thesis by (rule that[OF local_green])
+    obtain psi theta where local: "green_primitive_real_dcharacter (p ^ ?k) psi"
+      by (rule crt_green_factors[OF nr cp pkgt rgt]) blast
+    show thesis by (rule that[OF local])
   qed
 qed
 

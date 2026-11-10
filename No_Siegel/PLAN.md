@@ -153,19 +153,16 @@ the corresponding zero Legendre value at ramified primes, and (for odd primes)
 `chi p = -1` iff the Legendre symbol is `-1`. Euler's criterion then proves
 the congruence used in Green's Frobenius argument.
 
-This is a **conditional interface**, not the character-classification
-theorem. The locale assumes that `d` is a fundamental discriminant,
+The locale assumes that `d` is a fundamental discriminant,
 `q = nat (abs d)`, and agreement of `chi` with the Legendre symbol at odd
 primes not dividing `q`. Nonsquareness of `d` is derived from these
-assumptions and the nontriviality of the character. A proof that every
-relevant primitive real Dirichlet character admits a fundamental
-discriminant satisfying those conditions remains to be developed.
+assumptions and the nontriviality of the character. The classification
+theorem below supplies these assumptions for primitive real characters.
 The AFP supplies `real_dcharacter` in `Dirichlet_L` and
 `primitive_dchar`, induced moduli, and a conductor in `Gauss_Sums`.
 These provide the starting assumptions and conductor facts for the
-classification, but no theorem classifying primitive real characters by
-fundamental discriminants. The prime `2` remains separate, as required
-by the paper's odd-prime valuation lemma.
+classification. The prime `2` remains separate in the paper's odd-prime
+valuation lemma.
 
 `Quadratic_Classification.thy` now starts from AFP's primitive real
 Dirichlet-character locales. It proves that the conductor is the modulus,
@@ -190,11 +187,25 @@ characters on unit generators: at modulus `4`, `chi 3 = -1`; at modulus
 Together with periodicity and multiplicativity, these are the complete
 local value tables.
 
-Assembly across coprime prime powers by the Chinese remainder theorem,
-quadratic reciprocity, and identification of a fundamental
-discriminant are still needed to discharge the
-`green_quadratic_character` locale for arbitrary primitive real
-characters.
+`CRT_Assembly.thy` gives the two local characters for coprime factors,
+factorises the global character, and transfers primitivity and realness.
+`Character_Conductor_Shape.thy` applies this to a global character:
+each odd prime has conductor exponent one, while the exponent at two is
+two or three when present. `Quadratic_Local_Identification.thy` identifies
+the modulus-four factor with `(-1/p)` and the two modulus-eight factors
+with `(2/p)` and `(-2/p)` at odd primes. It also proves, by CRT induction,
+that an odd squarefree primitive real character is the Jacobi character
+at every argument, and uses quadratic reciprocity to choose the signed
+odd discriminant.
+
+`Character_Discriminant_Assembly.thy` combines the odd part with the
+two-power factor. Its checked
+`primitive_real_character_fundamental_discriminant` theorem constructs
+`d` for any primitive real Dirichlet character and establishes the
+`green_quadratic_character` locale, including `q = nat (abs d)` and the
+Legendre values at odd unramified primes. The locale already derives zero
+values at ramified primes. Any inert-prime treatment of `p = 2` remains
+in the later valuation argument.
 
 ## Milestone 6 progress (9 November 2026)
 
@@ -231,43 +242,34 @@ arithmetic lemmas. Milestone 6 now has Green's Section 3 row-independence
 proof, including the quadratic-lattice instance and paper parameters
 under the explicit sufficient-size hypothesis. The Gram determinant
 arguments, valuation lemma, and weighted prime theorem are still missing.
-Milestone 5 has a checked conditional locale and the prime-power
-conductor restrictions, but not the classification needed to apply it to
-arbitrary primitive real characters.
+Milestone 5 now has the checked classification theorem connecting any
+primitive real character to the conditional quadratic-character locale.
 
 The remaining obligations are:
 
-1. **External prerequisite: character classification (milestone 5).**
-   Starting from an arbitrary primitive, nonprincipal real Dirichlet
-   character, construct a fundamental discriminant `d` with
-   `q = nat (abs d)` and the required Legendre values at odd unramified
-   primes. Connect this result to the existing locale; handle ramified
-   primes and `p = 2` explicitly.
-2. **Paper proof: positive integral Gram determinant and upper bound
+1. **Paper proof: positive integral Gram determinant and upper bound
    (Sections 2 and 4, milestone 6).** Define the rows and trace pairing,
    prove integrality and positive definiteness, and formalise Hadamard's
    estimate with the corrected factor `4` inside its first logarithm.
-3. **Paper proof: odd-prime valuation (Section 5, milestone 6).** Lift
+2. **Paper proof: odd-prime valuation (Section 5, milestone 6).** Lift
    the checked Euler congruence to the Frobenius statement in `ℤ[√d]`;
    formalise the derivative and triangular row transformation, its
    divisibility, and Green's valuation lemma. Bound a possible inert
    prime `2` separately.
-4. **Paper proof: uniform quantitative theorem (Section 6, milestone 7).**
+3. **Paper proof: uniform quantitative theorem (Section 6, milestone 7).**
    Combine the checked floor-sum lemmas with determinant bounds and
    explicit prime-sum estimates. Prove the parameter inequalities and a
    bound with constants and quantifiers valid for all sufficiently large
    even `C` and eligible conductors `q`. The audited `C = 64` inequality
    is an intermediate target, not a replacement for the paper's theorem.
-5. **Final verification (milestone 8).** Connect the theorem to the character
+4. **Final verification (milestone 8).** Connect the theorem to the character
    classification, check every source correction and prerequisite, review
    duplicated mathematics, and rebuild all required Isabelle2026 sessions.
 
-At the original milestone ranges, the external character prerequisite is
-**3–6 person-weeks**; the remaining paper proof and final verification are
-**4–8 person-weeks**. Together these are roughly **7–14 remaining
-person-weeks** for one experienced Isabelle developer. These are planning
-estimates; character classification and determinant integration carry the
-greatest uncertainty.
+At the original milestone ranges, the remaining paper proof and final
+verification are **4–8 person-weeks** for one experienced Isabelle
+developer. These are planning estimates; determinant integration carries
+the greatest uncertainty.
 
 ## Dependencies and useful intermediate results
 
@@ -308,9 +310,6 @@ conductors if a statement for every \(q\geq3\) is desired.
 - **Determinant integration:** the checked Section 3 row independence
   must be connected to the integral trace pairing and its positive
   determinant.
-- **Character classification:** the bridge from an arbitrary primitive
-  real character to the required quadratic data may require more
-  infrastructure than the existing Dirichlet-character library supplies.
 - **Optional analytic bridge:** a later zero-free deduction would need
   zero-sensitive Dirichlet-\(L\) and prime-number-theorem estimates in a
   precise uniform form. This is a major risk for that optional extension.

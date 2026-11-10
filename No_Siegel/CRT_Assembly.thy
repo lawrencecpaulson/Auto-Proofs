@@ -9,9 +9,10 @@ text \<open>Green, Section 2: assembly of Dirichlet characters by the Chinese re
 definition crt_lift :: "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat" where
   "crt_lift m k a = (SOME x. [x = a] (mod m) \<and> [x = 1] (mod k))"
 
-lemma crt_lift_left:
+lemma crt_lift_conditions:
   assumes "coprime m k"
-  shows "[crt_lift m k a = a] (mod m)"
+  shows "[crt_lift m k a = a] (mod m) \<and>
+    [crt_lift m k a = 1] (mod k)"
 proof -
   have ex: "\<exists>x. [x = a] (mod m) \<and> [x = 1] (mod k)"
     by (rule binary_chinese_remainder_nat[OF assms])
@@ -21,17 +22,15 @@ proof -
   then show ?thesis by (simp add: crt_lift_def)
 qed
 
+lemma crt_lift_left:
+  assumes "coprime m k"
+  shows "[crt_lift m k a = a] (mod m)"
+  using crt_lift_conditions[OF assms] by blast
+
 lemma crt_lift_right:
   assumes "coprime m k"
   shows "[crt_lift m k a = 1] (mod k)"
-proof -
-  have ex: "\<exists>x. [x = a] (mod m) \<and> [x = 1] (mod k)"
-    by (rule binary_chinese_remainder_nat[OF assms])
-  have "[(SOME x. [x = a] (mod m) \<and> [x = 1] (mod k)) = a] (mod m) \<and>
-    [(SOME x. [x = a] (mod m) \<and> [x = 1] (mod k)) = 1] (mod k)"
-    by (rule someI_ex[OF ex])
-  then show ?thesis by (simp add: crt_lift_def)
-qed
+  using crt_lift_conditions[OF assms] by blast
 
 lemma crt_lift_cong:
   assumes "coprime m k" "[a = b] (mod m)"
@@ -217,6 +216,45 @@ proof -
     by (unfold_locales; use factor_modulus factors_coprime m_gt_one k_gt_one in
       \<open>auto simp: mult.commute coprime_commute\<close>)
   show ?thesis by (rule swapped.chi_left_real[OF assms])
+qed
+
+end
+
+context green_primitive_real_dcharacter
+begin
+
+lemma crt_green_factors:
+  assumes nr: "n = m * k" and cp: "coprime m k"
+    and mgt: "1 < m" and kgt: "1 < k"
+  obtains psi theta where
+    "green_primitive_real_dcharacter m psi"
+    "green_primitive_real_dcharacter k theta"
+    "\<And>a. \<chi> a = psi a * theta a"
+proof -
+  interpret C: crt_dcharacter n "residue_mult_group n" \<chi> m k
+    by (unfold_locales; use nr cp mgt kgt in \<open>auto\<close>)
+  have source_real: "real_dcharacter n \<chi>"
+    using dcharacter_axioms real_dcharacter_axioms
+    unfolding real_dcharacter_def by blast
+  have source_primitive: "primitive_dchar n \<chi>"
+    using dcharacter_axioms primitive_dchar_axioms
+    unfolding primitive_dchar_def by blast
+  have left_real: "real_dcharacter m C.chi_left"
+    by (rule C.chi_left_real[OF source_real])
+  have left_primitive: "primitive_dchar m C.chi_left"
+    by (rule C.chi_left_primitive[OF source_primitive])
+  have left_green: "green_primitive_real_dcharacter m C.chi_left"
+    using left_real left_primitive
+    unfolding green_primitive_real_dcharacter_def by blast
+  have right_real: "real_dcharacter k C.chi_right"
+    by (rule C.chi_right_real[OF source_real])
+  have right_primitive: "primitive_dchar k C.chi_right"
+    by (rule C.chi_right_primitive[OF source_primitive])
+  have right_green: "green_primitive_real_dcharacter k C.chi_right"
+    using right_real right_primitive
+    unfolding green_primitive_real_dcharacter_def by blast
+  show thesis
+    by (rule that[OF left_green right_green C.factorization])
 qed
 
 end

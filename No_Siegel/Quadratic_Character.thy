@@ -9,9 +9,9 @@ begin
 text \<open>Green, Sections 2, 3 and 5: the quadratic parameter of the
   lattice, the character's inert primes, and the Frobenius congruence.
   We keep the character and its discriminant in a locale so that subsequent
-  theories can work in its context. The classification of every primitive
-  real character by a fundamental discriminant is still needed: the
-  conductor and odd-prime character identities are hypotheses here.\<close>
+  theories can work in its context. The conductor and odd-prime character
+  identities are hypotheses here; Character_Discriminant_Assembly proves
+  that primitive real characters supply them.\<close>
 
 definition fundamental_discriminant :: "int \<Rightarrow> bool" where
   "fundamental_discriminant d \<longleftrightarrow>
