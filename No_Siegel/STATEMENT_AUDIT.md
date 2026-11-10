@@ -149,7 +149,12 @@ separate argument if the target is every `q≥3`.
    equation `log-g-arch` has a factor `2`.  Squaring it for Hadamard produces
    `log(4N²J)`, while the next displayed line says `log(2N²J)`.
    Formula (A) uses `4`; the main theorem is unaffected after increasing
-   the explicit error constant.
+   the explicit error constant. The checked two-embedding argument in
+   `Archimedean_Feature_Bound.thy` directly bounds the *squared* feature-row
+   norm by `2N²J R^(2J) (2N√q)^(2(r+s))`.
+   `green_paper_gram_archimedean_log` in `Archimedean_Log_Bound.thy`
+   checks the resulting logarithmic bound with `log(2N²J)`. This does
+   not make the implication from the paper's printed row-norm bound valid.
 2. **Missing prime 2.**  Lemma 5.1 proves the determinant valuation only for
    odd `p`, but equation `chi-p-bd` sums over every `p` with `χ(p)=-1`.
    Bound `p=2` separately as above.  No claim about a Frobenius valuation

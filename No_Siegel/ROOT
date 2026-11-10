@@ -7,6 +7,9 @@ session No_Siegel = Schwartz_Zippel +
     Continued_Fractions
     Gauss_Sums
     Probabilistic_Prime_Tests
+    Jordan_Normal_Form
+    Smith_Normal_Form
+    LLL_Basis_Reduction
   theories
     Finite_Grid
     Quadratic_Character
@@ -25,5 +28,14 @@ session No_Siegel = Schwartz_Zippel +
     Lattice_Rows
     Parameter_Rows
     Paper_Parameters
+    Quadratic_Gram
+    Gram_Determinant
+    Gram_Hadamard
+    Archimedean_Rows
+    Archimedean_Entry_Bound
+    Archimedean_Conjugate
+    Archimedean_Feature_Bound
+    Archimedean_Determinant_Bound
+    Archimedean_Log_Bound
     Quantitative_Finish
     Statement_Audit

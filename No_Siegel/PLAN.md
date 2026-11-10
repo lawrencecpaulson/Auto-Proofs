@@ -207,7 +207,7 @@ Legendre values at odd unramified primes. The locale already derives zero
 values at ramified primes. Any inert-prime treatment of `p = 2` remains
 in the later valuation argument.
 
-## Milestone 6 progress (9 November 2026)
+## Milestone 6 progress (10 November 2026)
 
 `Row_Independence.thy` now assembles the finite zero count, regular
 factorisation, resultant multiplicity estimate, and degree budgets from
@@ -234,23 +234,56 @@ the row-independence result for Green's quadratic lattice in the
 quadratic-character locale. `green_row_relation` names the derivative
 relation shared by the general, lattice, and paper-specific versions.
 
-## Remaining verification path (9 November 2026)
+`Quadratic_Gram.thy` proves that the derivative-row entries lie in
+`ℤ[√d]`, defines integer Gram entries, and proves strict positivity
+of their real quadratic form from row independence. Its paper-parameter
+instance is `green_paper_gram_form_positive`. The pairing is also
+identified with Green's field trace of a product with complex conjugation
+for either sign of `d`. `Gram_Determinant.thy` defines the finite integer
+Gram matrix and determinant with an explicit `R × S` row order and
+identifies the matrix as a real Gram matrix. Its generic determinant
+nonvanishing proof uses the positive Gram form; Cauchy–Binet gives
+nonnegativity. `green_paper_gram_determinant_positive` combines them
+under the paper's explicit parameter hypotheses.
+
+`Gram_Hadamard.thy` proves that the real Gram determinant is at most the
+product of squared row norms. A nonzero feature minor supplied by
+Cauchy–Binet gives row independence. The paper-parameter instance
+`green_paper_gram_hadamard` is checked. `Archimedean_Rows.thy` and
+`Archimedean_Entry_Bound.thy` prove the lattice coordinate bound and the
+derivative-entry bound. `Archimedean_Conjugate.thy` identifies the second
+quadratic embedding with evaluation at the swapped coordinates.
+`Archimedean_Feature_Bound.thy` gives the sharper squared feature-row
+norm bound with factor `2 N² J`. `Archimedean_Determinant_Bound.thy`
+combines this with Hadamard to give the paper-parameter determinant
+product bound. `Archimedean_Log_Bound.thy` proves the displayed Section 4
+logarithmic upper bound with `log (2 N² J)` by summing the row exponents.
+The following asymptotic simplification using the paper's parameter
+choices remains to be proved.
+
+## Remaining verification path (10 November 2026)
 
 **Green's paper is not yet verified.** Milestones 2–4 check component
 results used in its Section 3 and Appendix A, and milestone 7 has checked
 arithmetic lemmas. Milestone 6 now has Green's Section 3 row-independence
 proof, including the quadratic-lattice instance and paper parameters
-under the explicit sufficient-size hypothesis. The Gram determinant
-arguments, valuation lemma, and weighted prime theorem are still missing.
+under the explicit sufficient-size hypothesis. The Gram form, integer
+matrix, positive paper-parameter determinant, and Hadamard product bound
+are checked. The derivative-entry and squared feature-row bounds are
+checked too, as is their determinant product bound. The logarithmic
+determinant estimate is checked; its asymptotic parameter simplification,
+valuation lemma, and weighted prime theorem are still missing.
 Milestone 5 now has the checked classification theorem connecting any
 primitive real character to the conditional quadratic-character locale.
 
 The remaining obligations are:
 
-1. **Paper proof: positive integral Gram determinant and upper bound
-   (Sections 2 and 4, milestone 6).** Define the rows and trace pairing,
-   prove integrality and positive definiteness, and formalise Hadamard's
-   estimate with the corrected factor `4` inside its first logarithm.
+1. **Paper proof: Hadamard upper bound (Section 4, milestone 6).**
+   Simplify the checked logarithmic determinant estimate using
+   `R = X`, `J = X/C`, and `N = 2 sqrt X` to obtain an explicit version
+   of the paper's asymptotic bound. The sharper two-embedding argument
+   gives factor `2` inside its first logarithm, whereas squaring the
+   paper's stated row norm gives factor `4`.
 2. **Paper proof: odd-prime valuation (Section 5, milestone 6).** Lift
    the checked Euler congruence to the Frobenius statement in `ℤ[√d]`;
    formalise the derivative and triangular row transformation, its
@@ -295,6 +328,27 @@ parameter choices separate from those general results.
 
 At milestone 7, the theorem actually proved by Green's note is a
 standalone, checked result. Milestone 8 completes the required project.
+
+## After No_Siegel: prepare AFP submissions
+
+After milestone 8, package the completed results as candidate AFP entries.
+Start a shared local staging directory under `Auto-Proofs` and give each
+candidate entry its own directory and buildable session layout. Keep the
+staged theories available as local imports for No_Siegel and the other
+developments while AFP review and acceptance are pending. Move shared
+theories into this directory and update their consumers, rather than
+maintaining diverging copies.
+
+Assess the bivariate polynomial and resultant-multiplicity development
+and the primitive-real-character/fundamental-discriminant classification
+as possible independent entries; keep smaller supporting results with
+the entry they serve. Review candidate entries in Gelfond_Schneider and
+Stokes at the same time. In particular, `Bounded_Integer_Kernels` is
+already imported by the Roth development and should be staged as a
+shared library with a stable session and theory name. Arrange the
+Gelfond_Schneider sessions in separate directories if submitting them
+as a multi-session package. Check the import graph, duplicated
+mathematics, documentation, and release builds before submission.
 
 An optional follow-on project could develop the missing zero-sensitive
 Dirichlet-\(L\) estimates, combine them with milestone 7, and prove a
