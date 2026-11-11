@@ -6,11 +6,11 @@ Source: `no-siegel.tex`, especially the introduction, “Archimedean bound”,
 Landau–Siegel zeros do not exist*, arXiv:2610.15483v1, Lemma 2.1(2.3).
 Kerr, arXiv:2610.21099v1, Lemma 1, states a less explicit version.
 
-This audit gives concrete witnesses for Green's big-O terms **conditional on
-his determinant and valuation claims**.  It does not assert that all those
-claims have been formalised.  Keep the exact inequalities below as the targets
-for their later proofs; never use the asymptotic notation as an Isabelle
-assumption.
+This audit gives concrete witnesses for Green's big-O terms. The
+determinant and valuation claims have been formalised; the Section 6
+weighted-prime theorem has passed the integrated Isabelle2026 build.
+Keep the exact inequalities below as proof targets;
+never use the asymptotic notation as an Isabelle assumption.
 
 ## Objects and quantifiers
 
@@ -39,8 +39,8 @@ transformed derivative entries, determinant invariance under their
 triangular row change, and `p^(2∑h)` divisibility and the resulting
 valuation lower bound for Green's original Gram determinant at odd
 inert primes are checked. The weighted prime
-estimates and the separate treatment of `p = 2` remain to be checked
-before this inequality becomes a theorem. For fixed `C`,
+estimates and the separate treatment of `p = 2` have checked
+component proofs and passed the integrated build. For fixed `C`,
 `J ≥ N` follows once `X ≥ 16 C²`; the dimension condition follows from
 `C > 1` and `S < X`.
 Thus a `Q` depending on the fixed `C` suffices.  The paper's phrase
@@ -88,8 +88,10 @@ V := ∑_{odd p≤X, χ(p)=-1} V_p log p
 ```
 
 Here `θ_{-1}^{odd}(X)=∑_{odd p≤X,χ(p)=-1} log p`.
-The elementary estimate `log n ≤ √n` gives
-`∑_{p≤X}(log p)/p² ≤ ∑_{n≥2}n^(-3/2) ≤ 2`.
+The inverse-square estimate follows from AFP's
+`Mertens_Theorems.mertens_remainder_aux_bound`: embed each `p≤X`
+as the prime power `(p,2)` below `X²`. The resulting sum is
+less than `9/π²`, hence at most `2`.
 AFP's `Prime_Counting_Functions.θ_upper_bound` gives
 `θ_{-1}^{odd}(X) ≤ θ(X) < (log 4) X`.
 AFP's `Mertens_Theorems.mertens_first_theorem` gives

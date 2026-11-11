@@ -10,6 +10,7 @@ session No_Siegel = Schwartz_Zippel +
     Jordan_Normal_Form
     Smith_Normal_Form
     LLL_Basis_Reduction
+    Prime_Number_Theorem
   theories
     Finite_Grid
     Quadratic_Character
@@ -46,4 +47,14 @@ session No_Siegel = Schwartz_Zippel +
     Inert_Determinant_Transfer
     Inert_Valuation
     Quantitative_Finish
+    Inert_Prime_Sums
+    Prime_Valuation_Log
+    Inert_Valuation_Sum
+    Inert_Prime_Formula
+    Inert_Weighted_Floor
+    Inert_Prime_Comparison
+    Inert_Prime_Rearranged
+    Inert_Prime_Conditional
+    Inert_Prime_Analytic
+    Inert_Prime_Bound
     Statement_Audit

@@ -55,19 +55,67 @@ the transformed Gram determinant. `Inert_Transform_Order.thy`,
 determinant-one triangular matrix and transfer this divisibility to
 Green's **original** Gram determinant for odd inert primes. These
 Section 5 theories passed the full `No_Siegel` build on 11 November
-and are uncommitted. `Inert_Valuation.thy` also proves the explicit
+and were committed as `7bc173a`. `Inert_Valuation.thy` also proves the explicit
 valuation lower bound when the determinant is nonzero, including at
 Green's paper parameters where positivity has already been checked.
 
-## Next proof obligations
+## Section 6 completion
 
-1. Account for a possible inert prime `2` separately in Section 6.
-2. Complete the Section 6 weighted prime bound with uniform quantifier
-   order, then connect it to the final character theorem.
+`Inert_Prime_Sums.thy` proves that the possible inert prime `2` changes
+the weighted inert-prime sum by less than `1`.
+`Prime_Valuation_Log.thy` proves the generic weighted prime-valuation
+upper bound for a positive integer determinant. Both theories checked
+separately under `HOL-Analysis` on 11 November.
+`Inert_Valuation_Sum.thy` connects that bound to Green's odd inert
+valuation theorem; the user checked it in jEdit on 11 November.
+`Inert_Weighted_Floor.thy` applies the existing floor-sum lemma to
+this valuation bound and substitutes the archimedean determinant
+bound at Green's parameters. The user checked it in jEdit and fixed
+its `ppos` proof. `Inert_Prime_Formula.thy` states the exact
+reciprocal-prime, theta, and inverse-square expansions and passed a
+standalone `HOL-Analysis` check. Its checked algebra lemmas rearrange
+the comparison, apply conditional prime-sum bounds, deduce the
+`8C + 4` constant, and bound `X/(X div C)` by `2C`.
+`Inert_Prime_Comparison.thy` combines the expansions with the
+paper-parameter weighted floor theorem and was checked in jEdit.
+`Inert_Prime_Rearranged.thy` states the resulting paper-parameter
+weight inequality and was checked in jEdit.
+`Inert_Prime_Conditional.thy` applies these to state the paper's
+`8C + 5` bound under three explicit prime-sum estimates and was
+checked in jEdit. `Inert_Prime_Analytic.thy` proves those three estimates:
+it uses AFP's first Mertens theorem and theta bound, and bounds the
+inverse-square sum by AFP's prime-power remainder estimate
+`9/pi^2 < 2`. The analytic bridge passed an isolated Isabelle2026
+check with the newly built `Prime_Number_Theorem` heap.
+`Inert_Prime_Bound.thy` assembles the parameter bound, removes the
+choice of lattice enumeration, gives the explicit threshold `q >= 2C`,
+specialises to `C = 64`, and applies the character-classification
+bridge. All new Section 6 theories are uncommitted.
+The new theories have no standalone `unfolding` commands;
+`apply_timeout` does not bound such commands.
 
-`PLAN.md` lists the remaining path and later AFP packaging work.
-`STATEMENT_AUDIT.md` lists the paper statement issues. Green's full
-paper theorem has not yet been verified.
+The integrated `No_Siegel` build succeeded with Isabelle2026 and AFP
+`devel` after all Section 6 additions:
+
+```
+isabelle build -v -b -j 2 -d /Users/lawrpau/isabelle/afp/devel/thys -D . No_Siegel
+Finished No_Siegel (0:11:37 elapsed time, 0:36:44 cpu time)
+```
+
+The final theorem is `green_primitive_real_inert_bound`, valid for each
+even `C >= 2` and `q >= 2C`; `green_primitive_real_inert_bound_64`
+is the fixed-scale instance. The Section 6 duplication review
+factored the repeated finite-prime comparison into
+`green_odd_inert_sum_le_all_primes`. The other repeated assumptions
+belong to distinct intermediate estimates and remain explicit.
+`Finite_Grid.thy` now uses the direct natural-number cast rule in place
+of a slow `metis` call; it passed the integrated build. A source scan
+found no `sorry`, `oops`, or `admit` in the project theories.
+
+`PLAN.md` records AFP staging as the next task after No_Siegel.
+`STATEMENT_AUDIT.md` records the paper corrections. The external
+zero-sensitive Dirichlet-L estimate and its zero-free deduction remain
+outside the required paper theorem.
 
 ## Repository scope
 

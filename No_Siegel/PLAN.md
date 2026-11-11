@@ -283,9 +283,10 @@ power divisibility to Green's original determinant. `Inert_Valuation.thy`
 expresses this as a multiplicity bound and specializes it to Green's
 paper parameters using the checked positivity theorem.
 
-## Remaining verification path (11 November 2026)
+## Paper theorem completed (11 November 2026)
 
-**Green's paper is not yet verified.** Milestones 2–4 check component
+**Green's weighted-prime theorem has passed the full Isabelle2026
+`No_Siegel` build.** Milestones 2–4 check component
 results used in its Section 3 and Appendix A, and milestone 7 has checked
 arithmetic lemmas. Milestone 6 now has Green's Section 3 row-independence
 proof, including the quadratic-lattice instance and paper parameters
@@ -298,29 +299,19 @@ The lattice-point Frobenius statement, transformed derivative
 divisibility, row expansion, transformed determinant bound, and
 original-determinant divisibility and valuation lower bound for odd
 inert primes are checked.
-The prime `2` treatment and weighted prime theorem are still missing.
+The prime `2` correction and the three analytic prime-sum estimates
+have checked component proofs. The weighted-prime theorem in
+`Inert_Prime_Bound.thy` passed the integrated build.
 Milestone 5 now has the checked classification theorem connecting any
 primitive real character to the conditional quadratic-character locale.
 
-The remaining obligations are:
-
-1. **Paper proof: prime `2` correction (Section 6, milestone 6).**
-   Bound a possible inert prime `2` separately in the weighted prime
-   sum; Green's odd-prime determinant argument now checks.
-2. **Paper proof: uniform quantitative theorem (Section 6, milestone 7).**
-   Combine the checked floor-sum lemmas with determinant bounds and
-   explicit prime-sum estimates. Prove the parameter inequalities and a
-   bound with constants and quantifiers valid for all sufficiently large
-   even `C` and eligible conductors `q`. The audited `C = 64` inequality
-   is an intermediate target, not a replacement for the paper's theorem.
-3. **Final verification (milestone 8).** Connect the theorem to the character
-   classification, check every source correction and prerequisite, review
-   duplicated mathematics, and rebuild all required Isabelle2026 sessions.
-
-At the original milestone ranges, the remaining paper proof and final
-verification are **4–8 person-weeks** for one experienced Isabelle
-developer. These are planning estimates; determinant integration carries
-the greatest uncertainty.
+`green_primitive_real_inert_bound` gives the explicit sufficient
+conductor threshold `q >= 2C` for each even `C >= 2`.
+`green_primitive_real_inert_bound_64` is the audited fixed-parameter
+instance. The Section 6 duplication review factored the shared
+finite-prime comparison into a general lemma; distinct estimates
+remain explicit. The final build completed in 11 minutes 37 seconds
+on 11 November 2026. AFP staging is the next task.
 
 ## Dependencies and useful intermediate results
 

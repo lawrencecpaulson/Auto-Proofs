@@ -36,7 +36,7 @@ proof -
     using prob_bound prob_eq card_T card_S_pos
     by (simp add: field_simps power2_eq_square)
   then show ?thesis
-    by (metis of_nat_le_iff of_nat_mult)
+    by (rule of_nat_le_iff[THEN iffD1])
 qed
 
 
