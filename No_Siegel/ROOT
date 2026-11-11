@@ -39,5 +39,11 @@ session No_Siegel = Schwartz_Zippel +
     Archimedean_Log_Bound
     Archimedean_Parameter_Bound
     Inert_Frobenius
+    Inert_Rows
+    Inert_Transform_Order
+    Gram_Transformation
+    Row_Coeff_Transform
+    Inert_Determinant_Transfer
+    Inert_Valuation
     Quantitative_Finish
     Statement_Audit

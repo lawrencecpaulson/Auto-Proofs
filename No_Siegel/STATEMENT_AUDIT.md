@@ -35,8 +35,12 @@ The constants `43` and `517` below are conservative witnesses reconstructed
 from the displayed estimates. They are not printed in the paper. The
 quadratic bridge, independence proof, determinant bounds, and the
 conditions `J ≥ N` and `N²J > 2RS + J(R+S)` have Isabelle proofs. The
-odd-prime valuation and weighted prime estimates still have to be
-checked before this inequality becomes a theorem. For fixed `C`,
+transformed derivative entries, determinant invariance under their
+triangular row change, and `p^(2∑h)` divisibility and the resulting
+valuation lower bound for Green's original Gram determinant at odd
+inert primes are checked. The weighted prime
+estimates and the separate treatment of `p = 2` remain to be checked
+before this inequality becomes a theorem. For fixed `C`,
 `J ≥ N` follows once `X ≥ 16 C²`; the dimension condition follows from
 `C > 1` and `S < X`.
 Thus a `Q` depending on the fixed `C` suffices.  The paper's phrase

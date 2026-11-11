@@ -269,7 +269,19 @@ estimate with a checked constant.
 prime-binomial and Fermat congruences, and proves
 `green_inert_odd_prime_lattice_frobenius`: for an odd inert prime,
 `(x+y√d)^p-(x-y√d)` lies in `p ℤ[√d]` for natural `x,y`.
-The transformed derivative rows and determinant valuation remain open.
+`Inert_Rows.thy` now proves that every derivative entry of the
+transformed row has the required `p^h` factor, checks its binomial
+expansion into the original row and rows with lower first index, and
+derives `p^(2∑h) ∣ det G̃` for the transformed Gram matrix.
+`Inert_Transform_Order.thy` proves that the binomial row change is
+lower triangular with determinant one. `Gram_Transformation.thy`
+proves the generic Gram congruence under an integer row change.
+`Row_Coeff_Transform.thy` and `Inert_Determinant_Transfer.thy`
+identify the transformed coefficient rows with this matrix action.
+The latter proves `det G̃ = det G` and transfers the odd inert prime
+power divisibility to Green's original determinant. `Inert_Valuation.thy`
+expresses this as a multiplicity bound and specializes it to Green's
+paper parameters using the checked positivity theorem.
 
 ## Remaining verification path (11 November 2026)
 
@@ -282,18 +294,19 @@ matrix, positive paper-parameter determinant, and Hadamard product bound
 are checked. The derivative-entry and squared feature-row bounds are
 checked too, as is their determinant product bound. The logarithmic
 determinant estimate and its finite parameter simplification are checked.
-The lattice-point Frobenius statement is also checked. The valuation
-lemma and weighted prime theorem are still missing.
+The lattice-point Frobenius statement, transformed derivative
+divisibility, row expansion, transformed determinant bound, and
+original-determinant divisibility and valuation lower bound for odd
+inert primes are checked.
+The prime `2` treatment and weighted prime theorem are still missing.
 Milestone 5 now has the checked classification theorem connecting any
 primitive real character to the conditional quadratic-character locale.
 
 The remaining obligations are:
 
-1. **Paper proof: odd-prime valuation (Section 5, milestone 6).**
-   Formalise the derivative and triangular row transformation using the
-   checked Frobenius statement, then prove the transformed entries'
-   divisibility and Green's determinant valuation lemma. Bound a
-   possible inert prime `2` separately.
+1. **Paper proof: prime `2` correction (Section 6, milestone 6).**
+   Bound a possible inert prime `2` separately in the weighted prime
+   sum; Green's odd-prime determinant argument now checks.
 2. **Paper proof: uniform quantitative theorem (Section 6, milestone 7).**
    Combine the checked floor-sum lemmas with determinant bounds and
    explicit prime-sum estimates. Prove the parameter inequalities and a
