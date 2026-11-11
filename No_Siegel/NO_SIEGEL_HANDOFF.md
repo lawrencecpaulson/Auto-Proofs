@@ -1,16 +1,17 @@
-# No_Siegel handoff — 10 November 2026
+# No_Siegel handoff — 11 November 2026
 
 ## Verified checkpoint
 
 `No_Siegel` builds with Isabelle2026 and AFP `devel`. The latest full
-build completed on 10 November after integrating
-`Archimedean_Log_Bound.thy`:
+build completed on 11 November after integrating
+`Inert_Frobenius.thy`:
 
 ```
 isabelle build -d /Users/lawrpau/isabelle/afp/devel/thys -D . No_Siegel
-Finished No_Siegel (0:08:26 elapsed time, 0:29:10 cpu time)
+Finished No_Siegel (0:08:34 elapsed time, 0:29:38 cpu time)
 ```
 
+The preceding Gram and archimedean checkpoint is commit `c86a494`.
 The character-classification bridge through
 `primitive_real_character_fundamental_discriminant` was committed as
 `371b8b0`. It supplies the conditional quadratic-character locale for
@@ -38,16 +39,21 @@ The new Section 4 theories in `ROOT` establish:
 The two-embedding argument gives factor `2 N² J` inside the logarithm
 of the row bound. `STATEMENT_AUDIT.md` records why this needs a distinct
 argument from the row norm printed in Green's paper.
+`Archimedean_Parameter_Bound.thy` now proves
+`green_paper_gram_archimedean_parameter`, the explicit bound
+`log det G ≤ (1/2 + 11/C) X² J log X`. The full `No_Siegel` session
+built successfully after this addition on 11 November.
+`Inert_Frobenius.thy` is also integrated and checked. It proves that
+for an odd inert prime `p` and natural lattice coordinates `x,y`,
+`(x+y√d)^p-(x-y√d)` is a multiple of `p` in `ℤ[√d]`.
 
 ## Next proof obligations
 
-1. Simplify the checked logarithmic determinant bound using the paper
-   parameters to an explicit asymptotic Section 4 bound.
-2. Prove the Section 5 odd-prime determinant valuation. This needs the
-   Frobenius statement in `ℤ[√d]`, the derivative row transformation,
-   triangular determinant invariance, and divisibility. Account for a
-   possible inert prime `2` separately.
-3. Complete the Section 6 weighted prime bound with uniform quantifier
+1. Prove the Section 5 odd-prime determinant valuation. The Frobenius
+   statement in `ℤ[√d]` is checked; the derivative row transformation,
+   triangular determinant invariance, and entry divisibility remain.
+   Account for a possible inert prime `2` separately.
+2. Complete the Section 6 weighted prime bound with uniform quantifier
    order, then connect it to the final character theorem.
 
 `PLAN.md` lists the remaining path and later AFP packaging work.

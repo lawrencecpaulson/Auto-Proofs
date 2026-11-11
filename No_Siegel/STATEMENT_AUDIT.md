@@ -32,11 +32,13 @@ the paper's theorem is:
 > `S_{-1}(q^64) ≤ 43 log q + 517`.
 
 The constants `43` and `517` below are conservative witnesses reconstructed
-from the displayed estimates.  They are not printed in the paper.  The
-quadratic bridge, independence proof, determinant estimates, and the
-conditions `J ≥ N` and `N²J > 2RS + J(R+S)` still have to be checked before
-this inequality becomes a theorem.  For fixed `C`, `J ≥ N` follows once
-`X ≥ 16 C²`; the dimension condition follows from `C > 1` and `S < X`.
+from the displayed estimates. They are not printed in the paper. The
+quadratic bridge, independence proof, determinant bounds, and the
+conditions `J ≥ N` and `N²J > 2RS + J(R+S)` have Isabelle proofs. The
+odd-prime valuation and weighted prime estimates still have to be
+checked before this inequality becomes a theorem. For fixed `C`,
+`J ≥ N` follows once `X ≥ 16 C²`; the dimension condition follows from
+`C > 1` and `S < X`.
 Thus a `Q` depending on the fixed `C` suffices.  The paper's phrase
 “sufficiently large conductor” does not by itself fix a uniform threshold in
 both `q` and `C`; no such stronger quantifier order is needed here.
@@ -61,6 +63,11 @@ summands of `H` by `X²S log X` bounds them respectively by
 ```text
 log det G ≤ (1/2 + 11/C) X² S log X.                 (A)
 ```
+
+`green_paper_gram_archimedean_parameter` in
+`Archimedean_Parameter_Bound.thy` checks (A) under the paper's explicit
+parameter and lattice-index hypotheses. It uses the sharper checked
+`2N²S` squared-row factor and still obtains the same constant `11`.
 
 For an **odd** inert prime `p`, write
 `k_p(r)=⌊r/p⌋`, `h_p(r,s)=min(k_p(r),S-1-s)`, and

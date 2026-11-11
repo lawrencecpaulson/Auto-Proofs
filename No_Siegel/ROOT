@@ -37,5 +37,7 @@ session No_Siegel = Schwartz_Zippel +
     Archimedean_Feature_Bound
     Archimedean_Determinant_Bound
     Archimedean_Log_Bound
+    Archimedean_Parameter_Bound
+    Inert_Frobenius
     Quantitative_Finish
     Statement_Audit

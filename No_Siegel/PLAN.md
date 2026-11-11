@@ -258,10 +258,20 @@ norm bound with factor `2 N² J`. `Archimedean_Determinant_Bound.thy`
 combines this with Hadamard to give the paper-parameter determinant
 product bound. `Archimedean_Log_Bound.thy` proves the displayed Section 4
 logarithmic upper bound with `log (2 N² J)` by summing the row exponents.
-The following asymptotic simplification using the paper's parameter
-choices remains to be proved.
+`Archimedean_Parameter_Bound.thy` then uses the paper's parameter
+choices to prove the finite bound
+`log det G ≤ (1/2 + 11/C) X² J log X`, under the explicit sufficient-size
+and lattice-index hypotheses. This is the stated Section 4 asymptotic
+estimate with a checked constant.
 
-## Remaining verification path (10 November 2026)
+`Inert_Frobenius.thy` begins Section 5. It defines divisibility in
+`ℤ[√d]`, proves its additive and multiplicative closure, lifts the
+prime-binomial and Fermat congruences, and proves
+`green_inert_odd_prime_lattice_frobenius`: for an odd inert prime,
+`(x+y√d)^p-(x-y√d)` lies in `p ℤ[√d]` for natural `x,y`.
+The transformed derivative rows and determinant valuation remain open.
+
+## Remaining verification path (11 November 2026)
 
 **Green's paper is not yet verified.** Milestones 2–4 check component
 results used in its Section 3 and Appendix A, and milestone 7 has checked
@@ -271,31 +281,26 @@ under the explicit sufficient-size hypothesis. The Gram form, integer
 matrix, positive paper-parameter determinant, and Hadamard product bound
 are checked. The derivative-entry and squared feature-row bounds are
 checked too, as is their determinant product bound. The logarithmic
-determinant estimate is checked; its asymptotic parameter simplification,
-valuation lemma, and weighted prime theorem are still missing.
+determinant estimate and its finite parameter simplification are checked.
+The lattice-point Frobenius statement is also checked. The valuation
+lemma and weighted prime theorem are still missing.
 Milestone 5 now has the checked classification theorem connecting any
 primitive real character to the conditional quadratic-character locale.
 
 The remaining obligations are:
 
-1. **Paper proof: Hadamard upper bound (Section 4, milestone 6).**
-   Simplify the checked logarithmic determinant estimate using
-   `R = X`, `J = X/C`, and `N = 2 sqrt X` to obtain an explicit version
-   of the paper's asymptotic bound. The sharper two-embedding argument
-   gives factor `2` inside its first logarithm, whereas squaring the
-   paper's stated row norm gives factor `4`.
-2. **Paper proof: odd-prime valuation (Section 5, milestone 6).** Lift
-   the checked Euler congruence to the Frobenius statement in `ℤ[√d]`;
-   formalise the derivative and triangular row transformation, its
-   divisibility, and Green's valuation lemma. Bound a possible inert
-   prime `2` separately.
-3. **Paper proof: uniform quantitative theorem (Section 6, milestone 7).**
+1. **Paper proof: odd-prime valuation (Section 5, milestone 6).**
+   Formalise the derivative and triangular row transformation using the
+   checked Frobenius statement, then prove the transformed entries'
+   divisibility and Green's determinant valuation lemma. Bound a
+   possible inert prime `2` separately.
+2. **Paper proof: uniform quantitative theorem (Section 6, milestone 7).**
    Combine the checked floor-sum lemmas with determinant bounds and
    explicit prime-sum estimates. Prove the parameter inequalities and a
    bound with constants and quantifiers valid for all sufficiently large
    even `C` and eligible conductors `q`. The audited `C = 64` inequality
    is an intermediate target, not a replacement for the paper's theorem.
-4. **Final verification (milestone 8).** Connect the theorem to the character
+3. **Final verification (milestone 8).** Connect the theorem to the character
    classification, check every source correction and prerequisite, review
    duplicated mathematics, and rebuild all required Isabelle2026 sessions.
 
