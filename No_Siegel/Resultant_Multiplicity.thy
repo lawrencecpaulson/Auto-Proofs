@@ -2,8 +2,6 @@ theory Resultant_Multiplicity
   imports Bivariate_Polynomial Factor_Algebraic_Polynomial.Multivariate_Resultant
 begin
 
-declare [[apply_timeout=10]]
-
 text \<open>Green, Appendix A ("Resultants"), especially Lemma A.1 and
   the degree bound preceding it: the elimination polynomial is the resultant
   of a bivariate polynomial and its first-variable derivative. Section 3

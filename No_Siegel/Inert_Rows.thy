@@ -4,8 +4,6 @@ begin
 
 text \<open>Green, Section 5: derivatives of the transformed rows.\<close>
 
-declare [[apply_timeout = 20]]
-
 definition green_quad_power_divisible ::
     "nat \<Rightarrow> nat \<Rightarrow> int \<Rightarrow> complex \<Rightarrow> bool" where
   "green_quad_power_divisible p h d z \<longleftrightarrow>
@@ -610,7 +608,5 @@ lemma (in green_quadratic_character) green_inert_transformed_paper_determinant_d
   using green_inert_transformed_determinant_divisible[OF prime odd inert P,
       where R=R and S=S and J=J]
   by (simp only: green_inert_h_order_sum)
-
-declare [[apply_timeout = 0]]
 
 end

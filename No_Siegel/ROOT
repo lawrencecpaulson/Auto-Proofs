@@ -15,45 +15,29 @@ session No_Siegel = Schwartz_Zippel +
     Finite_Grid
     Quadratic_Character
     Quadratic_Classification
-    Odd_Prime_Power
     Two_Prime_Power
-    Prime_Power_Values
     CRT_Assembly
-    Character_Conductor_Shape
     Quadratic_Local_Identification
     Character_Discriminant_Assembly
     Bivariate_Polynomial
     Resultant_Multiplicity
     Row_Independence
     Row_Vector
-    Lattice_Rows
-    Parameter_Rows
     Paper_Parameters
     Quadratic_Gram
     Gram_Determinant
     Gram_Hadamard
-    Archimedean_Rows
-    Archimedean_Entry_Bound
     Archimedean_Conjugate
-    Archimedean_Feature_Bound
-    Archimedean_Determinant_Bound
     Archimedean_Log_Bound
     Archimedean_Parameter_Bound
     Inert_Frobenius
     Inert_Rows
     Inert_Transform_Order
     Gram_Transformation
-    Row_Coeff_Transform
     Inert_Determinant_Transfer
-    Inert_Valuation
     Quantitative_Finish
-    Inert_Prime_Sums
     Prime_Valuation_Log
-    Inert_Valuation_Sum
     Inert_Prime_Formula
-    Inert_Weighted_Floor
-    Inert_Prime_Comparison
-    Inert_Prime_Rearranged
     Inert_Prime_Conditional
     Inert_Prime_Analytic
     Inert_Prime_Bound

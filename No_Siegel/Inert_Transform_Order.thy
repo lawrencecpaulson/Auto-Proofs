@@ -2,8 +2,6 @@ theory Inert_Transform_Order
   imports Inert_Rows
 begin
 
-declare [[apply_timeout = 20]]
-
 lemma green_row_order_nth_index:
   assumes r: "r < R" and s: "s < S"
   shows "r*S+s < length (green_row_order R S)"
@@ -286,7 +284,5 @@ proof -
   qed
   show ?thesis using action split zero by simp
 qed
-
-declare [[apply_timeout = 0]]
 
 end

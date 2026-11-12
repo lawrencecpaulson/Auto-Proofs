@@ -4,8 +4,6 @@ begin
 
 text \<open>Green, Section 5: divisibility inside the quadratic integer lattice.\<close>
 
-declare [[apply_timeout = 20]]
-
 definition green_quad_divisible :: "nat \<Rightarrow> int \<Rightarrow> complex \<Rightarrow> bool" where
   "green_quad_divisible p d z \<longleftrightarrow>
     (\<exists>w. green_quadratic_integer d w \<and> z = of_nat p * w)"
@@ -279,7 +277,5 @@ proof -
     by (rule green_quad_divisible_add[OF sum1 fy])
   then show ?thesis by (simp only: eq)
 qed
-
-declare [[apply_timeout = 0]]
 
 end

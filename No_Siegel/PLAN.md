@@ -313,6 +313,12 @@ finite-prime comparison into a general lemma; distinct estimates
 remain explicit. The final build completed in 11 minutes 37 seconds
 on 11 November 2026. AFP staging is the next task.
 
+The 12 November cleanup removed all `apply_timeout` declarations,
+folded related short theories into their successors within each proof
+stage, and removed two unused valuation specializations. There are now
+30 theories, including 13 at or below 10 KB, compared with 46 and 35
+before cleanup. The full `No_Siegel` build passed after these changes.
+
 ## Dependencies and useful intermediate results
 
 The milestone 1 audit identifies Banks, Lemma 2.1(2.3), as the

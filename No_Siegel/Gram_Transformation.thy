@@ -2,8 +2,6 @@ theory Gram_Transformation
   imports Inert_Rows
 begin
 
-declare [[apply_timeout = 20]]
-
 lemma green_bilinear_double_sum:
   fixes alpha beta :: "nat \<Rightarrow> int"
     and x y :: "nat \<Rightarrow> 'i \<Rightarrow> int"
@@ -297,7 +295,5 @@ lemma green_gram_determinant_reindex_nth:
       [0..<length ks] = green_gram_determinant d I f ks"
   by (simp add: green_gram_determinant_def
     green_gram_matrix_reindex_nth)
-
-declare [[apply_timeout = 0]]
 
 end

@@ -1,9 +1,6 @@
 theory Inert_Prime_Bound
-  imports Inert_Prime_Conditional Inert_Prime_Analytic
-    Character_Discriminant_Assembly
+  imports Inert_Prime_Conditional Inert_Prime_Analytic Character_Discriminant_Assembly
 begin
-
-declare [[apply_timeout = 20]]
 
 text \<open>Green, Section 6: the weighted inert-prime bound, with an
   explicit conductor threshold and the possible prime 2 included.\<close>
@@ -116,7 +113,5 @@ proof -
   interpret Q: green_quadratic_character q chi d by (rule quad)
   show ?thesis by (rule Q.green_paper_inert_bound_64)
 qed
-
-declare [[apply_timeout = 0]]
 
 end

@@ -5,8 +5,6 @@ begin
 text \<open>An explicit version of the last estimate in Green's Section 4.
   The constant 11 absorbs the three finite parameter errors.\<close>
 
-declare [[apply_timeout = 20]]
-
 lemma green_archimedean_parameter_coefficient:
   fixes c x j :: real
   assumes cge: "2 \<le> c" and xge: "c \<le> x"
@@ -254,7 +252,5 @@ proof -
   show ?thesis
     using logdet Hcap scaled final_identity by linarith
 qed
-
-declare [[apply_timeout = 0]]
 
 end

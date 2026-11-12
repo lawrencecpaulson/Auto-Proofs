@@ -2,8 +2,6 @@ theory Inert_Prime_Analytic
   imports Inert_Prime_Formula "Prime_Number_Theorem.Mertens_Theorems"
 begin
 
-declare [[apply_timeout = 20]]
-
 text \<open>Green, Section 6: bounds for the reciprocal-prime, theta,
   and inverse-square error terms in the final comparison.\<close>
 
@@ -134,7 +132,5 @@ proof -
   qed
   finally show ?thesis by simp
 qed
-
-declare [[apply_timeout = 0]]
 
 end

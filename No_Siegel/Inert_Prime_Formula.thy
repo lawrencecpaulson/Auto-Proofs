@@ -1,8 +1,6 @@
 theory Inert_Prime_Formula
-  imports Inert_Prime_Sums Quantitative_Finish
+  imports Prime_Valuation_Log Quantitative_Finish
 begin
-
-declare [[apply_timeout = 20]]
 
 definition green_odd_inert_theta :: "(nat \<Rightarrow> complex) \<Rightarrow> nat \<Rightarrow> real" where
   "green_odd_inert_theta chi cutoff =
@@ -207,7 +205,5 @@ proof -
   show ?thesis
     using real_bound quotient by (simp add: pos_divide_le_eq)
 qed
-
-declare [[apply_timeout = 0]]
 
 end
