@@ -1,0 +1,55 @@
+chapter AFP
+
+session Stokes = Smooth_Manifolds +
+  description "Stokes' theorem for smooth manifolds with boundary"
+  options [timeout = 600]
+  sessions
+    "HOL-Complex_Analysis"
+  directories
+    "Boundary"
+    "BoundaryIntegration"
+  theories [document = false]
+    Stokes_Local
+    Basis_Fubini
+    Chart_Local
+    Chart_Theorem
+    Form_Bridge
+  theories
+    Forms
+  theories [document = false]
+    Product_Forms
+    Cart_Product
+    Halfline_Forms
+    One_Dimensional_Chain
+    One_Dimensional_Atlas
+    One_Dimensional_Atlas_Gluing
+    One_Dimensional_Manifold
+    One_Dimensional_Partition
+    One_Dimensional_Regularity
+    One_Dimensional_Global
+  theories
+    One_Dimensional_Integration
+  theories [document = false]
+    Smooth_Cutoff
+    Halfspace_Naturality
+    Block_Determinant
+    Oriented_Integration
+  theories
+    Manifold_Integration
+    "Boundary/Boundary_Charts"
+  theories [document = false]
+    "Boundary/Disk_Atlas"
+    "BoundaryIntegration/Boundary_Integration"
+    "BoundaryIntegration/Body_Overlap"
+    "BoundaryIntegration/Body_Local_Integration"
+    "BoundaryIntegration/Smooth_Partition"
+    "BoundaryIntegration/Single_Chart"
+  theories
+    "BoundaryIntegration/Global_Gluing"
+  theories [document = false]
+    "BoundaryIntegration/Disk_Smooth"
+  theories
+    "BoundaryIntegration/Disk_Stokes"
+    "BoundaryIntegration/Green_Form"
+  document_files
+    "root.tex"

@@ -1,5 +1,5 @@
 theory Row_Independence
-  imports Resultant_Multiplicity
+  imports Finite_Grid "Bivariate_Resultants.Resultant_Multiplicity"
 begin
 
 text \<open>Green, Section 3, proof of Lemma 3.1: summing the orders of

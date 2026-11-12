@@ -1,0 +1,29 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage{isabelle,isabellesym}
+\usepackage{amsmath,amssymb}
+\usepackage{pdfsetup}
+\isabellestyle{it}
+
+\begin{document}
+\title{Green's Theorem and Cauchy--Pompeiu for Planar Paths}
+\author{Lawrence C.\ Paulson}
+\maketitle
+
+\begin{abstract}
+We prove Green's theorem for finite unions of interior-disjoint rectangles,
+including boundary cancellation at T-junctions and a decomposition into
+closed polygonal paths. We develop contour integration and winding numbers
+for absolutely continuous paths, then derive winding-weighted Green identities
+and an interior Cauchy--Pompeiu formula for a rectangular contour.
+The development uses the local integration results of the Stokes entry.
+\end{abstract}
+
+\section{Relation to existing formalizations}
+The AFP entry \emph{Green} by Mohammad Abdulaziz and Lawrence C.\ Paulson
+formalizes a version of Green's theorem for domains described by boundary
+graphs. This entry develops finite rectangular unions, explicit oriented
+boundary walks, absolutely continuous paths, and Cauchy--Pompeiu identities.
+
+\input{session}
+\end{document}

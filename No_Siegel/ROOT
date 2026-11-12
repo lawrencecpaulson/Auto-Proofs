@@ -1,6 +1,7 @@
 chapter AFP
 
-session No_Siegel = Schwartz_Zippel +
+session No_Siegel (AFP) = Schwartz_Zippel +
+  options [timeout = 1800, quick_and_dirty = false]
   sessions
     Diophantine_Universal_Pairs
     Dirichlet_L
@@ -11,16 +12,11 @@ session No_Siegel = Schwartz_Zippel +
     Smith_Normal_Form
     LLL_Basis_Reduction
     Prime_Number_Theorem
+    Bivariate_Resultants
+    Primitive_Real_Characters
   theories
     Finite_Grid
     Quadratic_Character
-    Quadratic_Classification
-    Two_Prime_Power
-    CRT_Assembly
-    Quadratic_Local_Identification
-    Character_Discriminant_Assembly
-    Bivariate_Polynomial
-    Resultant_Multiplicity
     Row_Independence
     Row_Vector
     Paper_Parameters
@@ -41,4 +37,5 @@ session No_Siegel = Schwartz_Zippel +
     Inert_Prime_Conditional
     Inert_Prime_Analytic
     Inert_Prime_Bound
-    Statement_Audit
+  document_files
+    "root.tex"

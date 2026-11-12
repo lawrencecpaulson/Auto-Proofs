@@ -1,5 +1,5 @@
 theory Inert_Prime_Bound
-  imports Inert_Prime_Conditional Inert_Prime_Analytic Character_Discriminant_Assembly
+  imports Inert_Prime_Conditional Inert_Prime_Analytic
 begin
 
 text \<open>Green, Section 6: the weighted inert-prime bound, with an
@@ -88,7 +88,7 @@ proof -
 qed
 
 theorem green_primitive_real_inert_bound:
-  assumes character: "green_primitive_real_dcharacter q chi"
+  assumes character: "primitive_real_dcharacter q chi"
     and even: "even cparam" and cge: "2 \<le> cparam"
     and qge: "2 * cparam \<le> q"
   shows "green_inert_prime_weight chi (q ^ cparam)
@@ -104,7 +104,7 @@ proof -
 qed
 
 theorem green_primitive_real_inert_bound_64:
-  assumes character: "green_primitive_real_dcharacter q chi"
+  assumes character: "primitive_real_dcharacter q chi"
   shows "green_inert_prime_weight chi (q ^ 64)
     \<le> 43 * ln (real q) + 517"
 proof -

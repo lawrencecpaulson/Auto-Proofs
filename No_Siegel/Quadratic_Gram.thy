@@ -69,9 +69,11 @@ definition green_quad_trace_pair :: "int \<Rightarrow> complex \<Rightarrow> com
     green_quad_coeff_pair d (green_quad_coeff d z) (green_quad_coeff d w)"
 
 lemma green_quad_trace_pair_embed:
+  fixes p q :: "int \<times> int"
   assumes irrational: "cpx_sqrt d \<notin> Rats"
-  shows "green_quad_trace_pair d (green_quad_embed d (a,b))
-    (green_quad_embed d (c,e)) = 2 * (a*c + abs d*b*e)"
+  shows "green_quad_trace_pair d (green_quad_embed d p)
+    (green_quad_embed d q) =
+    2 * (fst p * fst q + abs d * snd p * snd q)"
   by (simp add: green_quad_trace_pair_def green_quad_coeff_pair_def
     green_quad_coeff_embed[OF irrational])
 
@@ -101,7 +103,7 @@ qed
 
 lemma green_quad_embed_mult:
   "green_quad_embed d (a,b) * green_quad_embed d (c,e) =
-    green_quad_embed d (a*c + d*b*e, a*e+b*c)"
+    green_quad_embed d (a * c + d * b * e, a * e + b * c)"
   using square_sqrt[of d]
   by (simp add: green_quad_embed_def algebra_simps power2_eq_square)
 
@@ -187,7 +189,7 @@ proof -
     using assms by (auto simp: green_quadratic_integer_def)
   show ?thesis
     unfolding green_quadratic_integer_def
-    by (rule exI[where x="a+c"], rule exI[where x="b+e"],
+    by (rule exI[where x="a + c"], rule exI[where x="b + e"],
       simp add: z w algebra_simps)
 qed
 
@@ -211,12 +213,14 @@ proof -
     z: "z = of_int a + of_int b * cpx_sqrt d" and
     w: "w = of_int c + of_int e * cpx_sqrt d"
     using assms by (auto simp: green_quadratic_integer_def)
-  have eq: "z * w = of_int (a*c + d*b*e) + of_int (a*e+b*c) * cpx_sqrt d"
+  have eq: "z * w = of_int (a * c + d * b * e) +
+    of_int (a * e + b * c) * cpx_sqrt d"
     unfolding z w using square_sqrt[of d]
     by (simp add: algebra_simps power2_eq_square)
   show ?thesis
     unfolding green_quadratic_integer_def
-    by (rule exI[where x="a*c+d*b*e"], rule exI[where x="a*e+b*c"],
+    by (rule exI[where x="a * c + d * b * e"],
+      rule exI[where x="a * e + b * c"],
       simp add: eq)
 qed
 
