@@ -376,23 +376,20 @@ theorem exists_nonzero_bounded_kernel_vec_of_ehouse_entries_linear:
   assumes R_nonneg: "0 \<le> R"
   assumes H_nonneg: "0 \<le> H"
   assumes K_nonneg: "0 \<le> K"
-  obtains eta :: "complex vec" and x :: "int vec" where
-      "eta \<in> carrier_vec q"
+  obtains eta :: "complex vec" and x :: "int vec" 
+  where "eta \<in> carrier_vec q"
     and "eta \<noteq> 0\<^sub>v q"
     and "x \<in> carrier_vec (q * d)"
     and "x \<noteq> 0\<^sub>v (q * d)"
     and "A *\<^sub>v eta = 0\<^sub>v p"
     and "\<forall>t<q. eta $ t = (\<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j e0)"
-    and "x \<in> Bounded_vec
-      (2 * int (q * d) * max 1 (\<lceil>of_nat (card E) * R * H * K\<rceil>))"
+    and "x \<in> Bounded_vec (2 * int (q * d) * max 1 (\<lceil>of_nat (card E) * R * H * K\<rceil>))"
     and "\<forall>t<q.
       ehouse (\<lambda>e. \<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j e) \<le>
-        (of_int (2 * int (q * d) * max 1 (\<lceil>of_nat (card E) * R * H * K\<rceil>)) :: real) *
-          of_nat d * K"
+        of_int (2 * int (q * d) * max 1 (\<lceil>of_nat (card E) * R * H * K\<rceil>)) * real d * K"
     and "\<forall>t<q.
       cmod (eta $ t) \<le>
-        (of_int (2 * int (q * d) * max 1 (\<lceil>of_nat (card E) * R * H * K\<rceil>)) :: real) *
-          of_nat d * K"
+        of_int (2 * int (q * d) * max 1 (\<lceil>of_nat (card E) * R * H * K\<rceil>)) * real d * K"
 proof -
   have mult_repr0:
     "A $$ (u,t) * basis j e0 = (\<Sum>k<d. of_int (C u t k j) * basis k e0)"

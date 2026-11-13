@@ -1,17 +1,14 @@
 (*  Title:      Gelfond_Schneider/Integer_Kernels/Integer_Kernel_Bounds.thy
     Author:     OpenAI Codex
-
-Quantitative nonzero integer kernel vectors for underdetermined matrices.
 *)
+
+section \<open>Quantitative nonzero integer kernel vectors for underdetermined matrices\<close>
 
 theory Integer_Kernel_Bounds
   imports
     "Jordan_Normal_Form.Determinant"
     "Linear_Inequalities.Mixed_Integer_Solutions"
-    Complex_Main
 begin
-
-section \<open>Bounded integer kernels\<close>
 
 lemma det_zero_of_zero_row:
   fixes A :: "'a :: comm_ring_1 mat"
@@ -229,15 +226,7 @@ proof -
   then have cardR: "card ?R = Suc (q * B * C) ^ p"
     by (metis (lifting) ext M_card card_image card_lists_length_eq finite_atLeastAtMost_int)
   have S_props: "x \<in> carrier_vec q \<and> (\<forall>j<q. 0 \<le> x $ j \<and> x $ j \<le> int C)" if xS: "x \<in> ?S" for x
-  proof -
-    obtain xs where xs: "xs \<in> ?L" and x_def: "x = vec_of_list xs" and xs_len: "length xs = q"
-      using xS by blast
-    then have "\<forall>j<q. 0 \<le> x $ j \<and> x $ j \<le> int C" 
-      using x_def by force
-    then show ?thesis
-      using x_def xs_len by force
-  qed
-
+    using xS by force
   have image_sub: "?f ` ?S \<subseteq> ?R"
   proof
     fix y
@@ -382,40 +371,25 @@ proof -
   have r_floor: "?r < real (C+1)"
     unfolding C_def using r_nonneg floor_correct[of ?r] by linarith
   have r_power: "?r ^ (q-p) = (real M) ^ p"
-  proof -
-    have "?r ^ (q-p) = ?r powr real (q-p)"
-      using Mpos by (simp add: powr_realpow)
-    also have "... = real M powr real p"
-      using gap by (simp add: powr_powr)
-    also have "... = (real M)^p"
-      using Mpos by (simp add: powr_realpow)
-    finally show ?thesis .
-  qed
-  have r_strict: "(real M)^p < real (C+1) ^ (q-p)"
-  proof -
-    have "?r ^ (q-p) < real (C+1) ^ (q-p)"
-      using r_floor gap by (intro power_strict_mono) auto
-    then show ?thesis using r_power by simp
-  qed
+    using Mpos gap by (simp add: powr_powr flip: powr_realpow)
+  have "?r ^ (q-p) < real (C+1) ^ (q-p)"
+    using r_floor gap by (intro power_strict_mono) auto
+  then have r_strict: "(real M)^p < real (C+1) ^ (q-p)"
+    using r_power by simp
   have Mone: "1 \<le> M" using Mpos by simp
   have MC: "M*C+1 \<le> M*(C+1)" using Mone by (simp add: algebra_simps)
   have le_nat: "(M*C+1)^p \<le> (M*(C+1))^p"
     using MC by (intro power_mono) simp_all
-  have real_le: "(real ((M*C+1)^p)::real) \<le> real ((M*(C+1))^p)"
-    by (rule of_nat_mono[OF le_nat])
   have "(real (M*C+1))^p \<le> real (M*(C+1))^p"
-    using real_le by simp
+    using of_nat_mono[OF le_nat] by simp
   also have "... = real M ^ p * real (C+1)^p"
     by (simp only: of_nat_mult power_mult_distrib)
   also have "... < real (C+1) ^ (q-p) * real (C+1)^p"
-  proof -
-    have pos: "0 < (real (C+1))^p" by simp
-    show ?thesis by (rule mult_strict_right_mono[OF r_strict pos])
-  qed
+    using r_strict by auto
   also have "... = real (C+1)^q"
-    using hpq by (simp add: power_add [symmetric])
+    using hpq by (simp flip: power_add)
   finally have real_lt: "(real (M*C+1))^p < real (C+1)^q" .
-  have "(real ((M*C+1)^p)::real) < real ((C+1)^q)"
+  have "real ((M*C+1)^p) < real ((C+1)^q)"
     using real_lt by simp
   then show ?thesis by (simp only: of_nat_less_iff)
 qed
@@ -427,8 +401,7 @@ theorem exists_ne_zero_int_vec_bounded_kernel_exponent:
     and ABnd: "A \<in> Bounded_mat Bnd"
   shows "\<exists>x. x \<in> carrier_vec q \<and> x \<noteq> 0\<^sub>v q \<and>
     A *\<^sub>v x = 0\<^sub>v p \<and>
-    (\<forall>j<q. (of_int (\<bar>x $ j\<bar>) :: real) \<le>
-      (real q * (of_int (max 1 Bnd) :: real)) powr (real p / real (q-p)))"
+    (\<forall>j<q. real_of_int (\<bar>x $ j\<bar>) \<le> (real q * of_int (max 1 Bnd)) powr (p / real (q-p)))"
 proof -
   define M where "M \<equiv> q * nat (max 1 Bnd)"
   define R where "R \<equiv> real M powr (real p / real (q-p))"
@@ -454,11 +427,10 @@ proof -
     fix j assume j: "j < q"
     have int_bound: "\<bar>x $ j\<bar> \<le> int C"
       using x j by (simp add: Bounded_vec_def)
-    have "(of_int (\<bar>x $ j\<bar>) :: real) \<le> real C"
+    have "real_of_int (\<bar>x $ j\<bar>) \<le> C"
       using int_bound by simp
     also have "... \<le> R" by (rule floor_le)
-    finally show "(of_int (\<bar>x $ j\<bar>) :: real) \<le>
-      (real q * (of_int (max 1 Bnd) :: real)) powr (real p / real (q-p))"
+    finally show "real_of_int \<bar>x $ j\<bar> \<le> (real q * of_int (max 1 Bnd)) powr (p / real (q-p))"
       unfolding R_eq .
   qed
 qed
