@@ -8,5 +8,6 @@ session Bivariate_Resultants (AFP) = Factor_Algebraic_Polynomial +
   theories
     Bivariate_Polynomial
     Resultant_Multiplicity
+    Bivariate_Resultant_Pairs
   document_files
     "root.tex"

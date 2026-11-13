@@ -789,7 +789,7 @@ lemma bivariate_degree_first_zero:
   using assms unfolding bivariate_def by (auto simp: degree_eq_0_iff)
 
 
-lemma green_factorization:
+lemma bivariate_factorization_by_first_degree:
   fixes F :: "complex mpoly"
   assumes "bivariate F" "F \<noteq> 0"
   shows "\<exists>F0 Fs. F = F0 * prod_list Fs \<and> F0 \<noteq> 0 \<and>
@@ -927,7 +927,7 @@ proof
 qed
 
 
-lemma green_factorization_regular:
+lemma bivariate_factorization_regular:
   fixes F :: "complex mpoly"
   assumes "bivariate F" "F \<noteq> 0"
   obtains F0 Fs where
@@ -939,7 +939,7 @@ proof -
     "vars F0 \<subseteq> {1}"
     "\<forall>G \<in> set Fs. bivariate G \<and> irreducible G \<and>
       0 < MPoly_Type.degree G 0"
-    using green_factorization[OF assms] by blast
+    using bivariate_factorization_by_first_degree[OF assms] by blast
   have reg: "\<And>G. G \<in> set Fs \<Longrightarrow> bivariate G \<and> irreducible G \<and>
     0 < MPoly_Type.degree G 0 \<and> (\<forall>a. specialize_second a G \<noteq> 0)"
     using f(4) irreducible_specialize_second_nonzero by blast

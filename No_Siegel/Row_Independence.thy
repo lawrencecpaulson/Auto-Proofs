@@ -284,7 +284,7 @@ proof -
     and factors: "\<And>G. G \<in> set Fs \<Longrightarrow>
       bivariate G \<and> irreducible G \<and>
       0 < MPoly_Type.degree G 0 \<and> (\<forall>a. specialize_second a G \<noteq> 0)"
-    using green_factorization_regular[OF bv nz] by blast
+    using bivariate_factorization_regular[OF bv nz] by blast
   let ?bad = "{i \<in> I. specialize_second (snd (point i)) F0 = 0}"
   let ?good = "I - ?bad"
   let ?A = "sum_list (map (\<lambda>G. MPoly_Type.degree G 0) Fs)"

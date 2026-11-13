@@ -118,32 +118,16 @@ proof -
     by (simp add: partial_insertion_def)
   have der: "map_poly ?h (pderiv ?p) = pderiv (specialize_second a F)"
     using specialize_first_pderiv[of "\<lambda>_. a" 0 F] by simp
-  have "poly (first_resultant_poly F) a =
-      ?h (det (sylvester_mat_sub (degree ?p) (degree (pderiv ?p)) ?p (pderiv ?p)))"
+  have "poly (first_resultant_poly F) a = ?h (resultant ?p (pderiv ?p))"
     using poly_first_resultant_poly[OF assms, of a]
-    by (simp add: first_resultant_def resultant_def sylvester_mat_def)
-  also have "... = det (h.mat_hom (sylvester_mat_sub
-      (degree ?p) (degree (pderiv ?p)) ?p (pderiv ?p)))"
-    unfolding h.hom_det ..
-  also have "h.mat_hom (sylvester_mat_sub
-      (degree ?p) (degree (pderiv ?p)) ?p (pderiv ?p)) =
-      sylvester_mat_sub (degree ?p) (degree (pderiv ?p))
-        (specialize_second a F) (pderiv (specialize_second a F))"
-  proof -
-    have cp0: "coeff (map_poly ?h ?p) k = ?h (coeff ?p k)" for k
-      by (rule coeff_map_poly) simp
-    have cd0: "coeff (map_poly ?h (pderiv ?p)) k =
-        ?h (coeff (pderiv ?p) k)" for k
-      by (rule coeff_map_poly) simp
-    have cp: "?h (coeff ?p k) = coeff (specialize_second a F) k" for k
-      using cp0[of k] eq by simp
-    have cd: "?h (coeff (pderiv ?p) k) =
-        coeff (pderiv (specialize_second a F)) k" for k
-      using cd0[of k] der by simp
-    show ?thesis
-      by (intro eq_matI) (auto simp: sylvester_mat_sub_def cp cd)
-  qed
-  finally show ?thesis by simp
+    by (simp add: first_resultant_def)
+  also have "... = ?h (resultant_sub (degree ?p) (degree (pderiv ?p))
+      ?p (pderiv ?p))"
+    by (simp add: resultant_def sylvester_mat_def resultant_sub_def)
+  also have "... = resultant_sub (degree ?p) (degree (pderiv ?p))
+      (map_poly ?h ?p) (map_poly ?h (pderiv ?p))"
+    by (rule h.resultant_sub_map_poly)
+  finally show ?thesis by (simp add: resultant_sub_def eq der)
 qed
 
 lemma first_resultant_specialize_matrix:
@@ -455,21 +439,6 @@ proof -
   qed
 qed
 
-lemma first_resultant_multiplicity_degree_le_two_irreducible:
-  assumes bv: "bivariate F" and irr: "irreducible F"
-    and pos: "0 < MPoly_Type.degree F 0"
-    and small: "MPoly_Type.degree F 0 \<le> 2"
-  shows "Polynomial.order x (specialize_second a F) \<le>
-    1 + Polynomial.order a (first_resultant_poly F)"
-proof -
-  have nz: "specialize_second a F \<noteq> 0"
-    by (rule irreducible_specialize_second_nonzero[OF bv irr pos])
-  have rnz: "first_resultant_poly F \<noteq> 0"
-    by (rule first_resultant_nonzero_irreducible[OF bv irr pos])
-  show ?thesis
-    by (rule first_resultant_multiplicity_degree_le_two[OF bv pos small nz rnz])
-qed
-
 lemma degree_coeff_first_le:
   "MPoly_Type.degree (coeff (mpoly_to_mpoly_poly 0 F) k) 1
     \<le> MPoly_Type.degree F 1"
@@ -510,38 +479,88 @@ lemma mpoly_degree_prod_le:
   using assms by (induction S rule: finite_induct)
     (auto intro: order.trans[OF mpoly_degree_mult_le])
 
-lemma mpoly_degree_det_le:
+lemma mpoly_degree_det_row_le:
   fixes A :: "complex mpoly mat"
   assumes mat: "A \<in> carrier_mat n n"
-    and entries: "\<And>j k. j < n \<Longrightarrow> k < n \<Longrightarrow> MPoly_Type.degree (A $$ (j,k)) v \<le> D"
-  shows "MPoly_Type.degree (det A) v \<le> n * D"
+    and entries: "\<And>j k. j < n \<Longrightarrow> k < n \<Longrightarrow>
+      MPoly_Type.degree (A $$ (j,k)) v \<le> D j"
+  shows "MPoly_Type.degree (det A) v \<le> (\<Sum>j<n. D j)"
 proof -
   let ?P = "{p. p permutes {0..<n}}"
   have finite: "finite ?P" using finite_permutations by blast
-  have bound: "MPoly_Type.degree (signof p * (\<Prod>j<n. A $$ (j,p j))) v \<le> n * D"
-    if "p \<in> ?P" for p
+  have bound: "MPoly_Type.degree (signof p * (\<Prod>j<n. A $$ (j,p j))) v
+      \<le> (\<Sum>j<n. D j)" if "p \<in> ?P" for p
   proof -
     have pj: "p j < n" if "j < n" for j
       using that \<open>p \<in> ?P\<close> by (simp add: permutes_in_image)
-    have prod: "MPoly_Type.degree (\<Prod>j<n. A $$ (j,p j)) v \<le> n * D"
+    have prod: "MPoly_Type.degree (\<Prod>j<n. A $$ (j,p j)) v
+        \<le> (\<Sum>j<n. D j)"
     proof -
       have "MPoly_Type.degree (\<Prod>j<n. A $$ (j,p j)) v \<le>
-        (\<Sum>j<n. MPoly_Type.degree (A $$ (j,p j)) v)"
+          (\<Sum>j<n. MPoly_Type.degree (A $$ (j,p j)) v)"
         by (rule mpoly_degree_prod_le) simp
-      also have "... \<le> (\<Sum>j<n. D)"
+      also have "... \<le> (\<Sum>j<n. D j)"
         by (rule sum_mono) (auto intro: entries pj)
-      finally show ?thesis by simp
+      finally show ?thesis .
     qed
     have minus: "MPoly_Type.degree (-1 :: complex mpoly) v = 0"
       using degree_mpoly_to_mpoly_poly[of v "-1 :: complex mpoly"] by simp
     have "MPoly_Type.degree (signof p :: complex mpoly) v = 0"
       by (simp add: sign_def minus)
-    then show ?thesis using prod mpoly_degree_mult_le[of "signof p" "(\<Prod>j<n. A $$ (j,p j))" v]
+    then show ?thesis
+      using prod mpoly_degree_mult_le[of "signof p" "(\<Prod>j<n. A $$ (j,p j))" v]
       by linarith
   qed
-  have "MPoly_Type.degree (\<Sum>p\<in>?P. signof p * (\<Prod>j<n. A $$ (j,p j))) v \<le> n * D"
+  have "MPoly_Type.degree
+      (\<Sum>p\<in>?P. signof p * (\<Prod>j<n. A $$ (j,p j))) v
+      \<le> (\<Sum>j<n. D j)"
     by (rule mpoly_degree_sum_le[OF finite]) (use bound in auto)
   then show ?thesis by (simp add: det_def'[OF mat] atLeast0LessThan)
+qed
+
+lemma mpoly_degree_resultant_weighted_le:
+  fixes p q :: "complex mpoly poly"
+  assumes cp: "\<And>k. MPoly_Type.degree (coeff p k) v \<le> Dp"
+    and cq: "\<And>k. MPoly_Type.degree (coeff q k) v \<le> Dq"
+  shows "MPoly_Type.degree (resultant p q) v \<le>
+    degree q * Dp + degree p * Dq"
+proof -
+  let ?m = "degree p"
+  let ?n = "degree q"
+  let ?A = "sylvester_mat p q"
+  have mat: "?A \<in> carrier_mat (?m+?n) (?m+?n)"
+    by (rule sylvester_carrier_mat)
+  have entries: "MPoly_Type.degree (?A $$ (j,k)) v \<le>
+      (if j < ?n then Dp else Dq)"
+    if "j < ?m+?n" "k < ?m+?n" for j k
+    using cp cq that
+    by (auto simp: sylvester_mat_def sylvester_mat_sub_def)
+  have split: "(\<Sum>j<?m+?n. if j < ?n then Dp else Dq) =
+      ?n * Dp + ?m * Dq"
+  proof -
+    have set: "{..< ?m+?n} = {..< ?n} \<union> {?n..< ?m+?n}"
+      by auto
+    show ?thesis
+      unfolding set
+      by (subst sum.union_disjoint) auto
+  qed
+  have "MPoly_Type.degree (det ?A) v \<le>
+      (\<Sum>j<?m+?n. if j < ?n then Dp else Dq)"
+    by (rule mpoly_degree_det_row_le[OF mat entries])
+  then show ?thesis
+    by (simp add: resultant_def split)
+qed
+
+lemma mpoly_degree_det_le:
+  fixes A :: "complex mpoly mat"
+  assumes mat: "A \<in> carrier_mat n n"
+    and entries: "\<And>j k. j < n \<Longrightarrow> k < n \<Longrightarrow>
+      MPoly_Type.degree (A $$ (j,k)) v \<le> D"
+  shows "MPoly_Type.degree (det A) v \<le> n * D"
+proof -
+  have "MPoly_Type.degree (det A) v \<le> (\<Sum>j<n. (\<lambda>_. D) j)"
+    by (rule mpoly_degree_det_row_le[OF mat]) (use entries in auto)
+  then show ?thesis by simp
 qed
 
 lemma mpoly_degree_resultant_le:
@@ -550,15 +569,9 @@ lemma mpoly_degree_resultant_le:
     and cq: "\<And>k. MPoly_Type.degree (coeff q k) v \<le> D"
   shows "MPoly_Type.degree (resultant p q) v \<le> (degree p + degree q) * D"
 proof -
-  let ?N = "degree p + degree q"
-  let ?A = "sylvester_mat p q"
-  have mat: "?A \<in> carrier_mat ?N ?N" by (rule sylvester_carrier_mat)
-  have entries: "MPoly_Type.degree (?A $$ (j,k)) v \<le> D"
-    if "j < ?N" "k < ?N" for j k
-    using cp cq that by (auto simp: sylvester_mat_def sylvester_mat_sub_def)
-  have "MPoly_Type.degree (det ?A) v \<le> ?N * D"
-    by (rule mpoly_degree_det_le[OF mat]) (use entries in auto)
-  then show ?thesis by (simp add: resultant_def)
+  have "MPoly_Type.degree (resultant p q) v \<le> degree q * D + degree p * D"
+    by (rule mpoly_degree_resultant_weighted_le[OF cp cq])
+  then show ?thesis by (simp add: algebra_simps)
 qed
 
 lemma degree_coeff_first_deriv_le:
@@ -1147,13 +1160,6 @@ proof -
     with ordm show ?thesis by arith
   qed
 qed
-
-lemma first_resultant_multiplicity_at_zero:
-  assumes bv: "bivariate F" and irr: "irreducible F"
-    and pos: "0 < MPoly_Type.degree F 0"
-  shows "Polynomial.order 0 (specialize_second a F) \<le>
-    1 + Polynomial.order a (first_resultant_poly F)"
-  by (rule first_resultant_multiplicity_irreducible[OF bv irr pos])
 
 lemma determinant_zero_rows_order:
   fixes A :: "complex poly mat"

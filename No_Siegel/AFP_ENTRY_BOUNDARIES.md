@@ -27,6 +27,31 @@ diagonal-grid specialisation. It stays with the paper for now. The
 `Bivariate_Resultants` theories do not use any of its declarations and can
 instead import their AFP prerequisites directly.
 
+## Bivariate resultant entry assessment
+
+`Bivariate_Resultants` is a useful independent AFP candidate. Its main
+statements concern arbitrary bivariate complex polynomials: factorisation
+with nonzero specialisations, the degree of the first-variable resultant,
+the multiplicity bound at every fibre (including degree drops), and a bound
+on exceptional fibres. No Green lattice, diagonal grid, derivative row, or
+paper parameter occurs in those statements. `No_Siegel` uses the general
+factorisation and resultant bounds in `Row_Independence`, where the
+point-configuration argument remains.
+
+The existing AFP `Factor_Algebraic_Polynomial.Multivariate_Resultant` supplies
+resultant construction and specialisation facts. It does not supply the
+derivative-resultant multiplicity or exceptional-fibre bounds proved here.
+The entry now also has a resultant for **two** bivariate polynomials, a
+weighted degree bound, fixed-size and regular-fibre specialisation theorems,
+a common-root fibre bound, and a corollary for generic full-degree,
+root-squarefree fibres. These extend the existing AFP construction, which
+pairs a multivariate polynomial with a univariate one. The determinant
+degree argument was consolidated into a row-wise lemma; the old uniform
+bound remains a corollary. Unused special cases of the multiplicity theorem
+were removed, and the general factorisation theorems have descriptive
+names. Green's Appendix A is cited in the entry's document. The staged
+session, PDF, browser output, and outline passed on 13 November 2026.
+
 The character entry builds without `No_Siegel` and exports the discriminant
 definition and classification theorem. `No_Siegel` retains the lattice
 consequences and the Green-specific bridge.
@@ -49,3 +74,8 @@ paper locale extends the independent character-data locale, so its assumptions
 are stated only once. The bivariate entry contains general specialisation
 and resultant bounds, while `Row_Independence` retains Green's specific
 derivative-row argument.
+
+After the bivariate pair-resultant extension and factorisation-theorem
+rename, `Bivariate_Resultants` passed its AFP-style session and document
+build, and `No_Siegel` passed with its PDF against the revised entry on
+13 November 2026.
