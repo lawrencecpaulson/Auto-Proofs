@@ -1,6 +1,7 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage[T1]{fontenc}
 \usepackage{isabelle,isabellesym}
+\usepackage{amsmath,amssymb}
 \usepackage{pdfsetup}
 \isabellestyle{it}
 
@@ -10,14 +11,52 @@
 \maketitle
 
 \begin{abstract}
-We develop a maximum-modulus calculus for finite families of complex
-embeddings, recover basis coordinates through an indexed inverse basis
-matrix, and lift bounded integer-matrix kernels to bounded complex kernels
-using integral structure constants. The session depends on Bounded Integer
-Kernels. It abstracts techniques used by Mathlib's number-field house and
-basis-matrix developments by Michail Karatarakis, without assuming a
-concrete integral basis of a number field.
+We develop maximum-modulus bounds for finite families of complex-valued
+maps, recover basis coordinates through an indexed inverse basis matrix,
+and lift bounded integer kernels to complex kernels using integral
+structure constants. The lifted results include Hadamard, linear, and
+Siegel-exponent bounds. A two-point family models the conjugate images of
+the Gaussian basis $1,i$. The session depends on the AFP entry Bounded
+Integer Kernels and abstracts techniques in Mathlib's number-field house
+and Siegel-lemma developments~\cite{mathlib-house,mathlib-siegel}.
 \end{abstract}
 
+\section{Scope and main bounds}
+The finite set $E$ labels complex-valued maps. The general results use
+pointwise complex values and do not require a particular number field.
+The \emph{house} of a family $z$ is the maximum of $|z(e)|$ for $e\in E$,
+with value zero when $E$ is empty. An indexed biorthogonal family provides
+coordinate recovery and an inverse basis matrix.
+
+Suppose a $p\times q$ complex matrix acts on a rank-$d$ integer span,
+with $0<p<q$ and $d>0$. If its integral structure constants have absolute
+value at most $M$, the lifted Siegel lemma gives a nonzero kernel vector
+whose integer coordinates have absolute value at most
+\[
+  \bigl(qd\,\max(1,M)\bigr)^{pd/(qd-pd)}.
+\]
+If each basis element has house at most $K$, every coordinate of the
+resulting complex kernel vector, across the finite family, has house at
+most $dK$ times this bound. The theories also retain determinant and
+linear bounds for applications needing those particular estimates.
+
+\section{A two-point example}
+The final theory uses two labels for the identity and conjugate images
+of $1$ and $i$. It constructs the dual basis explicitly, verifies
+biorthogonality, recovers coordinates, and proves integer independence
+at the identity image. This illustrates the hypotheses of the abstract
+recovery interface without invoking a general number-field library.
+
 \input{session}
+
+\begin{thebibliography}{9}
+\bibitem{mathlib-house}
+Michail Karatarakis, \emph{House of an Algebraic Number},
+Mathlib, \texttt{Mathlib/NumberTheory/NumberField/House.lean}, 2024.
+
+\bibitem{mathlib-siegel}
+Fabrizio Barroero, Laura Capuano, and Amos Turchet,
+\emph{Siegel's Lemma}, Mathlib,
+\texttt{Mathlib/NumberTheory/SiegelsLemma.lean}, 2024.
+\end{thebibliography}
 \end{document}
