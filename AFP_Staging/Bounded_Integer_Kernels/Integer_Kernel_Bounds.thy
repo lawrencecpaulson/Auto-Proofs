@@ -8,6 +8,7 @@ theory Integer_Kernel_Bounds
   imports
     "Jordan_Normal_Form.Determinant"
     "Linear_Inequalities.Mixed_Integer_Solutions"
+    Complex_Main
 begin
 
 section \<open>Bounded integer kernels\<close>
@@ -16,12 +17,12 @@ lemma det_zero_of_zero_row:
   fixes A :: "'a :: comm_ring_1 mat"
   assumes A: "A \<in> carrier_mat n n"
   assumes k: "k < n"
-  assumes row0: "row A k = 0\<^sub>v n"
+  assumes row0: "Matrix.row A k = 0\<^sub>v n"
   shows "det A = 0"
 proof -
-  have rows: "(\<lambda>i. row A i) \<in> {0..<n} \<rightarrow> carrier_vec n"
+  have rows: "(\<lambda>i. Matrix.row A i) \<in> {0..<n} \<rightarrow> carrier_vec n"
     using A by auto
-  have eqA: "A = mat\<^sub>r n n (\<lambda>i. if i = k then 0\<^sub>v n else row A i)"
+  have eqA: "A = mat\<^sub>r n n (\<lambda>i. if i = k then 0\<^sub>v n else Matrix.row A i)"
     by (rule eq_rowI) (use A k row0 in auto)
   show ?thesis
     using eqA det_row_0[OF k rows] by presburger
@@ -37,7 +38,7 @@ proof -
   have B: "B \<in> carrier_mat q q"
     unfolding B_def using A
     by (metis add_diff_cancel_left' carrier_append_rows hpq less_imp_add_positive zero_carrier_mat)
-  have row0: "row B p = 0\<^sub>v q"
+  have row0: "Matrix.row B p = 0\<^sub>v q"
     using A B hpq by (intro eq_vecI) (auto simp: B_def append_rows_def)
   have detB0: "det B = 0"
     by (rule det_zero_of_zero_row[OF B hpq row0])
@@ -162,13 +163,34 @@ qed
 text \<open>A counting form of Siegel's lemma. The bound can be selected to suit
   a particular auxiliary-polynomial construction.\<close>
 
-theorem exists_ne_zero_int_vec_bounded_kernel_card:
+lemma shifted_product_bounds:
+  fixes a x C B :: int
+  assumes ab: "\<bar>a\<bar> \<le> B" and x0: "0 \<le> x" and xC: "x \<le> C"
+  shows "0 \<le> a * x - min 0 a * C \<and> a * x - min 0 a * C \<le> B * C"
+proof (cases "a < 0")
+  case True
+  then have ident: "a * x - min 0 a * C = (-a) * (C-x)"
+    by (simp add: algebra_simps)
+  have "0 \<le> (-a) * (C-x)" using True xC by (intro mult_nonneg_nonneg) auto
+  moreover have "(-a) * (C-x) \<le> B * C"
+    using True ab x0 xC by (intro mult_mono) auto
+  ultimately show ?thesis unfolding ident by blast
+next
+  case False
+  then have ident: "a * x - min 0 a * C = a * x" by simp
+  have "0 \<le> a * x" using False x0 by (intro mult_nonneg_nonneg) auto
+  moreover have "a * x \<le> B * C"
+    using False ab x0 xC by (intro mult_mono) auto
+  ultimately show ?thesis unfolding ident by blast
+qed
+
+theorem exists_ne_zero_int_vec_bounded_kernel_card_sharp:
   fixes A :: "int mat"
   assumes A: "A \<in> carrier_mat p q"
   assumes ppos: "0 < p"
   assumes hpq: "p < q"
   assumes ABnd: "A \<in> Bounded_mat Bnd"
-  assumes count: "Suc (2 * q * nat (max 1 Bnd) * C) ^ p < Suc C ^ q"
+  assumes count: "Suc (q * nat (max 1 Bnd) * C) ^ p < Suc C ^ q"
   shows "\<exists>x. x \<in> carrier_vec q \<and> x \<noteq> 0\<^sub>v q \<and> A *\<^sub>v x = 0\<^sub>v p \<and>
     x \<in> Bounded_vec (int C)"
 proof -
@@ -177,9 +199,9 @@ proof -
 
   let ?L = "{xs :: int list. set xs \<subseteq> {0..int C} \<and> length xs = q}"
   let ?S = "vec_of_list ` ?L"
-  let ?K = "{ys :: int list. set ys \<subseteq> {-M..M} \<and> length ys = p}"
+  let ?K = "{ys :: int list. set ys \<subseteq> {0..M} \<and> length ys = p}"
   let ?R = "vec_of_list ` ?K"
-  let ?f = "\<lambda>x. A *\<^sub>v x"
+  let ?f = "\<lambda>x. vec p (\<lambda>u. \<Sum>j<q. A $$ (u,j) * x $ j - min 0 (A $$ (u,j)) * int C)"
 
   have B_int: "int B = max 1 Bnd"
     unfolding B_def by simp
@@ -198,13 +220,13 @@ proof -
   have cardS: "card ?S = Suc C ^ q"
     using cardL injL by (simp add: card_image)
 
-  have M_card: "card {-M..M} = Suc (2 * q * B * C)"
+  have M_card: "card {0..M} = Suc (q * B * C)"
     by (simp add: M_def nat_add_distrib nat_mult_distrib)
   have finR: "finite ?R"
     using finite_lists_length_eq by blast
   have injK: "inj_on vec_of_list ?K"
     by (meson inj_on_inverseI list_vec)
-  then have cardR: "card ?R = Suc (2 * q * B * C) ^ p"
+  then have cardR: "card ?R = Suc (q * B * C) ^ p"
     by (metis (lifting) ext M_card card_image card_lists_length_eq finite_atLeastAtMost_int)
   have S_props: "x \<in> carrier_vec q \<and> (\<forall>j<q. 0 \<le> x $ j \<and> x $ j \<le> int C)" if xS: "x \<in> ?S" for x
   proof -
@@ -225,33 +247,30 @@ proof -
     then have x_carrier: "x \<in> carrier_vec q" and x_bounds: "\<forall>j<q. 0 \<le> x $ j \<and> x $ j \<le> int C"
       using S_props[OF xS] by blast+
     have y_carrier: "y \<in> carrier_vec p"
-      unfolding y_def by (rule mult_mat_vec_carrier[OF A x_carrier])
-    have y_bounds: "y $ u \<in> {-M..M}" if up: "u < p" for u
+      unfolding y_def by simp
+    have y_bounds: "y $ u \<in> {0..M}" if up: "u < p" for u
     proof -
-      have y_expand: "y $ u = (\<Sum>j<q. A $$ (u,j) * x $ j)"
+      have term_bounds: "0 \<le> A $$ (u,j) * x $ j - min 0 (A $$ (u,j)) * int C \<and>
+          A $$ (u,j) * x $ j - min 0 (A $$ (u,j)) * int C \<le> int B * int C"
+        if j: "j < q" for j
       proof -
-        have "y $ u = row A u \<bullet> x"
-          using A up y_def by fastforce
-        also have "\<dots> = (\<Sum>j<q. A $$ (u,j) * x $ j)"
-          using A up x_carrier by (simp add: atLeast0LessThan scalar_prod_def)
-        finally show ?thesis .
+        have ab: "\<bar>A $$ (u,j)\<bar> \<le> int B"
+          using ABnd A up j by (force simp: Bounded_mat_def B_int)
+        have xb: "0 \<le> x $ j" "x $ j \<le> int C"
+          using x_bounds j by auto
+        show ?thesis
+          using shifted_product_bounds[OF ab xb] by blast
       qed
-      have A_bound: "\<bar>A $$ (u,j)\<bar> \<le> int B" if j: "j < q" for j
-        using ABnd A up j by (force simp: Bounded_mat_def B_int) 
-      have x_bound: "\<bar>x $ j\<bar> \<le> int C" if j: "j < q" for j
-        using x_bounds[rule_format, OF j] by auto
-      have "\<bar>y $ u\<bar> \<le> (\<Sum>j<q. \<bar>A $$ (u,j) * x $ j\<bar>)"
-        unfolding y_expand by (rule sum_abs)
-      also have "\<dots> = (\<Sum>j<q. \<bar>A $$ (u,j)\<bar> * \<bar>x $ j\<bar>)"
-        by (simp add: abs_mult)
-      also have "\<dots> \<le> (\<Sum>j<q. int B * int C)"
-        by (intro sum_mono A_bound x_bound mult_mono) auto
-      also have "\<dots> = int q * int B * int C"
-        by simp
-      finally have abs_y: "\<bar>y $ u\<bar> \<le> M"
-        unfolding M_def by simp
-      then show "y $ u \<in> {-M..M}"
-        by auto
+      have term_nonneg: "0 \<le> (\<Sum>j<q. A $$ (u,j) * x $ j - min 0 (A $$ (u,j)) * int C)"
+        by (intro sum_nonneg) (use term_bounds in auto)
+      have y_nonneg: "0 \<le> y $ u"
+        unfolding y_def using up term_nonneg by simp
+      have term_le: "(\<Sum>j<q. A $$ (u,j) * x $ j - min 0 (A $$ (u,j)) * int C) \<le>
+          (\<Sum>j<q. int B * int C)"
+        by (intro sum_mono) (use term_bounds in auto)
+      have y_le: "y $ u \<le> M"
+        unfolding y_def M_def using up term_le by simp
+      show ?thesis using y_nonneg y_le by simp
     qed
     define ys where "ys \<equiv> map (\<lambda>u. y $ u) [0..<p]"
     have ys_mem: "ys \<in> ?K"
@@ -280,14 +299,45 @@ proof -
     unfolding z_def using x_carrier y_carrier by auto
   have z_nz: "z \<noteq> 0\<^sub>v q"
     using i z_def by (metis index_minus_vec index_zero_vec right_minus_eq)
-  have"A *\<^sub>v y \<in> carrier_vec p"
+  have Ay_carrier: "A *\<^sub>v y \<in> carrier_vec p"
     by (rule mult_mat_vec_carrier[OF A y_carrier])
+  have Axy: "A *\<^sub>v x = A *\<^sub>v y"
+  proof (rule eq_vecI)
+    fix u assume up: "u < dim_vec (A *\<^sub>v y)"
+    have up_p: "u < p" using A y_carrier up by simp
+    have "(?f x) $ u = (?f y) $ u" using img_eq by simp
+    then show "(A *\<^sub>v x) $ u = (A *\<^sub>v y) $ u"
+      using A x_carrier y_carrier up_p
+      by (simp add: atLeast0LessThan scalar_prod_def sum_subtractf)
+  next
+    show "dim_vec (A *\<^sub>v x) = dim_vec (A *\<^sub>v y)"
+      using A x_carrier y_carrier by simp
+  qed
   then have Az0: "A *\<^sub>v z = 0\<^sub>v p"
-    by (simp add: z_def img_eq mult_minus_distrib_mat_vec[OF A x_carrier y_carrier])
+    using Ay_carrier by (simp add: z_def mult_minus_distrib_mat_vec[OF A x_carrier y_carrier])
   have z_bnd: "z \<in> Bounded_vec (int C)"
     unfolding Bounded_vec_def z_def using x_bounds y_bounds y_carrier by fastforce
   show ?thesis
     using z_carrier z_nz Az0 z_bnd by blast
+qed
+
+theorem exists_ne_zero_int_vec_bounded_kernel_card:
+  fixes A :: "int mat"
+  assumes A: "A \<in> carrier_mat p q"
+  assumes ppos: "0 < p"
+  assumes hpq: "p < q"
+  assumes ABnd: "A \<in> Bounded_mat Bnd"
+  assumes count: "Suc (2 * q * nat (max 1 Bnd) * C) ^ p < Suc C ^ q"
+  shows "\<exists>x. x \<in> carrier_vec q \<and> x \<noteq> 0\<^sub>v q \<and> A *\<^sub>v x = 0\<^sub>v p \<and>
+    x \<in> Bounded_vec (int C)"
+proof -
+  have le: "Suc (q * nat (max 1 Bnd) * C) ^ p \<le>
+    Suc (2 * q * nat (max 1 Bnd) * C) ^ p"
+    by (intro power_mono) simp_all
+  have "Suc (q * nat (max 1 Bnd) * C) ^ p < Suc C ^ q"
+    using le count by linarith
+  from exists_ne_zero_int_vec_bounded_kernel_card_sharp[OF A ppos hpq ABnd this]
+  show ?thesis .
 qed
 
 corollary exists_ne_zero_int_vec_bounded_kernel_linear:
@@ -317,6 +367,100 @@ proof -
   from exists_ne_zero_int_vec_bounded_kernel_card[OF A ppos _ ABnd count] hpq ppos
   show ?thesis
     unfolding C_def using B_int by simp
+qed
+
+
+lemma siegel_exponent_count:
+  fixes p q M :: nat
+  assumes ppos: "0 < p" and hpq: "p < q" and Mpos: "0 < M"
+  defines "C \<equiv> nat \<lfloor>(real M) powr (real p / real (q-p))\<rfloor>"
+  shows "(M * C + 1) ^ p < (C + 1) ^ q"
+proof -
+  let ?r = "real M powr (real p / real (q-p))"
+  have gap: "0 < q-p" using hpq by simp
+  have r_nonneg: "0 \<le> ?r" using Mpos by simp
+  have r_floor: "?r < real (C+1)"
+    unfolding C_def using r_nonneg floor_correct[of ?r] by linarith
+  have r_power: "?r ^ (q-p) = (real M) ^ p"
+  proof -
+    have "?r ^ (q-p) = ?r powr real (q-p)"
+      using Mpos by (simp add: powr_realpow)
+    also have "... = real M powr real p"
+      using gap by (simp add: powr_powr)
+    also have "... = (real M)^p"
+      using Mpos by (simp add: powr_realpow)
+    finally show ?thesis .
+  qed
+  have r_strict: "(real M)^p < real (C+1) ^ (q-p)"
+  proof -
+    have "?r ^ (q-p) < real (C+1) ^ (q-p)"
+      using r_floor gap by (intro power_strict_mono) auto
+    then show ?thesis using r_power by simp
+  qed
+  have Mone: "1 \<le> M" using Mpos by simp
+  have MC: "M*C+1 \<le> M*(C+1)" using Mone by (simp add: algebra_simps)
+  have le_nat: "(M*C+1)^p \<le> (M*(C+1))^p"
+    using MC by (intro power_mono) simp_all
+  have real_le: "(real ((M*C+1)^p)::real) \<le> real ((M*(C+1))^p)"
+    by (rule of_nat_mono[OF le_nat])
+  have "(real (M*C+1))^p \<le> real (M*(C+1))^p"
+    using real_le by simp
+  also have "... = real M ^ p * real (C+1)^p"
+    by (simp only: of_nat_mult power_mult_distrib)
+  also have "... < real (C+1) ^ (q-p) * real (C+1)^p"
+  proof -
+    have pos: "0 < (real (C+1))^p" by simp
+    show ?thesis by (rule mult_strict_right_mono[OF r_strict pos])
+  qed
+  also have "... = real (C+1)^q"
+    using hpq by (simp add: power_add [symmetric])
+  finally have real_lt: "(real (M*C+1))^p < real (C+1)^q" .
+  have "(real ((M*C+1)^p)::real) < real ((C+1)^q)"
+    using real_lt by simp
+  then show ?thesis by (simp only: of_nat_less_iff)
+qed
+
+theorem exists_ne_zero_int_vec_bounded_kernel_exponent:
+  fixes A :: "int mat"
+  assumes A: "A \<in> carrier_mat p q"
+    and ppos: "0 < p" and hpq: "p < q"
+    and ABnd: "A \<in> Bounded_mat Bnd"
+  shows "\<exists>x. x \<in> carrier_vec q \<and> x \<noteq> 0\<^sub>v q \<and>
+    A *\<^sub>v x = 0\<^sub>v p \<and>
+    (\<forall>j<q. (of_int (\<bar>x $ j\<bar>) :: real) \<le>
+      (real q * (of_int (max 1 Bnd) :: real)) powr (real p / real (q-p)))"
+proof -
+  define M where "M \<equiv> q * nat (max 1 Bnd)"
+  define R where "R \<equiv> real M powr (real p / real (q-p))"
+  define C where "C \<equiv> nat \<lfloor>R\<rfloor>"
+  have Mpos: "0 < M" unfolding M_def using hpq ppos by simp
+  have count_M: "(M * C + 1)^p < (C+1)^q"
+    unfolding C_def R_def
+    by (rule siegel_exponent_count[OF ppos hpq Mpos])
+  have count: "Suc (q * nat (max 1 Bnd) * C)^p < Suc C^q"
+    using count_M unfolding M_def by simp
+  obtain x where x: "x \<in> carrier_vec q" "x \<noteq> 0\<^sub>v q"
+    "A *\<^sub>v x = 0\<^sub>v p" "x \<in> Bounded_vec (int C)"
+    using exists_ne_zero_int_vec_bounded_kernel_card_sharp[OF A ppos hpq ABnd count]
+    by blast
+  have floor_le: "real C \<le> R"
+    unfolding C_def using Mpos by (simp add: R_def of_nat_floor)
+  have R_eq: "R = (real q * (of_int (max 1 Bnd) :: real)) powr (real p / real (q-p))"
+    unfolding R_def M_def by simp
+  show ?thesis
+  proof (intro exI conjI allI impI)
+    show "x \<in> carrier_vec q" "x \<noteq> 0\<^sub>v q" "A *\<^sub>v x = 0\<^sub>v p"
+      using x by auto
+    fix j assume j: "j < q"
+    have int_bound: "\<bar>x $ j\<bar> \<le> int C"
+      using x j by (simp add: Bounded_vec_def)
+    have "(of_int (\<bar>x $ j\<bar>) :: real) \<le> real C"
+      using int_bound by simp
+    also have "... \<le> R" by (rule floor_le)
+    finally show "(of_int (\<bar>x $ j\<bar>) :: real) \<le>
+      (real q * (of_int (max 1 Bnd) :: real)) powr (real p / real (q-p))"
+      unfolding R_eq .
+  qed
 qed
 
 end
