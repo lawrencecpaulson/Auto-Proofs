@@ -10,11 +10,11 @@ consumer; keep its session and qualified theory name stable.
 
 | Entry | Role | State |
 | --- | --- | --- |
-| `Bounded_Integer_Kernels` | Integer Siegel lemma used by GS and Roth | Standalone session and PDF passed on 12 November 2026 |
-| `Finite_Embedding_Bounds` | House, coordinate, and embedding kernel bounds for GS | Standalone session and PDF passed on 12 November 2026 |
+| `Bounded_Integer_Kernels` | Sharp integer Siegel lemma used by GS and Roth | Session, PDF, GS, and Roth builds passed on 13 November 2026 |
+| `Finite_Embedding_Bounds` | Standalone house, coordinate recovery, and embedding-kernel bounds, including Siegel exponent and a two-point example | Session, PDF, outline, browser, and GS builds passed on 13 November 2026 |
 | `Gelfond_Schneider` | Main transcendence theorem | Standalone session and PDF passed on 12 November 2026 |
 | `Roth_Diophantine_Approximation` | Main rational Roth theorem | Standalone session and PDF passed on 12 November 2026 |
-| `Bivariate_Resultants` | General bivariate specialisation and resultant multiplicity | Standalone session and PDF passed on 12 November 2026 |
+| `Bivariate_Resultants` | Bivariate specialisation, derivative multiplicity, and pair resultants | AFP-style session, PDF, browser, and outline passed on 13 November 2026 |
 | `Primitive_Real_Characters` | Primitive real-character classification and fundamental discriminants | Standalone session and PDF passed on 12 November 2026 |
 | `Stokes` | Manifold Stokes theorem | Standalone session and PDF passed on 12 November 2026 |
 | `Green_Cauchy_Pompeiu` | Planar Green, winding, and Cauchy–Pompeiu | Standalone session and PDF passed on 12 November 2026 |
@@ -47,9 +47,11 @@ as an independent mathematical submission.
 ## Submission checks
 
 All staged sessions have eponymous names and passed standalone builds with
-PDF documents on 12 November 2026. The `No_Siegel` consumer also passed with
-a PDF against its two extracted prerequisites. The remaining editorial work
-is source citations, author attribution for the two kernel entries, a public
-interface review, and a near-duplicate proof review against related AFP
-entries. Roth's optional Hasse-derivative split is deferred pending a useful
-standalone theorem. `Roth_Hancl_Rucki` remains a companion candidate.
+PDF documents on 12 November 2026. On 13 November, the sharpened bounded
+kernel entry passed with its GS and Roth consumers, and the expanded
+`Bivariate_Resultants` entry passed an AFP-style session, browser, outline,
+and PDF build. `No_Siegel` passed with a PDF against the revised bivariate
+entry. The remaining editorial work for other entries includes source
+citations, author attribution for the two kernel entries, and public-interface
+and overlap reviews. Roth's optional Hasse-derivative split is deferred pending
+a useful standalone theorem. `Roth_Hancl_Rucki` remains a companion candidate.

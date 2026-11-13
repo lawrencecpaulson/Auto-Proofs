@@ -1,4 +1,4 @@
-(*  Title:      Gelfond_Schneider/Finite_Embedding_Bounds/Structure_Constant_Kernels.thy
+(*  Title:      Finite_Embedding_Bounds/Structure_Constant_Kernels.thy
     Author:     OpenAI Codex
 
 Bounded complex-matrix kernels via integral structure constants.
@@ -357,6 +357,59 @@ proof -
     (int (q * d + 1) * det_bound_hadamard (q * d) (max 1 Bnd)) eta x"
     by unfold_locales (use eta x_carrier x_nz x_bnd in auto)
   show thesis by (rule that[OF W])
+qed
+
+theorem exists_nonzero_bounded_kernel_vec_of_structure_constants_exponent:
+  fixes A :: "complex mat"
+  fixes basis :: "nat \<Rightarrow> complex"
+  fixes C :: "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> int"
+  assumes A: "A \<in> carrier_mat p q"
+  assumes ppos: "p > 0"
+  assumes dpos: "d > 0"
+  assumes hpq: "p < q"
+  assumes mult_repr:
+    "\<And>u t j. u < p \<Longrightarrow> t < q \<Longrightarrow> j < d \<Longrightarrow>
+      A $$ (u,t) * basis j = (\<Sum>k<d. of_int (C u t k j) * basis k)"
+  assumes C_bnd:
+    "\<And>u t k j. u < p \<Longrightarrow> t < q \<Longrightarrow> k < d \<Longrightarrow> j < d \<Longrightarrow> \<bar>C u t k j\<bar> \<le> Bnd"
+  assumes basis_indep:
+    "\<And>c. (\<Sum>j<d. of_int (c j) * basis j) = 0 \<Longrightarrow> (\<forall>j<d. c j = 0)"
+  obtains eta :: "complex vec" and x :: "int vec" where
+    "eta \<in> carrier_vec q"
+    "eta \<noteq> 0\<^sub>v q"
+    "x \<in> carrier_vec (q * d)"
+    "x \<noteq> 0\<^sub>v (q * d)"
+    "A *\<^sub>v eta = 0\<^sub>v p"
+    "\<forall>t<q. eta $ t = (\<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j)"
+    "\<forall>j<q * d. (of_int (\<bar>x $ j\<bar>) :: real) \<le>
+      (real (q * d) * (of_int (max 1 Bnd) :: real)) powr
+        (real (p * d) / real (q * d - p * d))"
+proof -
+  define M :: "int mat" where
+    "M \<equiv> mat (p * d) (q * d)
+      (\<lambda>(uk,tj). C (uk div d) (tj div d) (uk mod d) (tj mod d))"
+  have M: "M \<in> carrier_mat (p * d) (q * d)"
+    unfolding M_def by simp
+  have M_bnd: "M \<in> Bounded_mat Bnd"
+    unfolding Bounded_mat_def M_def
+    by (auto intro!: C_bnd less_mult_imp_div_less simp: dpos)
+  have pdpos: "0 < p * d" using ppos dpos by simp
+  have pdqd: "p * d < q * d" using hpq dpos by simp
+  obtain x where x:
+      "x \<in> carrier_vec (q * d)" "x \<noteq> 0\<^sub>v (q * d)"
+      "M *\<^sub>v x = 0\<^sub>v (p * d)"
+      "\<forall>j<q * d. (of_int (\<bar>x $ j\<bar>) :: real) \<le>
+        (real (q * d) * (of_int (max 1 Bnd) :: real)) powr
+          (real (p * d) / real (q * d - p * d))"
+    using exists_ne_zero_int_vec_bounded_kernel_exponent[OF M pdpos pdqd M_bnd]
+    by blast
+  obtain eta where eta:
+      "eta \<in> carrier_vec q" "eta \<noteq> 0\<^sub>v q"
+      "A *\<^sub>v eta = 0\<^sub>v p"
+      "\<forall>t<q. eta $ t = (\<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j)"
+    using lift_structure_constant_kernel[OF A dpos mult_repr basis_indep x(1,2)] x(3)
+    unfolding M_def by blast
+  show thesis by (rule that[OF eta(1,2) x(1,2) eta(3,4) x(4)])
 qed
 
 theorem exists_nonzero_bounded_kernel_vec_of_structure_constants_linear:

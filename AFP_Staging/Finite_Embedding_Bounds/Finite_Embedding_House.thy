@@ -1,4 +1,4 @@
-(*  Title:      Gelfond_Schneider/Finite_Embedding_Bounds/Finite_Embedding_House.thy
+(*  Title:      Finite_Embedding_Bounds/Finite_Embedding_House.thy
     Author:     OpenAI Codex
 
 Maximum modulus over a finite family of complex embeddings, with
@@ -124,29 +124,50 @@ proof -
     by (simp add: ehouse_leI)
 qed
 
+lemma ehouse_bounded_int_linear_combination_le_real:
+  assumes B_nonneg: "0 \<le> B"
+  assumes basis_bnd: "\<And>j. j < D \<Longrightarrow> ehouse (basis j) \<le> K"
+  assumes K_nonneg: "0 \<le> K"
+  assumes coeff_bnd: "\<And>j. j < D \<Longrightarrow> (of_int (\<bar>c j\<bar>) :: real) \<le> B"
+  shows "ehouse (\<lambda>e. \<Sum>j<D. of_int (c j) * basis j e) \<le> B * of_nat D * K"
+proof -
+  have term_bnd: "ehouse (\<lambda>e. of_int (c j) * basis j e) \<le> B * K" if j: "j < D" for j
+  proof -
+    have "ehouse (\<lambda>e. of_int (c j) * basis j e) \<le> \<bar>c j\<bar> * ehouse (basis j)"
+      by (simp add: ehouse_of_int_mult_le)
+    also have "\<dots> \<le> B * K"
+      using coeff_bnd[OF j] basis_bnd[OF j] B_nonneg K_nonneg
+      by (intro mult_mono) auto
+    finally show ?thesis .
+  qed
+  have "ehouse (\<lambda>e. \<Sum>j<D. of_int (c j) * basis j e) \<le>
+      (\<Sum>j<D. ehouse (\<lambda>e. of_int (c j) * basis j e))"
+    by (rule ehouse_sum_le) simp
+  also have "\<dots> \<le> (\<Sum>j<D. B * K)"
+    by (rule sum_mono) (simp add: term_bnd)
+  also have "\<dots> = B * of_nat D * K"
+    by simp
+  finally show ?thesis .
+qed
+
 lemma ehouse_bounded_int_linear_combination_le:
   assumes B_nonneg: "0 \<le> B"
   assumes basis_bnd: "\<And>j. j < D \<Longrightarrow> ehouse (basis j) \<le> K"
   assumes K_nonneg: "0 \<le> K"
   assumes coeff_bnd: "\<And>j. j < D \<Longrightarrow> \<bar>c j\<bar> \<le> B"
   shows "ehouse (\<lambda>e. \<Sum>j<D. of_int (c j) * basis j e) \<le> (of_int B :: real) * of_nat D * K"
-proof -
-  have term_bnd: "ehouse (\<lambda>e. of_int (c j) * basis j e) \<le> real_of_int B * K" if j: "j < D" for j
+proof (rule ehouse_bounded_int_linear_combination_le_real)
+  show "0 \<le> (of_int B :: real)" using B_nonneg by simp
+  show "\<And>j. j < D \<Longrightarrow> ehouse (basis j) \<le> K"
+    by (rule basis_bnd)
+  show "0 \<le> K" by (rule K_nonneg)
+  show "\<And>j. j < D \<Longrightarrow> (of_int (\<bar>c j\<bar>) :: real) \<le> of_int B"
   proof -
-    have "ehouse (\<lambda>e. of_int (c j) * basis j e) \<le> \<bar>c j\<bar> * ehouse (basis j)"
-      by (simp add: ehouse_of_int_mult_le)
-    also have "\<dots> \<le> (of_int B :: real) * K"
-      using coeff_bnd[OF j] basis_bnd[OF j] B_nonneg K_nonneg
-      by (intro mult_mono) auto
-    finally show ?thesis .
+    fix j
+    assume "j < D"
+    then have "\<bar>c j\<bar> \<le> B" by (rule coeff_bnd)
+    then show "(of_int (\<bar>c j\<bar>) :: real) \<le> of_int B" by simp
   qed
-  have "ehouse (\<lambda>e. \<Sum>j<D. of_int (c j) * basis j e) \<le> (\<Sum>j<D. ehouse (\<lambda>e. of_int (c j) * basis j e))"
-    by (rule ehouse_sum_le) simp
-  also have "\<dots> \<le> (\<Sum>j<D. (of_int B :: real) * K)"
-    by (rule sum_mono) (simp add: term_bnd)
-  also have "\<dots> = (of_int B :: real) * of_nat D * K"
-    by simp
-  finally show ?thesis .
 qed
 
 lemma ehouse_sum_mul_uniform_le:

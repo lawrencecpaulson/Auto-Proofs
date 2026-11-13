@@ -8,5 +8,6 @@ session Finite_Embedding_Bounds (AFP) = Bounded_Integer_Kernels +
     Structure_Constant_Kernels
     Finite_Embedding_House
     Embedding_Kernel_Bounds
+    Gaussian_Integer_Example
   document_files
     "root.tex"
