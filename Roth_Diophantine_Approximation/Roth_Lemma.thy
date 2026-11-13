@@ -725,11 +725,8 @@ theorem roth_lemma:
   shows "roth_index m r a P \<le> ereal (2*real m*eta)"
 proof -
   obtain n where meq: "m=Suc n" using mp by (cases m) auto
-  have h: "roth_index (Suc n) r a P \<le>
-      ereal (2*real (Suc n)*eta)"
-    by (rule roth_lemma_aux[OF pn])
-      (use meq box rp ep eb ratio height in auto)
-  show ?thesis using h meq by simp
+  show ?thesis using meq
+    using One_nat_def box eb ep height pn ratio roth_lemma_aux rp by auto
 qed
 
 lemma roth_proj_log_height_cast_bound:
@@ -737,29 +734,12 @@ lemma roth_proj_log_height_cast_bound:
   shows "roth_proj_log_height (replace_coeff of_int Q) \<le>
     ln (real (roth_int_coeff_sup Q))"
 proof -
-  have le: "roth_proj_height (replace_coeff of_int Q) \<le>
-      roth_int_coeff_sup Q"
-    by (rule roth_proj_height_cast)
   have lreal: "real (roth_proj_height (replace_coeff of_int Q)) \<le>
-    real (roth_int_coeff_sup Q)" using le by simp
+    real (roth_int_coeff_sup Q)" using roth_proj_height_cast by simp
   have ppos: "0 < real (roth_proj_height (replace_coeff of_int Q))"
     using roth_proj_height_ge_one[of "replace_coeff of_int Q"] by simp
   show ?thesis unfolding roth_proj_log_height_def
     by (rule ln_mono[OF lreal ppos])
-qed
-
-lemma roth_cast_int_nonzero:
-  fixes Q :: "int mpoly"
-  assumes q: "Q \<noteq> 0"
-  shows "(replace_coeff of_int Q :: rat mpoly) \<noteq> 0"
-proof
-  assume z: "(replace_coeff of_int Q :: rat mpoly) = 0"
-  have eq: "replace_coeff of_int Q =
-      MPoly_Type.smult (of_int 0::rat) (replace_coeff of_int Q)"
-    using z by simp
-  have "Q = MPoly_Type.smult (0::int) Q"
-    by (rule roth_cast_smult_inject[OF eq])
-  then show False using q by simp
 qed
 
 theorem roth_lemma_integer:
@@ -775,7 +755,7 @@ theorem roth_lemma_integer:
         eta^(2^(m-1))*real (r v)*roth_rat_log_height (a v)"
   shows "roth_index m r a (replace_coeff of_int Q) \<le>
     ereal (2*real m*eta)"
-proof (rule roth_lemma[OF mp roth_cast_int_nonzero[OF q]])
+proof (rule roth_lemma[OF mp roth_cast_nonzero[OF q]])
   show "roth_poly_in_box m r (replace_coeff of_int Q :: rat mpoly)"
     using box by (simp add: roth_box_cast_iff)
   show "0 < r v" if "v<m" for v by (rule rp[OF that])
