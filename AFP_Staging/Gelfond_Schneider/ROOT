@@ -1,0 +1,16 @@
+chapter AFP
+
+session Gelfond_Schneider (AFP) = "Hermite_Lindemann" +
+  options [timeout = 1800]
+  sessions
+    "Algebraic_Numbers"
+    "HOL-Complex_Analysis"
+    "HOL-Examples"
+    "Linear_Inequalities"
+    "Bounded_Integer_Kernels"
+    "Finite_Embedding_Bounds"
+    "HOL-New_Algebra"
+  theories
+    Gelfond_Schneider
+  document_files
+    "root.tex"

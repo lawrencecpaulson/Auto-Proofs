@@ -1,0 +1,30 @@
+chapter AFP
+
+session Green_Cauchy_Pompeiu (AFP) = Stokes +
+  description "Green and Cauchy-Pompeiu identities for planar paths"
+  options [timeout = 1200, quick_and_dirty = false]
+  sessions
+    "HOL-Complex_Analysis"
+  theories
+    Green_Rectangle_Contour
+    Green_Rectangular_Union
+    Green_Edge_Subdivision
+    Green_Edge_Orientation
+    Green_Edge_Contour
+    Green_Edge_Flow
+    Green_Boundary_Walks
+    Green_Boundary_Contour
+    Green_Walk_Paths
+    Green_Curl
+    Green_AC_Paths
+    Green_AC_Approximation
+    Green_AC_Winding
+    Green_Cauchy_Area
+    Green_Cauchy_Winding_Area
+    Green_Cauchy_Differentiability
+    Green_Cauchy_Curl
+    Green_Cauchy_Pompeiu
+    Green_Cauchy_Pompeiu_Interior
+    Green_Cauchy_Local_Green
+  document_files
+    "root.tex"

@@ -1,0 +1,12 @@
+chapter AFP
+
+session Bivariate_Resultants (AFP) = Factor_Algebraic_Polynomial +
+  options [timeout = 1800, quick_and_dirty = false]
+  sessions
+    Diophantine_Universal_Pairs
+    Schwartz_Zippel
+  theories
+    Bivariate_Polynomial
+    Resultant_Multiplicity
+  document_files
+    "root.tex"

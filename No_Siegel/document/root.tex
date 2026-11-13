@@ -1,0 +1,33 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage{isabelle,isabellesym}
+\usepackage{amsmath,amssymb}
+\usepackage{pdfsetup}
+\isabellestyle{it}
+
+\begin{document}
+\title{A Weighted Inert-Prime Bound for Real Dirichlet Characters}
+\author{Lawrence C.\ Paulson}
+\maketitle
+
+\begin{abstract}
+We formalise the weighted inert-prime theorem in Ben Green's note
+\emph{On Landau--Siegel zeros}. For each even integer \(C\geq 2\), a
+primitive real Dirichlet character of conductor \(q\geq 2C\) satisfies an
+explicit bound for the logarithmically weighted primes up to \(q^C\) on
+which the character equals \(-1\). The proof follows Green's determinant
+argument, using separately packaged polynomial results and an explicit
+classification of primitive real characters.
+The zero-free deduction discussed in the note is outside the scope of
+this entry.
+\end{abstract}
+
+\section{Formal development}
+
+\input{session}
+
+\begin{thebibliography}{1}
+\bibitem{Green2026}
+Ben Green, \emph{On Landau--Siegel zeros}, unpublished note, 2026.
+\end{thebibliography}
+\end{document}

@@ -1,0 +1,19 @@
+chapter AFP
+
+session Primitive_Real_Characters (AFP) = Dirichlet_L +
+  options [timeout = 1800, quick_and_dirty = false]
+  sessions
+    Continued_Fractions
+    Diophantine_Universal_Pairs
+    Schwartz_Zippel
+    Gauss_Sums
+    Probabilistic_Prime_Tests
+  theories
+    Quadratic_Character_Data
+    Quadratic_Classification
+    Two_Prime_Power
+    CRT_Assembly
+    Quadratic_Local_Identification
+    Character_Discriminant_Assembly
+  document_files
+    "root.tex"

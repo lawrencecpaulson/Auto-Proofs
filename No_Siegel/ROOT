@@ -1,0 +1,41 @@
+chapter AFP
+
+session No_Siegel (AFP) = Schwartz_Zippel +
+  options [timeout = 1800, quick_and_dirty = false]
+  sessions
+    Diophantine_Universal_Pairs
+    Dirichlet_L
+    Continued_Fractions
+    Gauss_Sums
+    Probabilistic_Prime_Tests
+    Jordan_Normal_Form
+    Smith_Normal_Form
+    LLL_Basis_Reduction
+    Prime_Number_Theorem
+    Bivariate_Resultants
+    Primitive_Real_Characters
+  theories
+    Finite_Grid
+    Quadratic_Character
+    Row_Independence
+    Row_Vector
+    Paper_Parameters
+    Quadratic_Gram
+    Gram_Determinant
+    Gram_Hadamard
+    Archimedean_Conjugate
+    Archimedean_Log_Bound
+    Archimedean_Parameter_Bound
+    Inert_Frobenius
+    Inert_Rows
+    Inert_Transform_Order
+    Gram_Transformation
+    Inert_Determinant_Transfer
+    Quantitative_Finish
+    Prime_Valuation_Log
+    Inert_Prime_Formula
+    Inert_Prime_Conditional
+    Inert_Prime_Analytic
+    Inert_Prime_Bound
+  document_files
+    "root.tex"
