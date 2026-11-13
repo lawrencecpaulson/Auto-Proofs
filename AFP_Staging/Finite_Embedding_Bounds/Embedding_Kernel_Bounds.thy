@@ -10,8 +10,52 @@ theory Embedding_Kernel_Bounds
     Finite_Embedding_House
 begin
 
+definition ehouse_hadamard_kernel_bound :: "nat \<Rightarrow> nat \<Rightarrow> int \<Rightarrow> int" where
+  "ehouse_hadamard_kernel_bound q d B =
+    int (q * d + 1) * det_bound_hadamard (q * d) (max 1 B)"
+
+definition ehouse_exponent_kernel_bound :: "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> int \<Rightarrow> real" where
+  "ehouse_exponent_kernel_bound p q d B =
+    (real (q * d) * of_int (max 1 B)) powr
+      (real (p * d) / real (q * d - p * d))"
+
+definition ehouse_linear_kernel_bound :: "nat \<Rightarrow> nat \<Rightarrow> int \<Rightarrow> int" where
+  "ehouse_linear_kernel_bound q d B = 2 * int (q * d) * max 1 B"
+
 context finite_embedding_house
 begin
+
+definition ehouse_structure_constant_bound :: "real \<Rightarrow> real \<Rightarrow> real \<Rightarrow> int" where
+  "ehouse_structure_constant_bound R H K = \<lceil>real (card E) * R * H * K\<rceil>"
+
+definition ehouse_kernel_witness where
+  "ehouse_kernel_witness A p q d basis e0 K M eta x \<longleftrightarrow>
+    eta \<in> carrier_vec q \<and> eta \<noteq> 0\<^sub>v q \<and>
+    x \<in> carrier_vec (q * d) \<and> x \<noteq> 0\<^sub>v (q * d) \<and>
+    A *\<^sub>v eta = 0\<^sub>v p \<and>
+    (\<forall>t<q. eta $ t = (\<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j e0)) \<and>
+    (\<forall>j<q * d. (of_int (\<bar>x $ j\<bar>) :: real) \<le> M) \<and>
+    (\<forall>t<q. ehouse (\<lambda>e. \<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j e)
+      \<le> M * real d * K) \<and>
+    (\<forall>t<q. cmod (eta $ t) \<le> M * real d * K)"
+
+
+lemma ehouse_kernel_witness_bounded_basis_kernel:
+  fixes A :: "complex mat"
+  fixes basis :: "nat \<Rightarrow> 'e \<Rightarrow> complex"
+  assumes W: "ehouse_kernel_witness A p q d basis e0 K (of_int B) eta x"
+  shows "bounded_basis_kernel A p q d (\<lambda>j. basis j e0) B eta x"
+proof -
+  have x_carrier: "x \<in> carrier_vec (q * d)"
+    using W unfolding ehouse_kernel_witness_def by blast
+  have x_bounded: "x \<in> Bounded_vec B"
+    using W x_carrier
+    unfolding ehouse_kernel_witness_def Bounded_vec_def by auto
+  show ?thesis
+    using W x_bounded
+    unfolding ehouse_kernel_witness_def
+    by unfold_locales auto
+qed
 
 lemma bounded_basis_kernel_ehouse_bounds:
   fixes A :: "complex mat"
@@ -55,6 +99,31 @@ proof -
     using cmod_le_ehouse dual_order.trans e0 eh_bound repr by fastforce
 qed
 
+lemma bounded_basis_kernel_ehouse_witness:
+  fixes A :: "complex mat"
+  fixes basis :: "nat \<Rightarrow> 'e \<Rightarrow> complex"
+  assumes W: "bounded_basis_kernel A p q d (\<lambda>j. basis j e0) B eta x"
+  assumes e0: "e0 \<in> E"
+  assumes dpos: "d > 0"
+  assumes basis_bnd: "\<And>j. j < d \<Longrightarrow> ehouse (basis j) \<le> K"
+  assumes K_nonneg: "0 \<le> K"
+  shows "ehouse_kernel_witness A p q d basis e0 K (of_int B) eta x"
+proof -
+  note carrier = bounded_basis_kernel.v_carrier[OF W]
+    bounded_basis_kernel.x_carrier[OF W]
+  note nonzero = bounded_basis_kernel.v_nonzero[OF W]
+    bounded_basis_kernel.x_nonzero[OF W]
+  note kernel = bounded_basis_kernel.kernel[OF W]
+    and coordinates = bounded_basis_kernel.coordinates[OF W]
+  have coeff: "\<forall>j<q * d. (of_int (\<bar>x $ j\<bar>) :: real) \<le> of_int B"
+    using bounded_basis_kernel.x_bounded[OF W] bounded_basis_kernel.x_carrier[OF W]
+    unfolding Bounded_vec_def by auto
+  note house = bounded_basis_kernel_ehouse_bounds[OF W e0 dpos basis_bnd K_nonneg]
+  show ?thesis
+    unfolding ehouse_kernel_witness_def
+    using carrier nonzero kernel coordinates coeff house by blast
+qed
+
 theorem exists_nonzero_bounded_kernel_vec_of_structure_constants_ehouse:
   fixes A :: "complex mat"
   fixes basis :: "nat \<Rightarrow> 'e \<Rightarrow> complex"
@@ -74,36 +143,17 @@ theorem exists_nonzero_bounded_kernel_vec_of_structure_constants_ehouse:
   assumes basis_bnd: "\<And>j. j < d \<Longrightarrow> ehouse (basis j) \<le> K"
   assumes K_nonneg: "0 \<le> K"
   obtains eta :: "complex vec" and x :: "int vec" where
-      "eta \<in> carrier_vec q"
-    and "eta \<noteq> 0\<^sub>v q"
-    and "x \<in> carrier_vec (q * d)"
-    and "x \<noteq> 0\<^sub>v (q * d)"
-    and "A *\<^sub>v eta = 0\<^sub>v p"
-    and "\<forall>t<q. eta $ t = (\<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j e0)"
-    and "x \<in> Bounded_vec (int (q * d + 1) * det_bound_hadamard (q * d) (max 1 Bnd))"
-    and "\<forall>t<q.
-      ehouse (\<lambda>e. \<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j e) \<le>
-        (of_int (int (q * d + 1) * det_bound_hadamard (q * d) (max 1 Bnd)) :: real) * of_nat d * K"
-    and "\<forall>t<q.
-      cmod (eta $ t) \<le>
-        (of_int (int (q * d + 1) * det_bound_hadamard (q * d) (max 1 Bnd)) :: real) * of_nat d * K"
+    "ehouse_kernel_witness A p q d basis e0 K (of_int (ehouse_hadamard_kernel_bound q d Bnd)) eta x"
 proof -
-  let ?X = "int (q * d + 1) * det_bound_hadamard (q * d) (max 1 Bnd)"
+  let ?X = "ehouse_hadamard_kernel_bound q d Bnd"
   obtain eta :: "complex vec" and x :: "int vec" where
-      W: "bounded_basis_kernel A p q d (\<lambda>j. basis j e0) ?X eta x"
-    by (rule exists_nonzero_bounded_kernel_vec_of_structure_constants
-          [OF A dpos hpq mult_repr C_bnd basis_indep])
-  note eta_carrier = bounded_basis_kernel.v_carrier[OF W]
-    and eta_nz = bounded_basis_kernel.v_nonzero[OF W]
-    and x_carrier = bounded_basis_kernel.x_carrier[OF W]
-    and x_nz = bounded_basis_kernel.x_nonzero[OF W]
-    and ker = bounded_basis_kernel.kernel[OF W]
-    and repr = bounded_basis_kernel.coordinates[OF W]
-    and x_bnd = bounded_basis_kernel.x_bounded[OF W]
-  note house = bounded_basis_kernel_ehouse_bounds[OF W e0 dpos basis_bnd K_nonneg]
-  show thesis
-    by (rule that[OF eta_carrier eta_nz x_carrier x_nz ker repr x_bnd])
-      (use house in auto)
+    W: "bounded_basis_kernel A p q d (\<lambda>j. basis j e0) ?X eta x"
+    using exists_nonzero_bounded_kernel_vec_of_structure_constants
+      [OF A dpos hpq mult_repr C_bnd basis_indep]
+    unfolding ehouse_hadamard_kernel_bound_def by blast
+  have result: "ehouse_kernel_witness A p q d basis e0 K (of_int (ehouse_hadamard_kernel_bound q d Bnd)) eta x"
+    by (rule bounded_basis_kernel_ehouse_witness[OF W e0 dpos basis_bnd K_nonneg])
+  show thesis by (rule that[OF result])
 qed
 
 theorem exists_nonzero_bounded_kernel_vec_of_structure_constants_ehouse_exponent:
@@ -126,34 +176,20 @@ theorem exists_nonzero_bounded_kernel_vec_of_structure_constants_ehouse_exponent
   assumes basis_bnd: "\<And>j. j < d \<Longrightarrow> ehouse (basis j) \<le> K"
   assumes K_nonneg: "0 \<le> K"
   obtains eta :: "complex vec" and x :: "int vec" where
-      "eta \<in> carrier_vec q"
-    and "eta \<noteq> 0\<^sub>v q"
-    and "x \<in> carrier_vec (q * d)"
-    and "x \<noteq> 0\<^sub>v (q * d)"
-    and "A *\<^sub>v eta = 0\<^sub>v p"
-    and "\<forall>t<q. eta $ t = (\<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j e0)"
-    and "\<forall>j<q * d. (of_int (\<bar>x $ j\<bar>) :: real) \<le>
-      (real (q * d) * (of_int (max 1 Bnd) :: real)) powr
-        (real (p * d) / real (q * d - p * d))"
-    and "\<forall>t<q.
-      ehouse (\<lambda>e. \<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j e) \<le>
-        (real (q * d) * (of_int (max 1 Bnd) :: real)) powr
-          (real (p * d) / real (q * d - p * d)) * real d * K"
-    and "\<forall>t<q. cmod (eta $ t) \<le>
-        (real (q * d) * (of_int (max 1 Bnd) :: real)) powr
-          (real (p * d) / real (q * d - p * d)) * real d * K"
+    "ehouse_kernel_witness A p q d basis e0 K (ehouse_exponent_kernel_bound p q d Bnd) eta x"
 proof -
-  let ?R = "(real (q * d) * (of_int (max 1 Bnd) :: real)) powr
-    (real (p * d) / real (q * d - p * d))"
+  let ?R = "ehouse_exponent_kernel_bound p q d Bnd"
   obtain eta :: "complex vec" and x :: "int vec" where w:
       "eta \<in> carrier_vec q" "eta \<noteq> 0\<^sub>v q"
       "x \<in> carrier_vec (q * d)" "x \<noteq> 0\<^sub>v (q * d)"
       "A *\<^sub>v eta = 0\<^sub>v p"
       "\<forall>t<q. eta $ t = (\<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j e0)"
       "\<forall>j<q * d. (of_int (\<bar>x $ j\<bar>) :: real) \<le> ?R"
-    by (rule exists_nonzero_bounded_kernel_vec_of_structure_constants_exponent
-          [OF A ppos dpos hpq mult_repr C_bnd basis_indep])
-  have R_nonneg: "0 \<le> ?R" by simp
+    using exists_nonzero_bounded_kernel_vec_of_structure_constants_exponent
+      [OF A ppos dpos hpq mult_repr C_bnd basis_indep]
+    unfolding ehouse_exponent_kernel_bound_def by blast
+  have R_nonneg: "0 \<le> ?R"
+    unfolding ehouse_exponent_kernel_bound_def by simp
   have coeff_bnd: "(of_int (\<bar>x $ sg_pair_idx d t j\<bar>) :: real) \<le> ?R"
     if "t < q" "j < d" for t j
     using w(7) sg_pair_idx_lt[OF dpos that] by blast
@@ -176,8 +212,10 @@ proof -
     also have "\<dots> \<le> ?R * real d * K" by (rule eh_bound[OF that])
     finally show ?thesis .
   qed
-  show thesis
-    by (rule that[OF w(1-7)]) (use eh_bound cmod_bound in auto)
+  have result: "ehouse_kernel_witness A p q d basis e0 K ?R eta x"
+    unfolding ehouse_kernel_witness_def
+    using w eh_bound cmod_bound by blast
+  show thesis by (rule that[OF result])
 qed
 
 theorem exists_nonzero_bounded_kernel_vec_of_structure_constants_ehouse_linear:
@@ -200,36 +238,49 @@ theorem exists_nonzero_bounded_kernel_vec_of_structure_constants_ehouse_linear:
   assumes basis_bnd: "\<And>j. j < d \<Longrightarrow> ehouse (basis j) \<le> K"
   assumes K_nonneg: "0 \<le> K"
   obtains eta :: "complex vec" and x :: "int vec" where
-      "eta \<in> carrier_vec q"
-    and "eta \<noteq> 0\<^sub>v q"
-    and "x \<in> carrier_vec (q * d)"
-    and "x \<noteq> 0\<^sub>v (q * d)"
-    and "A *\<^sub>v eta = 0\<^sub>v p"
-    and "\<forall>t<q. eta $ t = (\<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j e0)"
-    and "x \<in> Bounded_vec (2 * int (q * d) * max 1 Bnd)"
-    and "\<forall>t<q.
-      ehouse (\<lambda>e. \<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j e) \<le>
-        (of_int (2 * int (q * d) * max 1 Bnd) :: real) * of_nat d * K"
-    and "\<forall>t<q.
-      cmod (eta $ t) \<le>
-        (of_int (2 * int (q * d) * max 1 Bnd) :: real) * of_nat d * K"
+    "ehouse_kernel_witness A p q d basis e0 K (of_int (ehouse_linear_kernel_bound q d Bnd)) eta x"
 proof -
-  let ?X = "2 * int (q * d) * max 1 Bnd"
+  let ?X = "ehouse_linear_kernel_bound q d Bnd"
   obtain eta :: "complex vec" and x :: "int vec" where
-      W: "bounded_basis_kernel A p q d (\<lambda>j. basis j e0) ?X eta x"
-    by (rule exists_nonzero_bounded_kernel_vec_of_structure_constants_linear
-          [OF A ppos dpos hpq mult_repr C_bnd basis_indep])
-  note eta_carrier = bounded_basis_kernel.v_carrier[OF W]
-    and eta_nz = bounded_basis_kernel.v_nonzero[OF W]
-    and x_carrier = bounded_basis_kernel.x_carrier[OF W]
-    and x_nz = bounded_basis_kernel.x_nonzero[OF W]
-    and ker = bounded_basis_kernel.kernel[OF W]
-    and repr = bounded_basis_kernel.coordinates[OF W]
-    and x_bnd = bounded_basis_kernel.x_bounded[OF W]
-  note house = bounded_basis_kernel_ehouse_bounds[OF W e0 dpos basis_bnd K_nonneg]
-  show thesis
-    by (rule that[OF eta_carrier eta_nz x_carrier x_nz ker repr x_bnd])
-      (use house in auto)
+    W: "bounded_basis_kernel A p q d (\<lambda>j. basis j e0) ?X eta x"
+    using exists_nonzero_bounded_kernel_vec_of_structure_constants_linear
+      [OF A ppos dpos hpq mult_repr C_bnd basis_indep]
+    unfolding ehouse_linear_kernel_bound_def by blast
+  have result: "ehouse_kernel_witness A p q d basis e0 K (of_int (ehouse_linear_kernel_bound q d Bnd)) eta x"
+    by (rule bounded_basis_kernel_ehouse_witness[OF W e0 dpos basis_bnd K_nonneg])
+  show thesis by (rule that[OF result])
+qed
+
+lemma ehouse_entries_structure_constants:
+  fixes A :: "complex mat"
+  fixes basis :: "nat \<Rightarrow> 'e \<Rightarrow> complex"
+  fixes repr_coeff :: "nat \<Rightarrow> 'e \<Rightarrow> complex"
+  fixes Aemb :: "nat \<Rightarrow> nat \<Rightarrow> 'e \<Rightarrow> complex"
+  fixes C :: "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> int"
+  assumes e0: "e0 \<in> E"
+  assumes entry0: "\<And>u t. u < p \<Longrightarrow> t < q \<Longrightarrow> A $$ (u,t) = Aemb u t e0"
+  assumes mult_repr:
+    "\<And>u t j e. u < p \<Longrightarrow> t < q \<Longrightarrow> j < d \<Longrightarrow> e \<in> E \<Longrightarrow>
+      Aemb u t e * basis j e = (\<Sum>k<d. of_int (C u t k j) * basis k e)"
+  assumes recover:
+    "\<And>c k. k < d \<Longrightarrow> of_int (c k) = (\<Sum>e\<in>E. repr_coeff k e * (\<Sum>j<d. of_int (c j) * basis j e))"
+  assumes repr_bnd: "\<And>k. k < d \<Longrightarrow> ehouse (repr_coeff k) \<le> R"
+  assumes entry_bnd: "\<And>u t. u < p \<Longrightarrow> t < q \<Longrightarrow> ehouse (Aemb u t) \<le> H"
+  assumes basis_bnd: "\<And>j. j < d \<Longrightarrow> ehouse (basis j) \<le> K"
+  assumes R_nonneg: "0 \<le> R" and H_nonneg: "0 \<le> H" and K_nonneg: "0 \<le> K"
+  shows "\<And>u t j. u < p \<Longrightarrow> t < q \<Longrightarrow> j < d \<Longrightarrow>
+    A $$ (u,t) * basis j e0 = (\<Sum>k<d. of_int (C u t k j) * basis k e0)"
+    and "\<And>u t k j. u < p \<Longrightarrow> t < q \<Longrightarrow> k < d \<Longrightarrow> j < d \<Longrightarrow>
+      \<bar>C u t k j\<bar> \<le> ehouse_structure_constant_bound R H K"
+proof -
+  show "A $$ (u,t) * basis j e0 = (\<Sum>k<d. of_int (C u t k j) * basis k e0)"
+    if "u < p" "t < q" "j < d" for u t j
+    using e0 entry0 mult_repr that by presburger
+  show "\<bar>C u t k j\<bar> \<le> ehouse_structure_constant_bound R H K"
+    if "u < p" "t < q" "k < d" "j < d" for u t k j
+    unfolding ehouse_structure_constant_bound_def
+    by (rule abs_int_structure_constant_ehouse_le[OF recover repr_bnd entry_bnd basis_bnd
+          R_nonneg H_nonneg K_nonneg mult_repr that])
 qed
 
 theorem exists_nonzero_bounded_kernel_vec_of_ehouse_entries:
@@ -257,36 +308,19 @@ theorem exists_nonzero_bounded_kernel_vec_of_ehouse_entries:
   assumes H_nonneg: "0 \<le> H"
   assumes K_nonneg: "0 \<le> K"
   obtains eta :: "complex vec" and x :: "int vec" where
-      "eta \<in> carrier_vec q"
-    and "eta \<noteq> 0\<^sub>v q"
-    and "x \<in> carrier_vec (q * d)"
-    and "x \<noteq> 0\<^sub>v (q * d)"
-    and "A *\<^sub>v eta = 0\<^sub>v p"
-    and "\<forall>t<q. eta $ t = (\<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j e0)"
-    and "x \<in> Bounded_vec
-      (int (q * d + 1) *
-        det_bound_hadamard (q * d)
-          (max 1 (\<lceil>of_nat (card E) * R * H * K\<rceil>)))"
-    and "\<forall>t<q.
-      ehouse (\<lambda>e. \<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j e) \<le>
-        (of_int
-          (int (q * d + 1) * det_bound_hadamard (q * d) (max 1 (\<lceil>of_nat (card E) * R * H * K\<rceil>))) :: real) *
-          of_nat d * K"
-    and "\<forall>t<q.
-      cmod (eta $ t) \<le>
-        (of_int
-          (int (q * d + 1) * det_bound_hadamard (q * d) (max 1 (\<lceil>of_nat (card E) * R * H * K\<rceil>))) :: real) *
-          of_nat d * K"
+    "ehouse_kernel_witness A p q d basis e0 K (of_int (ehouse_hadamard_kernel_bound q d (ehouse_structure_constant_bound R H K))) eta x"
 proof -
   have mult_repr0:
     "A $$ (u,t) * basis j e0 = (\<Sum>k<d. of_int (C u t k j) * basis k e0)"
-    if up: "u < p" and tq: "t < q" and jlt: "j < d" for u t j
-    using e0 entry0 jlt mult_repr tq up by presburger
-  have C_bnd: "\<bar>C u t k j\<bar> \<le> \<lceil>real (card E) * R * H * K\<rceil>"
-    if up: "u < p" and tq: "t < q" and klt: "k < d" and jlt: "j < d"
-    for u t k j
-    by (rule abs_int_structure_constant_ehouse_le[OF recover repr_bnd entry_bnd basis_bnd
-          R_nonneg H_nonneg K_nonneg mult_repr up tq klt jlt])
+    if "u < p" "t < q" "j < d" for u t j
+    by (rule ehouse_entries_structure_constants(1)
+      [OF e0 entry0 mult_repr recover repr_bnd entry_bnd basis_bnd
+        R_nonneg H_nonneg K_nonneg that])
+  have C_bnd: "\<bar>C u t k j\<bar> \<le> ehouse_structure_constant_bound R H K"
+    if "u < p" "t < q" "k < d" "j < d" for u t k j
+    by (rule ehouse_entries_structure_constants(2)
+      [OF e0 entry0 mult_repr recover repr_bnd entry_bnd basis_bnd
+        R_nonneg H_nonneg K_nonneg that])
   show ?thesis
     using exists_nonzero_bounded_kernel_vec_of_structure_constants_ehouse[OF A dpos hpq e0
           mult_repr0 C_bnd basis_indep basis_bnd K_nonneg]
@@ -319,32 +353,19 @@ theorem exists_nonzero_bounded_kernel_vec_of_ehouse_entries_exponent:
   assumes H_nonneg: "0 \<le> H"
   assumes K_nonneg: "0 \<le> K"
   obtains eta :: "complex vec" and x :: "int vec" where
-      "eta \<in> carrier_vec q"
-    and "eta \<noteq> 0\<^sub>v q"
-    and "x \<in> carrier_vec (q * d)"
-    and "x \<noteq> 0\<^sub>v (q * d)"
-    and "A *\<^sub>v eta = 0\<^sub>v p"
-    and "\<forall>t<q. eta $ t = (\<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j e0)"
-    and "\<forall>j<q * d. (of_int (\<bar>x $ j\<bar>) :: real) \<le>
-      (real (q * d) * (of_int (max 1 (\<lceil>real (card E) * R * H * K\<rceil>)) :: real)) powr
-        (real (p * d) / real (q * d - p * d))"
-    and "\<forall>t<q.
-      ehouse (\<lambda>e. \<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j e) \<le>
-        (real (q * d) * (of_int (max 1 (\<lceil>real (card E) * R * H * K\<rceil>)) :: real)) powr
-          (real (p * d) / real (q * d - p * d)) * real d * K"
-    and "\<forall>t<q. cmod (eta $ t) \<le>
-        (real (q * d) * (of_int (max 1 (\<lceil>real (card E) * R * H * K\<rceil>)) :: real)) powr
-          (real (p * d) / real (q * d - p * d)) * real d * K"
+    "ehouse_kernel_witness A p q d basis e0 K (ehouse_exponent_kernel_bound p q d (ehouse_structure_constant_bound R H K)) eta x"
 proof -
   have mult_repr0:
     "A $$ (u,t) * basis j e0 = (\<Sum>k<d. of_int (C u t k j) * basis k e0)"
-    if up: "u < p" and tq: "t < q" and jlt: "j < d" for u t j
-    using e0 entry0 jlt mult_repr tq up by presburger
-  have C_bnd: "\<bar>C u t k j\<bar> \<le> \<lceil>real (card E) * R * H * K\<rceil>"
-    if up: "u < p" and tq: "t < q" and klt: "k < d" and jlt: "j < d"
-    for u t k j
-    by (rule abs_int_structure_constant_ehouse_le[OF recover repr_bnd entry_bnd basis_bnd
-          R_nonneg H_nonneg K_nonneg mult_repr up tq klt jlt])
+    if "u < p" "t < q" "j < d" for u t j
+    by (rule ehouse_entries_structure_constants(1)
+      [OF e0 entry0 mult_repr recover repr_bnd entry_bnd basis_bnd
+        R_nonneg H_nonneg K_nonneg that])
+  have C_bnd: "\<bar>C u t k j\<bar> \<le> ehouse_structure_constant_bound R H K"
+    if "u < p" "t < q" "k < d" "j < d" for u t k j
+    by (rule ehouse_entries_structure_constants(2)
+      [OF e0 entry0 mult_repr recover repr_bnd entry_bnd basis_bnd
+        R_nonneg H_nonneg K_nonneg that])
   show ?thesis
     using exists_nonzero_bounded_kernel_vec_of_structure_constants_ehouse_exponent
       [OF A ppos dpos hpq e0 mult_repr0 C_bnd basis_indep basis_bnd K_nonneg]
@@ -376,30 +397,20 @@ theorem exists_nonzero_bounded_kernel_vec_of_ehouse_entries_linear:
   assumes R_nonneg: "0 \<le> R"
   assumes H_nonneg: "0 \<le> H"
   assumes K_nonneg: "0 \<le> K"
-  obtains eta :: "complex vec" and x :: "int vec" 
-  where "eta \<in> carrier_vec q"
-    and "eta \<noteq> 0\<^sub>v q"
-    and "x \<in> carrier_vec (q * d)"
-    and "x \<noteq> 0\<^sub>v (q * d)"
-    and "A *\<^sub>v eta = 0\<^sub>v p"
-    and "\<forall>t<q. eta $ t = (\<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j e0)"
-    and "x \<in> Bounded_vec (2 * int (q * d) * max 1 (\<lceil>of_nat (card E) * R * H * K\<rceil>))"
-    and "\<forall>t<q.
-      ehouse (\<lambda>e. \<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j e) \<le>
-        of_int (2 * int (q * d) * max 1 (\<lceil>of_nat (card E) * R * H * K\<rceil>)) * real d * K"
-    and "\<forall>t<q.
-      cmod (eta $ t) \<le>
-        of_int (2 * int (q * d) * max 1 (\<lceil>of_nat (card E) * R * H * K\<rceil>)) * real d * K"
+  obtains eta :: "complex vec" and x :: "int vec" where
+    "ehouse_kernel_witness A p q d basis e0 K (of_int (ehouse_linear_kernel_bound q d (ehouse_structure_constant_bound R H K))) eta x"
 proof -
   have mult_repr0:
     "A $$ (u,t) * basis j e0 = (\<Sum>k<d. of_int (C u t k j) * basis k e0)"
-    if up: "u < p" and tq: "t < q" and jlt: "j < d" for u t j
-    using e0 entry0 jlt mult_repr tq up by presburger
-  have C_bnd: "\<bar>C u t k j\<bar> \<le> \<lceil>real (card E) * R * H * K\<rceil>"
-    if up: "u < p" and tq: "t < q" and klt: "k < d" and jlt: "j < d"
-    for u t k j
-    by (rule abs_int_structure_constant_ehouse_le[OF recover repr_bnd entry_bnd basis_bnd
-          R_nonneg H_nonneg K_nonneg mult_repr up tq klt jlt])
+    if "u < p" "t < q" "j < d" for u t j
+    by (rule ehouse_entries_structure_constants(1)
+      [OF e0 entry0 mult_repr recover repr_bnd entry_bnd basis_bnd
+        R_nonneg H_nonneg K_nonneg that])
+  have C_bnd: "\<bar>C u t k j\<bar> \<le> ehouse_structure_constant_bound R H K"
+    if "u < p" "t < q" "k < d" "j < d" for u t k j
+    by (rule ehouse_entries_structure_constants(2)
+      [OF e0 entry0 mult_repr recover repr_bnd entry_bnd basis_bnd
+        R_nonneg H_nonneg K_nonneg that])
   show ?thesis
     using that exists_nonzero_bounded_kernel_vec_of_structure_constants_ehouse_linear[OF A ppos dpos hpq e0
           mult_repr0 C_bnd basis_indep basis_bnd K_nonneg] by blast

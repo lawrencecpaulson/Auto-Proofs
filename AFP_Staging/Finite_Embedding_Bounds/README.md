@@ -19,7 +19,11 @@ structure is supplied by an application. The session depends on the sibling
   `(q * d * max 1 Bnd) powr ((p * d) / (q * d - p * d))`; the house bound
   multiplies this by `d * K`, where `K` bounds the house of each basis element.
   A further theorem bounds the structure constants from the houses of the
-  matrix entries and the coordinate-recovery data.
+  matrix entries and the coordinate-recovery data. The common conclusion is
+  `ehouse_kernel_witness`: a nonzero kernel vector, its integral coordinates,
+  a coefficient bound, and the corresponding house and modulus bounds. The
+  three quantitative bounds and the structure-constant estimate have named
+  definitions. An integer-bound witness also recovers `bounded_basis_kernel`.
 - `Gaussian_Integer_Example.thy` instantiates indexed recovery for the two
   conjugate images of the basis `1, i` and proves integer independence at the
   identity image.
