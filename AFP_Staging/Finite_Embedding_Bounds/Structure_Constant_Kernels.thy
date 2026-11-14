@@ -131,12 +131,11 @@ proof -
         by (rule sg_pair_idx_lt[OF dpos up k])
       have ukrow: "sg_pair_idx d u k < dim_row M"
         using uklt M by simp
-      have comp0: "(M *\<^sub>v x) $ sg_pair_idx d u k = 0"
+      have "0 = (M *\<^sub>v x) $ sg_pair_idx d u k"
         using Mx0 uklt by simp
-      have comp1: "(M *\<^sub>v x) $ sg_pair_idx d u k = row M (sg_pair_idx d u k) \<bullet> x"
+      also have "\<dots> = row M (sg_pair_idx d u k) \<bullet> x"
         by (rule index_mult_mat_vec[OF ukrow])
-      have comp2: "row M (sg_pair_idx d u k) \<bullet> x =
-          (\<Sum>n<q * d. M $$ (sg_pair_idx d u k, n) * x $ n)"
+      also have "\<dots> = (\<Sum>n<q * d. M $$ (sg_pair_idx d u k, n) * x $ n)"
       proof -
         have "row M (sg_pair_idx d u k) \<bullet> x =
             (\<Sum>i = 0..<q * d. row M (sg_pair_idx d u k) $ i * x $ i)"
@@ -145,8 +144,7 @@ proof -
           using uklt M x_carrier by (simp add: atLeast0LessThan)
         finally show ?thesis .
       qed
-      have comp3: "(\<Sum>n<q * d. M $$ (sg_pair_idx d u k, n) * x $ n) =
-          (\<Sum>n<q * d. C u (n div d) k (n mod d) * x $ n)"
+      also have "\<dots> = (\<Sum>n<q * d. C u (n div d) k (n mod d) * x $ n)"
       proof (rule sum.cong[OF refl])
         fix n
         assume n_mem: "n \<in> {..<q * d}"
@@ -156,20 +154,17 @@ proof -
           using dpos k by (simp add: sg_pair_idx_def)
         have idx_mod: "sg_pair_idx d u k mod d = k"
           using dpos k by (simp add: sg_pair_idx_def)
-        have entry_eq: "M $$ (sg_pair_idx d u k, n) = C u (n div d) k (n mod d)"
+        have "M $$ (sg_pair_idx d u k, n) = C u (n div d) k (n mod d)"
           unfolding M_def structure_constant_mat_def using uklt nlt idx_div idx_mod by simp
-        show "M $$ (sg_pair_idx d u k, n) * x $ n = C u (n div d) k (n mod d) * x $ n"
-          using entry_eq by simp
+        then show "M $$ (sg_pair_idx d u k, n) * x $ n = C u (n div d) k (n mod d) * x $ n"
+          by simp
       qed
-      have comp4a: "(\<Sum>n<q * d. C u (n div d) k (n mod d) * x $ n) =
+      also have "\<dots> =
           (\<Sum>n<q * d. C u (n div d) k (n mod d) * x $ sg_pair_idx d (n div d) (n mod d))"
         unfolding sg_pair_idx_def using dpos by simp
-      have comp4b: "(\<Sum>n<q * d. C u (n div d) k (n mod d) * x $ sg_pair_idx d (n div d) (n mod d)) =
-          (\<Sum>t<q. \<Sum>j<d. C u t k j * (x $ sg_pair_idx d t j))"
+      also have "\<dots> = (\<Sum>t<q. \<Sum>j<d. C u t k j * (x $ sg_pair_idx d t j))"
         by (rule sum_upto_sg_pair_idx[OF dpos])
-      have "0 = (\<Sum>t<q. \<Sum>j<d. C u t k j * (x $ sg_pair_idx d t j))"
-        using comp0 comp1 comp2 comp3 comp4a comp4b by simp
-      then show ?thesis by simp
+      finally show ?thesis by simp
     qed
     have row_zero_complex:
       "(\<Sum>t<q. \<Sum>j<d. of_int (C u t k j * (x $ sg_pair_idx d t j))) = 0" if k: "k < d" for k
@@ -181,7 +176,7 @@ proof -
         using row_zero[OF k] by simp
       finally show ?thesis .
     qed
-    have h1: "(A *\<^sub>v eta) $ u = (\<Sum>t<q. A $$ (u,t) * eta $ t)"
+    have "(A *\<^sub>v eta) $ u = (\<Sum>t<q. A $$ (u,t) * eta $ t)"
     proof -
       have "(A *\<^sub>v eta) $ u = row A u \<bullet> eta"
         by (rule index_mult_mat_vec[OF rowlt])
@@ -191,26 +186,24 @@ proof -
         using A eta_carrier up by (simp add: atLeast0LessThan)
       finally show ?thesis .
     qed
-    have h2: "(\<Sum>t<q. A $$ (u,t) * eta $ t) =
+    also have "\<dots> =
         (\<Sum>t<q. A $$ (u,t) * (\<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j))"
       by (rule sum.cong[OF refl]) (simp add: eta_coord)
-    have h3: "(\<Sum>t<q. A $$ (u,t) * (\<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j)) =
+    also have "\<dots> =
         (\<Sum>t<q. \<Sum>j<d. of_int (x $ sg_pair_idx d t j) * (A $$ (u,t) * basis j))"
       by (simp add: sum_distrib_left algebra_simps)
-    have h4: "(\<Sum>t<q. \<Sum>j<d. of_int (x $ sg_pair_idx d t j) * (A $$ (u,t) * basis j)) =
+    also have "\<dots> =
         (\<Sum>t<q. \<Sum>j<d. \<Sum>k<d. of_int (x $ sg_pair_idx d t j) * (of_int (C u t k j) * basis k))"
     proof (rule sum.cong[OF refl])
       fix t
-      assume t_mem: "t \<in> {..<q}"
-      have t: "t < q"
-        using t_mem by simp
+      assume "t \<in> {..<q}"
+      then have t: "t < q" by simp
       show "(\<Sum>j<d. of_int (x $ sg_pair_idx d t j) * (A $$ (u,t) * basis j)) =
           (\<Sum>j<d. \<Sum>k<d. of_int (x $ sg_pair_idx d t j) * (of_int (C u t k j) * basis k))"
       proof (rule sum.cong[OF refl])
         fix j
-        assume j_mem: "j \<in> {..<d}"
-        have j: "j < d"
-          using j_mem by simp
+        assume "j \<in> {..<d}"
+        then have j: "j < d" by simp
         have "A $$ (u,t) * basis j = (\<Sum>k<d. of_int (C u t k j) * basis k)"
           by (rule mult_repr[OF up t j])
         then show "of_int (x $ sg_pair_idx d t j) * (A $$ (u,t) * basis j) =
@@ -218,7 +211,7 @@ proof -
           by (simp add: sum_distrib_left algebra_simps)
       qed
     qed
-    have h5a: "(\<Sum>t<q. \<Sum>j<d. \<Sum>k<d. of_int (x $ sg_pair_idx d t j) * (of_int (C u t k j) * basis k)) =
+    also have "\<dots> =
         (\<Sum>t<q. \<Sum>k<d. \<Sum>j<d. of_int (x $ sg_pair_idx d t j) * (of_int (C u t k j) * basis k))"
     proof (rule sum.cong[OF refl])
       fix t
@@ -227,46 +220,24 @@ proof -
           (\<Sum>k<d. \<Sum>j<d. of_int (x $ sg_pair_idx d t j) * (of_int (C u t k j) * basis k))"
         by (rule sum.swap)
     qed
-    have h5b: "(\<Sum>t<q. \<Sum>k<d. \<Sum>j<d. of_int (x $ sg_pair_idx d t j) * (of_int (C u t k j) * basis k)) =
+    also have "\<dots> =
         (\<Sum>k<d. \<Sum>t<q. \<Sum>j<d. of_int (x $ sg_pair_idx d t j) * (of_int (C u t k j) * basis k))"
       by (rule sum.swap)
-    have h5c: "(\<Sum>k<d. \<Sum>t<q. \<Sum>j<d. of_int (x $ sg_pair_idx d t j) * (of_int (C u t k j) * basis k)) =
+    also have "\<dots> =
         (\<Sum>k<d. (\<Sum>t<q. \<Sum>j<d. of_int (C u t k j * (x $ sg_pair_idx d t j))) * basis k)"
     proof (rule sum.cong[OF refl])
       fix k
       assume "k \<in> {..<d}"
-      have h5c1: "(\<Sum>t<q. \<Sum>j<d. of_int (x $ sg_pair_idx d t j) * (of_int (C u t k j) * basis k)) =
+      have "(\<Sum>t<q. \<Sum>j<d. of_int (x $ sg_pair_idx d t j) * (of_int (C u t k j) * basis k)) =
           (\<Sum>t<q. \<Sum>j<d. of_int (C u t k j * (x $ sg_pair_idx d t j)) * basis k)"
-      proof (rule sum.cong[OF refl])
-        fix t
-        assume "t \<in> {..<q}"
-        show "(\<Sum>j<d. of_int (x $ sg_pair_idx d t j) * (of_int (C u t k j) * basis k)) =
-            (\<Sum>j<d. of_int (C u t k j * (x $ sg_pair_idx d t j)) * basis k)"
-        proof (rule sum.cong[OF refl])
-          fix j
-          assume "j \<in> {..<d}"
-          have "of_int (x $ sg_pair_idx d t j) * (of_int (C u t k j) * basis k) =
-              (of_int (x $ sg_pair_idx d t j) * of_int (C u t k j)) * basis k"
-            by (simp add: mult.assoc)
-          also have "... = of_int ((x $ sg_pair_idx d t j) * C u t k j) * basis k"
-            by (simp only: of_int_mult[symmetric])
-          also have "... = of_int (C u t k j * (x $ sg_pair_idx d t j)) * basis k"
-            by simp
-          finally show "of_int (x $ sg_pair_idx d t j) * (of_int (C u t k j) * basis k) =
-              of_int (C u t k j * (x $ sg_pair_idx d t j)) * basis k" .
-        qed
-      qed
-      have h5c2: "(\<Sum>t<q. \<Sum>j<d. of_int (C u t k j * (x $ sg_pair_idx d t j)) * basis k) =
-          (\<Sum>t<q. (\<Sum>j<d. of_int (C u t k j * (x $ sg_pair_idx d t j))) * basis k)"
-        by (simp add: sum_distrib_right)
-      have h5c3: "(\<Sum>t<q. (\<Sum>j<d. of_int (C u t k j * (x $ sg_pair_idx d t j))) * basis k) =
+        by (simp add: algebra_simps)
+      also have "\<dots> =
           (\<Sum>t<q. \<Sum>j<d. of_int (C u t k j * (x $ sg_pair_idx d t j))) * basis k"
         by (simp add: sum_distrib_right)
-      from h5c1 h5c2 h5c3 show "(\<Sum>t<q. \<Sum>j<d. of_int (x $ sg_pair_idx d t j) * (of_int (C u t k j) * basis k)) =
-          (\<Sum>t<q. \<Sum>j<d. of_int (C u t k j * (x $ sg_pair_idx d t j))) * basis k"
-        by simp
+      finally show "(\<Sum>t<q. \<Sum>j<d. of_int (x $ sg_pair_idx d t j) * (of_int (C u t k j) * basis k)) =
+          (\<Sum>t<q. \<Sum>j<d. of_int (C u t k j * (x $ sg_pair_idx d t j))) * basis k" .
     qed
-    have h6: "(\<Sum>k<d. (\<Sum>t<q. \<Sum>j<d. of_int (C u t k j * (x $ sg_pair_idx d t j))) * basis k) = 0"
+    also have "\<dots> = 0"
     proof -
       have "(\<Sum>k<d. (\<Sum>t<q. \<Sum>j<d. of_int (C u t k j * (x $ sg_pair_idx d t j))) * basis k) =
           (\<Sum>k<d. 0 * basis k)"
@@ -282,9 +253,7 @@ proof -
       qed
       then show ?thesis by simp
     qed
-    have "(A *\<^sub>v eta) $ u = 0"
-      using h1 h2 h3 h4 h5a h5b h5c h6 by simp
-    then show ?thesis .
+    finally show ?thesis .
   qed
   have Aeta0: "A *\<^sub>v eta = 0\<^sub>v p"
     using A Aeta_component by auto
