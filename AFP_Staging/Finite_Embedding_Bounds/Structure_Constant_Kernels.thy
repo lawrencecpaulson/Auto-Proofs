@@ -379,9 +379,8 @@ proof -
           (real (p * d) / real (q * d - p * d))"
     using exists_ne_zero_int_vec_bounded_kernel_exponent[OF structure_constant_mat_carrier pdpos pdqd structure_constant_mat_bounded]
     by blast
-  then show thesis
-    using lift_structure_constant_kernel[OF A dpos mult_repr basis_indep]
-    using that by blast
+  with that lift_structure_constant_kernel[OF A dpos mult_repr basis_indep] show thesis
+    by blast
 qed
 
 theorem exists_nonzero_bounded_kernel_vec_of_structure_constants_linear:
@@ -391,15 +390,14 @@ theorem exists_nonzero_bounded_kernel_vec_of_structure_constants_linear:
     "bounded_basis_kernel A p q d basis
       (2 * int (q * d) * max 1 Bnd) eta x"
 proof -
-  obtain x :: "int vec" where x_carrier: "x \<in> carrier_vec (q * d)"
-    and x_nz: "x \<noteq> 0\<^sub>v (q * d)"
-    and Mx0: "M *\<^sub>v x = 0\<^sub>v (p * d)"
-    and x_bnd: "x \<in> Bounded_vec (2 * int (q * d) * max 1 Bnd)"
+  obtain x :: "int vec" where "x \<in> carrier_vec (q * d)"
+    and "x \<noteq> 0\<^sub>v (q * d)"
+    and "M *\<^sub>v x = 0\<^sub>v (p * d)"
+    and "x \<in> Bounded_vec (2 * int (q * d) * max 1 Bnd)"
     using exists_ne_zero_int_vec_bounded_kernel_linear[OF structure_constant_mat_carrier] 
-        structure_constant_mat_bounded using dpos assms by force
-  then show thesis
-    using lift_bounded_structure_constant_kernel[OF x_carrier x_nz Mx0 x_bnd]
-    using that by meson
+      structure_constant_mat_bounded using dpos assms by force
+  with that lift_bounded_structure_constant_kernel show thesis
+    by meson
 qed
 
 end
