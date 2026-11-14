@@ -153,7 +153,7 @@ proof -
   obtain eta :: "complex vec" and x :: "int vec" where
     W: "bounded_basis_kernel A p q d (\<lambda>j. basis j e0) ?X eta x"
     using exists_nonzero_bounded_kernel_vec_of_structure_constants
-      [OF A dpos hpq mult_repr C_bnd basis_indep]
+      [OF A dpos mult_repr C_bnd basis_indep hpq]
     unfolding ehouse_hadamard_kernel_bound_def by blast
   have result: "ehouse_kernel_witness A p q d basis e0 K (of_int (ehouse_hadamard_kernel_bound q d Bnd)) eta x"
     by (rule bounded_basis_kernel_ehouse_witness[OF W e0 dpos basis_bnd])
@@ -175,7 +175,7 @@ proof -
       "\<forall>t<q. eta $ t = (\<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j e0)"
       "\<forall>j<q * d. (of_int (\<bar>x $ j\<bar>) :: real) \<le> ?R"
     using exists_nonzero_bounded_kernel_vec_of_structure_constants_exponent
-      [OF A ppos dpos hpq mult_repr C_bnd basis_indep]
+      [OF A dpos mult_repr C_bnd basis_indep ppos hpq]
     unfolding ehouse_exponent_kernel_bound_def by blast
   have coeff_bnd: "(of_int (\<bar>x $ sg_pair_idx d t j\<bar>) :: real) \<le> ?R"
     if "t < q" "j < d" for t j
@@ -216,7 +216,7 @@ proof -
   obtain eta :: "complex vec" and x :: "int vec" where
     W: "bounded_basis_kernel A p q d (\<lambda>j. basis j e0) ?X eta x"
     using exists_nonzero_bounded_kernel_vec_of_structure_constants_linear
-      [OF A ppos dpos hpq mult_repr C_bnd basis_indep]
+      [OF A dpos mult_repr C_bnd basis_indep ppos hpq]
     unfolding ehouse_linear_kernel_bound_def by blast
   have result: "ehouse_kernel_witness A p q d basis e0 K (of_int (ehouse_linear_kernel_bound q d Bnd)) eta x"
     by (rule bounded_basis_kernel_ehouse_witness[OF W e0 dpos basis_bnd])

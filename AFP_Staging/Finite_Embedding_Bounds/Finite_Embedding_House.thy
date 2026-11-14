@@ -286,7 +286,7 @@ corollary recover_int_coordinate:
   using assms recover_complex_coordinate by presburger
 
 lemma coordinate_ehouse_le:
-  assumes "k < D" "ehouse (repr_coeff k) \<le> R" "0 \<le> R"
+  assumes "k < D" "ehouse (repr_coeff k) \<le> R"
   shows "cmod (c k) \<le> of_nat (card E) * R * ehouse (\<lambda>e. \<Sum>j<D. c j * basis j e)"
 proof -
   have "c k = (\<Sum>e\<in>E. repr_coeff k e * (\<Sum>j<D. c j * basis j e))"
