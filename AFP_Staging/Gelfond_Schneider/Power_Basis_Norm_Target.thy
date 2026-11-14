@@ -2006,7 +2006,7 @@ proof -
     by (simp add: smult_mat_def map_mat_def algebra_simps)
   obtain v x where W: "bounded_basis_kernel ?T p q d basis (2 * int (q * d) * max 1 Bnd) v x"
     by (rule exists_nonzero_bounded_kernel_vec_of_structure_constants_linear
-      [OF Tcar ppos dpos hpq Trep C_bnd basis_indep])
+      [OF Tcar dpos Trep C_bnd basis_indep ppos hpq])
   interpret bounded_basis_kernel ?T p q d basis "2 * int (q * d) * max 1 Bnd" v x
     using W by blast
   have scaled0: "of_int L \<cdot>\<^sub>v (A *\<^sub>v v) = 0\<^sub>v p"
@@ -2477,13 +2477,14 @@ lemma scaled_structure_constant_abs_le:
     and rep: "of_int L * (x * eta ^ j) =
       (\<Sum>k<D. of_int (C k) * eta ^ k)"
     and house: "EH.ehouse (\<lambda>e. e x) \<le> A"
-    and Anonneg: "0 \<le> A"
     and klt: "k < D"
     and jlt: "j < D"
   shows "\<bar>C k\<bar> \<le> \<lceil>of_nat (card E) *
     power_basis_inverse_bound * (of_int L * A * power_basis_entry_bound)\<rceil>"
 proof -
   let ?H = "(of_int L :: real) * A * power_basis_entry_bound"
+  have Anonneg: "0 \<le> A"
+    using house EH.ehouse_nonneg[of "\<lambda>e. e x"] by linarith
   have Hnonneg: "0 \<le> ?H"
     using Lp Anonneg power_basis_entry_bound_nonneg by simp
   have comb_le: "EH.ehouse (\<lambda>e. \<Sum>k<D. of_int (C k) * basis k e) \<le> ?H"
@@ -2524,7 +2525,6 @@ theorem finite_K_matrix_has_house_bounded_kernel_given_denominator:
     and hpq: "2 * p \<le> q"
     and entryK: "\<And>u t. u < p \<Longrightarrow> t < q \<Longrightarrow> M $$ (u,t) \<in> K"
     and house: "\<And>u t. u < p \<Longrightarrow> t < q \<Longrightarrow> EH.ehouse (\<lambda>e. e (M $$ (u,t))) \<le> H"
-    and Hnonneg: "0 \<le> H"
     and Lp: "L > 0"
     and rep: "\<forall>u<p. \<forall>t<q. \<forall>j<D. of_int L * (M $$ (u,t) * eta ^ j) = (\<Sum>k<D. of_int (C u t k j) * eta ^ k)"
   obtains v :: "complex vec" and x :: "int vec" where
@@ -2539,7 +2539,7 @@ proof -
     if up: "u < p" and tq: "t < q" and kd: "k < D" and jd: "j < D"
     for u t k j
     by (rule scaled_structure_constant_abs_le[OF entryK[OF up tq] Lp
-      _ house[OF up tq] Hnonneg kd jd]) (use rep up tq jd in blast)
+      _ house[OF up tq] kd jd]) (use rep up tq jd in blast)
   have indep: "(\<forall>j<D. c j = 0)" if zero: "(\<Sum>j<D. of_int (c j) * eta ^ j) = 0" for c
       using Subfield.power_basis_indep[OF Rats_subfield algQ] zero
   proof -
@@ -2576,7 +2576,6 @@ theorem finite_K_matrix_has_house_bounded_algebraic_integer_kernel:
     and hpq: "2 * p \<le> q"
     and entryK: "\<And>u t. u < p \<Longrightarrow> t < q \<Longrightarrow> M $$ (u,t) \<in> K"
     and house: "\<And>u t. u < p \<Longrightarrow> t < q \<Longrightarrow> EH.ehouse (\<lambda>e. e (M $$ (u,t))) \<le> H"
-    and Hnonneg: "0 \<le> H"
   obtains L :: int and v :: "complex vec" and x :: "int vec" where
     "L > 0"
     "bounded_integral_basis_kernel M p q D (\<lambda>j. eta ^ j)
@@ -2590,7 +2589,7 @@ proof -
     using finite_matrix_has_scaled_integer_structure_constants[OF M entryK] by blast
   show thesis
     using finite_K_matrix_has_house_bounded_kernel_given_denominator
-      [OF M ppos hpq entryK house Hnonneg Lp rep]
+      [OF M ppos hpq entryK house Lp rep]
     using that [OF Lp] by auto
 qed
 
@@ -2675,7 +2674,6 @@ theorem row_scaled_matrix_has_house_bounded_kernel:
     and dvd: "2 * gs_m h dvd q ^ 2"
     and house: "\<And>u t. u < gs_m h * gs_n h q \<Longrightarrow> t < q * q \<Longrightarrow>
       EH.ehouse (\<lambda>e. e (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q $$ (u,t))) \<le> H"
-    and Hnonneg: "0 \<le> H"
   obtains L :: int and v :: "complex vec" and x :: "int vec" where
     "L > 0"
     "bounded_integral_basis_kernel
@@ -2698,7 +2696,7 @@ proof -
     by (rule row_scaled_entry_in_K_from_rational_coordinates [OF coords up tq])
   show thesis
     by (rule finite_K_matrix_has_house_bounded_algebraic_integer_kernel
-      [OF Mcar mnpos hpq entryK house Hnonneg]) (auto intro: that)
+      [OF Mcar mnpos hpq entryK house]) (auto intro: that)
 qed
 
 theorem row_scaled_matrix_has_given_denominator_bounded_kernel:
@@ -2711,7 +2709,6 @@ theorem row_scaled_matrix_has_given_denominator_bounded_kernel:
     and dvd: "2 * gs_m h dvd q ^ 2"
     and house: "\<And>u t. u < gs_m h * gs_n h q \<Longrightarrow> t < q * q \<Longrightarrow>
       EH.ehouse (\<lambda>e. e (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q $$ (u,t))) \<le> H"
-    and Hnonneg: "0 \<le> H"
   obtains v :: "complex vec" and x :: "int vec" where
     "bounded_integral_basis_kernel
       (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q)
@@ -2742,7 +2739,7 @@ proof -
     unfolding choice_iff' by presburger
   then show thesis
     using finite_K_matrix_has_house_bounded_kernel_given_denominator
-      [OF Mcar mnpos hpq entryK house Hnonneg Lp f]
+      [OF Mcar mnpos hpq entryK house Lp f]
     using that by metis
 qed
 
@@ -2753,7 +2750,6 @@ theorem row_scaled_matrix_has_exponential_denominator_bounded_kernel:
     and dvd: "2 * gs_m h dvd q ^ 2"
     and house: "\<And>u t. u < gs_m h * gs_n h q \<Longrightarrow> t < q * q \<Longrightarrow>
       EH.ehouse (\<lambda>e. e (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q $$ (u,t))) \<le> H"
-    and Hnonneg: "0 \<le> H"
   obtains T :: int and v :: "complex vec" and x :: "int vec" where
     "T > 0"
     "bounded_integral_basis_kernel
@@ -2775,7 +2771,7 @@ proof -
     unfolding gs_uniform_product_denominator_def by blast
   show thesis
     using row_scaled_matrix_has_given_denominator_bounded_kernel
-      [OF Tp prod coords npos qpos dvd house Hnonneg]
+      [OF Tp prod coords npos qpos dvd house]
     using Tp that by metis
 qed
 
@@ -2809,13 +2805,11 @@ proof -
   have house: "EH.ehouse (\<lambda>e. e (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q $$ (u,t))) \<le> A"
     if up: "u < gs_m h * gs_n h q" and tq: "t < q * q" for u t
     using A_choice Aemb_def gs_row_scaled_entry_concrete_house_le that(1,2) by presburger
-  have Anonneg: "0 \<le> A"
-    using A_choice gs_concrete_entry_bound_nonneg by simp
   obtain v x where IW: "bounded_integral_basis_kernel
       (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q)
       (gs_m h * gs_n h q) (q * q) D (\<lambda>j. eta ^ j) ?B v x"
     using row_scaled_matrix_has_given_denominator_bounded_kernel
-      [OF Tp prod coords npos qpos dvd house Anonneg]
+      [OF Tp prod coords npos qpos dvd house]
     by (force simp add: gs_coordinate_witness_bound_def gs_kernel_witness_bound_def gs_witness_growth_weight_def ac_simps)
   interpret W: bounded_integral_basis_kernel
     "gs_row_scaled_system_mat (gs_m h) (gs_n h q) q"

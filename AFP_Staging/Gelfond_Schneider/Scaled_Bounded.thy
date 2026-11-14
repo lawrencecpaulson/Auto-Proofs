@@ -303,7 +303,7 @@ proof -
       W: "bounded_basis_kernel (gs_row_scaled_system_mat m n q) (m * n)
         (q * q) D basis
         (int (q * q * D + 1) * det_bound_hadamard (q * q * D) (max 1 Bnd)) v x"
-    by (rule exists_nonzero_bounded_kernel_vec_of_structure_constants[OF gs_row_scaled_system_mat_carrier dpos mnq mult_repr C_bnd basis_indep])
+    by (rule exists_nonzero_bounded_kernel_vec_of_structure_constants[OF gs_row_scaled_system_mat_carrier dpos mult_repr C_bnd basis_indep mnq])
   note v_carrier = bounded_basis_kernel.v_carrier[OF W]
     and v_nz = bounded_basis_kernel.v_nonzero[OF W]
     and x_carrier = bounded_basis_kernel.x_carrier[OF W]
@@ -344,7 +344,7 @@ proof -
       W: "bounded_basis_kernel (gs_row_scaled_system_mat m n q) (m * n)
         (q * q) D basis (2 * int (q * q * D) * max 1 Bnd) v x"
     by (rule exists_nonzero_bounded_kernel_vec_of_structure_constants_linear
-          [OF gs_row_scaled_system_mat_carrier mnpos dpos mnq mult_repr C_bnd basis_indep])
+          [OF gs_row_scaled_system_mat_carrier dpos mult_repr C_bnd basis_indep mnpos mnq])
   note v_carrier = bounded_basis_kernel.v_carrier[OF W]
     and v_nz = bounded_basis_kernel.v_nonzero[OF W]
     and x_carrier = bounded_basis_kernel.x_carrier[OF W]

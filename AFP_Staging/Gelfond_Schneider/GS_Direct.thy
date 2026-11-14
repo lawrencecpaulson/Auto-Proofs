@@ -80,7 +80,7 @@ proof -
       W: "bounded_basis_kernel (gs_system_mat m n q) (m * n) (q * q) D basis
         (int (q * q * D + 1) * det_bound_hadamard (q * q * D) (max 1 Bnd)) v x"
     by (rule exists_nonzero_bounded_kernel_vec_of_structure_constants
-          [OF gs_system_mat_carrier dpos mnq mult_repr C_bnd basis_indep])
+          [OF gs_system_mat_carrier dpos mult_repr C_bnd basis_indep mnq])
   have vint: "\<forall>i<q * q. algebraic_int (v $ i)"
     by (rule algebraic_int_coordinates_of_integral_basis[OF basis_int 
            bounded_basis_kernel.coordinates[OF W]])
@@ -111,7 +111,7 @@ proof -
       W: "bounded_basis_kernel (gs_system_mat m n q) (m * n) (q * q) D basis
         (2 * int (q * q * D) * max 1 Bnd) v x"
     by (rule exists_nonzero_bounded_kernel_vec_of_structure_constants_linear
-            [OF gs_system_mat_carrier mnpos dpos mnq mult_repr C_bnd basis_indep])
+            [OF gs_system_mat_carrier dpos mult_repr C_bnd basis_indep mnpos mnq])
   have vint: "\<forall>i<q * q. algebraic_int (v $ i)"
     by (rule algebraic_int_coordinates_of_integral_basis[OF basis_int bounded_basis_kernel.coordinates[OF W]
 ])
