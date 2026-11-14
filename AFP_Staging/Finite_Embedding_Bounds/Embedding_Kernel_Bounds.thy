@@ -1,8 +1,8 @@
 (*  Title:      Finite_Embedding_Bounds/Embedding_Kernel_Bounds.thy
     Author:     OpenAI Codex
-
-Uniform finite-embedding house bounds for bounded algebraic kernels.
 *)
+
+section \<open>Uniform finite-embedding house bounds for bounded algebraic kernels.\<close>
 
 theory Embedding_Kernel_Bounds
   imports
@@ -64,27 +64,17 @@ lemma bounded_basis_kernel_ehouse_bounds:
   assumes e0: "e0 \<in> E"
   assumes dpos: "d > 0"
   assumes basis_bnd: "\<And>j. j < d \<Longrightarrow> ehouse (basis j) \<le> K"
-  assumes K_nonneg: "0 \<le> K"
   shows "\<forall>t<q. ehouse (\<lambda>e. \<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j e)
       \<le> (of_int B :: real) * real d * K"
     and "\<forall>t<q. cmod (eta $ t) \<le> (of_int B :: real) * real d * K"
 proof -
   note x_carrier = bounded_basis_kernel.x_carrier[OF W]
-    and x_nz = bounded_basis_kernel.x_nonzero[OF W]
     and x_bnd = bounded_basis_kernel.x_bounded[OF W]
     and repr = bounded_basis_kernel.coordinates[OF W]
-  have B_nonneg: "0 \<le> B"
-  proof -
-    obtain i where i: "i < q * d" "x $ i \<noteq> 0"
-      using x_carrier x_nz by force
-    have "\<bar>x $ i\<bar> \<le> B"
-      using x_carrier x_bnd i(1) unfolding Bounded_vec_def by simp
-    then show ?thesis by simp
-  qed
   have eh_bound:
       "ehouse (\<lambda>e. \<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j e)
         \<le> of_int B * real d * K" if tlt: "t < q" for t
-  proof (rule ehouse_bounded_int_linear_combination_le[OF B_nonneg basis_bnd K_nonneg])
+  proof (rule ehouse_bounded_int_linear_combination_le[OF basis_bnd])
     fix j
     assume jlt: "j < d"
     have idx_lt: "sg_pair_idx d t j < q * d"
@@ -106,7 +96,6 @@ lemma bounded_basis_kernel_ehouse_witness:
   assumes e0: "e0 \<in> E"
   assumes dpos: "d > 0"
   assumes basis_bnd: "\<And>j. j < d \<Longrightarrow> ehouse (basis j) \<le> K"
-  assumes K_nonneg: "0 \<le> K"
   shows "ehouse_kernel_witness A p q d basis e0 K (of_int B) eta x"
 proof -
   note carrier = bounded_basis_kernel.v_carrier[OF W]
@@ -118,7 +107,7 @@ proof -
   have coeff: "\<forall>j<q * d. (of_int (\<bar>x $ j\<bar>) :: real) \<le> of_int B"
     using bounded_basis_kernel.x_bounded[OF W] bounded_basis_kernel.x_carrier[OF W]
     unfolding Bounded_vec_def by auto
-  note house = bounded_basis_kernel_ehouse_bounds[OF W e0 dpos basis_bnd K_nonneg]
+  note house = bounded_basis_kernel_ehouse_bounds[OF W e0 dpos basis_bnd]
   show ?thesis
     unfolding ehouse_kernel_witness_def
     using carrier nonzero kernel coordinates coeff house by blast
@@ -151,7 +140,6 @@ locale finite_embedding_structure_kernel = finite_embedding_house E
     and basis_indep:
       "\<And>c. (\<Sum>j<d. of_int (c j) * basis j e0) = 0 \<Longrightarrow> (\<forall>j<d. c j = 0)"
     and basis_bnd: "\<And>j. j < d \<Longrightarrow> ehouse (basis j) \<le> K"
-    and K_nonneg: "0 \<le> K"
 begin
 
 text \<open>The determinant bound applies whenever the matrix has more columns than rows.\<close>
@@ -168,7 +156,7 @@ proof -
       [OF A dpos hpq mult_repr C_bnd basis_indep]
     unfolding ehouse_hadamard_kernel_bound_def by blast
   have result: "ehouse_kernel_witness A p q d basis e0 K (of_int (ehouse_hadamard_kernel_bound q d Bnd)) eta x"
-    by (rule bounded_basis_kernel_ehouse_witness[OF W e0 dpos basis_bnd K_nonneg])
+    by (rule bounded_basis_kernel_ehouse_witness[OF W e0 dpos basis_bnd])
   show thesis by (rule that[OF result])
 qed
 
@@ -189,15 +177,13 @@ proof -
     using exists_nonzero_bounded_kernel_vec_of_structure_constants_exponent
       [OF A ppos dpos hpq mult_repr C_bnd basis_indep]
     unfolding ehouse_exponent_kernel_bound_def by blast
-  have R_nonneg: "0 \<le> ?R"
-    unfolding ehouse_exponent_kernel_bound_def by simp
   have coeff_bnd: "(of_int (\<bar>x $ sg_pair_idx d t j\<bar>) :: real) \<le> ?R"
     if "t < q" "j < d" for t j
     using w(7) sg_pair_idx_lt[OF dpos that] by blast
   have eh_bound:
       "ehouse (\<lambda>e. \<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j e) \<le>
         ?R * real d * K" if "t < q" for t
-  proof (rule ehouse_bounded_int_linear_combination_le_real[OF R_nonneg basis_bnd K_nonneg])
+  proof (rule ehouse_bounded_int_linear_combination_le_real[OF basis_bnd])
     fix j
     assume "j < d"
     show "(of_int (\<bar>x $ sg_pair_idx d t j\<bar>) :: real) \<le> ?R"
@@ -233,7 +219,7 @@ proof -
       [OF A ppos dpos hpq mult_repr C_bnd basis_indep]
     unfolding ehouse_linear_kernel_bound_def by blast
   have result: "ehouse_kernel_witness A p q d basis e0 K (of_int (ehouse_linear_kernel_bound q d Bnd)) eta x"
-    by (rule bounded_basis_kernel_ehouse_witness[OF W e0 dpos basis_bnd K_nonneg])
+    by (rule bounded_basis_kernel_ehouse_witness[OF W e0 dpos basis_bnd])
   show thesis by (rule that[OF result])
 qed
 
@@ -266,9 +252,6 @@ locale finite_embedding_entry_kernel = finite_embedding_house E
     and basis_indep:
       "\<And>c. (\<Sum>j<d. of_int (c j) * basis j e0) = 0 \<Longrightarrow> (\<forall>j<d. c j = 0)"
     and basis_bnd: "\<And>j. j < d \<Longrightarrow> ehouse (basis j) \<le> K"
-    and R_nonneg: "0 \<le> R"
-    and H_nonneg: "0 \<le> H"
-    and K_nonneg: "0 \<le> K"
 begin
 
 lemma ehouse_entries_structure_constants:
@@ -284,12 +267,12 @@ proof -
     if "u < p" "t < q" "k < d" "j < d" for u t k j
     unfolding ehouse_structure_constant_bound_def
     by (rule abs_int_structure_constant_ehouse_le[OF recover repr_bnd entry_bnd basis_bnd
-          R_nonneg H_nonneg K_nonneg mult_repr that])
+          mult_repr that])
 qed
 
 sublocale sc: finite_embedding_structure_kernel
   E A p q d e0 basis C "ehouse_structure_constant_bound R H K" K
-  using A dpos e0 basis_indep basis_bnd K_nonneg ehouse_entries_structure_constants
+  using A dpos e0 basis_indep basis_bnd ehouse_entries_structure_constants
   by unfold_locales blast
 
 text \<open>The sublocale specializes all three bounds to the structure-constant

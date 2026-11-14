@@ -1,9 +1,12 @@
 (*  Title:      Finite_Embedding_Bounds/Finite_Embedding_House.thy
     Author:     OpenAI Codex
 
-Maximum modulus over a finite family of complex embeddings, with
-coordinate recovery and basis-matrix identities.
 *)
+
+section \<open>Finite embedding hause: basic definitions and theorems. \<close>
+
+text \<open>Maximum modulus over a finite family of complex embeddings, with
+coordinate recovery and basis-matrix identities.\<close>
 
 theory Finite_Embedding_House
   imports "Jordan_Normal_Form.Matrix_Kernel"
@@ -125,9 +128,7 @@ proof -
 qed
 
 lemma ehouse_bounded_int_linear_combination_le_real:
-  assumes B_nonneg: "0 \<le> B"
   assumes basis_bnd: "\<And>j. j < D \<Longrightarrow> ehouse (basis j) \<le> K"
-  assumes K_nonneg: "0 \<le> K"
   assumes coeff_bnd: "\<And>j. j < D \<Longrightarrow> (of_int (\<bar>c j\<bar>) :: real) \<le> B"
   shows "ehouse (\<lambda>e. \<Sum>j<D. of_int (c j) * basis j e) \<le> B * of_nat D * K"
 proof -
@@ -136,8 +137,7 @@ proof -
     have "ehouse (\<lambda>e. of_int (c j) * basis j e) \<le> \<bar>c j\<bar> * ehouse (basis j)"
       by (simp add: ehouse_of_int_mult_le)
     also have "\<dots> \<le> B * K"
-      using coeff_bnd[OF j] basis_bnd[OF j] B_nonneg K_nonneg
-      by (intro mult_mono) auto
+      using coeff_bnd[OF j] basis_bnd[OF j] mult_mono by fastforce
     finally show ?thesis .
   qed
   have "ehouse (\<lambda>e. \<Sum>j<D. of_int (c j) * basis j e) \<le>
@@ -151,28 +151,15 @@ proof -
 qed
 
 lemma ehouse_bounded_int_linear_combination_le:
-  assumes B_nonneg: "0 \<le> B"
   assumes basis_bnd: "\<And>j. j < D \<Longrightarrow> ehouse (basis j) \<le> K"
-  assumes K_nonneg: "0 \<le> K"
   assumes coeff_bnd: "\<And>j. j < D \<Longrightarrow> \<bar>c j\<bar> \<le> B"
   shows "ehouse (\<lambda>e. \<Sum>j<D. of_int (c j) * basis j e) \<le> (of_int B :: real) * of_nat D * K"
-proof (rule ehouse_bounded_int_linear_combination_le_real)
-  show "0 \<le> (of_int B :: real)" using B_nonneg by simp
-  show "\<And>j. j < D \<Longrightarrow> ehouse (basis j) \<le> K"
-    by (rule basis_bnd)
-  show "0 \<le> K" by (rule K_nonneg)
-  show "\<And>j. j < D \<Longrightarrow> (of_int (\<bar>c j\<bar>) :: real) \<le> of_int B"
-  proof -
-    fix j
-    assume "j < D"
-    then have "\<bar>c j\<bar> \<le> B" by (rule coeff_bnd)
-    then show "(of_int (\<bar>c j\<bar>) :: real) \<le> of_int B" by simp
-  qed
+proof (intro ehouse_bounded_int_linear_combination_le_real basis_bnd)
+  show "\<And>j. j < D \<Longrightarrow> \<bar>c j\<bar> \<le> real_of_int B"
+    using coeff_bnd of_int_le_iff by blast
 qed
 
 lemma ehouse_sum_mul_uniform_le:
-  assumes A_nonneg: "0 \<le> A"
-  assumes B_nonneg: "0 \<le> B"
   assumes x_bnd: "\<And>t. t < T \<Longrightarrow> ehouse (x t) \<le> A"
   assumes y_bnd: "\<And>t. t < T \<Longrightarrow> ehouse (y t) \<le> B"
   shows "ehouse (\<lambda>e. \<Sum>t<T. x t e * y t e) \<le> of_nat T * A * B"
@@ -195,7 +182,7 @@ proof -
 qed
 
 lemma cmod_sum_mul_ehouse_le:
-  assumes "ehouse x \<le> A" "ehouse y \<le> B" "0 \<le> A" "0 \<le> B"
+  assumes "ehouse x \<le> A" "ehouse y \<le> B" 
   shows "cmod (\<Sum>e\<in>E. x e * y e) \<le> of_nat (card E) * A * B"
 proof -
   have term_bnd: "cmod (x e * y e) \<le> A * B" if e: "e \<in> E" for e
@@ -207,7 +194,7 @@ qed
 
 lemma abs_int_of_ehouse_recovery_le:
   assumes recover: "(of_int n :: complex) = (\<Sum>e\<in>E. r e * y e)"
-  assumes "ehouse r \<le> R" "ehouse y \<le> A" "0 \<le> R" "0 \<le> A"
+  assumes "ehouse r \<le> R" "ehouse y \<le> A" 
   shows "\<bar>n\<bar> \<le> \<lceil>real (card E) * R * A\<rceil>"
 proof -
   have real_bound: "cmod (of_int n :: complex) \<le> of_nat (card E) * R * A"
@@ -225,9 +212,7 @@ lemma abs_int_basis_coeff_ehouse_le:
       of_int (c k) =
         (\<Sum>e\<in>E. repr_coeff k e * (\<Sum>j<D. of_int (c j) * basis j e))"
   assumes repr_bnd: "\<And>k. k < D \<Longrightarrow> ehouse (repr_coeff k) \<le> R"
-  assumes R_nonneg: "0 \<le> R"
   assumes comb_bnd: "ehouse (\<lambda>e. \<Sum>j<D. of_int (c j) * basis j e) \<le> A"
-  assumes A_nonneg: "0 \<le> A"
   shows "\<bar>c k\<bar> \<le> \<lceil>real (card E) * R * A\<rceil>"
   using assms abs_int_of_ehouse_recovery_le by presburger
 
@@ -239,27 +224,24 @@ lemma abs_int_structure_constant_ehouse_le:
   assumes repr_bnd: "\<And>k. k < D \<Longrightarrow> ehouse (repr_coeff k) \<le> R"
   assumes A_bnd: "\<And>u t. u < p \<Longrightarrow> t < q \<Longrightarrow> ehouse (\<lambda>e. a u t e) \<le> A"
   assumes basis_bnd: "\<And>j. j < D \<Longrightarrow> ehouse (basis j) \<le> K"
-  assumes R_nonneg: "0 \<le> R"
-  assumes A_nonneg: "0 \<le> A"
-  assumes K_nonneg: "0 \<le> K"
   assumes mult_repr:
     "\<And>u t j e. u < p \<Longrightarrow> t < q \<Longrightarrow> j < D \<Longrightarrow> e \<in> E \<Longrightarrow>
       a u t e * basis j e = (\<Sum>k<D. of_int (C u t k j) * basis k e)"
-  assumes up: "u < p"
-  assumes tq: "t < q"
+  assumes "u < p"
+  assumes "t < q"
   assumes "k < D"
   assumes "j < D"
   shows "\<bar>C u t k j\<bar> \<le> \<lceil>real (card E) * R * A * K\<rceil>"
 proof -
   have "ehouse (\<lambda>e. a u t e) * ehouse (basis j) \<le> A * K"
-    using A_bnd[OF up tq] basis_bnd[OF \<open>j < D\<close>] A_nonneg K_nonneg
-    by (intro mult_mono) auto
+    using A_bnd[OF \<open>u < p\<close> \<open>t < q\<close>] basis_bnd[OF \<open>j < D\<close>]
+    by (simp add: mult_mono') 
   then have y_bnd: "ehouse (\<lambda>e. a u t e * basis j e) \<le> A * K"
     using ehouse_mul_le order.trans by blast
   have "of_int (C u t k j) = (\<Sum>e\<in>E. repr_coeff k e * (a u t e * basis j e))"
-    using recover[OF \<open>k < D\<close>] by (simp add: \<open>j < D\<close> mult_repr tq up)
+    using recover[OF \<open>k < D\<close>] by (simp add: \<open>j < D\<close> mult_repr \<open>t < q\<close> \<open>u < p\<close>)
   then have "\<bar>C u t k j\<bar> \<le> \<lceil>real (card E) * R * (A * K)\<rceil>"
-    by (simp add: A_nonneg K_nonneg R_nonneg finite_embedding_house.abs_int_of_ehouse_recovery_le
+    by (simp add: finite_embedding_house.abs_int_of_ehouse_recovery_le
         finite_embedding_house_axioms \<open>k < D\<close> repr_bnd y_bnd)
   then show ?thesis
     by (simp add: mult.assoc)
@@ -268,7 +250,7 @@ qed
 end
 
 
-section \<open>Recovery of embedding coordinates\<close>
+subsection \<open>Recovery of embedding coordinates\<close>
 
 locale finite_embedding_recovery = finite_embedding_house E
   for E :: "'e set" +
@@ -316,7 +298,6 @@ qed
 lemma abs_int_basis_coeff_ehouse_le_biorthogonal:
   assumes"k < D" "ehouse (repr_coeff k) \<le> R"
   assumes "ehouse (\<lambda>e. \<Sum>j<D. of_int (c j) * basis j e) \<le> A"
-  assumes "0 \<le> R" "0 \<le> A"
   shows "\<bar>c k\<bar> \<le> \<lceil>real (card E) * R * A\<rceil>"
   using recover_int_coordinate assms abs_int_of_ehouse_recovery_le 
   by presburger
@@ -350,9 +331,9 @@ lemma card_E: "card E = D"
   using bij_betw_same_card ebij by fastforce
 
 lemma ehouse_le_of_indexed_bound:
-  assumes B_nonneg: "0 \<le> B" and "\<And>i. i < D \<Longrightarrow> cmod (f (emb i)) \<le> B"
+  assumes "0 \<le> B" and "\<And>i. i < D \<Longrightarrow> cmod (f (emb i)) \<le> B"
   shows "ehouse f \<le> B"
-proof (rule ehouse_leI[OF B_nonneg])
+proof (rule ehouse_leI[OF \<open>0 \<le> B\<close>])
   show "\<And>e. e \<in> E \<Longrightarrow> cmod (f e) \<le> B"
     using assms bij_betw_imp_surj_on[OF ebij] by force
 qed
@@ -392,11 +373,13 @@ lemma repr_coeff_ehouse_le_of_inverse_matrix_bound:
     using assms by (intro ehouse_le_of_indexed_bound) (auto simp: inverse_basis_matrix_entry_def)
 
 lemma coordinate_ehouse_le_of_inverse_matrix_bound:
-  assumes "k < D" "0 \<le> R"
+  assumes "k < D"
   assumes "\<And>i. i < D \<Longrightarrow> cmod (inverse_basis_matrix_entry k i) \<le> R"
   shows "cmod (c k) \<le> of_nat D * R * ehouse (\<lambda>e. \<Sum>j<D. c j * basis j e)"
 proof -
-  have "cmod (c k) \<le> of_nat (card E) * R * ehouse (\<lambda>e. \<Sum>j<D. c j * basis j e)"
+  have "0 \<le> R"
+    using assms norm_ge_zero order.trans by blast
+  then have "cmod (c k) \<le> of_nat (card E) * R * ehouse (\<lambda>e. \<Sum>j<D. c j * basis j e)"
     using repr_coeff_ehouse_le_of_inverse_matrix_bound
     using assms coordinate_ehouse_le \<open>k < D\<close> by blast
   then show ?thesis
@@ -407,10 +390,11 @@ lemma abs_int_basis_coeff_ehouse_le_of_inverse_matrix_bound:
   assumes "k < D"
   assumes "\<And>i. i < D \<Longrightarrow> cmod (inverse_basis_matrix_entry k i) \<le> R"
   assumes "ehouse (\<lambda>e. \<Sum>j<D. of_int (c j) * basis j e) \<le> A"
-  assumes "0 \<le> R" "0 \<le> A"
   shows "\<bar>c k\<bar> \<le> \<lceil>real D * R * A\<rceil>"
 proof -
-  have "ehouse (repr_coeff k) \<le> R"
+  have "0 \<le> R"
+    using assms norm_ge_zero order.trans by blast
+  then have "ehouse (repr_coeff k) \<le> R"
     using assms repr_coeff_ehouse_le_of_inverse_matrix_bound by simp
   then show ?thesis
     using assms card_E REC.abs_int_basis_coeff_ehouse_le_biorthogonal by blast
@@ -418,7 +402,7 @@ qed
 
 end
 
-section \<open>Basis matrices of indexed embedding families\<close>
+subsection \<open>Basis matrices of indexed embedding families\<close>
 
 context finite_embedding_indexed_recovery
 begin
@@ -502,11 +486,8 @@ lemma basis_matrix_inverts [simp]:
   using basis_matrix_right_inverse by (simp add: inverts_mat_def)
 
 lemma det_basis_matrix_nonzero: "det basis_matrix \<noteq> 0"
-proof
-  assume "det basis_matrix = 0"
-  with det_mult[OF inverse_basis_matrix_carrier basis_matrix_carrier] show False
-    by (simp add: inverse_basis_matrix_left_inverse)
-qed
+  using det_mult[OF inverse_basis_matrix_carrier basis_matrix_carrier]
+  using inverse_basis_matrix_left_inverse by force
 
 lemma det_inverse_basis_matrix_nonzero: "det inverse_basis_matrix \<noteq> 0"
 proof
