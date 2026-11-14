@@ -295,35 +295,26 @@ sublocale sc: finite_embedding_structure_kernel
 text \<open>Recovery data bounds the structure constants, giving the determinant estimate.\<close>
 
 theorem exists_nonzero_bounded_kernel_vec_of_ehouse_entries:
-  assumes hpq: "p < q"
+  assumes "p < q"
   obtains eta :: "complex vec" and x :: "int vec" where
     "ehouse_kernel_witness A p q d basis e0 K (of_int (ehouse_hadamard_kernel_bound q d (ehouse_structure_constant_bound R H K))) eta x"
-proof -
-  show thesis
-    using sc.exists_nonzero_bounded_kernel_vec_of_structure_constants_ehouse[OF hpq] that by blast
-qed
+  using sc.exists_nonzero_bounded_kernel_vec_of_structure_constants_ehouse[OF assms] .
 
 text \<open>With positive row dimension, recovery data gives the Siegel exponent estimate.\<close>
 
 theorem exists_nonzero_bounded_kernel_vec_of_ehouse_entries_exponent:
-  assumes ppos: "p > 0" and hpq: "p < q"
+  assumes "p > 0" "p < q"
   obtains eta :: "complex vec" and x :: "int vec" where
     "ehouse_kernel_witness A p q d basis e0 K (ehouse_exponent_kernel_bound p q d (ehouse_structure_constant_bound R H K)) eta x"
-proof -
-  show thesis
-    using sc.exists_nonzero_bounded_kernel_vec_of_structure_constants_ehouse_exponent[OF ppos hpq] that by blast
-qed
+  using sc.exists_nonzero_bounded_kernel_vec_of_structure_constants_ehouse_exponent[OF assms] .
 
 text \<open>With at least twice as many columns, recovery data gives the linear estimate.\<close>
 
 theorem exists_nonzero_bounded_kernel_vec_of_ehouse_entries_linear:
-  assumes ppos: "p > 0" and hpq: "2 * p \<le> q"
+  assumes "p > 0" "2 * p \<le> q"
   obtains eta :: "complex vec" and x :: "int vec" where
     "ehouse_kernel_witness A p q d basis e0 K (of_int (ehouse_linear_kernel_bound q d (ehouse_structure_constant_bound R H K))) eta x"
-proof -
-  show thesis
-    using sc.exists_nonzero_bounded_kernel_vec_of_structure_constants_ehouse_linear[OF ppos hpq] that by blast
-qed
+  using sc.exists_nonzero_bounded_kernel_vec_of_structure_constants_ehouse_linear[OF assms] .
 
 end
 
