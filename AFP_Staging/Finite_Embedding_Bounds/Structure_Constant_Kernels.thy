@@ -1,14 +1,15 @@
 (*  Title:      Finite_Embedding_Bounds/Structure_Constant_Kernels.thy
     Author:     OpenAI Codex
-
-Bounded complex-matrix kernels via integral structure constants.
+.
 *)
+
+section \<open>Bounded complex-matrix kernels via integral structure constants\<close>
 
 theory Structure_Constant_Kernels
   imports "Bounded_Integer_Kernels.Integer_Kernel_Bounds"
 begin
 
-section \<open>Structure-constant lifting of integer kernels\<close>
+subsection \<open>Structure-constant lifting of integer kernels\<close>
 
 definition sg_pair_idx :: "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat"
   where "sg_pair_idx d i j \<equiv> i * d + j"
@@ -68,7 +69,9 @@ proof -
   finally show ?thesis by simp
 qed
 
-lemma lift_structure_constant_kernel:
+subsection \<open>And the main results\<close>
+
+proposition lift_structure_constant_kernel:
   fixes A :: "complex mat"
   fixes basis :: "nat \<Rightarrow> complex"
   fixes C :: "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> int"
@@ -102,14 +105,7 @@ proof -
   proof
     assume eta0: "eta = 0\<^sub>v q"
     have block_zero: "x $ sg_pair_idx d t j = 0" if t: "t < q" and j: "j < d" for t j
-    proof -
-      have "eta $ t = 0"
-        using eta0 t eta_carrier by simp
-      then have "(\<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j) = 0"
-        using eta_coord[OF t] by simp
-      from basis_indep[OF this] j show ?thesis
-        by blast
-    qed
+      using basis_indep eta0 eta_coord j t by fastforce
     obtain n where n: "n < q * d" "x $ n \<noteq> 0"
       using x_carrier x_nz by force
     have tlt: "n div d < q"
@@ -167,16 +163,7 @@ proof -
       qed
       have comp4a: "(\<Sum>n<q * d. C u (n div d) k (n mod d) * x $ n) =
           (\<Sum>n<q * d. C u (n div d) k (n mod d) * x $ sg_pair_idx d (n div d) (n mod d))"
-      proof (rule sum.cong[OF refl])
-        fix n
-        assume n_mem: "n \<in> {..<q * d}"
-        have nlt: "n < q * d"
-          using n_mem by simp
-        have "n = sg_pair_idx d (n div d) (n mod d)"
-          unfolding sg_pair_idx_def using dpos by simp
-        then show "C u (n div d) k (n mod d) * x $ n = C u (n div d) k (n mod d) * x $ sg_pair_idx d (n div d) (n mod d)"
-          by simp
-      qed
+        unfolding sg_pair_idx_def using dpos by simp
       have comp4b: "(\<Sum>n<q * d. C u (n div d) k (n mod d) * x $ sg_pair_idx d (n div d) (n mod d)) =
           (\<Sum>t<q. \<Sum>j<d. C u t k j * (x $ sg_pair_idx d t j))"
         by (rule sum_upto_sg_pair_idx[OF dpos])
@@ -300,17 +287,7 @@ proof -
     then show ?thesis .
   qed
   have Aeta0: "A *\<^sub>v eta = 0\<^sub>v p"
-  proof (rule eq_vecI)
-    show "dim_vec (A *\<^sub>v eta) = dim_vec (0\<^sub>v p)"
-      using A eta_carrier by simp
-  next
-    fix u
-    assume u: "u < dim_vec (0\<^sub>v p)"
-    then have up: "u < p"
-      by simp
-    show "(A *\<^sub>v eta) $ u = (0\<^sub>v p) $ u"
-      using Aeta_component[OF up] u by simp
-  qed
+    using A Aeta_component by auto
   show ?thesis
     using eta_carrier eta_nz Aeta0 eta_coord by blast
 qed
@@ -346,18 +323,17 @@ lemma lift_bounded_structure_constant_kernel:
   assumes x_carrier: "x \<in> carrier_vec (q * d)"
     and x_nz: "x \<noteq> 0\<^sub>v (q * d)"
     and kernel: "M *\<^sub>v x = 0\<^sub>v (p * d)"
-    and x_bnd: "x \<in> Bounded_vec B"
+    and "x \<in> Bounded_vec B"
   obtains eta where "bounded_basis_kernel A p q d basis B eta x"
 proof -
-  obtain eta where eta:
+  obtain eta where 
       "eta \<in> carrier_vec q" "eta \<noteq> 0\<^sub>v q"
       "A *\<^sub>v eta = 0\<^sub>v p"
       "\<forall>t<q. eta $ t = (\<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j)"
     using lift_structure_constant_kernel[OF A dpos mult_repr basis_indep
       x_carrier x_nz kernel] by blast
-  have W: "bounded_basis_kernel A p q d basis B eta x"
-    by unfold_locales (use eta x_carrier x_nz x_bnd in auto)
-  show thesis by (rule that[OF W])
+  with assms bounded_basis_kernel.intro that show thesis 
+    by blast
 qed
 
 theorem exists_nonzero_bounded_kernel_vec_of_structure_constants:
@@ -374,10 +350,9 @@ proof -
     and Mx0: "M *\<^sub>v x = 0\<^sub>v (p * d)"
     and x_bnd: "x \<in> Bounded_vec (int (q * d + 1) * det_bound_hadamard (q * d) (max 1 Bnd))"
     using exists_ne_zero_int_vec_bounded_kernel[OF structure_constant_mat_carrier pdqd structure_constant_mat_bounded] by blast
-  obtain eta where W: "bounded_basis_kernel A p q d basis
-    (int (q * d + 1) * det_bound_hadamard (q * d) (max 1 Bnd)) eta x"
-    by (rule lift_bounded_structure_constant_kernel[OF x_carrier x_nz Mx0 x_bnd])
-  show thesis by (rule that[OF W])
+  with lift_bounded_structure_constant_kernel[OF x_carrier x_nz Mx0 x_bnd]
+  show thesis
+    using that by meson
 qed
 
 theorem exists_nonzero_bounded_kernel_vec_of_structure_constants_exponent:
@@ -396,7 +371,7 @@ theorem exists_nonzero_bounded_kernel_vec_of_structure_constants_exponent:
 proof -
   have pdpos: "0 < p * d" using ppos dpos by simp
   have pdqd: "p * d < q * d" using hpq dpos by simp
-  obtain x where x:
+  obtain x where 
       "x \<in> carrier_vec (q * d)" "x \<noteq> 0\<^sub>v (q * d)"
       "M *\<^sub>v x = 0\<^sub>v (p * d)"
       "\<forall>j<q * d. (of_int (\<bar>x $ j\<bar>) :: real) \<le>
@@ -404,18 +379,14 @@ proof -
           (real (p * d) / real (q * d - p * d))"
     using exists_ne_zero_int_vec_bounded_kernel_exponent[OF structure_constant_mat_carrier pdpos pdqd structure_constant_mat_bounded]
     by blast
-  obtain eta where eta:
-      "eta \<in> carrier_vec q" "eta \<noteq> 0\<^sub>v q"
-      "A *\<^sub>v eta = 0\<^sub>v p"
-      "\<forall>t<q. eta $ t = (\<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j)"
-    using lift_structure_constant_kernel[OF A dpos mult_repr basis_indep x(1,2)] x(3)
-    by blast
-  show thesis by (rule that[OF eta(1,2) x(1,2) eta(3,4) x(4)])
+  then show thesis
+    using lift_structure_constant_kernel[OF A dpos mult_repr basis_indep]
+    using that by blast
 qed
 
 theorem exists_nonzero_bounded_kernel_vec_of_structure_constants_linear:
-  assumes ppos: "p > 0"
-  assumes hpq: "2 * p \<le> q"
+  assumes "p > 0"
+  assumes "2 * p \<le> q"
   obtains eta :: "complex vec" and x :: "int vec" where
     "bounded_basis_kernel A p q d basis
       (2 * int (q * d) * max 1 Bnd) eta x"
@@ -424,11 +395,11 @@ proof -
     and x_nz: "x \<noteq> 0\<^sub>v (q * d)"
     and Mx0: "M *\<^sub>v x = 0\<^sub>v (p * d)"
     and x_bnd: "x \<in> Bounded_vec (2 * int (q * d) * max 1 Bnd)"
-    using exists_ne_zero_int_vec_bounded_kernel_linear[OF structure_constant_mat_carrier] structure_constant_mat_bounded using dpos hpq ppos by force
-  obtain eta where W: "bounded_basis_kernel A p q d basis
-    (2 * int (q * d) * max 1 Bnd) eta x"
-    by (rule lift_bounded_structure_constant_kernel[OF x_carrier x_nz Mx0 x_bnd])
-  show thesis by (rule that[OF W])
+    using exists_ne_zero_int_vec_bounded_kernel_linear[OF structure_constant_mat_carrier] 
+        structure_constant_mat_bounded using dpos assms by force
+  then show thesis
+    using lift_bounded_structure_constant_kernel[OF x_carrier x_nz Mx0 x_bnd]
+    using that by meson
 qed
 
 end
