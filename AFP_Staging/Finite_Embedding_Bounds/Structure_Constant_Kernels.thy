@@ -1,6 +1,5 @@
 (*  Title:      Finite_Embedding_Bounds/Structure_Constant_Kernels.thy
     Author:     OpenAI Codex
-.
 *)
 
 section \<open>Bounded complex-matrix kernels via integral structure constants\<close>
@@ -45,7 +44,7 @@ lemma sg_pair_idx_lt:
 
 lemma sum_upto_sg_pair_idx:
   fixes f :: "nat \<Rightarrow> nat \<Rightarrow> 'a::{comm_monoid_add}"
-  assumes dpos: "d > 0"
+  assumes "d > 0"
   shows "(\<Sum>n<q * d. f (n div d) (n mod d)) = (\<Sum>t<q. \<Sum>j<d. f t j)"
 proof -
   let ?S = "({..<q} :: nat set) \<times> ({..<d} :: nat set)"
@@ -54,14 +53,14 @@ proof -
   have bij: "bij_betw ?h ?S ?T"
   proof (rule bij_betw_byWitness)
     show "?h ` ?S \<subseteq> ?T"
-      using dpos by (auto intro: sg_pair_idx_lt)
+      using \<open>d > 0\<close> by (auto intro: sg_pair_idx_lt)
     show "(\<lambda>n::nat. (n div d, n mod d)) ` ?T \<subseteq> ?S"
-      using dpos by (auto intro: less_mult_imp_div_less)
-  qed (use dpos in \<open>auto simp: sg_pair_idx_def\<close>)
+      using \<open>d > 0\<close> by (auto intro: less_mult_imp_div_less)
+  qed (use \<open>d > 0\<close> in \<open>auto simp: sg_pair_idx_def\<close>)
   have "(\<Sum>t<q. \<Sum>j<d. f t j) = (\<Sum>ij\<in>?S. case_prod f ij)"
     by (simp add: sum.cartesian_product)
   also have "\<dots> = (\<Sum>ij\<in>?S. case_prod f (?h ij div d, ?h ij mod d))"
-    using dpos by (intro sum.cong) (auto simp add: sg_pair_idx_def split: prod.splits)
+    using \<open>d > 0\<close> by (intro sum.cong) (auto simp add: sg_pair_idx_def split: prod.splits)
   also have "\<dots> = (\<Sum>n\<in>?T. case_prod f (n div d, n mod d))"
     using bij by (rule sum.reindex_bij_betw)
   also have "\<dots> = (\<Sum>n<q * d. f (n div d) (n mod d))"
@@ -77,7 +76,7 @@ proposition lift_structure_constant_kernel:
   fixes C :: "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> int"
   fixes x :: "int vec"
   assumes A: "A \<in> carrier_mat p q"
-  assumes dpos: "d > 0"
+  assumes "d > 0"
   assumes mult_repr:
     "\<And>u t j. u < p \<Longrightarrow> t < q \<Longrightarrow> j < d \<Longrightarrow>
       A $$ (u,t) * basis j = (\<Sum>k<d. of_int (C u t k j) * basis k)"
@@ -90,13 +89,13 @@ proposition lift_structure_constant_kernel:
     A *\<^sub>v eta = 0\<^sub>v p \<and>
     (\<forall>t<q. eta $ t = (\<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j))"
 proof -
-  define M :: "int mat" where "M = structure_constant_mat C p q d"
+  define M :: "int mat" where "M \<equiv> structure_constant_mat C p q d"
   have M: "M \<in> carrier_mat (p * d) (q * d)"
     unfolding M_def structure_constant_mat_def by simp
   have Mx0: "M *\<^sub>v x = 0\<^sub>v (p * d)"
     using kernel unfolding M_def by simp
   define eta :: "complex vec" where
-    "eta = vec q (\<lambda>t. \<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j)"
+    "eta \<equiv> vec q (\<lambda>t. \<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j)"
   have eta_carrier: "eta \<in> carrier_vec q"
     unfolding eta_def by simp
   have eta_coord: "eta $ t = (\<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j)" if "t < q" for t
@@ -109,148 +108,69 @@ proof -
     obtain n where n: "n < q * d" "x $ n \<noteq> 0"
       using x_carrier x_nz by force
     have tlt: "n div d < q"
-      using dpos n(1) td_gal_lt by force
+      using \<open>d > 0\<close> n(1) td_gal_lt by force
     have jlt: "n mod d < d"
-      using dpos by simp
+      using \<open>d > 0\<close> by simp
     have n_eq: "n = sg_pair_idx d (n div d) (n mod d)"
-      unfolding sg_pair_idx_def using dpos by simp
-    have "x $ sg_pair_idx d (n div d) (n mod d) = 0"
-      by (rule block_zero[OF tlt jlt])
-    then have "x $ n = 0"
-      using n_eq by simp
-    with n show False
-      by simp
+      unfolding sg_pair_idx_def using \<open>d > 0\<close> by simp
+    then show False
+      using block_zero[OF tlt jlt] n by presburger
   qed
   have Aeta_component: "(A *\<^sub>v eta) $ u = 0" if up: "u < p" for u
   proof -
-    have rowlt: "u < dim_row A"
-      using A up by simp
     have row_zero: "(\<Sum>t<q. \<Sum>j<d. C u t k j * (x $ sg_pair_idx d t j)) = 0" if k: "k < d" for k
     proof -
       have uklt: "sg_pair_idx d u k < p * d"
-        by (rule sg_pair_idx_lt[OF dpos up k])
+        by (rule sg_pair_idx_lt[OF \<open>d > 0\<close> up k])
       have ukrow: "sg_pair_idx d u k < dim_row M"
         using uklt M by simp
       have "0 = (M *\<^sub>v x) $ sg_pair_idx d u k"
         using Mx0 uklt by simp
       also have "\<dots> = row M (sg_pair_idx d u k) \<bullet> x"
         by (rule index_mult_mat_vec[OF ukrow])
+      also have "... = (\<Sum>i = 0..<q * d. row M (sg_pair_idx d u k) $ i * x $ i)"
+        using x_carrier by (simp add: scalar_prod_def)
       also have "\<dots> = (\<Sum>n<q * d. M $$ (sg_pair_idx d u k, n) * x $ n)"
-      proof -
-        have "row M (sg_pair_idx d u k) \<bullet> x =
-            (\<Sum>i = 0..<q * d. row M (sg_pair_idx d u k) $ i * x $ i)"
-          using x_carrier by (simp add: scalar_prod_def)
-        also have "\<dots> = (\<Sum>n<q * d. M $$ (sg_pair_idx d u k, n) * x $ n)"
-          using uklt M x_carrier by (simp add: atLeast0LessThan)
-        finally show ?thesis .
-      qed
+        using uklt M x_carrier by (simp add: atLeast0LessThan)
       also have "\<dots> = (\<Sum>n<q * d. C u (n div d) k (n mod d) * x $ n)"
       proof (rule sum.cong[OF refl])
         fix n
-        assume n_mem: "n \<in> {..<q * d}"
-        have nlt: "n < q * d"
-          using n_mem by simp
-        have idx_div: "sg_pair_idx d u k div d = u"
-          using dpos k by (simp add: sg_pair_idx_def)
-        have idx_mod: "sg_pair_idx d u k mod d = k"
-          using dpos k by (simp add: sg_pair_idx_def)
-        have "M $$ (sg_pair_idx d u k, n) = C u (n div d) k (n mod d)"
-          unfolding M_def structure_constant_mat_def using uklt nlt idx_div idx_mod by simp
+        assume n: "n \<in> {..<q * d}"
+        have "sg_pair_idx d u k div d = u" "sg_pair_idx d u k mod d = k"
+          using \<open>d > 0\<close> k by (simp_all add: sg_pair_idx_def)
         then show "M $$ (sg_pair_idx d u k, n) * x $ n = C u (n div d) k (n mod d) * x $ n"
-          by simp
+          unfolding M_def structure_constant_mat_def using uklt n by simp
       qed
-      also have "\<dots> =
-          (\<Sum>n<q * d. C u (n div d) k (n mod d) * x $ sg_pair_idx d (n div d) (n mod d))"
-        unfolding sg_pair_idx_def using dpos by simp
+      also have "\<dots> = (\<Sum>n<q * d. C u (n div d) k (n mod d) * x $ sg_pair_idx d (n div d) (n mod d))"
+        unfolding sg_pair_idx_def using \<open>d > 0\<close> by simp
       also have "\<dots> = (\<Sum>t<q. \<Sum>j<d. C u t k j * (x $ sg_pair_idx d t j))"
-        by (rule sum_upto_sg_pair_idx[OF dpos])
+        by (rule sum_upto_sg_pair_idx[OF \<open>d > 0\<close>])
       finally show ?thesis by simp
     qed
     have row_zero_complex:
-      "(\<Sum>t<q. \<Sum>j<d. of_int (C u t k j * (x $ sg_pair_idx d t j))) = 0" if k: "k < d" for k
-    proof -
-      have "(\<Sum>t<q. \<Sum>j<d. of_int (C u t k j * (x $ sg_pair_idx d t j))) =
-          of_int (\<Sum>t<q. \<Sum>j<d. C u t k j * (x $ sg_pair_idx d t j))"
-        by simp
-      also have "\<dots> = 0"
-        using row_zero[OF k] by simp
-      finally show ?thesis .
-    qed
+      "(\<Sum>t<q. \<Sum>j<d. of_int (C u t k j * (x $ sg_pair_idx d t j))) = 0" if "k < d" for k
+      using row_zero that by (simp flip: of_int_sum of_int_mult)
     have "(A *\<^sub>v eta) $ u = (\<Sum>t<q. A $$ (u,t) * eta $ t)"
-    proof -
-      have "(A *\<^sub>v eta) $ u = row A u \<bullet> eta"
-        by (rule index_mult_mat_vec[OF rowlt])
-      also have "\<dots> = (\<Sum>i = 0..<dim_vec eta. row A u $ i * eta $ i)"
-        by (simp add: scalar_prod_def)
-      also have "\<dots> = (\<Sum>t<q. A $$ (u,t) * eta $ t)"
-        using A eta_carrier up by (simp add: atLeast0LessThan)
-      finally show ?thesis .
-    qed
+      using index_mult_mat_vec A eta_carrier up 
+      by (simp add: scalar_prod_def atLeast0LessThan)
     also have "\<dots> =
         (\<Sum>t<q. A $$ (u,t) * (\<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j))"
-      by (rule sum.cong[OF refl]) (simp add: eta_coord)
-    also have "\<dots> =
-        (\<Sum>t<q. \<Sum>j<d. of_int (x $ sg_pair_idx d t j) * (A $$ (u,t) * basis j))"
+      by (intro sum.cong) (auto simp: eta_coord)
+    also have "\<dots> = (\<Sum>t<q. \<Sum>j<d. of_int (x $ sg_pair_idx d t j) * (A $$ (u,t) * basis j))"
       by (simp add: sum_distrib_left algebra_simps)
-    also have "\<dots> =
-        (\<Sum>t<q. \<Sum>j<d. \<Sum>k<d. of_int (x $ sg_pair_idx d t j) * (of_int (C u t k j) * basis k))"
-    proof (rule sum.cong[OF refl])
-      fix t
-      assume "t \<in> {..<q}"
-      then have t: "t < q" by simp
-      show "(\<Sum>j<d. of_int (x $ sg_pair_idx d t j) * (A $$ (u,t) * basis j)) =
-          (\<Sum>j<d. \<Sum>k<d. of_int (x $ sg_pair_idx d t j) * (of_int (C u t k j) * basis k))"
-      proof (rule sum.cong[OF refl])
-        fix j
-        assume "j \<in> {..<d}"
-        then have j: "j < d" by simp
-        have "A $$ (u,t) * basis j = (\<Sum>k<d. of_int (C u t k j) * basis k)"
-          by (rule mult_repr[OF up t j])
-        then show "of_int (x $ sg_pair_idx d t j) * (A $$ (u,t) * basis j) =
-            (\<Sum>k<d. of_int (x $ sg_pair_idx d t j) * (of_int (C u t k j) * basis k))"
-          by (simp add: sum_distrib_left algebra_simps)
-      qed
-    qed
-    also have "\<dots> =
-        (\<Sum>t<q. \<Sum>k<d. \<Sum>j<d. of_int (x $ sg_pair_idx d t j) * (of_int (C u t k j) * basis k))"
-    proof (rule sum.cong[OF refl])
-      fix t
-      assume "t \<in> {..<q}"
-      show "(\<Sum>j<d. \<Sum>k<d. of_int (x $ sg_pair_idx d t j) * (of_int (C u t k j) * basis k)) =
-          (\<Sum>k<d. \<Sum>j<d. of_int (x $ sg_pair_idx d t j) * (of_int (C u t k j) * basis k))"
-        by (rule sum.swap)
-    qed
-    also have "\<dots> =
-        (\<Sum>k<d. \<Sum>t<q. \<Sum>j<d. of_int (x $ sg_pair_idx d t j) * (of_int (C u t k j) * basis k))"
+    also have "\<dots> = (\<Sum>t<q. \<Sum>j<d. \<Sum>k<d. of_int (x $ sg_pair_idx d t j) * (of_int (C u t k j) * basis k))"
+        by (intro sum.cong) (auto simp: mult_repr sum_distrib_left up)
+    also have "\<dots> = (\<Sum>t<q. \<Sum>k<d. \<Sum>j<d. of_int (x $ sg_pair_idx d t j) * (of_int (C u t k j) * basis k))"
+      by (intro sum.swap sum.cong) auto
+    also have "\<dots> = (\<Sum>k<d. \<Sum>t<q. \<Sum>j<d. of_int (x $ sg_pair_idx d t j) * (of_int (C u t k j) * basis k))"
       by (rule sum.swap)
-    also have "\<dots> =
-        (\<Sum>k<d. (\<Sum>t<q. \<Sum>j<d. of_int (C u t k j * (x $ sg_pair_idx d t j))) * basis k)"
-    proof (rule sum.cong[OF refl])
-      fix k
-      assume "k \<in> {..<d}"
-      have "(\<Sum>t<q. \<Sum>j<d. of_int (x $ sg_pair_idx d t j) * (of_int (C u t k j) * basis k)) =
-          (\<Sum>t<q. \<Sum>j<d. of_int (C u t k j * (x $ sg_pair_idx d t j)) * basis k)"
-        by (simp add: algebra_simps)
-      also have "\<dots> =
-          (\<Sum>t<q. \<Sum>j<d. of_int (C u t k j * (x $ sg_pair_idx d t j))) * basis k"
-        by (simp add: sum_distrib_right)
-      finally show "(\<Sum>t<q. \<Sum>j<d. of_int (x $ sg_pair_idx d t j) * (of_int (C u t k j) * basis k)) =
-          (\<Sum>t<q. \<Sum>j<d. of_int (C u t k j * (x $ sg_pair_idx d t j))) * basis k" .
-    qed
+    also have "\<dots> = (\<Sum>k<d. (\<Sum>t<q. \<Sum>j<d. of_int (C u t k j * (x $ sg_pair_idx d t j))) * basis k)"
+      by (intro sum.cong) (auto simp: algebra_simps sum_distrib_left)
     also have "\<dots> = 0"
-    proof -
+    proof -                              
       have "(\<Sum>k<d. (\<Sum>t<q. \<Sum>j<d. of_int (C u t k j * (x $ sg_pair_idx d t j))) * basis k) =
-          (\<Sum>k<d. 0 * basis k)"
-      proof (rule sum.cong[OF refl])
-        fix k
-        assume k_mem: "k \<in> {..<d}"
-        have k: "k < d"
-          using k_mem by simp
-        have coeff0: "(\<Sum>t<q. \<Sum>j<d. of_int (C u t k j * (x $ sg_pair_idx d t j))) = 0"
-          using row_zero_complex[OF k] .
-        show "(\<Sum>t<q. \<Sum>j<d. of_int (C u t k j * (x $ sg_pair_idx d t j))) * basis k = 0 * basis k"
-          by (subst coeff0) simp
-      qed
+            (\<Sum>k<d. 0 * basis k)"
+        using row_zero_complex by (intro sum.cong) auto
       then show ?thesis by simp
     qed
     finally show ?thesis .
@@ -268,13 +188,12 @@ context
     and p q d :: nat
     and Bnd :: int
   assumes A: "A \<in> carrier_mat p q"
-    and dpos: "d > 0"
+    and "d > 0"
     and mult_repr:
       "\<And>u t j. u < p \<Longrightarrow> t < q \<Longrightarrow> j < d \<Longrightarrow>
         A $$ (u,t) * basis j = (\<Sum>k<d. of_int (C u t k j) * basis k)"
     and C_bnd:
-      "\<And>u t k j. u < p \<Longrightarrow> t < q \<Longrightarrow> k < d \<Longrightarrow> j < d \<Longrightarrow>
-        \<bar>C u t k j\<bar> \<le> Bnd"
+      "\<And>u t k j. u < p \<Longrightarrow> t < q \<Longrightarrow> k < d \<Longrightarrow> j < d \<Longrightarrow> \<bar>C u t k j\<bar> \<le> Bnd"
     and basis_indep:
       "\<And>c. (\<Sum>j<d. of_int (c j) * basis j) = 0 \<Longrightarrow> (\<forall>j<d. c j = 0)"
 begin
@@ -286,7 +205,7 @@ lemma structure_constant_mat_carrier: "M \<in> carrier_mat (p * d) (q * d)"
 
 lemma structure_constant_mat_bounded: "M \<in> Bounded_mat Bnd"
   unfolding Bounded_mat_def structure_constant_mat_def
-  by (auto intro!: C_bnd less_mult_imp_div_less simp: dpos)
+  by (auto intro!: C_bnd less_mult_imp_div_less simp: \<open>d > 0\<close>)
 
 lemma lift_bounded_structure_constant_kernel:
   assumes x_carrier: "x \<in> carrier_vec (q * d)"
@@ -299,7 +218,7 @@ proof -
       "eta \<in> carrier_vec q" "eta \<noteq> 0\<^sub>v q"
       "A *\<^sub>v eta = 0\<^sub>v p"
       "\<forall>t<q. eta $ t = (\<Sum>j<d. of_int (x $ sg_pair_idx d t j) * basis j)"
-    using lift_structure_constant_kernel[OF A dpos mult_repr basis_indep
+    using lift_structure_constant_kernel[OF A \<open>d > 0\<close> mult_repr basis_indep
       x_carrier x_nz kernel] by blast
   with assms bounded_basis_kernel.intro that show thesis 
     by blast
@@ -312,7 +231,7 @@ theorem exists_nonzero_bounded_kernel_vec_of_structure_constants:
       (int (q * d + 1) * det_bound_hadamard (q * d) (max 1 Bnd)) eta x"
 proof -
   have pdqd: "p * d < q * d"
-    using hpq dpos by simp
+    using hpq \<open>d > 0\<close> by simp
   obtain x :: "int vec" where
       x_carrier: "x \<in> carrier_vec (q * d)"
     and x_nz: "x \<noteq> 0\<^sub>v (q * d)"
@@ -338,8 +257,8 @@ theorem exists_nonzero_bounded_kernel_vec_of_structure_constants_exponent:
       (real (q * d) * (of_int (max 1 Bnd) :: real)) powr
         (real (p * d) / real (q * d - p * d))"
 proof -
-  have pdpos: "0 < p * d" using ppos dpos by simp
-  have pdqd: "p * d < q * d" using hpq dpos by simp
+  have pdpos: "0 < p * d" using ppos \<open>d > 0\<close> by simp
+  have pdqd: "p * d < q * d" using hpq \<open>d > 0\<close> by simp
   obtain x where 
       "x \<in> carrier_vec (q * d)" "x \<noteq> 0\<^sub>v (q * d)"
       "M *\<^sub>v x = 0\<^sub>v (p * d)"
@@ -348,7 +267,7 @@ proof -
           (real (p * d) / real (q * d - p * d))"
     using exists_ne_zero_int_vec_bounded_kernel_exponent[OF structure_constant_mat_carrier pdpos pdqd structure_constant_mat_bounded]
     by blast
-  with that lift_structure_constant_kernel[OF A dpos mult_repr basis_indep] show thesis
+  with that lift_structure_constant_kernel[OF A \<open>d > 0\<close> mult_repr basis_indep] show thesis
     by blast
 qed
 
@@ -364,7 +283,7 @@ proof -
     and "M *\<^sub>v x = 0\<^sub>v (p * d)"
     and "x \<in> Bounded_vec (2 * int (q * d) * max 1 Bnd)"
     using exists_ne_zero_int_vec_bounded_kernel_linear[OF structure_constant_mat_carrier] 
-      structure_constant_mat_bounded using dpos assms by force
+      structure_constant_mat_bounded using \<open>d > 0\<close> assms by force
   with that lift_bounded_structure_constant_kernel show thesis
     by meson
 qed
