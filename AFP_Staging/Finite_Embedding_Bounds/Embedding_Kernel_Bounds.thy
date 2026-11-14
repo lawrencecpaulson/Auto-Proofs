@@ -124,24 +124,40 @@ proof -
     using carrier nonzero kernel coordinates coeff house by blast
 qed
 
-theorem exists_nonzero_bounded_kernel_vec_of_structure_constants_ehouse:
+end
+
+text \<open>The structure locale fixes the matrix, integral multiplication table,
+independent basis, and uniform house bound. The rank hypotheses remain local to
+the individual estimates.\<close>
+
+locale finite_embedding_structure_kernel = finite_embedding_house E
+  for E :: "'e set" +
   fixes A :: "complex mat"
-  fixes basis :: "nat \<Rightarrow> 'e \<Rightarrow> complex"
-  fixes C :: "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> int"
+    and p q d :: nat
+    and e0 :: 'e
+    and basis :: "nat \<Rightarrow> 'e \<Rightarrow> complex"
+    and C :: "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> int"
+    and Bnd :: int
+    and K :: real
   assumes A: "A \<in> carrier_mat p q"
-  assumes dpos: "d > 0"
+    and dpos: "d > 0"
+    and e0: "e0 \<in> E"
+    and mult_repr:
+      "\<And>u t j. u < p \<Longrightarrow> t < q \<Longrightarrow> j < d \<Longrightarrow>
+        A $$ (u,t) * basis j e0 = (\<Sum>k<d. of_int (C u t k j) * basis k e0)"
+    and C_bnd:
+      "\<And>u t k j. u < p \<Longrightarrow> t < q \<Longrightarrow> k < d \<Longrightarrow> j < d \<Longrightarrow>
+        \<bar>C u t k j\<bar> \<le> Bnd"
+    and basis_indep:
+      "\<And>c. (\<Sum>j<d. of_int (c j) * basis j e0) = 0 \<Longrightarrow> (\<forall>j<d. c j = 0)"
+    and basis_bnd: "\<And>j. j < d \<Longrightarrow> ehouse (basis j) \<le> K"
+    and K_nonneg: "0 \<le> K"
+begin
+
+text \<open>The determinant bound applies whenever the matrix has more columns than rows.\<close>
+
+theorem exists_nonzero_bounded_kernel_vec_of_structure_constants_ehouse:
   assumes hpq: "p < q"
-  assumes e0: "e0 \<in> E"
-  assumes mult_repr:
-    "\<And>u t j. u < p \<Longrightarrow> t < q \<Longrightarrow> j < d \<Longrightarrow>
-      A $$ (u,t) * basis j e0 = (\<Sum>k<d. of_int (C u t k j) * basis k e0)"
-  assumes C_bnd:
-    "\<And>u t k j. u < p \<Longrightarrow> t < q \<Longrightarrow> k < d \<Longrightarrow> j < d \<Longrightarrow>
-      \<bar>C u t k j\<bar> \<le> Bnd"
-  assumes basis_indep:
-    "\<And>c. (\<Sum>j<d. of_int (c j) * basis j e0) = 0 \<Longrightarrow> (\<forall>j<d. c j = 0)"
-  assumes basis_bnd: "\<And>j. j < d \<Longrightarrow> ehouse (basis j) \<le> K"
-  assumes K_nonneg: "0 \<le> K"
   obtains eta :: "complex vec" and x :: "int vec" where
     "ehouse_kernel_witness A p q d basis e0 K (of_int (ehouse_hadamard_kernel_bound q d Bnd)) eta x"
 proof -
@@ -156,25 +172,10 @@ proof -
   show thesis by (rule that[OF result])
 qed
 
+text \<open>The Siegel exponent estimate applies when the row dimension is positive.\<close>
+
 theorem exists_nonzero_bounded_kernel_vec_of_structure_constants_ehouse_exponent:
-  fixes A :: "complex mat"
-  fixes basis :: "nat \<Rightarrow> 'e \<Rightarrow> complex"
-  fixes C :: "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> int"
-  assumes A: "A \<in> carrier_mat p q"
-  assumes ppos: "p > 0"
-  assumes dpos: "d > 0"
-  assumes hpq: "p < q"
-  assumes e0: "e0 \<in> E"
-  assumes mult_repr:
-    "\<And>u t j. u < p \<Longrightarrow> t < q \<Longrightarrow> j < d \<Longrightarrow>
-      A $$ (u,t) * basis j e0 = (\<Sum>k<d. of_int (C u t k j) * basis k e0)"
-  assumes C_bnd:
-    "\<And>u t k j. u < p \<Longrightarrow> t < q \<Longrightarrow> k < d \<Longrightarrow> j < d \<Longrightarrow>
-      \<bar>C u t k j\<bar> \<le> Bnd"
-  assumes basis_indep:
-    "\<And>c. (\<Sum>j<d. of_int (c j) * basis j e0) = 0 \<Longrightarrow> (\<forall>j<d. c j = 0)"
-  assumes basis_bnd: "\<And>j. j < d \<Longrightarrow> ehouse (basis j) \<le> K"
-  assumes K_nonneg: "0 \<le> K"
+  assumes ppos: "p > 0" and hpq: "p < q"
   obtains eta :: "complex vec" and x :: "int vec" where
     "ehouse_kernel_witness A p q d basis e0 K (ehouse_exponent_kernel_bound p q d Bnd) eta x"
 proof -
@@ -218,25 +219,10 @@ proof -
   show thesis by (rule that[OF result])
 qed
 
+text \<open>With at least twice as many columns as rows, the integer bound is linear.\<close>
+
 theorem exists_nonzero_bounded_kernel_vec_of_structure_constants_ehouse_linear:
-  fixes A :: "complex mat"
-  fixes basis :: "nat \<Rightarrow> 'e \<Rightarrow> complex"
-  fixes C :: "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> int"
-  assumes A: "A \<in> carrier_mat p q"
-  assumes ppos: "p > 0"
-  assumes dpos: "d > 0"
-  assumes hpq: "2 * p \<le> q"
-  assumes e0: "e0 \<in> E"
-  assumes mult_repr:
-    "\<And>u t j. u < p \<Longrightarrow> t < q \<Longrightarrow> j < d \<Longrightarrow>
-      A $$ (u,t) * basis j e0 = (\<Sum>k<d. of_int (C u t k j) * basis k e0)"
-  assumes C_bnd:
-    "\<And>u t k j. u < p \<Longrightarrow> t < q \<Longrightarrow> k < d \<Longrightarrow> j < d \<Longrightarrow>
-      \<bar>C u t k j\<bar> \<le> Bnd"
-  assumes basis_indep:
-    "\<And>c. (\<Sum>j<d. of_int (c j) * basis j e0) = 0 \<Longrightarrow> (\<forall>j<d. c j = 0)"
-  assumes basis_bnd: "\<And>j. j < d \<Longrightarrow> ehouse (basis j) \<le> K"
-  assumes K_nonneg: "0 \<le> K"
+  assumes ppos: "p > 0" and hpq: "2 * p \<le> q"
   obtains eta :: "complex vec" and x :: "int vec" where
     "ehouse_kernel_witness A p q d basis e0 K (of_int (ehouse_linear_kernel_bound q d Bnd)) eta x"
 proof -
@@ -251,23 +237,41 @@ proof -
   show thesis by (rule that[OF result])
 qed
 
-lemma ehouse_entries_structure_constants:
+end
+
+text \<open>The entry locale records one finite embedding model and its coordinate
+recovery bounds. Only the rank hypothesis varies between the three estimates.\<close>
+
+locale finite_embedding_entry_kernel = finite_embedding_house E
+  for E :: "'e set" +
   fixes A :: "complex mat"
-  fixes basis :: "nat \<Rightarrow> 'e \<Rightarrow> complex"
-  fixes repr_coeff :: "nat \<Rightarrow> 'e \<Rightarrow> complex"
-  fixes Aemb :: "nat \<Rightarrow> nat \<Rightarrow> 'e \<Rightarrow> complex"
-  fixes C :: "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> int"
-  assumes e0: "e0 \<in> E"
-  assumes entry0: "\<And>u t. u < p \<Longrightarrow> t < q \<Longrightarrow> A $$ (u,t) = Aemb u t e0"
-  assumes mult_repr:
-    "\<And>u t j e. u < p \<Longrightarrow> t < q \<Longrightarrow> j < d \<Longrightarrow> e \<in> E \<Longrightarrow>
-      Aemb u t e * basis j e = (\<Sum>k<d. of_int (C u t k j) * basis k e)"
-  assumes recover:
-    "\<And>c k. k < d \<Longrightarrow> of_int (c k) = (\<Sum>e\<in>E. repr_coeff k e * (\<Sum>j<d. of_int (c j) * basis j e))"
-  assumes repr_bnd: "\<And>k. k < d \<Longrightarrow> ehouse (repr_coeff k) \<le> R"
-  assumes entry_bnd: "\<And>u t. u < p \<Longrightarrow> t < q \<Longrightarrow> ehouse (Aemb u t) \<le> H"
-  assumes basis_bnd: "\<And>j. j < d \<Longrightarrow> ehouse (basis j) \<le> K"
-  assumes R_nonneg: "0 \<le> R" and H_nonneg: "0 \<le> H" and K_nonneg: "0 \<le> K"
+    and p q d :: nat
+    and e0 :: 'e
+    and basis :: "nat \<Rightarrow> 'e \<Rightarrow> complex"
+    and repr_coeff :: "nat \<Rightarrow> 'e \<Rightarrow> complex"
+    and Aemb :: "nat \<Rightarrow> nat \<Rightarrow> 'e \<Rightarrow> complex"
+    and C :: "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> int"
+    and R H K :: real
+  assumes A: "A \<in> carrier_mat p q"
+    and dpos: "d > 0"
+    and e0: "e0 \<in> E"
+    and entry0: "\<And>u t. u < p \<Longrightarrow> t < q \<Longrightarrow> A $$ (u,t) = Aemb u t e0"
+    and mult_repr:
+      "\<And>u t j e. u < p \<Longrightarrow> t < q \<Longrightarrow> j < d \<Longrightarrow> e \<in> E \<Longrightarrow>
+        Aemb u t e * basis j e = (\<Sum>k<d. of_int (C u t k j) * basis k e)"
+    and recover:
+      "\<And>c k. k < d \<Longrightarrow> of_int (c k) = (\<Sum>e\<in>E. repr_coeff k e * (\<Sum>j<d. of_int (c j) * basis j e))"
+    and repr_bnd: "\<And>k. k < d \<Longrightarrow> ehouse (repr_coeff k) \<le> R"
+    and entry_bnd: "\<And>u t. u < p \<Longrightarrow> t < q \<Longrightarrow> ehouse (Aemb u t) \<le> H"
+    and basis_indep:
+      "\<And>c. (\<Sum>j<d. of_int (c j) * basis j e0) = 0 \<Longrightarrow> (\<forall>j<d. c j = 0)"
+    and basis_bnd: "\<And>j. j < d \<Longrightarrow> ehouse (basis j) \<le> K"
+    and R_nonneg: "0 \<le> R"
+    and H_nonneg: "0 \<le> H"
+    and K_nonneg: "0 \<le> K"
+begin
+
+lemma ehouse_entries_structure_constants:
   shows "\<And>u t j. u < p \<Longrightarrow> t < q \<Longrightarrow> j < d \<Longrightarrow>
     A $$ (u,t) * basis j e0 = (\<Sum>k<d. of_int (C u t k j) * basis k e0)"
     and "\<And>u t k j. u < p \<Longrightarrow> t < q \<Longrightarrow> k < d \<Longrightarrow> j < d \<Longrightarrow>
@@ -283,137 +287,42 @@ proof -
           R_nonneg H_nonneg K_nonneg mult_repr that])
 qed
 
+sublocale sc: finite_embedding_structure_kernel
+  E A p q d e0 basis C "ehouse_structure_constant_bound R H K" K
+  using A dpos e0 basis_indep basis_bnd K_nonneg ehouse_entries_structure_constants
+  by unfold_locales blast
+
+text \<open>Recovery data bounds the structure constants, giving the determinant estimate.\<close>
+
 theorem exists_nonzero_bounded_kernel_vec_of_ehouse_entries:
-  fixes A :: "complex mat"
-  fixes basis :: "nat \<Rightarrow> 'e \<Rightarrow> complex"
-  fixes repr_coeff :: "nat \<Rightarrow> 'e \<Rightarrow> complex"
-  fixes Aemb :: "nat \<Rightarrow> nat \<Rightarrow> 'e \<Rightarrow> complex"
-  fixes C :: "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> int"
-  assumes A: "A \<in> carrier_mat p q"
-  assumes dpos: "d > 0"
   assumes hpq: "p < q"
-  assumes e0: "e0 \<in> E"
-  assumes entry0: "\<And>u t. u < p \<Longrightarrow> t < q \<Longrightarrow> A $$ (u,t) = Aemb u t e0"
-  assumes mult_repr:
-    "\<And>u t j e. u < p \<Longrightarrow> t < q \<Longrightarrow> j < d \<Longrightarrow> e \<in> E \<Longrightarrow>
-      Aemb u t e * basis j e = (\<Sum>k<d. of_int (C u t k j) * basis k e)"
-  assumes recover:
-    "\<And>c k. k < d \<Longrightarrow> of_int (c k) = (\<Sum>e\<in>E. repr_coeff k e * (\<Sum>j<d. of_int (c j) * basis j e))"
-  assumes repr_bnd: "\<And>k. k < d \<Longrightarrow> ehouse (repr_coeff k) \<le> R"
-  assumes entry_bnd: "\<And>u t. u < p \<Longrightarrow> t < q \<Longrightarrow> ehouse (Aemb u t) \<le> H"
-  assumes basis_indep:
-    "\<And>c. (\<Sum>j<d. of_int (c j) * basis j e0) = 0 \<Longrightarrow> (\<forall>j<d. c j = 0)"
-  assumes basis_bnd: "\<And>j. j < d \<Longrightarrow> ehouse (basis j) \<le> K"
-  assumes R_nonneg: "0 \<le> R"
-  assumes H_nonneg: "0 \<le> H"
-  assumes K_nonneg: "0 \<le> K"
   obtains eta :: "complex vec" and x :: "int vec" where
     "ehouse_kernel_witness A p q d basis e0 K (of_int (ehouse_hadamard_kernel_bound q d (ehouse_structure_constant_bound R H K))) eta x"
 proof -
-  have mult_repr0:
-    "A $$ (u,t) * basis j e0 = (\<Sum>k<d. of_int (C u t k j) * basis k e0)"
-    if "u < p" "t < q" "j < d" for u t j
-    by (rule ehouse_entries_structure_constants(1)
-      [OF e0 entry0 mult_repr recover repr_bnd entry_bnd basis_bnd
-        R_nonneg H_nonneg K_nonneg that])
-  have C_bnd: "\<bar>C u t k j\<bar> \<le> ehouse_structure_constant_bound R H K"
-    if "u < p" "t < q" "k < d" "j < d" for u t k j
-    by (rule ehouse_entries_structure_constants(2)
-      [OF e0 entry0 mult_repr recover repr_bnd entry_bnd basis_bnd
-        R_nonneg H_nonneg K_nonneg that])
-  show ?thesis
-    using exists_nonzero_bounded_kernel_vec_of_structure_constants_ehouse[OF A dpos hpq e0
-          mult_repr0 C_bnd basis_indep basis_bnd K_nonneg]
-    using that by blast
+  show thesis
+    using sc.exists_nonzero_bounded_kernel_vec_of_structure_constants_ehouse[OF hpq] that by blast
 qed
 
+text \<open>With positive row dimension, recovery data gives the Siegel exponent estimate.\<close>
+
 theorem exists_nonzero_bounded_kernel_vec_of_ehouse_entries_exponent:
-  fixes A :: "complex mat"
-  fixes basis :: "nat \<Rightarrow> 'e \<Rightarrow> complex"
-  fixes repr_coeff :: "nat \<Rightarrow> 'e \<Rightarrow> complex"
-  fixes Aemb :: "nat \<Rightarrow> nat \<Rightarrow> 'e \<Rightarrow> complex"
-  fixes C :: "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> int"
-  assumes A: "A \<in> carrier_mat p q"
-  assumes ppos: "p > 0"
-  assumes dpos: "d > 0"
-  assumes hpq: "p < q"
-  assumes e0: "e0 \<in> E"
-  assumes entry0: "\<And>u t. u < p \<Longrightarrow> t < q \<Longrightarrow> A $$ (u,t) = Aemb u t e0"
-  assumes mult_repr:
-    "\<And>u t j e. u < p \<Longrightarrow> t < q \<Longrightarrow> j < d \<Longrightarrow> e \<in> E \<Longrightarrow>
-      Aemb u t e * basis j e = (\<Sum>k<d. of_int (C u t k j) * basis k e)"
-  assumes recover:
-    "\<And>c k. k < d \<Longrightarrow> of_int (c k) = (\<Sum>e\<in>E. repr_coeff k e * (\<Sum>j<d. of_int (c j) * basis j e))"
-  assumes repr_bnd: "\<And>k. k < d \<Longrightarrow> ehouse (repr_coeff k) \<le> R"
-  assumes entry_bnd: "\<And>u t. u < p \<Longrightarrow> t < q \<Longrightarrow> ehouse (Aemb u t) \<le> H"
-  assumes basis_indep:
-    "\<And>c. (\<Sum>j<d. of_int (c j) * basis j e0) = 0 \<Longrightarrow> (\<forall>j<d. c j = 0)"
-  assumes basis_bnd: "\<And>j. j < d \<Longrightarrow> ehouse (basis j) \<le> K"
-  assumes R_nonneg: "0 \<le> R"
-  assumes H_nonneg: "0 \<le> H"
-  assumes K_nonneg: "0 \<le> K"
+  assumes ppos: "p > 0" and hpq: "p < q"
   obtains eta :: "complex vec" and x :: "int vec" where
     "ehouse_kernel_witness A p q d basis e0 K (ehouse_exponent_kernel_bound p q d (ehouse_structure_constant_bound R H K)) eta x"
 proof -
-  have mult_repr0:
-    "A $$ (u,t) * basis j e0 = (\<Sum>k<d. of_int (C u t k j) * basis k e0)"
-    if "u < p" "t < q" "j < d" for u t j
-    by (rule ehouse_entries_structure_constants(1)
-      [OF e0 entry0 mult_repr recover repr_bnd entry_bnd basis_bnd
-        R_nonneg H_nonneg K_nonneg that])
-  have C_bnd: "\<bar>C u t k j\<bar> \<le> ehouse_structure_constant_bound R H K"
-    if "u < p" "t < q" "k < d" "j < d" for u t k j
-    by (rule ehouse_entries_structure_constants(2)
-      [OF e0 entry0 mult_repr recover repr_bnd entry_bnd basis_bnd
-        R_nonneg H_nonneg K_nonneg that])
-  show ?thesis
-    using exists_nonzero_bounded_kernel_vec_of_structure_constants_ehouse_exponent
-      [OF A ppos dpos hpq e0 mult_repr0 C_bnd basis_indep basis_bnd K_nonneg]
-    using that by blast
+  show thesis
+    using sc.exists_nonzero_bounded_kernel_vec_of_structure_constants_ehouse_exponent[OF ppos hpq] that by blast
 qed
 
+text \<open>With at least twice as many columns, recovery data gives the linear estimate.\<close>
+
 theorem exists_nonzero_bounded_kernel_vec_of_ehouse_entries_linear:
-  fixes A :: "complex mat"
-  fixes basis :: "nat \<Rightarrow> 'e \<Rightarrow> complex"
-  fixes repr_coeff :: "nat \<Rightarrow> 'e \<Rightarrow> complex"
-  fixes Aemb :: "nat \<Rightarrow> nat \<Rightarrow> 'e \<Rightarrow> complex"
-  fixes C :: "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> int"
-  assumes A: "A \<in> carrier_mat p q"
-  assumes ppos: "p > 0"
-  assumes dpos: "d > 0"
-  assumes hpq: "2 * p \<le> q"
-  assumes e0: "e0 \<in> E"
-  assumes entry0: "\<And>u t. u < p \<Longrightarrow> t < q \<Longrightarrow> A $$ (u,t) = Aemb u t e0"
-  assumes mult_repr:
-    "\<And>u t j e. u < p \<Longrightarrow> t < q \<Longrightarrow> j < d \<Longrightarrow> e \<in> E \<Longrightarrow>
-      Aemb u t e * basis j e = (\<Sum>k<d. of_int (C u t k j) * basis k e)"
-  assumes recover:
-    "\<And>c k. k < d \<Longrightarrow> of_int (c k) = (\<Sum>e\<in>E. repr_coeff k e * (\<Sum>j<d. of_int (c j) * basis j e))"
-  assumes repr_bnd: "\<And>k. k < d \<Longrightarrow> ehouse (repr_coeff k) \<le> R"
-  assumes entry_bnd: "\<And>u t. u < p \<Longrightarrow> t < q \<Longrightarrow> ehouse (Aemb u t) \<le> H"
-  assumes basis_indep:
-    "\<And>c. (\<Sum>j<d. of_int (c j) * basis j e0) = 0 \<Longrightarrow> (\<forall>j<d. c j = 0)"
-  assumes basis_bnd: "\<And>j. j < d \<Longrightarrow> ehouse (basis j) \<le> K"
-  assumes R_nonneg: "0 \<le> R"
-  assumes H_nonneg: "0 \<le> H"
-  assumes K_nonneg: "0 \<le> K"
+  assumes ppos: "p > 0" and hpq: "2 * p \<le> q"
   obtains eta :: "complex vec" and x :: "int vec" where
     "ehouse_kernel_witness A p q d basis e0 K (of_int (ehouse_linear_kernel_bound q d (ehouse_structure_constant_bound R H K))) eta x"
 proof -
-  have mult_repr0:
-    "A $$ (u,t) * basis j e0 = (\<Sum>k<d. of_int (C u t k j) * basis k e0)"
-    if "u < p" "t < q" "j < d" for u t j
-    by (rule ehouse_entries_structure_constants(1)
-      [OF e0 entry0 mult_repr recover repr_bnd entry_bnd basis_bnd
-        R_nonneg H_nonneg K_nonneg that])
-  have C_bnd: "\<bar>C u t k j\<bar> \<le> ehouse_structure_constant_bound R H K"
-    if "u < p" "t < q" "k < d" "j < d" for u t k j
-    by (rule ehouse_entries_structure_constants(2)
-      [OF e0 entry0 mult_repr recover repr_bnd entry_bnd basis_bnd
-        R_nonneg H_nonneg K_nonneg that])
-  show ?thesis
-    using that exists_nonzero_bounded_kernel_vec_of_structure_constants_ehouse_linear[OF A ppos dpos hpq e0
-          mult_repr0 C_bnd basis_indep basis_bnd K_nonneg] by blast
+  show thesis
+    using sc.exists_nonzero_bounded_kernel_vec_of_structure_constants_ehouse_linear[OF ppos hpq] that by blast
 qed
 
 end

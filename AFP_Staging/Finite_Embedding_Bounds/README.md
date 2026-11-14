@@ -24,6 +24,10 @@ structure is supplied by an application. The session depends on the sibling
   a coefficient bound, and the corresponding house and modulus bounds. The
   three quantitative bounds and the structure-constant estimate have named
   definitions. An integer-bound witness also recovers `bounded_basis_kernel`.
+  `finite_embedding_structure_kernel` fixes the common structure-constant
+  hypotheses; `finite_embedding_entry_kernel` fixes the recovery and entry-house
+  hypotheses and interprets the structure locale. Each estimate states only
+  its additional rank condition.
 - `Gaussian_Integer_Example.thy` instantiates indexed recovery for the two
   conjugate images of the basis `1, i` and proves integer independence at the
   identity image.
@@ -42,5 +46,4 @@ To check the session and PDF in the current workspace:
   -o document=pdf Finite_Embedding_Bounds
 ```
 
-The session, PDF, outline, browser presentation, and downstream
-Gelfond–Schneider build passed with Isabelle2026 on 13 November 2026.
+The session and PDF passed with Isabelle2026 on 14 November 2026.
