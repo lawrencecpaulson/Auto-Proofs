@@ -1,6 +1,5 @@
 theory Auxiliary_Index_Transfer
-  imports
-    Evaluation_Height
+  imports Evaluation_Height
 begin
 
 theorem roth_evaluation_sandwich_uniform:
@@ -10,22 +9,22 @@ theorem roth_evaluation_sandwich_uniform:
     and nz: "insertion \<beta> (replace_coeff of_int P) \<noteq> (0::rat)"
     and rpos: "\<And>v. v < m \<Longrightarrow> 0 < r v"
     and balance: "\<And>v. v < m \<Longrightarrow> L \<le> real (r v) * h v"
-    and kpos: "0 \<le> kappa" and Lpos: "0 \<le> L"
+    and kpos: "0 \<le> \<kappa>" and Lpos: "0 \<le> L"
     and index: "ereal theta \<le> roth_index m r a
       (replace_coeff (of_int::int \<Rightarrow> real) P)"
-    and near: "\<And>v. abs (of_rat (\<beta> v) - a v) \<le> exp (-kappa * h v)"
+    and near: "\<And>v. abs (of_rat (\<beta> v) - a v) \<le> exp (-\<kappa> * h v)"
   shows "exp (- (\<Sum>v<m. real (r v) * roth_rat_log_height (\<beta> v))) \<le>
     real (card (roth_exponent_box m r)) ^ 2 *
       real (2 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup P) *
       (\<Prod>v<m. max 1 (abs (a v)) ^ r v) *
-      exp (-kappa * L * theta)"
+      exp (-\<kappa> * L * theta)"
 proof -
   let ?C = "real (card (roth_exponent_box m r))"
   let ?S = "Poly_Mapping.keys (mapping_of
       (roth_translate a (replace_coeff (of_int::int \<Rightarrow> real) P)))"
   let ?V = "real (2 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup P)"
   let ?E = "(\<Prod>v<m. max 1 (abs (a v)) ^ r v)"
-  let ?W = "exp (-kappa * L * theta)"
+  let ?W = "exp (-\<kappa> * L * theta)"
   have raw: "exp (- (\<Sum>v<m. real (r v) * roth_rat_log_height (\<beta> v))) \<le>
       (?C * ?V * ?E) * real (card ?S) * ?W"
     by (rule roth_evaluation_sandwich_height[OF box nz rpos balance
@@ -82,14 +81,14 @@ context
   fixes P :: "int mpoly" and \<beta> :: "nat \<Rightarrow> rat"
     and a h :: "nat \<Rightarrow> real"
     and m :: nat and r :: "nat \<Rightarrow> nat"
-    and L kappa t0 :: real
+    and L \<kappa> t0 :: real
   assumes box: "roth_poly_in_box m r P"
     and rpos: "\<And>v. v < m \<Longrightarrow> 0 < r v"
     and balance: "\<And>v. v < m \<Longrightarrow> L \<le> real (r v) * h v"
-    and kpos: "0 \<le> kappa" and Lpos: "0 \<le> L"
+    and kpos: "0 \<le> \<kappa>" and Lpos: "0 \<le> L"
     and index: "ereal t0 \<le> roth_index m r a
       (replace_coeff (of_int::int \<Rightarrow> real) P)"
-    and near: "\<And>v. abs (of_rat (\<beta> v) - a v) \<le> exp (-kappa * h v)"
+    and near: "\<And>v. abs (of_rat (\<beta> v) - a v) \<le> exp (-\<kappa> * h v)"
 begin
 
 theorem roth_index_transfer_abstract_gap:
@@ -97,7 +96,7 @@ theorem roth_index_transfer_abstract_gap:
       real (card (roth_exponent_box m r)) ^ 2 *
         real (2 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup (roth_hasse J P)) *
         (\<Prod>v<m. max 1 (abs (a v)) ^ r v) *
-        exp (-kappa * L * (t0 - roth_weight m r J)) <
+        exp (-\<kappa> * L * (t0 - roth_weight m r J)) <
       exp (- (\<Sum>v<m. real (r v) * roth_rat_log_height (\<beta> v)))"
   shows "ereal t1 \<le> roth_index m r \<beta>
     (replace_coeff (of_int::int \<Rightarrow> rat) P)"
@@ -122,7 +121,7 @@ proof (rule ccontr)
       real (card (roth_exponent_box m r)) ^ 2 *
         real (2 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup ?Q) *
         (\<Prod>v<m. max 1 (abs (a v)) ^ r v) *
-        exp (-kappa * L * (t0 - roth_weight m r J))"
+        exp (-\<kappa> * L * (t0 - roth_weight m r J))"
     by (rule roth_evaluation_sandwich_uniform[OF qb jnz rpos balance
       kpos Lpos qi near])
   show False using sandwich gap[OF jw] by linarith
@@ -132,7 +131,7 @@ theorem roth_index_transfer_uniform_gap:
   assumes gap: "real (card (roth_exponent_box m r)) ^ 2 *
       real (4 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup P) *
       (\<Prod>v<m. max 1 (abs (a v)) ^ r v) *
-      exp (-kappa * L * (t0 - t1)) <
+      exp (-\<kappa> * L * (t0 - t1)) <
       exp (- (\<Sum>v<m. real (r v) * roth_rat_log_height (\<beta> v)))"
   shows "ereal t1 \<le> roth_index m r \<beta>
     (replace_coeff (of_int::int \<Rightarrow> rat) P)"
@@ -144,8 +143,8 @@ proof (rule roth_index_transfer_abstract_gap)
   let ?A = "real (2 ^ (\<Sum>v<m. r v) *
       roth_int_coeff_sup (roth_hasse J P))"
   let ?B = "real (4 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup P)"
-  let ?U = "exp (-kappa * L * (t0 - roth_weight m r J))"
-  let ?V = "exp (-kappa * L * (t0 - t1))"
+  let ?U = "exp (-\<kappa> * L * (t0 - roth_weight m r J))"
+  let ?V = "exp (-\<kappa> * L * (t0 - t1))"
   have ha: "?A \<le> ?B"
     using roth_hasse_coeff_sup_four[OF box, where J=J]
     by (metis of_nat_le_iff)
@@ -154,9 +153,9 @@ proof (rule roth_index_transfer_abstract_gap)
   have cpos: "0 \<le> ?B" by simp
   have uv: "?U \<le> ?V"
   proof -
-    have kl: "0 \<le> kappa * L" using kpos Lpos by simp
-    have z: "kappa * L * (t0 - t1) \<le>
-        kappa * L * (t0 - roth_weight m r J)"
+    have kl: "0 \<le> \<kappa> * L" using kpos Lpos by simp
+    have z: "\<kappa> * L * (t0 - t1) \<le>
+        \<kappa> * L * (t0 - roth_weight m r J)"
       by (rule mult_left_mono[OF _ kl]) (use jw in auto)
     show ?thesis using z by (simp add: mult.assoc)
   qed
@@ -171,18 +170,18 @@ proof (rule roth_index_transfer_abstract_gap)
       real (card (roth_exponent_box m r)) ^ 2 *
         real (2 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup (roth_hasse J P)) *
         (\<Prod>v<m. max 1 (abs (a v)) ^ r v) *
-        exp (-kappa * L * (t0 - roth_weight m r J))"
+        exp (-\<kappa> * L * (t0 - roth_weight m r J))"
     by (simp add: mult_ac)
   have eq2: "?F * ?B * ?V =
       real (card (roth_exponent_box m r)) ^ 2 *
         real (4 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup P) *
         (\<Prod>v<m. max 1 (abs (a v)) ^ r v) *
-        exp (-kappa * L * (t0 - t1))"
+        exp (-\<kappa> * L * (t0 - t1))"
     by (simp add: mult_ac)
   show "real (card (roth_exponent_box m r)) ^ 2 *
         real (2 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup (roth_hasse J P)) *
         (\<Prod>v<m. max 1 (abs (a v)) ^ r v) *
-        exp (-kappa * L * (t0 - roth_weight m r J)) <
+        exp (-\<kappa> * L * (t0 - roth_weight m r J)) <
       exp (- (\<Sum>v<m. real (r v) * roth_rat_log_height (\<beta> v)))"
     using bound gap eq1 eq2 by linarith
 qed
@@ -192,51 +191,38 @@ theorem roth_index_transfer_log_gap:
       real (4 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup P) *
       (\<Prod>v<m. max 1 (abs (a v)) ^ r v)) +
       (\<Sum>v<m. real (r v) * roth_rat_log_height (\<beta> v)) <
-      kappa * L * (t0 - t1)"
-  shows "ereal t1 \<le> roth_index m r \<beta>
-    (replace_coeff (of_int::int \<Rightarrow> rat) P)"
+      \<kappa> * L * (t0 - t1)"
+  shows "ereal t1 \<le> roth_index m r \<beta> (replace_coeff (of_int::int \<Rightarrow> rat) P)"
 proof -
-  let ?C = "real (card (roth_exponent_box m r)) ^ 2 *
+  define C where "C \<equiv> real (card (roth_exponent_box m r)) ^ 2 *
       real (4 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup P) *
       (\<Prod>v<m. max 1 (abs (a v)) ^ r v)"
-  let ?H = "(\<Sum>v<m. real (r v) * roth_rat_log_height (\<beta> v))"
-  have card: "0 < real (card (roth_exponent_box m r))"
+  have card: "0 < card (roth_exponent_box m r)"
     using roth_box_card_pos[of m r] by simp
-  have coeff: "0 < real (roth_int_coeff_sup P)"
+  have coeff: "0 < roth_int_coeff_sup P"
     using roth_int_coeff_sup_ge_one[of P] by simp
-  have prod: "0 < (\<Prod>v<m. max 1 (abs (a v)) ^ r v)"
+  have "0 < (\<Prod>v<m. max 1 (abs (a v)) ^ r v)"
     by (intro prod_pos) simp
-  have Cpos: "0 < ?C" using card coeff prod
-    by (simp add: power2_eq_square)
-  have egap: "?C * exp (- (kappa * L * (t0 - t1))) < exp (-?H)"
-    by (rule roth_exp_gap[OF Cpos gap])
-  have numgap: "real (card (roth_exponent_box m r)) ^ 2 *
-      real (4 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup P) *
-      (\<Prod>v<m. max 1 (abs (a v)) ^ r v) *
-      exp (-kappa * L * (t0 - t1)) <
-      exp (- (\<Sum>v<m. real (r v) * roth_rat_log_height (\<beta> v)))"
-    using egap by (simp add: mult.assoc)
-  show ?thesis
-    by (rule roth_index_transfer_uniform_gap[OF numgap])
+  then have "0 < C" using card coeff by (simp add: C_def power2_eq_square)
+  then have egap: "C * exp (- (\<kappa> * L * (t0 - t1))) 
+             < exp (- (\<Sum>v<m. real (r v) * roth_rat_log_height (\<beta> v)))"
+    using assms roth_exp_gap unfolding C_def by blast
+  then show ?thesis
+    using roth_index_transfer_uniform_gap by (simp add: C_def mult.assoc)
 qed
 
 
 end
 
 lemma roth_box_card_pow16:
-  "card (roth_exponent_box m r) ^ 2 * 4 ^ (\<Sum>v<m. r v) \<le>
-    (16::nat) ^ (\<Sum>v<m. r v)"
+  "card (roth_exponent_box m r) ^ 2 * 4 ^ (\<Sum>v<m. r v) \<le> 16 ^ (\<Sum>v<m. r v)"
 proof -
   let ?S = "(\<Sum>v<m. r v)"
-  have c: "card (roth_exponent_box m r) \<le> (2::nat) ^ ?S"
-    by (rule roth_exponent_box_card_exp_bound)
-  have "card (roth_exponent_box m r) ^ 2 * 4 ^ ?S \<le>
-      ((2::nat) ^ ?S) ^ 2 * 4 ^ ?S"
-    using c by (intro mult_right_mono power_mono) simp_all
-  also have "... = (4::nat) ^ ?S * 4 ^ ?S"
-    by (simp add: power2_eq_square power_mult_distrib[symmetric])
+  have "card (roth_exponent_box m r) ^ 2 * 4 ^ ?S \<le> (2 ^ ?S) ^ 2 * 4 ^ ?S"
+    using roth_exponent_box_card_exp_bound 
+    by (intro mult_right_mono power_mono) simp_all
   also have "... = 16 ^ ?S"
-    by (simp add: power_mult_distrib[symmetric])
+    by (simp add: power2_eq_square flip: power_mult_distrib power_mult_distrib)
   finally show ?thesis .
 qed
 
@@ -252,56 +238,37 @@ proof -
   let ?A = "max 1 (abs \<alpha>)"
   let ?V = "real (roth_int_coeff_sup P)"
   let ?C = "real (card (roth_exponent_box m r)) ^ 2 *
-      real (4 ^ ?S * roth_int_coeff_sup P) *
-      (\<Prod>v<m. ?A ^ r v)"
-  let ?D = "?V * (16 * ?A) ^ ?S"
+      real (4 ^ ?S * roth_int_coeff_sup P) * (\<Prod>v<m. ?A ^ r v)"
+  define D where "D \<equiv> ?V * (16 * ?A) ^ ?S"
   have Vpos: "0 < ?V" using roth_int_coeff_sup_ge_one[of P] by simp
-  have Apos: "0 < ?A" by simp
   have cardpos: "0 < real (card (roth_exponent_box m r))"
     using roth_box_card_pos[of m r] by simp
   have prodpos: "0 < (\<Prod>v<m. ?A ^ r v)"
-    by (intro prod_pos) (use Apos in auto)
+    by (intro prod_pos) auto
   have Cpos: "0 < ?C" using cardpos Vpos prodpos
     by (simp add: power2_eq_square)
   have card: "real (card (roth_exponent_box m r) ^ 2 * 4 ^ ?S) \<le>
       real (16 ^ ?S)"
     using roth_box_card_pow16[of m r] by (metis of_nat_le_iff)
-  have Cform: "?C =
-      real (card (roth_exponent_box m r) ^ 2 * 4 ^ ?S) *
-        ?V * ?A ^ ?S"
-    by (simp add: of_nat_mult of_nat_power power_sum mult.assoc)
-  have Dform: "?D = real (16 ^ ?S) * ?V * ?A ^ ?S"
-    by (simp add: of_nat_power power_mult_distrib mult_ac)
-  have scalepos: "0 \<le> ?V * ?A ^ ?S" using Vpos Apos by simp
-  have scale: "real (card (roth_exponent_box m r) ^ 2 * 4 ^ ?S) *
-      ?V * ?A ^ ?S \<le> real (16 ^ ?S) * ?V * ?A ^ ?S"
-    using card scalepos by (intro mult_right_mono) auto
-  have cd: "?C \<le> ?D"
-    using scale Cform Dform by metis
-  have logs: "ln ?C \<le> ln ?D"
-    by (rule ln_mono[OF cd Cpos])
-  have logD: "ln ?D = ln ?V + real ?S * ln (16 * ?A)"
-    using Vpos Apos by (simp add: ln_mult ln_realpow algebra_simps)
-  show ?thesis using logs logD by simp
+  have "?C = (card (roth_exponent_box m r) ^ 2 * 4 ^ ?S) * ?V * ?A ^ ?S"
+    by (simp add: of_nat_power power_sum mult.assoc)
+  also have "\<dots> \<le> (16 ^ ?S) * ?V * ?A ^ ?S"
+    using card Vpos by (intro mult_right_mono) auto
+  also have "\<dots> = D"
+    by (simp add: D_def of_nat_power power_mult_distrib mult_ac)
+  finally have logs: "ln ?C \<le> ln D"
+    using Cpos ln_mono by presburger
+  have "ln D = ln ?V + real ?S * ln (16 * ?A)"
+    using Vpos by (simp add: D_def ln_mult ln_realpow algebra_simps)
+  then show ?thesis using logs by simp
 qed
 
 lemma roth_auxiliary_height_log:
-  fixes P :: "int mpoly" and b :: int
   assumes bpos: "1 \<le> b"
-    and ph: "roth_int_coeff_sup P \<le>
-      nat (2 * (4 * b) ^ S)"
-  shows "ln (real (roth_int_coeff_sup P)) \<le>
-    ln 2 + real S * ln (4 * real_of_int b)"
-proof -
-  let ?B = "2 * (4 * b) ^ S"
-  have Bpos: "0 \<le> ?B" using bpos by simp
-  have eq: "real (nat ?B) = 2 * (4 * real_of_int b) ^ S"
-    using Bpos by simp
-  have h: "ln (real (roth_int_coeff_sup P)) \<le> ln (real (nat ?B))"
-    by (rule roth_int_coeff_sup_log_mono[OF ph])
-  show ?thesis using h bpos
-    by (simp add: eq ln_mult ln_realpow algebra_simps)
-qed
+    and ph: "roth_int_coeff_sup P \<le> nat (2 * (4 * b) ^ S)"
+  shows "ln (real (roth_int_coeff_sup P)) \<le> ln 2 + real S * ln (4 * real_of_int b)"
+  using roth_int_coeff_sup_log_mono[OF ph] bpos
+  by (simp add: ln_mult ln_realpow algebra_simps)
 
 lemma roth_weighted_height_sum_le:
   fixes h :: "nat \<Rightarrow> real"

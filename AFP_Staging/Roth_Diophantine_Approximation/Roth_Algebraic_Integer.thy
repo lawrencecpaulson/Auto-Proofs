@@ -12,15 +12,10 @@ section \<open>The auxiliary polynomial with projective height control\<close>
 
 lemma roth_int_coeff_sup_from_pointwise:
   fixes P :: "int mpoly" and B :: int
-  assumes B: "1 \<le> B"
-    and coeff: "\<And>K. abs (MPoly_Type.coeff P K) \<le> B"
+  assumes "1 \<le> B" and "\<And>K. abs (MPoly_Type.coeff P K) \<le> B"
   shows "roth_int_coeff_sup P \<le> nat B"
-proof (rule roth_int_coeff_sup_le)
-  show "1 \<le> nat B" using B by simp
-  fix I
-  show "nat (abs (MPoly_Type.coeff P I)) \<le> nat B"
-    by (rule nat_mono[OF coeff])
-qed
+  using assms nat_mono
+  by (intro roth_int_coeff_sup_le) auto
 
 (*FIXME INLINE BELOW*)
 corollary roth_auxiliary_polynomial_monic_sup:
@@ -68,21 +63,21 @@ theorem roth_index_transfer_constant:
   assumes box: "roth_poly_in_box m r P"
     and rpos: "\<And>v. v < m \<Longrightarrow> 0 < r v"
     and balance: "\<And>v. v < m \<Longrightarrow> L \<le> real (r v) * h v"
-    and kpos: "0 \<le> kappa" and Lpos: "0 \<le> L"
+    and kpos: "0 \<le> \<kappa>" and Lpos: "0 \<le> L"
     and index: "ereal t0 \<le> roth_index m r (\<lambda>_. \<alpha>)
       (replace_coeff (of_int::int \<Rightarrow> real) P)"
-    and near: "\<And>v. abs (of_rat (\<beta> v) - \<alpha>) \<le> exp (-kappa * h v)"
+    and near: "\<And>v. abs (of_rat (\<beta> v) - \<alpha>) \<le> exp (-\<kappa> * h v)"
     and gap: "ln (real (roth_int_coeff_sup P)) +
       real (\<Sum>v<m. r v) * ln (16 * max 1 (abs \<alpha>)) +
       (\<Sum>v<m. real (r v) * roth_rat_log_height (\<beta> v)) <
-      kappa * L * (t0 - t1)"
+      \<kappa> * L * (t0 - t1)"
   shows "ereal t1 \<le> roth_index m r \<beta> (replace_coeff (of_int::int \<Rightarrow> rat) P)"
 proof -
   have loggap: "ln (real (card (roth_exponent_box m r)) ^ 2 *
       real (4 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup P) *
       (\<Prod>v<m. max 1 (abs \<alpha>) ^ r v)) +
       (\<Sum>v<m. real (r v) * roth_rat_log_height (\<beta> v)) <
-      kappa * L * (t0 - t1)"
+      \<kappa> * L * (t0 - t1)"
     using roth_box_log_cost[of m r P \<alpha>] gap by linarith
   show ?thesis
     by (rule roth_index_transfer_log_gap[OF box rpos balance
@@ -100,14 +95,14 @@ theorem roth_index_transfer_aux_height:
       nat (2 * (4 * b) ^ (\<Sum>v<m. r v))"
     and rpos: "\<And>v. v < m \<Longrightarrow> 0 < r v"
     and balance: "\<And>v. v < m \<Longrightarrow> L \<le> real (r v) * h v"
-    and kpos: "0 \<le> kappa" and Lpos: "0 \<le> L"
+    and kpos: "0 \<le> \<kappa>" and Lpos: "0 \<le> L"
     and index: "ereal t0 \<le> roth_index m r (\<lambda>_. \<alpha>)
       (replace_coeff (of_int::int \<Rightarrow> real) P)"
-    and near: "\<And>v. abs (of_rat (\<beta> v) - \<alpha>) \<le> exp (-kappa * h v)"
+    and near: "\<And>v. abs (of_rat (\<beta> v) - \<alpha>) \<le> exp (-\<kappa> * h v)"
     and gap: "ln 2 + real (\<Sum>v<m. r v) *
         (ln (4 * real_of_int b) + ln (16 * max 1 (abs \<alpha>))) +
       (\<Sum>v<m. real (r v) * roth_rat_log_height (\<beta> v)) <
-      kappa * L * (t0 - t1)"
+      \<kappa> * L * (t0 - t1)"
   shows "ereal t1 \<le> roth_index m r \<beta> (replace_coeff of_int P)"
 proof -
   have hlog: "ln (real (roth_int_coeff_sup P)) \<le>
@@ -115,7 +110,7 @@ proof -
     by (rule roth_auxiliary_height_log[OF bpos ph])
   have loggap: "ln (real (roth_int_coeff_sup P)) +
       real (\<Sum>v<m. r v) * ln (16 * max 1 (abs \<alpha>)) +
-      (\<Sum>v<m. real (r v) * roth_rat_log_height (\<beta> v)) < kappa * L * (t0 - t1)"
+      (\<Sum>v<m. real (r v) * roth_rat_log_height (\<beta> v)) < \<kappa> * L * (t0 - t1)"
     using hlog gap by (simp add: algebra_simps)
   show ?thesis
     by (rule roth_index_transfer_constant[OF box rpos balance

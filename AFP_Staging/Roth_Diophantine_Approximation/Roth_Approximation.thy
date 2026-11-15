@@ -98,10 +98,8 @@ proof
     using B by fastforce
 next
   assume ?R
-  then obtain B :: int where B: "\<forall>pq\<in>roth_good_pairs \<alpha> \<kappa>. snd pq \<le> B"
-    by blast
-  have "roth_good_pairs \<alpha> \<kappa> = {(p,q) \<in> roth_good_pairs \<alpha> \<kappa>. q \<le> B}"
-    using B by auto
+  then obtain B :: int where  "roth_good_pairs \<alpha> \<kappa> = {(p,q) \<in> roth_good_pairs \<alpha> \<kappa>. q \<le> B}"
+    by fastforce
   then show "finite (roth_good_pairs \<alpha> \<kappa>)"
     using finite_roth_good_pairs_bounded_denominator by simp
 qed
@@ -118,25 +116,12 @@ lemma roth_finite_exponent_iff:
 proof
   assume h: ?R
   show ?L
-  proof (intro allI impI)
-    fix \<alpha> \<kappa> :: real
-    assume a: "algebraic \<alpha> \<and> \<alpha> \<notin> \<rat> \<and> infinite (roth_good_pairs \<alpha> \<kappa>)"
-    show "\<kappa> \<le> 2"
-    proof (rule ccontr)
-      assume "\<not> \<kappa> \<le> 2"
-      then have "\<kappa> - 2 > 0"
-        by linarith
-      then have "finite (roth_good_pairs \<alpha> (2 + (\<kappa> - 2)))"
-        using h a by blast
-      then show False
-        using a by simp
-    qed
-  qed
+    using h by (smt (cvc5, dec_internal_enum_inst_sum))
 qed force
 
 section \<open>Scaling reduced approximants\<close>
 
-lemma roth_scaled_gcd:
+lemma scaled_gcd:
   fixes c p q :: int
   assumes "coprime p q"
   shows "gcd (c * p) q = gcd c q"
@@ -146,22 +131,18 @@ lemma roth_scaled_denominator:
   fixes c p q :: int
   assumes c: "c > 0" and q: "q > 0" and cop: "coprime p q"
   defines "g \<equiv> gcd (c * p) q"
-  shows "g > 0" "g dvd c" "g dvd q" "q div g > 0" "q div g \<le> q" "q \<le> c * (q div g)"
+  shows "g > 0" "g dvd c" "g dvd q" "q div g > 0" "q \<le> c * (q div g)"
 proof -
   have g_eq: "g = gcd c q"
-    using cop by (simp add: g_def roth_scaled_gcd)
-  have gq: "g dvd q"
-    by (simp add: g_eq)
+    using cop by (simp add: g_def scaled_gcd)
   have glec: "g \<le> c"
     using c by (simp add: g_eq)
-  have qdiv: "q div g > 0"
+  have "q div g > 0"
     using q by (simp add: g_eq pos_imp_zdiv_pos_iff)
-  show "g > 0" "g dvd c" "g dvd q" "q div g > 0"
-    using g_eq gq qdiv by auto
-  show "q div g \<le> q"
-    using int_div_le_self q by presburger
-  show "q \<le> c * (q div g)"
-    using gq glec qdiv by fastforce
+  then show "g > 0" "g dvd c" "g dvd q" "q div g > 0"
+    using g_eq by auto
+  then show "q \<le> c * (q div g)"
+    using glec by fastforce
 qed
 
 definition roth_scaled_pair :: "int \<Rightarrow> (int \<times> int) \<Rightarrow> (int \<times> int)" where
@@ -179,33 +160,33 @@ proof -
   let ?g = "gcd (c * p) q"
   have norm: "pq' = (c * p div ?g, q div ?g)"
     using q by (simp add: pq'_def roth_scaled_pair_def Rat.normalize_def Let_def)
-  have q'pos: "snd pq' > 0"
-    by (simp add: c cop norm q roth_scaled_denominator(4))
   show "snd pq' > 0"
-    by (rule q'pos)
+    by (simp add: c cop norm q roth_scaled_denominator(4))
   show "coprime (fst pq') (snd pq')"
     using norm q by (simp add: div_gcd_coprime)
   show "snd pq' \<le> q" "q \<le> c * snd pq'"
-    using roth_scaled_denominator[OF c q cop] norm by simp_all
+    using roth_scaled_denominator[OF c q cop] norm 
+    by (simp_all add: int_div_le_self norm q)
   show "(fst pq') / (snd pq') = c * (p / q)"
     by (simp add: norm of_int_div)
 qed
 
 lemma roth_powr_threshold:
   fixes c \<eta> :: real
-  assumes c: "c > 0" and eta: "\<eta> > 0"
+  assumes c: "c > 0" and \<eta>: "\<eta> > 0"
   obtains B :: int where "B > 0" "\<And>q::int. q \<ge> B \<Longrightarrow> c < of_int q powr \<eta>"
 proof -
   obtain B :: int where B: "max 1 (c powr (1 / \<eta>)) < of_int B" and Bpos: "B > 0"
     by (metis ex_less_of_int max_less_iff_conj of_int_0_less_iff)
   have cpow: "(c powr (1 / \<eta>)) powr \<eta> = c"
-    using c eta by (simp add: powr_powr)
+    using c \<eta> by (simp add: powr_powr)
   have bound: "c < q powr \<eta>" if "q \<ge> B" for q :: int
+    using c \<eta>
   proof -
     have "c powr (1/\<eta>) < q"
       using B that by simp
     then show ?thesis
-      using cpow eta by (metis powr_ge_zero powr_less_mono2)
+      using cpow \<eta> by (metis powr_ge_zero powr_less_mono2)
   qed
   show thesis
     by (rule that[OF Bpos bound])
@@ -230,28 +211,20 @@ proof -
     by (subst powr_add[symmetric]) simp
   then have mult_bound: "of_int c * of_int q powr (2 + \<delta>) < of_int q powr (2 + \<epsilon>)"
     using large q by force
-  have pow_le: "of_int (snd ?pq') powr (2 + \<delta>) \<le>
-    of_int q powr (2 + \<delta>)"
+  have pow_le: "of_int (snd ?pq') powr (2 + \<delta>) \<le> of_int q powr (2 + \<delta>)"
     using delta q'pos q'le by (intro powr_mono2) auto
   have err: "\<bar>of_int c * \<alpha> - of_int (fst ?pq') / of_int (snd ?pq')\<bar> =
              of_int c * \<bar>\<alpha> - of_int p / of_int q\<bar>"
-    unfolding frac
-    using c by (simp add: abs_mult_pos' algebra_simps)
+    using c by (simp add: frac abs_mult_pos' algebra_simps)
   have "of_int c * \<bar>\<alpha> - of_int p / of_int q\<bar> <
     of_int c * (1 / of_int q powr (2 + \<epsilon>))"
     using near c mult_strict_left_mono by fastforce 
-  also have "\<dots> = of_int c / of_int q powr (2 + \<epsilon>)"
-    by simp
   also have "\<dots> < 1 / of_int q powr (2 + \<delta>)"
     using mult_bound q by (simp add: field_simps)
   also have "\<dots> \<le> 1 / of_int (snd ?pq') powr (2 + \<delta>)"
     using pow_le q'pos q by (simp add: frac_le)
-  finally have near':
-    "\<bar>of_int c * \<alpha> - of_int (fst ?pq') / of_int (snd ?pq')\<bar> <
-      1 / of_int (snd ?pq') powr (2 + \<delta>)"
-    using err by simp
-  show ?thesis
-    using q'pos cop' near' by (cases ?pq') auto
+  finally show ?thesis
+    using err q'pos cop' by (cases ?pq') auto
 qed
 
 lemma roth_scaled_pair_inj:
@@ -264,17 +237,12 @@ proof -
   have cross: "(c * p) * s = (c * r) * q"
     using q s eq unfolding roth_scaled_pair_def
     by (intro Rat.normalize_crossproduct) auto
-  have "p * s = r * q"
-    using cross c by (simp add: mult_ac)
   then have rat_eq: "Fract p q = Fract r s"
-    using q s by (simp add: eq_rat)
+    using c eq_rat q s by force
   have "(p,q) = quotient_of (Fract p q)"
     using q cop_pq by (simp add: quotient_of_Fract)
-  also have "\<dots> = quotient_of (Fract r s)"
-    using rat_eq by simp
-  also have "\<dots> = (r,s)"
-    using s cop_rs by (simp add: quotient_of_Fract)
-  finally show ?thesis .
+  then show ?thesis
+    by (simp add: cop_rs quotient_of_Fract rat_eq s)
 qed
 
 lemma inj_on_roth_scaled_pair:
@@ -315,10 +283,8 @@ proof -
       have q_le: "q \<le> c * snd (roth_scaled_pair c (p,q))"
         using good c roth_scaled_pair_properties(4)[of c q p]
         by (simp add: pq)
-      have "c * snd (roth_scaled_pair c (p,q)) \<le> c * A"
-        using c scale_le by (intro mult_left_mono) auto
       then show ?thesis
-        using pq q_le by simp
+        using c pq scale_le by (smt (verit, best) mult_le_cancel_left sndI)
     qed
   qed
   show ?thesis
