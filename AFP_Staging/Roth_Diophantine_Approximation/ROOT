@@ -1,7 +1,7 @@
 chapter AFP
 
 session Roth_Diophantine_Approximation (AFP) = "HOL-Computational_Algebra" +
-  options [timeout = 600, quick_and_dirty = false, document = pdf]
+  options [timeout = 600]
   sessions
     Hermite_Lindemann
     Polynomials
@@ -19,15 +19,9 @@ session Roth_Diophantine_Approximation (AFP) = "HOL-Computational_Algebra" +
     Kronecker_Evaluation
     Kronecker_Minor
     Tensor_Determinant
-    Tensor_Indexed
-    Roth_Index_Count
-    Roth_Determinant_Bounds
-    Det_Factor_Bounds
     Roth_Lemma
     Auxiliary_Polynomial
     Evaluation_Height
-    Auxiliary_Index_Transfer
-    Roth_Parameter_Costs
     Roth_Algebraic_Integer
   document_files
     "root.tex"

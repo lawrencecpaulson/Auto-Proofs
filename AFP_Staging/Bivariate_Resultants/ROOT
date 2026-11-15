@@ -1,7 +1,7 @@
 chapter AFP
 
 session Bivariate_Resultants (AFP) = Factor_Algebraic_Polynomial +
-  options [timeout = 1800, quick_and_dirty = false]
+  options [timeout = 1800]
   sessions
     Diophantine_Universal_Pairs
     Schwartz_Zippel

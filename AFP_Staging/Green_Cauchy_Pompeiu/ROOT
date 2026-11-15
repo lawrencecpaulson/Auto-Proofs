@@ -2,7 +2,7 @@ chapter AFP
 
 session Green_Cauchy_Pompeiu (AFP) = Stokes +
   description "Green and Cauchy-Pompeiu identities for planar paths"
-  options [timeout = 1200, quick_and_dirty = false]
+  options [timeout = 1200]
   sessions
     "HOL-Complex_Analysis"
   theories
