@@ -76,7 +76,7 @@ checkout.
 **Status:** complete under Isabelle2026 RC4. `Roth_Approximation.thy`
 provides finite reduced-pair sets with integer and natural denominators,
 the denominator-bound and `κ ≤ 2` equivalences, the height bound, and
-scaling of reduced approximants. `Integral_Reduction.thy` proves
+scaling of reduced approximants. `Roth_Algebraic_Integer.thy` proves
 `roth_reduction_to_integral`: finiteness for algebraic integers at every
 exponent above `2` implies finiteness for all algebraic irrationals at
 every exponent above `2`. The Roth session built successfully on

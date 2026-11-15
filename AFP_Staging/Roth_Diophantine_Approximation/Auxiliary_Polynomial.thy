@@ -1,7 +1,8 @@
 theory Auxiliary_Polynomial
   imports
     Roth_Index_Count
-    Integral_Reduction
+    Roth_Approximation
+    "Hermite_Lindemann.More_Algebraic_Numbers_HLW"
     "Bounded_Integer_Kernels.Integer_Kernel_Bounds"
 begin
 

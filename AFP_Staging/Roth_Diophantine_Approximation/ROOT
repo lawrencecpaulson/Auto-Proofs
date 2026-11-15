@@ -9,7 +9,6 @@ session Roth_Diophantine_Approximation (AFP) = "HOL-Computational_Algebra" +
     Berlekamp_Zassenhaus
   theories
     Roth_Approximation
-    Integral_Reduction
     Disjoint_Index
     Hasse_Derivative
     Primitive_Height
