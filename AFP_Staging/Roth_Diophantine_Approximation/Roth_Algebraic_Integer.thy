@@ -111,22 +111,24 @@ proof (rule ccontr)
   qed
 
   text \<open>The auxiliary polynomial has a large index at the algebraic point.\<close>
-  let ?aux_witness = "\<lambda>P :: int mpoly.
+  define aux_witness :: "int mpoly \<Rightarrow> bool" where
+    "aux_witness \<equiv> \<lambda>P.
       P \<noteq> 0 \<and> roth_poly_in_box m r P \<and>
       ereal (real m * (1-\<epsilon>) / 2) \<le>
         roth_index m r (\<lambda>_. \<alpha>) (replace_coeff (of_int::int \<Rightarrow> real) P) \<and>
       (\<forall>K. abs (MPoly_Type.coeff P K) \<le> ?coeff_bound_int)"
-  have aux_exists: "\<exists>P :: int mpoly. ?aux_witness P"
+  have aux_exists: "\<exists>P :: int mpoly. aux_witness P"
+    unfolding aux_witness_def
     by (rule roth_auxiliary_polynomial_monic_exp
       [where f=f and a=\<alpha> and d="?d" and m=m and r=r and eps=\<epsilon>,
        OF monic refl dpos root mpos rpos epos elt agap]) simp
-  obtain P :: "int mpoly" where P: "?aux_witness P"
+  obtain P :: "int mpoly" where P: "aux_witness P"
     using aux_exists by (erule exE)
   have pn: "P \<noteq> 0" and pb: "roth_poly_in_box m r P"
     and pi: "ereal (real m * (1-\<epsilon>) / 2) \<le>
       roth_index m r (\<lambda>_. \<alpha>) (replace_coeff (of_int::int \<Rightarrow> real) P)"
     and pc: "\<forall>K. abs (MPoly_Type.coeff P K) \<le> ?coeff_bound_int"
-    using P by blast+
+    using P unfolding aux_witness_def by blast+
   have base: "1 \<le> 4 * roth_power_base f"
     using bpos by simp
   have pow: "1 \<le> (4 * roth_power_base f) ^ (\<Sum>v<m. r v)"
