@@ -8,115 +8,6 @@ begin
 
 section \<open>The headline results for the Thue–Siegel–Roth theorem\<close>
 
-section \<open>The auxiliary polynomial with projective height control\<close>
-
-lemma roth_int_coeff_sup_from_pointwise:
-  fixes P :: "int mpoly" and B :: int
-  assumes "1 \<le> B" and "\<And>K. abs (MPoly_Type.coeff P K) \<le> B"
-  shows "roth_int_coeff_sup P \<le> nat B"
-  using assms nat_mono
-  by (intro roth_int_coeff_sup_le) auto
-
-(*FIXME INLINE BELOW*)
-corollary roth_auxiliary_polynomial_monic_sup:
-  fixes f :: "int poly" and a :: real
-  assumes monic: "Polynomial.lead_coeff f = 1"
-    and d: "d = Polynomial.degree f"
-    and dpos: "0 < d"
-    and root: "poly (map_poly of_int f) a = 0"
-    and mpos: "0 < m"
-    and rpos: "\<And>v. v < m \<Longrightarrow> 0 < r v"
-    and epos: "0 < eps"
-    and elt: "eps < 1"
-    and gap: "2 * real d < real m * eps\<^sup>2"
-  shows "\<exists>P :: int mpoly.
-    P \<noteq> 0 \<and> roth_poly_in_box m r P \<and>
-    ereal (real m * (1-eps) / 2) \<le>
-      roth_index m r (\<lambda>_. a) (replace_coeff of_int P) \<and>
-    roth_int_coeff_sup P \<le>
-      nat (2 * (4 * roth_power_base f) ^ (\<Sum>v<m. r v))"
-proof -
-  let ?B = "2 * (4 * roth_power_base f) ^ (\<Sum>v<m. r v)"
-  obtain P :: "int mpoly" where pn: "P \<noteq> 0"
-    and pb: "roth_poly_in_box m r P"
-    and pi: "ereal (real m * (1-eps) / 2) \<le>
-      roth_index m r (\<lambda>_. a) (replace_coeff of_int P)"
-    and pc: "\<forall>K. abs (MPoly_Type.coeff P K) \<le> ?B"
-    using roth_auxiliary_polynomial_monic_exp
-      [where f=f and a=a and d=d and m=m and r=r and eps=eps,
-       OF monic d dpos root mpos rpos epos elt gap] by blast
-  have base: "1 \<le> 4 * roth_power_base f"
-    using roth_power_base_ge_one[of f] by simp
-  have pow: "1 \<le> (4 * roth_power_base f) ^ (\<Sum>v<m. r v)"
-    by (rule one_le_power[OF base])
-  have Bb: "1 \<le> ?B" using pow by simp
-  have hs: "roth_int_coeff_sup P \<le> nat ?B"
-    by (rule roth_int_coeff_sup_from_pointwise[OF Bb])
-      (use pc in auto)
-  show ?thesis using pn pb pi hs by blast
-qed
-
-(*FIXME INLINE BELOW*)
-theorem roth_index_transfer_constant:
-  fixes P :: "int mpoly" and \<beta> :: "nat \<Rightarrow> rat"
-    and \<alpha> :: real and h :: "nat \<Rightarrow> real"
-  assumes box: "roth_poly_in_box m r P"
-    and rpos: "\<And>v. v < m \<Longrightarrow> 0 < r v"
-    and balance: "\<And>v. v < m \<Longrightarrow> L \<le> real (r v) * h v"
-    and kpos: "0 \<le> \<kappa>" and Lpos: "0 \<le> L"
-    and index: "ereal t0 \<le> roth_index m r (\<lambda>_. \<alpha>)
-      (replace_coeff (of_int::int \<Rightarrow> real) P)"
-    and near: "\<And>v. abs (of_rat (\<beta> v) - \<alpha>) \<le> exp (-\<kappa> * h v)"
-    and gap: "ln (real (roth_int_coeff_sup P)) +
-      real (\<Sum>v<m. r v) * ln (16 * max 1 (abs \<alpha>)) +
-      (\<Sum>v<m. real (r v) * roth_rat_log_height (\<beta> v)) <
-      \<kappa> * L * (t0 - t1)"
-  shows "ereal t1 \<le> roth_index m r \<beta> (replace_coeff (of_int::int \<Rightarrow> rat) P)"
-proof -
-  have loggap: "ln (real (card (roth_exponent_box m r)) ^ 2 *
-      real (4 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup P) *
-      (\<Prod>v<m. max 1 (abs \<alpha>) ^ r v)) +
-      (\<Sum>v<m. real (r v) * roth_rat_log_height (\<beta> v)) <
-      \<kappa> * L * (t0 - t1)"
-    using roth_box_log_cost[of m r P \<alpha>] gap by linarith
-  show ?thesis
-    by (rule roth_index_transfer_log_gap[OF box rpos balance
-      kpos Lpos index near loggap])
-qed
-
-(*FIXME INLINE BELOW*)
-theorem roth_index_transfer_aux_height:
-  fixes P :: "int mpoly" and \<beta> :: "nat \<Rightarrow> rat"
-    and \<alpha> :: real and h :: "nat \<Rightarrow> real"
-    and b :: int
-  assumes box: "roth_poly_in_box m r P"
-    and bpos: "1 \<le> b"
-    and ph: "roth_int_coeff_sup P \<le>
-      nat (2 * (4 * b) ^ (\<Sum>v<m. r v))"
-    and rpos: "\<And>v. v < m \<Longrightarrow> 0 < r v"
-    and balance: "\<And>v. v < m \<Longrightarrow> L \<le> real (r v) * h v"
-    and kpos: "0 \<le> \<kappa>" and Lpos: "0 \<le> L"
-    and index: "ereal t0 \<le> roth_index m r (\<lambda>_. \<alpha>)
-      (replace_coeff (of_int::int \<Rightarrow> real) P)"
-    and near: "\<And>v. abs (of_rat (\<beta> v) - \<alpha>) \<le> exp (-\<kappa> * h v)"
-    and gap: "ln 2 + real (\<Sum>v<m. r v) *
-        (ln (4 * real_of_int b) + ln (16 * max 1 (abs \<alpha>))) +
-      (\<Sum>v<m. real (r v) * roth_rat_log_height (\<beta> v)) <
-      \<kappa> * L * (t0 - t1)"
-  shows "ereal t1 \<le> roth_index m r \<beta> (replace_coeff of_int P)"
-proof -
-  have hlog: "ln (real (roth_int_coeff_sup P)) \<le>
-      ln 2 + real (\<Sum>v<m. r v) * ln (4 * real_of_int b)"
-    by (rule roth_auxiliary_height_log[OF bpos ph])
-  have loggap: "ln (real (roth_int_coeff_sup P)) +
-      real (\<Sum>v<m. r v) * ln (16 * max 1 (abs \<alpha>)) +
-      (\<Sum>v<m. real (r v) * roth_rat_log_height (\<beta> v)) < \<kappa> * L * (t0 - t1)"
-    using hlog gap by (simp add: algebra_simps)
-  show ?thesis
-    by (rule roth_index_transfer_constant[OF box rpos balance
-      kpos Lpos index near loggap])
-qed
-
 theorem roth_monic_finite:
   fixes f :: "int poly" and \<alpha> \<delta> :: real
   assumes monic: "Polynomial.lead_coeff f = 1"
@@ -218,16 +109,35 @@ proof (rule ccontr)
   qed
 
   text \<open>The auxiliary polynomial has a large index at the algebraic point.\<close>
-  let ?H = "nat (2 * (4 * roth_power_base f) ^ (\<Sum>v<m. r v))"
-  obtain P :: "int mpoly" where pn: "P \<noteq> 0"
-    and pb: "roth_poly_in_box m r P"
+  let ?coeff_bound_int = "(2::int) * (4 * roth_power_base f) ^ (\<Sum>v<m. r v)"
+  let ?coeff_bound_nat = "nat ?coeff_bound_int"
+  have aux_exists: "\<exists>P :: int mpoly.
+      P \<noteq> 0 \<and> roth_poly_in_box m r P \<and>
+      ereal (real m * (1-\<epsilon>) / 2) \<le>
+        roth_index m r (\<lambda>_. \<alpha>) (replace_coeff (of_int::int \<Rightarrow> real) P) \<and>
+      (\<forall>K. abs (MPoly_Type.coeff P K) \<le> ?coeff_bound_int)"
+    by (rule roth_auxiliary_polynomial_monic_exp
+      [where f=f and a=\<alpha> and d="?d" and m=m and r=r and eps=\<epsilon>,
+       OF monic refl dpos root mpos rpos epos elt agap]) simp
+  obtain P :: "int mpoly" where P:
+    "P \<noteq> 0 \<and> roth_poly_in_box m r P \<and>
+      ereal (real m * (1-\<epsilon>) / 2) \<le>
+        roth_index m r (\<lambda>_. \<alpha>) (replace_coeff (of_int::int \<Rightarrow> real) P) \<and>
+      (\<forall>K. abs (MPoly_Type.coeff P K) \<le> ?coeff_bound_int)"
+    using aux_exists by (erule exE)
+  have pn: "P \<noteq> 0" and pb: "roth_poly_in_box m r P"
     and pi: "ereal (real m * (1-\<epsilon>) / 2) \<le>
       roth_index m r (\<lambda>_. \<alpha>) (replace_coeff (of_int::int \<Rightarrow> real) P)"
-    and ph: "roth_int_coeff_sup P \<le> ?H"
-    using roth_auxiliary_polynomial_monic_sup
-      [where f=f and a=\<alpha> and d="?d" and m=m and r=r and eps=\<epsilon>,
-       OF monic refl dpos root mpos rpos epos elt agap] by blast
-  have hlog: "ln (real (roth_int_coeff_sup P)) \<le> ln (real ?H)"
+    and pc: "\<forall>K. abs (MPoly_Type.coeff P K) \<le> ?coeff_bound_int"
+    using P by blast+
+  have base: "1 \<le> 4 * roth_power_base f"
+    using bpos by simp
+  have pow: "1 \<le> (4 * roth_power_base f) ^ (\<Sum>v<m. r v)"
+    by (rule one_le_power[OF base])
+  have Hpos: "1 \<le> ?coeff_bound_int" using pow by simp
+  have ph: "roth_int_coeff_sup P \<le> ?coeff_bound_nat"
+    by (rule roth_int_coeff_sup_le) (use Hpos pc in \<open>auto intro: nat_mono\<close>)
+  have hlog: "ln (real (roth_int_coeff_sup P)) \<le> ln (real ?coeff_bound_nat)"
     by (rule roth_int_coeff_sup_log_mono[OF ph])
   have hh: "ln (roth_int_coeff_sup P) + 4 * real m * real (r 0) \<le>
       \<eta>^(2^(m-1)) *r v * roth_rat_log_height (?\<beta> v)"
@@ -243,9 +153,22 @@ proof (rule ccontr)
     using sum_le gap by linarith
   have kpos: "0 \<le> \<kappa>" using kap by simp
   have Lpos: "0 \<le> T" using Tpos by simp
+  have height_log: "ln (real (roth_int_coeff_sup P)) \<le>
+      ln 2 + real (\<Sum>v<m. r v) * ?C"
+    by (rule roth_auxiliary_height_log[OF bpos ph])
+  let ?height_sum = "(\<Sum>v<m. real (r v) * roth_rat_log_height (?\<beta> v))"
+  have cost_gap: "ln (real (roth_int_coeff_sup P)) +
+      real (\<Sum>v<m. r v) * ?D + ?height_sum <
+      \<kappa> * T * (real m * (1-\<epsilon>) / 2 - \<epsilon> * m)"
+    using height_log gap' by (simp add: algebra_simps)
+  let ?transfer_cost = "real (card (roth_exponent_box m r)) ^ 2 *
+      real (4 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup P) *
+      (\<Prod>v<m. max 1 (abs \<alpha>) ^ r v)"
+  have transfer_gap: "ln ?transfer_cost + ?height_sum <
+      \<kappa> * T * (real m * (1-\<epsilon>) / 2 - \<epsilon> * m)"
+    using roth_box_log_cost[of m r P \<alpha>] cost_gap by linarith
   have "ereal (\<epsilon> * real m) \<le> roth_index m r ?\<beta> (replace_coeff of_int P)"
-    by (rule roth_index_transfer_aux_height[OF pb bpos ph rpos
-      wlow kpos Lpos pi near_all gap'])
+    by (rule roth_index_transfer_log_gap[OF pb rpos wlow kpos Lpos pi near_all transfer_gap])
   also have "\<dots> \<le> ereal (2*real m*\<eta>)"
     by (rule roth_lemma_integer[OF mpos pn pb rpos etapos etahalf ratio hh])
   finally have "\<epsilon> * m \<le> 2 * m * \<eta>" "2 * \<eta> * m < \<epsilon> * m"
