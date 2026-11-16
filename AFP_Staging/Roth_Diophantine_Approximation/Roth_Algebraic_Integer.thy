@@ -96,34 +96,31 @@ proof (rule ccontr)
     by (rule roth_height_budget[OF Tpos Bheight])
   have hcost: "ln 2 + real (\<Sum>v<m. r v)*?C + 4*real m*real (r 0) \<le> \<sigma>*T"
     by (rule roth_numeric_height[OF Cnonneg sumb rbound hbudget Theight])
-  have hbound: "ln (real (nat (2 * (4 * roth_power_base f) ^ (\<Sum>w<m. r w)))) +
+  let ?coeff_bound_int = "(2::int) * (4 * roth_power_base f) ^ (\<Sum>v<m. r v)"
+  let ?coeff_bound_nat = "nat ?coeff_bound_int"
+  have hbound: "ln (real ?coeff_bound_nat) +
     4*real m*real (r 0) \<le> \<eta>^(2^(m-1))*real (r v)*roth_rat_log_height (?\<beta> v)"
     if vm: "v < m" for v
   proof -
     have hw: "\<sigma>*T \<le> \<sigma>*(real (r v)*roth_rat_log_height (?\<beta> v))"
       by (rule mult_left_mono[OF wlow[OF vm]]) (use sigpos in simp)
-    have eqlog: "ln (real (nat (2 * (4 * roth_power_base f) ^ (\<Sum>w<m. r w)))) =
+    have eqlog: "ln (real ?coeff_bound_nat) =
       ln 2 + real (\<Sum>w<m. r w) * ?C"
       using roth_auxiliary_bound_log[OF bpos, of "\<Sum>w<m. r w"] by simp
     show ?thesis using hcost hw eqlog by (simp add: \<sigma>_def)
   qed
 
   text \<open>The auxiliary polynomial has a large index at the algebraic point.\<close>
-  let ?coeff_bound_int = "(2::int) * (4 * roth_power_base f) ^ (\<Sum>v<m. r v)"
-  let ?coeff_bound_nat = "nat ?coeff_bound_int"
-  have aux_exists: "\<exists>P :: int mpoly.
+  let ?aux_witness = "\<lambda>P :: int mpoly.
       P \<noteq> 0 \<and> roth_poly_in_box m r P \<and>
       ereal (real m * (1-\<epsilon>) / 2) \<le>
         roth_index m r (\<lambda>_. \<alpha>) (replace_coeff (of_int::int \<Rightarrow> real) P) \<and>
       (\<forall>K. abs (MPoly_Type.coeff P K) \<le> ?coeff_bound_int)"
+  have aux_exists: "\<exists>P :: int mpoly. ?aux_witness P"
     by (rule roth_auxiliary_polynomial_monic_exp
       [where f=f and a=\<alpha> and d="?d" and m=m and r=r and eps=\<epsilon>,
        OF monic refl dpos root mpos rpos epos elt agap]) simp
-  obtain P :: "int mpoly" where P:
-    "P \<noteq> 0 \<and> roth_poly_in_box m r P \<and>
-      ereal (real m * (1-\<epsilon>) / 2) \<le>
-        roth_index m r (\<lambda>_. \<alpha>) (replace_coeff (of_int::int \<Rightarrow> real) P) \<and>
-      (\<forall>K. abs (MPoly_Type.coeff P K) \<le> ?coeff_bound_int)"
+  obtain P :: "int mpoly" where P: "?aux_witness P"
     using aux_exists by (erule exE)
   have pn: "P \<noteq> 0" and pb: "roth_poly_in_box m r P"
     and pi: "ereal (real m * (1-\<epsilon>) / 2) \<le>
@@ -145,27 +142,28 @@ proof (rule ccontr)
     using hlog hbound[OF that] by linarith
 
   text \<open>Index transfer gives the opposing bound at the rational points.\<close>
-  have sum_le: "(\<Sum>v<m. real (r v) * roth_rat_log_height (?\<beta> v)) \<le> m * ((1+\<xi>)*T)"
+  let ?height_sum = "(\<Sum>v<m. real (r v) * roth_rat_log_height (?\<beta> v))"
+  have sum_le: "?height_sum \<le> m * ((1+\<xi>)*T)"
     by (rule roth_weighted_height_sum_le[OF whigh])
+  let ?index_gap = "real m * (1-\<epsilon>) / 2 - \<epsilon> * m"
   have gap': "ln 2 + real (\<Sum>v<m. r v) * (ln (4 * real_of_int (roth_power_base f)) +
-          ln (16 * max 1 (abs \<alpha>))) + (\<Sum>v<m. real (r v) * roth_rat_log_height (?\<beta> v)) <
-      \<kappa> * T * (real m * (1-\<epsilon>) / 2 - \<epsilon> * m)"
+          ln (16 * max 1 (abs \<alpha>))) + ?height_sum <
+      \<kappa> * T * ?index_gap"
     using sum_le gap by linarith
   have kpos: "0 \<le> \<kappa>" using kap by simp
   have Lpos: "0 \<le> T" using Tpos by simp
   have height_log: "ln (real (roth_int_coeff_sup P)) \<le>
       ln 2 + real (\<Sum>v<m. r v) * ?C"
     by (rule roth_auxiliary_height_log[OF bpos ph])
-  let ?height_sum = "(\<Sum>v<m. real (r v) * roth_rat_log_height (?\<beta> v))"
   have cost_gap: "ln (real (roth_int_coeff_sup P)) +
       real (\<Sum>v<m. r v) * ?D + ?height_sum <
-      \<kappa> * T * (real m * (1-\<epsilon>) / 2 - \<epsilon> * m)"
+      \<kappa> * T * ?index_gap"
     using height_log gap' by (simp add: algebra_simps)
   let ?transfer_cost = "real (card (roth_exponent_box m r)) ^ 2 *
       real (4 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup P) *
       (\<Prod>v<m. max 1 (abs \<alpha>) ^ r v)"
   have transfer_gap: "ln ?transfer_cost + ?height_sum <
-      \<kappa> * T * (real m * (1-\<epsilon>) / 2 - \<epsilon> * m)"
+      \<kappa> * T * ?index_gap"
     using roth_box_log_cost[of m r P \<alpha>] cost_gap by linarith
   have "ereal (\<epsilon> * real m) \<le> roth_index m r ?\<beta> (replace_coeff of_int P)"
     by (rule roth_index_transfer_log_gap[OF pb rpos wlow kpos Lpos pi near_all transfer_gap])
