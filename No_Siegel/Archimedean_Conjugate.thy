@@ -17,11 +17,8 @@ proof -
   have yN: "real y \<le> real N" using y by simp
   have bound: "real x + norm a * real y \<le>
       real N * (1 + norm a)"
-  proof -
-    have "norm a * real y \<le> norm a * real N"
-      using yN by (rule mult_left_mono) simp
-    with xN show ?thesis by (simp add: algebra_simps)
-  qed
+    using add_mono[OF xN mult_left_mono[OF yN norm_ge_zero]]
+    by (simp add: algebra_simps)
   have "norm (of_nat x + a * of_nat y) \<le>
       real x + norm a * real y"
     using norm_triangle_ineq[of "of_nat x" "a * of_nat y"]
