@@ -285,18 +285,6 @@ proof -
   show ?thesis using qb by (simp add: roth_box_cast_iff)
 qed
 
-lemma roth_box_primitive_rep:
-  fixes P :: "rat mpoly"
-  assumes box: "roth_poly_in_box m r P"
-    and nz: "P \<noteq> 0"
-  shows "\<exists>Q::int mpoly.
-    roth_integral_rep P Q \<and> Q \<noteq> 0 \<and>
-    MPoly_Type.primitive Q \<and> roth_poly_in_box m r Q \<and>
-    roth_proj_height P = roth_int_coeff_sup Q"
-  using roth_primitive_rep_exists[OF nz] box nz
-  by (auto intro: roth_integral_rep_box
-    roth_proj_height_primitive_rep)
-
 lemma roth_poly_sum_coeff_bound:
   fixes P :: "'x \<Rightarrow> int mpoly"
   assumes fin: "finite S"
@@ -600,7 +588,9 @@ proof -
     rep: "roth_integral_rep P Q" and
     qb: "roth_poly_in_box m r Q" and
     hp: "roth_proj_height P = roth_int_coeff_sup Q"
-    using roth_box_primitive_rep[OF box nz] by blast
+    using roth_primitive_rep_exists[OF nz] box nz
+    by (auto intro: roth_integral_rep_box
+        roth_proj_height_primitive_rep)
   have a: "roth_proj_height
     (det (mat k k (\<lambda>(i,j). roth_hasse (J i j) P))) \<le>
     roth_int_coeff_sup

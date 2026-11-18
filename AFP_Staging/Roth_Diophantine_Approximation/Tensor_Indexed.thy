@@ -395,8 +395,7 @@ proof -
   have pos: "0<card B" using ne fin
     by (simp add: card_gt_0_iff)
   obtain \<mu> where
-    mb: "\<forall>i<card B.
-      Poly_Mapping.keys (\<mu> i) \<subseteq> {..<n} \<and>
+    mb: "\<forall>i<card B. Poly_Mapping.keys (\<mu> i) \<subseteq> {..<n} \<and>
       roth_total_order n (\<mu> i) \<le> i"
     and det: "det (mat (card B) (card B) (\<lambda>(i,j).
       roth_hasse (\<mu> i + Poly_Mapping.single n j) P))
