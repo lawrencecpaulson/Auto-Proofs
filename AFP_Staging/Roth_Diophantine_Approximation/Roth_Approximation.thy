@@ -176,21 +176,20 @@ lemma roth_powr_threshold:
   assumes c: "c > 0" and \<eta>: "\<eta> > 0"
   obtains B :: int where "B > 0" "\<And>q::int. q \<ge> B \<Longrightarrow> c < of_int q powr \<eta>"
 proof -
-  obtain B :: int where B: "max 1 (c powr (1 / \<eta>)) < of_int B" and Bpos: "B > 0"
+  obtain B :: int where B: "max 1 (c powr (1 / \<eta>)) < of_int B" and "B > 0"
     by (metis ex_less_of_int max_less_iff_conj of_int_0_less_iff)
   have cpow: "(c powr (1 / \<eta>)) powr \<eta> = c"
     using c \<eta> by (simp add: powr_powr)
-  have bound: "c < q powr \<eta>" if "q \<ge> B" for q :: int
-    using c \<eta>
-  proof -
-    have "c powr (1/\<eta>) < q"
-      using B that by simp
-    then show ?thesis
-      using cpow \<eta> by (metis powr_ge_zero powr_less_mono2)
-  qed
   show thesis
-    by (rule that[OF Bpos bound])
-qed
+  proof (intro that)
+    show "c < q powr \<eta>" if "q \<ge> B" for q :: int
+    proof -
+      have "c powr (1/\<eta>) < q"
+        using B that by simp
+      then show ?thesis
+        using cpow \<eta> by (metis powr_ge_zero powr_less_mono2)
+    qed
+qed (use B in auto)
 
 lemma roth_scaled_good_pair:
   fixes c p q :: int and \<alpha> \<epsilon> \<delta> :: real
@@ -246,7 +245,6 @@ proof -
 qed
 
 lemma inj_on_roth_scaled_pair:
-  fixes c :: int
   assumes "c > 0"
   shows "inj_on (roth_scaled_pair c) (roth_good_pairs \<alpha> \<kappa>)"
   using roth_scaled_pair_inj[OF assms]
@@ -261,12 +259,10 @@ proof -
   obtain A :: int where A:
     "\<forall>pq\<in>roth_good_pairs (of_int c * \<alpha>) (2 + \<delta>). snd pq \<le> A"
     using fin finite_roth_good_pairs_iff_bounded_denominator by blast
-  obtain B :: int where B:
-    "\<And>q::int. B \<le> q \<Longrightarrow> of_int c < of_int q powr (\<epsilon> - \<delta>)"
+  obtain B :: int where B: "\<And>q::int. B \<le> q \<Longrightarrow> of_int c < of_int q powr (\<epsilon> - \<delta>)"
     using roth_powr_threshold[of "of_int c" "\<epsilon> - \<delta>"] c eps
     by auto
-  have denom_bound:
-    "snd pq \<le> max B (c * A)" if good: "pq \<in> roth_good_pairs \<alpha> (2 + \<epsilon>)" for pq
+  have "snd pq \<le> max B (c * A)" if good: "pq \<in> roth_good_pairs \<alpha> (2 + \<epsilon>)" for pq
   proof -
     obtain p q where pq: "pq = (p,q)"
       by (cases pq) auto
@@ -287,8 +283,8 @@ proof -
         using c pq scale_le by (smt (verit, best) mult_le_cancel_left sndI)
     qed
   qed
-  show ?thesis
-    using denom_bound finite_roth_good_pairs_iff_bounded_denominator by blast
+  then show ?thesis
+    using finite_roth_good_pairs_iff_bounded_denominator by blast
 qed
 
 end

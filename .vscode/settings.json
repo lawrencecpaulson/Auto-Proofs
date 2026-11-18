@@ -1,0 +1,14 @@
+{
+    "isabelle.sessionDirs": [
+        "/Users/lp15/isabelle/Auto-Proofs/AFP_Staging",
+        "/Users/lp15/isabelle/Auto-Proofs/AFP_Staging/Roth_Diophantine_Approximation",
+        "/Users/lp15/isabelle/Auto-Proofs/AFP_Staging/Stokes",
+        "/Users/lp15/isabelle/Auto-Proofs/AFP_Staging/Bivariate_Resultants"
+    ],
+    "isabelle.logic": "Roth_Diophantine_Approximation",
+    "isabelle.logicRequirements": true
+}
+
+"[isabelle]": {
+  "editor.fontFamily": "'Isabelle DejaVu Sans Mono', monospace"
+}
