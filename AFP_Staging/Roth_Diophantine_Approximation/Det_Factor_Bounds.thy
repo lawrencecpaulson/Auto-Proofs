@@ -752,6 +752,17 @@ qed
 
 section \<open>Nonzero factors of the tensor determinant\<close>
 
+text \<open>A tensor determinant witness records the separated nonzero factors,
+  together with the admissible derivative rows that produce their product.\<close>
+
+definition roth_tensor_det_witness where
+  "roth_tensor_det_witness n k P mu U L \<longleftrightarrow>
+    (\<forall>i<k. Poly_Mapping.keys (mu i) \<subseteq> {..<n} \<and>
+      roth_total_order n (mu i) \<le> i) \<and>
+    U \<noteq> 0 \<and> L \<noteq> 0 \<and>
+    det (mat k k (\<lambda>(i,j).
+      roth_hasse (mu i + Poly_Mapping.single n j) P)) = U * L"
+
 theorem roth_tensor_det_factors:
   fixes phi psi :: "nat \<Rightarrow> rat mpoly"
   assumes box: "\<forall>l<k. roth_poly_in_box n r (phi l)"
@@ -759,15 +770,10 @@ theorem roth_tensor_det_factors:
     and qv: "\<And>l. l<k \<Longrightarrow> vars (psi l) \<subseteq> {n}"
     and ri: "roth_poly_indep k (\<lambda>l. mpoly_to_poly n (psi l))"
   shows "\<exists>mu U L.
-    (\<forall>i<k. Poly_Mapping.keys (mu i) \<subseteq> {..<n} \<and>
-      roth_total_order n (mu i) \<le> i) \<and>
+    roth_tensor_det_witness n k (\<Sum>l<k. phi l * psi l) mu U L \<and>
     U = det (mat k k (\<lambda>(i,l). roth_hasse (mu i) (phi l))) \<and>
     L = det (mat k k (\<lambda>(l,j).
-      roth_hasse (Poly_Mapping.single n j) (psi l))) \<and>
-    U \<noteq> 0 \<and> L \<noteq> 0 \<and>
-    det (mat k k (\<lambda>(i,j).
-      roth_hasse (mu i + Poly_Mapping.single n j)
-        (\<Sum>l<k. phi l * psi l))) = U * L"
+      roth_hasse (Poly_Mapping.single n j) (psi l)))"
 proof -
   obtain mu where row: "\<forall>i<k.
       Poly_Mapping.keys (mu i) \<subseteq> {..<n} \<and>
@@ -788,7 +794,8 @@ proof -
       roth_hasse (Poly_Mapping.single n j) (psi l)))"
     by (rule roth_tensor_det_factorization)
       (use row pv qv in auto)
-  show ?thesis using row un ln fac by blast
+  show ?thesis unfolding roth_tensor_det_witness_def
+    using row un ln fac by blast
 qed
 
 
@@ -802,14 +809,10 @@ theorem roth_box_tensor_det_factors:
       roth_poly_in_box (Suc n) r (psi l) \<and>
       vars (psi l) \<subseteq> {n}) \<and>
     P = (\<Sum>l<k. phi l * psi l) \<and>
-    (\<forall>i<k. Poly_Mapping.keys (mu i) \<subseteq> {..<n} \<and>
-      roth_total_order n (mu i) \<le> i) \<and>
+    roth_tensor_det_witness n k P mu U L \<and>
     U = det (mat k k (\<lambda>(i,l). roth_hasse (mu i) (phi l))) \<and>
     L = det (mat k k (\<lambda>(l,j).
-      roth_hasse (Poly_Mapping.single n j) (psi l))) \<and>
-    U \<noteq> 0 \<and> L \<noteq> 0 \<and>
-    det (mat k k (\<lambda>(i,j).
-      roth_hasse (mu i + Poly_Mapping.single n j) P)) = U * L"
+      roth_hasse (Poly_Mapping.single n j) (psi l)))"
 proof -
   obtain B where sub: "B \<subseteq> roth_last_coeff P n ` {..r n}"
     and ne: "B \<noteq> {}" and bd: "card B \<le> Suc (r n)"
@@ -836,22 +839,17 @@ proof -
     by (rule roth_indexed_right_indep[OF bij sub ind fin])
   have peq: "P = (\<Sum>l<?k. ?phi l * ?psi l)"
     by (rule roth_indexed_tensor_split[OF bij spl])
-  obtain mu U L where row: "\<forall>i<?k.
-      Poly_Mapping.keys (mu i) \<subseteq> {..<n} \<and>
-      roth_total_order n (mu i) \<le> i"
+  obtain mu U L where wit: "roth_tensor_det_witness n ?k
+      (\<Sum>l<?k. ?phi l * ?psi l) mu U L"
     and ue: "U = det (mat ?k ?k (\<lambda>(i,l).
       roth_hasse (mu i) (?phi l)))"
     and le: "L = det (mat ?k ?k (\<lambda>(l,j).
       roth_hasse (Poly_Mapping.single n j) (?psi l)))"
-    and un: "U \<noteq> 0" and ln: "L \<noteq> 0"
-    and fac: "det (mat ?k ?k (\<lambda>(i,j).
-      roth_hasse (mu i + Poly_Mapping.single n j)
-        (\<Sum>l<?k. ?phi l * ?psi l))) = U * L"
     using roth_tensor_det_factors[OF boxphi li qv ri] by blast
   have kp: "0<?k" using ne fin by (simp add: card_gt_0_iff)
   have boxpsi: "\<forall>l<?k. roth_poly_in_box (Suc n) r (?psi l)"
     by (simp add: roth_right_factor_box)
-  show ?thesis using kp bd boxphi boxpsi qv peq row ue le un ln fac
+  show ?thesis using kp bd boxphi boxpsi qv peq wit ue le
     by (intro exI[where x="?k"] exI[where x=mu]
       exI[where x="?phi"] exI[where x="?psi"]
       exI[where x=U] exI[where x=L]) auto
@@ -947,14 +945,10 @@ theorem roth_box_tensor_det_factors_bounded:
     and nz: "P \<noteq> 0"
   shows "\<exists>k mu U L.
     0 < k \<and> k \<le> Suc (r n) \<and>
-    (\<forall>i<k. Poly_Mapping.keys (mu i) \<subseteq> {..<n} \<and>
-      roth_total_order n (mu i) \<le> i) \<and>
+    roth_tensor_det_witness n k P mu U L \<and>
     roth_poly_in_box n (\<lambda>v. k*r v) U \<and>
     roth_poly_in_box (Suc n) (\<lambda>v. k*r v) L \<and>
-    vars U \<subseteq> {..<n} \<and> vars L \<subseteq> {n} \<and>
-    U \<noteq> 0 \<and> L \<noteq> 0 \<and>
-    det (mat k k (\<lambda>(i,j).
-      roth_hasse (mu i + Poly_Mapping.single n j) P)) = U * L"
+    vars U \<subseteq> {..<n} \<and> vars L \<subseteq> {n}"
 proof -
   obtain k mu phi psi U L where kp: "0 < k"
     and kn: "k \<le> Suc (r n)"
@@ -962,15 +956,11 @@ proof -
       roth_poly_in_box (Suc n) r (psi l) \<and>
       vars (psi l) \<subseteq> {n}"
     and peq: "P = (\<Sum>l<k. phi l * psi l)"
-    and row: "\<forall>i<k. Poly_Mapping.keys (mu i) \<subseteq> {..<n} \<and>
-      roth_total_order n (mu i) \<le> i"
+    and wit: "roth_tensor_det_witness n k P mu U L"
     and ue: "U = det (mat k k (\<lambda>(i,l).
       roth_hasse (mu i) (phi l)))"
     and le: "L = det (mat k k (\<lambda>(l,j).
       roth_hasse (Poly_Mapping.single n j) (psi l)))"
-    and un: "U \<noteq> 0" and ln: "L \<noteq> 0"
-    and fac: "det (mat k k (\<lambda>(i,j).
-      roth_hasse (mu i + Poly_Mapping.single n j) P)) = U * L"
     using roth_box_tensor_det_factors[OF box nz] by blast
   have phib: "\<forall>l<k. roth_poly_in_box n r (phi l)"
     and psib: "\<forall>l<k. roth_poly_in_box (Suc n) r (psi l)"
@@ -984,7 +974,7 @@ proof -
     unfolding ue by (rule roth_det_left_vars[OF phib])
   have lv: "vars L \<subseteq> {n}"
     unfolding le by (rule roth_det_right_vars[OF psiv])
-  show ?thesis using kp kn row ub lb uv lv un ln fac by blast
+  show ?thesis using kp kn wit ub lb uv lv by blast
 qed
 
 end
