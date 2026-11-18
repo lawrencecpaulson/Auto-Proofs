@@ -973,11 +973,9 @@ proof -
       roth_hasse (mu i + Poly_Mapping.single n j) P)) = U * L"
     using roth_box_tensor_det_factors[OF box nz] by blast
   have phib: "\<forall>l<k. roth_poly_in_box n r (phi l)"
-    using fb by blast
-  have psib: "\<forall>l<k. roth_poly_in_box (Suc n) r (psi l)"
-    using fb by blast
-  have psiv: "\<And>l. l<k \<Longrightarrow> vars (psi l) \<subseteq> {n}"
-    using fb by blast
+    and psib: "\<forall>l<k. roth_poly_in_box (Suc n) r (psi l)"
+    and psiv: "\<And>l. l<k \<Longrightarrow> vars (psi l) \<subseteq> {n}"
+    using fb by blast+
   have ub: "roth_poly_in_box n (\<lambda>v. k*r v) U"
     unfolding ue by (rule roth_det_left_box[OF phib])
   have lb: "roth_poly_in_box (Suc n) (\<lambda>v. k*r v) L"

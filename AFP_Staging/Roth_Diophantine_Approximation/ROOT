@@ -11,7 +11,6 @@ session Roth_Diophantine_Approximation (AFP) = "HOL-Computational_Algebra" +
     Roth_Approximation
     Disjoint_Index
     Hasse_Derivative
-    Primitive_Height
     Hasse_Support
     Univariate_Index
     Roth_Wronskian
