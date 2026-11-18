@@ -477,7 +477,8 @@ proof -
     and un: "U \<noteq> 0" and ln: "L \<noteq> 0"
     and fac: "det (mat k k (\<lambda>(i,j).
       roth_hasse (mu i + Poly_Mapping.single (Suc n) j) P)) = U * L"
-    using roth_box_tensor_det_factors_bounded[OF box nz] by blast
+    using roth_box_tensor_det_factors_bounded[OF box nz]
+    unfolding roth_tensor_det_witness_def by blast
   have hb: "roth_proj_log_height (U*L) \<le>
     real k * (roth_proj_log_height P + 4 * real (r 0))"
     unfolding fac[symmetric]
