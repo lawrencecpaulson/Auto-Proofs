@@ -551,14 +551,13 @@ context
     and gap: "2 * real d < real m * eps\<^sup>2"
 begin
 
-theorem roth_auxiliary_polynomial_monic:
+corollary roth_auxiliary_polynomial_monic_exp:
   shows "\<exists>P :: int mpoly.
     P \<noteq> 0 \<and> roth_poly_in_box m r P \<and>
     ereal (real m * (1-eps) / 2) \<le>
       roth_index m r (\<lambda>_. a) (replace_coeff of_int P) \<and>
     (\<forall>K. abs (MPoly_Type.coeff P K) \<le>
-      2 * int (card (roth_exponent_box m r)) *
-        (2 * roth_power_base f) ^ (\<Sum>v<m. r v))"
+      2 * (4 * roth_power_base f) ^ (\<Sum>v<m. r v))"
 proof -
   let ?S = "roth_exponent_box m r"
   let ?C = "{J \<in> ?S. roth_weight m r J < real m * (1-eps) / 2}"
@@ -677,22 +676,7 @@ proof -
       by (rule roth_coeff_zero_outside_box[OF Pbox])
     then show ?thesis using Bge by simp
   qed
-  show ?thesis
-    using Pnz Pbox Pindex Ppoint
-    by (intro exI[of _ P]) (simp add: Kscard)
-qed
-
-corollary roth_auxiliary_polynomial_monic_exp:
-  shows "\<exists>P :: int mpoly.
-    P \<noteq> 0 \<and> roth_poly_in_box m r P \<and>
-    ereal (real m * (1-eps) / 2) \<le>
-      roth_index m r (\<lambda>_. a) (replace_coeff of_int P) \<and>
-    (\<forall>K. abs (MPoly_Type.coeff P K) \<le>
-      2 * (4 * roth_power_base f) ^ (\<Sum>v<m. r v))"
-proof -
-  let ?S = "roth_exponent_box m r"
   let ?R = "\<Sum>v<m. r v"
-  let ?B = "(2 * roth_power_base f) ^ ?R"
   have q: "int (card ?S) \<le> (2::int) ^ ?R"
     using roth_exponent_box_card_exp_bound[of m r] by simp
   have Bnonneg: "0 \<le> ?B"
@@ -721,26 +705,19 @@ proof -
       by (simp only: pow_eq)
     finally show ?thesis .
   qed
-  obtain P :: "int mpoly" where P:
-    "P \<noteq> 0" "roth_poly_in_box m r P"
-    "ereal (real m * (1-eps) / 2) \<le>
-      roth_index m r (\<lambda>_. a) (replace_coeff of_int P)"
-    "\<forall>K. abs (MPoly_Type.coeff P K) \<le>
-      2 * int (card ?S) * ?B"
-    using roth_auxiliary_polynomial_monic by blast
   have Pbound: "\<forall>K. abs (MPoly_Type.coeff P K) \<le>
       2 * (4 * roth_power_base f) ^ ?R"
   proof
     fix K
     have "abs (MPoly_Type.coeff P K) \<le>
         2 * int (card ?S) * ?B"
-      using P(4) by blast
+      using Ppoint[of K] by (simp add: Kscard)
     also note bound
     finally show "abs (MPoly_Type.coeff P K) \<le>
         2 * (4 * roth_power_base f) ^ ?R" .
   qed
   show ?thesis
-    using P(1-3) Pbound by (intro exI[of _ P]) auto
+    using Pnz Pbox Pindex Pbound by (intro exI[of _ P]) auto
 qed
 
 end

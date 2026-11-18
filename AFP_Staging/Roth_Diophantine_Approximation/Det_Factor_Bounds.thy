@@ -799,62 +799,6 @@ proof -
 qed
 
 
-theorem roth_box_tensor_det_factors:
-  fixes P :: "rat mpoly"
-  assumes box: "roth_poly_in_box (Suc n) r P"
-    and nz: "P \<noteq> 0"
-  shows "\<exists>k mu phi psi U L.
-    0 < k \<and> k \<le> Suc (r n) \<and>
-    (\<forall>l<k. roth_poly_in_box n r (phi l) \<and>
-      roth_poly_in_box (Suc n) r (psi l) \<and>
-      vars (psi l) \<subseteq> {n}) \<and>
-    P = (\<Sum>l<k. phi l * psi l) \<and>
-    roth_tensor_det_witness n k P mu U L \<and>
-    U = det (mat k k (\<lambda>(i,l). roth_hasse (mu i) (phi l))) \<and>
-    L = det (mat k k (\<lambda>(l,j).
-      roth_hasse (Poly_Mapping.single n j) (psi l)))"
-proof -
-  obtain B where sub: "B \<subseteq> roth_last_coeff P n ` {..r n}"
-    and ne: "B \<noteq> {}" and bd: "card B \<le> Suc (r n)"
-    and ind: "roth_vs.independent B"
-    and boxB: "\<forall>b\<in>B. roth_poly_in_box n r b"
-    and spl: "P = (\<Sum>b\<in>B.
-      b * roth_right_factor P n (r n) B b)"
-    using roth_tensor_basis_exists[OF box nz] by blast
-  have fin: "finite B" using sub
-    by (meson finite_subset finite_imageI finite_atMost)
-  let ?k = "card B"
-  let ?phi = "from_nat_into B"
-  let ?psi = "\<lambda>l. roth_right_factor P n (r n) B (?phi l)"
-  have bij: "bij_betw ?phi {..<?k} B"
-    by (rule Countable_Set.bij_betw_from_nat_into_finite[OF fin])
-  have boxphi: "\<forall>l<?k. roth_poly_in_box n r (?phi l)"
-    using bij boxB by (auto simp: bij_betw_def)
-  have li: "roth_mpoly_indep ?k ?phi"
-    by (rule roth_indexed_set_indep[OF bij ind])
-  have qv: "\<And>l. l<?k \<Longrightarrow> vars (?psi l) \<subseteq> {n}"
-    by (rule roth_right_factor_vars)
-  have ri: "roth_poly_indep ?k
-    (\<lambda>l. mpoly_to_poly n (?psi l))"
-    by (rule roth_indexed_right_indep[OF bij sub ind fin])
-  have peq: "P = (\<Sum>l<?k. ?phi l * ?psi l)"
-    by (rule roth_indexed_tensor_split[OF bij spl])
-  obtain mu U L where wit: "roth_tensor_det_witness n ?k
-      (\<Sum>l<?k. ?phi l * ?psi l) mu U L"
-    and ue: "U = det (mat ?k ?k (\<lambda>(i,l).
-      roth_hasse (mu i) (?phi l)))"
-    and le: "L = det (mat ?k ?k (\<lambda>(l,j).
-      roth_hasse (Poly_Mapping.single n j) (?psi l)))"
-    using roth_tensor_det_factors[OF boxphi li qv ri] by blast
-  have kp: "0<?k" using ne fin by (simp add: card_gt_0_iff)
-  have boxpsi: "\<forall>l<?k. roth_poly_in_box (Suc n) r (?psi l)"
-    by (simp add: roth_right_factor_box)
-  show ?thesis using kp bd boxphi boxpsi qv peq wit ue le
-    by (intro exI[where x="?k"] exI[where x=mu]
-      exI[where x="?phi"] exI[where x="?psi"]
-      exI[where x=U] exI[where x=L]) auto
-qed
-
 lemma roth_vars_uminus_rat:
   "vars (-(P::rat mpoly)) = vars P"
   by (simp add: vars_def uminus_mpoly.rep_eq)
@@ -950,31 +894,54 @@ theorem roth_box_tensor_det_factors_bounded:
     roth_poly_in_box (Suc n) (\<lambda>v. k*r v) L \<and>
     vars U \<subseteq> {..<n} \<and> vars L \<subseteq> {n}"
 proof -
-  obtain k mu phi psi U L where kp: "0 < k"
-    and kn: "k \<le> Suc (r n)"
-    and fb: "\<forall>l<k. roth_poly_in_box n r (phi l) \<and>
-      roth_poly_in_box (Suc n) r (psi l) \<and>
-      vars (psi l) \<subseteq> {n}"
-    and peq: "P = (\<Sum>l<k. phi l * psi l)"
-    and wit: "roth_tensor_det_witness n k P mu U L"
-    and ue: "U = det (mat k k (\<lambda>(i,l).
-      roth_hasse (mu i) (phi l)))"
-    and le: "L = det (mat k k (\<lambda>(l,j).
-      roth_hasse (Poly_Mapping.single n j) (psi l)))"
-    using roth_box_tensor_det_factors[OF box nz] by blast
-  have phib: "\<forall>l<k. roth_poly_in_box n r (phi l)"
-    and psib: "\<forall>l<k. roth_poly_in_box (Suc n) r (psi l)"
-    and psiv: "\<And>l. l<k \<Longrightarrow> vars (psi l) \<subseteq> {n}"
-    using fb by blast+
-  have ub: "roth_poly_in_box n (\<lambda>v. k*r v) U"
-    unfolding ue by (rule roth_det_left_box[OF phib])
-  have lb: "roth_poly_in_box (Suc n) (\<lambda>v. k*r v) L"
-    unfolding le by (rule roth_det_right_box[OF psib])
+  obtain B where sub: "B \<subseteq> roth_last_coeff P n ` {..r n}"
+    and ne: "B \<noteq> {}" and bd: "card B \<le> Suc (r n)"
+    and ind: "roth_vs.independent B"
+    and boxB: "\<forall>b\<in>B. roth_poly_in_box n r b"
+    and spl: "P = (\<Sum>b\<in>B.
+      b * roth_right_factor P n (r n) B b)"
+    using roth_tensor_basis_exists[OF box nz] by blast
+  have fin: "finite B" using sub
+    by (meson finite_subset finite_imageI finite_atMost)
+  let ?k = "card B"
+  let ?phi = "from_nat_into B"
+  let ?psi = "\<lambda>l. roth_right_factor P n (r n) B (?phi l)"
+  have bij: "bij_betw ?phi {..<?k} B"
+    by (rule Countable_Set.bij_betw_from_nat_into_finite[OF fin])
+  have boxphi: "\<forall>l<?k. roth_poly_in_box n r (?phi l)"
+    using bij boxB by (auto simp: bij_betw_def)
+  have li: "roth_mpoly_indep ?k ?phi"
+    by (rule roth_indexed_set_indep[OF bij ind])
+  have qv: "\<And>l. l<?k \<Longrightarrow> vars (?psi l) \<subseteq> {n}"
+    by (rule roth_right_factor_vars)
+  have ri: "roth_poly_indep ?k
+    (\<lambda>l. mpoly_to_poly n (?psi l))"
+    by (rule roth_indexed_right_indep[OF bij sub ind fin])
+  have peq: "P = (\<Sum>l<?k. ?phi l * ?psi l)"
+    by (rule roth_indexed_tensor_split[OF bij spl])
+  obtain mu U L where wit: "roth_tensor_det_witness n ?k
+      (\<Sum>l<?k. ?phi l * ?psi l) mu U L"
+    and ue: "U = det (mat ?k ?k (\<lambda>(i,l).
+      roth_hasse (mu i) (?phi l)))"
+    and le: "L = det (mat ?k ?k (\<lambda>(l,j).
+      roth_hasse (Poly_Mapping.single n j) (?psi l)))"
+    using roth_tensor_det_factors[OF boxphi li qv ri] by blast
+  have kp: "0<?k" using ne fin by (simp add: card_gt_0_iff)
+  have boxpsi: "\<forall>l<?k. roth_poly_in_box (Suc n) r (?psi l)"
+    by (simp add: roth_right_factor_box)
+  have witP: "roth_tensor_det_witness n ?k P mu U L"
+    using wit peq by simp
+  have ub: "roth_poly_in_box n (\<lambda>v. ?k*r v) U"
+    unfolding ue by (rule roth_det_left_box[OF boxphi])
+  have lb: "roth_poly_in_box (Suc n) (\<lambda>v. ?k*r v) L"
+    unfolding le by (rule roth_det_right_box[OF boxpsi])
   have uv: "vars U \<subseteq> {..<n}"
-    unfolding ue by (rule roth_det_left_vars[OF phib])
+    unfolding ue by (rule roth_det_left_vars[OF boxphi])
   have lv: "vars L \<subseteq> {n}"
-    unfolding le by (rule roth_det_right_vars[OF psiv])
-  show ?thesis using kp kn wit ub lb uv lv by blast
+    unfolding le by (rule roth_det_right_vars[OF qv])
+  show ?thesis using kp bd witP ub lb uv lv
+    by (intro exI[where x="?k"] exI[where x=mu]
+      exI[where x=U] exI[where x=L]) auto
 qed
 
 end
