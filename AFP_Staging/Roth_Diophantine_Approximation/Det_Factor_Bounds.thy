@@ -1,6 +1,6 @@
 theory Det_Factor_Bounds
   imports
-    Roth_Determinant_Bounds
+    Roth_Determinant_Bounds "HOL-ex.Sketch_and_Explore"
 begin
 
 section \<open>Index bounds for determinants\<close>
@@ -676,21 +676,17 @@ theorem roth_tensor_det_index_quadratic_box:
   fixes P :: "rat mpoly"
   assumes box: "roth_poly_in_box (Suc (Suc n)) r P"
     and nz: "P\<noteq>0"
-    and half: "\<And>v. Suc v < Suc (Suc n) \<Longrightarrow>
-      2 * r (Suc v) \<le> r v"
+    and half: "\<And>v. Suc v < Suc (Suc n) \<Longrightarrow> 2 * r (Suc v) \<le> r v"
     and rp: "0<r n" and rl: "0<r (Suc n)"
     and kn: "k \<le> Suc (r (Suc n))"
     and row: "\<And>i. i<k \<Longrightarrow>
       Poly_Mapping.keys (mu i) \<subseteq> {..<Suc n} \<and>
       roth_total_order (Suc n) (mu i) \<le> i"
-  shows "ereal (real k *
-      (real_of_ereal (roth_index (Suc (Suc n)) r a P))^2 /
+  shows "ereal (real k * (real_of_ereal (roth_index (Suc (Suc n)) r a P))^2 /
         (2 * real (Suc (Suc n)))) \<le>
     roth_index (Suc (Suc n)) r a
-      (det (mat k k (\<lambda>(i,j).
-        roth_hasse (mu i + Poly_Mapping.single (Suc n) j) P))) +
-    ereal (real k *
-      (real (r (Suc n)) / real (r n)))"
+      (det (mat k k (\<lambda>(i,j). roth_hasse (mu i + Poly_Mapping.single (Suc n) j) P))) +
+    ereal (real k * (real (r (Suc n)) / real (r n)))"
 proof -
   have pos: "0<r v" if "v<Suc (Suc n)" for v
     by (rule roth_halving_positive_all)
@@ -709,59 +705,16 @@ proof -
   show ?thesis using q by (simp add: ip)
 qed
 
-theorem roth_det_bounds_bridge:
-  fixes P :: "rat mpoly"
-  assumes box: "roth_poly_in_box (Suc (Suc n)) r P"
-    and nz: "P \<noteq> 0"
-    and half: "\<And>v. Suc v < Suc (Suc n) \<Longrightarrow>
-      2 * r (Suc v) \<le> r v"
-    and rp: "0 < r n" and rl: "0 < r (Suc n)"
-  shows "\<exists>k mu V. 0 < k \<and> k \<le> Suc (r (Suc n)) \<and>
-    V = det (mat k k (\<lambda>(i,j).
-      roth_hasse (mu i + Poly_Mapping.single (Suc n) j) P)) \<and>
-    V \<noteq> 0 \<and>
-    roth_proj_log_height V \<le>
-      real k * (roth_proj_log_height P + 4 * real (r 0)) \<and>
-    ereal (real k *
-      (real_of_ereal (roth_index (Suc (Suc n)) r a P))^2 /
-        (2 * real (Suc (Suc n)))) \<le>
-      roth_index (Suc (Suc n)) r a V +
-        ereal (real k * (real (r (Suc n)) / real (r n)))"
-proof -
-  obtain k mu where kp: "0<k" and kn: "k \<le> Suc (r (Suc n))"
-    and row: "\<forall>i<k. Poly_Mapping.keys (mu i) \<subseteq> {..<Suc n} \<and>
-      roth_total_order (Suc n) (mu i) \<le> i"
-    and vn: "det (mat k k (\<lambda>(i,j).
-      roth_hasse (mu i + Poly_Mapping.single (Suc n) j) P)) \<noteq> 0"
-    using roth_box_tensor_det_nonzero[OF box nz] by blast
-  let ?V = "det (mat k k (\<lambda>(i,j).
-    roth_hasse (mu i + Poly_Mapping.single (Suc n) j) P))"
-  have hb: "roth_proj_log_height ?V \<le>
-    real k * (roth_proj_log_height P + 4 * real (r 0))"
-    by (rule roth_hasse_det_log_bound_sharp[OF box nz half])
-      (use kn in auto)
-  have ib: "ereal (real k *
-      (real_of_ereal (roth_index (Suc (Suc n)) r a P))^2 /
-        (2 * real (Suc (Suc n)))) \<le>
-      roth_index (Suc (Suc n)) r a ?V +
-        ereal (real k * (real (r (Suc n)) / real (r n)))"
-    by (rule roth_tensor_det_index_quadratic_box[OF box nz half rp rl kn])
-      (use row in auto)
-  show ?thesis using kp kn vn hb ib by blast
-qed
-
 section \<open>Nonzero factors of the tensor determinant\<close>
 
 text \<open>A tensor determinant witness records the separated nonzero factors,
   together with the admissible derivative rows that produce their product.\<close>
 
 definition roth_tensor_det_witness where
-  "roth_tensor_det_witness n k P mu U L \<longleftrightarrow>
+  "roth_tensor_det_witness n k P mu U L \<equiv>
     (\<forall>i<k. Poly_Mapping.keys (mu i) \<subseteq> {..<n} \<and>
-      roth_total_order n (mu i) \<le> i) \<and>
-    U \<noteq> 0 \<and> L \<noteq> 0 \<and>
-    det (mat k k (\<lambda>(i,j).
-      roth_hasse (mu i + Poly_Mapping.single n j) P)) = U * L"
+      roth_total_order n (mu i) \<le> i) \<and> U \<noteq> 0 \<and> L \<noteq> 0 \<and>
+    det (mat k k (\<lambda>(i,j). roth_hasse (mu i + Poly_Mapping.single n j) P)) = U * L"
 
 theorem roth_tensor_det_factors:
   fixes phi psi :: "nat \<Rightarrow> rat mpoly"
@@ -772,8 +725,7 @@ theorem roth_tensor_det_factors:
   shows "\<exists>mu U L.
     roth_tensor_det_witness n k (\<Sum>l<k. phi l * psi l) mu U L \<and>
     U = det (mat k k (\<lambda>(i,l). roth_hasse (mu i) (phi l))) \<and>
-    L = det (mat k k (\<lambda>(l,j).
-      roth_hasse (Poly_Mapping.single n j) (psi l)))"
+    L = det (mat k k (\<lambda>(l,j). roth_hasse (Poly_Mapping.single n j) (psi l)))"
 proof -
   obtain mu where row: "\<forall>i<k.
       Poly_Mapping.keys (mu i) \<subseteq> {..<n} \<and>
@@ -786,16 +738,14 @@ proof -
     by (rule roth_right_det_nonzero[OF qv ri])
   have pv: "\<And>l. l<k \<Longrightarrow> vars (phi l) \<subseteq> {..<n}"
     by (rule roth_tensor_box_vars[OF box])
-  have fac: "det (mat k k (\<lambda>(i,j).
-      roth_hasse (mu i + Poly_Mapping.single n j)
-        (\<Sum>l<k. phi l * psi l))) =
-    det (mat k k (\<lambda>(i,l). roth_hasse (mu i) (phi l))) *
-    det (mat k k (\<lambda>(l,j).
-      roth_hasse (Poly_Mapping.single n j) (psi l)))"
-    by (rule roth_tensor_det_factorization)
-      (use row pv qv in auto)
   show ?thesis unfolding roth_tensor_det_witness_def
-    using row un ln fac by blast
+  proof (intro exI strip conjI)
+    show "det (mat k k (\<lambda>(i,j). roth_hasse (mu i + Poly_Mapping.single n j)
+                                (\<Sum>l<k. phi l * psi l))) =
+         det (mat k k (\<lambda>(i,l). roth_hasse (mu i) (phi l))) *
+         det (mat k k (\<lambda>(l,j). roth_hasse (Poly_Mapping.single n j) (psi l)))"
+      by (rule roth_tensor_det_factorization) (use row pv qv in auto)
+  qed (use ln un row in auto)
 qed
 
 
@@ -816,71 +766,47 @@ proof -
   have tvar: "vars (signof q * (\<Prod>i<k. A i (q i))) \<subseteq> S"
     if q: "q\<in>?Q" for q
   proof -
-    have v: "vars (\<Prod>i<k. A i (q i)) \<subseteq>
-      (\<Union>i<k. vars (A i (q i)))"
+    have v: "vars (\<Prod>i<k. A i (q i)) \<subseteq> (\<Union>i<k. vars (A i (q i)))"
       by (rule roth_vars_prod_subset) simp
-    have qp: "q permutes {..<k}" using q by simp
     have uv: "(\<Union>i<k. vars (A i (q i))) \<subseteq> S"
-      using ab roth_permutes_bounded[OF qp] by blast
+      using ab roth_permutes_bounded q by blast
     show ?thesis using v uv by (simp add: roth_vars_sign_mult)
   qed
   have v: "vars (\<Sum>q\<in>?Q. signof q * (\<Prod>i<k. A i (q i)))
     \<subseteq> (\<Union>q\<in>?Q. vars (signof q * (\<Prod>i<k. A i (q i))))"
     by (rule vars_setsum) (simp add: finite_permutations)
-  have u: "(\<Union>q\<in>?Q. vars (signof q * (\<Prod>i<k. A i (q i))))
-    \<subseteq> S" using tvar by auto
-  show ?thesis using v u
-    by (simp add: roth_det_mat_expansion)
+  show ?thesis using v tvar
+    by (auto simp: roth_det_mat_expansion)
 qed
 
 
 lemma roth_det_left_vars:
   fixes phi :: "nat \<Rightarrow> rat mpoly"
   assumes box: "\<forall>l<k. roth_poly_in_box n r (phi l)"
-  shows "vars (det (mat k k (\<lambda>(i,l).
-      roth_hasse (mu i) (phi l)))) \<subseteq> {..<n}"
-proof (rule roth_det_vars_subset)
-  fix i l
-  assume "i<k" and lk: "l<k"
-  have "vars (roth_hasse (mu i) (phi l)) \<subseteq> vars (phi l)"
-    by (rule roth_hasse_vars_subset)
-  also have "... \<subseteq> {..<n}"
-    by (rule roth_box_vars) (use box lk in auto)
-  finally show "vars (roth_hasse (mu i) (phi l)) \<subseteq> {..<n}" .
-qed
+  shows "vars (det (mat k k (\<lambda>(i,l). roth_hasse (mu i) (phi l)))) \<subseteq> {..<n}"
+  using box
+  by (meson order_trans roth_box_vars roth_det_vars_subset roth_hasse_vars_subset)
 
 lemma roth_det_right_vars:
   fixes psi :: "nat \<Rightarrow> rat mpoly"
   assumes qv: "\<And>l. l<k \<Longrightarrow> vars (psi l) \<subseteq> {n}"
   shows "vars (det (mat k k (\<lambda>(l,j).
       roth_hasse (Poly_Mapping.single n j) (psi l)))) \<subseteq> {n}"
-proof (rule roth_det_vars_subset)
-  fix l j
-  assume lk: "l<k" and "j<k"
-  have "vars (roth_hasse (Poly_Mapping.single n j) (psi l))
-      \<subseteq> vars (psi l)"
-    by (rule roth_hasse_vars_subset)
-  also have "... \<subseteq> {n}" by (rule qv[OF lk])
-  finally show "vars (roth_hasse
-    (Poly_Mapping.single n j) (psi l)) \<subseteq> {n}" .
-qed
+  using qv roth_hasse_vars_subset by (intro roth_det_vars_subset) blast
 
 lemma roth_det_left_box:
   fixes phi :: "nat \<Rightarrow> rat mpoly"
   assumes box: "\<forall>l<k. roth_poly_in_box n r (phi l)"
   shows "roth_poly_in_box n (\<lambda>v. k*r v)
     (det (mat k k (\<lambda>(i,l). roth_hasse (mu i) (phi l))))"
-  by (rule roth_box_det)
-    (use box in \<open>auto intro: roth_hasse_box_monotone\<close>)
+  using box roth_box_det roth_hasse_preserves_box by presburger
 
 lemma roth_det_right_box:
   fixes psi :: "nat \<Rightarrow> rat mpoly"
   assumes box: "\<forall>l<k. roth_poly_in_box (Suc n) r (psi l)"
-  shows "roth_poly_in_box (Suc n) (\<lambda>v. k*r v)
-    (det (mat k k (\<lambda>(l,j).
-      roth_hasse (Poly_Mapping.single n j) (psi l))))"
-  by (rule roth_box_det)
-    (use box in \<open>auto intro: roth_hasse_box_monotone\<close>)
+  shows "roth_poly_in_box (Suc n) (\<lambda>v. k*r v) (det (mat k k (\<lambda>(l,j).
+                 roth_hasse (Poly_Mapping.single n j) (psi l))))"
+  using box roth_box_det roth_hasse_preserves_box by presburger
 
 
 theorem roth_box_tensor_det_factors_bounded:
@@ -901,8 +827,8 @@ proof -
     and spl: "P = (\<Sum>b\<in>B.
       b * roth_right_factor P n (r n) B b)"
     using roth_tensor_basis_exists[OF box nz] by blast
-  have fin: "finite B" using sub
-    by (meson finite_subset finite_imageI finite_atMost)
+  have fin: "finite B" 
+    by (meson sub finite_subset finite_imageI finite_atMost)
   let ?k = "card B"
   let ?phi = "from_nat_into B"
   let ?psi = "\<lambda>l. roth_right_factor P n (r n) B (?phi l)"
@@ -914,17 +840,14 @@ proof -
     by (rule roth_indexed_set_indep[OF bij ind])
   have qv: "\<And>l. l<?k \<Longrightarrow> vars (?psi l) \<subseteq> {n}"
     by (rule roth_right_factor_vars)
-  have ri: "roth_poly_indep ?k
-    (\<lambda>l. mpoly_to_poly n (?psi l))"
+  have ri: "roth_poly_indep ?k (\<lambda>l. mpoly_to_poly n (?psi l))"
     by (rule roth_indexed_right_indep[OF bij sub ind fin])
   have peq: "P = (\<Sum>l<?k. ?phi l * ?psi l)"
     by (rule roth_indexed_tensor_split[OF bij spl])
-  obtain mu U L where wit: "roth_tensor_det_witness n ?k
-      (\<Sum>l<?k. ?phi l * ?psi l) mu U L"
-    and ue: "U = det (mat ?k ?k (\<lambda>(i,l).
-      roth_hasse (mu i) (?phi l)))"
-    and le: "L = det (mat ?k ?k (\<lambda>(l,j).
-      roth_hasse (Poly_Mapping.single n j) (?psi l)))"
+  obtain mu U L where
+        wit: "roth_tensor_det_witness n ?k (\<Sum>l<?k. ?phi l * ?psi l) mu U L"
+    and ue: "U = det (mat ?k ?k (\<lambda>(i,l). roth_hasse (mu i) (?phi l)))"
+    and le: "L = det (mat ?k ?k (\<lambda>(l,j). roth_hasse (Poly_Mapping.single n j) (?psi l)))"
     using roth_tensor_det_factors[OF boxphi li qv ri] by blast
   have kp: "0<?k" using ne fin by (simp add: card_gt_0_iff)
   have boxpsi: "\<forall>l<?k. roth_poly_in_box (Suc n) r (?psi l)"
@@ -940,8 +863,7 @@ proof -
   have lv: "vars L \<subseteq> {n}"
     unfolding le by (rule roth_det_right_vars[OF qv])
   show ?thesis using kp bd witP ub lb uv lv
-    by (intro exI[where x="?k"] exI[where x=mu]
-      exI[where x=U] exI[where x=L]) auto
+    by blast
 qed
 
 end
