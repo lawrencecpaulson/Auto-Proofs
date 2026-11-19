@@ -224,12 +224,6 @@ lemma roth_linear_power_cast_rat:
   shows "map_poly of_int ([:-p,q:] ^ n) = smult ((of_int q)^n) ([:- Rat.Fract p q,1:]^n)"
   unfolding of_int_poly_hom.hom_power roth_linear_cast_rat[OF q] smult_power by simp
 
-lemma roth_int_poly_cast_nonzero:
-  fixes Q :: "int poly"
-  assumes "Q \<noteq> 0"
-  shows "(map_poly of_int Q :: rat poly) \<noteq> 0"
-  using assms by simp
-
 lemma roth_linear_power_cast_dvd:
   fixes q :: "int"
   assumes q: "q \<noteq> 0"
@@ -371,12 +365,6 @@ lemma roth_primitive_poly_log_height:
   by (simp add: roth_proj_height_poly_to_mpoly[OF q prim])
 
 section \<open>The bound for rational univariate polynomials\<close>
-
-lemma roth_coprime_bridge_back:
-  fixes p q :: int
-  assumes cpq: "algebraic_semidom_class.coprime p q"
-  shows "coprime p q"
-  using cpq by (simp add: coprime_iff_gcd_eq_1)
 
 lemma roth_rat_fraction_exists:
   fixes x :: rat
