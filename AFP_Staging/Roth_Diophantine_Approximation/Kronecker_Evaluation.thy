@@ -521,8 +521,8 @@ lemma roth_hasse_first_comp:
 proof -
   have e: "roth_mchoose (J + Poly_Mapping.single v 1)
       (Poly_Mapping.single v 1) = Suc (Poly_Mapping.lookup J v)"
-    by (simp only: roth_mchoose_single_one)
-      (simp add: lookup_add lookup_single when_def)
+    unfolding roth_mchoose_single_one
+    by (simp add: lookup_add lookup_single when_def)
   show ?thesis
     using roth_hasse_comp[of "Poly_Mapping.single v 1" J P] e
     by (simp add: add.commute)
@@ -531,25 +531,14 @@ qed
 lemma roth_ksubst_Const_mult:
   fixes P :: "rat mpoly"
   assumes "roth_poly_in_box m r P"
-  shows "roth_ksubst m B (Const c * P) =
-    Polynomial.smult c (roth_ksubst m B P)"
+  shows "roth_ksubst m B (Const c * P) = Polynomial.smult c (roth_ksubst m B P)"
   using roth_ksubst_smult[OF assms, of B c]
   by (simp add: smult_conv_mult roth_Const_monom)
 
 lemma roth_monom_smult_swap:
   fixes q :: "rat poly"
-  shows "Polynomial.monom c n * Polynomial.smult d q =
-    Polynomial.monom (c*d) n * q"
-proof -
-  have "Polynomial.monom c n * Polynomial.smult d q =
-      Polynomial.smult d (Polynomial.monom c n * q)"
-    by (rule mult_smult_right)
-  also have "\<dots> = Polynomial.smult d (Polynomial.monom c n) * q"
-    by (simp only: mult_smult_left)
-  also have "\<dots> = Polynomial.monom (c*d) n * q"
-    by (simp add: smult_monom mult.commute)
-  finally show ?thesis .
-qed
+  shows "Polynomial.monom c n * Polynomial.smult d q = Polynomial.monom (c*d) n * q"
+  by (simp add: monom_altdef mult.commute)
 
 lemma roth_ksubst_hasse_first:
   fixes P :: "rat mpoly"
@@ -605,19 +594,17 @@ lemma roth_ksubst_hasse_weighted_deriv:
 section \<open>Uniform expansion of higher substituted derivatives\<close>
 
 definition roth_total_order :: "nat \<Rightarrow> (nat,nat) poly_mapping \<Rightarrow> nat" where
-  "roth_total_order m J = (\<Sum>v<m. Poly_Mapping.lookup J v)"
+  "roth_total_order m J \<equiv> (\<Sum>v<m. Poly_Mapping.lookup J v)"
 
 lemma roth_total_order_add:
-  "roth_total_order m (I+J) =
-    roth_total_order m I + roth_total_order m J"
+  "roth_total_order m (I+J) = roth_total_order m I + roth_total_order m J"
   by (simp add: roth_total_order_def lookup_add sum.distrib)
 
 lemma roth_total_order_single:
   assumes "v<m"
   shows "roth_total_order m (Poly_Mapping.single v 1) = 1"
   using assms
-  by (simp add: roth_total_order_def lookup_single when_def
-    sum.remove[of "{..<m}" v])
+  by (simp add: roth_total_order_def lookup_single when_def sum.remove)
 
 fun roth_jet_index :: "nat option list \<Rightarrow> (nat,nat) poly_mapping" where
   "roth_jet_index [] = 0"
@@ -629,16 +616,12 @@ definition roth_jet_alphabet :: "nat \<Rightarrow> nat option set" where
   "roth_jet_alphabet m = insert None (Some ` {..<m})"
 
 definition roth_jet_words :: "nat \<Rightarrow> nat \<Rightarrow> nat option list set" where
-  "roth_jet_words m i =
-    {xs. set xs \<subseteq> roth_jet_alphabet m \<and> length xs = i}"
+  "roth_jet_words m i \<equiv> {xs. set xs \<subseteq> roth_jet_alphabet m \<and> length xs = i}"
 
-lemma finite_roth_jet_words [simp]:
-  "finite (roth_jet_words m i)"
-  by (simp add: roth_jet_words_def roth_jet_alphabet_def
-    finite_lists_length_eq)
+lemma finite_roth_jet_words [simp]: "finite (roth_jet_words m i)"
+  by (simp add: roth_jet_words_def roth_jet_alphabet_def finite_lists_length_eq)
 
-lemma roth_jet_words_zero [simp]:
-  "roth_jet_words m 0 = {[]}"
+lemma roth_jet_words_zero [simp]: "roth_jet_words m 0 = {[]}"
   by (auto simp: roth_jet_words_def)
 
 lemma roth_jet_index_order:
@@ -659,29 +642,22 @@ next
     case (Some v)
     then have vm: "v<m"
       using Cons.prems by (auto simp: roth_jet_alphabet_def)
-    have t: "roth_total_order m (Poly_Mapping.single v 1) = 1"
-      by (rule roth_total_order_single[OF vm])
-    show ?thesis using Cons.IH Cons.prems t Some
+    show ?thesis using Cons roth_total_order_single[OF vm] Some
       by (simp add: roth_total_order_add roth_jet_alphabet_def)
   qed
 qed
 
 lemma roth_nat_keys_add:
   fixes I J :: "(nat,nat) poly_mapping"
-  shows "Poly_Mapping.keys (I+J) \<subseteq>
-    Poly_Mapping.keys I \<union> Poly_Mapping.keys J"
+  shows "Poly_Mapping.keys (I+J) \<subseteq> Poly_Mapping.keys I \<union> Poly_Mapping.keys J"
 proof (rule subsetI)
   fix v
   assume h: "v \<in> Poly_Mapping.keys (I+J)"
   show "v \<in> Poly_Mapping.keys I \<union> Poly_Mapping.keys J"
   proof (rule ccontr)
     assume "v \<notin> Poly_Mapping.keys I \<union> Poly_Mapping.keys J"
-    then have a: "Poly_Mapping.lookup I v = 0"
-      and b: "Poly_Mapping.lookup J v = 0"
-      by (simp_all add: not_in_keys_iff_lookup_eq_zero)
-    have "Poly_Mapping.lookup (I+J) v = 0"
-      by (simp add: lookup_add a b)
-    then show False using h by (simp add: in_keys_iff)
+    then show False 
+      using h by (simp add: not_in_keys_iff_lookup_eq_zero lookup_add in_keys_iff)
   qed
 qed
 
@@ -695,9 +671,7 @@ proof (induction xs)
 next
   case (Cons a xs)
   then show ?case
-    by (cases a)
-      (auto simp: roth_jet_alphabet_def
-        dest: subsetD[OF roth_nat_keys_add])
+    by (cases a) (auto simp: roth_jet_alphabet_def dest: subsetD[OF roth_nat_keys_add])
 qed
 
 lemma roth_jet_word_bounds:
@@ -716,16 +690,13 @@ qed
 
 lemma roth_jet_words_Suc:
   "roth_jet_words m (Suc i) =
-    ((#) None ` roth_jet_words m i) \<union>
-      ((\<lambda>(xs,v). Some v # xs) ` (roth_jet_words m i \<times> {..<m}))"
-  by (auto simp: roth_jet_words_def roth_jet_alphabet_def
-    length_Suc_conv)
+    ((#) None ` roth_jet_words m i) \<union> ((\<lambda>(xs,v). Some v # xs) ` (roth_jet_words m i \<times> {..<m}))"
+  by (auto simp: roth_jet_words_def roth_jet_alphabet_def length_Suc_conv)
 
 lemma roth_sum_jet_words:
   fixes f :: "nat option list \<Rightarrow> rat poly"
   shows "(\<Sum>ys\<in>roth_jet_words m (Suc i). f ys) =
-    (\<Sum>xs\<in>roth_jet_words m i. f (None#xs)) +
-    (\<Sum>xs\<in>roth_jet_words m i. \<Sum>v<m. f (Some v#xs))"
+    (\<Sum>xs\<in>roth_jet_words m i. f (None#xs)) + (\<Sum>xs\<in>roth_jet_words m i. \<Sum>v<m. f (Some v#xs))"
 proof -
   let ?S = "roth_jet_words m i"
   let ?A = "((#) None ` ?S)"
@@ -768,8 +739,7 @@ next
   case (Suc i)
   then show ?case
     by (simp add: funpow_Suc_right roth_poly_pderiv_sum
-      roth_ksubst_hasse_weighted_deriv roth_sum_jet_words
-      sum.distrib)
+      roth_ksubst_hasse_weighted_deriv roth_sum_jet_words sum.distrib)
 qed
 
 section \<open>Evaluation of Kronecker substitution\<close>
@@ -777,8 +747,7 @@ section \<open>Evaluation of Kronecker substitution\<close>
 lemma roth_insertion_Const:
   fixes c :: rat and f :: "nat \<Rightarrow> rat"
   shows "insertion f (Const c) = c"
-  by (simp add: roth_Const_monom[symmetric]
-    insertion_single[of f 0 0 c])
+  by (simp add: roth_Const_monom[symmetric] insertion_single[of f 0 0 c])
 
 lemma roth_insertion_Var:
   fixes f :: "nat \<Rightarrow> rat"
@@ -787,18 +756,14 @@ lemma roth_insertion_Var:
 
 lemma roth_monom_var_prod:
   fixes c :: rat
-  shows "MPoly_Type.monom I c =
-    Const c *
-      (\<Prod>v\<in>Poly_Mapping.keys I. Var v ^ Poly_Mapping.lookup I v)"
+  shows "MPoly_Type.monom I c = Const c * (\<Prod>v\<in>Poly_Mapping.keys I. Var v ^ Poly_Mapping.lookup I v)"
   using roth_hasse_monom_product[of 0 I c] by simp
 
 lemma roth_insertion_prod:
   fixes f :: "nat \<Rightarrow> rat" and P :: "'a \<Rightarrow> rat mpoly"
   assumes "finite S"
-  shows "insertion f (\<Prod>v\<in>S. P v) =
-    (\<Prod>v\<in>S. insertion f (P v))"
-  using assms by (induction S rule: finite_induct)
-    (simp_all add: insertion_mult)
+  shows "insertion f (\<Prod>v\<in>S. P v) = (\<Prod>v\<in>S. insertion f (P v))"
+  using assms by (induction S rule: finite_induct) (simp_all add: insertion_mult)
 
 lemma roth_insertion_power:
   fixes f :: "nat \<Rightarrow> rat" and P :: "rat mpoly"
@@ -808,70 +773,53 @@ lemma roth_insertion_power:
 lemma roth_insertion_monom:
   fixes c :: rat and f :: "nat \<Rightarrow> rat"
   shows "insertion f (MPoly_Type.monom I c) =
-    c * (\<Prod>v\<in>Poly_Mapping.keys I.
-      f v ^ Poly_Mapping.lookup I v)"
+         c * (\<Prod>v\<in>Poly_Mapping.keys I. f v ^ Poly_Mapping.lookup I v)"
   by (simp add: roth_monom_var_prod insertion_mult
     roth_insertion_Const roth_insertion_prod
     roth_insertion_power roth_insertion_Var)
 
 lemma roth_kronecker_keys:
   assumes h: "Poly_Mapping.keys I \<subseteq> {..<m}"
-  shows "roth_kronecker m B I =
-    (\<Sum>v\<in>Poly_Mapping.keys I. Poly_Mapping.lookup I v * B^v)"
+  shows "roth_kronecker m B I = (\<Sum>v\<in>Poly_Mapping.keys I. Poly_Mapping.lookup I v * B^v)"
 proof -
   have z: "\<forall>v\<in>{..<m} - Poly_Mapping.keys I.
     Poly_Mapping.lookup I v * B^v = 0"
     by (simp add: not_in_keys_iff_lookup_eq_zero)
-  have eq: "(\<Sum>v\<in>Poly_Mapping.keys I.
-      Poly_Mapping.lookup I v * B^v) =
+  have eq: "(\<Sum>v\<in>Poly_Mapping.keys I. Poly_Mapping.lookup I v * B^v) =
     (\<Sum>v<m. Poly_Mapping.lookup I v * B^v)"
     by (rule sum.mono_neutral_left[OF _ h z]) simp
   show ?thesis using eq
     by (simp add: roth_kronecker_def roth_digits_def)
 qed
 
-lemma roth_power_swap:
-  fixes t :: rat
-  shows "(t^a)^b = (t^b)^a"
-  by (simp add: power_mult[symmetric] mult.commute)
-
 lemma roth_kronecker_power_prod:
   fixes t :: rat
-  shows "(\<Prod>v\<in>S. (t^(B^v))^(Poly_Mapping.lookup I v)) =
-    t^(\<Sum>v\<in>S. Poly_Mapping.lookup I v * B^v)"
-  by (simp add: power_sum roth_power_swap power_mult[symmetric])
+  shows "(\<Prod>v\<in>S. (t^(B^v))^(Poly_Mapping.lookup I v)) = t^(\<Sum>v\<in>S. Poly_Mapping.lookup I v * B^v)"
+  by (simp add: power_sum mult.commute power_mult[symmetric])
 
 lemma roth_insertion_kronecker_monom:
   fixes c t :: rat
   assumes supp: "Poly_Mapping.keys I \<subseteq> {..<m}"
-  shows "insertion (\<lambda>v. t^(B^v)) (MPoly_Type.monom I c) =
-    c * t^(roth_kronecker m B I)"
-  by (simp add: roth_insertion_monom roth_kronecker_keys[OF supp]
-    roth_kronecker_power_prod)
+  shows "insertion (\<lambda>v. t^(B^v)) (MPoly_Type.monom I c) = c * t^(roth_kronecker m B I)"
+  by (simp add: roth_insertion_monom roth_kronecker_keys[OF supp] roth_kronecker_power_prod)
 
 lemma roth_insertion_sum:
   fixes f :: "nat \<Rightarrow> rat" and P :: "'a \<Rightarrow> rat mpoly"
   assumes "finite S"
-  shows "insertion f (\<Sum>x\<in>S. P x) =
-    (\<Sum>x\<in>S. insertion f (P x))"
-  using assms by (induction S rule: finite_induct)
-    (simp_all add: insertion_add)
+  shows "insertion f (\<Sum>x\<in>S. P x) = (\<Sum>x\<in>S. insertion f (P x))"
+  using assms by (induction S rule: finite_induct) (simp_all add: insertion_add)
 
 lemma roth_insertion_monom_sum:
   fixes P :: "rat mpoly"
   shows "insertion f P =
     (\<Sum>I\<in>Poly_Mapping.keys (mapping_of P).
       insertion f (MPoly_Type.monom I (MPoly_Type.coeff P I)))"
-  using roth_sum_monom[of P]
-    roth_insertion_sum[of "Poly_Mapping.keys (mapping_of P)"
-      f "\<lambda>I. MPoly_Type.monom I (MPoly_Type.coeff P I)"]
-  by simp
+  by (metis roth_insertion_sum finite_keys roth_sum_monom)
 
 lemma roth_poly_ksubst_eval_sum:
   fixes P :: "rat mpoly"
   shows "poly (roth_ksubst m B P) t =
-    (\<Sum>I\<in>Poly_Mapping.keys (mapping_of P).
-      MPoly_Type.coeff P I * t^(roth_kronecker m B I))"
+    (\<Sum>I\<in>Poly_Mapping.keys (mapping_of P). MPoly_Type.coeff P I * t^(roth_kronecker m B I))"
   by (simp add: roth_ksubst_def poly_sum poly_monom)
 
 lemma roth_box_monom_support:
@@ -879,13 +827,11 @@ lemma roth_box_monom_support:
     and I: "I\<in>Poly_Mapping.keys (mapping_of P)"
   shows "Poly_Mapping.keys I \<subseteq> {..<m}"
   using box I
-  by (auto simp: roth_poly_in_box_def
-    dest: roth_exponent_boxD(1))
+  by (auto simp: roth_poly_in_box_def dest: roth_exponent_boxD)
 
 lemma roth_box_support_all:
   assumes box: "roth_poly_in_box m r P"
-  shows "\<forall>I\<in>Poly_Mapping.keys (mapping_of P).
-    Poly_Mapping.keys I \<subseteq> {..<m}"
+  shows "\<forall>I\<in>Poly_Mapping.keys (mapping_of P). Poly_Mapping.keys I \<subseteq> {..<m}"
   using box by (auto dest: roth_box_monom_support)
 
 lemma roth_ksubst_eval_insertion:
@@ -897,32 +843,14 @@ proof -
   let ?S = "Poly_Mapping.keys (mapping_of P)"
   have s: "\<forall>I\<in>?S. Poly_Mapping.keys I \<subseteq> {..<m}"
     by (rule roth_box_support_all[OF box])
-  have a: "poly (roth_ksubst m B P) t =
+  have c: "(\<Sum>I\<in>?S. insertion (\<lambda>v. t^(B^v)) (MPoly_Type.monom I (MPoly_Type.coeff P I))) =
     (\<Sum>I\<in>?S. MPoly_Type.coeff P I * t^(roth_kronecker m B I))"
-    by (rule roth_poly_ksubst_eval_sum)
-  have b: "insertion (\<lambda>v. t^(B^v)) P =
-    (\<Sum>I\<in>?S. insertion (\<lambda>v. t^(B^v))
-      (MPoly_Type.monom I (MPoly_Type.coeff P I)))"
-    by (rule roth_insertion_monom_sum)
-  have c: "(\<Sum>I\<in>?S. insertion (\<lambda>v. t^(B^v))
-      (MPoly_Type.monom I (MPoly_Type.coeff P I))) =
-    (\<Sum>I\<in>?S. MPoly_Type.coeff P I * t^(roth_kronecker m B I))"
-  proof (rule sum.cong)
-    show "?S = ?S" by simp
-    fix I
-    assume i: "I\<in>?S"
-    have "Poly_Mapping.keys I \<subseteq> {..<m}"
-      using s i by blast
-    then show "insertion (\<lambda>v. t^(B^v))
-        (MPoly_Type.monom I (MPoly_Type.coeff P I)) =
-      MPoly_Type.coeff P I * t^(roth_kronecker m B I)"
-      by (rule roth_insertion_kronecker_monom)
-  qed
-  show ?thesis using a b c by simp
+    using s roth_insertion_kronecker_monom by (intro sum.cong) auto
+  show ?thesis using roth_poly_ksubst_eval_sum roth_insertion_monom_sum[of "\<lambda>v. t^(B^v)" P] c 
+    by simp
 qed
 
-lemma roth_mpoly_neg_one:
-  "(-1::rat mpoly) = Const (-1::rat)"
+lemma roth_mpoly_neg_one: "(-1::rat mpoly) = Const (-1::rat)"
   by (simp add: roth_Const_uminus)
 
 lemma roth_insertion_signof:
@@ -938,17 +866,10 @@ lemma roth_insertion_det:
 proof -
   let ?S = "{q. q permutes {..<k}}"
   have fin: "finite ?S" by (rule finite_permutations) simp
-  have a: "insertion f (det (mat k k (\<lambda>(i,j). A i j))) =
-    (\<Sum>q\<in>?S. (signof q :: rat) *
-      (\<Prod>i<k. insertion f (A i (q i))))"
+  show ?thesis
     by (simp add: roth_det_mat_expansion
-      roth_insertion_sum[OF fin] insertion_mult
-      roth_insertion_signof roth_insertion_prod)
-  have b: "det (mat k k (\<lambda>(i,j). insertion f (A i j))) =
-    (\<Sum>q\<in>?S. (signof q :: rat) *
-      (\<Prod>i<k. insertion f (A i (q i))))"
-    by (simp add: roth_det_mat_expansion)
-  show ?thesis using a b by simp
+          roth_insertion_sum[OF fin] insertion_mult
+          roth_insertion_signof roth_insertion_prod)
 qed
 
 end
