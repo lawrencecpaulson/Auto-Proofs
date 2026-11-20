@@ -15,15 +15,10 @@ lemma green_diagonal_coordinate_norm_bound:
 proof -
   have xN: "real x \<le> real N" using x by simp
   have yN: "real y \<le> real N" using y by simp
-  have bound: "real x + norm a * real y \<le>
-      real N * (1 + norm a)"
-  proof -
-    have "norm a * real y \<le> norm a * real N"
-      using yN by (rule mult_left_mono) simp
-    with xN show ?thesis by (simp add: algebra_simps)
-  qed
-  have "norm (of_nat x + a * of_nat y) \<le>
-      real x + norm a * real y"
+  have bound: "real x + norm a * real y \<le> real N * (1 + norm a)"
+    using add_mono[OF xN mult_left_mono[OF yN norm_ge_zero]]
+    by (simp add: algebra_simps)
+  have "norm (of_nat x + a * of_nat y) \<le> real x + norm a * real y"
     using norm_triangle_ineq[of "of_nat x" "a * of_nat y"]
     by (simp add: norm_mult)
   then show "norm (fst (diagonal_point a (of_nat x, of_nat y))) \<le>
@@ -223,16 +218,8 @@ next
     by (rule power_mono) (use z in simp_all)
   have wpow: "norm (snd p) ^ s \<le> B ^ s"
     by (rule power_mono) (use w in simp_all)
-  have arg: "norm (fst p) ^ (r-j) * norm (snd p) ^ s \<le>
-      B ^ (r-j+s)"
-  proof -
-    have "norm (fst p) ^ (r-j) * norm (snd p) ^ s \<le>
-        B ^ (r-j) * B ^ s"
-      by (rule mult_mono[OF zpow wpow]) (use B1 in simp_all)
-    also have "... = B ^ (r-j+s)"
-      by (simp add: power_add)
-    finally show ?thesis .
-  qed
+  have arg: "norm (fst p) ^ (r-j) * norm (snd p) ^ s \<le> B ^ (r-j+s)"
+    by (simp add: B0 mult_mono power_add wpow zpow)
   have Rpow: "real R ^ j \<le> real R ^ J"
     by (rule power_increasing[OF jJ R1])
   have Bpow: "B ^ (r-j+s) \<le> B ^ (r+s)"
@@ -254,13 +241,7 @@ qed
 lemma (in green_quadratic_character) green_paper_box_ge_one:
   assumes Npos: "0 < N"
   shows "1 \<le> 2 * real N * sqrt (real q)"
-proof -
-  have N1: "1 \<le> real N" using Npos by simp
-  have q1: "1 \<le> sqrt (real q)" using conductor_pos by simp
-  have "1 * 1 \<le> real N * sqrt (real q)"
-    by (rule mult_mono[OF N1 q1]) simp_all
-  then show ?thesis by linarith
-qed
+  using assms char.n mult_ge1_I by auto
 
 lemma (in green_quadratic_character) green_lattice_row_value_norm_bound:
   assumes Npos: "0 < N" and rR: "r < R" and jJ: "j \<le> J"
@@ -307,11 +288,9 @@ lemma green_quad_galois_mult:
     green_quad_galois d z * green_quad_galois d w"
 proof -
   obtain a b :: int where ze: "z = green_quad_embed d (a,b)"
-    using z by (auto simp: green_quadratic_integer_def
-      green_quad_embed_def)
+    using z by (auto simp: green_quadratic_integer_def green_quad_embed_def)
   obtain c e :: int where we: "w = green_quad_embed d (c,e)"
-    using w by (auto simp: green_quadratic_integer_def
-      green_quad_embed_def)
+    using w by (auto simp: green_quadratic_integer_def green_quad_embed_def)
   show ?thesis
     by (simp add: ze we green_quad_embed_mult
       green_quad_galois_embed[OF irrational] algebra_simps)
@@ -320,8 +299,7 @@ qed
 lemma green_quad_galois_power:
   assumes irrational: "cpx_sqrt d \<notin> Rats"
     and z: "green_quadratic_integer d z"
-  shows "green_quad_galois d (z ^ n) =
-    green_quad_galois d z ^ n"
+  shows "green_quad_galois d (z ^ n) = green_quad_galois d z ^ n"
 proof (induction n)
   case 0
   then show ?case
@@ -372,21 +350,14 @@ next
   have zn: "green_quadratic_integer d (fst p ^ (r-j))"
     by (rule green_quadratic_integer_power[OF z])
   have first:
-    "green_quad_galois d (of_nat ?c * fst p ^ (r-j)) =
-      of_nat ?c * snd p ^ (r-j)"
-    using green_quad_galois_mult[OF irrational c zn]
-      green_quad_galois_of_nat[OF irrational, of ?c]
-      green_quad_galois_power[OF irrational z, of "r-j"] swap
-    by simp
-  have product: "green_quadratic_integer d
-      (of_nat ?c * fst p ^ (r-j))"
+    "green_quad_galois d (of_nat ?c * fst p ^ (r-j)) = of_nat ?c * snd p ^ (r-j)"
+    by (simp add: assms green_quad_galois_mult green_quad_galois_of_nat green_quad_galois_power zn)
+  have product: "green_quadratic_integer d (of_nat ?c * fst p ^ (r-j))"
     by (rule green_quadratic_integer_mult[OF c zn])
   have second:
     "green_quad_galois d
-      ((of_nat ?c * fst p ^ (r-j)) * snd p ^ s) =
-      (of_nat ?c * snd p ^ (r-j)) * fst p ^ s"
-    using green_quad_galois_mult[OF irrational product
-        green_quadratic_integer_power[OF w]]
+      ((of_nat ?c * fst p ^ (r-j)) * snd p ^ s) = (of_nat ?c * snd p ^ (r-j)) * fst p ^ s"
+    using green_quad_galois_mult[OF irrational product green_quadratic_integer_power[OF w]]
       green_quad_galois_power[OF irrational w, of s] first swap
     by simp
   show ?thesis
