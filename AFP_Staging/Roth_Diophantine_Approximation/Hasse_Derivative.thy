@@ -690,11 +690,4 @@ proof -
     by (simp only: roth_hasse_def roth_taylor_coeff_def)
 qed
 
-lemma roth_taylor_identity_hasse:
-  "P = (\<Sum>I\<in>Poly_Mapping.keys (mapping_of (roth_translate a P)).
-    Const (insertion a (roth_hasse I P)) *
-      (\<Prod>v\<in>Poly_Mapping.keys I.
-        (Var v - Const (a v)) ^ Poly_Mapping.lookup I v))"
-  by (simp add: roth_taylor_identity_explicit roth_hasse_eval)
-
 end

@@ -270,7 +270,7 @@ proof -
         (Var v - Const (a v)) ^ Poly_Mapping.lookup I v)"
   have fin: "finite ?S" by simp
   have expansion: "P = (\<Sum>I\<in>?S. ?T I)"
-    by (rule roth_taylor_identity_hasse)
+    by (simp add: roth_taylor_identity_explicit roth_hasse_eval)
   have eval: "insertion b P = (\<Sum>I\<in>?S. insertion b (?T I))"
     by (subst expansion) (rule roth_insertion_sum_any[OF fin])
   have each: "insertion b (?T I) = insertion a (roth_hasse I P) *
