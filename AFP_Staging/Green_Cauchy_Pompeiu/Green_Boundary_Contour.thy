@@ -33,10 +33,10 @@ proof -
     "continuous_on (closed_segment (Complex u c) (Complex v c))
       (green_contour_coefficient P Q)"
     by (rule green_horizontal_exposed_continuous[OF div C1 atom])+
-  have fin: "finite R" using div by (simp add: green_rectangular_division_def)
+  have "finite R" using div by (simp add: green_rectangular_division_def)
   have member: "(u,v) \<in> set (green_x_atoms R)"
     using atom by (auto simp: green_exposed_horizontal_atoms_def)
-  have uv: "u \<le> v" using green_atomic_segments(1)[OF fin member] by simp
+  have uv: "u \<le> v" using green_atomic_segments(1)[OF \<open>finite R\<close> member] by simp
   have pos: "Re (green_atom_contour_integral P Q
       (Green_Horizontal u v c True)) =
     green_edge_integral P Q (Horizontal u v c)"
@@ -64,10 +64,10 @@ proof -
     "continuous_on (closed_segment (Complex a u) (Complex a v))
       (green_contour_coefficient P Q)"
     by (rule green_vertical_exposed_continuous[OF div C1 atom])+
-  have fin: "finite R" using div by (simp add: green_rectangular_division_def)
+  have "finite R" using div by (simp add: green_rectangular_division_def)
   have member: "(u,v) \<in> set (green_y_atoms R)"
     using atom by (auto simp: green_exposed_vertical_atoms_def)
-  have uv: "u \<le> v" using green_atomic_segments(2)[OF fin member] by simp
+  have uv: "u \<le> v" using green_atomic_segments(2)[OF \<open>finite R\<close> member] by simp
   have pos: "Re (green_atom_contour_integral P Q
       (Green_Vertical u v a True)) =
     green_edge_integral P Q (Vertical u v a)"
@@ -171,7 +171,7 @@ lemma green_directed_boundary_integral_eq:
       green_oriented_atom_integral P Q e) =
     green_subdivided_boundary_integral P Q R"
 proof -
-  have fin: "finite R" using div by (simp add: green_rectangular_division_def)
+  have "finite R" using div by (simp add: green_rectangular_division_def)
   have H: "(\<Sum>(u,v)\<leftarrow>green_exposed_horizontal_atoms R c.
       green_oriented_atom_integral P Q
         (Green_Horizontal u v c
@@ -247,7 +247,7 @@ proof -
     qed simp
   qed
   show ?thesis
-    using green_directed_boundary_sum[OF fin, of
+    using green_directed_boundary_sum[OF \<open>finite R\<close>, of
         "green_oriented_atom_integral P Q"] H V
       green_subdivided_boundary_exposed[of P Q R]
     by simp

@@ -95,8 +95,8 @@ next
   next
     case False
     have ain: "a \<in> set (y # xs)" using step.prems(3) False by simp
-    have xle_a: "x \<le> a" using ain x_le by blast
-    have xa: "x < a" using xle_a False by linarith
+    have "x \<le> a" using ain x_le by blast
+    with False have xa: "x < a" by linarith
     have bin: "b \<in> set (y # xs)"
       using step.prems(4,5) xa by auto
     have tail: "(\<Sum>(u,v)\<leftarrow>green_adjacent_pairs (y # xs).
@@ -162,16 +162,16 @@ next
     have atom: "(u,v) \<in> set (green_adjacent_pairs (y # ys))"
       using cases False by blast
     have sorted: "sorted (y # ys)" using step.prems(1) by simp
-    have wtail: "w \<in> set (y # ys)"
+    have "w \<in> set (y # ys)"
     proof (rule ccontr)
       assume "w \<notin> set (y # ys)"
       then have wx: "w = x" using step.prems(3) by simp
-      have utail: "u \<in> set (y # ys)"
+      have "u \<in> set (y # ys)"
         using green_adjacent_pairs_endpoints(1)[OF atom] .
-      have "x \<le> u" using step.prems(1) utail by auto
+      have "x \<le> u" using step.prems(1) \<open>u \<in> set (y # ys)\<close> by auto
       then show False using wx step.prems(4) by order
     qed
-    show ?thesis by (rule step.IH[OF sorted atom wtail step.prems(4,5)])
+    show ?thesis by (rule step.IH[OF sorted atom \<open>w \<in> set (y # ys)\<close> step.prems(4,5)])
   qed
 qed
 
@@ -184,12 +184,12 @@ proof -
   have sorted: "sorted ?xs" and distinct: "distinct ?xs" using fin by simp_all
   show "u < v" by (rule green_adjacent_pairs_strict[OF sorted distinct atom])
   fix w assume w: "w \<in> C"
-  have wset: "w \<in> set ?xs" using fin w by simp
+  have "w \<in> set ?xs" using fin w by simp
   have no: "\<not> (u < w \<and> w < v)"
   proof
     assume both: "u < w \<and> w < v"
     have uw: "u < w" and wv: "w < v" using both by auto
-    show False by (rule green_adjacent_pairs_no_cut[OF sorted atom wset uw wv])
+    show False by (rule green_adjacent_pairs_no_cut[OF sorted atom \<open>w \<in> set ?xs\<close> uw wv])
   qed
   show "w \<le> u \<or> v \<le> w" using no by (auto simp: not_le)
 qed
@@ -481,33 +481,29 @@ lemma green_rectangle_subdivided:
 proof -
   let ?a = "Re (fst r)" and ?b = "Re (snd r)"
   let ?c = "Im (fst r)" and ?d = "Im (snd r)"
-  have fin: "finite R" using div by (simp add: green_rectangular_division_def)
+  have "finite R" using div by (simp add: green_rectangular_division_def)
   have xy: "?a \<le> ?b" "?c \<le> ?d"
     using div r by (auto simp: green_rectangular_division_def)
   have fins: "finite (green_x_cuts R)" "finite (green_y_cuts R)"
-    by (rule green_cuts_finite[OF fin])+
+    by (rule green_cuts_finite[OF \<open>finite R\<close>])+
   have xin: "?a \<in> green_x_cuts R" "?b \<in> green_x_cuts R"
     using r by (auto simp: green_x_cuts_def)
   have yin: "?c \<in> green_y_cuts R" "?d \<in> green_y_cuts R"
     using r by (auto simp: green_y_cuts_def)
   have cell: "green_rectangle_C1 P Q ?a ?b ?c ?d"
     using green_rectangular_C1_cell[OF C1 r] .
-  have PC: "continuous_on ({?a..?b} \<times> {?c..?d}) P"
-    using green_rectangle_C1_continuous_on(1)[OF cell] .
-  have QC: "continuous_on ({?a..?b} \<times> {?c..?d}) Q"
-    using green_rectangle_C1_continuous_on(2)[OF cell] .
   have Pc: "continuous_on {?a..?b} (\<lambda>x. P (x,?c))"
-    by (rule continuous_on_compose2[OF PC])
-      (use xy in \<open>auto intro!: continuous_intros\<close>)
+    by (rule green_rectangle_C1_continuous_on_map(1)[OF cell])
+       (use xy in \<open>auto intro!: continuous_intros\<close>)
   have Pd: "continuous_on {?a..?b} (\<lambda>x. P (x,?d))"
-    by (rule continuous_on_compose2[OF PC])
-      (use xy in \<open>auto intro!: continuous_intros\<close>)
+    by (rule green_rectangle_C1_continuous_on_map(1)[OF cell])
+       (use xy in \<open>auto intro!: continuous_intros\<close>)
   have Qb: "continuous_on {?c..?d} (\<lambda>y. Q (?b,y))"
-    by (rule continuous_on_compose2[OF QC])
-      (use xy in \<open>auto intro!: continuous_intros\<close>)
+    by (rule green_rectangle_C1_continuous_on_map(2)[OF cell])
+       (use xy in \<open>auto intro!: continuous_intros\<close>)
   have Qa: "continuous_on {?c..?d} (\<lambda>y. Q (?a,y))"
-    by (rule continuous_on_compose2[OF QC])
-      (use xy in \<open>auto intro!: continuous_intros\<close>)
+    by (rule green_rectangle_C1_continuous_on_map(2)[OF cell])
+       (use xy in \<open>auto intro!: continuous_intros\<close>)
   have horizontal: "(\<Sum>c\<in>green_y_cuts R. \<Sum>(u,v)\<leftarrow>green_x_atoms R.
       of_int (green_horizontal_cell_coefficient r c u v) *
         green_edge_integral P Q (Horizontal u v c)) =
@@ -608,7 +604,7 @@ proof -
   let ?V = "\<lambda>r. \<Sum>a\<in>?X. \<Sum>(u,v)\<leftarrow>?YA.
     of_int (green_vertical_cell_coefficient r a u v) *
       green_edge_integral P Q (Vertical u v a)"
-  have fin: "finite R" using div by (simp add: green_rectangular_division_def)
+  have "finite R" using div by (simp add: green_rectangular_division_def)
   have H: "(\<Sum>c\<in>?Y. \<Sum>(u,v)\<leftarrow>?XA.
       of_int (green_horizontal_atom_coefficient R c u v) *
         green_edge_integral P Q (Horizontal u v c)) = (\<Sum>r\<in>R. ?H r)"
@@ -650,7 +646,7 @@ proof -
   also have "\<dots> = (\<Sum>r\<in>R. green_rectangle_boundary_integral P Q r)"
     by (rule sum.cong[OF refl]) (rule each)
   also have "\<dots> = green_rectangular_boundary_integral P Q R"
-    using green_rectangular_boundary_sum[OF fin] by simp
+    using green_rectangular_boundary_sum[OF \<open>finite R\<close>] by simp
   finally show ?thesis .
 qed
 

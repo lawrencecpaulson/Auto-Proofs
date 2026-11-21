@@ -272,9 +272,9 @@ proof -
     by (rule Ck_on_congI[OF prod]) (simp add: F_def)
   have zero: "F z = 0" if "z \<notin> L" for z
     using that \<phi>supp by (auto simp: F_def)
-  have openL: "open (-L)" by (rule open_Compl[OF compact_imp_closed[OF compL]])
+  have "open (-L)" by (rule open_Compl[OF compact_imp_closed[OF compL]])
   have Fout: "Ck_on 1 F (-L)"
-    by (rule Ck_on_congI[OF Ck_on_const[OF openL]])
+    by (rule Ck_on_congI[OF Ck_on_const[OF \<open>open (-L)\<close>]])
       (use zero in auto)
   show "Ck_on 1 F UNIV"
   proof (rule Ck_onI[OF open_UNIV])
@@ -411,10 +411,10 @@ proof -
   have dbar_eq: "green_wirtinger_dbar ?F z = green_wirtinger_dbar f z"
     if z: "z \<in> inside (path_image g)" for z
   proof -
-    have openI: "open (inside (path_image g))"
+    have "open (inside (path_image g))"
       by (rule open_inside) (rule closed_path_image[OF path])
     have eq: "frechet_derivative ?F (at z) = frechet_derivative f (at z)"
-      by (rule frechet_derivative_transform_within_open[OF openI z])
+      by (rule frechet_derivative_transform_within_open[OF \<open>open (inside (path_image g))\<close> z])
         (use Feq in auto)
     show ?thesis by (simp add: green_wirtinger_dbar_def eq)
   qed

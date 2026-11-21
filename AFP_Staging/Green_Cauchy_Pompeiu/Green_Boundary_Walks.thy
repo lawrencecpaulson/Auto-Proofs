@@ -129,9 +129,9 @@ lemma green_directed_boundary_flux:
   shows "(\<Sum>e\<leftarrow>green_directed_boundary R. green_directed_flux z e) =
     green_subdivided_flux R z"
 proof -
-  have fin: "finite R" using div by (simp add: green_rectangular_division_def)
+  have "finite R" using div by (simp add: green_rectangular_division_def)
   have finx: "finite (green_x_cuts R)" and finy: "finite (green_y_cuts R)"
-    by (rule green_cuts_finite[OF fin])+
+    by (rule green_cuts_finite[OF \<open>finite R\<close>])+
   have H: "(\<Sum>c\<in>green_y_cuts R. \<Sum>(u,v)\<leftarrow>green_exposed_horizontal_atoms R c.
       green_horizontal_atom_coefficient R c u v *
         green_horizontal_flux z c u v) =
@@ -282,7 +282,7 @@ proof (induction "size E - length w" arbitrary: w v rule: less_induct)
     have walk': "green_walk_from u (w @ [e]) (green_atom_end e)"
       using less.prems(2) e(2)
       by (simp add: green_walk_from_append)
-    have posM: "0 < size M"
+    have "0 < size M"
     proof (rule ccontr)
       assume "\<not> 0 < size M"
       then have "M = {#}" by simp
@@ -290,7 +290,7 @@ proof (induction "size E - length w" arbitrary: w v rule: less_induct)
     qed
     have sizeE: "size E = length w + size M" using EM by simp
     have len: "length w < size E"
-      using sizeE posM by linarith
+      using sizeE \<open>0 < size M\<close> by linarith
     have smaller: "size E - length (w @ [e]) < size E - length w"
       using len by simp
     obtain t where t: "green_walk_from u ((w @ [e]) @ t) u"

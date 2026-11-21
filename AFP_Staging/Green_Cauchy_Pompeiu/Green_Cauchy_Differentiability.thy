@@ -222,10 +222,7 @@ proof -
   have Alin: "bounded_linear ?A"
     by (rule green_cauchy_integrated_derivative_bounded_linear
       [OF Du_lin Du_cont Du_bound Du_supp R D])
-  have T0: "0 \<le> ?T" using R by simp
-  have Kint: "integrable ?M ?K"
-    by (rule green_inverse_cmod_integrable_cball[OF T0])
-  have I0: "0 \<le> ?I"
+  have "0 \<le> ?I"
     by (rule Bochner_Integration.integral_nonneg)
       (auto simp: indicator_def)
   have lin: "\<And>e. 0 < e \<Longrightarrow> \<exists>d>0. \<forall>z h.
@@ -240,7 +237,7 @@ proof -
     fix e :: real
     assume e: "0 < e"
     define q where "q = e / (?I + 1)"
-    have I1: "0 < ?I + 1" using I0 by linarith
+    have I1: "0 < ?I + 1" using \<open>0 \<le> ?I\<close> by linarith
     have qpos: "0 < q"
       unfolding q_def by (rule divide_pos_pos[OF e I1])
     have qI: "q * ?I \<le> e"
@@ -292,12 +289,12 @@ proof -
           by (simp add: u_supp[OF xout] u_supp[OF xhout]
             Du_supp[OF xout])
       qed
-      have Rplus: "0 \<le> R + 1" using R by simp
-      have qh: "0 \<le> q * norm ?h" using qpos by simp
+      have "0 \<le> R + 1" using R by simp
+      have "0 \<le> q * norm ?h" using qpos by simp
       have rho_bnd: "norm (\<integral>y. ?rho (y + w) / y \<partial>?M)
           \<le> (q * norm ?h) * ?I"
         by (rule green_cauchy_translated_integral_bound
-          [OF rho_cont rho_bound rho_supp Rplus qh order_refl])
+          [OF rho_cont rho_bound rho_supp \<open>0 \<le> R + 1\<close> \<open>0 \<le> q * norm ?h\<close> order_refl])
       have int_z: "integrable ?M (\<lambda>y. u (y + z) / y)"
         by (rule green_cauchy_translated_kernel_integrable
           [OF uc u_bound u_supp R C])

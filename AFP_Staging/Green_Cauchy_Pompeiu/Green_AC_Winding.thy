@@ -158,10 +158,9 @@ proof -
   have kabs: "k absolutely_integrable_on ?I"
     using kc by (metis absolutely_integrable_continuous
       continuous_on_subset interval_cbox subset_UNIV)
-  have diffabs: "(\<lambda>t. k t - velocity t) absolutely_integrable_on ?I"
+  have "(\<lambda>t. k t - velocity t) absolutely_integrable_on ?I"
     by (rule set_integral_diff(1)[OF kabs vabs])
-  have nint: "(\<lambda>t. norm (k t - velocity t)) integrable_on ?I"
-    using diffabs by (simp add: absolutely_integrable_on_def)
+  then have nint: "(\<lambda>t. norm (k t - velocity t)) integrable_on ?I" by (simp add: absolutely_integrable_on_def)
   have vint: "(\<lambda>t. norm (velocity t)) integrable_on ?I"
     using vabs by (simp add: absolutely_integrable_on_def)
   have w1int: "(\<lambda>t. (2 / r) * norm (k t - velocity t))
@@ -224,12 +223,12 @@ proof -
     by (rule green_ac_path_is_path[OF ac])
   have closed: "closed (path_image g)"
     by (rule compact_imp_closed) (rule compact_path_image[OF gpath])
-  have nonempty: "path_image g \<noteq> {}"
+  have "path_image g \<noteq> {}"
     by (auto simp: path_image_def)
   define r where "r = infdist z (path_image g)"
   have rpos: "0 < r"
     unfolding r_def
-    by (rule infdist_pos_not_in_closed[OF closed nonempty away])
+    by (rule infdist_pos_not_in_closed[OF closed \<open>path_image g \<noteq> {}\<close> away])
   have gsep: "r \<le> norm (g t - z)" if t: "t \<in> {0..1}" for t
   proof -
     have "r \<le> dist z (g t)"
@@ -243,7 +242,7 @@ proof -
   have vint: "(\<lambda>t. norm (velocity t)) integrable_on {0..1}"
     using vabs by (simp add: absolutely_integrable_on_def)
   define L where "L = integral {0..1} (\<lambda>t. norm (velocity t))"
-  have Lnonneg: "0 \<le> L"
+  have "0 \<le> L"
     unfolding L_def by (rule integral_nonneg[OF vint]) simp
   let ?W = "2 * pi * \<i> * winding_number g z"
   have approx: "norm (?W -
@@ -255,15 +254,15 @@ proof -
     proof -
       have "0 < 2 / r" using rpos by simp
       moreover have "0 \<le> 2 * L / r\<^sup>2"
-        using Lnonneg rpos by simp
+        using \<open>0 \<le> L\<close> rpos by simp
       ultimately show ?thesis unfolding C_def by linarith
     qed
     define d where "d = min (r / 4) (e / (2 * C))"
     have dpos: "0 < d"
       using rpos Cpos epos by (simp add: d_def)
-    have dsmall: "d \<le> r / 4"
+    have "d \<le> r / 4"
       by (simp add: d_def)
-    have dC: "d * C \<le> e / 2"
+    have "d * C \<le> e / 2"
     proof -
       have "d * C \<le> (e / (2 * C)) * C"
         by (rule mult_right_mono) (use Cpos in \<open>auto simp: d_def\<close>)
@@ -285,7 +284,7 @@ proof -
         using norm_triangle_ineq[of "g t - p t" "p t - z"]
         by (simp add: algebra_simps)
       show ?thesis
-        using gsep[OF t] close[OF t] tri dsmall rpos
+        using gsep[OF t] close[OF t] tri \<open>d \<le> r / 4\<close> rpos
         by (simp add: norm_minus_commute; linarith)
     qed
     have awayp: "z \<notin> path_image p"
@@ -307,7 +306,7 @@ proof -
         contour_integral g (\<lambda>w. 1 / (w - z))) \<le> d * C"
       using error p_eq errorC by metis
     then show ?thesis
-      using dC epos by linarith
+      using \<open>d * C \<le> e / 2\<close> epos by linarith
   qed
   show ?thesis
   proof (rule ccontr)
@@ -384,7 +383,7 @@ proof -
   have small: "negligible ?S"
     by (rule negligible_differentiable_image_lowdim)
       (auto simp: differentiable_on_def)
-  have length_nonneg: "0 \<le> path_length g"
+  have "0 \<le> path_length g"
     using path_length_pos_le[OF rect] by simp
   have local_lip:
     "\<exists>T B. open T \<and> x \<in> T \<and>
@@ -401,7 +400,7 @@ proof -
         path_length g * \<bar>Re (y - x)\<bar>"
       using lip xI yI by (simp add: dist_norm)
     also have "\<dots> \<le> path_length g * norm (y - x)"
-      by (rule mult_left_mono[OF abs_Re_le_cmod length_nonneg])
+      by (rule mult_left_mono[OF abs_Re_le_cmod \<open>0 \<le> path_length g\<close>])
     finally show "norm (h (Re y) - h (Re x)) \<le>
         path_length g * norm (y - x)" .
   qed

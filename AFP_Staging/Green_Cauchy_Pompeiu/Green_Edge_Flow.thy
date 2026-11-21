@@ -55,8 +55,8 @@ next
   next
     case False
     have ain: "a \<in> set (y # xs)" using step.prems(3) False by simp
-    have xle: "x \<le> a" using step.prems(1) ain by auto
-    have xa: "x < a" using xle False by linarith
+    have "x \<le> a" using step.prems(1) ain by auto
+    with False have xa: "x < a" by linarith
     have bin: "b \<in> set (y # xs)" using step.prems(4,5) xa by auto
     have tail: "(\<Sum>(u,v)\<leftarrow>green_adjacent_pairs (y # xs).
         if a \<le> u \<and> v \<le> b then f u - f v else 0) = f a - f b"
@@ -193,11 +193,11 @@ lemma green_rectangle_subdivided_flux_zero:
 proof -
   let ?a = "Re (fst r)" and ?b = "Re (snd r)"
   let ?c = "Im (fst r)" and ?d = "Im (snd r)"
-  have fin: "finite R" using div by (simp add: green_rectangular_division_def)
+  have "finite R" using div by (simp add: green_rectangular_division_def)
   have order: "?a \<le> ?b" "?c \<le> ?d"
     using div r by (auto simp: green_rectangular_division_def)
   have cuts: "finite (green_x_cuts R)" "finite (green_y_cuts R)"
-    by (rule green_cuts_finite[OF fin])+
+    by (rule green_cuts_finite[OF \<open>finite R\<close>])+
   have endpoints: "?a \<in> green_x_cuts R" "?b \<in> green_x_cuts R"
     "?c \<in> green_y_cuts R" "?d \<in> green_y_cuts R"
     using r by (auto simp: green_x_cuts_def green_y_cuts_def)
@@ -253,7 +253,6 @@ theorem green_subdivided_flux_zero:
   assumes div: "green_rectangular_division R"
   shows "green_subdivided_flux R z = 0"
 proof -
-  have fin: "finite R" using div by (simp add: green_rectangular_division_def)
   have H: "(\<Sum>c\<in>green_y_cuts R. \<Sum>(u,v)\<leftarrow>green_x_atoms R.
       green_horizontal_atom_coefficient R c u v *
         green_horizontal_flux z c u v) =
