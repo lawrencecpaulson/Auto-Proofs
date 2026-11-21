@@ -36,10 +36,10 @@ proof -
     by (rule exists_normal_integral_primitive_common_field_coordinates_with_galois_enumeration[OF alg_a alg_b alg_w])
   interpret T: finite_subfield_tower "\<rat>" K
     by (rule finK)
-  have etaK: "eta \<in> K"
+  have "eta \<in> K"
     unfolding K_def by (rule Q.eval_img_self)
   have algQ: "algebraic_over (\<rat> :: complex set) eta"
-    by (rule T.finite_extension_algebraic[OF etaK])
+    by (rule T.finite_extension_algebraic[OF \<open>eta \<in> K\<close>])
   have PB: "finite_normal_galois_power_basis K eta D emb"
     by unfold_locales (use K_def D_def algQ eta_int ebij finK normalK separableK in auto)
   show thesis

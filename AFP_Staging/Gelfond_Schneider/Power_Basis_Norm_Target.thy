@@ -220,13 +220,13 @@ proof -
     by (rule emb_in_field_auto[OF ilt])
   have cK: "(of_int ?c :: complex) \<in> K"
     using Rats_subset_K by auto
-  have sK: "?s \<in> K"
+  have "?s \<in> K"
     unfolding gs_system_coeff_idx_def by (rule gs_system_coeff_in_K)
   have cfix: "emb i (of_int ?c :: complex) = of_int ?c"
     using sigma by (simp add: field_auto_mem_iff)
   have eq: "emb i (gs_row_scaled_system_mat (gs_m h) (gs_n h q) q $$ (u,t)) = of_int ?c * emb i ?s"
     using ult tlt
-    by (simp add: gs_row_scaled_system_mat_def field_auto_mult[OF sigma cK sK] cfix)
+    by (simp add: gs_row_scaled_system_mat_def field_auto_mult[OF sigma cK \<open>?s \<in> K\<close>] cfix)
   obtain ale: "gs_a_idx q t \<le> q" and ble: "gs_b_idx q t \<le> q"
     by (simp add: tlt gs_a_idx_le gs_b_idx_le qpos)
   have sbnd: "cmod (emb i ?s) \<le>
@@ -490,12 +490,12 @@ proof -
     by (simp add: ble lle mult.commute mult_mono)
   have bone: "1 \<le> ?B"
     using Hone qpos by fastforce
-  have cone: "1 \<le> ?C"
+  have "1 \<le> ?C"
     using gelfond_schneider_data_c1_ge1 by simp
   have scale_eq: "?scale = ?C ^ ?k * ?C ^ (?m * q) * ?C ^ (?m * q)"
     unfolding gs_row_scale_def by (simp add: power_abs abs_mult algebra_simps)
   have cpower: "?C ^ ?k \<le> ?C ^ ?n"
-    by (rule power_increasing) (use cone kle in auto)
+    by (rule power_increasing) (use \<open>1 \<le> ?C\<close> kle in auto)
   have scale_up: "?scale \<le> ?C ^ ?n * ?C ^ (?m * q) * ?C ^ (?m * q)"
     by (metis cpower scale_eq less_le_not_le mult_le_cancel_right)
   have bpow: "(of_nat q * (1 + cmod (emb i (beta)))) ^ ?k \<le> ?B ^ ?n"
@@ -694,13 +694,13 @@ lemma gs_row_denominator_power_le_order:
   shows "T ^ (gs_row_denominator_exponent (gs_m h) (gs_n h q) q D) \<le>
     (T ^ (gs_row_denominator_order_exponent (gs_m h) D)) ^ r"
 proof -
-  have Tge: "1 \<le> T" using Tp by simp
+  have "1 \<le> T" using Tp by simp
   have exp: "gs_row_denominator_exponent (gs_m h) (gs_n h q) q D \<le>
     (gs_row_denominator_order_exponent (gs_m h) D) * r"
     by (rule gs_row_denominator_exponent_le_order[OF nle rpos])
   have "T ^ (gs_row_denominator_exponent (gs_m h) (gs_n h q) q D) \<le>
     T ^ ((gs_row_denominator_order_exponent (gs_m h) D) * r)"
-    by (rule power_increasing) (use Tge exp in auto)
+    by (rule power_increasing) (use \<open>1 \<le> T\<close> exp in auto)
   then show ?thesis by (simp only: power_mult)
 qed
 
@@ -1732,9 +1732,9 @@ proof (induction F rule: finite_induct)
   show ?case by (intro exI[of _ 1]) simp
 next
   case (insert x F)
-  have xr: "x \<in> \<rat>" using insert.prems by auto
+  have "x \<in> \<rat>" using insert.prems by auto
   obtain a b where bp: "b > 0" and xe: "x = of_int a / of_int b"
-    using Rats_cases'[OF xr] by blast
+    using Rats_cases'[OF \<open>x \<in> \<rat>\<close>] by blast
   obtain L::int where Lp: "L > 0" and Le: "\<forall>y\<in>F. \<exists>z::int. of_int L * y = of_int z"
     using insert.IH insert.prems by auto
   have all: "\<forall>y\<in>insert x F. \<exists>z::int. of_int (b * L) * y = of_int z"
@@ -1748,8 +1748,8 @@ next
         by (intro exI[of _ "L * a"]) (simp add: field_simps)
     next
       case False
-      then have yf: "y \<in> F" using yin by simp
-      obtain z::int where yz: "of_int L * y = of_int z" using Le yf by blast
+      then have "y \<in> F" using yin by simp
+      obtain z::int where yz: "of_int L * y = of_int z" using Le \<open>y \<in> F\<close> by blast
       show ?thesis using yz
         by (intro exI[of _ "b * z"]) (simp add: algebra_simps)
     qed

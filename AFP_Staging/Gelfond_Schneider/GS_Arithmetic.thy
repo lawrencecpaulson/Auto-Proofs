@@ -158,14 +158,14 @@ proof -
     using gs_min_order_def by fastforce
   obtain l where llt: "l < m" and node: "gs_min_order_node m q \<xi> = of_nat (Suc l)"
     by (rule gs_min_order_node_eq_nat[OF mpos])
-  have l_le_m: "Suc l \<le> m"
+  have "Suc l \<le> m"
     using llt by simp
   have coeff_scale_eq:
       "gs_c1 ^ nat (gs_min_order m q \<xi>) * gs_c1 ^ (m * q) * gs_c1 ^ (m * q) =
         gs_c1 ^ nat (gs_min_order m q \<xi>) * gs_c1 ^ (2 * m * q)"
     by (simp add: power2_eq_square power_mult power_mult_distrib)
   show ?thesis
-    using gs_scaled_deriv_at_nat_algebraic_int[OF qpos coeff_int l_le_m]
+    using gs_scaled_deriv_at_nat_algebraic_int[OF qpos coeff_int \<open>Suc l \<le> m\<close>]
     using coeff_scale_eq node by metis 
 qed
 

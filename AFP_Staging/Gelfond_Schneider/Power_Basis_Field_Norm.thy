@@ -170,11 +170,11 @@ lemma one_le_gs_abs_galois_norm_of_nonzero_algebraic_int:
   assumes nz: "x \<noteq> 0"
   shows "1 \<le> gs_abs_galois_norm x"
 proof -
-  have g_int: "gs_galois_norm x \<in> \<int>"
+  have "gs_galois_norm x \<in> \<int>"
     by (simp add: assms gs_galois_norm_algebraic_int gs_galois_norm_in_rat
         rational_algebraic_int_is_int)
   obtain n :: int where n_def: "gs_galois_norm x = of_int n" and "n \<noteq> 0"
-    using assms g_int gs_galois_norm_nonzero by (metis Ints_cases of_int_eq_0_iff)
+    using assms \<open>gs_galois_norm x \<in> \<int>\<close> gs_galois_norm_nonzero by (metis Ints_cases of_int_eq_0_iff)
   then show ?thesis
     by (auto simp: gs_abs_galois_norm_def)
 qed
@@ -241,12 +241,12 @@ lemma gs_abs_galois_norm_le_cmod_emb_mul_bound_pow:
   assumes bound: "\<And>j. j < D \<Longrightarrow> cmod (emb j x) \<le> H"
   shows "gs_abs_galois_norm x \<le> cmod (emb i x) * H ^ (D - 1)"
 proof -
-  have house_le: "gs_house x \<le> H"
+  have "gs_house x \<le> H"
     by (rule gs_house_le_of_emb_bound[OF finite normal separable ai \<open>x \<in> K\<close> H_nonneg bound])
   have norm_le: "gs_abs_galois_norm x \<le> cmod (emb i x) * gs_house x ^ (D - 1)"
     by (rule gs_abs_galois_norm_le_cmod_emb_mul_house_pow[OF \<open>i < D\<close> \<open>x \<in> K\<close> ai])
   also have "\<dots> \<le> cmod (emb i x) * H ^ (D - 1)"
-    using house_le H_nonneg by (intro mult_left_mono power_mono) auto
+    using \<open>gs_house x \<le> H\<close> H_nonneg by (intro mult_left_mono power_mono) auto
   finally show ?thesis .
 qed
 

@@ -274,7 +274,7 @@ proof -
   let ?R = "set (complex_roots_of_int_poly (min_int_poly (lagrange_denom i)))"
   let ?r = "card ?R - 1"
   let ?H = "(2 * max 1 (gs_house eta)) ^ (D - 1)"
-  have root_le_D: "card ?R \<le> D"
+  have "card ?R \<le> D"
     using assms card_roots_min_int_poly_le_D lagrange_denom_algebraic_int lagrange_denom_in_K
     by presburger
   have p0: "min_int_poly (lagrange_denom i) \<noteq> 0"
@@ -283,10 +283,10 @@ proof -
     using lagrange_denom_algebraic_int[OF \<open>i < D\<close>] by (auto simp: min_int_poly_represents)
   then have "lagrange_denom i \<in> ?R"
     using complex_roots_of_int_poly(1)[OF p0] by simp
-  then have root_pos: "0 < card ?R"
+  then have "0 < card ?R"
     using card_gt_0_iff by fastforce
   have r_le: "?r \<le> D - 1"
-    using root_le_D root_pos by arith
+    using \<open>card ?R \<le> D\<close> \<open>0 < card ?R\<close> by arith
   have "?H ^ ?r \<le> ?H ^ (D - 1)"
     using r_le by (smt (verit, ccfv_SIG) one_le_power pow_mono_exp)
   then show ?thesis

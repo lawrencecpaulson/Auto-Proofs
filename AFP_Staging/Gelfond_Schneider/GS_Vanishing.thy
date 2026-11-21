@@ -210,9 +210,10 @@ proof -
   have ord: "nat (gs_min_order m q \<xi>) \<le> nat (zorder ?f a)" if "a \<in> gs_order_nodes m" for a
     by (simp add: \<open>m > 0\<close> finite_arg_min_on_zorder gs_min_order_def
         gs_min_order_node_def nat_mono that)
-  have fin: "finite (gs_order_nodes m)" by simp
+  have "finite (gs_order_nodes m)" by simp
   show ?thesis
-    using gs_entire_quotient_of_finite_zeros[OF fin gs_aux_fun_vec_holomorphic fnz ord] that
+    using gs_entire_quotient_of_finite_zeros
+      [OF \<open>finite (gs_order_nodes m)\<close> gs_aux_fun_vec_holomorphic fnz ord] that
     by blast
 qed
 
@@ -285,7 +286,7 @@ proof -
     using dpos by (simp add: algebra_simps)
   have bnd: "cmod (S z) \<le> M / ?d ^ (m * n)" if zcircle: "cmod z = ?R" for z
   proof -
-    have zout: "z \<notin> gs_order_nodes m"
+    have "z \<notin> gs_order_nodes m"
       using Rgt that by (metis gs_order_nodes_imp_cmod_le less_le_not_le)
     let ?P = "\<Prod>a\<in>gs_order_nodes m. (z - a) ^ n"
     have Plo: "?d ^ (m * n) \<le> cmod ?P"
@@ -295,7 +296,7 @@ proof -
     have Ppos: "cmod ?P > 0"
       using Plo dlo by linarith
     have "cmod (S z) = cmod (f z) / cmod ?P"
-      by (simp add: Seq[OF zout] norm_divide)
+      by (simp add: Seq[OF \<open>z \<notin> gs_order_nodes m\<close>] norm_divide)
     also have "\<dots> \<le> M / ?d ^ (m * n)"
       using fbnd[OF zcircle] Plo Ppos dpos Mnonneg
       by (intro frac_le) auto
@@ -321,19 +322,8 @@ next
   case True
   let ?X = "gs_order_nodes m"
   let ?P = "\<lambda>w. \<Prod>a\<in>?X. (w - a) ^ n"
-  have Uopen: "open (UNIV - (?X - {z}))"
-    by (intro open_Diff finite_imp_closed) auto
-  have zU: "z \<in> UNIV - (?X - {z})"
-    by simp
-  have evU: "eventually (\<lambda>w. w \<notin> ?X - {z}) (at z)"
-    using eventually_nhds_in_open[OF Uopen zU]
-    by (auto simp: eventually_at_filter elim: eventually_mono)
-  have evne: "eventually (\<lambda>w. w \<noteq> z) (at z)"
-    by (auto simp: eventually_at_filter elim: eventually_mono)
-  have both: "eventually (\<lambda>w. w \<notin> ?X - {z} \<and> w \<noteq> z) (at z)"
-    using evU evne by (simp add: eventually_conj_iff)
   have evout: "eventually (\<lambda>w. w \<notin> ?X) (at z)"
-    by (rule eventually_mono[OF both]) auto
+    by (rule gs_eventually_avoid_finite) simp
   have ev: "eventually (\<lambda>w. f w = S w * ?P w) (at z)"
     by (rule eventually_mono[OF evout]) (use Seq in auto)
   have fcont: "isCont f z"
@@ -368,20 +358,18 @@ proof -
   have bpos: "cmod b \<le> of_nat m" if "b \<in> ?X" for b
     using that by (metis gs_order_nodes_imp_cmod_le)
   have Cpos: "?C \<ge> 0" by simp
-  have cardX: "card ?X = m"
-    by (simp add: gs_order_nodes_def card_image inj_on_def)
   have Pbnd: "cmod (\<Prod>b\<in>?X. (z - b) ^ n) \<le> ?C ^ (m * n)"
     if zcircle: "cmod (z - a) = 1" for z
   proof -
     have each: "cmod (z - b) \<le> ?C" if bX: "b \<in> ?X" for b
-      using norm_triangle_ineq[of "z-a" "a-b"] norm_triangle_ineq4[of a b] apos bpos[OF bX] zcircle 
+      using norm_triangle_ineq[of "z-a" "a-b"] norm_triangle_ineq4[of a b] apos bpos[OF bX] zcircle
       by auto
     have "cmod (\<Prod>b\<in>?X. (z - b) ^ n) = (\<Prod>b\<in>?X. cmod (z - b) ^ n)"
       by (simp add: prod_norm[symmetric] norm_power)
     also have "\<dots> \<le> (\<Prod>b\<in>?X. ?C ^ n)"
       by (intro prod_mono) (use each in \<open>auto intro: power_mono\<close>)
     also have "\<dots> = ?C ^ (m * n)"
-      by (simp add: cardX power_mult[symmetric] mult.commute)
+      by (simp add: card_gs_order_nodes power_mult[symmetric] mult.commute)
     finally show ?thesis .
   qed
   have fbound: "cmod (f z) \<le> B * ?C ^ (m * n)"
@@ -492,17 +480,17 @@ lemma gs_rho_idx_cmod_le:
 proof -
   let ?a = "gs_a_idx q t"
   let ?b = "gs_b_idx q t"
-  have ale: "?a \<le> q"
+  have "?a \<le> q"
     by (rule gs_a_idx_le[OF \<open>q > 0\<close> tlt])
-  have ble: "?b \<le> q"
+  have "?b \<le> q"
     by (rule gs_b_idx_le[OF \<open>q > 0\<close>])
   have aff: "cmod (of_nat ?a + of_nat ?b * beta) \<le> of_nat ?a + of_nat ?b * cmod (beta)"
     using norm_triangle_ineq[of "of_nat ?a" "of_nat ?b * beta"]
     by (simp add: norm_mult)
   have prodle: "of_nat ?b * cmod (beta) \<le> of_nat q * cmod (beta)"
-    using ble by (intro mult_right_mono) auto
+    using \<open>?b \<le> q\<close> by (intro mult_right_mono) auto
   have aff2: "of_nat ?a + of_nat ?b * cmod (beta) \<le> of_nat q * (1 + cmod (beta))"
-    using ale prodle by (simp add: algebra_simps)
+    using \<open>?a \<le> q\<close> prodle by (simp add: algebra_simps)
   have "cmod (gs_rho_idx q t) = cmod (of_nat ?a + of_nat ?b * beta) * cmod (zeta)"
     by (simp add: gs_rho_idx_def gs_rho_def gs_affine_coeff_def norm_mult)
   also have "\<dots> \<le> (of_nat q * (1 + cmod (beta))) * cmod (zeta)"
