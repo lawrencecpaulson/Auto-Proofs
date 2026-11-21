@@ -131,6 +131,9 @@ lemma finite_arg_min_on_zorder:
 lemma finite_gs_order_nodes [simp]: "finite (gs_order_nodes m)"
   unfolding gs_order_nodes_def by simp
 
+lemma card_gs_order_nodes: "card (gs_order_nodes m) = m"
+  by (simp add: gs_order_nodes_def card_image inj_on_def)
+
 lemma gs_order_nodes_nonempty [simp]: "m > 0 \<Longrightarrow> gs_order_nodes m \<noteq> {}"
   unfolding gs_order_nodes_def by auto
 
@@ -219,7 +222,7 @@ proof -
     using hbdd unfolding bounded_iff by blast
   have Ba: "cmod (?h a) \<le> B"
     by (rule B) (use epspos in auto)
-  have Bnonneg: "0 \<le> B"
+  have "0 \<le> B"
     using Ba by (meson norm_ge_zero order_trans)
   let ?F = "\<lambda>w. f w / (w - a) ^ n"
   have Fhol: "?F holomorphic_on UNIV - {a}"
@@ -234,12 +237,12 @@ proof -
       assume wpun: "w \<in> ball a eps - {a}"
       have wb: "w \<in> ball a eps" and wa: "w \<noteq> a"
         using wpun by auto
-      have wbig: "w \<in> cball a rad"
+      have "w \<in> cball a rad"
         using wb epsrad by auto
       have poweq: "(w - a) ^ ?k / (w - a) ^ n = (w - a) ^ (?k - n)"
         using power_diff[of "w - a" n ?k] ord wa by simp
       have feq: "?F w = ?h w * (w - a) ^ (?k - n)"
-        using fac[OF wbig] poweq
+        using fac[OF \<open>w \<in> cball a rad\<close>] poweq
         by (simp add: times_divide_eq_right[symmetric])
       have base: "cmod (w - a) \<le> (1::real)"
         using wb epsone by (auto simp: dist_norm norm_minus_commute)
@@ -250,7 +253,7 @@ proof -
       have "cmod (?F w) = cmod (?h w) * cmod (w - a) ^ (?k - n)"
         by (simp add: feq norm_mult norm_power)
       also have "... \<le> B * 1"
-        using hw wpow Bnonneg by (intro mult_mono) auto
+        using hw wpow \<open>0 \<le> B\<close> by (intro mult_mono) auto
       finally show "cmod (?F w) \<le> B"
         by simp
     qed
@@ -283,6 +286,25 @@ proof -
   qed (use assms in auto)
   then show thesis
     using that by force
+qed
+
+lemma gs_eventually_avoid_finite:
+  fixes X :: "complex set"
+  assumes fin: "finite X"
+  shows "eventually (\<lambda>w. w \<notin> X) (at z)"
+proof -
+  have openU: "open (UNIV - (X - {z}))"
+    using fin by (simp add: finite_imp_closed open_Diff)
+  have "z \<in> UNIV - (X - {z})" by simp
+  have evU: "eventually (\<lambda>w. w \<notin> X - {z}) (at z)"
+    using eventually_nhds_in_open[OF openU \<open>z \<in> UNIV - (X - {z})\<close>]
+    by (auto simp: eventually_at_filter elim: eventually_mono)
+  have evne: "eventually (\<lambda>w. w \<noteq> z) (at z)"
+    by (auto simp: eventually_at_filter elim: eventually_mono)
+  have ev: "eventually (\<lambda>w. w \<notin> X - {z} \<and> w \<noteq> z) (at z)"
+    using evU evne by (simp add: eventually_conj_iff)
+  show ?thesis
+    by (rule eventually_mono[OF ev]) auto
 qed
 
 lemma gs_entire_quotient_of_finite_zeros:
@@ -320,17 +342,9 @@ proof -
           holomorphic_onD)
     have Hcont: "continuous (at a) (\<lambda>w. Q w / ?Pa w)"
       using Qcont Pacont PaNe by (intro continuous_intros) auto
-    have Uopen: "open (UNIV - (X - {a}))"
-      by (simp add: fin finite_imp_closed open_Diff)
-    have aU: "a \<in> UNIV - (X - {a})"
-      by simp
-    have evU: "eventually (\<lambda>w. w \<notin> X - {a}) (at a)"
-      using eventually_nhds_in_open[OF Uopen aU]
-      by (auto simp: eventually_at_filter elim: eventually_mono)
-    have evne: "eventually (\<lambda>w. w \<noteq> a) (at a)"
-      by (auto simp: eventually_at_filter elim: eventually_mono)
     have ev: "eventually (\<lambda>w. w \<noteq> a \<and> w \<notin> X - {a}) (at a)"
-      using evU evne by (simp add: eventually_conj_iff)
+      by (rule eventually_mono[OF gs_eventually_avoid_finite[OF fin]])
+        (use aX in auto)
     have Fev: "eventually (\<lambda>w. ?F w = Q w / ?Pa w) (at a)"
     proof (rule eventually_mono[OF ev])
       fix w
@@ -361,15 +375,13 @@ proof -
   let ?d = "real m * real r / real q"
   have dpos: "?d > 0"
     using qpos mpos rpos by simp
-  have cardX: "card ?X = m"
-    by (simp add: gs_order_nodes_def card_image inj_on_def)
   have each: "\<And>a. a \<in> ?X \<Longrightarrow> ?d \<le> cmod (z - a)"
     using gs_circle_node_distance_lower_bound[OF qpos _ circle] 
     unfolding mem_gs_order_nodes_iff by (force simp flip: of_nat_Suc)
   have each_power: "\<And>a. a \<in> ?X \<Longrightarrow> ?d ^ n \<le> cmod (z - a) ^ n"
     by (rule power_mono) (use each dpos in auto)
   have "?d ^ (m * n) = (\<Prod>a\<in>?X. ?d ^ n)"
-    by (simp add: cardX power_mult[symmetric] mult.commute)
+    by (simp add: card_gs_order_nodes power_mult[symmetric] mult.commute)
   also have "... \<le> (\<Prod>a\<in>?X. cmod (z - a) ^ n)"
     by (intro prod_mono) (use each_power dpos in auto)
   also have "... = cmod (\<Prod>a\<in>?X. (z - a) ^ n)"

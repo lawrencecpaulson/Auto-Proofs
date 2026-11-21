@@ -31,10 +31,9 @@ proof -
   let ?p = "\<lambda>t. g 0 + integral {0..t} h"
   have valid: "valid_path ?p"
     by (rule green_continuous_velocity_valid_path[OF hc])
-  have diff_abs: "(\<lambda>t. g' t - h t) absolutely_integrable_on ?I"
+  have "(\<lambda>t. g' t - h t) absolutely_integrable_on ?I"
     using gabs habs by (simp add: set_integral_diff(1))
-  have norm_int: "(\<lambda>t. norm (g' t - h t)) integrable_on ?I"
-    using diff_abs by (simp add: absolutely_integrable_on_def)
+  then have norm_int: "(\<lambda>t. norm (g' t - h t)) integrable_on ?I" by (simp add: absolutely_integrable_on_def)
   have close: "norm (?p t - g t) < \<epsilon>" if t: "t \<in> ?I" for t
   proof -
     have sub: "{0..t} \<subseteq> ?I"
@@ -52,15 +51,14 @@ proof -
     have eq: "?p t - g t = - integral {0..t} (\<lambda>x. g' x - h x)"
       using green_ac_subinterval_integral[OF ac null deriv t]
       by (simp add: integral_diff[OF gsub hsub] algebra_simps)
-    have first: "norm (?p t - g t) \<le>
+    have "norm (?p t - g t) \<le>
         integral {0..t} (\<lambda>x. norm (g' x - h x))"
       unfolding eq norm_minus_cancel
       by (rule integral_norm_bound_integral[OF dsub nsub]) simp
-    have second: "integral {0..t} (\<lambda>x. norm (g' x - h x)) \<le>
+    moreover have "integral {0..t} (\<lambda>x. norm (g' x - h x)) \<le>
         integral ?I (\<lambda>x. norm (g' x - h x))"
       by (rule integral_subset_le[OF sub nsub norm_int]) simp
-    show ?thesis
-      using first second err by linarith
+    ultimately show ?thesis using err by linarith
   qed
   show ?thesis
     by (intro exI[where x=h] exI[where x="?p"])
@@ -82,13 +80,13 @@ theorem green_ac_path_smooth_approx:
     integral {0..1} (\<lambda>t. norm (g' t - k t)) < \<epsilon>"
 proof -
   let ?I = "{0..1::real}"
-  have de: "0 < \<epsilon> / 3"
+  have "0 < \<epsilon> / 3"
     using eps by simp
   obtain h p0 where hc: "continuous_on UNIV h"
     and p0def: "p0 = (\<lambda>t. g 0 + integral {0..t} h)"
     and p0close: "\<And>t. t \<in> ?I \<Longrightarrow> norm (p0 t - g t) < \<epsilon> / 3"
     and herr: "integral ?I (\<lambda>t. norm (g' t - h t)) < \<epsilon> / 3"
-    using green_ac_path_continuous_velocity_approx[OF ac null deriv de]
+    using green_ac_path_continuous_velocity_approx[OF ac null deriv \<open>0 < \<epsilon> / 3\<close>]
     by blast
   define d where "d = g 1 - p0 1"
   define k where "k = (\<lambda>t. h t + d)"
@@ -198,13 +196,13 @@ proof -
     by (rule green_ac_path_is_path[OF ac])
   have closed: "closed (path_image g)"
     by (rule compact_imp_closed) (rule compact_path_image[OF path])
-  have nonempty: "path_image g \<noteq> {}"
+  have "path_image g \<noteq> {}"
     by (auto simp: path_image_def)
   define r where "r = infdist z (path_image g)"
   have rpos: "0 < r"
-    unfolding r_def by (rule infdist_pos_not_in_closed[OF closed nonempty away])
+    unfolding r_def by (rule infdist_pos_not_in_closed[OF closed \<open>path_image g \<noteq> {}\<close> away])
   define e where "e = min \<epsilon> (r / 2)"
-  have epos: "0 < e"
+  have "0 < e"
     using eps rpos by (simp add: e_def)
   obtain k p where kc: "continuous_on UNIV k"
     and pdef: "p = (\<lambda>t. g 0 + integral {0..t} k)"
@@ -213,7 +211,7 @@ proof -
     and finish: "pathfinish p = pathfinish g"
     and close: "\<And>t. t \<in> {0..1} \<Longrightarrow> norm (p t - g t) < e"
     and vel: "integral {0..1} (\<lambda>t. norm (g' t - k t)) < e"
-    using green_ac_path_smooth_approx[OF ac null deriv epos]
+    using green_ac_path_smooth_approx[OF ac null deriv \<open>0 < e\<close>]
     by blast
   have near: "norm (p t - g t) < norm (g t - z)"
     if t: "t \<in> {0..1}" for t

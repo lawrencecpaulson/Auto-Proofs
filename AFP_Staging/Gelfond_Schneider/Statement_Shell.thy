@@ -40,12 +40,12 @@ lemma gs_powr_bound:
   assumes C4_le_r: "C powr 4 <= of_nat r"
   shows "C powr of_nat r <= of_nat r powr ((of_nat r - 3 * of_nat h) / 2)"
 proof -
-  have C4_ge1: "1 <= C powr 4"
+  have "1 <= C powr 4"
     by (rule ge_one_powr_ge_zero[OF C_ge1]) simp
-  have r_ge1: "1 <= real r"
-    using C4_ge1 C4_le_r by linarith
+  have "1 <= real r"
+    using \<open>1 <= C powr 4\<close> C4_le_r by linarith
   have rpos: "0 < real r"
-    using r_ge1 by linarith
+    using \<open>1 <= real r\<close> by linarith
   have six_real: "6 * real h <= real r"
     using six_h_le_r by simp
   have denom_pos: "0 < real r - 3 * real h"

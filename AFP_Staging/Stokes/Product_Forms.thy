@@ -174,12 +174,11 @@ proof -
        simp
   have dC: "((\<lambda>u::real. ?C) has_derivative (\<lambda>h. 0)) (at s)"
     by (rule has_derivative_const)
-  have dsum: "((\<lambda>u::real. u *\<^sub>R b + ?C)
+  have "((\<lambda>u::real. u *\<^sub>R b + ?C)
       has_derivative (\<lambda>h. h *\<^sub>R b + 0)) (at s)"
     by (rule has_derivative_add[OF der dC])
-  show ?thesis
-    unfolding eq has_vector_derivative_def
-    using dsum by simp
+  then show ?thesis
+    unfolding eq has_vector_derivative_def by simp
 qed
 
 lemma product_normal_line_derivative:
@@ -344,13 +343,13 @@ proof -
       using e r by auto
     have nonneg: "0 \<le> fst i"
       using i by (auto simp: Basis_prod_def)
-    have n: "norm i = 1"
+    have "norm i = 1"
       using i by simp
     have h: "?x + ?d *\<^sub>R i \<in> ?H"
       using t nonneg d
       by (simp add: add_nonneg_nonneg mult_nonneg_nonneg)
     have u: "?x + ?d *\<^sub>R i \<in> U"
-      using r d n
+      using r d \<open>norm i = 1\<close>
       by (auto simp: dist_norm intro: subsetD[OF r(2)])
     show "\<exists>d::real. 0 < \<bar>d\<bar> \<and> \<bar>d\<bar> < e \<and>
         ?x + d *\<^sub>R i \<in> ?S"

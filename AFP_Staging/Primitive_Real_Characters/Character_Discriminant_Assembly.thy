@@ -20,15 +20,8 @@ proof (unfold_locales)
   proof (intro allI impI)
     fix p :: nat
     assume p: "prime p \<and> odd p \<and> \<not> p dvd n"
-    have source_real: "real_dcharacter n \<chi>"
-      using dcharacter_axioms real_dcharacter_axioms
-      unfolding real_dcharacter_def by blast
-    have source_primitive: "primitive_dchar n \<chi>"
-      using dcharacter_axioms primitive_dchar_axioms
-      unfolding primitive_dchar_def by blast
     have source: "primitive_real_dcharacter n \<chi>"
-      using source_real source_primitive
-      unfolding primitive_real_dcharacter_def by blast
+      by (rule primitive_real_dcharacter_self)
     have val: "\<chi> p = of_int (Jacobi (int p) (int n))"
       by (rule odd_squarefree_real_character_jacobi[OF source odd odd_modulus_squarefree[OF odd]])
     have swap: "Jacobi (int p) (int n) =
@@ -60,9 +53,9 @@ proof (subst squarefree_factorial_semiring)
     fix p :: nat
     assume prime: "prime p" and p2m: "p ^ 2 dvd m"
     have pdivm: "p dvd m" using p2m by auto
-    have pneq2: "p \<noteq> 2" using pdivm modd by auto
-    have pgt2: "2 < p" using prime_gt_1_nat[OF prime] pneq2 by arith
-    have podd: "odd p" by (rule prime_odd_nat[OF prime pgt2])
+    have "p \<noteq> 2" using pdivm modd by auto
+    have "2 < p" using prime_gt_1_nat[OF prime] \<open>p \<noteq> 2\<close> by arith
+    have podd: "odd p" by (rule prime_odd_nat[OF prime \<open>2 < p\<close>])
     have mdivn: "m dvd n" using nr by simp
     have p2n: "p ^ 2 dvd n" using p2m mdivn by (rule dvd_trans)
     have pdivn: "p dvd n" using pdivm mdivn by (rule dvd_trans)
@@ -252,13 +245,13 @@ proof (unfold_locales)
   proof (intro allI impI)
     fix p :: nat
     assume p: "prime p \<and> odd p \<and> \<not> p dvd n"
-    have mpos: "0 < m" using modd by presburger
+    have "0 < m" using modd by presburger
     have mdivn: "m dvd n" using nr by simp
     have pm: "\<not> p dvd m" using p mdivn by (meson dvd_trans)
     have swap: "Jacobi (int p) (int m) =
       Jacobi (odd_discriminant_core m) (int p)"
       by (rule odd_discriminant_core_reciprocity[OF p[THEN conjunct1]
-        p[THEN conjunct2, THEN conjunct1] modd mpos pm])
+        p[THEN conjunct2, THEN conjunct1] modd \<open>0 < m\<close> pm])
     show "\<chi> p = of_int (Legendre (4 * c * odd_discriminant_core m) (int p))"
       using local_values[OF p[THEN conjunct1] p[THEN conjunct2, THEN conjunct1]]
         swap odd_prime_even_discriminant_value[OF p[THEN conjunct1]
@@ -303,10 +296,10 @@ proof -
         \<chi> p = of_int (Jacobi c (int p) * Jacobi (int p) (int m))"
       by (rule eight_part_prime_factor[OF nr8 modd msf]) blast
     have nr': "n = 4 * nat (abs c) * m" using nr8 c by auto
-    have cset: "c \<in> {(-1::int), 2, -2}" using c by auto
+    have "c \<in> {(-1::int), 2, -2}" using c by auto
     have quad: "quadratic_real_character_data n \<chi>
       (4 * c * odd_discriminant_core m)"
-      by (rule assemble_even_quadratic_character[OF nr' modd msf cset local_values])
+      by (rule assemble_even_quadratic_character[OF nr' modd msf \<open>c \<in> {(-1::int), 2, -2}\<close> local_values])
     show thesis by (rule that[OF quad])
   qed
 qed

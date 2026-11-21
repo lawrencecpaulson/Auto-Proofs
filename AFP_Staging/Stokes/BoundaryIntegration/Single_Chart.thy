@@ -26,11 +26,11 @@ proof -
   have open_int: "open (C i \<inter> open_halfspace)"
     using body_overlap_open[OF i i]
     by (simp only: body_overlap_def overlap_eq)
-  have closedK: "closed K"
+  have "closed K"
     by (rule compact_imp_closed[OF compact])
   let ?W = "(C i \<inter> open_halfspace) - K"
   have openW: "open ?W"
-    by (rule open_Diff[OF open_int closedK])
+    by (rule open_Diff[OF open_int \<open>closed K\<close>])
   have xW: "x \<in> ?W"
     using x out by auto
   have zeroW: "\<And>p. p \<in> ?W \<Longrightarrow> A p = 0"
@@ -94,12 +94,12 @@ proof -
        (use dA compact_P K_P_chart zero_P cont_P
           compact_Q K_Q_chart zero_Q cont_Q in
         \<open>auto simp: V[symmetric]\<close>)
-  have stokes: "(LINT p : C i | lborel.
+  have "(LINT p : C i | lborel.
       product_exterior_top A p) =
     (LINT y : {y. (0,y) \<in> U} | lborel.
       product_boundary_coeff A y)"
     using stokes_raw by (simp only: V[symmetric])
-  show ?thesis using stokes by (simp add: face)
+  then show ?thesis by (simp add: face)
 qed
 
 corollary Stokes_boundary_chart_compact_C1:
@@ -209,6 +209,51 @@ proof -
     by (rule Stokes_boundary_chart_compact_C1
       [OF i d_weighted compact Kchart zero
         cont_normal cont_tangent])
+qed
+
+text \<open>The body integral can be computed from the exterior coefficient in a single chart.\<close>
+lemma integral_body_single_top_exterior_chart:
+  fixes A :: "real \<times> (real ^ 'n::finite) \<Rightarrow>
+    real \<times> (real ^ 'n)"
+    and body :: "'i \<Rightarrow> real \<times> (real ^ 'n) \<Rightarrow> real"
+  assumes body_chart: "admissible_body_single_chart body i K_body"
+    and body_compatible: "body_top_coeff_compatible body"
+    and positive: "\<And>j k x.
+      j \<in> I \<Longrightarrow> k \<in> I \<Longrightarrow>
+      x \<in> body_overlap j k \<Longrightarrow>
+      0 < eucl.det (frechet_derivative
+        (coordinate_transition j k) (at x))"
+    and smooth: "\<And>j k.
+      j \<in> I \<Longrightarrow> k \<in> I \<Longrightarrow>
+      Ck_on 2 (coordinate_transition j k) (body_overlap j k)"
+    and body_cont: "continuous_on (C i) (body i)"
+    and body_coeff: "\<And>p. p \<in> C i \<Longrightarrow>
+      body i p = product_exterior_top A p"
+  shows "integral_body_single_top body =
+    (LINT p : C i | lborel. product_exterior_top A p)"
+proof -
+  have i: "i \<in> I"
+    using body_chart by (auto simp: admissible_body_single_chart_def)
+  have body_int: "body i absolutely_integrable_on C i"
+    using body_chart
+    by (auto simp: admissible_body_single_chart_def)
+  have local_body: "integral_body_single_top body =
+    integral (C i) (body i)"
+    by (rule integral_body_single_top_local_chart
+      [OF body_chart body_compatible positive smooth])
+  have gauge: "(LINT p : C i | lborel. body i p) =
+    integral (C i) (body i)"
+    by (rule body_chart_lborel_eq_integral
+      [OF i body_int body_cont])
+  have coeff_eq: "(LINT p : C i | lborel. body i p) =
+    (LINT p : C i | lborel.
+      product_exterior_top A p)"
+    unfolding set_lebesgue_integral_def
+    by (rule Bochner_Integration.integral_cong[OF refl])
+       (use body_coeff in
+         \<open>auto simp: indicator_def\<close>)
+  show ?thesis
+    using local_body gauge coeff_eq by simp
 qed
 
 context
@@ -375,31 +420,17 @@ theorem Stokes_single_boundary_chart_local_integrals_C1:
   shows "integral_body_single_top body =
     integral_boundary_single_top edge"
 proof -
-  have body_int: "body i absolutely_integrable_on C i"
-    using body_chart
-    by (auto simp: admissible_body_single_chart_def)
-  have local_body: "integral_body_single_top body =
-    integral (C i) (body i)"
-    by (rule integral_body_single_top_local_chart
-      [OF body_chart body_compatible positive smooth])
-  have gauge: "(LINT p : C i | lborel. body i p) =
-    integral (C i) (body i)"
-    by (rule body_chart_lborel_eq_integral
-      [OF i body_int body_cont])
-  have coeff_eq: "(LINT p : C i | lborel. body i p) =
-    (LINT p : C i | lborel.
-      product_exterior_top A p)"
-    unfolding set_lebesgue_integral_def
-    by (rule Bochner_Integration.integral_cong[OF refl])
-       (use body_coeff in
-         \<open>auto simp: indicator_def\<close>)
+  have body_form: "integral_body_single_top body =
+    (LINT p : C i | lborel. product_exterior_top A p)"
+    by (rule integral_body_single_top_exterior_chart
+      [OF body_chart body_compatible positive smooth body_cont body_coeff])
   have stokes: "(LINT p : C i | lborel.
       product_exterior_top A p) =
     integral_boundary_single_top edge"
     by (rule Stokes_boundary_chart_single_top_C1
       [OF edge_chart edge_compatible edge_cont edge_coeff])
   show ?thesis
-    using local_body gauge coeff_eq stokes by simp
+    using body_form stokes by simp
 qed
 
 theorem Stokes_single_boundary_chart_integrals_C1:
@@ -433,24 +464,10 @@ theorem Stokes_single_boundary_chart_integrals_C1:
   shows "integral_body_single_top body =
     integral_boundary_top edge"
 proof -
-  have body_int: "body i absolutely_integrable_on C i"
-    using body_chart
-    by (auto simp: admissible_body_single_chart_def)
-  have local_body: "integral_body_single_top body =
-    integral (C i) (body i)"
-    by (rule integral_body_single_top_local_chart
-      [OF body_chart body_compatible positive smooth])
-  have gauge: "(LINT p : C i | lborel. body i p) =
-    integral (C i) (body i)"
-    by (rule body_chart_lborel_eq_integral
-      [OF i body_int body_cont])
-  have coeff_eq: "(LINT p : C i | lborel. body i p) =
-    (LINT p : C i | lborel.
-      product_exterior_top A p)"
-    unfolding set_lebesgue_integral_def
-    by (rule Bochner_Integration.integral_cong[OF refl])
-       (use body_coeff in
-         \<open>auto simp: indicator_def\<close>)
+  have body_form: "integral_body_single_top body =
+    (LINT p : C i | lborel. product_exterior_top A p)"
+    by (rule integral_body_single_top_exterior_chart
+      [OF body_chart body_compatible positive smooth body_cont body_coeff])
   have stokes: "(LINT p : C i | lborel.
       product_exterior_top A p) =
     integral_boundary_top edge"
@@ -458,7 +475,7 @@ proof -
       [OF edge_compatible compact_edge K_edge_chart
           support_edge edge_cont edge_coeff partition])
   show ?thesis
-    using local_body gauge coeff_eq stokes by simp
+    using body_form stokes by simp
 qed
 
 corollary Stokes_boundary_chart_gauge_C1:
@@ -598,33 +615,16 @@ theorem Stokes_single_interior_chart_integrals_C1:
   shows "integral_body_single_top body =
     integral_boundary_single_top (\<lambda>j y. 0)"
 proof -
-  have body_int: "body i absolutely_integrable_on C i"
-    using body_chart
-    by (auto simp: admissible_body_single_chart_def)
-  have local_body: "integral_body_single_top body =
-    integral (C i) (body i)"
-    by (rule integral_body_single_top_local_chart
-      [OF body_chart body_compatible positive smooth])
-  have gauge: "(LINT p : C i | lborel. body i p) =
-    integral (C i) (body i)"
-    by (rule body_chart_lborel_eq_integral
-      [OF i body_int body_cont])
-  have coeff_eq: "(LINT p : C i | lborel. body i p) =
-    (LINT p : C i | lborel.
-      product_exterior_top A p)"
-    unfolding set_lebesgue_integral_def
-    by (rule Bochner_Integration.integral_cong[OF refl])
-       (use body_coeff in
-         \<open>auto simp: indicator_def\<close>)
+  have body_form: "integral_body_single_top body =
+    (LINT p : C i | lborel. product_exterior_top A p)"
+    by (rule integral_body_single_top_exterior_chart
+      [OF body_chart body_compatible positive smooth body_cont body_coeff])
   have stokes: "(LINT p : C i | lborel.
       product_exterior_top A p) =
     integral_boundary_top (\<lambda>j y. 0)"
     by (rule Stokes_interior_chart_integral_top_C1)
-  have old: "integral_body_single_top body =
-      integral_boundary_top (\<lambda>j y. 0)"
-    using local_body gauge coeff_eq stokes by simp
   show ?thesis
-    using old boundary_zero_integrals_agree by simp
+    using body_form stokes boundary_zero_integrals_agree by simp
 qed
 
 end

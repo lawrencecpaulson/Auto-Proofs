@@ -418,10 +418,10 @@ lemma boundary_singleton_open:
   assumes p: "p \<in> boundary_carrier"
   shows "openin (top_of_set boundary_carrier) {p}"
 proof -
-  have pM: "p \<in> M"
+  have "p \<in> M"
     using boundary_subset_carrier p by auto
   obtain i where i: "i \<in> I" "p \<in> D i"
-    using cover pM by blast
+    using cover \<open>p \<in> M\<close> by blast
   have d_open: "openin (top_of_set M) (D i)"
     by (rule halfline_chart.open_D[OF chart[OF i(1)]])
   obtain U where U: "open U" "D i = M \<inter> U"
@@ -478,10 +478,10 @@ proof
     (\<Union>i\<in>I. {p\<in>D i. 0 < to_chart i p})"
   proof
     fix p assume p: "p \<in> interior_carrier"
-    then have pM: "p \<in> M"
+    then have "p \<in> M"
       by (simp add: interior_carrier_def)
     obtain i where i: "i \<in> I" "p \<in> D i"
-      using cover pM by blast
+      using cover \<open>p \<in> M\<close> by blast
     have nonnegative: "0 \<le> to_chart i p"
       using halfline_chart.chart_image[OF chart[OF i(1)]]
         halfline_chart.codomain_subset_halfline
@@ -841,7 +841,7 @@ proof -
   proof -
     have pM: "p \<in> M"
       using subsetB p boundary_subset_carrier by auto
-    have pK: "p \<in> K"
+    have "p \<in> K"
       using omega_support[OF pM] nz by auto
     have eq: "(if 0 \<in> C i \<and> from_chart i 0 = p
         then phi i p else 0) = phi i p"
@@ -874,7 +874,7 @@ proof -
       (\<Sum>i\<in>F. phi i p)"
       by (rule sum.cong[OF refl]) (use eq in auto)
     then show ?thesis
-      using partition[OF pK] by simp
+      using partition[OF \<open>p \<in> K\<close>] by simp
   qed
   have glued: "(\<Sum>i\<in>F.
       eps i * (LINT t : C i | lborel. g i t)) =

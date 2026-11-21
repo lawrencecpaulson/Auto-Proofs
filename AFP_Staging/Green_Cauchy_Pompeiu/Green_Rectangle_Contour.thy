@@ -93,6 +93,20 @@ proof -
     by (intro continuous_intros PC QC)
 qed
 
+text \<open>Restricting a \<open>C\<^sup>1\<close> rectangle field along a continuous coordinate map
+  preserves continuity of both components.\<close>
+lemma green_rectangle_C1_continuous_on_map:
+  fixes P Q :: "real \<times> real \<Rightarrow> real"
+  assumes cell: "green_rectangle_C1 P Q a b c d"
+    and h: "continuous_on S h"
+    and image: "h ` S \<subseteq> {a..b} \<times> {c..d}"
+  shows "continuous_on S (\<lambda>x. P (h x))"
+    and "continuous_on S (\<lambda>x. Q (h x))"
+  by (rule continuous_on_compose2
+      [OF green_rectangle_C1_continuous_on(1)[OF cell] h image])
+     (rule continuous_on_compose2
+      [OF green_rectangle_C1_continuous_on(2)[OF cell] h image])
+
 lemma green_rectangle_contour_edges:
   fixes P Q :: "real \<times> real \<Rightarrow> real"
   assumes ab: "a \<le> b" and cd: "c \<le> d"

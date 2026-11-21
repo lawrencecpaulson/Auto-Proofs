@@ -96,7 +96,7 @@ proof -
     using df by (auto simp: differentiable_def)
   have boundedD: "bounded_linear D"
     by (rule has_derivative_bounded_linear[OF fD])
-  have linearD: "linear D"
+  have "linear D"
     by (rule bounded_linear.linear[OF boundedD])
   have Px: "stokes_face_projection x = x"
     using face by (cases x)
@@ -150,7 +150,7 @@ proof -
         D (stokes_normal_reflection h) =
       D (2 *\<^sub>R stokes_face_projection h -
         stokes_normal_reflection h)"
-      by (simp add: linearD linear.scaleR
+      by (simp add: \<open>linear D\<close> linear.scaleR
         linear_diff)
     also have "\<dots> = D h"
       by (simp only: id)
@@ -203,11 +203,11 @@ proof (cases "fst x = 0")
       [OF True df] by blast
 next
   case False
-  have positive: "0 < fst x"
+  have "0 < fst x"
     using half False
     by (auto simp: closed_halfspace_def)
   have xopen: "x \<in> open_halfspace"
-    using positive by (simp add: open_halfspace_def)
+    using \<open>0 < fst x\<close> by (simp add: open_halfspace_def)
   have eq: "stokes_reflect_extension f z = f z"
     if "z \<in> open_halfspace" for z
     using that
@@ -602,7 +602,7 @@ proof (simp add: continuous_on_eq_continuous_within, intro ballI)
   have openC:
       "openin (top_of_set closed_halfspace) (C j)"
     by (rule halfspace_chart.open_C[OF chart[OF j]])
-  have openU: "open U"
+  have "open U"
     by (rule Ck_on_open[OF smooth])
   have contG: "continuous_on U
       (\<lambda>z. frechet_derivative G (at z) v)"
@@ -645,7 +645,7 @@ proof (simp add: continuous_on_eq_continuous_within, intro ballI)
     by (simp add: continuous_on_eq_continuous_within)
   have filter: "at x within U \<inter> C j =
       at x within C j"
-    by (rule at_within_nhd[OF xU openU])
+    by (rule at_within_nhd[OF xU \<open>open U\<close>])
        auto
   show "continuous (at x within C j)
       (\<lambda>z. frechet_derivative
@@ -2018,13 +2018,13 @@ proof -
         "{p\<in>M. phi i p \<noteq> 0} \<subseteq> L"
       and LD: "L \<subseteq> D i"
       using local[OF ii] by blast
-    have iI: "i \<in> I"
+    have "i \<in> I"
       using FI ii by auto
     show ?thesis
       by (rule extended_weight_chart_stokes
         [where A=A and B=B and F=F and phi=phi
           and i=i and K=K and L=L,
-          OF compact support pull eqB ii iI
+          OF compact support pull eqB ii \<open>i \<in> I\<close>
           closed LD phi_support
           dB[OF ii] cont_BP[OF ii]
           cont_BQ[OF ii]])

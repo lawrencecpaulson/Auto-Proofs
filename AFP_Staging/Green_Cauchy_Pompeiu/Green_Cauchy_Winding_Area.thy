@@ -42,15 +42,15 @@ proof (rule continuous_on_sequentiallyI)
   obtain B where B: "\<And>n. norm (a n) \<le> B"
     using convergent_imp_bounded[OF aw]
     by (auto simp: bounded_iff)
-  have Bnonneg: "0 \<le> B"
+  have "0 \<le> B"
     using B[of 0] norm_ge_zero[of "a 0"] by linarith
   let ?T = "R + B"
   let ?H = "\<lambda>y::complex. indicator (cball 0 ?T) y *\<^sub>R (1 / norm y)"
   let ?F = "\<lambda>b y::complex. u (y + b) / y"
-  have Tnonneg: "0 \<le> ?T"
-    using R Bnonneg by linarith
+  have "0 \<le> ?T"
+    using R \<open>0 \<le> B\<close> by linarith
   have Hint: "integrable (lborel :: complex measure) ?H"
-    by (rule green_inverse_cmod_integrable_cball[OF Tnonneg])
+    by (rule green_inverse_cmod_integrable_cball[OF \<open>0 \<le> ?T\<close>])
   have Hmeas: "integrable (lborel :: complex measure) (\<lambda>y. C * ?H y)"
     by (rule Bochner_Integration.integrable_mult_right[OF Hint])
   have Fmeas: "?F b \<in> borel_measurable (lborel :: complex measure)" for b
@@ -292,7 +292,7 @@ proof -
   have scale_int: "integrable (lborel :: complex measure)
       (\<lambda>z. -(2 * pi * \<i>) * ?W z)"
     using Lint integrable_cong_AE[OF Lmeas scale_meas ae_eq] by blast
-  have scale_ne: "-(2 * pi * \<i>) \<noteq> 0"
+  have "-(2 * pi * \<i>) \<noteq> 0"
     by simp
   have unscaled_int: "integrable (lborel :: complex measure)
       (\<lambda>z. inverse (-(2 * pi * \<i>)) *
@@ -301,7 +301,7 @@ proof -
   have unscaled_eq: "(\<lambda>z. inverse (-(2 * pi * \<i>)) *
         (-(2 * pi * \<i>) * ?W z)) = ?W"
     by (simp only: fun_eq_iff mult.assoc[symmetric]
-      left_inverse[OF scale_ne] mult_1_left refl; simp)
+      left_inverse[OF \<open>-(2 * pi * \<i>) \<noteq> 0\<close>] mult_1_left refl; simp)
   show "integrable (lborel :: complex measure) ?W"
     using unscaled_int by (simp only: unscaled_eq)
   have eq_int: "(\<integral>z. ?L z \<partial>(lborel :: complex measure)) =

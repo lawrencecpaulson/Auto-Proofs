@@ -451,13 +451,16 @@ proof -
     for v
     by (rule continuous_on_compose2[OF deriv_cont econt])
       (use image in auto)
-  have Dcont: "continuous_on ?S ?D"
+  have "continuous_on ?S ?D"
     unfolding green_wirtinger_dbar_def
     by (intro continuous_intros dcont) simp_all
-  have Dint: "set_integrable lborel ?S ?D"
-    using Dcont
+  then have Dint: "set_integrable lborel ?S ?D"
     unfolding set_integrable_def
     by (intro borel_integrable_compact compact_Times compact_Icc) auto
+  have pull: "(LINT p:?S|lborel. - 2 * k p) =
+      (-2) * (LINT p:?S|lborel. k p)"
+    for k :: "real \<times> real \<Rightarrow> real"
+    by (simp only: minus_mult_left set_integral_mult_right)
   have real_part: "(LINT p:?S|lborel. Im (?D p)) =
       - Re (contour_integral ?g f) / 2"
   proof -
@@ -480,20 +483,16 @@ proof -
           by (rule green_field_of_complex_curl_dbar[OF dOn[OF p]])
       qed
     qed
-    have pull: "(LINT p:?S|lborel. - 2 * Im (?D p)) =
-        (-2) * (LINT p:?S|lborel. Im (?D p))"
-      unfolding set_lebesgue_integral_def
-      by (simp add: scaleR_conv_of_real algebra_simps)
     have G': "(LINT p:?S|lborel.
         green_curl (green_field_of_complex f) p) =
         Re (contour_integral ?g f)"
       using G
       by (simp add: green_curl_def[symmetric]
         green_field_of_complex_coefficient)
-    have identity: "(-2) * (LINT p:?S|lborel. Im (?D p)) =
+    have "(-2) * (LINT p:?S|lborel. Im (?D p)) =
         Re (contour_integral ?g f)"
-      using G' eq pull by simp
-    show ?thesis using identity by linarith
+      using G' eq pull[of "\<lambda>p. Im (?D p)"] by simp
+    then show ?thesis by linarith
   qed
   have imag_part: "(LINT p:?S|lborel. Re (?D p)) =
       Im (contour_integral ?g f) / 2"
@@ -519,21 +518,16 @@ proof -
           by simp
       qed
     qed
-    have pull: "(LINT p:?S|lborel. - 2 * Re (?D p)) =
-        (-2) * (LINT p:?S|lborel. Re (?D p))"
-      unfolding set_lebesgue_integral_def
-      by (simp add: scaleR_conv_of_real algebra_simps)
     have G': "(LINT p:?S|lborel.
         green_curl (green_field_of_complex ?h) p) =
         Re (contour_integral ?g ?h)"
       using G
       by (simp add: green_curl_def[symmetric]
         green_field_of_complex_coefficient)
-    have identity: "(-2) * (LINT p:?S|lborel. Re (?D p)) =
+    have "(-2) * (LINT p:?S|lborel. Re (?D p)) =
         Re (contour_integral ?g ?h)"
-      using G' eq pull by simp
-    show ?thesis
-      using identity
+      using G' eq pull[of "\<lambda>p. Re (?D p)"] by simp
+    then show ?thesis
       by (simp add: contour_integral_lmul; linarith)
   qed
   show ?thesis
@@ -569,8 +563,8 @@ proof -
   let ?U = "V - {w}"
   let ?g = "\<lambda>z. inverse (z - w)"
   let ?f = "\<lambda>z. u z / (z - w)"
-  have openV: "open V" by (rule Ck_on_open[OF C1])
-  have openU: "open ?U" using openV by (simp add: open_Diff)
+  have "open V" by (rule Ck_on_open[OF C1])
+  then have openU: "open ?U" by (simp add: open_Diff)
   have rectU: "cbox (Complex a c) (Complex b d) \<subseteq> ?U"
     using rect wout by blast
   have uC1: "Ck_on 1 u ?U"
@@ -704,12 +698,12 @@ proof (rule ccontr)
     using nonzero
     by (simp add: mult.commute complex_mult_cnj
       sum_power2_gt_zero_iff complex_eq_iff)
-  have Aopen: "open ?A"
+  have "open ?A"
     by (rule open_Collect_less[OF continuous_on_const gc])
-  have win: "w \<in> ?A" using pos by simp
+  have "w \<in> ?A" using pos by simp
   obtain a b where sub: "cbox a b \<subseteq> ?A"
     and wbox: "w \<in> box a b"
-    by (rule open_contains_cbox[OF Aopen win])
+    by (rule open_contains_cbox[OF \<open>open ?A\<close> \<open>w \<in> ?A\<close>])
   have box_ne: "box a b \<noteq> {}"
     using wbox by auto
   have Fint: "set_integrable lborel (cbox a b) ?F"
@@ -738,7 +732,7 @@ proof (rule ccontr)
     by simp
   have hk: "(?g has_integral 0) (cbox a b)"
     using integrable_integral[OF gi] g0 by simp
-  have wz: "w \<in> cbox a b"
+  have "w \<in> cbox a b"
     using wbox box_subset_cbox by auto
   have gcbox: "continuous_on (cbox a b) ?g"
     using gc by (rule continuous_on_subset) auto
@@ -751,7 +745,7 @@ proof (rule ccontr)
   qed
   have "?g w = 0"
     by (rule has_integral_0_cbox_imp_0
-      [OF gcbox nonneg hk box_ne wz])
+      [OF gcbox nonneg hk box_ne \<open>w \<in> cbox a b\<close>])
   with pos show False by simp
 qed
 

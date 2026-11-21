@@ -63,7 +63,7 @@ lemma Ck_on_face_restriction:
     (\<lambda>y. snd (F (0,y)))
     (halfspace_face U)"
 proof -
-  have openU: "open U"
+  have "open U"
     by (rule Ck_on_open[OF C2])
   have open_face: "open (halfspace_face U)"
   proof -
@@ -74,7 +74,7 @@ proof -
       (\<lambda>y::'e. (0::real,y)) -` U"
       by (auto simp: halfspace_face_def)
     then show ?thesis
-      using openU cont by (auto intro: open_vimage)
+      using \<open>open U\<close> cont by (auto intro: open_vimage)
   qed
   have pair_linear: "bounded_linear
       (\<lambda>y::'e. (0::real,y))"
@@ -238,12 +238,12 @@ proof -
       (jacobian ?g (at y))"
     by (rule positive_face_jacobian_from_inverse_extensions
       [OF C2F xU C2G image inverse halfspace face positive])
-  have deriv_eq: "frechet_derivative h (at y) =
+  have "frechet_derivative h (at y) =
     frechet_derivative ?g (at y)"
     by (rule frechet_derivative_transform_within_open
       [OF openW yW agree])
-  have "jacobian h (at y) = jacobian ?g (at y)"
-    using deriv_eq by (simp add: jacobian_def)
+  then have "jacobian h (at y) = jacobian ?g (at y)"
+    by (simp add: jacobian_def)
   with face_pos show ?thesis by simp
 qed
 
@@ -371,11 +371,11 @@ proof -
     by (simp add: cart_map_of_product_def
       cart_halfspace_def closed_halfspace_def
       cart_to_product_def)
-  have deriv: "frechet_derivative ?Fc (at ?x) =
+  have "frechet_derivative ?Fc (at ?x) =
       frechet_derivative ?Gc (at ?x)"
     by (rule cart_halfspace_ambient_derivative_unique
       [OF openW xW xH dF dG]) (use eq in auto)
-  show ?thesis using deriv by (simp add: jacobian_def)
+  then show ?thesis by (simp add: jacobian_def)
 qed
 
 locale halfspace_chart =
@@ -721,10 +721,10 @@ proof
   proof
     fix p
     assume p: "p \<in> interior_carrier"
-    then have pM: "p \<in> M"
+    then have "p \<in> M"
       by (simp add: interior_carrier_def)
     obtain i where i: "i \<in> I" "p \<in> D i"
-      using cover pM by blast
+      using cover \<open>p \<in> M\<close> by blast
     have "to_chart i p \<in> closed_halfspace"
       using halfspace_chart.codomain_subset_halfspace
         [OF chart[OF i(1)]]
@@ -781,10 +781,10 @@ lemma boundary_compact_relative_neighborhood:
     "V \<subseteq> K"
     "K \<subseteq> boundary_carrier \<inter> D i"
 proof -
-  have pM: "p \<in> M"
+  have "p \<in> M"
     using boundary_subset_carrier p by auto
   obtain i where i: "i \<in> I" "p \<in> D i"
-    using cover pM by blast
+    using cover \<open>p \<in> M\<close> by blast
   interpret c: halfspace_chart M "D i" "C i"
     "to_chart i" "from_chart i"
     by (rule chart[OF i(1)])
@@ -873,11 +873,11 @@ proof -
     assume xK: "x \<in> K"
     then obtain q where q: "q \<in> P" "x \<in> U q"
       using P(3) by auto
-    have qK: "q \<in> K" using P(1) q(1) by auto
+    have "q \<in> K" using P(1) q(1) by auto
     have xB: "x \<in> boundary_carrier"
       using KB xK by auto
     have "x \<in> V q"
-      using U[OF qK] q(2) xB by auto
+      using U[OF \<open>q \<in> K\<close>] q(2) xB by auto
     with q(1) show "x \<in> (\<Union>p\<in>P. V p)"
       by auto
   qed
@@ -1733,8 +1733,8 @@ lemma boundary_coefficient_transition_for_extensions:
       pull_top (boundary_transition i j)
         (product_boundary_coeff A) y"
 proof -
-  have openU: "open U" by (rule Ck_on_open[OF C2F])
-  have openV: "open V" by (rule Ck_on_open[OF C2G])
+  have "open U" by (rule Ck_on_open[OF C2F])
+  have "open V" by (rule Ck_on_open[OF C2G])
   have xH: "(0,y) \<in> closed_halfspace"
     by (simp add: closed_halfspace_def)
   have FxV: "F (0,y) \<in> V"
@@ -1775,12 +1775,12 @@ proof -
       (\<lambda>z. snd (F (0,z))) (at y) =
       jacobian (boundary_transition i j) (at y)"
   proof -
-    have deriv: "frechet_derivative
+    have "frechet_derivative
         (boundary_transition i j) (at y) =
         frechet_derivative (\<lambda>z. snd (F (0,z))) (at y)"
       by (rule frechet_derivative_transform_within_open
         [OF openW yW agree])
-    show ?thesis using deriv by (simp add: jacobian_def)
+    then show ?thesis by (simp add: jacobian_def)
   qed
   have Fvalue: "snd (F (0,y)) =
       boundary_transition i j y"
@@ -1809,7 +1809,7 @@ proof -
         (\<lambda>u. snd (F (0,u))) (at y)) *
         product_boundary_coeff A (snd (F (0,y)))"
       by (rule product_boundary_coeff_pull_face_local_inverse
-        [OF openU openV xU FxV Fface dF dG
+        [OF \<open>open U\<close> \<open>open V\<close> xU FxV Fface dF dG
           faceFw faceGw inversew])
     show ?thesis
       using raw by (simp add: face_jac Fvalue pull_top_def)

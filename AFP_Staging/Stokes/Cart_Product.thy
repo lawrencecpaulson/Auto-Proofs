@@ -301,13 +301,13 @@ lemma Ck_on_cart_map_of_product:
     (cart_to_product -` W)"
 proof -
   let ?U = "cart_to_product -` W"
-  have openW: "open W"
+  have "open W"
     by (rule Ck_on_open[OF C2])
   have contC: "\<And>v. continuous (at v) cart_to_product"
     by (rule bounded_linear.continuous[OF
         cart_to_product_bounded_linear continuous_ident])
   have openU: "open ?U"
-    by (rule continuous_open_vimage[OF openW contC])
+    by (rule continuous_open_vimage[OF \<open>open W\<close> contC])
   have CkC: "Ck_on 2 cart_to_product ?U"
     by (rule Ck_on_bounded_linear
         [OF cart_to_product_bounded_linear openU])

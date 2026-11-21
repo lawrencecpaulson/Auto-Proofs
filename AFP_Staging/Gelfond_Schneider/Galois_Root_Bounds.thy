@@ -39,14 +39,14 @@ proof -
   have split: "splitting_field \<rat> ?p K"
     unfolding splitting_field_def K_def
     using p_over p0 by simp
-  have fin_roots: "finite (poly_root_set ?p)"
+  have "finite (poly_root_set ?p)"
     by (rule finite_poly_root_set[OF p0])
   have alg_roots: "\<And>r. r \<in> poly_root_set ?p \<Longrightarrow> algebraic_over \<rat> r"
     by (rule splitting_field_root_algebraic[OF split])
   obtain L where finL: "finite_subfield_tower \<rat> L"
     and QL: "\<rat> \<subseteq> L"
     and rootsL: "poly_root_set ?p \<subseteq> L"
-    using exists_finite_subfield_tower[OF sfQ fin_roots alg_roots] by blast
+    using exists_finite_subfield_tower[OF sfQ \<open>finite (poly_root_set ?p)\<close> alg_roots] by blast
   interpret L: finite_subfield_tower "\<rat>" L
     by (rule finL)
   have sfK: "Subfield K"

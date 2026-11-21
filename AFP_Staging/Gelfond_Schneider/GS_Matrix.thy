@@ -85,10 +85,10 @@ proof -
     next
       fix i
       assume i: "i < dim_vec (vec_first (A *\<^sub>v x @\<^sub>v (0\<^sub>m (q - p) q *\<^sub>v x)) p)"
-      then have ip: "i < p"
+      then have "i < p"
         by simp
       have append_idx: "(A *\<^sub>v x @\<^sub>v (0\<^sub>m (q - p) q *\<^sub>v x)) $ i = (A *\<^sub>v x) $ i"
-        using ip A x by (simp add: index_append_vec(1))
+        using \<open>i < p\<close> A x by (simp add: index_append_vec(1))
       show "(A *\<^sub>v x) $ i = vec_first (A *\<^sub>v x @\<^sub>v (0\<^sub>m (q - p) q *\<^sub>v x)) p $ i"
         unfolding vec_first_def using append_idx i by simp
     qed
@@ -475,7 +475,7 @@ proof -
     by (cases cands) auto
   hence fv: "find_base_vector A = non_pivot_base A (pivot_positions A) c"
     unfolding find_base_vector_def Let_def cands_def dim by auto
-  have c_lt: "c < nc"
+  have "c < nc"
     using c by (auto simp: cands_def)
   show ?thesis
     unfolding algebraic_vec_def
@@ -505,7 +505,7 @@ proof -
         then have "(j, i) \<in> set (pivot_positions A)"
           by (auto dest: map_of_SomeD)
         with False Some idx show ?thesis
-          using piv(1) algebraic_mat_def assms(4) c_lt dim by auto
+          using piv(1) algebraic_mat_def assms(4) \<open>c < nc\<close> dim by auto
       qed
     qed
   qed
@@ -578,7 +578,7 @@ proof -
   obtain v where v: "v \<in> carrier_vec q" "v \<noteq> 0\<^sub>v q" "A *\<^sub>v v = 0\<^sub>v p" "algebraic_vec v"
     using exists_nonzero_algebraic_kernel_vec_rectangular[OF A hpq algA] by blast
   define c :: int where "c \<equiv> (\<Prod>i<q. gs_c0 (v $ i))"
-  have c_nz: "c \<noteq> 0"
+  have "c \<noteq> 0"
   proof
     assume c0: "c = 0"
     then obtain i where  "i < q" "gs_c0 (v $ i) = 0"
@@ -596,7 +596,7 @@ proof -
     then have "of_int c * (v $ j) = 0"
       unfolding w_def using j v(1)
       by (metis index_smult_vec index_zero_vec)
-    with j c_nz show False
+    with j \<open>c \<noteq> 0\<close> show False
       by fastforce
   qed
   have wint: "algebraic_int (w $ i)" if i: "i < q" for i

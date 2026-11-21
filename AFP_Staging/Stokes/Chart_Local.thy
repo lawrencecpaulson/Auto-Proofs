@@ -38,10 +38,10 @@ proof -
       using True by (simp add: at_within_eq_bot_iff)
   next
     case False
-    then have pos: "0 < t" using t by simp
+    then have "0 < t" using t by simp
     have "at t within {0..} = at t"
       by (rule at_within_open_subset[where S="{0<..}"])
-         (use pos in auto)
+         (use \<open>0 < t\<close> in auto)
     then show ?thesis by simp
   qed
   show ?thesis
@@ -249,10 +249,10 @@ lemma continuous_on_zero_extension_relative:
   shows "continuous_on H (\<lambda>x. if x \<in> U then F x else 0)"
 proof -
   let ?E = "\<lambda>x. if x \<in> U then F x else 0"
-  have closed_K: "closed K"
+  have "closed K"
     by (rule compact_imp_closed[OF compact_K])
-  have open_notK: "open (- K)"
-    by (rule open_Compl[OF closed_K])
+  have "open (- K)"
+    by (rule open_Compl[OF \<open>closed K\<close>])
   have cover: "H \<subseteq> U \<union> - K"
     using KU by auto
   have cont_U: "continuous_on (H \<inter> U) ?E"
@@ -269,7 +269,7 @@ proof -
   qed
   show ?thesis
     by (rule continuous_on_relative_open_cover
-        [OF open_U open_notK cover cont_U cont_notK])
+        [OF open_U \<open>open (- K)\<close> cover cont_U cont_notK])
 qed
 
 lemma compact_support_zero_extension_relative:
@@ -419,10 +419,10 @@ proof (cases "t = 0")
   then show ?thesis using True by (simp add: at_within_eq_bot_iff)
 next
   case False
-  then have pos: "0 < t" using t by simp
+  then have "0 < t" using t by simp
   have "at t within {0..} = at t"
     by (rule at_within_open_subset[where S="{0<..}"])
-       (use pos in auto)
+       (use \<open>0 < t\<close> in auto)
   then show ?thesis by simp
 qed
 
@@ -442,7 +442,7 @@ lemma normal_zero_extension_derivative:
       (if (t,y) \<in> U then G t y else 0)) (at t within {0..})"
 proof -
   let ?c = "\<lambda>s. (s,y)"
-  have closed_K: "closed K"
+  have "closed K"
     by (rule compact_imp_closed[OF compact_K])
   have cont_c: "continuous_on UNIV ?c"
     by (intro continuous_intros)
@@ -451,7 +451,7 @@ proof -
         (if ?c t \<in> U then case_prod G (?c t) else 0))
       (at t within {0..})"
   proof (rule zero_extend_vector_derivative_along
-      [OF open_U closed_K KU cont_c])
+      [OF open_U \<open>closed K\<close> KU cont_c])
     show "t \<in> {0..}" using t by simp
     fix s :: real assume "s \<in> {0..}"
     then show "?c s \<in> {0..} \<times> UNIV" by simp
@@ -484,7 +484,7 @@ lemma normal_local_derivative_zero_outside_support:
   shows "G t y = 0"
 proof -
   let ?c = "\<lambda>s. (s,y)"
-  have closed_K: "closed K"
+  have "closed K"
     by (rule compact_imp_closed[OF compact_K])
   have cont_c: "continuous_on UNIV ?c"
     by (intro continuous_intros)
@@ -493,7 +493,7 @@ proof -
     by (simp add: deriv[OF t pU])
   have "case_prod G (?c t) = 0"
   proof (rule vector_derivative_zero_on_relative_open
-      [OF open_U closed_K cont_c])
+      [OF open_U \<open>closed K\<close> cont_c])
     show "t \<in> {0..}" using t by simp
     show "at t within {0..} \<noteq> bot"
       by (rule at_halfline_not_bot[OF t])
@@ -618,7 +618,7 @@ lemma tangential_zero_extension_derivative:
 proof -
   let ?line = "\<lambda>u. \<Sum>j\<in>Basis. (v(b:=u)) j *\<^sub>R j"
   let ?c = "\<lambda>u. (t, ?line u)"
-  have closed_K: "closed K"
+  have "closed K"
     by (rule compact_imp_closed[OF compact_K])
   have cont_c: "continuous_on UNIV ?c"
     by (rule continuous_on_Pair)
@@ -629,7 +629,7 @@ proof -
         (if ?c s \<in> U then case_prod G (?c s) else 0))
       (at s within UNIV)"
   proof (rule zero_extend_vector_derivative_along
-      [OF open_U closed_K KU cont_c])
+      [OF open_U \<open>closed K\<close> KU cont_c])
     show "s \<in> UNIV" by simp
     fix u :: real assume "u \<in> UNIV"
     then show "?c u \<in> {0..} \<times> UNIV" using t by simp
@@ -673,7 +673,7 @@ proof -
     by (rule basis_slice_reconstruct[OF b])
   have coords: "(\<Sum>j\<in>Basis. (y \<bullet> j) *\<^sub>R j) = y"
     by (rule euclidean_representation)
-  have closed_K: "closed K"
+  have "closed K"
     by (rule compact_imp_closed[OF compact_K])
   have cont_c: "continuous_on UNIV ?c"
     by (rule continuous_on_Pair)
@@ -685,7 +685,7 @@ proof -
     by (simp add: coords)
   have "case_prod G (?c ?s) = 0"
   proof (rule vector_derivative_zero_on_relative_open
-      [OF open_U closed_K cont_c])
+      [OF open_U \<open>closed K\<close> cont_c])
     show "?s \<in> UNIV" by simp
     show "at ?s within UNIV \<noteq> bot" by simp
     fix u :: real assume "u \<in> UNIV"

@@ -272,15 +272,15 @@ lemma stokes_ball_cutoff_zero:
     and x: "x \<notin> ball a R"
   shows "stokes_ball_cutoff a r R x = 0"
 proof -
-  have R0: "0 \<le> R" using r R by simp
+  have "0 \<le> R" using r R by simp
   have den_pos: "0 < R\<^sup>2 - r\<^sup>2"
     using power_strict_mono[OF R r, of 2] by simp
   have norm_ge: "R \<le> norm (x - a)"
     using x by (simp add: dist_norm norm_minus_commute)
-  have sq_ge: "R\<^sup>2 \<le> (norm (x - a))\<^sup>2"
-    using norm_ge R0 by (intro power_mono) auto
-  have "R\<^sup>2 - (norm (x - a))\<^sup>2 \<le> 0"
-    using sq_ge by simp
+  have "R\<^sup>2 \<le> (norm (x - a))\<^sup>2"
+    using norm_ge \<open>0 \<le> R\<close> by (intro power_mono) auto
+  then have "R\<^sup>2 - (norm (x - a))\<^sup>2 \<le> 0"
+    by simp
   then show ?thesis
     unfolding stokes_ball_cutoff_def
     using den_pos
@@ -671,26 +671,19 @@ proof -
   have boundsr: "0 \<le> ?r i p \<and> ?r i p \<le> 1"
     if i: "i \<in> F" for i p
     using data[OF i] by simp
-  let ?A = "\<lambda>phi :: 'i \<Rightarrow> 'a \<Rightarrow> real.
-    (\<forall>i\<in>F. smooth (phi i)) \<and>
-    (\<forall>i\<in>F. continuous_on X (phi i)) \<and>
-    (\<forall>i\<in>F. \<forall>p.
-      phi i p \<noteq> 0 \<longrightarrow> ?r i p \<noteq> 0) \<and>
-    (\<forall>i\<in>F. \<forall>p.
-      0 \<le> phi i p \<and> phi i p \<le> 1) \<and>
-    (\<forall>p. (\<Sum>i\<in>F. phi i p) =
-      1 - (\<Prod>i\<in>F. (1 - ?r i p)))"
-  let ?phi = "SOME phi. ?A phi"
-  have ex: "\<exists>phi. ?A phi"
-    by (rule finite_C1_partition_from_cutoffs
-      [OF finite C1r boundsr contr])
-  have props: "?A ?phi"
-    by (rule someI_ex[OF ex])
-  have props_support:
-      "\<forall>i\<in>F. \<forall>p.
-        ?phi i p \<noteq> 0 \<longrightarrow> ?r i p \<noteq> 0"
-    using props by simp
-  have unity: "(\<Sum>i\<in>F. ?phi i p) = 1"
+  obtain phi where
+      phi_smooth: "\<forall>i\<in>F. smooth (phi i)"
+    and phi_cont: "\<forall>i\<in>F. continuous_on X (phi i)"
+    and phi_support: "\<forall>i\<in>F. \<forall>p.
+      phi i p \<noteq> 0 \<longrightarrow> ?r i p \<noteq> 0"
+    and phi_bounds: "\<forall>i\<in>F. \<forall>p.
+      0 \<le> phi i p \<and> phi i p \<le> 1"
+    and phi_sum: "\<forall>p. (\<Sum>i\<in>F. phi i p) =
+      1 - (\<Prod>i\<in>F. (1 - ?r i p))"
+    by (rule exE[OF finite_C1_partition_from_cutoffs
+      [where F=F and r="?r" and X=X, OF finite C1r boundsr contr]])
+       auto
+  have unity: "(\<Sum>i\<in>F. phi i p) = 1"
     if p: "p \<in> K" for p
   proof -
     obtain i where i: "i \<in> F" "p \<in> Q i"
@@ -700,26 +693,26 @@ proof -
     have zero: "(\<Prod>j\<in>F. (1 - ?r j p)) = 0"
       by (rule prod_zero[OF finite])
          (use i(1) one in auto)
-    show ?thesis using props zero by auto
+    show ?thesis using phi_sum zero by auto
   qed
   have local: "\<exists>L. closed L \<and>
-      {p\<in>X. ?phi i p \<noteq> 0} \<subseteq> L \<and>
+      {p\<in>X. phi i p \<noteq> 0} \<subseteq> L \<and>
       L \<subseteq> E i"
     if i: "i \<in> F" for i
   proof -
-    have nz: "?phi i p \<noteq> 0 \<Longrightarrow>
+    have nz: "phi i p \<noteq> 0 \<Longrightarrow>
         ?r i p \<noteq> 0" for p
-      using props_support i by auto
+      using phi_support i by auto
     have rsub: "{p\<in>X. ?r i p \<noteq> 0} \<subseteq> ?L i"
       using data[OF i] by simp
-    have sub: "{p\<in>X. ?phi i p \<noteq> 0} \<subseteq> ?L i"
+    have sub: "{p\<in>X. phi i p \<noteq> 0} \<subseteq> ?L i"
       using nz rsub by auto
     show ?thesis
       using sub data[OF i] by blast
   qed
   show thesis
-    by (rule that[where phi="?phi"])
-       (use props unity local in auto)
+    by (rule that[where phi="phi"])
+       (use phi_smooth phi_cont phi_bounds unity local in auto)
 qed
 
 end

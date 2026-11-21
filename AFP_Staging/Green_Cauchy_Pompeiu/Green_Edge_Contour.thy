@@ -58,7 +58,7 @@ proof -
   have member: "(u,v) \<in> set (green_x_atoms R)"
     and nz: "green_horizontal_atom_coefficient R c u v \<noteq> 0"
     using atom by (auto simp: green_exposed_horizontal_atoms_def)
-  have sides: "green_horizontal_above R c u v \<noteq> {} \<or>
+  have "green_horizontal_above R c u v \<noteq> {} \<or>
     green_horizontal_below R c u v \<noteq> {}"
     using green_horizontal_atom_orientation(4)[OF div member] nz by auto
   then obtain r where "r \<in> R"
@@ -78,7 +78,7 @@ proof -
   have member: "(u,v) \<in> set (green_y_atoms R)"
     and nz: "green_vertical_atom_coefficient R a u v \<noteq> 0"
     using atom by (auto simp: green_exposed_vertical_atoms_def)
-  have sides: "green_vertical_left R a u v \<noteq> {} \<or>
+  have "green_vertical_left R a u v \<noteq> {} \<or>
     green_vertical_right R a u v \<noteq> {}"
     using green_vertical_atom_orientation(4)[OF div member] nz by auto
   then obtain r where "r \<in> R"
@@ -127,23 +127,18 @@ proof -
   let ?c = "Im (fst r)" and ?d = "Im (snd r)"
   have cell: "green_rectangle_C1 P Q ?a ?b ?c ?d"
     by (rule green_rectangular_C1_cell[OF C1 r])
-  have PC: "continuous_on ({?a..?b} \<times> {?c..?d}) P"
-    using green_rectangle_C1_continuous_on(1)[OF cell] .
-  have QC: "continuous_on ({?a..?b} \<times> {?c..?d}) Q"
-    using green_rectangle_C1_continuous_on(2)[OF cell] .
-  have fin: "finite R" using div by (simp add: green_rectangular_division_def)
+  have "finite R" using div by (simp add: green_rectangular_division_def)
   have member: "(u,v) \<in> set (green_x_atoms R)"
     using atom by (auto simp: green_exposed_horizontal_atoms_def)
   have uv: "u \<le> v"
-    using green_atomic_segments(1)[OF fin member] by simp
-  have sub: "(\<lambda>x. (x,c)) ` {u..v} \<subseteq> {?a..?b} \<times> {?c..?d}"
-    using bounds by auto
+    using green_atomic_segments(1)[OF \<open>finite R\<close> member] by simp
   have coord: "continuous_on {u..v} (\<lambda>x. (x,c))"
     by (intro continuous_intros)
-  show "continuous_on {u..v} (\<lambda>x. P (x,c))"
-    by (rule continuous_on_compose2[OF PC coord sub])
-  show "continuous_on {u..v} (\<lambda>x. Q (x,c))"
-    by (rule continuous_on_compose2[OF QC coord sub])
+  have sub: "(\<lambda>x. (x,c)) ` {u..v} \<subseteq> {?a..?b} \<times> {?c..?d}"
+    using bounds by auto
+  note cont = green_rectangle_C1_continuous_on_map[OF cell coord sub]
+  show "continuous_on {u..v} (\<lambda>x. P (x,c))" by (rule cont(1))
+  show "continuous_on {u..v} (\<lambda>x. Q (x,c))" by (rule cont(2))
   have p: "Complex u c \<in> cbox (Complex ?a ?c) (Complex ?b ?d)"
     and q: "Complex v c \<in> cbox (Complex ?a ?c) (Complex ?b ?d)"
     using bounds uv by (auto simp: in_cbox_complex_iff)
@@ -170,23 +165,18 @@ proof -
   let ?c = "Im (fst r)" and ?d = "Im (snd r)"
   have cell: "green_rectangle_C1 P Q ?a ?b ?c ?d"
     by (rule green_rectangular_C1_cell[OF C1 r])
-  have PC: "continuous_on ({?a..?b} \<times> {?c..?d}) P"
-    using green_rectangle_C1_continuous_on(1)[OF cell] .
-  have QC: "continuous_on ({?a..?b} \<times> {?c..?d}) Q"
-    using green_rectangle_C1_continuous_on(2)[OF cell] .
-  have fin: "finite R" using div by (simp add: green_rectangular_division_def)
+  have "finite R" using div by (simp add: green_rectangular_division_def)
   have member: "(u,v) \<in> set (green_y_atoms R)"
     using atom by (auto simp: green_exposed_vertical_atoms_def)
   have uv: "u \<le> v"
-    using green_atomic_segments(2)[OF fin member] by simp
-  have sub: "(\<lambda>y. (a,y)) ` {u..v} \<subseteq> {?a..?b} \<times> {?c..?d}"
-    using bounds by auto
+    using green_atomic_segments(2)[OF \<open>finite R\<close> member] by simp
   have coord: "continuous_on {u..v} (\<lambda>y. (a,y))"
     by (intro continuous_intros)
-  show "continuous_on {u..v} (\<lambda>y. P (a,y))"
-    by (rule continuous_on_compose2[OF PC coord sub])
-  show "continuous_on {u..v} (\<lambda>y. Q (a,y))"
-    by (rule continuous_on_compose2[OF QC coord sub])
+  have sub: "(\<lambda>y. (a,y)) ` {u..v} \<subseteq> {?a..?b} \<times> {?c..?d}"
+    using bounds by auto
+  note cont = green_rectangle_C1_continuous_on_map[OF cell coord sub]
+  show "continuous_on {u..v} (\<lambda>y. P (a,y))" by (rule cont(1))
+  show "continuous_on {u..v} (\<lambda>y. Q (a,y))" by (rule cont(2))
   have p: "Complex a u \<in> cbox (Complex ?a ?c) (Complex ?b ?d)"
     and q: "Complex a v \<in> cbox (Complex ?a ?c) (Complex ?b ?d)"
     using bounds uv by (auto simp: in_cbox_complex_iff)

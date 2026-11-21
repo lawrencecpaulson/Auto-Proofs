@@ -154,14 +154,14 @@ lemma (in green_quadratic_character) green_paper_odd_inert_rearranged:
 proof -
   let ?X = "green_X q cparam"
   let ?J = "green_J q cparam"
-  have xpositive: "0 < real ?X"
-    using conductor_pos by (simp add: green_X_def)
-  have npositive: "0 < green_N q cparam"
-    using conductor_pos by (simp add: green_N_def)
+  have "0 < real ?X"
+    using green_X_positive[OF conductor_pos] by simp
+  have "0 < green_N q cparam"
+    by (rule green_N_positive[OF conductor_pos])
   have jbound: "green_N q cparam \<le> ?J"
     by (rule green_paper_row_parameters(1)[OF even cge large])
-  have jpositive: "0 < real ?J"
-    using npositive jbound by simp
+  have "0 < real ?J"
+    using \<open>0 < green_N q cparam\<close> jbound by simp
   have comparison:
     "real ?J * ((real ?X)^2 - real ?X) *
         green_odd_inert_prime_weight chi ?X
@@ -174,7 +174,7 @@ proof -
       OF even cge large idxs])
   show ?thesis
     by (rule green_weighted_comparison_rearrange[
-      OF xpositive jpositive comparison])
+      OF \<open>0 < real ?X\<close> \<open>0 < real ?J\<close> comparison])
 qed
 
 lemma (in green_quadratic_character) green_paper_odd_inert_conditional:
@@ -207,11 +207,11 @@ proof -
     then show ?thesis by simp
   qed
   have xpos: "0 < real ?X" using xge by linarith
-  have npos: "0 < green_N q cparam"
-    using conductor_pos by (simp add: green_N_def)
+  have "0 < green_N q cparam"
+    by (rule green_N_positive[OF conductor_pos])
   have jbound: "green_N q cparam \<le> ?J"
     by (rule green_paper_row_parameters(1)[OF even cge large])
-  have jpos: "0 < real ?J" using npos jbound by simp
+  have jpos: "0 < real ?J" using \<open>0 < green_N q cparam\<close> jbound by simp
   have ratio: "real ?X / real ?J \<le> 2 * real cparam"
     using green_division_floor_ratio[where x="?X" and c=cparam] cge jpos
     by (simp add: green_J_def)
