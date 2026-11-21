@@ -26,9 +26,10 @@ lemma roth_digits_inj:
     and f: "\<forall>i<n. f i < B"
     and g: "\<forall>i<n. g i < B"
     and eq: "roth_digits n B f = roth_digits n B g"
-  shows "\<forall>i<n. f i = g i"
-  using f g eq
-proof (induction n arbitrary: f g)
+    and "i<n"
+  shows "f i = g i"
+  using f g eq `i<n`
+proof (induction n arbitrary: f g i)
   case 0
   then show ?case by simp
 next
@@ -39,13 +40,8 @@ next
   have tail: "roth_digits n B (f \<circ> Suc) =
       roth_digits n B (g \<circ> Suc)"
     using Suc.prems(3) hd B by (simp add: roth_digits_Suc)
-  have fb: "\<forall>i<n. (f \<circ> Suc) i < B"
-    using Suc.prems by auto
-  have gb: "\<forall>i<n. (g \<circ> Suc) i < B"
-    using Suc.prems by auto
-  have teq: "\<forall>i<n. f (Suc i) = g (Suc i)"
-    using Suc.IH[OF fb gb tail] by simp
-  show ?case using hd teq by (metis less_Suc_eq_0_disj)
+  then show ?case 
+    using Suc hd tail by (smt (cvc5, best) comp_apply less_Suc_eq_0_disj) 
 qed
 
 definition roth_kronecker where
@@ -76,27 +72,22 @@ proof (rule Poly_Mapping.poly_mapping_eqI)
     using I B roth_exponent_boxD(2) by (meson le_less_trans)
   have jb: "\<forall>u<m. Poly_Mapping.lookup J u < B"
     using J B roth_exponent_boxD(2) by (meson le_less_trans)
-  have inside: "\<forall>u<m. Poly_Mapping.lookup I u =
-      Poly_Mapping.lookup J u"
-    by (rule roth_digits_inj[OF pos ib jb])
-      (use eq in \<open>simp add: roth_kronecker_def\<close>)
   show "Poly_Mapping.lookup I v = Poly_Mapping.lookup J v"
   proof (cases "v<m")
     case True
-    then show ?thesis using inside by auto
+    with eq ib jb pos roth_digits_inj roth_kronecker_def show ?thesis
+      by auto
   next
     case False
-    have vi: "v \<notin> Poly_Mapping.keys I"
-      using roth_exponent_boxD(1)[OF I] False by auto
-    have vj: "v \<notin> Poly_Mapping.keys J"
-      using roth_exponent_boxD(1)[OF J] False by auto
-    show ?thesis using vi vj
+    then obtain "v \<notin> Poly_Mapping.keys I" "v \<notin> Poly_Mapping.keys J"
+      using roth_exponent_boxD(1) I J by force
+    then show ?thesis 
       by (simp add: not_in_keys_iff_lookup_eq_zero)
   qed
 qed
 
 definition roth_ksubst where
-  "roth_ksubst m B P =
+  "roth_ksubst m B P \<equiv>
     (\<Sum>I\<in>Poly_Mapping.keys (mapping_of P).
       Polynomial.monom (MPoly_Type.coeff P I)
         (roth_kronecker m B I))"
@@ -105,28 +96,18 @@ lemma roth_ksubst_box:
   fixes P :: "rat mpoly"
   assumes box: "roth_poly_in_box m r P"
   shows "roth_ksubst m B P =
-    (\<Sum>I\<in>roth_exponent_box m r.
-      Polynomial.monom (MPoly_Type.coeff P I)
-        (roth_kronecker m B I))"
+    (\<Sum>I\<in>roth_exponent_box m r. Polynomial.monom (MPoly_Type.coeff P I) (roth_kronecker m B I))"
   unfolding roth_ksubst_def
-proof (rule sum.mono_neutral_cong_left)
-  show "finite (roth_exponent_box m r)" by simp
-  show "Poly_Mapping.keys (mapping_of P) \<subseteq>
-      roth_exponent_box m r"
+proof (intro sum.mono_neutral_cong_left)
+  show "Poly_Mapping.keys (mapping_of P) \<subseteq> roth_exponent_box m r"
     using box by (simp add: roth_poly_in_box_def)
-  show "\<forall>I\<in>roth_exponent_box m r -
-      Poly_Mapping.keys (mapping_of P).
-      Polynomial.monom (MPoly_Type.coeff P I)
-        (roth_kronecker m B I) = 0"
-    by (simp add: coeff_keys)
-qed simp
+qed (auto simp: coeff_keys)
 
 lemma roth_ksubst_add:
   fixes P Q :: "rat mpoly"
   assumes P: "roth_poly_in_box m r P"
     and Q: "roth_poly_in_box m r Q"
-  shows "roth_ksubst m B (P+Q) =
-    roth_ksubst m B P + roth_ksubst m B Q"
+  shows "roth_ksubst m B (P+Q) = roth_ksubst m B P + roth_ksubst m B Q"
   by (simp add: roth_ksubst_box[OF roth_poly_in_box_add[OF P Q]]
     roth_ksubst_box[OF P] roth_ksubst_box[OF Q]
     MPoly_Type.coeff_def plus_mpoly.rep_eq lookup_add
@@ -142,16 +123,13 @@ lemma roth_box_smult:
 lemma roth_poly_smult_sum:
   fixes f :: "'a \<Rightarrow> rat poly"
   assumes fin: "finite S"
-  shows "Polynomial.smult c (\<Sum>i\<in>S. f i) =
-    (\<Sum>i\<in>S. Polynomial.smult c (f i))"
-  using fin by (induction S rule: finite_induct)
-    (simp_all add: smult_distribs)
+  shows "Polynomial.smult c (\<Sum>i\<in>S. f i) = (\<Sum>i\<in>S. Polynomial.smult c (f i))"
+  using fin by (induction S rule: finite_induct) (simp_all add: smult_distribs)
 
 lemma roth_ksubst_smult:
   fixes P :: "rat mpoly"
   assumes P: "roth_poly_in_box m r P"
-  shows "roth_ksubst m B (MPoly_Type.smult c P) =
-    Polynomial.smult c (roth_ksubst m B P)"
+  shows "roth_ksubst m B (MPoly_Type.smult c P) = Polynomial.smult c (roth_ksubst m B P)"
   by (simp add: roth_ksubst_box[OF roth_box_smult[OF P]]
     roth_ksubst_box[OF P] roth_coeff_smult_rat
     Polynomial.smult_monom roth_poly_smult_sum)
@@ -164,24 +142,17 @@ lemma roth_ksubst_sum:
   fixes P :: "'a \<Rightarrow> rat mpoly"
   assumes fin: "finite S"
     and box: "\<And>i. i\<in>S \<Longrightarrow> roth_poly_in_box m r (P i)"
-  shows "roth_ksubst m B (\<Sum>i\<in>S. P i) =
-    (\<Sum>i\<in>S. roth_ksubst m B (P i))"
+  shows "roth_ksubst m B (\<Sum>i\<in>S. P i) = (\<Sum>i\<in>S. roth_ksubst m B (P i))"
   using fin box
 proof (induction S rule: finite_induct)
   case empty
   then show ?case by simp
 next
   case (insert x S)
-  have xb: "roth_poly_in_box m r (P x)"
-    using insert.prems by auto
-  have sb: "roth_poly_in_box m r (\<Sum>i\<in>S. P i)"
-    by (rule roth_poly_in_box_sum)
-      (use insert.hyps insert.prems in auto)
-  have ih: "roth_ksubst m B (\<Sum>i\<in>S. P i) =
-      (\<Sum>i\<in>S. roth_ksubst m B (P i))"
-    using insert.IH insert.prems by blast
-  show ?case using ih insert.hyps
-    by (simp add: roth_ksubst_add[OF xb sb])
+  then have "roth_poly_in_box m r (\<Sum>i\<in>S. P i)"
+    by (simp add: roth_poly_in_box_sum)
+  then show ?case using insert
+    by (force simp: roth_ksubst_add)
 qed
 
 lemma roth_ksubst_coeff:
@@ -189,8 +160,7 @@ lemma roth_ksubst_coeff:
   assumes box: "roth_poly_in_box m r P"
     and pos: "0 < B" and B: "\<forall>v<m. r v < B"
     and I: "I \<in> roth_exponent_box m r"
-  shows "Polynomial.coeff (roth_ksubst m B P)
-    (roth_kronecker m B I) = MPoly_Type.coeff P I"
+  shows "Polynomial.coeff (roth_ksubst m B P) (roth_kronecker m B I) = MPoly_Type.coeff P I"
 proof -
   let ?K = "Poly_Mapping.keys (mapping_of P)"
   have kij: "\<And>J. J \<in> ?K \<Longrightarrow>
@@ -204,29 +174,20 @@ qed
 
 lemma roth_ksubst_reflect_zero:
   fixes P :: "rat mpoly"
-  assumes box: "roth_poly_in_box m r P"
-    and pos: "0 < B" and B: "\<forall>v<m. r v < B"
-    and z: "roth_ksubst m B P = 0"
+  assumes "roth_poly_in_box m r P"
+    and "0 < B" and B: "\<forall>v<m. r v < B"
+    and "roth_ksubst m B P = 0"
   shows "P = 0"
 proof (rule coeff_all_0)
   fix I
   show "MPoly_Type.coeff P I = 0"
-  proof (cases "I \<in> roth_exponent_box m r")
-    case True
-    then show ?thesis
-      using roth_ksubst_coeff[OF box pos B True] z by simp
-  next
-    case False
-    then show ?thesis
-      using roth_coeff_zero_outside_box[OF box False] by simp
-  qed
+  using assms by (metis roth_coeff_zero_outside_box roth_ksubst_coeff zero_poly.rep_eq)
 qed
 
 definition roth_mpoly_indep ::
   "nat \<Rightarrow> (nat \<Rightarrow> rat mpoly) \<Rightarrow> bool" where
-  "roth_mpoly_indep k p \<longleftrightarrow>
-    (\<forall>c. (\<Sum>j<k. MPoly_Type.smult (c j) (p j)) = 0 \<longrightarrow>
-      (\<forall>j<k. c j = 0))"
+  "roth_mpoly_indep k p \<equiv>
+    (\<forall>c. (\<Sum>j<k. MPoly_Type.smult (c j) (p j)) = 0 \<longrightarrow> (\<forall>j<k. c j = 0))"
 
 lemma roth_ksubst_indep:
   fixes p :: "nat \<Rightarrow> rat mpoly"
@@ -237,20 +198,17 @@ lemma roth_ksubst_indep:
   unfolding roth_poly_indep_def
 proof (intro allI impI)
   fix c j
-  assume z: "(\<Sum>i<k. Polynomial.smult (c i)
-      (roth_ksubst m B (p i))) = 0"
+  assume z: "(\<Sum>i<k. Polynomial.smult (c i) (roth_ksubst m B (p i))) = 0"
     and j: "j<k"
   let ?U = "\<lambda>i. MPoly_Type.smult (c i) (p i)"
   have ub: "\<And>i. i<k \<Longrightarrow> roth_poly_in_box m r (?U i)"
     using box by (auto intro: roth_box_smult)
   have sb: "roth_poly_in_box m r (\<Sum>i<k. ?U i)"
     by (rule roth_poly_in_box_sum) (use ub in auto)
-  have hom0: "roth_ksubst m B (\<Sum>i<k. ?U i) =
-      (\<Sum>i<k. roth_ksubst m B (?U i))"
+  have hom0: "roth_ksubst m B (\<Sum>i<k. ?U i) = (\<Sum>i<k. roth_ksubst m B (?U i))"
     by (rule roth_ksubst_sum) (use ub in auto)
   have hom1: "(\<Sum>i<k. roth_ksubst m B (?U i)) =
-      (\<Sum>i<k. Polynomial.smult (c i)
-        (roth_ksubst m B (p i)))"
+      (\<Sum>i<k. Polynomial.smult (c i) (roth_ksubst m B (p i)))"
     by (rule sum.cong)
       (use box in \<open>auto simp: roth_ksubst_smult\<close>)
   have mz: "(\<Sum>i<k. ?U i) = 0"
@@ -266,17 +224,14 @@ lemma roth_kronecker_wr_nonzero:
     and pos: "0<B" and B: "\<forall>v<m. r v<B"
     and ind: "roth_mpoly_indep k p"
   shows "roth_hwronskian k (\<lambda>j. roth_ksubst m B (p j)) \<noteq> 0"
-  by (rule roth_wr_independent)
-    (rule roth_ksubst_indep[OF box pos B ind])
+using B box ind pos roth_ksubst_indep roth_wr_independent by presburger
 
 section \<open>The first derivative of Kronecker substitution\<close>
 
 lemma roth_ksubst_monom:
   fixes c :: rat
-  shows "roth_ksubst m B (MPoly_Type.monom I c) =
-    Polynomial.monom c (roth_kronecker m B I)"
-  by (cases "c=0")
-    (simp_all add: roth_ksubst_def mapping_of_monom keys_single
+  shows "roth_ksubst m B (MPoly_Type.monom I c) = Polynomial.monom c (roth_kronecker m B I)"
+  by (simp add: roth_ksubst_def mapping_of_monom keys_single
       MPoly_Type.coeff_def lookup_single when_def)
 
 lemma roth_ksubst_monom_deriv:
@@ -290,8 +245,7 @@ lemma roth_ksubst_monom_deriv:
     roth_digits_def sum_distrib_right[symmetric] of_nat_sum)
 
 lemma roth_mchoose_single_one:
-  "roth_mchoose I (Poly_Mapping.single v 1) =
-    Poly_Mapping.lookup I v"
+  "roth_mchoose I (Poly_Mapping.single v 1) = Poly_Mapping.lookup I v"
   by (simp add: roth_mchoose_def keys_single
     prod.remove[of "insert v (Poly_Mapping.keys I)" v]
     lookup_single when_def)
@@ -306,22 +260,18 @@ lemma roth_single_sub_add:
 
 lemma roth_hasse_monom_single_one:
   fixes c :: rat
-  shows "roth_hasse (Poly_Mapping.single v 1)
-      (MPoly_Type.monom I c) =
-    MPoly_Type.monom (I - Poly_Mapping.single v 1)
-      (c * of_nat (Poly_Mapping.lookup I v))"
+  shows "roth_hasse (Poly_Mapping.single v 1) (MPoly_Type.monom I c) =
+    MPoly_Type.monom (I - Poly_Mapping.single v 1) (c * of_nat (Poly_Mapping.lookup I v))"
   using roth_mchoose_single_one[of I v]
   by (simp add: roth_hasse_monom_exact)
 
-lemma roth_monom_zero [simp]:
-  "MPoly_Type.monom I (0::rat) = 0"
+lemma roth_monom_zero [simp]: "MPoly_Type.monom I (0::rat) = 0"
   by (simp add: mapping_of_inject[symmetric]
     mapping_of_monom zero_mpoly.rep_eq)
 
 lemma roth_kronecker_sub_single:
   assumes v: "v<m" and h: "0<Poly_Mapping.lookup I v"
-  shows "roth_kronecker m B (I - Poly_Mapping.single v 1)
-    + B^v = roth_kronecker m B I"
+  shows "roth_kronecker m B (I - Poly_Mapping.single v 1) + B^v = roth_kronecker m B I"
   using roth_kronecker_add[of m B
       "I - Poly_Mapping.single v 1" "Poly_Mapping.single v 1"]
     roth_single_sub_add[OF h]
@@ -331,9 +281,7 @@ lemma roth_kronecker_sub_single:
 lemma roth_kronecker_sub_power:
   assumes v: "v<m" and B: "0<B"
     and h: "0<Poly_Mapping.lookup I v"
-  shows "B^v - 1 + roth_kronecker m B
-      (I - Poly_Mapping.single v 1) =
-    roth_kronecker m B I - 1"
+  shows "B^v - 1 + roth_kronecker m B (I - Poly_Mapping.single v 1) = roth_kronecker m B I - 1"
   using roth_kronecker_sub_single[OF v h, of B] B by simp
 
 lemma roth_ksubst_monom_chain_term:
@@ -354,10 +302,8 @@ next
   case False
   then have h: "0<Poly_Mapping.lookup I v" by simp
   show ?thesis
-    using roth_hasse_monom_single_one[of v I c]
-      roth_kronecker_sub_power[OF v B h]
-    by (simp add: roth_ksubst_monom
-      Polynomial.mult_monom algebra_simps)
+    using roth_hasse_monom_single_one[of v I c] roth_kronecker_sub_power[OF v B h]
+    by (simp add: roth_ksubst_monom Polynomial.mult_monom algebra_simps)
 qed
 
 lemma roth_ksubst_monom_chain:
@@ -368,31 +314,8 @@ lemma roth_ksubst_monom_chain:
       roth_ksubst m B
         (roth_hasse (Poly_Mapping.single v 1)
           (MPoly_Type.monom I c)))"
-proof -
-  have eqs: "(\<Sum>v<m. Polynomial.monom (of_nat (B^v)) (B^v-1) *
-      roth_ksubst m B
-        (roth_hasse (Poly_Mapping.single v 1)
-          (MPoly_Type.monom I c))) =
-    (\<Sum>v<m. Polynomial.monom
-      (of_nat (Poly_Mapping.lookup I v * B^v) * c)
-      (roth_kronecker m B I - 1))"
-  proof (rule sum.cong)
-    show "{..<m} = {..<m}" by simp
-    fix v
-    assume "v \<in> {..<m}"
-    then have vm: "v<m" by simp
-    show "Polynomial.monom (of_nat (B^v)) (B^v-1) *
-        roth_ksubst m B
-          (roth_hasse (Poly_Mapping.single v 1)
-            (MPoly_Type.monom I c)) =
-      Polynomial.monom
-        (of_nat (Poly_Mapping.lookup I v * B^v) * c)
-        (roth_kronecker m B I - 1)"
-      by (rule roth_ksubst_monom_chain_term[OF vm B])
-  qed
-  show ?thesis
-    using roth_ksubst_monom_deriv[of m B I c] eqs by simp
-qed
+  using roth_ksubst_monom_chain_term roth_ksubst_monom_deriv[of m B I c] assms 
+  by auto
 
 lemma roth_box_mono:
   fixes P :: "rat mpoly"
@@ -418,10 +341,8 @@ lemma roth_hasse_preserves_box:
 lemma roth_poly_pderiv_sum:
   fixes f :: "'a \<Rightarrow> rat poly"
   assumes "finite S"
-  shows "pderiv (\<Sum>i\<in>S. f i) =
-    (\<Sum>i\<in>S. pderiv (f i))"
-  using assms by (induction S rule: finite_induct)
-    (simp_all add: pderiv_add)
+  shows "pderiv (\<Sum>i\<in>S. f i) = (\<Sum>i\<in>S. pderiv (f i))"
+  using assms by (induction S rule: finite_induct) (simp_all add: pderiv_add)
 
 lemma roth_ksubst_hasse_sum:
   fixes P :: "'a \<Rightarrow> rat mpoly"
@@ -429,16 +350,13 @@ lemma roth_ksubst_hasse_sum:
     and box: "\<And>i. i\<in>S \<Longrightarrow> roth_poly_in_box m r (P i)"
   shows "roth_ksubst m B (roth_hasse J (\<Sum>i\<in>S. P i)) =
     (\<Sum>i\<in>S. roth_ksubst m B (roth_hasse J (P i)))"
-  unfolding roth_hasse_sum[OF fin]
-  by (rule roth_ksubst_sum[OF fin])
-    (use box in \<open>auto intro: roth_hasse_preserves_box\<close>)
+using box fin by (metis roth_hasse_preserves_box roth_hasse_sum roth_ksubst_sum)
 
 lemma roth_poly_weighted_sum_swap:
   fixes f :: "'a \<Rightarrow> nat \<Rightarrow> rat poly"
     and w :: "nat \<Rightarrow> rat poly"
   assumes fin: "finite S"
-  shows "(\<Sum>I\<in>S. \<Sum>v<m. w v * f I v) =
-    (\<Sum>v<m. w v * (\<Sum>I\<in>S. f I v))"
+  shows "(\<Sum>I\<in>S. \<Sum>v<m. w v * f I v) = (\<Sum>v<m. w v * (\<Sum>I\<in>S. f I v))"
   by (subst sum.swap) (simp add: sum_distrib_left)
 
 lemma roth_ksubst_chain_sum:
@@ -448,38 +366,22 @@ lemma roth_ksubst_chain_sum:
     and chain: "\<And>i. i\<in>S \<Longrightarrow>
       pderiv (roth_ksubst m B (P i)) =
       (\<Sum>v<m. Polynomial.monom (of_nat (B^v)) (B^v-1) *
-        roth_ksubst m B
-          (roth_hasse (Poly_Mapping.single v 1) (P i)))"
+        roth_ksubst m B (roth_hasse (Poly_Mapping.single v 1) (P i)))"
   shows "pderiv (roth_ksubst m B (\<Sum>i\<in>S. P i)) =
     (\<Sum>v<m. Polynomial.monom (of_nat (B^v)) (B^v-1) *
       roth_ksubst m B
         (roth_hasse (Poly_Mapping.single v 1) (\<Sum>i\<in>S. P i)))"
 proof -
   let ?w = "\<lambda>v. Polynomial.monom (of_nat (B^v)) (B^v-1)"
-  have a: "roth_ksubst m B (\<Sum>i\<in>S. P i) =
-      (\<Sum>i\<in>S. roth_ksubst m B (P i))"
-    by (rule roth_ksubst_sum[OF fin box])
   have b: "pderiv (roth_ksubst m B (\<Sum>i\<in>S. P i)) =
       (\<Sum>i\<in>S. pderiv (roth_ksubst m B (P i)))"
-    by (simp add: a roth_poly_pderiv_sum[OF fin])
+    by (simp add: roth_ksubst_sum[OF fin box] roth_poly_pderiv_sum[OF fin])
   have c: "(\<Sum>i\<in>S. pderiv (roth_ksubst m B (P i))) =
       (\<Sum>i\<in>S. \<Sum>v<m. ?w v *
         roth_ksubst m B (roth_hasse (Poly_Mapping.single v 1) (P i)))"
-    by (rule sum.cong) (use chain in auto)
-  have d: "(\<Sum>i\<in>S. \<Sum>v<m. ?w v *
-      roth_ksubst m B (roth_hasse (Poly_Mapping.single v 1) (P i))) =
-    (\<Sum>v<m. ?w v *
-      (\<Sum>i\<in>S. roth_ksubst m B
-        (roth_hasse (Poly_Mapping.single v 1) (P i))))"
-    by (rule roth_poly_weighted_sum_swap[OF fin])
-  have e: "(\<Sum>v<m. ?w v *
-      (\<Sum>i\<in>S. roth_ksubst m B
-        (roth_hasse (Poly_Mapping.single v 1) (P i)))) =
-    (\<Sum>v<m. ?w v *
-      roth_ksubst m B
-        (roth_hasse (Poly_Mapping.single v 1) (\<Sum>i\<in>S. P i)))"
-    using roth_ksubst_hasse_sum[OF fin box] by simp
-  show ?thesis using b c d e by simp
+    by (use chain in auto)
+  show ?thesis using b c roth_poly_weighted_sum_swap[OF fin] roth_ksubst_hasse_sum[OF fin box]  
+    by simp
 qed
 
 lemma roth_ksubst_chain:
@@ -487,8 +389,7 @@ lemma roth_ksubst_chain:
   assumes box: "roth_poly_in_box m r P" and B: "0<B"
   shows "pderiv (roth_ksubst m B P) =
     (\<Sum>v<m. Polynomial.monom (of_nat (B^v)) (B^v-1) *
-      roth_ksubst m B
-        (roth_hasse (Poly_Mapping.single v 1) P))"
+      roth_ksubst m B (roth_hasse (Poly_Mapping.single v 1) P))"
 proof -
   let ?S = "Poly_Mapping.keys (mapping_of P)"
   let ?Q = "\<lambda>I. MPoly_Type.monom I (MPoly_Type.coeff P I)"
@@ -497,18 +398,8 @@ proof -
   have qb: "\<And>I. I\<in>?S \<Longrightarrow> roth_poly_in_box m r (?Q I)"
     using box by (auto intro: roth_poly_in_box_monom
       simp: roth_poly_in_box_def)
-  have ch: "\<And>I. I\<in>?S \<Longrightarrow>
-      pderiv (roth_ksubst m B (?Q I)) =
-      (\<Sum>v<m. Polynomial.monom (of_nat (B^v)) (B^v-1) *
-        roth_ksubst m B
-          (roth_hasse (Poly_Mapping.single v 1) (?Q I)))"
-    by (rule roth_ksubst_monom_chain[OF B])
-  have h: "pderiv (roth_ksubst m B (\<Sum>I\<in>?S. ?Q I)) =
-    (\<Sum>v<m. Polynomial.monom (of_nat (B^v)) (B^v-1) *
-      roth_ksubst m B
-        (roth_hasse (Poly_Mapping.single v 1) (\<Sum>I\<in>?S. ?Q I)))"
-    by (rule roth_ksubst_chain_sum[OF finite_keys qb ch])
-  show ?thesis using pe h by metis
+  show ?thesis using pe roth_ksubst_chain_sum[OF finite_keys qb] roth_ksubst_monom_chain[OF B]
+  by fastforce 
 qed
 
 section \<open>Iteration of the Kronecker chain rule\<close>
