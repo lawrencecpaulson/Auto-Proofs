@@ -58,11 +58,11 @@ lemma green_archimedean_log_box:
     \<le> (real cparam + 5) / 2 * ln (real q)"
 proof -
   have qpos: "0 < real q" using qge by simp
-  have sqrtpos: "0 < sqrt (real q)" using qpos by simp
+  have "0 < sqrt (real q)" using qpos by simp
   have Nlog: "ln (2 * real (green_N q cparam) * sqrt (real q)) =
       ln 4 + real (cparam div 2) * ln (real q) +
         ln (real q) / 2"
-    using qpos sqrtpos
+    using qpos \<open>0 < sqrt (real q)\<close>
     by (simp add: green_N_def ln_mult ln_realpow ln_sqrt
       algebra_simps)
   have half: "real (cparam div 2) = real cparam / 2"
@@ -105,7 +105,7 @@ proof -
   qed
   have Nsquare: "real (?N * ?N) = 4 * real ?X"
     by (simp add: green_N_def square algebra_simps)
-  have Jle: "real ?J \<le> real ?X"
+  have "real ?J \<le> real ?X"
     by (simp add: green_J_def)
   have cap: "2 * real (?N * ?N * ?J) \<le> (real ?X) ^ 4"
   proof -
@@ -115,12 +115,12 @@ proof -
     also have "... \<le> 8 * (real ?X)\<^sup>2"
     proof -
       have "real ?X * real ?J \<le> real ?X * real ?X"
-        by (rule mult_left_mono[OF Jle]) (use Xge in simp)
+        by (rule mult_left_mono[OF \<open>real ?J \<le> real ?X\<close>]) (use Xge in simp)
       then show ?thesis by (simp add: power2_eq_square)
     qed
     also have "... \<le> (real ?X)^4"
     proof -
-      have sqge: "8 \<le> (real ?X)\<^sup>2"
+      have "8 \<le> (real ?X)\<^sup>2"
       proof -
         have "real ?X \<le> (real ?X)\<^sup>2"
           using Xge by (simp add: power2_eq_square; intro mult_right_mono;
@@ -129,18 +129,18 @@ proof -
       qed
       have "8 * (real ?X)\<^sup>2 \<le>
           (real ?X)\<^sup>2 * (real ?X)\<^sup>2"
-        by (rule mult_right_mono[OF sqge]) simp
+        by (rule mult_right_mono[OF \<open>8 \<le> (real ?X)\<^sup>2\<close>]) simp
       then show ?thesis by (simp add: power_add)
     qed
     finally show ?thesis .
   qed
   have pos: "0 < (2 * real (?N * ?N * ?J))"
   proof -
-    have tpos: "0 < ?t" using tge by linarith
-    have Npos: "0 < ?N" using tpos by (simp add: green_N_def)
-    have Jge: "?N \<le> ?J"
+    have "0 < ?t" using tge by linarith
+    then have Npos: "0 < ?N" by (simp add: green_N_def)
+    have "?N \<le> ?J"
       by (rule green_paper_row_parameters(1)[OF even cge large])
-    have "0 < ?J" using Npos Jge by linarith
+    have "0 < ?J" using Npos \<open>?N \<le> ?J\<close> by linarith
     then show ?thesis using Npos by simp
   qed
   have "ln (2 * real (?N * ?N * ?J)) \<le> ln ((real ?X)^4)"

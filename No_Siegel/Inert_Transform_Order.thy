@@ -7,7 +7,7 @@ lemma green_row_order_nth_index:
   shows "r*S+s < length (green_row_order R S)"
     and "green_row_order R S ! (r*S+s) = (r,s)"
 proof -
-  have pos: "0 < S" using s by linarith
+  have "0 < S" using s by linarith
   have lt: "r*S+s < R*S"
   proof -
     have "r*S+s < (r+1)*S" using s by (simp add: algebra_simps)
@@ -16,7 +16,7 @@ proof -
   qed
   show "r*S+s < length (green_row_order R S)" using lt by simp
   show "green_row_order R S ! (r*S+s) = (r,s)"
-    using lt r s pos
+    using lt r s \<open>0 < S\<close>
     by (simp add: green_row_order_def product_nth)
 qed
 
@@ -28,9 +28,9 @@ proof -
   have "a < length (green_row_order R S)" using a by simp
   then show ?thesis
   proof -
-    have ar: "a div S < R" using a S by (simp add: div_less_iff_less_mult)
-    have as: "a mod S < S" using S by simp
-    show ?thesis using a ar as
+    have "a div S < R" using a S by (simp add: div_less_iff_less_mult)
+    have "a mod S < S" using S by simp
+    show ?thesis using a \<open>a div S < R\<close> \<open>a mod S < S\<close>
       by (simp add: green_row_order_def product_nth)
   qed
 qed

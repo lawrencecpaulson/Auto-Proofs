@@ -158,7 +158,7 @@ proof -
     (2 * (real ?R ^ ?J *
       (2 * real ?N * sqrt (real q)) ^ (r+s)) ^ 2)"
   have Npos: "0 < ?N"
-    using conductor_pos by (simp add: green_N_def)
+    by (rule green_N_positive[OF conductor_pos])
   have bound: "?f k \<le> ?g k" if k: "k \<in> set ?ks" for k
   proof -
     obtain r s where keq: "k = (r,s)" by (cases k) auto
@@ -268,11 +268,11 @@ next
   have fk: "0 < f k" using Cons.prems by simp
   have tail: "\<And>x. x \<in> set ks \<Longrightarrow> 0 < f x"
     using Cons.prems by simp
-  have prod: "0 < prod_list (map f ks)"
+  have "0 < prod_list (map f ks)"
     by (rule green_prod_list_map_pos[OF tail])
   have step: "ln (f k * prod_list (map f ks)) =
       ln (f k) + ln (prod_list (map f ks))"
-    by (rule ln_mult_pos[OF fk prod])
+    by (rule ln_mult_pos[OF fk \<open>0 < prod_list (map f ks)\<close>])
   show ?case using step Cons.IH[OF tail] by simp
 qed
 
@@ -367,16 +367,16 @@ proof -
   let ?g = "\<lambda>(r,s). real (?N * ?N * ?J) *
     (2 * (real ?R ^ ?J * ?B ^ (r+s)) ^ 2)"
   have Npos: "0 < ?N"
-    using conductor_pos by (simp add: green_N_def)
-  have Jge: "?N \<le> ?J"
+    by (rule green_N_positive[OF conductor_pos])
+  have "?N \<le> ?J"
     by (rule green_paper_row_parameters(1)[OF even cparam large])
-  have Jpos: "0 < ?J" using Npos Jge by linarith
+  have "0 < ?J" using Npos \<open>?N \<le> ?J\<close> by linarith
   have Rpos: "0 < ?R"
-    using conductor_pos by (simp add: green_X_def)
+    by (rule green_X_positive[OF conductor_pos])
   have B1: "1 \<le> ?B" by (rule green_paper_box_ge_one[OF Npos])
   have Bpos: "0 < ?B" using B1 by linarith
   have Cpos: "0 < 2 * real (?N * ?N * ?J)"
-    using Npos Jpos by simp
+    using Npos \<open>0 < ?J\<close> by simp
   have Apos: "0 < ?A" using Cpos Rpos by simp
   have cap: "?g k = ?A * ?B ^ (2 * (fst k + snd k))" for k
   proof (cases k)
@@ -449,9 +449,9 @@ proof -
   have log_le: "ln (real_of_int (green_row_gram_determinant d
       ?P ?J ?R ?J)) \<le> ln (prod_list (map ?g ?ks))"
     by (rule ln_mono[OF detprod detpos])
-  have logB: "0 \<le> ln ?B" using B1 by simp
-  have surplus: "0 \<le> 2 * real (?R * ?J) * ln ?B"
-    using logB by simp
+  have "0 \<le> ln ?B" using B1 by simp
+  then have surplus: "0 \<le> 2 * real (?R * ?J) * ln ?B"
+    by simp
   show ?thesis using log_le log_product surplus
     by (simp add: algebra_simps; linarith)
 qed

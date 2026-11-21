@@ -156,15 +156,15 @@ lemma inert_odd_prime_euler:
   assumes "prime p" "odd p" "chi p = -1"
   shows "[d ^ ((p - 1) div 2) = -1] (mod p)"
 proof -
-  have pneq2: "p \<noteq> 2"
+  have "p \<noteq> 2"
   proof
     assume "p = 2"
     then show False using assms(2) by simp
   qed
-  have p2: "2 < p"
-    using prime_gt_1_nat[OF assms(1)] pneq2 by arith
+  have "2 < p"
+    using prime_gt_1_nat[OF assms(1)] \<open>p \<noteq> 2\<close> by arith
   have "[Legendre d (int p) = d ^ ((p - 1) div 2)] (mod p)"
-    by (rule euler_criterion[OF assms(1) p2])
+    by (rule euler_criterion[OF assms(1) \<open>2 < p\<close>])
   then show ?thesis
     using inert_odd_prime_legendre[OF assms]
     by (simp add: cong_sym)

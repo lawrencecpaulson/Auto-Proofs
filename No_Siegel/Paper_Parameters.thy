@@ -59,12 +59,12 @@ proof -
       by simp
     fix F :: "complex mpoly"
     assume nz: "F \<noteq> 0" and bv: "bivariate F"
-    have nonzero: "a \<noteq> 0" using irrational by auto
+    have "a \<noteq> 0" using irrational by auto
     have vars: "vars F \<subseteq> {0,1}"
       using bv by (simp add: bivariate_def)
     show "card {p \<in> ?I. pair_eval F (id p) = 0}
       \<le> J * total_degree F"
-      using natural_diagonal_grid_bound[OF N J nonzero nz vars] by simp
+      using natural_diagonal_grid_bound[OF N J \<open>a \<noteq> 0\<close> nz vars] by simp
   qed
   have card: "card ?I = N * N"
     by (rule natural_diagonal_grid_card[OF irrational])
@@ -89,7 +89,7 @@ lemma green_square_scale_parameters:
   shows "N \<le> J"
     and "2 * R * S + J * (R + S) < J * (N * N)"
 proof -
-  have Cpos: "0 < C" using C by simp
+  have "0 < C" using C by simp
   have tpos: "0 < t" using C large by simp
   have lower: "N * C \<le> R"
   proof -
@@ -98,14 +98,14 @@ proof -
     then show ?thesis by (simp add: N_def R_def ac_simps)
   qed
   have NJ: "N \<le> J"
-    using lower by (simp add: J_def R_def less_eq_div_iff_mult_less_eq[OF Cpos])
+    using lower by (simp add: J_def R_def less_eq_div_iff_mult_less_eq[OF \<open>0 < C\<close>])
   show "N \<le> J" by (fact NJ)
   have positive: "0 < J"
     using NJ tpos by (simp add: N_def)
-  have Rpos: "0 < R"
+  have "0 < R"
     using tpos by (simp add: R_def)
   have smaller: "J < R"
-    using C Rpos by (simp add: J_def R_def)
+    using C \<open>0 < R\<close> by (simp add: J_def R_def)
   have size: "4 * R \<le> N * N"
     by (simp add: R_def N_def ac_simps)
   have SJ: "S = J" by (simp add: S_def J_def)
@@ -124,6 +124,16 @@ definition green_N :: "nat \<Rightarrow> nat \<Rightarrow> nat" where
 
 definition green_J :: "nat \<Rightarrow> nat \<Rightarrow> nat" where
   "green_J q cparam = green_X q cparam div cparam"
+
+lemma green_X_positive:
+  assumes "1 < q"
+  shows "0 < green_X q cparam"
+  using assms by (simp add: green_X_def)
+
+lemma green_N_positive:
+  assumes "1 < q"
+  shows "0 < green_N q cparam"
+  using assms by (simp add: green_N_def)
 
 lemma green_even_exponent_square:
   assumes "even cparam"
@@ -173,7 +183,7 @@ lemma (in green_quadratic_character) green_paper_rows_independent:
 proof -
   have tpos: "0 < q ^ (cparam div 2)"
     using cparam large by linarith
-  have Npos: "0 < green_N q cparam"
+  have "0 < green_N q cparam"
     using tpos by (simp add: green_N_def)
   have Jbound: "green_N q cparam \<le> green_J q cparam"
     and dimension: "2 * green_X q cparam * green_J q cparam +
@@ -183,7 +193,7 @@ proof -
   fix k
   assume k: "k \<in> green_row_indices (green_X q cparam) (green_J q cparam)"
   show "c k = 0"
-    by (rule natural_diagonal_rows_independent[OF Npos Jbound
+    by (rule natural_diagonal_rows_independent[OF \<open>0 < green_N q cparam\<close> Jbound
       lattice_slope_irrational dimension relation k])
 qed
 

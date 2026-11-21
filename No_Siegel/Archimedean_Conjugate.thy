@@ -13,10 +13,10 @@ lemma green_diagonal_coordinate_norm_bound:
     and "norm (snd (diagonal_point a (of_nat x, of_nat y))) \<le>
       real N * (1 + norm a)"
 proof -
-  have xN: "real x \<le> real N" using x by simp
-  have yN: "real y \<le> real N" using y by simp
+  have "real x \<le> real N" using x by simp
+  have "real y \<le> real N" using y by simp
   have bound: "real x + norm a * real y \<le> real N * (1 + norm a)"
-    using add_mono[OF xN mult_left_mono[OF yN norm_ge_zero]]
+    using add_mono[OF \<open>real x \<le> real N\<close> mult_left_mono[OF \<open>real y \<le> real N\<close> norm_ge_zero]]
     by (simp add: algebra_simps)
   have "norm (of_nat x + a * of_nat y) \<le> real x + norm a * real y"
     using norm_triangle_ineq[of "of_nat x" "a * of_nat y"]
@@ -40,10 +40,10 @@ lemma (in green_quadratic_character) green_paper_coordinate_norm_bound:
     and "norm (snd (diagonal_point (cpx_sqrt d) (of_nat x, of_nat y))) \<le>
       2 * real N * sqrt (real q)"
 proof -
-  have sqge: "1 \<le> sqrt (real q)"
+  have "1 \<le> sqrt (real q)"
     using conductor_pos by simp
-  have small: "real N * 1 \<le> real N * sqrt (real q)"
-    using sqge by (rule mult_left_mono) simp
+  then have small: "real N * 1 \<le> real N * sqrt (real q)"
+    by (rule mult_left_mono) simp
   have ne: "real N * (1 + norm (cpx_sqrt d)) \<le>
       2 * real N * sqrt (real q)"
     using small lattice_slope_norm
@@ -106,11 +106,11 @@ next
       by (simp del: funpow.simps add: funpow_Suc_right pderiv_monom)
   next
     case (Suc t)
-    have tj: "t < j" using Suc.prems by (simp add: Suc)
+    have "t < j" using Suc.prems by (simp add: Suc)
     have deriv: "(pderiv ^^ Suc j) (Polynomial.monom c r) =
         (pderiv ^^ j) (Polynomial.monom (of_nat r * c) (r-1))"
       by (simp del: funpow.simps add: funpow_Suc_right pderiv_monom)
-    have rless: "r - 1 < j" using tj Suc by simp
+    have rless: "r - 1 < j" using \<open>t < j\<close> Suc by simp
     show ?thesis
       unfolding deriv by (rule Suc.IH[OF rless])
   qed
@@ -190,9 +190,9 @@ next
   have jle: "j \<le> r - 1" using Suc.prems by arith
   have smaller: "green_falling_factorial (r-1) j \<le> R ^ j"
     by (rule Suc.IH[OF jle]) (use Suc.prems in simp)
-  have rle: "r \<le> R" using Suc.prems by simp
+  have "r \<le> R" using Suc.prems by simp
   have "r * green_falling_factorial (r-1) j \<le> R * R ^ j"
-    by (rule mult_mono[OF rle smaller]) simp_all
+    by (rule mult_mono[OF \<open>r \<le> R\<close> smaller]) simp_all
   then show ?case by (simp add: power_Suc mult_ac)
 qed
 
@@ -210,7 +210,7 @@ proof (cases "j \<le> r")
 next
   case True
   let ?c = "of_nat (green_falling_factorial r j) :: complex"
-  have R1: "1 \<le> real R" using rR by simp
+  have "1 \<le> real R" using rR by simp
   have B0: "0 \<le> B" using B1 by linarith
   have coeff: "norm ?c \<le> real R ^ j"
     using green_falling_coefficient_bound[OF True rR] by simp
@@ -221,7 +221,7 @@ next
   have arg: "norm (fst p) ^ (r-j) * norm (snd p) ^ s \<le> B ^ (r-j+s)"
     by (simp add: B0 mult_mono power_add wpow zpow)
   have Rpow: "real R ^ j \<le> real R ^ J"
-    by (rule power_increasing[OF jJ R1])
+    by (rule power_increasing[OF jJ \<open>1 \<le> real R\<close>])
   have Bpow: "B ^ (r-j+s) \<le> B ^ (r+s)"
     by (rule power_increasing) (use True B1 in simp_all)
   have eq: "norm (green_row_value (r,s) j p) =

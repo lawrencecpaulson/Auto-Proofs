@@ -346,7 +346,7 @@ proof -
   let ?J = "green_J q cparam"
   let ?R = "green_X q cparam"
   let ?ks = "green_row_order ?R ?J"
-  have finiteP: "finite ?P"
+  have "finite ?P"
     by (simp add: diagonal_grid_def natural_grid_finite)
   have nonzero: "green_gram_determinant d (?P \<times> {..< ?J})
     (green_row_gram_coeff d) ?ks \<noteq> 0"
@@ -363,7 +363,7 @@ proof -
   qed
   have nonnegative: "0 \<le> green_gram_determinant d
     (?P \<times> {..< ?J}) (green_row_gram_coeff d) ?ks"
-    by (rule green_gram_determinant_nonnegative) (use finiteP in simp)
+    by (rule green_gram_determinant_nonnegative) (use \<open>finite ?P\<close> in simp)
   show ?thesis
     using nonzero nonnegative
     by (simp add: green_row_gram_determinant_def)

@@ -85,11 +85,11 @@ next
     unfolding k by (rule green_row_order_nth_bounds[OF a])+
   have ae: "a = fst k*S+snd k"
     unfolding k by (rule green_row_order_nth_index_eq[OF a])
-  have ipos: "0 < i" using False by simp
+  have "0 < i" using False by simp
   have ih: "i \<le> green_inert_h p S (fst k,snd k)"
     using i h by simp
   show ?thesis
-    by (rule green_inert_lower_row_index(2)[OF p r s ipos ih refl ae])
+    by (rule green_inert_lower_row_index(2)[OF p r s \<open>0 < i\<close> ih refl ae])
 qed
 
 lemma (in green_quadratic_character) green_transformed_coeff_matrix_row:
