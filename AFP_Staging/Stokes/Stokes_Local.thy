@@ -590,22 +590,31 @@ proof -
   finally show ?thesis .
 qed
 
-lemma vector_derivative_zero_on_real_tail:
+lemma vector_derivative_zero_on_open:
   fixes F :: "real \<Rightarrow> real"
   assumes deriv: "(F has_vector_derivative f) (at t)"
-    and rt: "R < t"
-    and zero: "\<And>s. R < s \<Longrightarrow> F s = 0"
+    and op: "open U"
+    and t: "t \<in> U"
+    and zero: "\<And>s. s \<in> U \<Longrightarrow> F s = 0"
   shows "f = 0"
 proof -
   have const: "((\<lambda>s::real. 0::real) has_vector_derivative 0) (at t)"
     by (rule has_vector_derivative_const)
   have zero_deriv: "(F has_vector_derivative 0) (at t)"
     by (rule has_vector_derivative_transform_within_open
-        [OF const, where S="{R<..}"])
-       (use rt zero in auto)
+        [OF const op t]) (use zero in auto)
   show ?thesis
     by (rule vector_derivative_unique_at[OF deriv zero_deriv])
 qed
+
+lemma vector_derivative_zero_on_real_tail:
+  fixes F :: "real \<Rightarrow> real"
+  assumes deriv: "(F has_vector_derivative f) (at t)"
+    and rt: "R < t"
+    and zero: "\<And>s. R < s \<Longrightarrow> F s = 0"
+  shows "f = 0"
+  by (rule vector_derivative_zero_on_open
+      [where U="{R<..}", OF deriv]) (use rt zero in auto)
 
 lemma vector_derivative_zero_off_closed_interval:
   fixes F :: "real \<Rightarrow> real"
@@ -613,16 +622,8 @@ lemma vector_derivative_zero_off_closed_interval:
     and out: "t \<notin> {a..b}"
     and zero: "\<And>s. s \<notin> {a..b} \<Longrightarrow> F s = 0"
   shows "f = 0"
-proof -
-  have const: "((\<lambda>s::real. 0::real) has_vector_derivative 0) (at t)"
-    by (rule has_vector_derivative_const)
-  have zero_deriv: "(F has_vector_derivative 0) (at t)"
-    by (rule has_vector_derivative_transform_within_open
-        [OF const, where S="- {a..b}"])
-       (use out zero in auto)
-  show ?thesis
-    by (rule vector_derivative_unique_at[OF deriv zero_deriv])
-qed
+  by (rule vector_derivative_zero_on_open
+      [where U="- {a..b}", OF deriv]) (use out zero in auto)
 
 lemma vector_derivative_zero_on_nonnegative:
   fixes F :: "real \<Rightarrow> real"

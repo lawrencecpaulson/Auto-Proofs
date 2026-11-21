@@ -213,15 +213,16 @@ theorem closed_unit_disk_stokes_green_chart:
     disk_integral_boundary_top
       (\<lambda>j y. - Q j (0,y))"
 proof -
+  have dA: "\<And>j x. x \<in> closed_halfspace \<Longrightarrow>
+      green_chart_field (P j) (Q j) differentiable (at x)"
+    by (rule green_chart_field_differentiable[OF dP dQ])
   have stokes: "disk_integral_body_top
       (\<lambda>j x. product_exterior_top
         (green_chart_field (P j) (Q j)) x) =
     disk_integral_boundary_top
       (\<lambda>j y. product_boundary_coeff
         (green_chart_field (P j) (Q j)) y)"
-    by (rule closed_unit_disk_stokes)
-      (use dP dQ pull cont_Qx cont_Py
-        in \<open>auto intro: green_chart_field_differentiable\<close>)
+    by (rule closed_unit_disk_stokes[OF dA pull cont_Qx cont_Py])
   have body_eq: "(\<lambda>j x. product_exterior_top
       (green_chart_field (P j) (Q j)) x) =
     (\<lambda>j x. green_partial_x (Q j) x -

@@ -430,23 +430,6 @@ proof -
         [OF b int support_F slice_int slice_borel deriv line_cont])
 qed
 
-lemma vector_derivative_zero_on_open:
-  fixes F :: "real \<Rightarrow> real"
-  assumes deriv: "(F has_vector_derivative f) (at t)"
-    and op: "open U"
-    and t: "t \<in> U"
-    and zero: "\<And>s. s \<in> U \<Longrightarrow> F s = 0"
-  shows "f = 0"
-proof -
-  have const: "((\<lambda>s::real. 0::real) has_vector_derivative 0) (at t)"
-    by (rule has_vector_derivative_const)
-  have zero_deriv: "(F has_vector_derivative 0) (at t)"
-    by (rule has_vector_derivative_transform_within_open
-        [OF const op t]) (use zero in auto)
-  show ?thesis
-    by (rule vector_derivative_unique_at[OF deriv zero_deriv])
-qed
-
 lemma tangential_halfspace_derivative_support_basis:
   fixes F g :: "real \<Rightarrow> 'a::euclidean_space \<Rightarrow> real"
     and b :: 'a

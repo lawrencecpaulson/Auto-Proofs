@@ -981,25 +981,13 @@ proof -
     (\<forall>i\<in>F. continuous_on X (phi i)) \<and>
     (\<forall>i\<in>F. \<exists>L. closed L \<and>
       {p\<in>X. phi i p \<noteq> 0} \<subseteq> L \<and> L \<subseteq> D i)"
-  let ?phi = "SOME phi. ?P phi"
-  have ex: "\<exists>phi. ?P phi"
-  proof (rule finite_compact_chart_partition)
-    show "finite F" by (rule F(1))
-    show "K \<subseteq> (\<Union>i\<in>F. Q i)"
-      by (rule coverQ)
-    show "\<And>i. i \<in> F \<Longrightarrow>
-      \<exists>r L. continuous_on X r \<and> closed L \<and>
-        {p\<in>X. r p \<noteq> (0::real)} \<subseteq> L \<and>
-        L \<subseteq> D i \<and> (\<forall>p\<in>Q i. r p = 1)"
-      by (rule cutoffQ)
-    show "\<And>i. i \<in> F \<Longrightarrow> Q i \<subseteq> X"
-      by (rule QX)
-  qed
-  have phi: "?P ?phi"
-    by (rule someI_ex[OF ex])
+  have "\<exists>phi. ?P phi"
+    by (rule finite_compact_chart_partition[OF F(1) coverQ])
+       (use cutoffQ QX in auto)
+  then obtain phi where props: "?P phi" by blast
   show thesis
-    by (rule that[where phi="?phi" and F=F])
-       (use F phi in auto)
+    by (rule that[where phi=phi and F=F])
+       (use F props in auto)
 qed
 
 locale smooth_oriented_C2_halfspace_atlas =
