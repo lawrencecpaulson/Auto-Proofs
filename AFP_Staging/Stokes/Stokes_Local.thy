@@ -633,9 +633,9 @@ lemma vector_derivative_zero_on_nonnegative:
   shows "f = 0"
 proof (cases "t = 0")
   case False
-  then have pos: "0 < t" using t by simp
+  then have "0 < t" using t by simp
   show ?thesis
-    by (rule vector_derivative_zero_on_real_tail[OF deriv pos])
+    by (rule vector_derivative_zero_on_real_tail[OF deriv \<open>0 < t\<close>])
        (use zero in auto)
 next
   case True

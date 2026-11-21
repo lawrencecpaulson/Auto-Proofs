@@ -377,11 +377,11 @@ proof
     using i(3) edge_coeff[OF i(1) yface] xy
     by (auto simp: product_boundary_coeff_def
       product_normal_coeff_def)
-  have pM: "p \<in> M"
+  have "p \<in> M"
     using domain_subset_carrier[OF i(1)] i(2) by auto
   show "p \<in> near_top_form_support A \<inter>
       boundary_carrier"
-    using pM i(1,2) nonzero pB
+    using \<open>p \<in> M\<close> i(1,2) nonzero pB
     by (auto simp: near_top_form_support_def)
 qed
 
@@ -569,7 +569,7 @@ lemma body_interior_chart_classify:
   shows "p \<in> interior_carrier \<longleftrightarrow>
     0 < fst (to_chart i p)"
 proof -
-  have pM: "p \<in> M"
+  have "p \<in> M"
     using domain_subset_carrier[OF i] p by auto
   have xC: "to_chart i p \<in> C i"
     using halfspace_chart.chart_image[OF chart[OF i]] p
@@ -579,7 +579,7 @@ proof -
       [OF chart[OF i]] xC
     by (auto simp: closed_halfspace_def)
   show ?thesis
-    using pM nonnegative boundary_chart_classify[OF i p]
+    using \<open>p \<in> M\<close> nonnegative boundary_chart_classify[OF i p]
     by (auto simp: interior_carrier_def)
 qed
 
@@ -959,14 +959,14 @@ proof -
   proof -
     fix i
     assume i: "i \<in> F"
-    have iI: "i \<in> I" using F(2) i by auto
+    have "i \<in> I" using F(2) i by auto
     have compact_abs: "compact (Q i)"
       using compactQ[OF i]
       by (simp add: compactin_subtopology)
     show "\<exists>r L. continuous_on X r \<and> closed L \<and>
         {p\<in>X. r p \<noteq> (0::real)} \<subseteq> L \<and>
         L \<subseteq> D i \<and> (\<forall>p\<in>Q i. r p = 1)"
-      by (rule cutoff[OF iI compact_abs QD[OF i]])
+      by (rule cutoff[OF \<open>i \<in> I\<close> compact_abs QD[OF i]])
   qed
   have QX: "\<And>i. i \<in> F \<Longrightarrow> Q i \<subseteq> X"
   proof -
@@ -1156,10 +1156,10 @@ proof -
     by (rule continuous_map_into_fulltopology[OF cont])
   have continuous: "continuous_on M phi"
     using cont_eucl by simp
-  have compactL_abs: "compact L"
+  have "compact L"
     using compactL by (simp add: compactin_subtopology)
-  have closedL: "closed L"
-    by (rule compact_imp_closed[OF compactL_abs])
+  have "closed L"
+    by (rule compact_imp_closed[OF \<open>compact L\<close>])
   have support: "{p\<in>M. phi p \<noteq> 0} \<subseteq> L"
   proof
     fix p
@@ -1172,7 +1172,7 @@ proof -
   have oneK: "\<And>p. p \<in> K \<Longrightarrow> phi p = 1"
     using one by auto
   show thesis
-    using continuous closedL support LD oneK
+    using continuous \<open>closed L\<close> support LD oneK
     by (rule that[where phi=phi and L=L])
 qed
 
@@ -1227,10 +1227,10 @@ proof -
     by (rule continuous_map_into_fulltopology[OF cont])
   have continuous: "continuous_on boundary_carrier phi"
     using cont_eucl by simp
-  have compactL_abs: "compact L"
+  have "compact L"
     using compactL by (simp add: compactin_subtopology)
-  have closedL: "closed L"
-    by (rule compact_imp_closed[OF compactL_abs])
+  have "closed L"
+    by (rule compact_imp_closed[OF \<open>compact L\<close>])
   have support: "{p\<in>boundary_carrier. phi p \<noteq> 0} \<subseteq> L"
   proof
     fix p
@@ -1243,7 +1243,7 @@ proof -
   have oneK: "\<And>p. p \<in> K \<Longrightarrow> phi p = 1"
     using one by auto
   show thesis
-    using continuous closedL support LW oneK
+    using continuous \<open>closed L\<close> support LW oneK
     by (rule that[where phi=phi and L=L])
 qed
 
@@ -1603,11 +1603,11 @@ lemma exterior_top_zero_off_near_support:
     and out: "from_chart i x \<notin> K"
   shows "product_exterior_top (A i) x = 0"
 proof -
-  have closedK: "closed K"
+  have "closed K"
     by (rule compact_imp_closed[OF compact])
   let ?V = "D i - K"
   have Vopen: "openin (top_of_set (D i)) ?V"
-    using closedK
+    using \<open>closed K\<close>
     by (auto simp: openin_open)
   let ?E = "to_chart i ` ?V"
   have Eopen: "openin (top_of_set (C i)) ?E"
@@ -1964,10 +1964,10 @@ proof -
     unfolding body_overlap_def W0(2)
     by (auto simp: closed_halfspace_def
       open_halfspace_def)
-  have openU: "open U"
+  have "open U"
     by (rule Ck_on_open[OF C2F])
   have openUW: "open (U \<inter> W0)"
-    using openU W0(1) by auto
+    using \<open>open U\<close> W0(1) by auto
   have xUW: "?x \<in> U \<inter> W0"
     using xU xO by auto
   have xclosure: "?x \<in> closure ?W"
@@ -2557,7 +2557,7 @@ theorem body_partition_integral_independent_admissible:
   shows "body_chart_partition_integral alpha phi F =
     body_chart_partition_integral alpha psi G"
 proof -
-  have finiteF: "finite F" and finiteG: "finite G"
+  have "finite F" and finiteG: "finite G"
     and FI: "F \<subseteq> I" and GI: "G \<subseteq> I"
     and unityF: "\<And>p. p \<in> body_form_support alpha
       \<Longrightarrow> (\<Sum>i\<in>F. phi i p) = 1"
@@ -2660,7 +2660,7 @@ proof -
             (\<lambda>p. psi j p * phi i p) alpha j))"
       unfolding body_chart_partition_integral_def
       by (rule sum.cong[OF refl])
-         (use GI finiteF compatible unityF intG in
+         (use GI \<open>finite F\<close> compatible unityF intG in
           \<open>auto intro: body_chart_integral_partition\<close>)
     also have "\<dots> =
       (\<Sum>j\<in>G. \<Sum>i\<in>F.

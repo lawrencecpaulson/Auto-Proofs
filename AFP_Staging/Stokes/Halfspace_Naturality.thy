@@ -232,7 +232,7 @@ theorem exterior_top_pull_near_top_C2_halfspace:
   shows "exterior_top (pull_near_top f g A) x =
     pull_top f (exterior_top A) x"
 proof -
-  have openU: "open U" by (rule Ck_on_open[OF C2f])
+  have "open U" by (rule Ck_on_open[OF C2f])
   have C2f': "Ck_on (Suc 1) f U"
     using C2f by (metis Suc_1)
   have df: "f differentiable (at x)"
@@ -246,7 +246,7 @@ proof -
   have inverse_J:
     "jacobian f (at x) ** jacobian g (at (f x)) = mat 1"
     by (rule jacobian_local_inverse_halfspace
-        [OF openU xU xH df dg])
+        [OF \<open>open U\<close> xU xH df dg])
        (use inverse in auto)
   have dJf: "(\<lambda>y. jacobian f (at y)) differentiable (at x)"
     by (rule Ck_on_2_jacobian_differentiable[OF C2f xU])

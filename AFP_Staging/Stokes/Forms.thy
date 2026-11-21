@@ -479,7 +479,7 @@ lemma near_top_scale_support:
 proof
   fix x
   assume h: "x \<in> support_on U (\<lambda>x. rho x *\<^sub>R A x)"
-  then have xU: "x \<in> U" and nz: "rho x *\<^sub>R A x \<noteq> 0"
+  then have "x \<in> U" and nz: "rho x *\<^sub>R A x \<noteq> 0"
     by (auto simp: support_on_def)
   have "A x \<noteq> 0"
   proof
@@ -487,7 +487,7 @@ proof
     then have "rho x *\<^sub>R A x = 0" by simp
     with nz show False by blast
   qed
-  with xU show "x \<in> support_on U A"
+  with \<open>x \<in> U\<close> show "x \<in> support_on U A"
     by (simp add: support_on_def)
 qed
 
@@ -498,7 +498,7 @@ lemma top_scale_support:
 proof
   fix x
   assume h: "x \<in> support_on U (\<lambda>x. rho x * T x)"
-  then have xU: "x \<in> U" and nz: "rho x * T x \<noteq> 0"
+  then have "x \<in> U" and nz: "rho x * T x \<noteq> 0"
     by (auto simp: support_on_def)
   have "T x \<noteq> 0"
   proof
@@ -506,7 +506,7 @@ proof
     then have "rho x * T x = 0" by simp
     with nz show False by blast
   qed
-  with xU show "x \<in> support_on U T"
+  with \<open>x \<in> U\<close> show "x \<in> support_on U T"
     by (simp add: support_on_def)
 qed
 
@@ -707,11 +707,11 @@ lemma matrix_left_mul_has_derivative:
   shows "((\<lambda>M. G ** M)
     has_derivative (\<lambda>K. G ** K)) (at A)"
 proof -
-  have lin: "linear (\<lambda>M::real ^ 'n ^ 'n. G ** M)"
+  have "linear (\<lambda>M::real ^ 'n ^ 'n. G ** M)"
     by (simp add: linear_iff matrix_add_ldistrib matrix_scalar_ac
       scalar_matrix_assoc[symmetric])
-  have bl: "bounded_linear (\<lambda>M::real ^ 'n ^ 'n. G ** M)"
-    using lin by (simp add: linear_conv_bounded_linear)
+  then have bl: "bounded_linear (\<lambda>M::real ^ 'n ^ 'n. G ** M)"
+    by (simp add: linear_conv_bounded_linear)
   show ?thesis
     by (rule bounded_linear.has_derivative[OF bl]) simp
 qed
@@ -741,10 +741,10 @@ proof -
     has_derivative
       (\<lambda>K. Determinants.det A * trace (G ** K))) (at A)"
     using has_derivative_mult[OF dc dcomp] by simp
-  have detGA: "Determinants.det G * Determinants.det A = 1"
+  have "Determinants.det G * Determinants.det A = 1"
     using inverse by (simp add: det_mul[symmetric])
-  have detAG: "Determinants.det A * Determinants.det G = 1"
-    using detGA by (simp add: mult.commute)
+  then have detAG: "Determinants.det A * Determinants.det G = 1"
+    by (simp add: mult.commute)
   have eq: "Determinants.det A * Determinants.det (G ** M) =
       Determinants.det M" for M :: "real ^ 'n ^ 'n"
     by (simp add: det_mul detAG mult.assoc)
@@ -1090,7 +1090,7 @@ lemma Ck_on_2_grad_component_differentiable:
   assumes C2: "Ck_on 2 f U" and xU: "x \<in> U"
   shows "(\<lambda>y. \<nabla> f y $ b) differentiable (at x)"
 proof -
-  have openU: "open U" by (rule Ck_on_open[OF C2])
+  have "open U" by (rule Ck_on_open[OF C2])
   have C2': "Ck_on (Suc 1) f U"
     using C2 by (metis Suc_1)
   have df_on: "f differentiable (at y)" if "y \<in> U" for y
@@ -1108,7 +1108,7 @@ proof -
     by (rule scalar_partial_eq_grad[OF df_on[OF that]])
   show ?thesis
     by (rule differentiable_transform_within_open
-        [OF dD openU xU]) (rule eq_on)
+        [OF dD \<open>open U\<close> xU]) (rule eq_on)
 qed
 
 lemma Ck_on_2_jacobian_entry_differentiable:
@@ -1118,7 +1118,7 @@ lemma Ck_on_2_jacobian_entry_differentiable:
     differentiable (at x)"
 proof -
   let ?fa = "\<lambda>y. f y $ a"
-  have openU: "open U" by (rule Ck_on_open[OF C2])
+  have "open U" by (rule Ck_on_open[OF C2])
   have C2a: "Ck_on 2 ?fa U"
     by (rule Ck_on_component[OF C2])
   have dgrad: "(\<lambda>y. \<nabla> ?fa y $ b)
@@ -1135,7 +1135,7 @@ proof -
     by simp
   show ?thesis
     by (rule differentiable_transform_within_open
-        [OF dgrad openU xU]) (rule eq_on)
+        [OF dgrad \<open>open U\<close> xU]) (rule eq_on)
 qed
 
 lemma Ck_on_2_jacobian_differentiable:
@@ -1393,7 +1393,7 @@ theorem exterior_top_pull_near_top_C2:
   shows "exterior_top (pull_near_top f g A) x =
     pull_top f (exterior_top A) x"
 proof -
-  have openU: "open U" by (rule Ck_on_open[OF C2f])
+  have "open U" by (rule Ck_on_open[OF C2f])
   have C2f': "Ck_on (Suc 1) f U"
     using C2f by (metis Suc_1)
   have C2g': "Ck_on (Suc 1) g V"
@@ -1406,7 +1406,7 @@ proof -
       image[OF xU] by blast
   have inverse_J:
     "jacobian f (at x) ** jacobian g (at (f x)) = mat 1"
-    by (rule jacobian_local_inverse[OF openU xU df dg])
+    by (rule jacobian_local_inverse[OF \<open>open U\<close> xU df dg])
        (rule inverse)
   have dJf: "(\<lambda>y. jacobian f (at y)) differentiable (at x)"
     by (rule Ck_on_2_jacobian_differentiable[OF C2f xU])

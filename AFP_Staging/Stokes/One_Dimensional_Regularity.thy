@@ -20,7 +20,7 @@ proof -
   have tH: "t \<in> {0::real..}"
     and tW: "t \<in> W"
     using tC W by auto
-  have openU: "open U"
+  have "open U"
     by (rule Ck_on_open[OF smooth])
   have diffF: "F differentiable (at t)"
     using Ck_onD[OF smooth tU]
@@ -30,7 +30,7 @@ proof -
     by (rule has_vector_derivative_at_within)
        (use diffF in \<open>simp add: vector_derivative_works\<close>)
   have openV: "open (U \<inter> W)"
-    using openU W(1) by auto
+    using \<open>open U\<close> W(1) by auto
   have tV: "t \<in> U \<inter> W"
     using tU tW by auto
   obtain d :: real where d: "0 < d"
@@ -151,12 +151,12 @@ proof -
       fix s
       assume sC: "s \<in> C"
         and near: "dist s t < d"
-      have sU: "s \<in> U"
+      have "s \<in> U"
         using d(2) near
         by (auto simp: dist_commute)
       show "vector_derivative F (at s) = ?g s"
         using halfline_vector_derivative_of_local_C1
-          [OF openC sC UF(1) sU]
+          [OF openC sC UF(1) \<open>s \<in> U\<close>]
           UF(3) by auto
     qed
   qed

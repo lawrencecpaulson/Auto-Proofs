@@ -26,11 +26,11 @@ proof -
   have open_int: "open (C i \<inter> open_halfspace)"
     using body_overlap_open[OF i i]
     by (simp only: body_overlap_def overlap_eq)
-  have closedK: "closed K"
+  have "closed K"
     by (rule compact_imp_closed[OF compact])
   let ?W = "(C i \<inter> open_halfspace) - K"
   have openW: "open ?W"
-    by (rule open_Diff[OF open_int closedK])
+    by (rule open_Diff[OF open_int \<open>closed K\<close>])
   have xW: "x \<in> ?W"
     using x out by auto
   have zeroW: "\<And>p. p \<in> ?W \<Longrightarrow> A p = 0"
@@ -94,12 +94,12 @@ proof -
        (use dA compact_P K_P_chart zero_P cont_P
           compact_Q K_Q_chart zero_Q cont_Q in
         \<open>auto simp: V[symmetric]\<close>)
-  have stokes: "(LINT p : C i | lborel.
+  have "(LINT p : C i | lborel.
       product_exterior_top A p) =
     (LINT y : {y. (0,y) \<in> U} | lborel.
       product_boundary_coeff A y)"
     using stokes_raw by (simp only: V[symmetric])
-  show ?thesis using stokes by (simp add: face)
+  then show ?thesis by (simp add: face)
 qed
 
 corollary Stokes_boundary_chart_compact_C1:

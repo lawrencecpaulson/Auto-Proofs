@@ -272,15 +272,15 @@ lemma stokes_ball_cutoff_zero:
     and x: "x \<notin> ball a R"
   shows "stokes_ball_cutoff a r R x = 0"
 proof -
-  have R0: "0 \<le> R" using r R by simp
+  have "0 \<le> R" using r R by simp
   have den_pos: "0 < R\<^sup>2 - r\<^sup>2"
     using power_strict_mono[OF R r, of 2] by simp
   have norm_ge: "R \<le> norm (x - a)"
     using x by (simp add: dist_norm norm_minus_commute)
-  have sq_ge: "R\<^sup>2 \<le> (norm (x - a))\<^sup>2"
-    using norm_ge R0 by (intro power_mono) auto
-  have "R\<^sup>2 - (norm (x - a))\<^sup>2 \<le> 0"
-    using sq_ge by simp
+  have "R\<^sup>2 \<le> (norm (x - a))\<^sup>2"
+    using norm_ge \<open>0 \<le> R\<close> by (intro power_mono) auto
+  then have "R\<^sup>2 - (norm (x - a))\<^sup>2 \<le> 0"
+    by simp
   then show ?thesis
     unfolding stokes_ball_cutoff_def
     using den_pos

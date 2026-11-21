@@ -63,11 +63,11 @@ lemma green_chart_field_exterior:
     green_partial_x Q p - green_partial_y P p"
 proof -
   let ?L = "\<lambda>r::real. - vec r :: real ^ 1"
-  have lin: "linear ?L"
+  have "linear ?L"
     by (rule linearI)
       (simp_all add: vec_eq_iff)
-  have bL: "bounded_linear ?L"
-    using lin by (simp add: linear_conv_bounded_linear)
+  then have bL: "bounded_linear ?L"
+    by (simp add: linear_conv_bounded_linear)
   let ?dP = "frechet_derivative P (at p)"
   let ?dQ = "frechet_derivative Q (at p)"
   have dP: "(P has_derivative ?dP) (at p)"

@@ -531,10 +531,10 @@ proof -
     obtain t y where p: "p = (t,y)" by (cases p) auto
     have t: "0 \<le> t" and nz: "g t y \<noteq> 0"
       using S p by auto
-    have tr: "t \<le> R" using g_tail[of t y] nz by force
+    have "t \<le> R" using g_tail[of t y] nz by force
     have yr: "y \<in> cball 0 R"
       using g_side[OF t, of y] nz by blast
-    show "p \<in> ?D" using p t tr yr by auto
+    show "p \<in> ?D" using p t \<open>t \<le> R\<close> yr by auto
   qed
   have "bounded ?S"
     by (rule bounded_subset[OF compact_imp_bounded[OF compactD] sub])

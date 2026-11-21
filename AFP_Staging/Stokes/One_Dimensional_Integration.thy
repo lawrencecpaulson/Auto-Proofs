@@ -125,7 +125,7 @@ proof -
   obtain U where U: "open U"
     "C = {0..} \<inter> U"
     using openC by (auto simp: openin_open)
-  have closedQ: "closed Q"
+  have "closed Q"
     by (rule compact_imp_closed[OF compactQ])
   have tH: "0 \<le> t"
     using t U(2) by auto
@@ -141,7 +141,7 @@ proof -
     by (rule vector_derivative_zero_on_relative_open
       [where c=id and H="{0..}" and U=U and
         K=Q and S="{0..}" and F=F and t=t,
-        OF U(1) closedQ cont_id])
+        OF U(1) \<open>closed Q\<close> cont_id])
       (use t tH U zeroF raw_deriv
         halfline_at_within_nontrivial[OF tH]
         in auto)
@@ -357,7 +357,7 @@ lemma exact_one_form_closed_support:
     and out: "from_chart i t \<notin> K"
   shows "exact_one_form omega i t = 0"
 proof -
-  have openB: "open (- K)"
+  have "open (- K)"
     by (rule open_Compl[OF closed])
   have from_cont:
     "continuous_on (C i) (from_chart i)"
@@ -368,7 +368,7 @@ proof -
       (\<forall>s\<in>C i. s \<in> W \<longrightarrow>
         from_chart i s \<in> - K)"
     using continuous_on_topological[THEN iffD1,
-      OF from_cont] tC openB out
+      OF from_cont] tC \<open>open (- K)\<close> out
     by blast
   obtain W where W: "open W" "t \<in> W"
     "\<And>s. s \<in> C i \<Longrightarrow> s \<in> W \<Longrightarrow>
@@ -378,12 +378,12 @@ proof -
     "C i = {0..} \<inter> U"
     using halfline_chart.open_C[OF chart[OF i]]
     by (auto simp: openin_open)
-  have tU: "t \<in> U"
+  have "t \<in> U"
     using U(2) tC by auto
   have openV: "open (U \<inter> W)"
     using U(1) W(1) by auto
   have tV: "t \<in> U \<inter> W"
-    using tU W(2) by auto
+    using \<open>t \<in> U\<close> W(2) by auto
   obtain d :: real where d: "0 < d"
     "ball t d \<subseteq> U \<inter> W"
     using open_contains_ball[THEN iffD1, OF openV]
@@ -519,12 +519,12 @@ next
     "C j = {0..} \<inter> U"
     using halfline_chart.open_C[OF chart[OF j]]
     by (auto simp: openin_open)
-  have tU: "t \<in> U"
+  have "t \<in> U"
     using t U(2) by auto
   have openV: "open (U \<inter> W)"
     using U(1) W(1) by auto
   have tV: "t \<in> U \<inter> W"
-    using tU W(2) by auto
+    using \<open>t \<in> U\<close> W(2) by auto
   obtain d :: real where d: "0 < d"
     "ball t d \<subseteq> U \<inter> W"
     using open_contains_ball[THEN iffD1, OF openV]
@@ -1170,7 +1170,7 @@ lemma exact_chart_data_integrable:
     and iF: "i \<in> F"
   shows "(g i) absolutely_integrable_on C i"
 proof -
-  have iI: "i \<in> I"
+  have "i \<in> I"
     using data iF by (auto simp: exact_chart_data_def)
   have compactQ: "compact (Q i)"
     and QC: "Q i \<subseteq> C i"
@@ -1193,7 +1193,7 @@ proof -
         omega (from_chart i s)"
         and g="g i" and C="C i" and Q="Q i"
         and t=t])
-      (use halfline_chart.open_C[OF chart[OF iI]]
+      (use halfline_chart.open_C[OF chart[OF \<open>i \<in> I\<close>]]
         compactQ zeroF deriv t in auto)
   have contQ: "continuous_on (Q i) (g i)"
     by (rule continuous_on_subset[OF cont QC])
@@ -1211,7 +1211,7 @@ lemma exact_chart_data_lebesgue_eq_integral:
   shows "(LINT t : C i | lborel. g i t) =
     integral (C i) (g i)"
 proof (rule set_borel_integral_eq_integral(2))
-  have iI: "i \<in> I"
+  have "i \<in> I"
     using data iF by (auto simp: exact_chart_data_def)
   have compactQ: "compact (Q i)"
     and QC: "Q i \<subseteq> C i"
@@ -1234,7 +1234,7 @@ proof (rule set_borel_integral_eq_integral(2))
         omega (from_chart i s)"
         and g="g i" and C="C i" and Q="Q i"
         and t=t])
-      (use halfline_chart.open_C[OF chart[OF iI]]
+      (use halfline_chart.open_C[OF chart[OF \<open>i \<in> I\<close>]]
         compactQ zeroF deriv t in auto)
   show "set_integrable lborel (C i) (g i)"
     by (rule real_lborel_integrable_compact_support

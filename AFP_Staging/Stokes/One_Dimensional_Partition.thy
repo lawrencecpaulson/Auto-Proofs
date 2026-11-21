@@ -410,14 +410,14 @@ proof -
       (\<forall>p. 0 \<le> r p \<and> r p \<le> 1)"
     if ii: "i \<in> F" for i
   proof -
-    have iI: "i \<in> I"
+    have "i \<in> I"
       using F(2) ii by auto
     have compact_abs: "compact (Q i)"
       using compactQ[OF ii]
       by (simp add: compactin_subtopology)
     show ?thesis
     proof (rule carrier_single_chart_C1_cutoff
-        [OF iI compact_abs QD[OF ii]])
+        [OF \<open>i \<in> I\<close> compact_abs QD[OF ii]])
       fix r :: "'a \<Rightarrow> real" and L :: "'a set"
       assume cont: "continuous_on M r"
         and C1: "chartwise_C1_scalar r"
@@ -427,12 +427,12 @@ proof -
         and one: "\<And>p. p \<in> Q i \<Longrightarrow> r p = 1"
         and nonneg: "\<And>p. 0 \<le> r p"
         and le_one: "\<And>p. r p \<le> 1"
-      have closedL: "closed L"
+      have "closed L"
         by (rule compact_imp_closed[OF compactL])
       show ?thesis
         apply (rule exI[where x=r])
         apply (rule exI[where x=L])
-        using cont C1 closedL LD nonzero one
+        using cont C1 \<open>closed L\<close> LD nonzero one
           nonneg le_one by auto
     qed
   qed

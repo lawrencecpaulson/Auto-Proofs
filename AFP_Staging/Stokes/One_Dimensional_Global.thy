@@ -80,7 +80,7 @@ proof -
     \<exists>z. ?Pdata i z"
   proof (intro ballI)
     fix i assume iF: "i \<in> F"
-    have iI: "i \<in> I"
+    have "i \<in> I"
       using F(2) iF by auto
     have Li: "?P i (L i)"
       using L iF by auto
@@ -95,7 +95,7 @@ proof -
       using F(5) iF by auto
     show "\<exists>z. ?Pdata i z"
     proof (rule localized_chart_derivative_data
-        [OF iI compact support
+        [OF \<open>i \<in> I\<close> compact support
           closedLi LDi supportLi smooth phiC1])
       fix Q g
       assume q: "compact Q" "Q \<subseteq> C i"
