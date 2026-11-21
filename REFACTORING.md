@@ -1,5 +1,7 @@
 # Instructions for refactoring Isabelle proofs
 
+Apply these guidelines with judgment, where they improve clarity while preserving useful results and the structure of the proof.
+
 ## Eliminating needless proofs
 
 A typical development will have either (1) a headline result and perhaps corollaries of that result or (2) a library of useful results. Use `proposition` or `theorem` for end results and `lemma` for supporting facts when that distinction clarifies the presentation. Delete or inline unreferenced internal results that have no clear independent use; retain useful statements regardless of whether Isabelle calls them lemmas, propositions, or theorems.
