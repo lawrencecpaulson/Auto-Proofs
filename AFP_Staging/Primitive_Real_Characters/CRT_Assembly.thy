@@ -14,7 +14,7 @@ lemma modulus_four_value_three:
 proof -
   obtain a where cp: "coprime a n" and neg: "\<chi> a = -1"
     using negative_value_exists by blast
-  have odda: "odd a"
+  have "odd a"
   proof (rule ccontr)
     assume "\<not> odd a"
     then have "2 dvd a" by simp
@@ -28,7 +28,7 @@ proof -
     have "(a mod 4) mod 2 = a mod 2"
       using mod_mod_cancel[of 2 4 a] by simp
     moreover have "a mod 2 = 1"
-      using odda by (simp add: mod_2_eq_odd)
+      using \<open>odd a\<close> by (simp add: mod_2_eq_odd)
     ultimately show ?thesis by simp
   qed
   have mod4: "a mod 4 = 1 \<or> a mod 4 = 3"
@@ -52,10 +52,10 @@ lemma modulus_eight_value_five:
   shows "\<chi> 5 = -1"
 proof (rule ccontr)
   assume not_minus: "\<chi> 5 \<noteq> -1"
-  have cp5: "coprime 5 n"
+  have "coprime 5 n"
     by (simp only: n8; eval)
   have nonzero: "\<chi> 5 \<noteq> 0"
-    using cp5 by (simp add: eq_zero_iff)
+    using \<open>coprime 5 n\<close> by (simp add: eq_zero_iff)
   have value5: "\<chi> 5 = 1"
     using char_cases[of 5] nonzero not_minus by auto
   have induced4: "induced_modulus 4"
@@ -63,9 +63,9 @@ proof (rule ccontr)
     show "4 dvd n" using n8 by simp
     fix a
     assume cp: "coprime a n" and one: "[a = 1] (mod 4)"
-    have a4: "a mod 4 = 1" using one by (simp add: cong_def)
+    have "a mod 4 = 1" using one by (simp add: cong_def)
     have a8_4: "(a mod 8) mod 4 = 1"
-      using a4 mod_mod_cancel[of 4 8 a] by simp
+      using \<open>a mod 4 = 1\<close> mod_mod_cancel[of 4 8 a] by simp
     have a8: "a mod 8 = 1 \<or> a mod 8 = 5"
     proof -
       have less: "a mod 8 < 8" by simp
@@ -282,12 +282,12 @@ proof -
         show "d * k dvd n" using ddvd by (simp add: factor_modulus)
         fix a
         assume acp: "coprime a n" and acong: "[a = 1] (mod d * k)"
-        have acpm: "coprime a m" using acp by (simp add: factor_modulus)
+        have "coprime a m" using acp by (simp add: factor_modulus)
         have ad: "[a = 1] (mod d)"
           using acong by (rule cong_dvd_mono_modulus) simp
         have ak: "[a = 1] (mod k)"
           using acong by (rule cong_dvd_mono_modulus) simp
-        have "chi_left a = 1" by (rule L.induced_modulusD[OF induced acpm ad])
+        have "chi_left a = 1" by (rule L.induced_modulusD[OF induced \<open>coprime a m\<close> ad])
         moreover have "chi_right a = 1" using R.cong[OF ak] by simp
         ultimately show "\<chi> a = 1" using factorization[of a] by simp
       qed
@@ -343,11 +343,11 @@ proof -
   interpret C: crt_dcharacter n "residue_mult_group n" \<chi> m k
     by (unfold_locales; use nr cp mgt kgt in \<open>auto\<close>)
   have source_real: "real_dcharacter n \<chi>"
-    using dcharacter_axioms real_dcharacter_axioms
-    unfolding real_dcharacter_def by blast
+    using primitive_real_dcharacter_self
+    unfolding primitive_real_dcharacter_def by blast
   have source_primitive: "primitive_dchar n \<chi>"
-    using dcharacter_axioms primitive_dchar_axioms
-    unfolding primitive_dchar_def by blast
+    using primitive_real_dcharacter_self
+    unfolding primitive_real_dcharacter_def by blast
   have left_real: "real_dcharacter m C.chi_left"
     by (rule C.chi_left_real[OF source_real])
   have left_primitive: "primitive_dchar m C.chi_left"

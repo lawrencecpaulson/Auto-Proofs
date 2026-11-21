@@ -33,15 +33,8 @@ proof -
   proof (cases "r = 1")
     case True
     have eq: "n = p ^ ?k" using nr True by simp
-    have source_real: "real_dcharacter n \<chi>"
-      using dcharacter_axioms real_dcharacter_axioms
-      unfolding real_dcharacter_def by blast
-    have source_primitive: "primitive_dchar n \<chi>"
-      using dcharacter_axioms primitive_dchar_axioms
-      unfolding primitive_dchar_def by blast
     have source_green_n: "primitive_real_dcharacter n \<chi>"
-      using source_real source_primitive
-      unfolding primitive_real_dcharacter_def by blast
+      by (rule primitive_real_dcharacter_self)
     have source_green: "primitive_real_dcharacter (p ^ ?k) \<chi>"
       by (subst eq[symmetric]) (rule source_green_n)
     then show thesis by (rule that)
@@ -177,8 +170,8 @@ proof (induction n arbitrary: chi rule: less_induct)
   have rpos: "0 < r" using ngt nr by (cases r) auto
   have rlt: "r < n"
     using pgt rpos nr by (simp add: mult.commute)
-  have rodd: "odd r" using less.prems(2) nr by simp
-  have rsf: "squarefree r"
+  have "odd r" using less.prems(2) nr by simp
+  have "squarefree r"
     by (rule squarefree_mono[OF _ less.prems(3)]) (simp add: nr)
   show ?case
   proof (cases "r = 1")
@@ -215,7 +208,7 @@ proof (induction n arbitrary: chi rule: less_induct)
       using P.prime_modulus_legendre[OF prime, of a]
         prime_p_Jacobi_eq_Legendre[OF iprime, of "int a"] by simp
     have right: "theta a = of_int (Jacobi (int a) (int r))"
-      by (rule less.IH[OF rlt right_green rodd rsf])
+      by (rule less.IH[OF rlt right_green \<open>odd r\<close> \<open>squarefree r\<close>])
     have "chi a = psi a * theta a"
       by (rule factor)
     also have "... = of_int (Jacobi (int a) (int n))"
@@ -238,13 +231,13 @@ proof (cases "m = 1")
     by (simp add: odd_discriminant_core_def)
 next
   case False
-  have mgt: "2 < int m" using odd mpos False by presburger
+  have "2 < int m" using odd mpos False by presburger
   have pgt: "2 < int p"
     using prime_gt_1_nat[OF prime] podd by presburger
-  have cp_nat: "coprime m p"
+  have "coprime m p"
     using prime unramified by (meson prime_imp_coprime coprime_commute)
   have cp: "coprime (int m) (int p)"
-    using cp_nat by simp
+    using \<open>coprime m p\<close> by simp
   have imodm4: "int m mod 4 = int (m mod 4)"
     by (simp add: of_nat_mod)
   have imodp4: "int p mod 4 = int (p mod 4)"
@@ -255,7 +248,7 @@ next
     using podd by presburger
   have rec: "Jacobi (int p) (int m) =
     (if m mod 4 = 3 \<and> p mod 4 = 3 then -1 else 1) * Jacobi (int m) (int p)"
-    using Quadratic_Reciprocity_Jacobi'[OF cp mgt pgt]
+    using Quadratic_Reciprocity_Jacobi'[OF cp \<open>2 < int m\<close> pgt]
       odd podd by (simp add: imodm4 imodp4)
   have neg: "Jacobi (-int m) (int p) =
     (if p mod 4 = 1 then 1 else -1) * Jacobi (int m) (int p)"
