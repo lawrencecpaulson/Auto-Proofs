@@ -15,8 +15,8 @@ lemma roth_monom_last_split:
 
 definition roth_last_coeff ::
   "rat mpoly \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> rat mpoly"
-  where "roth_last_coeff P v e =
-    (\<Sum>I\<in>{I\<in>Poly_Mapping.keys (mapping_of P).
+  where "roth_last_coeff P v e \<equiv>
+    (\<Sum>I \<in> {I \<in> Poly_Mapping.keys (mapping_of P).
         Poly_Mapping.lookup I v = e}.
       MPoly_Type.monom (remove_key v I) (MPoly_Type.coeff P I))"
 
@@ -27,8 +27,7 @@ lemma roth_last_coeff_mul:
         Poly_Mapping.lookup I v = e}.
       MPoly_Type.monom I (MPoly_Type.coeff P I))"
   unfolding roth_last_coeff_def sum_distrib_right
-  by (rule sum.cong)
-    (auto simp: roth_monom_last_split[symmetric])
+  by (rule sum.cong) (auto simp: roth_monom_last_split[symmetric])
 
 lemma roth_last_split_support:
   "P = (\<Sum>e\<in>(\<lambda>I. Poly_Mapping.lookup I v) `
@@ -38,8 +37,8 @@ lemma roth_last_split_support:
 proof -
   let ?S = "Poly_Mapping.keys (mapping_of P)"
   let ?T = "(\<lambda>I. Poly_Mapping.lookup I v) ` ?S"
-  have group: "(\<Sum>e\<in>?T.
-      \<Sum>I\<in>{I\<in>?S. Poly_Mapping.lookup I v=e}.
+  have group: "(\<Sum>e \<in> ?T.
+      \<Sum>I \<in> {I \<in> ?S. Poly_Mapping.lookup I v=e}.
         MPoly_Type.monom I (MPoly_Type.coeff P I)) =
       (\<Sum>I\<in>?S. MPoly_Type.monom I (MPoly_Type.coeff P I))"
     by (rule sum.group) auto
@@ -56,9 +55,9 @@ proof -
   have empty: "{I\<in>Poly_Mapping.keys (mapping_of P).
       Poly_Mapping.lookup I v = e} = {}"
   proof (rule ccontr)
-    assume "{I\<in>Poly_Mapping.keys (mapping_of P).
+    assume "{I \<in> Poly_Mapping.keys (mapping_of P).
         Poly_Mapping.lookup I v = e} \<noteq> {}"
-    then obtain I where I: "I\<in>Poly_Mapping.keys (mapping_of P)"
+    then obtain I where I: "I \<in> Poly_Mapping.keys (mapping_of P)"
       and eq: "Poly_Mapping.lookup I v = e"
       by blast
     have mem: "I\<in>roth_exponent_box m r"
@@ -94,30 +93,19 @@ proof -
   proof
     fix e
     assume "e\<in>?T"
-    then obtain I where I: "I\<in>?S"
-      and eq: "e=Poly_Mapping.lookup I v" by blast
-    have mem: "I\<in>roth_exponent_box m r"
+    then obtain I where I: "I\<in>?S" and eq: "e = Poly_Mapping.lookup I v" by blast
+    have mem: "I \<in> roth_exponent_box m r"
       using box I by (auto simp: roth_poly_in_box_def)
-    show "e\<in>{..r v}"
-      using roth_exponent_boxD(2)[OF mem vm] eq by simp
+    show "e \<in> {..r v}"
+      using eq mem roth_exponent_box_iff vm by auto
   qed
-  have ext: "(\<Sum>e\<le>r v.
-      roth_last_coeff P v e *
-        MPoly_Type.monom (Poly_Mapping.single v e) 1) =
-    (\<Sum>e\<in>?T.
-      roth_last_coeff P v e *
-        MPoly_Type.monom (Poly_Mapping.single v e) 1)"
-  proof (rule sum.mono_neutral_right)
-    show "finite {..r v}" by simp
-    show "?T \<subseteq> {..r v}" by (rule sub)
-    show "\<forall>e\<in>{..r v} - ?T.
-      roth_last_coeff P v e *
-        MPoly_Type.monom (Poly_Mapping.single v e) 1 = 0"
-      by (auto simp: roth_last_coeff_not_in_support)
-  qed
-  show ?thesis using roth_last_split_support[of P v] ext
-    by simp
-qed
+  have ext: "(\<Sum>e\<le>r v. roth_last_coeff P v e *
+               MPoly_Type.monom (Poly_Mapping.single v e) 1) =
+    (\<Sum>e\<in>?T. roth_last_coeff P v e * MPoly_Type.monom (Poly_Mapping.single v e) 1)"   
+    by (intro sub sum.mono_neutral_right) (auto simp: roth_last_coeff_not_in_support)
+  then show "P = (\<Sum>e\<le>r v. roth_last_coeff P v e * MPoly_Type.monom (monomial e v) 1)"
+    using roth_last_split_support by presburger
+qed 
 
 lemma roth_remove_last_box:
   assumes mem: "I \<in> roth_exponent_box (Suc n) r"
@@ -148,11 +136,9 @@ proof (rule roth_poly_in_box_sum)
       Poly_Mapping.lookup I n = e}"
   have mem: "I\<in>roth_exponent_box (Suc n) r"
     using box I by (auto simp: roth_poly_in_box_def)
-  have rem: "remove_key n I \<in> roth_exponent_box n r"
-    by (rule roth_remove_last_box[OF mem])
-  show "roth_poly_in_box n r
+  then show "roth_poly_in_box n r
       (MPoly_Type.monom (remove_key n I) (MPoly_Type.coeff P I))"
-    by (rule roth_poly_in_box_monom[OF rem])
+    by (simp add: roth_poly_in_box_monom roth_remove_last_box)
 qed
 
 lemma roth_last_coeff_some_nonzero:
@@ -162,11 +148,7 @@ lemma roth_last_coeff_some_nonzero:
   shows "\<exists>e\<le>r v. roth_last_coeff P v e \<noteq> 0"
 proof (rule ccontr)
   assume "\<not> (\<exists>e\<le>r v. roth_last_coeff P v e \<noteq> 0)"
-  then have z: "(\<Sum>e\<le>r v.
-      roth_last_coeff P v e *
-        MPoly_Type.monom (Poly_Mapping.single v e) 1) = 0"
-    by simp
-  show False using roth_last_split_box[OF box vm] nz z
+  then show False using roth_last_split_box[OF box vm] nz 
     by simp
 qed
 
@@ -186,14 +168,7 @@ lemma roth_mpoly_finite_basis:
   assumes fin: "finite (S::rat mpoly set)"
   shows "\<exists>B. B \<subseteq> S \<and> roth_vs.independent B \<and>
     S \<subseteq> roth_vs.span B \<and> card B \<le> card S"
-proof -
-  obtain B where B: "B \<subseteq> S" "roth_vs.independent B"
-    "S \<subseteq> roth_vs.span B" "card B = roth_vs.dim S"
-    by (rule roth_vs.basis_exists[of S])
-  have bd: "card B \<le> card S"
-    by (rule card_mono[OF fin B(1)])
-  show ?thesis using B(1-3) bd by auto
-qed
+  using fin by (metis roth_vs.basis_exists roth_vs.dim_le_card roth_vs.span_superset)
 
 lemma roth_last_coeff_basis:
   assumes box: "roth_poly_in_box (Suc n) r (P::rat mpoly)"
@@ -212,9 +187,8 @@ proof -
     using card_image_le[of "{..r n}" "roth_last_coeff P n"] by simp
   have bd: "card B \<le> Suc (r n)"
     using B(4) im by linarith
-  have bx: "\<forall>b\<in>B. roth_poly_in_box n r b"
-    using B(1) roth_last_coeff_box[OF box] by auto
-  show ?thesis using B(1-3) bd bx by blast
+  show ?thesis 
+    using B bd roth_last_coeff_box[OF box] by blast
 qed
 
 lemma roth_last_coeff_basis_nonempty:
@@ -222,13 +196,7 @@ lemma roth_last_coeff_basis_nonempty:
     and nz: "P \<noteq> 0"
     and spans: "roth_last_coeff P n ` {..r n} \<subseteq> roth_vs.span B"
   shows "B \<noteq> {}"
-proof -
-  obtain e where e: "e \<le> r n" "roth_last_coeff P n e \<noteq> 0"
-    using roth_last_coeff_some_nonzero[OF box _ nz, of n] by auto
-  have mem: "roth_last_coeff P n e \<in> roth_vs.span B"
-    using spans e(1) by auto
-  show ?thesis using mem e(2) by auto
-qed
+  using roth_last_coeff_some_nonzero[OF box _ nz, of n] assms by auto
 
 lemma roth_last_coeff_representation:
   assumes ind: "roth_vs.independent B"
@@ -237,12 +205,7 @@ lemma roth_last_coeff_representation:
   shows "roth_last_coeff P n e =
     (\<Sum>b\<in>B. MPoly_Type.smult
       (roth_vs.representation B (roth_last_coeff P n e) b) b)"
-proof -
-  have mem: "roth_last_coeff P n e \<in> roth_vs.span B"
-    using spans e by auto
-  show ?thesis
-    using roth_vs.sum_representation_eq[OF ind mem fin subset_refl] by simp
-qed
+  using roth_vs.sum_representation_eq[OF ind _ fin subset_refl] assms by auto
 
 lemma roth_last_coeff_basis_coordinates:
   assumes sub: "B \<subseteq> roth_last_coeff P n ` {..r n}"
@@ -250,32 +213,26 @@ lemma roth_last_coeff_basis_coordinates:
   shows "\<exists>e\<le>r n. \<forall>c\<in>B.
     roth_vs.representation B (roth_last_coeff P n e) c =
       (if c=b then 1 else 0)"
-proof -
-  obtain e where e: "e \<le> r n" "roth_last_coeff P n e=b"
-    using sub b by auto
-  show ?thesis
-    using roth_vs.representation_basis[OF ind b] e by auto
-qed
+  using roth_vs.representation_basis[OF ind b] assms by force
 
 lemma roth_smult_monom_move:
   "MPoly_Type.smult (a::rat) (b::rat mpoly) *
     MPoly_Type.monom I 1 = b * MPoly_Type.monom I a"
   by (simp add: MPoly_Type.smult_conv_mult
-    MPoly_Type.mult_monom algebra_simps)
+      MPoly_Type.mult_monom algebra_simps)
 
 lemma roth_tensor_sums_swap:
-  "(\<Sum>e\<in>(E::nat set). (\<Sum>b\<in>(B::rat mpoly set).
+  "(\<Sum>e \<in> E. (\<Sum>b \<in> (B::rat mpoly set).
       MPoly_Type.smult (c e b) b) *
       MPoly_Type.monom (Poly_Mapping.single n e) 1) =
-    (\<Sum>b\<in>B. b * (\<Sum>e\<in>E.
+    (\<Sum>b \<in> B. b * (\<Sum>e \<in> E.
       MPoly_Type.monom (Poly_Mapping.single n e) (c e b)))"
 proof -
   have "(\<Sum>e\<in>E. (\<Sum>b\<in>B. MPoly_Type.smult (c e b) b) *
       MPoly_Type.monom (Poly_Mapping.single n e) 1) =
     (\<Sum>e\<in>E. \<Sum>b\<in>B. b *
       MPoly_Type.monom (Poly_Mapping.single n e) (c e b))"
-    by (rule sum.cong)
-      (simp_all only: sum_distrib_right roth_smult_monom_move)
+    by (simp only: sum_distrib_right roth_smult_monom_move)
   also have "... = (\<Sum>b\<in>B. \<Sum>e\<in>E. b *
       MPoly_Type.monom (Poly_Mapping.single n e) (c e b))"
     by (rule sum.swap)
@@ -298,16 +255,14 @@ proof -
     (\<Sum>b\<in>B. MPoly_Type.smult
       (roth_vs.representation B (roth_last_coeff P n e) b) b)"
     if "e\<le>r n" for e
-    by (rule roth_last_coeff_representation
-      [where B=B and P=P and n=n and r=r and e=e,
-        OF ind spans fin that])
+    using fin ind roth_last_coeff_representation spans that by blast
   have "P = (\<Sum>e\<le>r n. roth_last_coeff P n e *
       MPoly_Type.monom (Poly_Mapping.single n e) 1)"
     by (rule roth_last_split_box[OF box]) simp
   also have "... = (\<Sum>e\<le>r n. (\<Sum>b\<in>B. MPoly_Type.smult
       (roth_vs.representation B (roth_last_coeff P n e) b) b) *
       MPoly_Type.monom (Poly_Mapping.single n e) 1)"
-    by (rule sum.cong) (auto simp: eq)
+    by (auto simp: eq)
   also have "... = (\<Sum>b\<in>B. b * (\<Sum>e\<le>r n.
       MPoly_Type.monom (Poly_Mapping.single n e)
         (roth_vs.representation B (roth_last_coeff P n e) b)))"
@@ -317,8 +272,8 @@ qed
 
 definition roth_right_factor ::
   "rat mpoly \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> rat mpoly set \<Rightarrow> rat mpoly \<Rightarrow> rat mpoly"
-  where "roth_right_factor P n d B b = (\<Sum>e\<le>d.
-    MPoly_Type.monom (Poly_Mapping.single n e)
+  where "roth_right_factor P n d B b \<equiv> 
+    (\<Sum>e\<le>d. MPoly_Type.monom (Poly_Mapping.single n e)
       (roth_vs.representation B (roth_last_coeff P n e) b))"
 
 lemma roth_single_inj:
@@ -338,7 +293,7 @@ lemma roth_single_monom_coeff:
     (\<Sum>e\<le>d. MPoly_Type.monom (Poly_Mapping.single n e) (c e))
     (Poly_Mapping.single n j) = (c j::rat)"
   by (simp add: roth_coeff_sum More_MPoly_Type.coeff_monom
-    when_def roth_single_inj sum.delta j)
+      when_def roth_single_inj sum.delta j)
 
 lemma roth_right_factor_coeff:
   assumes e: "e\<le>d"
@@ -350,11 +305,10 @@ lemma roth_right_factor_coeff:
 lemma roth_coeff_smult_sum:
   fixes \<psi> :: "rat mpoly \<Rightarrow> rat mpoly"
   assumes fin: "finite (B::rat mpoly set)"
-  shows "MPoly_Type.coeff
-    (\<Sum>b\<in>B. MPoly_Type.smult (c b) (\<psi> b)) I =
-    (\<Sum>b\<in>B. c b * MPoly_Type.coeff (\<psi> b) I)"
+  shows "MPoly_Type.coeff (\<Sum>b\<in>B. MPoly_Type.smult (c b) (\<psi> b)) I =
+           (\<Sum>b\<in>B. c b * MPoly_Type.coeff (\<psi> b) I)"
   unfolding roth_coeff_sum[OF fin]
-  by (rule sum.cong) (simp_all add: roth_coeff_smult_rat)
+  by (simp add: roth_coeff_smult_rat)
 
 lemma roth_sum_coordinate:
   assumes fin: "finite (B::rat mpoly set)" and b: "b\<in>B"
@@ -370,16 +324,13 @@ lemma roth_right_factor_indep:
   shows "c b = 0"
 proof -
   obtain e where e: "e\<le>d" and
-    coord: "\<forall>u\<in>B. roth_vs.representation B
-      (roth_last_coeff P n e) u = (if u=b then 1 else 0)"
+    coord: "\<forall>u\<in>B. roth_vs.representation B (roth_last_coeff P n e) u = (if u=b then 1 else 0)"
     using roth_last_coeff_basis_coordinates[OF sub ind b] by blast
-  have val: "MPoly_Type.coeff
-      (\<Sum>u\<in>B. MPoly_Type.smult (c u)
-        (roth_right_factor P n d B u))
-      (Poly_Mapping.single n e) = c b"
+  have val: "MPoly_Type.coeff (\<Sum>u\<in>B. MPoly_Type.smult (c u) (roth_right_factor P n d B u))
+               (Poly_Mapping.single n e) = c b"
     by (simp add: roth_coeff_smult_sum[OF fin]
-      roth_right_factor_coeff[OF e] coord
-      roth_sum_coordinate[OF fin b])
+        roth_right_factor_coeff[OF e] coord
+        roth_sum_coordinate[OF fin b])
   show ?thesis using z val
     by (simp add: MPoly_Type.coeff_def zero_mpoly.rep_eq)
 qed
@@ -391,17 +342,13 @@ lemma roth_right_factor_inj:
 proof (rule inj_onI)
   fix b c
   assume b: "b\<in>B" and c: "c\<in>B" and
-    eq: "roth_right_factor P n d B b =
-      roth_right_factor P n d B c"
+    eq: "roth_right_factor P n d B b = roth_right_factor P n d B c"
   obtain e where e: "e\<le>d" and
-    coord: "\<forall>u\<in>B. roth_vs.representation B
-      (roth_last_coeff P n e) u = (if u=b then 1 else 0)"
+    coord: "\<forall>u\<in>B. roth_vs.representation B (roth_last_coeff P n e) u = (if u=b then 1 else 0)"
     using roth_last_coeff_basis_coordinates[OF sub ind b] by blast
   have h: "roth_vs.representation B (roth_last_coeff P n e) b =
     roth_vs.representation B (roth_last_coeff P n e) c"
-    using arg_cong[OF eq, of
-      "\<lambda>F. MPoly_Type.coeff F (Poly_Mapping.single n e)"]
-    by (simp add: roth_right_factor_coeff[OF e])
+    using e eq by (metis roth_right_factor_coeff)
   show "b=c" using h coord b c by (cases "b=c") auto
 qed
 
@@ -416,15 +363,15 @@ proof (rule roth_vs.independent_if_scalars_zero)
   assume z: "(\<Sum>x\<in>roth_right_factor P n d B ` B.
     MPoly_Type.smult (c x) x) = 0"
     and x: "x\<in>roth_right_factor P n d B ` B"
-  obtain b where b: "b\<in>B" "x=roth_right_factor P n d B b"
+  obtain b where b: "b \<in> B" "x = roth_right_factor P n d B b"
     using x by auto
   have inj: "inj_on (roth_right_factor P n d B) B"
     by (rule roth_right_factor_inj[OF sub ind])
   have zb: "(\<Sum>b\<in>B. MPoly_Type.smult
     (c (roth_right_factor P n d B b))
-    (roth_right_factor P n d B b))=0"
+    (roth_right_factor P n d B b)) = 0"
     using z by (simp add: sum.reindex[OF inj] comp_def)
-  show "c x=0"
+  show "c x = 0"
     using roth_right_factor_indep[OF sub ind fin zb b(1)] b(2)
     by simp
 qed
@@ -438,8 +385,7 @@ lemma roth_single_in_box:
 lemma roth_right_factor_box:
   "roth_poly_in_box (Suc n) r (roth_right_factor P n (r n) B b)"
   unfolding roth_right_factor_def
-  by (rule roth_poly_in_box_sum)
-    (auto intro: roth_poly_in_box_monom roth_single_in_box)
+  by (auto intro: roth_poly_in_box_sum roth_poly_in_box_monom roth_single_in_box)
 
 lemma roth_right_factor_vars:
   "vars (roth_right_factor P n d B b) \<subseteq> {n}"
@@ -471,15 +417,14 @@ proof -
     coord: "\<forall>u\<in>B. roth_vs.representation B
       (roth_last_coeff P n e) u = (if u=b then 1 else 0)"
     using roth_last_coeff_basis_coordinates[OF sub ind b] by blast
-  have val: "Polynomial.coeff
-    (\<Sum>u\<in>B. Polynomial.smult (c u)
-      (mpoly_to_poly n (roth_right_factor P n d B u))) e = c b"
-    by (simp add: Polynomial.coeff_sum coeff_smult
-      roth_right_factor_coeff[OF e] coord
-      roth_sum_coordinate[OF fin b])
+  have val: "Polynomial.coeff (\<Sum>u\<in>B. Polynomial.smult (c u)
+               (mpoly_to_poly n (roth_right_factor P n d B u))) e = c b"
+    by (simp add: Polynomial.coeff_sum coeff_smult coord
+        roth_right_factor_coeff[OF e] roth_sum_coordinate[OF fin b])
   show ?thesis using z val by simp
 qed
 
+(*FIXME does this complicated formula mean something?*)
 theorem roth_tensor_basis_exists:
   assumes box: "roth_poly_in_box (Suc n) r (P::rat mpoly)"
     and nz: "P\<noteq>0"
@@ -493,22 +438,19 @@ theorem roth_tensor_basis_exists:
       (\<forall>b\<in>B. c b=0))"
 proof -
   let ?S = "roth_last_coeff P n ` {..r n}"
-  obtain B where B: "B\<subseteq>?S" "roth_vs.independent B"
-    "?S\<subseteq>roth_vs.span B" "card B\<le>Suc (r n)"
+  obtain B where B: "B\<subseteq>?S" "roth_vs.independent B" "?S \<subseteq> roth_vs.span B" "card B\<le>Suc (r n)"
     "\<forall>b\<in>B. roth_poly_in_box n r b"
     using roth_last_coeff_basis[OF box] by blast
   have fin: "finite B"
     using B(1) by (meson finite_subset finite_imageI finite_atMost)
   have bn: "B\<noteq>{}"
     by (rule roth_last_coeff_basis_nonempty[OF box nz B(3)])
-  have spl: "P = (\<Sum>b\<in>B.
-      b * roth_right_factor P n (r n) B b)"
-    using roth_tensor_basis_split[OF box B(2) B(3) fin]
+  have spl: "P = (\<Sum>b\<in>B. b * roth_right_factor P n (r n) B b)"
+    using roth_tensor_basis_split[OF box] B fin
     by (simp add: roth_right_factor_def)
-  have ri: "\<forall>c. (\<Sum>b\<in>B. MPoly_Type.smult (c b)
-      (roth_right_factor P n (r n) B b))=0 \<longrightarrow>
-      (\<forall>b\<in>B. c b=0)"
-    using roth_right_factor_indep[OF B(1) B(2) fin] by blast
+  have ri: "\<forall>c. (\<Sum>b\<in>B. MPoly_Type.smult (c b) (roth_right_factor P n (r n) B b)) = 0 
+                \<longrightarrow> (\<forall>b\<in>B. c b = 0)"
+    using B fin roth_right_factor_indep by blast
   show ?thesis using B(1,2,4,5) bn spl ri by blast
 qed
 
@@ -523,13 +465,11 @@ proof
   assume vj: "v\<in>Poly_Mapping.keys J"
   obtain I where ci: "MPoly_Type.coeff (roth_hasse J P) I \<noteq> 0"
     using nz coeff_all_0 by blast
-  have cp: "MPoly_Type.coeff P (I+J) \<noteq> 0"
-    by (rule roth_hasse_coeff_support[OF ci])
   have key: "I+J \<in> Poly_Mapping.keys (mapping_of P)"
-    using cp by (simp add: MPoly_Type.coeff_def in_keys_iff)
-  have vk: "v\<in>Poly_Mapping.keys (I+J)"
+    using roth_hasse_coeff_support[OF ci] by (simp add: MPoly_Type.coeff_def in_keys_iff)
+  have vk: "v \<in> Poly_Mapping.keys (I+J)"
     using vj by (simp add: in_keys_iff lookup_add)
-  show "v\<in>vars P" using key vk by (auto simp: vars_def)
+  show "v \<in> vars P" using key vk by (auto simp: vars_def)
 qed
 
 lemma roth_hasse_zero_outside_vars:
@@ -542,14 +482,7 @@ lemma roth_hasse_last_zero_left:
   fixes P :: "rat mpoly"
   assumes pv: "vars P \<subseteq> {..<n}" and j: "j>0"
   shows "roth_hasse (Poly_Mapping.single n j) P = 0"
-proof (rule roth_hasse_zero_outside_vars)
-  have "n\<in>Poly_Mapping.keys (Poly_Mapping.single n j)"
-    using j by (simp add: in_keys_iff lookup_single when_def)
-  moreover have "n\<notin>vars P" using pv by auto
-  ultimately show
-    "\<not> Poly_Mapping.keys (Poly_Mapping.single n j) \<subseteq> vars P"
-    by blast
-qed
+  using j pv roth_hasse_index_vars by fastforce
 
 lemma roth_hasse_left_zero_right:
   fixes Q :: "rat mpoly"
@@ -588,10 +521,8 @@ lemma roth_split_index_unique:
   shows "A=C \<and> B=D"
 proof -
   have ev: "Poly_Mapping.lookup A v + Poly_Mapping.lookup B v =
-    Poly_Mapping.lookup C v + Poly_Mapping.lookup D v" for v
-    using arg_cong[OF eq, of
-      "\<lambda>F. Poly_Mapping.lookup F v"]
-    by (simp add: lookup_add)
+            Poly_Mapping.lookup C v + Poly_Mapping.lookup D v" for v
+    using eq by (metis lookup_add)
   have ac: "A=C"
   proof (rule poly_mapping_eqI)
     fix v
@@ -599,18 +530,13 @@ proof -
     proof (cases "v<n")
       case True
       have vn: "v\<noteq>n" using True by simp
-      have bz: "Poly_Mapping.lookup B v=0"
-        by (rule roth_single_support_lookup_zero[OF b vn])
-      have dz: "Poly_Mapping.lookup D v=0"
-        by (rule roth_single_support_lookup_zero[OF d vn])
-      show ?thesis using ev[of v] bz dz by simp
+      obtain "Poly_Mapping.lookup B v=0" "Poly_Mapping.lookup D v=0"
+        by (metis roth_single_support_lookup_zero b d vn)
+      then show ?thesis
+        using ev[of v] by force
     next
-      case False
-      have az: "Poly_Mapping.lookup A v=0"
-        by (rule roth_left_support_lookup_zero[OF a False])
-      have cz: "Poly_Mapping.lookup C v=0"
-        by (rule roth_left_support_lookup_zero[OF c False])
-      show ?thesis using az cz by simp
+      case False then show ?thesis
+        using a c by (metis roth_left_support_lookup_zero)
     qed
   qed
   have bd: "B=D"
@@ -620,18 +546,12 @@ proof -
     proof (cases "v=n")
       case True
       have nv: "\<not> v<n" using True by simp
-      have az: "Poly_Mapping.lookup A v=0"
-        by (rule roth_left_support_lookup_zero[OF a nv])
-      have cz: "Poly_Mapping.lookup C v=0"
-        by (rule roth_left_support_lookup_zero[OF c nv])
-      show ?thesis using ev[of v] az cz by simp
+      obtain "Poly_Mapping.lookup A v=0" "Poly_Mapping.lookup C v=0"
+        by (metis a c roth_left_support_lookup_zero nv)
+      then show ?thesis using ev[of v] by simp
     next
-      case False
-      have bz: "Poly_Mapping.lookup B v=0"
-        by (rule roth_single_support_lookup_zero[OF b False])
-      have dz: "Poly_Mapping.lookup D v=0"
-        by (rule roth_single_support_lookup_zero[OF d False])
-      show ?thesis using bz dz by simp
+      case False then show ?thesis
+        using b d by (metis roth_single_support_lookup_zero)
     qed
   qed
   show ?thesis using ac bd by simp
@@ -665,32 +585,21 @@ lemma roth_hasse_outer_unique:
     and pv: "vars \<phi> \<subseteq> {..<n}"
     and qv: "vars \<psi> \<subseteq> {n}"
     and neq: "J \<noteq> \<mu>"
-  shows "roth_hasse J \<phi> *
-    (\<Sum>K. roth_hasse K \<psi> when
-      \<mu> + Poly_Mapping.single n j = J + K) = 0"
+  shows "roth_hasse J \<phi> * (\<Sum>K. roth_hasse K \<psi> when \<mu> + Poly_Mapping.single n j = J + K) = 0"
 proof (rule ccontr)
-  assume nz: "\<not> roth_hasse J \<phi> *
-    (\<Sum>K. roth_hasse K \<psi> when
-      \<mu> + Poly_Mapping.single n j = J + K) = 0"
-  have jnz: "roth_hasse J \<phi> \<noteq> 0" using nz by auto
-  have snz: "(\<Sum>K. roth_hasse K \<psi> when
-    \<mu> + Poly_Mapping.single n j = J + K) \<noteq> 0"
-    using nz by auto
-  obtain K where knz: "(roth_hasse K \<psi> when
-    \<mu> + Poly_Mapping.single n j = J + K) \<noteq> 0"
-    using Sum_any.not_neutral_obtains_not_neutral[OF snz] by blast
+  assume nz: "roth_hasse J \<phi> * (\<Sum>K. roth_hasse K \<psi> when \<mu> + Poly_Mapping.single n j = J + K) \<noteq> 0"
+  obtain K where knz: "(roth_hasse K \<psi> when \<mu> + Poly_Mapping.single n j = J + K) \<noteq> 0"
+    using Sum_any.not_neutral_obtains_not_neutral nz by force
   have kz: "roth_hasse K \<psi> \<noteq> 0"
     and eq: "\<mu> + Poly_Mapping.single n j = J + K"
     using knz by (auto simp: when_def split: if_splits)
   have "J = \<mu>"
-    using roth_hasse_nonzero_split_index[OF mi pv qv jnz kz eq] by simp
+    using roth_hasse_nonzero_split_index[OF mi pv qv] nz kz eq by simp
   then show False using neq by blast
 qed
 
 lemma roth_hasse_inner_collapse:
-  "(\<Sum>K. roth_hasse K \<psi> when
-      \<mu> + Poly_Mapping.single n j = \<mu> + K) =
-    roth_hasse (Poly_Mapping.single n j) \<psi>"
+  "(\<Sum>K. roth_hasse K \<psi> when \<mu> + Poly_Mapping.single n j = \<mu> + K) = roth_hasse (Poly_Mapping.single n j) \<psi>"
   by simp
 
 lemma roth_hasse_outer_point:
@@ -699,51 +608,19 @@ lemma roth_hasse_outer_point:
   assumes mi: "Poly_Mapping.keys \<mu> \<subseteq> {..<n}"
     and pv: "vars \<phi> \<subseteq> {..<n}"
     and qv: "vars \<psi> \<subseteq> {n}"
-  shows "roth_hasse J \<phi> *
-    (\<Sum>K. roth_hasse K \<psi> when
-      \<mu> + Poly_Mapping.single n j = J + K) =
-    ((roth_hasse \<mu> \<phi> *
-      (\<Sum>K. roth_hasse K \<psi> when
-        \<mu> + Poly_Mapping.single n j = \<mu> + K))
-      when (J = \<mu>))"
-proof (cases "J = \<mu>")
-  case True
-  then show ?thesis by simp
-next
-  case False
-  have z: "roth_hasse J \<phi> *
-    (\<Sum>K. roth_hasse K \<psi> when
-      \<mu> + Poly_Mapping.single n j = J + K) = 0"
-    by (rule roth_hasse_outer_unique[OF mi pv qv False])
-  show ?thesis using z False by (simp add: when_def)
-qed
+  shows "roth_hasse J \<phi> * (\<Sum>K. roth_hasse K \<psi> when \<mu> + Poly_Mapping.single n j = J + K) =
+         ((roth_hasse \<mu> \<phi> * (\<Sum>K. roth_hasse K \<psi> when \<mu> + Poly_Mapping.single n j = \<mu> + K))
+             when (J = \<mu>))"
+  using roth_hasse_outer_unique[OF assms] by (auto simp: when_def)
 
 lemma roth_hasse_disjoint_product:
   fixes \<mu> :: "(nat,nat) poly_mapping"
     and \<phi> \<psi> :: "rat mpoly"
-  assumes mi: "Poly_Mapping.keys \<mu> \<subseteq> {..<n}"
-    and pv: "vars \<phi> \<subseteq> {..<n}"
-    and qv: "vars \<psi> \<subseteq> {n}"
+  assumes "Poly_Mapping.keys \<mu> \<subseteq> {..<n}"
+    and "vars \<phi> \<subseteq> {..<n}"
+    and "vars \<psi> \<subseteq> {n}"
   shows "roth_hasse (\<mu> + Poly_Mapping.single n j) (\<phi> * \<psi>) =
-    roth_hasse \<mu> \<phi> *
-      roth_hasse (Poly_Mapping.single n j) \<psi>"
-proof -
-  have "roth_hasse (\<mu> + Poly_Mapping.single n j) (\<phi> * \<psi>) =
-    (\<Sum>J. roth_hasse J \<phi> *
-      (\<Sum>K. roth_hasse K \<psi> when
-        \<mu> + Poly_Mapping.single n j = J + K))"
-    by (rule roth_hasse_mult)
-  also have "\<dots> =
-    (\<Sum>J. ((roth_hasse \<mu> \<phi> *
-      (\<Sum>K. roth_hasse K \<psi> when
-        \<mu> + Poly_Mapping.single n j = \<mu> + K))
-      when (J = \<mu>)))"
-    by (rule Sum_any.cong)
-      (rule roth_hasse_outer_point[OF mi pv qv])
-  also have "\<dots> = roth_hasse \<mu> \<phi> *
-    roth_hasse (Poly_Mapping.single n j) \<psi>"
-    by (simp add: roth_hasse_inner_collapse)
-  finally show ?thesis .
-qed
+         roth_hasse \<mu> \<phi> * roth_hasse (Poly_Mapping.single n j) \<psi>"
+  by (simp add: assms roth_hasse_mult roth_hasse_outer_point roth_hasse_inner_collapse)
 
 end

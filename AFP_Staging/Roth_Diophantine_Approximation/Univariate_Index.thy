@@ -495,7 +495,7 @@ proof -
   have q0: "poly q \<beta> \<noteq> 0"
     using qnd by (simp add: poly_eq_0_iff_dvd)
   have lin: "pcompose [:-\<beta>,1:] [:\<beta>,1:] = [:0,1:]"
-    by (simp add: pcompose_pCons pcompose_1)
+    by auto
   have cpow: "pcompose ([:-\<beta>,1:] ^ n) [:\<beta>,1:] = [:0,1:] ^ n" for n
     by (induction n) (simp_all only: power_0 power_Suc pcompose_mult pcompose_1 lin)
   have mid: "pcompose (([:-\<beta>,1:] ^ Polynomial.order \<beta> p) * q) [:\<beta>,1:] =
