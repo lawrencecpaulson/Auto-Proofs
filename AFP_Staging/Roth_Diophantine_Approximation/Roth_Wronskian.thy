@@ -5,6 +5,9 @@ theory Roth_Wronskian
     Hasse_Support
 begin
 
+(*FIXME looks like much of this material could be a standalone development 
+(and WITHOUT the roth_ prefix)*)
+
 section \<open>The binomial matrix at distinct natural arguments\<close>
 
 definition roth_binpoly :: "nat \<Rightarrow> rat poly" where
@@ -50,8 +53,7 @@ next
       coeff_eq_0 coefftop)
   have ck: "c k = 0"
     using Suc.prems topcoeff by simp
-  have small:
-    "(\<Sum>i<k. Polynomial.smult (c i) (roth_binpoly i)) = 0"
+  have small: "(\<Sum>i<k. Polynomial.smult (c i) (roth_binpoly i)) = 0"
     using Suc.prems ck by (simp add: sum.lessThan_Suc)
   show ?case using Suc.IH[OF small] ck
     by (auto simp: less_Suc_eq)
@@ -59,15 +61,14 @@ qed
 
 lemma roth_binpoly_combination_degree:
   assumes k: "0 < k"
-  shows "degree
-    (\<Sum>i<k. Polynomial.smult (c i) (roth_binpoly i)) < k"
+  shows "degree (\<Sum>i<k. Polynomial.smult (c i) (roth_binpoly i)) < k"
   using k by (intro degree_sum_less)
     (auto simp: degree_smult_eq)
 
 lemma roth_binomial_moment_zero:
+  fixes c :: "nat \<Rightarrow> rat"
   assumes inj: "inj_on d {..<k}"
-    and z: "\<forall>j<k. (\<Sum>i<k. c i * of_nat (d j choose i)) =
-      (0::rat)"
+    and z: "\<forall>j<k. (\<Sum>i<k. c i * of_nat (d j choose i)) = 0"
   shows "\<forall>i<k. c i = 0"
 proof (cases "k=0")
   case True
@@ -93,8 +94,7 @@ qed
 
 lemma roth_binomial_det_nonzero:
   assumes inj: "inj_on d {..<k}"
-  shows "det (mat k k
-    (\<lambda>(i,j). (of_nat (d i choose j)::rat))) \<noteq> 0"
+  shows "det (mat k k (\<lambda>(i,j). (of_nat (d i choose j)::rat))) \<noteq> 0"
 proof
   let ?B = "mat k k (\<lambda>(i,j). (of_nat (d i choose j)::rat))"
   assume det0: "det ?B = 0"
@@ -103,9 +103,7 @@ proof
     and vnz: "v \<noteq> zero_vec k"
     and Av: "mult_mat_vec ?B v = zero_vec k"
     using det_0_iff_vec_prod_zero_field[OF B] det0 by blast
-  have z:
-    "\<forall>j<k. (\<Sum>i<k. (v $ i) * of_nat (d j choose i)) =
-      (0::rat)"
+  have z: "\<forall>j<k. (\<Sum>i<k. (v $ i) * of_nat (d j choose i)) = 0"
   proof (intro allI impI)
     fix j
     assume j: "j<k"
@@ -127,8 +125,7 @@ lemma roth_binomial_det_nonzero_transpose:
 proof -
   have tr:
     "transpose_mat (mat k k
-      (\<lambda>(i,j). (of_nat (d i choose j)::rat))) =
-    mat k k (\<lambda>(i,j). of_nat (d j choose i))"
+      (\<lambda>(i,j). (of_nat (d i choose j)::rat))) = mat k k (\<lambda>(i,j). of_nat (d j choose i))"
     by (intro eq_matI) auto
   show ?thesis
     using tr
@@ -157,27 +154,22 @@ lemma roth_univariate_hasse_coeff:
 lemma roth_hasse_vars_subset:
   fixes P :: "rat mpoly"
   shows "vars (roth_hasse J P) \<subseteq> vars P"
-  by (auto simp: vars_def in_keys_iff coeff_def[symmetric]
-    roth_hasse_coeff_exact lookup_add)
+  by (auto simp: vars_def in_keys_iff coeff_def[symmetric] roth_hasse_coeff_exact lookup_add)
 
 lemma roth_univariate_hasse_one:
   fixes p :: "rat poly"
-  shows "roth_hasse (Poly_Mapping.single v 1) (poly_to_mpoly v p) =
-    poly_to_mpoly v (pderiv p)"
+  shows "roth_hasse (Poly_Mapping.single v 1) (poly_to_mpoly v p) = poly_to_mpoly v (pderiv p)"
 proof -
-  have vl: "vars (roth_hasse (Poly_Mapping.single v 1)
-      (poly_to_mpoly v p)) \<subseteq> {v}"
+  have vl: "vars (roth_hasse (Poly_Mapping.single v 1) (poly_to_mpoly v p)) \<subseteq> {v}"
     using roth_hasse_vars_subset roth_vars_poly_to_mpoly by blast
-  have peq: "mpoly_to_poly v
-      (roth_hasse (Poly_Mapping.single v 1) (poly_to_mpoly v p)) =
+  have peq: "mpoly_to_poly v (roth_hasse (Poly_Mapping.single v 1) (poly_to_mpoly v p)) =
     pderiv p"
-    by (rule poly_eqI)
-      (simp add: roth_univariate_hasse_coeff coeff_pderiv)
+    by (intro poly_eqI) (simp add: roth_univariate_hasse_coeff coeff_pderiv)
   show ?thesis using peq mpoly_to_poly_inverse[OF vl] by simp
 qed
 
 definition roth_hderiv :: "nat \<Rightarrow> rat poly \<Rightarrow> rat poly" where
-  "roth_hderiv k p =
+  "roth_hderiv k p \<equiv>
     mpoly_to_poly 0 (roth_hasse (Poly_Mapping.single 0 k)
       (poly_to_mpoly 0 p))"
 
@@ -213,11 +205,7 @@ lemma roth_hderiv_degree_le:
 lemma roth_hderiv_gt_degree [simp]:
   assumes "degree p < k"
   shows "roth_hderiv k p = 0"
-proof (rule poly_eqI)
-  fix n
-  show "Polynomial.coeff (roth_hderiv k p) n = Polynomial.coeff 0 n"
-    using assms by (simp add: coeff_eq_0)
-qed
+    using assms by (intro poly_eqI) (simp add: coeff_eq_0)
 
 lemma roth_hderiv_degree:
   assumes p: "p \<noteq> 0" and k: "k \<le> degree p"
@@ -249,19 +237,13 @@ lemma roth_hderiv_lead_coeff:
 lemma roth_coeff_prod_top:
   fixes f :: "'i \<Rightarrow> rat poly"
   assumes nz: "\<forall>i\<in>S. f i \<noteq> 0"
-  shows "Polynomial.coeff (\<Prod>i\<in>S. f i)
-    (\<Sum>i\<in>S. degree (f i)) =
-    (\<Prod>i\<in>S. lead_coeff (f i))"
-proof -
-  have deg: "degree (\<Prod>i\<in>S. f i) =
-    (\<Sum>i\<in>S. degree (f i))"
-    using nz by (simp add: degree_prod_sum_eq)
-  show ?thesis unfolding deg[symmetric] by (rule lead_coeff_prod)
-qed
+  shows "Polynomial.coeff (\<Prod>i\<in>S. f i) (\<Sum>i\<in>S. degree (f i)) = (\<Prod>i\<in>S. lead_coeff (f i))"
+  using degree_prod_eq_sum_degree[of S f] lead_coeff_prod[of f S] nz by force
+
 
 lemma roth_permutes_sum:
   assumes q: "q permutes {..<k}"
-  shows "(\<Sum>i<k. f (q i)::'a::comm_monoid_add) = (\<Sum>i<k. f i)"
+  shows "(\<Sum>i<k. f (q i)) = (\<Sum>i<k. f i)"
 proof -
   have inj: "inj_on q {..<k}"
     using q permutes_inj by (blast intro: inj_on_subset)
@@ -273,10 +255,10 @@ qed
 
 lemma roth_permutes_prod:
   assumes q: "q permutes {..<k}"
-  shows "(\<Prod>i<k. f (q i)::rat) = (\<Prod>i<k. f i)"
+  shows "(\<Prod>i<k. f (q i)) = (\<Prod>i<k. f i)"
 proof -
   have inj: "inj_on q {..<k}"
-    using q permutes_inj by (blast intro: inj_on_subset)
+    using q permutes_inj[OF q] by (blast intro: inj_on_subset)
   have img: "q ` {..<k} = {..<k}"
     using permutes_image[OF q] .
   show ?thesis using prod.reindex[OF inj, of f] img
@@ -291,8 +273,7 @@ lemma roth_permutes_bounded:
 lemma roth_permutes_degree_diff:
   assumes q: "q permutes {..<k}"
     and good: "\<forall>i<k. i \<le> degree (p (q i))"
-  shows "(\<Sum>i<k. degree (p (q i)) - i) =
-    (\<Sum>i<k. degree (p i)) - (\<Sum>i<k. i)"
+  shows "(\<Sum>i<k. degree (p (q i)) - i) = (\<Sum>i<k. degree (p i)) - (\<Sum>i<k. i)"
 proof -
   have "(\<Sum>i<k. degree (p (q i)) - i) =
     (\<Sum>i<k. degree (p (q i))) - (\<Sum>i<k. i)"
@@ -302,29 +283,12 @@ proof -
   finally show ?thesis .
 qed
 
-lemma roth_wr_factors_nz:
-  fixes p :: "nat \<Rightarrow> rat poly"
-  assumes q: "q permutes {..<k}"
-    and pnz: "\<forall>j<k. p j \<noteq> 0"
-    and good: "\<forall>i<k. i \<le> degree (p (q i))"
-  shows "\<forall>i<k. roth_hderiv i (p (q i)) \<noteq> 0"
-proof (intro allI impI)
-  fix i
-  assume i: "i<k"
-  have pq: "p (q i) \<noteq> 0"
-    using pnz roth_permutes_bounded[OF q i] by auto
-  show "roth_hderiv i (p (q i)) \<noteq> 0"
-    by (rule roth_hderiv_nonzero[OF pq]) (use good i in auto)
-qed
-
 lemma roth_wr_lead_good:
   fixes p :: "nat \<Rightarrow> rat poly"
   assumes q: "q permutes {..<k}"
     and pnz: "\<forall>j<k. p j \<noteq> 0"
     and good: "\<forall>i<k. i \<le> degree (p (q i))"
-  shows "(\<Prod>i<k. lead_coeff (roth_hderiv i (p (q i)))) =
-    (\<Prod>i<k. lead_coeff (p (q i)) *
-      of_nat (degree (p (q i)) choose i))"
+  shows "(\<Prod>i<k. lead_coeff (roth_hderiv i (p (q i)))) = (\<Prod>i<k. lead_coeff (p (q i)) * of_nat (degree (p (q i)) choose i))"
 proof (rule prod.cong)
   fix i
   assume i: "i\<in>{..<k}"
@@ -340,24 +304,18 @@ lemma roth_wr_term_good:
   assumes q: "q permutes {..<k}"
     and pnz: "\<forall>j<k. p j \<noteq> 0"
     and good: "\<forall>i<k. i \<le> degree (p (q i))"
-  shows "Polynomial.coeff
-    (\<Prod>i<k. roth_hderiv i (p (q i)))
-    ((\<Sum>j<k. degree (p j)) - (\<Sum>i<k. i)) =
-    (\<Prod>i<k. lead_coeff (p (q i)) *
-      of_nat (degree (p (q i)) choose i))"
+  shows "Polynomial.coeff (\<Prod>i<k. roth_hderiv i (p (q i))) ((\<Sum>j<k. degree (p j)) - (\<Sum>i<k. i)) =
+    (\<Prod>i<k. lead_coeff (p (q i)) * of_nat (degree (p (q i)) choose i))"
 proof -
   have nz: "\<forall>i<k. roth_hderiv i (p (q i)) \<noteq> 0"
-    by (rule roth_wr_factors_nz[OF q pnz good])
-  have deg: "(\<Sum>i<k. degree (roth_hderiv i (p (q i)))) =
-    (\<Sum>j<k. degree (p j)) - (\<Sum>i<k. i)"
+    by (simp add: good pnz q roth_hderiv_nonzero roth_permutes_bounded)
+  have deg: "(\<Sum>j<k. degree (p j)) - (\<Sum>i<k. i) = (\<Sum>i<k. degree (roth_hderiv i (p (q i))))"
     using nz good pnz q
     by (simp add: roth_hderiv_degree roth_permutes_degree_diff
       roth_permutes_bounded)
-  have top: "Polynomial.coeff
-    (\<Prod>i<k. roth_hderiv i (p (q i)))
-    ((\<Sum>j<k. degree (p j)) - (\<Sum>i<k. i)) =
-    (\<Prod>i<k. lead_coeff (roth_hderiv i (p (q i))))"
-    unfolding deg[symmetric]
+  have top: "Polynomial.coeff (\<Prod>i<k. roth_hderiv i (p (q i))) ((\<Sum>j<k. degree (p j)) - (\<Sum>i<k. i)) =
+             (\<Prod>i<k. lead_coeff (roth_hderiv i (p (q i))))"
+    unfolding deg
     by (rule roth_coeff_prod_top) (use nz in auto)
   show ?thesis using top roth_wr_lead_good[OF q pnz good] by simp
 qed
@@ -367,83 +325,45 @@ lemma roth_wr_term_bad:
   assumes bad: "\<exists>i<k. degree (p (q i)) < i"
   shows "(\<Prod>i<k. roth_hderiv i (p (q i))) = 0 \<and>
     (\<Prod>i<k. of_nat (degree (p (q i)) choose i)::rat) = 0"
-proof -
-  obtain i where i: "i<k" "degree (p (q i)) < i"
-    using bad by blast
-  have h: "roth_hderiv i (p (q i)) = 0"
-    by (rule roth_hderiv_gt_degree[OF i(2)])
-  have b: "(of_nat (degree (p (q i)) choose i)::rat) = 0"
-    using i by simp
-  have hp: "(\<Prod>i<k. roth_hderiv i (p (q i))) = 0"
-    by (rule prod_zero) (use i h in blast)+
-  have bp: "(\<Prod>i<k. of_nat (degree (p (q i)) choose i)::rat) = 0"
-    by (rule prod_zero) (use i b in blast)+
-  show ?thesis using hp bp by simp
-qed
+using bad by force
 
 lemma roth_wr_term_bad_coeff:
   fixes p :: "nat \<Rightarrow> rat poly"
   assumes bad: "\<exists>i<k. degree (p (q i)) < i"
-  shows "Polynomial.coeff
-    (\<Prod>i<k. roth_hderiv i (p (q i))) M =
-    (\<Prod>j<k. lead_coeff (p j)) *
-    (\<Prod>i<k. of_nat (degree (p (q i)) choose i)::rat)"
-proof -
-  have hp: "(\<Prod>i<k. roth_hderiv i (p (q i))) = 0"
-    and bp: "(\<Prod>i<k. of_nat (degree (p (q i)) choose i)::rat) = 0"
-    using roth_wr_term_bad[where p=p and q=q and k=k, OF bad] by auto
-  show ?thesis unfolding hp bp by simp
-qed
+  shows "Polynomial.coeff (\<Prod>i<k. roth_hderiv i (p (q i))) M =
+         (\<Prod>j<k. lead_coeff (p j)) * (\<Prod>i<k. of_nat (degree (p (q i)) choose i))"
+by (simp add: bad roth_wr_term_bad)
 
 lemma roth_wr_term:
   fixes p :: "nat \<Rightarrow> rat poly"
   assumes q: "q permutes {..<k}" and pnz: "\<forall>j<k. p j \<noteq> 0"
   shows "Polynomial.coeff
-    (\<Prod>i<k. roth_hderiv i (p (q i)))
-    ((\<Sum>j<k. degree (p j)) - (\<Sum>i<k. i)) =
-    (\<Prod>j<k. lead_coeff (p j)) *
-    (\<Prod>i<k. of_nat (degree (p (q i)) choose i)::rat)"
+    (\<Prod>i<k. roth_hderiv i (p (q i))) ((\<Sum>j<k. degree (p j)) - (\<Sum>i<k. i)) =
+    (\<Prod>j<k. lead_coeff (p j)) * (\<Prod>i<k. of_nat (degree (p (q i)) choose i))"
 proof (cases "\<forall>i<k. i \<le> degree (p (q i))")
   case True
-  note t = roth_wr_term_good[OF q pnz True]
-  have r: "(\<Prod>i<k. lead_coeff (p (q i)) *
-      of_nat (degree (p (q i)) choose i)) =
-    (\<Prod>j<k. lead_coeff (p j)) *
-    (\<Prod>i<k. of_nat (degree (p (q i)) choose i)::rat)"
-    using roth_permutes_prod[OF q, of "\<lambda>j. lead_coeff (p j)"]
-    by (simp add: prod.distrib)
-  show ?thesis using t r by simp
+  with roth_permutes_prod[OF q, of "\<lambda>j. lead_coeff (p j)"] roth_wr_term_good[OF q pnz True]
+  show ?thesis
+    by (auto simp add: prod.distrib)
 next
-  case False
-  have bad: "\<exists>i<k. degree (p (q i)) < i"
-    using False by auto
-  show ?thesis by (rule roth_wr_term_bad_coeff) (rule bad)
+  case False then show ?thesis
+    using not_le_imp_less roth_wr_term_bad_coeff by fastforce
 qed
 
 definition roth_hwronskian :: "nat \<Rightarrow> (nat \<Rightarrow> rat poly) \<Rightarrow> rat poly"
-  where "roth_hwronskian k p =
+  where "roth_hwronskian k p \<equiv>
     det (mat k k (\<lambda>(i,j). roth_hderiv i (p j)))"
 
 lemma roth_det_mat_expansion:
   fixes f :: "nat \<Rightarrow> nat \<Rightarrow> 'a::comm_ring_1"
   shows "det (mat k k (\<lambda>(i,j). f i j)) =
-    (\<Sum>q\<in>{q. q permutes {..<k}}.
-      signof q * (\<Prod>i<k. f i (q i)))"
-proof -
-  let ?A = "mat k k (\<lambda>(i,j). f i j)"
-  have d: "det ?A =
-    (\<Sum>q\<in>{q. q permutes {..<k}}.
-      signof q * (\<Prod>i<k. ?A $$ (i,q i)))"
-    using det_def'[of ?A k] by (simp add: atLeast0LessThan)
-  show ?thesis unfolding d
-    by (rule sum.cong)
-      (auto intro!: prod.cong simp: roth_permutes_bounded)
-qed
+    (\<Sum>q\<in>{q. q permutes {..<k}}. signof q * (\<Prod>i<k. f i (q i)))"
+    (is "det ?A = _")
+    using det_def'[of ?A k] by (simp add: roth_permutes_bounded atLeast0LessThan)
 
 lemma roth_coeff_signof_mult:
   fixes F :: "rat poly"
-  shows "Polynomial.coeff ((signof q) * F) n =
-    (signof q::rat) * Polynomial.coeff F n"
+  shows "Polynomial.coeff ((signof q) * F) n = (signof q::rat) * Polynomial.coeff F n"
   by (simp add: sign_def)
 
 lemma roth_wr_top_coeff:
@@ -451,9 +371,7 @@ lemma roth_wr_top_coeff:
   assumes pnz: "\<forall>j<k. p j \<noteq> 0"
   shows "Polynomial.coeff (roth_hwronskian k p)
     ((\<Sum>j<k. degree (p j)) - (\<Sum>i<k. i)) =
-    (\<Prod>j<k. lead_coeff (p j)) *
-      det (mat k k
-        (\<lambda>(i,j). (of_nat (degree (p j) choose i)::rat)))"
+    (\<Prod>j<k. lead_coeff (p j)) * det (mat k k (\<lambda>(i,j). (of_nat (degree (p j) choose i)::rat)))"
   using pnz
   by (simp add: roth_hwronskian_def roth_det_mat_expansion
     coeff_sum roth_coeff_signof_mult roth_wr_term
@@ -465,14 +383,9 @@ lemma roth_wr_distinct_degrees:
     and inj: "inj_on (\<lambda>j. degree (p j)) {..<k}"
   shows "roth_hwronskian k p \<noteq> 0"
 proof -
-  have dnz: "det (mat k k
-      (\<lambda>(i,j). (of_nat (degree (p j) choose i)::rat))) \<noteq> 0"
-    by (rule roth_binomial_det_nonzero_transpose[OF inj])
-  have lnz: "(\<Prod>j<k. lead_coeff (p j)) \<noteq> (0::rat)"
-    using pnz by (simp add: prod_zero_iff)
   have c: "Polynomial.coeff (roth_hwronskian k p)
       ((\<Sum>j<k. degree (p j)) - (\<Sum>i<k. i)) \<noteq> 0"
-    using roth_wr_top_coeff[OF pnz] dnz lnz by simp
+    using roth_wr_top_coeff[OF pnz]  roth_binomial_det_nonzero_transpose[OF inj] pnz by simp
   show ?thesis using c by (metis coeff_0)
 qed
 
@@ -505,17 +418,15 @@ proof -
   have lc: "lead_coeff P \<noteq> 0" using P by simp
   have bound: "degree (Q + Polynomial.smult c P) \<le> degree P"
     using deq by (simp add: degree_add_le)
-  have top: "Polynomial.coeff (Q + Polynomial.smult c P)
-      (degree P) = 0"
+  have top: "Polynomial.coeff (Q + Polynomial.smult c P) (degree P) = 0"
     using deq lc by (simp add: c_def field_simps)
   show ?thesis using eq_zero_or_degree_less[OF bound top] .
 qed
 
 definition roth_poly_indep ::
   "nat \<Rightarrow> (nat \<Rightarrow> rat poly) \<Rightarrow> bool" where
-  "roth_poly_indep k p \<longleftrightarrow>
-    (\<forall>c. (\<Sum>j<k. Polynomial.smult (c j) (p j)) = 0 \<longrightarrow>
-      (\<forall>j<k. c j = 0))"
+  "roth_poly_indep k p \<equiv>
+    (\<forall>c. (\<Sum>j<k. Polynomial.smult (c j) (p j)) = 0 \<longrightarrow> (\<forall>j<k. c j = 0))"
 
 lemma roth_poly_indepD:
   assumes "roth_poly_indep k p"
@@ -564,11 +475,7 @@ lemma roth_coeff_update_zero:
   assumes dz: "\<forall>j<k. (if j=a then c a + c b*t else c j) = 0"
     and a: "a<k" and b: "b<k" and ne: "a\<noteq>b"
   shows "\<forall>j<k. c j = 0"
-proof -
-  have cb: "c b = 0" using dz b ne by auto
-  have ca: "c a = 0" using dz a cb by auto
-  show ?thesis using dz ca by (metis (mono_tags, lifting))
-qed
+using assms by (metis add_cancel_right_left mult_eq_0_iff)
 
 lemma roth_poly_indep_addcol:
   fixes p :: "nat \<Rightarrow> rat poly"
@@ -579,8 +486,7 @@ lemma roth_poly_indep_addcol:
   unfolding roth_poly_indep_def
 proof (intro allI impI)
   fix c j
-  assume z: "(\<Sum>i<k. Polynomial.smult (c i)
-      (if i=b then p b + Polynomial.smult t (p a) else p i)) = 0"
+  assume z: "(\<Sum>i<k. Polynomial.smult (c i) (if i=b then p b + Polynomial.smult t (p a) else p i)) = 0"
     and j: "j<k"
   let ?d = "\<lambda>i. if i=a then c a + c b*t else c i"
   have eq: "(\<Sum>i<k. Polynomial.smult (?d i) (p i)) =
@@ -600,8 +506,7 @@ qed
 lemma roth_degree_sum_update_strict:
   fixes p :: "nat \<Rightarrow> rat poly"
   assumes b: "b<k" and dec: "degree Q < degree (p b)"
-  shows "(\<Sum>j<k. degree (if j=b then Q else p j)) <
-    (\<Sum>j<k. degree (p j))"
+  shows "(\<Sum>j<k. degree (if j=b then Q else p j)) < (\<Sum>j<k. degree (p j))"
   by (rule sum_strict_mono_ex1) (use b dec in auto)
 
 lemma roth_wr_independent:
@@ -627,22 +532,17 @@ proof (induction p rule: measure_induct_rule
     let ?t = "- lead_coeff (p b) / lead_coeff (p a)"
     let ?Q = "p b + Polynomial.smult ?t (p a)"
     let ?q = "\<lambda>j. if j=b then ?Q else p j"
-    have pa: "p a \<noteq> 0" using pnz a by auto
     have qi: "roth_poly_indep k ?q"
       by (rule roth_poly_indep_addcol[OF less.prems a b ne])
     have Qnz: "?Q \<noteq> 0"
       using roth_poly_indep_nonzero[OF qi b] by simp
     have Qdec: "degree ?Q < degree (p b)"
-      using roth_poly_eliminate_degree[OF pa deq] Qnz deq by auto
-    have sumdec: "(\<Sum>j<k. degree (?q j)) <
-      (\<Sum>j<k. degree (p j))"
+      using roth_poly_eliminate_degree deq pnz a Qnz deq by auto
+    have sumdec: "(\<Sum>j<k. degree (?q j)) < (\<Sum>j<k. degree (p j))"
       by (rule roth_degree_sum_update_strict)
         (use b Qdec in auto)
-    have qnz: "roth_hwronskian k ?q \<noteq> 0"
-      by (rule less.IH[OF sumdec qi])
-    have wr: "roth_hwronskian k ?q = roth_hwronskian k p"
-      by (rule roth_wr_addcol[OF a b ne])
-    show ?thesis using qnz wr by simp
+    then show ?thesis
+      using a b less.IH ne qi roth_wr_addcol by fastforce
   qed
 qed
 

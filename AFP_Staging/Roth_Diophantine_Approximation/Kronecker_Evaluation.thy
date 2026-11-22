@@ -14,12 +14,11 @@ lemma roth_digits_Suc:
   by (simp add: sum_distrib_left algebra_simps)
 
 lemma roth_digits_head_eq:
-  assumes B: "0 < B" and f: "f 0 < B" and g: "g 0 < B"
+  assumes "0 < B" and "f 0 < B" and "g 0 < B"
     and eq: "roth_digits (Suc n) B f = roth_digits (Suc n) B g"
   shows "f 0 = g 0"
-  using eq f g
-  by (simp add: roth_digits_Suc)
-    (metis mod_mult_self2 mod_less)
+  using assms
+  by (metis mod_less mod_mult_self2 roth_digits_Suc)
 
 lemma roth_digits_inj:
   assumes B: "0 < B"
@@ -35,24 +34,20 @@ proof (induction n arbitrary: f g i)
 next
   case (Suc n)
   have hd: "f 0 = g 0"
-    by (rule roth_digits_head_eq[OF B _ _ Suc.prems(3)])
-      (use Suc.prems in auto)
-  have tail: "roth_digits n B (f \<circ> Suc) =
-      roth_digits n B (g \<circ> Suc)"
+    using B Suc.prems roth_digits_head_eq by blast
+  have tail: "roth_digits n B (f \<circ> Suc) = roth_digits n B (g \<circ> Suc)"
     using Suc.prems(3) hd B by (simp add: roth_digits_Suc)
   then show ?case 
     using Suc hd tail by (smt (cvc5, best) comp_apply less_Suc_eq_0_disj) 
 qed
 
 definition roth_kronecker where
-  "roth_kronecker m B I =
+  "roth_kronecker m B I \<equiv>
     roth_digits m B (Poly_Mapping.lookup I)"
 
 lemma roth_kronecker_add:
-  "roth_kronecker m B (I + J) =
-    roth_kronecker m B I + roth_kronecker m B J"
-  by (simp add: roth_kronecker_def roth_digits_def
-    lookup_add sum.distrib algebra_simps)
+  "roth_kronecker m B (I + J) = roth_kronecker m B I + roth_kronecker m B J"
+  by (simp add: roth_kronecker_def roth_digits_def lookup_add sum.distrib algebra_simps)
 
 lemma roth_kronecker_single:
   assumes v: "v<m"

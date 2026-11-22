@@ -192,7 +192,6 @@ proof -
   qed (use B in auto)
 qed
 
-
 lemma roth_scaled_good_pair:
   fixes c p q :: int and \<alpha> \<epsilon> \<delta> :: real
   assumes c: "c > 0" and eps: "\<epsilon> > \<delta>" and delta: "\<delta> > 0"
