@@ -222,7 +222,7 @@ proof -
     using roth_exponent_box_card_exp_bound 
     by (intro mult_right_mono power_mono) simp_all
   also have "... = 16 ^ ?S"
-    by (simp add: power2_eq_square flip: power_mult_distrib power_mult_distrib)
+    by (simp add: power2_eq_square flip: power_mult_distrib)
   finally show ?thesis .
 qed
 

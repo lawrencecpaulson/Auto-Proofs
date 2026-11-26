@@ -5,8 +5,8 @@
         "/Users/lp15/isabelle/Auto-Proofs/AFP_Staging/Stokes",
         "/Users/lp15/isabelle/Auto-Proofs/AFP_Staging/Bivariate_Resultants"
     ],
-    "isabelle.logic": "Roth_Diophantine_Approximation",
-    "isabelle.logicRequirements": true,
+    "isabelle.logic": "HOL",
+    "isabelle.logicRequirements": false,
     "editor.defaultFormatter": "yfprojects.vscode-isabelle",
     "editor.fontFamily": "Isabelle DejaVu, Menlo, Monaco, 'Courier New', monospace"
 }

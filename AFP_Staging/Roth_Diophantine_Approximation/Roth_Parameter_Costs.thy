@@ -5,25 +5,20 @@ begin
 
 lemma roth_good_pairs_unbounded_height:
   assumes inf: "infinite (roth_good_pairs \<alpha> kappa)"
-  shows "\<forall>N::nat. \<exists>p q. (p,q) \<in> roth_good_pairs \<alpha> kappa \<and>
-    N < roth_rat_height (Rat.Fract p q)"
-proof
-  fix N :: nat
+  shows "\<exists>p q. (p,q) \<in> roth_good_pairs \<alpha> kappa \<and> N < roth_rat_height (Rat.Fract p q)"
+proof -
   obtain pq where mem: "pq \<in> roth_good_pairs \<alpha> kappa"
     and qlarge: "int N < snd pq"
-    using infinite_roth_good_pairs_iff_unbounded_denominator[of \<alpha> kappa]
-      inf by blast
-  obtain p q where pq: "pq = (p,q)" by (cases pq) auto
-  have good: "(p,q) \<in> roth_good_pairs \<alpha> kappa" using mem pq by simp
-  have qpos: "0 < q" and cop: "coprime p q" using good by auto
+    using infinite_roth_good_pairs_iff_unbounded_denominator[of \<alpha> kappa] inf by blast
+  then obtain p q where pq: "pq = (p,q)" and qpos: "0 < q" 
+    and cop: "coprime p q" by (cases pq) auto
   have height: "roth_rat_height (Rat.Fract p q) = nat (max (abs p) q)"
     using qpos cop by (simp add: roth_rat_height_Fract)
   have "N < nat q" using qlarge pq by simp
   also have "... \<le> roth_rat_height (Rat.Fract p q)"
     by (simp add: height)
-  finally show "\<exists>p q. (p,q) \<in> roth_good_pairs \<alpha> kappa \<and>
-      N < roth_rat_height (Rat.Fract p q)"
-    using good by blast
+  finally show ?thesis
+    using mem pq by blast
 qed
 
 lemma roth_unbounded_sequence:

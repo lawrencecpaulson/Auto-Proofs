@@ -15,9 +15,7 @@ theorem roth_monic_finite:
     and \<delta>: "0 < \<delta>"
   shows "finite (roth_good_pairs \<alpha> (2+\<delta>))"
 proof (rule ccontr)
-  assume notfin: "\<not> finite (roth_good_pairs \<alpha> (2+\<delta>))"
-  have inf: "infinite (roth_good_pairs \<alpha> (2+\<delta>))"
-    using notfin by simp
+  assume inf: "\<not> finite (roth_good_pairs \<alpha> (2+\<delta>))"
   let ?d = "Polynomial.degree f"
   have dpos: "0 < ?d"
     using monic root monic_degree_0 by fastforce
@@ -57,8 +55,8 @@ proof (rule ccontr)
   obtain \<beta> :: "nat \<Rightarrow> rat" and T :: real and r :: "nat \<Rightarrow> nat"
     where TA: "A < T" and Tpos: "0 < T" and selected:
       "roth_selected_parameters \<alpha> \<kappa> m B \<xi> \<sigma> T \<beta> r"
-    using Bpos kap notfin sigpos xipos by (metis roth_select_parameters)
-  have rbounds:
+    using Bpos kap inf sigpos xipos by (metis roth_select_parameters)
+  have rbounds: (*FIXME get rid of rbounds and combine with the results down to whigh*)
       "\<forall>v<m. 0 < r v \<and> B \<le> roth_rat_log_height (\<beta> v) \<and>
       roth_rat_log_height (\<beta> v) \<le> \<xi>*T \<and>
       T \<le> real (r v)*roth_rat_log_height (\<beta> v) \<and>
@@ -83,11 +81,10 @@ proof (rule ccontr)
     using rbounds by auto
 
   text \<open>Pay the logarithmic costs needed for index transfer and Roth's lemma.\<close>
-  have hlow0: "B \<le> roth_rat_log_height (?\<beta> 0)" by (rule hlow[OF mpos])
   have whigh0: "r 0 * roth_rat_log_height (?\<beta> 0) \<le> (1+\<xi>)*T"
     by (rule whigh[OF mpos])
   have rbound: "r 0 \<le> (1+\<xi>)*T/B"
-    by (rule roth_degree_from_weighted[OF Bpos hlow0 whigh0])
+   using Bpos mpos rbounds by (metis roth_degree_from_weighted)
   have gap: "ln 2 + real (\<Sum>v<m. r v) * (?C+?D) + m * (1+\<xi>)*T <
              \<kappa> * T * (m * (1-\<epsilon>)/2 - \<epsilon> * m)"
     by (rule roth_numeric_gap[OF mpos Tpos _ sumb Bgap Tgap eq])

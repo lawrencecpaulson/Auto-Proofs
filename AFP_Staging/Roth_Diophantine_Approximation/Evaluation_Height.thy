@@ -759,7 +759,7 @@ proof -
   have "abs (insertion a (replace_coeff (of_int::int \<Rightarrow> real) P)) \<le>
       (\<Sum>I\<in>?S. abs (insertion a
         (MPoly_Type.monom I (of_int (MPoly_Type.coeff P I)))))"
-    by (simp add: eval sum_abs)
+    by (simp add: eval)
   also have "... \<le> (\<Sum>I\<in>?S. ?H * ?E)"
     by (intro sum_mono each)
   also have "... = real (card ?S) * ?H * ?E"

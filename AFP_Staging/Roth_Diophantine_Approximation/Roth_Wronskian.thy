@@ -49,12 +49,11 @@ next
     "Polynomial.coeff
       (\<Sum>i<Suc k. Polynomial.smult (c i) (roth_binpoly i)) k =
       c k * inverse (of_nat (fact k))"
-    by (simp add: sum.lessThan_Suc coeff_sum coeff_smult
-      coeff_eq_0 coefftop)
+    by (simp add: coeff_sum coeff_eq_0 coefftop)
   have ck: "c k = 0"
     using Suc.prems topcoeff by simp
   have small: "(\<Sum>i<k. Polynomial.smult (c i) (roth_binpoly i)) = 0"
-    using Suc.prems ck by (simp add: sum.lessThan_Suc)
+    using Suc.prems ck by simp
   show ?case using Suc.IH[OF small] ck
     by (auto simp: less_Suc_eq)
 qed
@@ -62,8 +61,7 @@ qed
 lemma roth_binpoly_combination_degree:
   assumes k: "0 < k"
   shows "degree (\<Sum>i<k. Polynomial.smult (c i) (roth_binpoly i)) < k"
-  using k by (intro degree_sum_less)
-    (auto simp: degree_smult_eq)
+  using k by (intro degree_sum_less) auto
 
 lemma roth_binomial_moment_zero:
   fixes c :: "nat \<Rightarrow> rat"
@@ -191,12 +189,12 @@ lemma roth_hderiv_add [simp]:
 lemma roth_hderiv_smult [simp]:
   "roth_hderiv k (Polynomial.smult c p) =
     Polynomial.smult c (roth_hderiv k p)"
-  by (rule poly_eqI) (simp add: coeff_smult)
+  by (rule poly_eqI) auto
 
 lemma roth_hderiv_monom:
   "roth_hderiv k (monom c n) =
     (if k \<le> n then monom (c * of_nat (n choose k)) (n-k) else 0)"
-  by (rule poly_eqI) (auto simp: coeff_monom)
+  by (rule poly_eqI) auto
 
 lemma roth_hderiv_degree_le:
   "degree (roth_hderiv k p) \<le> degree p - k"
@@ -240,30 +238,15 @@ lemma roth_coeff_prod_top:
   shows "Polynomial.coeff (\<Prod>i\<in>S. f i) (\<Sum>i\<in>S. degree (f i)) = (\<Prod>i\<in>S. lead_coeff (f i))"
   using degree_prod_eq_sum_degree[of S f] lead_coeff_prod[of f S] nz by force
 
-
 lemma roth_permutes_sum:
-  assumes q: "q permutes {..<k}"
-  shows "(\<Sum>i<k. f (q i)) = (\<Sum>i<k. f i)"
-proof -
-  have inj: "inj_on q {..<k}"
-    using q permutes_inj by (blast intro: inj_on_subset)
-  have img: "q ` {..<k} = {..<k}"
-    using permutes_image[OF q] .
-  show ?thesis using sum.reindex[OF inj, of f] img
-    by (simp add: o_def)
-qed
+  assumes q: "q permutes A"
+  shows "(\<Sum>i\<in>A. f (q i)) = (\<Sum>i\<in>A. f i)"
+  by (rule sum.permutes_inv [OF q])
 
 lemma roth_permutes_prod:
-  assumes q: "q permutes {..<k}"
-  shows "(\<Prod>i<k. f (q i)) = (\<Prod>i<k. f i)"
-proof -
-  have inj: "inj_on q {..<k}"
-    using q permutes_inj[OF q] by (blast intro: inj_on_subset)
-  have img: "q ` {..<k} = {..<k}"
-    using permutes_image[OF q] .
-  show ?thesis using prod.reindex[OF inj, of f] img
-    by (simp add: o_def)
-qed
+  assumes q: "q permutes A"
+  shows "(\<Prod>i\<in>A. f (q i)) = (\<Prod>i\<in>A. f i)"
+  by (rule prod.permutes_inv [OF q])
 
 lemma roth_permutes_bounded:
   assumes q: "q permutes {..<k}" and i: "i<k"
@@ -444,7 +427,7 @@ proof
     (\<Sum>i<k. if i=j then p j else 0)"
     by (rule sum.cong) auto
   have s: "(\<Sum>i<k. Polynomial.smult (?c i) (p i)) = 0"
-    using z eq j by (simp add: sum.delta)
+    using z eq j by auto
   have h: "\<forall>i<k. ?c i = 0"
     by (rule roth_poly_indepD[OF ind s])
   show False using h j by auto

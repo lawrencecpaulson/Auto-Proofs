@@ -163,8 +163,7 @@ proof -
     using roth_kronecker_inj[OF pos B _ I] box
     by (auto simp: roth_poly_in_box_def)
   show ?thesis using kij
-    by (simp add: roth_ksubst_def coeff_sum coeff_monom
-      sum.delta coeff_def not_in_keys_iff_lookup_eq_zero)
+    by (simp add: roth_ksubst_def coeff_sum coeff_def not_in_keys_iff_lookup_eq_zero)
 qed
 
 lemma roth_ksubst_reflect_zero:
@@ -226,8 +225,7 @@ section \<open>The first derivative of Kronecker substitution\<close>
 lemma roth_ksubst_monom:
   fixes c :: rat
   shows "roth_ksubst m B (MPoly_Type.monom I c) = Polynomial.monom c (roth_kronecker m B I)"
-  by (simp add: roth_ksubst_def mapping_of_monom keys_single
-      MPoly_Type.coeff_def lookup_single when_def)
+  by (simp add: roth_ksubst_def MPoly_Type.coeff_def lookup_single when_def)
 
 lemma roth_ksubst_monom_deriv:
   fixes c :: rat
@@ -237,12 +235,11 @@ lemma roth_ksubst_monom_deriv:
       (roth_kronecker m B I - 1))"
   by (simp add: roth_ksubst_monom pderiv_monom
     Polynomial.monom_sum[symmetric] roth_kronecker_def
-    roth_digits_def sum_distrib_right[symmetric] of_nat_sum)
+    roth_digits_def sum_distrib_right[symmetric])
 
 lemma roth_mchoose_single_one:
   "roth_mchoose I (Poly_Mapping.single v 1) = Poly_Mapping.lookup I v"
-  by (simp add: roth_mchoose_def keys_single
-    prod.remove[of "insert v (Poly_Mapping.keys I)" v]
+  by (simp add: roth_mchoose_def prod.remove[of "insert v (Poly_Mapping.keys I)" v]
     lookup_single when_def)
 
 lemma roth_single_sub_add:
@@ -261,16 +258,14 @@ lemma roth_hasse_monom_single_one:
   by (simp add: roth_hasse_monom_exact)
 
 lemma roth_monom_zero [simp]: "MPoly_Type.monom I (0::rat) = 0"
-  by (simp add: mapping_of_inject[symmetric]
-    mapping_of_monom zero_mpoly.rep_eq)
+  by (simp add: mapping_of_inject[symmetric] zero_mpoly.rep_eq)
 
 lemma roth_kronecker_sub_single:
   assumes v: "v<m" and h: "0<Poly_Mapping.lookup I v"
   shows "roth_kronecker m B (I - Poly_Mapping.single v 1) + B^v = roth_kronecker m B I"
   using roth_kronecker_add[of m B
       "I - Poly_Mapping.single v 1" "Poly_Mapping.single v 1"]
-    roth_single_sub_add[OF h]
-    roth_kronecker_single[OF v, of B 1]
+    roth_single_sub_add[OF h] roth_kronecker_single[OF v, of B 1]
   by simp
 
 lemma roth_kronecker_sub_power:
@@ -638,7 +633,7 @@ lemma roth_insertion_Const:
 lemma roth_insertion_Var:
   fixes f :: "nat \<Rightarrow> rat"
   shows "insertion f (Var v) = f v"
-  by (simp add: roth_Var_monom insertion_single)
+  by simp
 
 lemma roth_monom_var_prod:
   fixes c :: rat
@@ -654,7 +649,7 @@ lemma roth_insertion_prod:
 lemma roth_insertion_power:
   fixes f :: "nat \<Rightarrow> rat" and P :: "rat mpoly"
   shows "insertion f (P^n) = insertion f P ^ n"
-  by (induction n) (simp_all add: power_Suc insertion_mult)
+  by (induction n) (simp_all add: insertion_mult)
 
 lemma roth_insertion_monom:
   fixes c :: rat and f :: "nat \<Rightarrow> rat"

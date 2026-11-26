@@ -73,7 +73,7 @@ lemma roth_pderiv_iter_hderiv:
     Polynomial.smult (of_nat (fact i)) (roth_hderiv i p)"
   by (induction i)
     (simp_all add: funpow_Suc_right roth_hderiv_pderiv
-      pderiv_smult fact_Suc smult_smult algebra_simps)
+      pderiv_smult algebra_simps)
 
 lemma roth_sum_smult:
   fixes f :: "'a \<Rightarrow> rat poly"

@@ -1,7 +1,6 @@
 theory Primitive_Height
   imports
     Disjoint_Index
-    "HOL.Transcendental"
     Hasse_Derivative
 begin
 
