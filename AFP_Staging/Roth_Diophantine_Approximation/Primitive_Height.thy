@@ -61,7 +61,7 @@ proof (cases "coeff P I = 0")
 next
   case False
   then have "coeff P I \<in> coeffs P"
-    by (simp add: coeff_def in_keys_iff coeffs.rep_eq coeff_def)
+    by (simp add: coeff_def in_keys_iff coeffs.rep_eq)
   then have mem: "nat (abs (coeff P I)) \<in> insert 1 ((\<lambda>c. nat (abs c)) ` coeffs P)"
     by blast
   have "nat (abs (coeff P I)) \<le> Max (insert 1 ((\<lambda>c. nat (abs c)) ` coeffs P))"

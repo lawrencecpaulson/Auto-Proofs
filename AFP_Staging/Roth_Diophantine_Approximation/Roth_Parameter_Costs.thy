@@ -159,9 +159,8 @@ proof -
     using near1 by linarith
   have abs_p: "abs (real_of_int p) < (abs \<alpha> + 1) * real_of_int q"
   proof -
-    have "abs (real_of_int p) = real_of_int q *
-        abs (real_of_int p / real_of_int q)"
-      using q by (simp add: abs_divide)
+    have "abs (real_of_int p) = real_of_int q * abs (real_of_int p / real_of_int q)"
+      using q by simp
     also have "... < real_of_int q * (abs \<alpha> + 1)"
       using q ratbound by (intro mult_strict_left_mono) auto
     finally show ?thesis by (simp add: mult.commute)
@@ -353,24 +352,20 @@ lemma roth_rounded_degrees_ratios:
   fixes h :: "nat \<Rightarrow> real"
   assumes Tpos: "0 < T" and sig: "0 < sigma"
     and hpos: "\<And>v. v < m \<Longrightarrow> 0 < h v"
-    and growth: "\<And>v. Suc v < m \<Longrightarrow>
-      2 * h v \<le> sigma * h (Suc v)"
+    and growth: "\<And>v. Suc v < m \<Longrightarrow> 2 * h v \<le> sigma * h (Suc v)"
     and large: "\<And>v. v < m \<Longrightarrow> 2 * h v \<le> sigma * T"
+    and vm: "Suc v < m"
   shows "\<And>v. Suc v < m \<Longrightarrow>
     real (roth_rounded_degrees T h (Suc v)) \<le>
       sigma * real (roth_rounded_degrees T h v)"
 proof -
-  fix v
-  assume vm: "Suc v < m"
   have hv: "0 < h v" using hpos vm by simp
   have hn: "0 < h (Suc v)" by (rule hpos[OF vm])
   have gap: "T / h (Suc v) + 1 \<le> sigma * (T / h v)"
     by (rule roth_ratio_gap_from_growth[OF Tpos hv hn sig
       growth[OF vm] large[of v]]) (use vm in simp)
-  show "real (roth_rounded_degrees T h (Suc v)) \<le>
-      sigma * real (roth_rounded_degrees T h v)"
-    by (rule roth_rounded_degrees_ratio[OF Tpos hv hn _ gap])
-      (use sig in simp)
+  show "real (roth_rounded_degrees T h (Suc v)) \<le> sigma * real (roth_rounded_degrees T h v)"
+    using sig by (intro roth_rounded_degrees_ratio[OF Tpos hv hn _ gap]) auto
 qed
 
 
@@ -384,21 +379,17 @@ proof -
   have hle: "h v \<le> ?M" if vm: "v < m" for v
     by (rule Max_ge) (use vm in auto)
   let ?T = "2 * ?M / sigma + 1"
-  have Tnonneg: "0 \<le> 2 * ?M / sigma"
-    using Mnonneg sig by (intro divide_nonneg_pos) auto
-  have Tpos: "0 < ?T" using Tnonneg by linarith
-  have eq: "sigma * ?T = 2 * ?M + sigma"
-    using sig by (simp add: distrib_left)
+  have Tpos: "0 < ?T" using Mnonneg sig
+    by (smt (verit, del_insts) divide_nonneg_nonneg) 
   have bound: "2 * h v \<le> sigma * ?T" if vm: "v < m" for v
-    using hle[OF vm] sig eq by linarith
+    using hle[OF vm] sig by (simp add: distrib_left)
   show ?thesis using Tpos bound by blast
 qed
 
 lemma roth_choose_large_T_above:
   fixes h :: "nat \<Rightarrow> real"
   assumes sig: "0 < sigma"
-  shows "\<exists>T::real. A < T \<and> 0 < T \<and>
-    (\<forall>v<m. 2 * h v \<le> sigma * T)"
+  shows "\<exists>T::real. A < T \<and> 0 < T \<and> (\<forall>v<m. 2 * h v \<le> sigma * T)"
 proof -
   obtain T0 :: real where T0pos: "0 < T0" and bound0:
       "\<forall>v<m. 2 * h v \<le> sigma * T0"
@@ -407,12 +398,7 @@ proof -
   have Tpos: "0 < ?T" and TA: "A < ?T"
     using T0pos by auto
   have b: "2 * h v \<le> sigma * ?T" if vm: "v < m" for v
-  proof -
-    have h: "2 * h v \<le> sigma * T0" using bound0 vm by blast
-    have le: "sigma * T0 \<le> sigma * ?T"
-      using sig by (intro mult_left_mono) auto
-    show ?thesis using h le by linarith
-  qed
+    using assms bound0 vm by (smt (verit) mult_left_mono)
   show ?thesis using Tpos TA b by blast
 qed
 
@@ -425,17 +411,15 @@ lemma roth_degree_uniform:
     "real (roth_rounded_degrees T h v) \<le> (1+xi)*T/B"
 proof -
   have hpos: "0 < h v" using hbound Bpos by linarith
-  have lo: "T \<le> real (roth_rounded_degrees T h v) * h v"
+  show "T \<le> real (roth_rounded_degrees T h v) * h v" 
     using roth_rounded_degrees_bounds(2)[of T h v] Tpos hpos by simp
   have hi: "real (roth_rounded_degrees T h v) * h v \<le> T + h v"
     using roth_rounded_degrees_bounds(3)[of T h v] Tpos hpos by simp
-  have w: "real (roth_rounded_degrees T h v) * h v \<le> (1+xi)*T"
+  show w: "real (roth_rounded_degrees T h v) * h v \<le> (1+xi)*T" 
     using hi hbound by (simp add: algebra_simps)
   have B_le: "real (roth_rounded_degrees T h v) * B \<le>
       real (roth_rounded_degrees T h v) * h v"
     using hbound by (intro mult_left_mono) auto
-  show "T \<le> real (roth_rounded_degrees T h v) * h v" using lo .
-  show "real (roth_rounded_degrees T h v) * h v \<le> (1+xi)*T" using w .
   show "real (roth_rounded_degrees T h v) \<le> (1+xi)*T/B"
     using B_le w Bpos by (simp add: le_divide_eq)
 qed
@@ -444,15 +428,13 @@ lemma roth_degree_sum:
   fixes h :: "nat \<Rightarrow> real"
   assumes Tpos: "0 < T" and Bpos: "0 < B" and xipos: "0 \<le> xi"
     and hbound: "\<And>v. v < m \<Longrightarrow> B \<le> h v \<and> h v \<le> xi * T"
-  shows "real (\<Sum>v<m. roth_rounded_degrees T h v) \<le>
-    real m * ((1+xi)*T/B)"
+  shows "real (\<Sum>v<m. roth_rounded_degrees T h v) \<le> m * ((1+xi)*T/B)"
 proof -
   have each: "real (roth_rounded_degrees T h v) \<le> (1+xi)*T/B"
     if vm: "v < m" for v
     using roth_degree_uniform(3)[of T B xi h v] Tpos Bpos xipos
       hbound[OF vm] by auto
-  have "(\<Sum>v<m. real (roth_rounded_degrees T h v)) \<le>
-      (\<Sum>v<m. (1+xi)*T/B)"
+  have "(\<Sum>v<m. real (roth_rounded_degrees T h v)) \<le> (\<Sum>v<m. (1+xi)*T/B)"
     by (intro sum_mono) (use each in auto)
   then show ?thesis by simp
 qed
@@ -474,44 +456,35 @@ proof -
   let ?M = "Max (insert 0 (h ` {..<m}))"
   have hle: "h v \<le> ?M" if vm: "v < m" for v
     by (rule Max_ge) (use vm in auto)
-  obtain T :: real where Tbig: "max A (?M/xi) < T" and Tpos: "0 < T"
+  obtain T :: real where TA: "A < T" and div: "?M / xi < T" and Tpos: "0 < T"
     and large: "\<And>v. v < m \<Longrightarrow> 2 * h v \<le> sigma * T"
     using roth_choose_large_T_above[where h=h and m=m and A="max A (?M/xi)", OF sig]
-    by blast
-  have TA: "A < T" using Tbig by simp
-  have div: "?M / xi < T" using Tbig by simp
-  have cross: "(?M / xi) * xi < T * xi"
-    by (rule mult_strict_right_mono[OF div xi])
-  have cancel: "(?M / xi) * xi = ?M" using xi by simp
+    by auto
   have MT: "?M < xi * T"
-    using cross cancel by (simp only: mult.commute)
+    using xi div by (metis mult.commute pos_divide_less_eq)
   have hsmall: "h v \<le> xi * T" if vm: "v < m" for v
     using hle[OF vm] MT by linarith
   let ?r = "roth_rounded_degrees T h"
   have hpos: "0 < h v" if vm: "v < m" for v
     using hlow[OF vm] Bpos by linarith
   have bounds: "\<forall>v<m. 0 < ?r v \<and> B \<le> h v \<and> h v \<le> xi * T \<and>
-      T \<le> real (?r v) * h v \<and> real (?r v) * h v \<le> (1+xi)*T"
+      T \<le> ?r v * h v \<and> ?r v * h v \<le> (1+xi)*T"
   proof (intro allI impI conjI)
     fix v
     assume vm: "v < m"
-    have hv: "0 < h v" by (rule hpos[OF vm])
-    show "0 < ?r v" using roth_rounded_degrees_bounds(1)[of T h v] Tpos hv by simp
-    show "B \<le> h v" by (rule hlow[OF vm])
-    show "h v \<le> xi * T" by (rule hsmall[OF vm])
-    show "T \<le> real (?r v) * h v"
-      using roth_rounded_degrees_bounds(2)[of T h v] Tpos hv by simp
-    show "real (?r v) * h v \<le> (1+xi)*T"
+    show "0 < ?r v" using roth_rounded_degrees_bounds(1)[of T h v] Tpos hpos vm by metis
+    show "T \<le> ?r v * h v"
+      using roth_rounded_degrees_bounds(2)[of T h v] Tpos hpos vm by metis 
+    show "?r v * h v \<le> (1+xi)*T"
       using roth_degree_uniform(2)[of T B xi h v] Tpos Bpos xi hlow[OF vm]
         hsmall[OF vm] by simp
-  qed
-  have ratios: "\<forall>v. Suc v < m \<longrightarrow>
-      real (?r (Suc v)) \<le> sigma * real (?r v)"
+  qed (use hlow hsmall in auto)
+  have ratios: "\<forall>v. Suc v < m \<longrightarrow> ?r (Suc v) \<le> sigma * ?r v"
     using roth_rounded_degrees_ratios[where T=T and sigma=sigma and h=h and m=m]
       Tpos sig hpos growth large by blast
   have sumb: "real (\<Sum>v<m. ?r v) \<le> real m * ((1+xi)*T/B)"
-    by (rule roth_degree_sum[OF Tpos Bpos _])
-      (use hlow hsmall xi in auto)
+    using hlow hsmall xi
+    by (intro roth_degree_sum[OF Tpos Bpos _]) auto
   show ?thesis using TA Tpos bounds ratios sumb by blast
 qed
 
@@ -524,7 +497,7 @@ definition roth_selected_parameters ::
   "real \<Rightarrow> real \<Rightarrow> nat \<Rightarrow> real \<Rightarrow> real \<Rightarrow> real \<Rightarrow>
     real \<Rightarrow> (nat \<Rightarrow> rat) \<Rightarrow> (nat \<Rightarrow> nat) \<Rightarrow> bool"
   where
-  "roth_selected_parameters \<alpha> kappa' m B xi sigma T \<beta> r \<longleftrightarrow>
+  "roth_selected_parameters \<alpha> kappa' m B xi sigma T \<beta> r \<equiv>
     (\<forall>v<m. 0 < r v \<and>
       B \<le> roth_rat_log_height (\<beta> v) \<and>
       roth_rat_log_height (\<beta> v) \<le> xi * T \<and>
@@ -540,8 +513,7 @@ theorem roth_select_parameters:
     and kap: "0 < kappa'" "kappa' < kappa"
     and sig: "0 < sigma" and xi: "0 < xi" and Bpos: "0 < B"
   shows "\<exists>\<beta> :: nat \<Rightarrow> rat. \<exists>T r.
-    A < (T::real) \<and> 0 < T \<and>
-    roth_selected_parameters \<alpha> kappa' m B xi sigma T \<beta> r"
+    A < (T::real) \<and> 0 < T \<and> roth_selected_parameters \<alpha> kappa' m B xi sigma T \<beta> r"
 proof -
   obtain \<beta> :: "nat \<Rightarrow> rat" where \<beta>:
       "\<forall>v<m. B < roth_rat_log_height (\<beta> v) \<and>
@@ -564,7 +536,7 @@ proof -
     have "((2/sigma) * ?h v) * sigma < ?h (Suc v) * sigma"
       by (rule mult_strict_right_mono[OF gap sig])
     then show ?thesis using sig by (simp add: algebra_simps)
-  qed
+  qed    
   obtain T :: real and r :: "nat \<Rightarrow> nat" where TA: "A < T"
     and Tpos: "0 < T" and rbounds:
       "\<forall>v<m. 0 < r v \<and> B \<le> ?h v \<and> ?h v \<le> xi * T \<and>
@@ -574,11 +546,7 @@ proof -
     and sumb: "real (\<Sum>v<m. r v) \<le> real m * ((1+xi)*T/B)"
     using roth_choose_degrees_above[where h="\<lambda>v. roth_rat_log_height (\<beta> v)" and m=m and sigma=sigma and
       xi=xi and B=B and A=A, OF sig xi Bpos hlow growth'] by blast
-  have all: "\<forall>v<m. 0 < r v \<and> B \<le> ?h v \<and> ?h v \<le> xi * T \<and>
-      T \<le> real (r v) * ?h v \<and> real (r v) * ?h v \<le> (1+xi)*T \<and>
-      abs (of_rat (\<beta> v) - \<alpha>) \<le> exp (-kappa' * ?h v)"
-    using rbounds \<beta> by blast
-  show ?thesis using TA Tpos all ratio sumb
+  show ?thesis using TA Tpos rbounds \<beta> ratio sumb
     unfolding roth_selected_parameters_def by blast
 qed
 
@@ -619,15 +587,14 @@ proof -
   show ?thesis using mpos gap by blast
 qed
 
-lemma roth_numeric_gap:
+lemma roth_numeric_gap: (*FIXME shorten this proof*)
   fixes T B xi C kappa eps :: real and m S :: nat
   assumes mpos: "0 < m" and Tpos: "0 < T" and Cnonneg: "0 \<le> C"
     and Sbound: "real S \<le> real m * ((1+xi)*T/B)"
     and Bbound: "(1+xi)*C/B \<le> xi/2"
     and Tbound: "ln 2 < real m * T * xi/2"
     and eq: "kappa * ((1-eps)/2 - eps) = 1 + 2*xi"
-  shows "ln 2 + real S*C + real m*(1+xi)*T <
-    kappa*T*(real m*(1-eps)/2 - eps*real m)"
+  shows "ln 2 + real S*C + real m*(1+xi)*T < kappa*T*(real m*(1-eps)/2 - eps*real m)"
 proof -
   have mTnonneg: "0 \<le> real m * T" using Tpos by simp
   have sc0: "real S*C \<le> (real m * ((1+xi)*T/B))*C"
@@ -674,8 +641,7 @@ proof -
     by (rule mult_right_mono[OF Sbound' Cnonneg])
   have rb: "4*real m*real r0 \<le> 4*real m*D"
     using rbound' by (intro mult_left_mono) auto
-  have costpre: "ln 2 + real S*C + 4*real m*real r0 \<le>
-      ln 2 + real m*D*C + 4*real m*D"
+  have costpre: "ln 2 + real S*C + 4*real m*real r0 \<le> ln 2 + real m*D*C + 4*real m*D"
     using sc rb by linarith
   have costeq: "real m*D*C + 4*real m*D = real m*D*(C+4)"
     by (simp add: algebra_simps)
@@ -688,12 +654,9 @@ lemma roth_height_budget:
     and budget: "real m*(1+xi)*(C+4)/B \<le> sigma/2"
   shows "real m*((1+xi)*T/B)*(C+4) \<le> sigma*T/2"
 proof -
-  have eq: "real m*((1+xi)*T/B)*(C+4) =
-      (real m*(1+xi)*(C+4)/B)*T"
-    by (simp add: algebra_simps)
   have "(real m*(1+xi)*(C+4)/B)*T \<le> (sigma/2)*T"
     by (rule mult_right_mono[OF budget]) (use Tpos in simp)
-  then show ?thesis using eq by (simp add: algebra_simps)
+  then show ?thesis by (simp add: algebra_simps)
 qed
 
 lemma roth_choose_budget_denominator:
@@ -702,14 +665,14 @@ lemma roth_choose_budget_denominator:
   shows "\<exists>B::real. 0 < B \<and> a/B < e"
 proof -
   let ?B = "a/e + 1"
-  have ad: "0 \<le> a/e" using anonneg epos by (intro divide_nonneg_pos) auto
-  have Bpos: "0 < ?B" using ad by linarith
+  have ad: "0 \<le> a/e" 
+    using anonneg epos by (intro divide_nonneg_pos) auto
   have eB: "e * ?B = a + e"
     using epos by (simp add: distrib_left)
   have "a < e*?B" using eB epos by linarith
-  then have bound: "a/?B < e"
-    using Bpos by (simp add: divide_less_eq mult.commute)
-  show ?thesis using Bpos bound by blast
+  then have "a/?B < e"
+    using ad by (simp add: divide_less_eq mult.commute)
+  with ad show ?thesis by (smt (verit, best))
 qed
 
 lemma roth_budget_mono:
@@ -717,9 +680,8 @@ lemma roth_budget_mono:
   assumes a: "0 \<le> a" and b: "0 < b" and bB: "b \<le> B"
   shows "a/B \<le> a/b"
 proof -
-  have Bpos: "0 < B" using b bB by linarith
   have "a*b \<le> a*B" by (rule mult_left_mono[OF bB a])
-  then show ?thesis using b Bpos by (simp add: divide_le_eq le_divide_eq)
+  then show ?thesis using b bB by (simp add: divide_le_eq le_divide_eq)
 qed
 
 lemma roth_choose_two_budgets:
@@ -764,14 +726,8 @@ qed
 lemma roth_auxiliary_bound_log:
   fixes b :: int and S :: nat
   assumes bpos: "1 \<le> b"
-  shows "ln (real (nat (2 * (4*b)^S))) =
-    ln 2 + real S * ln (4 * real_of_int b)"
-proof -
-  have nonneg: "0 \<le> 2 * (4*b)^S" using bpos by simp
-  have eq: "real (nat (2 * (4*b)^S)) = 2 * (4 * real_of_int b)^S"
-    using nonneg by simp
-  show ?thesis using bpos by (simp add: eq ln_mult ln_realpow algebra_simps)
-qed
+  shows "ln (real (nat (2 * (4*b)^S))) = ln 2 + real S * ln (4 * real_of_int b)"
+  using bpos by (simp add: ln_mult ln_realpow algebra_simps)
 
 lemma roth_degree_from_weighted:
   fixes T B xi h :: real and r :: nat
@@ -788,9 +744,7 @@ lemma roth_choose_parameter_budget:
   fixes xi sigma C D :: real and m :: nat
   assumes xi: "0 < xi" and sig: "0 < sigma"
     and C: "0 \<le> C" and D: "0 \<le> D"
-  shows "\<exists>B::real. 0 < B \<and>
-    (1+xi)*(C+D)/B \<le> xi/2 \<and>
-    real m*(1+xi)*(C+4)/B \<le> sigma/2"
+  shows "\<exists>B::real. 0 < B \<and> (1+xi)*(C+D)/B \<le> xi/2 \<and> real m*(1+xi)*(C+4)/B \<le> sigma/2"
 proof -
   have a: "0 \<le> (1+xi)*(C+D)" using xi C D by simp
   have c: "0 \<le> real m*(1+xi)*(C+4)" using xi C by simp

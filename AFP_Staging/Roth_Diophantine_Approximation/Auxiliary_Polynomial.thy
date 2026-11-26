@@ -156,19 +156,17 @@ next
   have fc: "1 + abs (Polynomial.coeff f j) \<le> ?B"
     by (rule roth_power_base_coeff) (use Suc.prems d in auto)
   have step:
-    "abs (roth_power_step f d ?c j) \<le>
-      abs ?a + abs (?c (d-1)) * abs (Polynomial.coeff f j)"
+    "abs (roth_power_step f d ?c j) \<le> abs ?a + abs (?c (d-1)) * abs (Polynomial.coeff f j)"
     unfolding roth_power_step_def
     by (rule order_trans[OF abs_triangle_ineq4]) (simp add: abs_mult)
-  also have "\<dots> \<le> ?B ^ k +
-      ?B ^ k * abs (Polynomial.coeff f j)"
+  also have "\<dots> \<le> ?B ^ k + ?B ^ k * abs (Polynomial.coeff f j)"
     by (intro add_mono a mult_right_mono[OF c]) simp_all
   also have "\<dots> = ?B ^ k * (1 + abs (Polynomial.coeff f j))"
     by (simp add: algebra_simps)
   also have "\<dots> \<le> ?B ^ k * ?B"
     using fc by (intro mult_left_mono) simp_all
   also have "\<dots> = ?B ^ Suc k"
-    by (simp add: power_Suc)
+    by simp
   finally show ?case by simp
 qed
 

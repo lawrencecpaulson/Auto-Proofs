@@ -63,7 +63,7 @@ next
     by arith
   also have "\<dots> \<le> 2 * (2::nat) ^ n"
     using Suc.IH by simp
-  finally show ?case by (simp add: power_Suc)
+  finally show ?case by simp
 qed
 
 lemma roth_exponent_box_card_exp_bound:
@@ -418,7 +418,7 @@ next
     using strict bound by linarith
   have cast: "real (2 * d * card (roth_low_indices m r eps)) <
     real (card (roth_exponent_box m r))"
-    using h by (simp add: of_nat_mult mult_ac)
+    using h by (simp add: mult_ac)
   show ?thesis by (rule of_nat_less_imp_less[OF cast])
 qed
 
