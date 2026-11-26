@@ -52,13 +52,11 @@ lemma roth_replace_coeff_sum:
 
 lemma roth_replace_coeff_power:
   fixes f :: "'a::comm_ring_1 \<Rightarrow> 'b::comm_ring_1"
-  assumes h0: "f 0 = 0" and h1: "f 1 = 1"
-    and hadd: "\<And>x y. f (x + y) = f x + f y"
-    and hmul: "\<And>x y. f (x * y) = f x * f y"
+  assumes "f 0 = 0" "f 1 = 1"
+    and "\<And>x y. f (x + y) = f x + f y"
+    and "\<And>x y. f (x * y) = f x * f y"
   shows "replace_coeff f (P ^ n) = replace_coeff f P ^ n"
-  by (induction n)
-    (simp_all add: roth_replace_coeff_one[OF h0 h1]
-      roth_replace_coeff_mult[OF h0 hadd hmul])
+  by (induction n) (simp_all add: roth_replace_coeff_one roth_replace_coeff_mult assms)
 
 lemma roth_replace_coeff_prod:
   fixes f :: "'a::comm_ring_1 \<Rightarrow> 'b::comm_ring_1"
@@ -68,8 +66,7 @@ lemma roth_replace_coeff_prod:
   shows "replace_coeff f (\<Prod>x\<in>S. P x) =
     (\<Prod>x\<in>S. replace_coeff f (P x))"
   using fin by (induction S rule: finite_induct)
-    (simp_all add: roth_replace_coeff_one[OF h0 h1]
-      roth_replace_coeff_mult[OF h0 hadd hmul])
+    (simp_all add: roth_replace_coeff_one roth_replace_coeff_mult assms)
 
 lemma roth_replace_coeff_comp:
   assumes f0: "f 0 = 0" and g0: "g 0 = 0"
@@ -111,7 +108,7 @@ lemma roth_Const_one [simp]:
 
 lemma roth_Const_power:
   "Const (c::'a::comm_ring_1) ^ n = Const (c ^ n)"
-  by (induction n) (simp_all add: power_Suc roth_Const_mult)
+  by (induction n) (simp_all add: roth_Const_mult)
 
 lemma roth_of_nat_Const:
   "(of_nat n :: 'a::comm_ring_1 mpoly) = Const (of_nat n)"
@@ -131,7 +128,7 @@ lemma roth_Var_power:
   "(Var v :: 'a::comm_ring_1 mpoly) ^ n =
     monom (Poly_Mapping.single v n) 1"
   by (induction n)
-    (simp_all add: power_Suc roth_Const_monom
+    (simp_all add: roth_Const_monom
       roth_Var_monom mult_monom
       Poly_Mapping.single_add[symmetric])
 
@@ -352,18 +349,15 @@ lemma roth_lift_Var:
 lemma roth_lift_zero [simp]:
   "roth_lift 0 = 0"
   using replace_coeff_monom[of Const 0 0]
-  by (simp add: roth_lift_def roth_Const_zero)
+  by (simp add: roth_lift_def)
 
 lemma roth_lift_add:
   "roth_lift (P + Q) = roth_lift P + roth_lift Q"
-  by (simp add: roth_lift_def replace_coeff_add
-    roth_Const_add roth_Const_zero)
+  by (simp add: roth_lift_def replace_coeff_add roth_Const_add)
 
 lemma roth_lift_mult:
   "roth_lift (P * Q) = roth_lift P * roth_lift Q"
-  by (simp add: roth_lift_def roth_replace_coeff_mult
-    roth_Const_zero roth_Const_add[symmetric]
-    roth_Const_mult[symmetric])
+  by (simp add: roth_lift_def roth_replace_coeff_mult roth_Const_add roth_Const_mult)
 
 lemma roth_lift_one [simp]:
   "roth_lift 1 = 1"
@@ -388,8 +382,7 @@ lemma roth_lift_insertion_Var:
 proof (induction P rule: mpoly_induct)
   case (monom I c)
   have lift: "roth_lift (monom I c) = monom I (Const c)"
-    by (simp add: roth_lift_def replace_coeff_monom
-      roth_Const_zero)
+    by (simp add: roth_lift_def replace_coeff_monom)
   have poly: "monom I c =
     Const c * (\<Prod>v\<in>Poly_Mapping.keys I.
       Var v ^ Poly_Mapping.lookup I v)"
@@ -608,8 +601,7 @@ lemma roth_hasse_add:
 
 lemma roth_hasse_zero_poly [simp]:
   "roth_hasse I (0::'a::comm_ring_1 mpoly) = 0"
-  by (simp add: roth_hasse_def roth_taylor_coeff_def
-    roth_translate_zero_poly coeff_def zero_mpoly.rep_eq)
+  by (simp add: roth_hasse_def roth_taylor_coeff_def coeff_def zero_mpoly.rep_eq)
 
 lemma roth_hasse_sum:
   assumes "finite S"

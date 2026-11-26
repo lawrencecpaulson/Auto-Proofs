@@ -7,7 +7,7 @@ section \<open>Exponent support of Hasse derivatives\<close>
 
 definition roth_diagonal ::
   "(nat \<Rightarrow>\<^sub>0 nat) \<Rightarrow> ('a::idom mpoly) mpoly \<Rightarrow> bool" where
-  "roth_diagonal K T \<longleftrightarrow>
+  "roth_diagonal K T \<equiv>
     (\<forall>I J. coeff (coeff T J) I \<noteq> 0 \<longrightarrow> I + J = K)"
 
 lemma roth_vars_one:
@@ -22,9 +22,9 @@ proof (induction n)
   case 0
   then show ?case by (simp add: roth_vars_one)
 next
-  case (Suc n)
+  case (Suc n) 
   have "vars (P ^ Suc n) \<subseteq> vars P \<union> vars (P ^ n)"
-    using vars_mult[of P "P ^ n"] by (simp add: power_Suc)
+    using vars_mult[of P "P ^ n"] by simp
   then show ?case using Suc.IH by auto
 qed
 
@@ -188,8 +188,7 @@ next
         (\<Sum>w\<in>S. Poly_Mapping.single w (j w))"
       using h x by blast
     then show "x \<in> insert v S"
-      using insert.IH
-      by (auto simp: Poly_Mapping.keys_single split: if_splits)
+      using insert.IH by (auto split: if_splits)
   qed
   show ?case using sub insert.hyps by simp
 qed
@@ -220,7 +219,7 @@ next
   qed
   have isupp: "Poly_Mapping.keys
     (Poly_Mapping.single v (j v)) \<subseteq> {v}"
-    by (simp add: Poly_Mapping.keys_single)
+    by simp
   have jsupp: "Poly_Mapping.keys ?J \<subseteq> S"
     by (rule roth_keys_sum_single_subset[OF insert.hyps(1)])
   have disj: "{v} \<inter> S = {}"
@@ -377,7 +376,7 @@ lemma roth_hasse_monom_product:
         else 0))"
 proof -
   have lift: "roth_lift (monom K c) = monom K (Const c)"
-    by (simp add: roth_lift_def replace_coeff_monom roth_Const_zero)
+    by (simp add: roth_lift_def replace_coeff_monom)
   have expansion:
     "roth_translate Var (roth_lift (monom K c)) =
       Const (Const c) *
@@ -518,8 +517,7 @@ lemma roth_diagonal_monom:
     (roth_translate Var (roth_lift (monom K c)))"
 proof -
   have lift: "roth_lift (monom K c) = monom K (Const c)"
-    by (simp add: roth_lift_def replace_coeff_monom
-      roth_Const_zero)
+    by (simp add: roth_lift_def replace_coeff_monom)
   have expansion:
     "roth_translate Var (roth_lift (monom K c)) =
       Const (Const c) *
