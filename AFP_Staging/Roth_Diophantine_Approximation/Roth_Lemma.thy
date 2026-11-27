@@ -251,7 +251,7 @@ qed
 
 lemma roth_sigma_recursion:
   "((eta::real)^2)^(2^n) = eta^(2^(Suc n))"
-  by (simp add: power_mult power_Suc mult.commute)
+  by (simp add: power_mult mult.commute)
 
 lemma roth_sigma_le_eta:
   fixes eta :: real
@@ -300,7 +300,7 @@ lemma roth_cancel_fact:
 proof -
   have e1: "real k * t^2 / (2 * real m) =
     real k * (t^2 / (2 * real m))"
-    by (simp add: times_divide_eq_left mult.commute)
+    by (simp add: mult.commute)
   have e2: "2 * real k * real m * eta^2 =
     real k * (2 * real m * eta^2)"
     by (simp add: algebra_simps)
@@ -315,8 +315,7 @@ lemma roth_sq_fact:
   assumes mp: "0 < m"
     and q: "t^2 / (2 * real m) \<le> 2 * real m * eta^2"
   shows "t^2 \<le> (2 * real m * eta)^2"
-  using mp q by (simp add: pos_divide_le_eq
-      power2_eq_square algebra_simps)
+  using mp q by (simp add: pos_divide_le_eq power2_eq_square algebra_simps)
 
 lemma roth_final_index_arith:
   fixes t u l rho sigma eta :: real
@@ -327,14 +326,13 @@ lemma roth_final_index_arith:
     and qb: "real k * t^2 / (2 * real m) \<le> u+l+real k*rho"
   shows "t \<le> 2 * real m * eta"
 proof -
-  have k0: "(0::real) \<le> real k" by simp
   have kl: "real k * sigma \<le> real k * eta^2"
-    by (rule mult_left_mono[OF sb k0])
+    by (simp add: mult_left_mono sb)
   have kr: "real k * rho \<le> real k * sigma"
-    by (rule mult_left_mono[OF rb k0])
+    by (simp add: mult_left_mono[OF rb] sb)
   have ar: "2 * real k * real (m-1) * eta^2 +
       2 * real k * eta^2 = 2 * real k * real m * eta^2"
-    using mp by (simp add: of_nat_diff algebra_simps)
+    using mp by (simp add: algebra_simps)
   have bv: "u+l+real k*rho \<le> 2 * real k * real m * eta^2"
     using ub lb kr kl ar by linarith
   have q: "real k * t^2 / (2 * real m) \<le>
@@ -344,8 +342,7 @@ proof -
     by (rule roth_cancel_fact[OF q kp])
   have sq: "t^2 \<le> (2 * real m * eta)^2"
     by (rule roth_sq_fact[OF mp q'])
-  show ?thesis by (rule power2_le_imp_le[OF sq])
-    (use ep in auto)
+  show ?thesis by (rule power2_le_imp_le[OF sq]) (use ep in auto)
 qed
 
 lemma roth_ratio_scale:
@@ -591,21 +588,11 @@ next
     using roth_factor_height_bounds[OF un ln disj] hb by linarith
   have eta2_pos: "0 < eta^2" using ep by simp
   have eta2_le_eta: "eta^2 \<le> eta"
-  proof -
-    have "eta^2 \<le> eta^1"
-      by (rule power_decreasing) (use ep eta_one in auto)
-    then show ?thesis by simp
-  qed
+    using ep eta_one by (metis order_less_le power_one_right roth_sigma_le_eta)
   have eta2_half: "eta^2 \<le> 1/2"
     using eta2_le_eta eb by linarith
-  have left_ratio: "real (k*r (Suc v)) \<le>
-    (eta^2)^(2^n) * real (k*r v)" if "Suc v < Suc n" for v
-  proof -
-    have cv: "Suc v < ?m" using that by simp
-    have "real (k*r (Suc v)) \<le> ?sigma * real (k*r v)"
-      by (rule roth_ratio_scale[OF ratio[OF cv]])
-    then show ?thesis by (simp add: roth_sigma_recursion)
-  qed
+  have left_ratio: "real (k*r (Suc v)) \<le> (eta^2)^(2^n) * real (k*r v)" if "Suc v < Suc n" for v
+    using less_SucI ratio roth_ratio_scale roth_sigma_recursion that by presburger
   have left_height:
     "roth_proj_log_height U +
       4*real (Suc n)*real (k*r 0) \<le>
@@ -638,12 +625,10 @@ next
   have rlast: "r (Suc n) \<le> r 0"
     by (rule roth_rates_le_first[where m="?m"])
       (use half in auto)
-  have D_bound: "real (r (Suc n)) \<le>
-      4*real (Suc n)*real (r 0)"
+  have D_bound: "real (r (Suc n)) \<le> 4*real (Suc n)*real (r 0)"
   proof -
     have d1: "(1::real) \<le> 4*real (Suc n)" by simp
-    have d2: "1*real (r 0) \<le>
-      (4*real (Suc n))*real (r 0)"
+    have d2: "1*real (r 0) \<le> (4*real (Suc n))*real (r 0)"
       by (rule mult_right_mono[OF d1]) simp
     show ?thesis using rlast d2 by linarith
   qed
