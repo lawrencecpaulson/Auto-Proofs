@@ -681,14 +681,10 @@ next
   have peq: "roth_index ?m r a (U*L) = ereal (u+l)"
     using roth_disjoint_index_mult[OF disj, where m="Suc (Suc n)" and r=r and a=a] ueq leq
     by simp
-  have qi: "real k*t^2/(2*real ?m) \<le>
-      u+l+real k*(real (r (Suc n))/real (r n))"
+  have qi: "real k*t^2/(2*real ?m) \<le>  u+l+real k*(real (r (Suc n))/real (r n))"
     using ib by (simp add: teq peq)
-  have rpn: "0 < r n" by (rule rp) simp
-  have rn: "real (r (Suc n)) \<le> ?sigma*real (r n)"
-    by (rule ratio) simp
   have rho: "real (r (Suc n))/real (r n) \<le> ?sigma"
-    by (rule roth_ratio_divide[OF rpn rn])
+    using ratio roth_ratio_divide rp by auto
   have tb: "t \<le> 2*real ?m*eta"
     by (rule roth_final_index_arith
       [where m="?m" and sigma="?sigma" and
@@ -706,8 +702,7 @@ theorem roth_lemma:
     and ratio: "\<And>v. Suc v<m \<Longrightarrow>
       real (r (Suc v)) \<le> eta^(2^(m-1))*real (r v)"
     and height: "\<And>v. v<m \<Longrightarrow>
-      roth_proj_log_height P + 4*real m*real (r 0) \<le>
-        eta^(2^(m-1))*real (r v)*roth_rat_log_height (a v)"
+      roth_proj_log_height P + 4*real m*real (r 0) \<le> eta^(2^(m-1))*real (r v)*roth_rat_log_height (a v)"
   shows "roth_index m r a P \<le> ereal (2*real m*eta)"
 proof -
   obtain n where meq: "m=Suc n" using mp by (cases m) auto
@@ -717,8 +712,7 @@ qed
 
 lemma roth_proj_log_height_cast_bound:
   fixes Q :: "int mpoly"
-  shows "roth_proj_log_height (replace_coeff of_int Q) \<le>
-    ln (real (roth_int_coeff_sup Q))"
+  shows "roth_proj_log_height (replace_coeff of_int Q) \<le> ln (real (roth_int_coeff_sup Q))"
 proof -
   have lreal: "real (roth_proj_height (replace_coeff of_int Q)) \<le>
     real (roth_int_coeff_sup Q)" using roth_proj_height_cast by simp
@@ -734,24 +728,15 @@ theorem roth_lemma_integer:
     and box: "roth_poly_in_box m r Q"
     and rp: "\<And>v. v<m \<Longrightarrow> 0<r v"
     and ep: "0<eta" and eb: "eta\<le>1/2"
-    and ratio: "\<And>v. Suc v<m \<Longrightarrow>
-      real (r (Suc v)) \<le> eta^(2^(m-1))*real (r v)"
+    and ratio: "\<And>v. Suc v<m \<Longrightarrow> r (Suc v) \<le> eta^(2^(m-1)) * r v"
     and height: "\<And>v. v<m \<Longrightarrow>
       ln (real (roth_int_coeff_sup Q)) + 4*real m*real (r 0) \<le>
         eta^(2^(m-1))*real (r v)*roth_rat_log_height (a v)"
-  shows "roth_index m r a (replace_coeff of_int Q) \<le>
-    ereal (2*real m*eta)"
-proof (rule roth_lemma[OF mp roth_cast_nonzero[OF q]])
+  shows "roth_index m r a (replace_coeff of_int Q) \<le> ereal (2*real m*eta)"
+proof (intro roth_lemma[OF mp roth_cast_nonzero[OF q]] ep eb ratio height rp)
   show "roth_poly_in_box m r (replace_coeff of_int Q :: rat mpoly)"
     using box by (simp add: roth_box_cast_iff)
-  show "0 < r v" if "v<m" for v by (rule rp[OF that])
-  show "0 < eta" by (rule ep)
-  show "eta \<le> 1/2" by (rule eb)
-  show "real (r (Suc v)) \<le> eta^(2^(m-1))*real (r v)"
-    if "Suc v<m" for v by (rule ratio[OF that])
-  show "roth_proj_log_height (replace_coeff of_int Q) +
-      4*real m*real (r 0) \<le>
-      eta^(2^(m-1))*real (r v)*roth_rat_log_height (a v)"
+  show "roth_proj_log_height (replace_coeff of_int Q) + 4*real m * (r 0) \<le> eta^(2^(m-1))*real (r v)*roth_rat_log_height (a v)"
     if "v<m" for v
     using roth_proj_log_height_cast_bound[of Q] height[OF that]
     by linarith
