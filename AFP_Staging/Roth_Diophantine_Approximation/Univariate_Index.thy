@@ -17,7 +17,7 @@ lemma roth_mpoly_to_poly_cast:
   fixes U :: "int mpoly"
   shows "mpoly_to_poly v (replace_coeff of_int U :: rat mpoly) =
          map_poly of_int (mpoly_to_poly v U)"
-  by (simp add: poly_eq_iff roth_coeff_cast coeff_map_poly)
+  by (simp add: poly_eq_iff coeff_map_poly coeff_replace_coeff)
 
 lemma roth_mpoly_to_poly_smult:
   fixes U :: "rat mpoly"
@@ -136,7 +136,7 @@ lemma roth_poly_to_mpoly_nonzero:
   fixes Q :: "'a::comm_ring_1 poly"
   assumes "Q \<noteq> 0"
   shows "poly_to_mpoly v Q \<noteq> 0"
-  by (metis  assms poly_to_mpoly_inverse poly_to_mpoly_inverse poly_to_mpoly0)
+  by (metis assms poly_to_mpoly_inverse poly_to_mpoly_inverse poly_to_mpoly0)
 
 lemma roth_mpoly_to_poly_nonzero:
   fixes U :: "'a::comm_ring_1 mpoly"
@@ -159,7 +159,7 @@ lemma roth_linear_cast_complex:
   assumes q: "q \<noteq> 0"
   shows "(map_poly of_int [:-p,q:] :: complex poly) =
     smult (of_int q) [:- (of_int p / of_int q), 1:]"
-  using q by (simp add: smult_pCons)
+  using q by auto
 
 lemma roth_mahler_smult_linear:
   fixes c a :: complex
@@ -495,7 +495,7 @@ proof -
   have q0: "poly q \<beta> \<noteq> 0"
     using qnd by (simp add: poly_eq_0_iff_dvd)
   have lin: "pcompose [:-\<beta>,1:] [:\<beta>,1:] = [:0,1:]"
-    by (simp add: pcompose_pCons pcompose_1)
+    by auto
   have cpow: "pcompose ([:-\<beta>,1:] ^ n) [:\<beta>,1:] = [:0,1:] ^ n" for n
     by (induction n) (simp_all only: power_0 power_Suc pcompose_mult pcompose_1 lin)
   have mid: "pcompose (([:-\<beta>,1:] ^ Polynomial.order \<beta> p) * q) [:\<beta>,1:] =

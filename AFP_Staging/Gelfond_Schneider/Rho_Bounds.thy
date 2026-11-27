@@ -170,10 +170,10 @@ proof -
   let ?U = "?K * sqrt (real r)"
   have qC: "real q * C \<le> ?U"
     using Cone gs_balanced_q_le_sqrt qsq by auto
-  have Kone: "1 \<le> ?K"
+  have "1 \<le> ?K"
     using \<open>m > 0\<close> Cone by fastforce
   have Uone: "1 \<le> ?U"
-    using Kone \<open>r > 0\<close> by auto
+    using \<open>1 \<le> ?K\<close> \<open>r > 0\<close> by auto
   have "(real q * C) ^ n \<le> ?U ^ n"
     by (rule power_mono[OF qC]) (use Cone in auto)
   also have "\<dots> \<le> ?U ^ r"
@@ -246,9 +246,9 @@ lemma gs_max_ceiling_mul_le:
   assumes Gone: "1 \<le> G"
   shows "of_int (max 1 (\<lceil>W * A\<rceil>)) \<le> (1 + W) * G"
 proof -
-  have WA: "0 \<le> W * A" using \<open>A \<ge> 0\<close> \<open>W \<ge> 0\<close> by simp
+  have "0 \<le> W * A" using \<open>A \<ge> 0\<close> \<open>W \<ge> 0\<close> by simp
   show ?thesis
-    using mult_left_mono[OF Ale \<open>W \<ge> 0\<close>] gs_max_ceiling_le[OF WA] Gone by argo
+    using mult_left_mono[OF Ale \<open>W \<ge> 0\<close>] gs_max_ceiling_le[OF \<open>0 \<le> W * A\<close>] Gone by argo
 qed
 
 lemma gs_witness_bound_le_growth:

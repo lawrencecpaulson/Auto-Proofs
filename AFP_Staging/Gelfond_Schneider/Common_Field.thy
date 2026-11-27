@@ -44,12 +44,12 @@ theorem exists_finite_rational_tower_of_algebraic_triple:
 proof -
   have sfQ: "Subfield (\<rat> :: complex set)"
     using complex_subfield_Rats by (simp add: complex_subfield_iff_subfield)
-  have finS: "finite {a,b,w}"
+  have "finite {a,b,w}"
     by simp
   have algS: "algebraic_over \<rat> x" if "x \<in> {a,b,w}" for x
     using assms that by (auto intro: algebraic_imp_algebraic_over_Rats)
   obtain L where "finite_subfield_tower \<rat> L" "\<rat> \<subseteq> L" "{a,b,w} \<subseteq> L"
-    using exists_finite_subfield_tower[OF sfQ finS algS] by blast
+    using exists_finite_subfield_tower[OF sfQ \<open>finite {a,b,w}\<close> algS] by blast
   then show thesis
     using that by auto
 qed

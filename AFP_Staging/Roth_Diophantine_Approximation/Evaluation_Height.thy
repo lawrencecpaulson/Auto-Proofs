@@ -28,7 +28,7 @@ proof -
   have "(of_int q::rat)^r = (of_int q)^i * (of_int q)^(r-i)"
     using ir by (simp add: power_add[symmetric])
   then show ?thesis using q
-    by (simp add: power_divide field_simps)
+    by (simp add: field_simps)
 qed
 
 lemma roth_clear_monom_evaluation:
@@ -759,7 +759,7 @@ proof -
   have "abs (insertion a (replace_coeff (of_int::int \<Rightarrow> real) P)) \<le>
       (\<Sum>I\<in>?S. abs (insertion a
         (MPoly_Type.monom I (of_int (MPoly_Type.coeff P I)))))"
-    by (simp add: eval sum_abs)
+    by (simp add: eval)
   also have "... \<le> (\<Sum>I\<in>?S. ?H * ?E)"
     by (intro sum_mono each)
   also have "... = real (card ?S) * ?H * ?E"
@@ -786,23 +786,18 @@ proof -
   let ?E = "(\<Prod>v<m. max 1 (abs (a v)) ^ r v)"
   have qb: "roth_poly_in_box m r ?Q"
     by (rule roth_hasse_box_int[OF box])
-  have eval: "abs (insertion a (roth_hasse J (replace_coeff (of_int::int \<Rightarrow> real) P))) \<le>
+  have eval: "abs (insertion a (roth_hasse J (replace_coeff of_int P))) \<le>
       real (card (Poly_Mapping.keys (mapping_of ?Q))) *
         real (roth_int_coeff_sup ?Q) * ?E"
     by (simp only: roth_hasse_cast_real[symmetric])
       (rule roth_real_poly_eval_bound[OF qb])
   have sub: "Poly_Mapping.keys (mapping_of ?Q) \<subseteq> roth_exponent_box m r"
     using qb by (simp add: roth_poly_in_box_def)
-  have cards: "card (Poly_Mapping.keys (mapping_of ?Q)) \<le>
-      card (roth_exponent_box m r)"
+  have cards: "card (Poly_Mapping.keys (mapping_of ?Q)) \<le> card (roth_exponent_box m r)"
     by (rule card_mono[OF finite_roth_exponent_box sub])
-  have hs: "roth_int_coeff_sup ?Q \<le>
-      2 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup P"
+  have hs: "roth_int_coeff_sup ?Q \<le> 2 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup P"
     by (rule roth_hasse_coeff_sup[OF box])
   have Epos: "0 \<le> ?E" by (intro prod_nonneg) simp
-  have hc: "real (card (Poly_Mapping.keys (mapping_of ?Q))) \<le>
-      real (card (roth_exponent_box m r))"
-    using cards by simp
   have hh: "real (roth_int_coeff_sup ?Q) \<le>
       real (2 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup P)"
     using hs by (metis of_nat_le_iff)
@@ -810,7 +805,7 @@ proof -
       real (roth_int_coeff_sup ?Q) \<le>
     real (card (roth_exponent_box m r)) *
       real (2 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup P)"
-    by (intro mult_mono hc hh) simp_all
+    using cards by (intro mult_mono hh) simp_all
   have "real (card (Poly_Mapping.keys (mapping_of ?Q))) *
       real (roth_int_coeff_sup ?Q) * ?E \<le>
     real (card (roth_exponent_box m r)) *

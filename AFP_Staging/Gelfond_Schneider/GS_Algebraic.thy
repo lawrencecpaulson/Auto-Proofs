@@ -66,7 +66,7 @@ lemma gelfond_schneider_data_affine_coeff_nonzero:
   shows "gs_affine_coeff a b \<noteq> 0"
 proof
   assume h0: "gs_affine_coeff a b = 0"
-  have b_rat: "beta \<in> \<rat>"
+  have "beta \<in> \<rat>"
   proof -
     have "of_nat b * beta = - of_nat a"
       using h0 by (simp add: gs_affine_coeff_def add_eq_0_iff)
@@ -75,7 +75,7 @@ proof
     then show ?thesis
       by simp
   qed
-  from beta_irrational b_rat show False
+  from beta_irrational \<open>beta \<in> \<rat>\<close> show False
     by blast
 qed
 
@@ -112,7 +112,7 @@ qed
 lemma gelfond_schneider_data_rho_exp:
   shows "exp (gs_rho a b) = alpha ^ a * omega ^ b"
 proof -
-  have hz: "zeta \<in> log_values (alpha)"
+  have "zeta \<in> log_values (alpha)"
     by (rule zeta_log_alpha)
   have hbw: "beta * zeta \<in> log_values (omega)"
     by (rule beta_zeta_log_omega)
@@ -121,7 +121,7 @@ proof -
   also have "\<dots> = exp (zeta) ^ a * exp (beta * zeta) ^ b"
     by (simp add: exp_of_nat_mult [symmetric])
   also have "\<dots> = alpha ^ a * omega ^ b"
-    using hz hbw by simp
+    using \<open>zeta \<in> log_values (alpha)\<close> hbw by simp
   finally show ?thesis .
 qed
 

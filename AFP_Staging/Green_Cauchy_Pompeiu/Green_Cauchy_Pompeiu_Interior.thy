@@ -437,11 +437,8 @@ proof -
     (green_complex_of_pair t - w)"
   let ?S = "cbox (Complex a c) (Complex b d) -
     box (Complex p r) (Complex q s)"
-  have ab: "a < b" and cd: "c < d"
-    using ap pq qb cr rs sd by auto
   have uc: "continuous_on V u"
     by (rule Ck_on_imp_continuous_on[OF C1])
-  have openV: "open V" by (rule Ck_on_open[OF C1])
   have fc: "continuous_on (V - {w}) ?f"
     by (intro continuous_intros continuous_on_subset[OF uc]) auto
   have Sc: "continuous_on ?S ?f"
@@ -538,26 +535,26 @@ proof -
     for x y
     by (rule contour_integral_bound_linepath[OF cint[OF that] B])
       (use bound that path in auto)
-  have b1: "norm ?i1 \<le> B * (b - a)"
-    using bnd[of ?p1 ?p2] ab
-    by (simp add: complex_diff complex_norm)
-  have b2: "norm ?i2 \<le> B * (d - c)"
-    using bnd[of ?p2 ?p3] cd
-    by (simp add: complex_diff complex_norm)
-  have b3: "norm ?i3 \<le> B * (b - a)"
-    using bnd[of ?p3 ?p4] ab
-    by (simp add: complex_diff complex_norm)
-  have b4: "norm ?i4 \<le> B * (d - c)"
-    using bnd[of ?p4 ?p1] cd
-    by (simp add: complex_diff complex_norm)
   have edge: "contour_integral ?g f = ?i1 + ?i2 + ?i3 + ?i4"
     by (rule green_rectpath_contour_edges[OF ab cd cont])
   have triangle: "norm (?i1 + ?i2 + ?i3 + ?i4) \<le>
       norm ?i1 + norm ?i2 + norm ?i3 + norm ?i4"
     by (smt (verit) norm_triangle_ineq)
-  show ?thesis
+  have "norm ?i1 \<le> B * (b - a)"
+    using bnd[of ?p1 ?p2] ab
+    by (simp add: complex_diff complex_norm)
+  moreover have "norm ?i2 \<le> B * (d - c)"
+    using bnd[of ?p2 ?p3] cd
+    by (simp add: complex_diff complex_norm)
+  moreover have "norm ?i3 \<le> B * (b - a)"
+    using bnd[of ?p3 ?p4] ab
+    by (simp add: complex_diff complex_norm)
+  moreover have "norm ?i4 \<le> B * (d - c)"
+    using bnd[of ?p4 ?p1] cd
+    by (simp add: complex_diff complex_norm)
+  ultimately show ?thesis
     unfolding edge
-    using triangle b1 b2 b3 b4 by (simp add: algebra_simps)
+    using triangle by (simp add: algebra_simps)
 qed
 
 lemma green_complex_norm_le_components:
@@ -873,7 +870,7 @@ proof -
   have bound: "norm (?K z) \<le> norm (max C 0 * ?H z)" for z
   proof (cases "z \<in> ?S")
     case True
-    then have H: "?H z = 1 / norm (z-w)"
+    then have "?H z = 1 / norm (z-w)"
       using sub True by (auto simp: indicator_def)
     have "norm (h z / (z-w)) \<le> max C 0 * (1 / norm (z-w))"
       proof -

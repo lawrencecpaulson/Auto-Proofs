@@ -141,14 +141,14 @@ proof -
   let ?b = "\<bar>Im z\<bar>"
   have apos: "0 < ?a" and bpos: "0 < ?b"
     using re im by auto
-  have npos: "0 < norm z"
+  have "0 < norm z"
     using re by auto
   have ab_le: "?a * ?b \<le> (norm z)\<^sup>2"
   proof -
-    have a_le: "?a \<le> norm z" by (rule abs_Re_le_cmod)
-    have b_le: "?b \<le> norm z" by (rule abs_Im_le_cmod)
+    have "?a \<le> norm z" by (rule abs_Re_le_cmod)
+    have "?b \<le> norm z" by (rule abs_Im_le_cmod)
     have "?a * ?b \<le> norm z * norm z"
-      by (rule mult_mono[OF a_le b_le])
+      by (rule mult_mono[OF \<open>?a \<le> norm z\<close> \<open>?b \<le> norm z\<close>])
         (use apos bpos in auto)
     then show ?thesis
       by (simp add: power2_eq_square)
@@ -156,7 +156,7 @@ proof -
   have sqrt_le: "sqrt (?a * ?b) \<le> norm z"
     using real_sqrt_le_mono[OF ab_le] by simp
   have inv_le: "1 / norm z \<le> 1 / sqrt (?a * ?b)"
-    using sqrt_le apos bpos npos by (simp add: frac_le)
+    using sqrt_le apos bpos \<open>0 < norm z\<close> by (simp add: frac_le)
   have rhs: "?a powr (-1/2) * ?b powr (-1/2) =
       1 / sqrt (?a * ?b)"
     using apos bpos
@@ -334,10 +334,9 @@ proof -
   let ?H = "\<lambda>z::complex. indicator (cball 0 R) z *\<^sub>R (1 / norm z)"
   have Tmeas: "((+) (-w)) \<in> (lborel :: complex measure) \<rightarrow>\<^sub>M borel"
     by measurable
-  have Bmeas: "cball (0::complex) R \<in> sets borel"
+  have "cball (0::complex) R \<in> sets borel"
     by simp
-  have Hmeas: "?H \<in> borel_measurable (borel :: complex measure)"
-    using Bmeas by measurable
+  then have Hmeas: "?H \<in> borel_measurable (borel :: complex measure)" by measurable
   have eq: "?H (-w + z) =
       indicator (cball w R) z *\<^sub>R (1 / norm (z - w))" for z
     by (auto simp: indicator_def dist_norm)

@@ -44,10 +44,10 @@ corollary (in green_quadratic_character) green_paper_inert_bound_uniform:
 proof -
   let ?I = "diagonal_grid (cpx_sqrt d)
     (natural_grid (green_N q cparam)) \<times> {..<green_J q cparam}"
-  have finiteI: "finite ?I"
+  have "finite ?I"
     by (simp add: diagonal_grid_def natural_grid_finite)
   then obtain idxs where idxs: "distinct idxs" "set idxs = ?I"
-    using finite_distinct_list[OF finiteI] by auto
+    using finite_distinct_list[OF \<open>finite ?I\<close>] by auto
   show ?thesis by (rule green_paper_inert_bound[OF even cge large idxs])
 qed
 
@@ -58,9 +58,9 @@ corollary (in green_quadratic_character) green_paper_inert_bound_large_conductor
     \<le> (1 / 2 + 11 / real cparam) *
       ln (real (green_X q cparam)) + 8 * real cparam + 5"
 proof -
-  have exponent: "1 \<le> cparam div 2" using cge by simp
+  have "1 \<le> cparam div 2" using cge by simp
   have "q ^ 1 \<le> q ^ (cparam div 2)"
-    by (intro power_increasing) (use exponent qge in auto)
+    by (intro power_increasing) (use \<open>1 \<le> cparam div 2\<close> qge in auto)
   then have large: "2 * cparam \<le> q ^ (cparam div 2)"
     using qge by simp
   show ?thesis
@@ -75,8 +75,8 @@ proof -
   proof -
     have upper: "2 ^ 32 \<le> q ^ 32"
       by (rule power_mono[OF qge]) simp
-    have base: "128 \<le> (2::nat) ^ 32" by simp
-    show ?thesis using upper base by (simp; linarith)
+    have "128 \<le> (2::nat) ^ 32" by simp
+    show ?thesis using upper \<open>128 \<le> (2::nat) ^ 32\<close> by (simp; linarith)
   qed
   have bound:
     "green_inert_prime_weight chi (green_X q 64)

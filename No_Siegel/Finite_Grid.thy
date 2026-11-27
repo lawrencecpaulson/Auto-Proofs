@@ -21,14 +21,14 @@ proof -
     "measure_pmf.prob (Pi_pmf {0::nat, 1} 0 (\<lambda>_. pmf_of_set S))
        {f. insertion f P = 0} \<le> real d / real (card S)"
     by (rule schwartz_zippel) (use S P in auto)
-  have finite_T: "finite ?T"
+  have "finite ?T"
     using S by auto
-  have nonempty_T: "?T \<noteq> {}"
+  have "?T \<noteq> {}"
     using S by simp
   have prob_eq:
     "measure_pmf.prob (Pi_pmf {0::nat, 1} 0 (\<lambda>_. pmf_of_set S))
        {f. insertion f P = 0} = real (card ?E) / real (card ?T)"
-    using S finite_T nonempty_T
+    using S \<open>finite ?T\<close> \<open>?T \<noteq> {}\<close>
     by (simp add: Pi_pmf_of_set measure_pmf_of_set Int_def)
   have card_S_pos: "card S > 0"
     using S by (simp add: card_gt_0_iff)
@@ -69,7 +69,7 @@ proof -
         then show ?thesis using a by simp
       next
         case False
-        then have i0: "i \<noteq> 0" .
+        then have "i \<noteq> 0" .
         show ?thesis
         proof (cases "i = 1")
           case True
@@ -77,7 +77,7 @@ proof -
         next
           case False
           have "f i = 0" "g i = 0"
-            using f g i0 False by (auto simp: PiE_dflt_def)
+            using f g \<open>i \<noteq> 0\<close> False by (auto simp: PiE_dflt_def)
           then show ?thesis by simp
         qed
       qed

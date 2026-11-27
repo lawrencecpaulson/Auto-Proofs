@@ -1,5 +1,7 @@
 # Instructions for refactoring Isabelle proofs
 
+Apply these guidelines with judgment, where they improve clarity while preserving useful results and the structure of the proof.
+
 ## Simple cosmetic issues
 
 Actual Greek letters α, β, γ, ... are preferable to `alpha`, `beta`, `gamma`, excluding only those (notably λ) that are already reserved. In an ε-δ proof, ε is preferable to `eps` or `e`.
@@ -14,7 +16,7 @@ For line breaking in proofs and formulas, assume a limit of 80 characters. Line 
 
 ## Eliminating needless proofs
 
-A typical development will have either (1) a headline result and corollaries (2) a library of useful results. All desirable results should be specified using `proposition` or `theorem` (the latter for the most important). Every other result should be specified as a `lemma`, and all unused lemmas should be deleted. 
+A typical development will have either (1) a headline result and perhaps corollaries of that result or (2) a library of useful results. Use `proposition` or `theorem` for end results and `lemma` for supporting facts when that distinction clarifies the presentation. Delete or inline unreferenced internal results that have no clear independent use; retain useful statements regardless of whether Isabelle calls them lemmas, propositions, or theorems.
 
 Within an individual proof, facts that do not take part in the conclusion should be deleted. 
 

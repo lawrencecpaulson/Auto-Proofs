@@ -15,6 +15,18 @@ locale primitive_real_dcharacter =
   real_dcharacter + primitive_dchar
 begin
 
+lemma primitive_real_dcharacter_self: "primitive_real_dcharacter n \<chi>"
+proof -
+  have "real_dcharacter n \<chi>"
+    using dcharacter_axioms real_dcharacter_axioms
+    unfolding real_dcharacter_def by blast
+  moreover have "primitive_dchar n \<chi>"
+    using dcharacter_axioms primitive_dchar_axioms
+    unfolding primitive_dchar_def by blast
+  ultimately show ?thesis
+    unfolding primitive_real_dcharacter_def by blast
+qed
+
 lemma conductor_eq_modulus: "conductor = n"
 proof (rule antisym)
   show "conductor \<le> n" by (rule conductor_le_modulus)
@@ -158,12 +170,12 @@ proof -
         using Legendre_one_value_one[OF True] by simp
     next
       case minus_one
-      have cpab: "coprime (a * b) n"
+      have "coprime (a * b) n"
         using True cpb by simp
       have lab: "Legendre (int (a * b)) (int n) = 1"
         using minus_one lb prime_int by simp
       have "\<chi> (a * b) = 1"
-        by (rule Legendre_one_value_one[OF cpab lab])
+        by (rule Legendre_one_value_one[OF \<open>coprime (a * b) n\<close> lab])
       then have "- \<chi> a = 1"
         using bneg by simp
       then have "\<chi> a = -1"

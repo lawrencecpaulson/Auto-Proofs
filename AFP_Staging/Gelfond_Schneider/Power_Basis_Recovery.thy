@@ -92,14 +92,14 @@ lemma lagrange_interpolate_eq:
   shows "lagrange_interpolate p = p"
 proof -
   let ?A = "(\<lambda>i. emb i eta) ` {0..<D}"
-  have cardA: "card ?A = D"
+  have "card ?A = D"
     using indexed_images_inj by (simp add: card_image)
   have eval_eq: "\<And>x. x \<in> ?A \<Longrightarrow> poly (lagrange_interpolate p) x = poly p x"
     using lagrange_interpolate_eval by force
   have ideg: "Polynomial.degree (lagrange_interpolate p) < D"
     using assms interval_class.less_eq_dec_imp_less lagrange_interpolate_degree by blast
   show ?thesis
-    using eval_eq pdeg ideg cardA
+    using eval_eq pdeg ideg \<open>card ?A = D\<close>
     by (intro poly_eqI_degree[where A = ?A]) auto
 qed
 

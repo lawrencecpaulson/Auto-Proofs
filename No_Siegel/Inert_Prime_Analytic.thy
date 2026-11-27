@@ -85,10 +85,10 @@ proof -
       have le: "p ^ i \<le> X ^ 2"
         by (rule of_nat_le_iff[THEN iffD1]) (rule le_real)
       have pge: "2 \<le> p" using prime_gt_1_nat[OF prime] by linarith
-      have ilt: "i < 2 ^ i" by (rule less_exp)
-      have "2 ^ i \<le> p ^ i"
+      have "i < 2 ^ i" by (rule less_exp)
+      moreover have "2 ^ i \<le> p ^ i"
         by (rule power_mono[OF pge]) simp
-      then have "i \<le> X ^ 2" using ilt le by linarith
+      ultimately have "i \<le> X ^ 2" using le by linarith
       moreover have "p \<le> p ^ i"
       proof -
         have "p ^ 1 \<le> p ^ i"

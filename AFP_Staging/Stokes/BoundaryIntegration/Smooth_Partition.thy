@@ -105,11 +105,11 @@ next
   have xH: "x \<in> closed_halfspace"
     using halfspace_chart.codomain_subset_halfspace
       [OF chart[OF j]] xC by auto
-  have x0: "fst x = 0"
+  have "fst x = 0"
     using False xH
     by (auto simp: closed_halfspace_def)
   have x_pair: "x = (0,snd x)"
-    using x0 by (cases x) auto
+    using \<open>fst x = 0\<close> by (cases x) auto
   have yface: "snd x \<in> boundary_overlap j i"
     using x x_pair
     by (auto simp: boundary_overlap_def
@@ -513,13 +513,13 @@ proof -
       (\<forall>p. 0 \<le> r p \<and> r p \<le> 1)"
     if ii: "i \<in> F" for i
   proof -
-    have iI: "i \<in> I" using F(2) ii by auto
+    have "i \<in> I" using F(2) ii by auto
     have compact_abs: "compact (Q i)"
       using compactQ[OF ii]
       by (simp add: compactin_subtopology)
     show ?thesis
     proof (rule carrier_single_chart_C1_cutoff
-        [OF iI compact_abs QD[OF ii]])
+        [OF \<open>i \<in> I\<close> compact_abs QD[OF ii]])
       fix r :: "'a \<Rightarrow> real" and L :: "'a set"
       assume cont: "continuous_on M r"
         and C1: "chartwise_C1_scalar r"
@@ -529,12 +529,12 @@ proof -
         and one: "\<And>p. p \<in> Q i \<Longrightarrow> r p = 1"
         and nonneg: "\<And>p. 0 \<le> r p"
         and le_one: "\<And>p. r p \<le> 1"
-      have closedL: "closed L"
+      have "closed L"
         by (rule compact_imp_closed[OF compactL])
       show ?thesis
         apply (rule exI[where x=r])
         apply (rule exI[where x=L])
-        using cont C1 closedL LD nonzero one nonneg le_one
+        using cont C1 \<open>closed L\<close> LD nonzero one nonneg le_one
         by auto
     qed
   qed
@@ -574,7 +574,7 @@ proof -
     "boundary_carrier = M \<inter> T"
     using boundary_carrier_closed
     by (auto simp: closedin_closed)
-  have finiteF: "finite F" and FI: "F \<subseteq> I"
+  have "finite F" and FI: "F \<subseteq> I"
     using partition
     by (auto simp: admissible_body_partition_def)
   have data: "continuous_on boundary_carrier (phi i) \<and>
@@ -590,10 +590,10 @@ proof -
       and cont: "continuous_on M (phi i)"
       using partition ii
       by (auto simp: admissible_body_partition_def)
-    have iI: "i \<in> I"
+    have "i \<in> I"
       using FI ii by auto
     have LM: "L \<subseteq> M"
-      using L(3) domain_subset_carrier[OF iI]
+      using L(3) domain_subset_carrier[OF \<open>i \<in> I\<close>]
       by auto
     let ?S = "L \<inter> boundary_carrier"
     have eq: "?S = L \<inter> T"
@@ -614,7 +614,7 @@ proof -
       using contB closedS supportS SD by blast
   qed
   show ?thesis
-    using finiteF FI unity data
+    using \<open>finite F\<close> FI unity data
     by (auto simp: admissible_boundary_partition_def)
 qed
 
@@ -753,13 +753,13 @@ proof -
       (\<forall>p. 0 \<le> r p \<and> r p \<le> 1)"
     if ii: "i \<in> F" for i
   proof -
-    have iI: "i \<in> I" using F(2) ii by auto
+    have "i \<in> I" using F(2) ii by auto
     have compact_abs: "compact (Q i)"
       using compactQ[OF ii]
       by (simp add: compactin_subtopology)
     show ?thesis
     proof (rule boundary_single_chart_C1_cutoff
-        [OF iI compact_abs QD[OF ii]])
+        [OF \<open>i \<in> I\<close> compact_abs QD[OF ii]])
       fix r :: "'a \<Rightarrow> real" and L :: "'a set"
       assume cont: "continuous_on boundary_carrier r"
         and C1: "chartwise_C1_scalar r"
@@ -770,12 +770,12 @@ proof -
         and one: "\<And>p. p \<in> Q i \<Longrightarrow> r p = 1"
         and nonneg: "\<And>p. 0 \<le> r p"
         and le_one: "\<And>p. r p \<le> 1"
-      have closedL: "closed L"
+      have "closed L"
         by (rule compact_imp_closed[OF compactL])
       show ?thesis
         apply (rule exI[where x=r])
         apply (rule exI[where x=L])
-        using cont C1 closedL LD nonzero one
+        using cont C1 \<open>closed L\<close> LD nonzero one
           nonneg le_one
         by auto
     qed

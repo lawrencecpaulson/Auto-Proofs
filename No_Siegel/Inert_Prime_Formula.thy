@@ -89,13 +89,13 @@ proof -
     using x s by (simp add: field_simps; algebra)
   have nonneg: "0 \<le> s * x^2 * ?b"
     using comparison identity by linarith
-  have factor: "0 < s * x^2" using x s by simp
+  have "0 < s * x^2" using x s by simp
   have "0 \<le> ?b"
   proof (rule ccontr)
     assume "\<not> 0 \<le> ?b"
-    then have negative: "?b < 0" by simp
+    then have "?b < 0" by simp
     have "s * x^2 * ?b < 0"
-      by (rule mult_pos_neg[OF factor negative])
+      by (rule mult_pos_neg[OF \<open>0 < s * x^2\<close> \<open>?b < 0\<close>])
     then show False using nonneg by linarith
   qed
   then show ?thesis by linarith
@@ -193,13 +193,13 @@ lemma green_division_floor_ratio:
   shows "real x / real (x div c) \<le> 2 * real c"
 proof -
   let ?j = "x div c"
-  have remainder: "x mod c < c" using c by simp
-  have cap: "c \<le> c * ?j"
+  have "x mod c < c" using c by simp
+  have "c \<le> c * ?j"
     using quotient by (cases ?j) auto
   have split: "x = c * ?j + x mod c"
     by (simp add: div_mult_mod_eq mult.commute)
   have nat_bound: "x \<le> 2 * c * ?j"
-    using remainder cap split by (simp add: algebra_simps; linarith)
+    using \<open>x mod c < c\<close> \<open>c \<le> c * ?j\<close> split by (simp add: algebra_simps; linarith)
   have real_bound: "real x \<le> 2 * real c * real ?j"
     using of_nat_mono[OF nat_bound] by (simp add: algebra_simps)
   show ?thesis

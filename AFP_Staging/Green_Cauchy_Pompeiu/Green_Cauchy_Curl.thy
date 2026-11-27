@@ -53,39 +53,30 @@ proof -
     using diff by (simp add: frechet_derivative_works)
   have comp: "((f \<circ> ?E) has_derivative (?D \<circ> ?E)) (at p)"
     by (rule diff_chain_at[OF Eder fder])
+  have component_derivative:
+    "frechet_derivative (L \<circ> (f \<circ> ?E)) (at p) =
+      L \<circ> (?D \<circ> ?E)"
+    if lin: "bounded_linear L" for L :: "complex \<Rightarrow> real"
+  proof -
+    have Lder: "(L has_derivative L) (at ((f \<circ> ?E) p))"
+      by (rule bounded_linear.has_derivative
+        [OF lin has_derivative_ident])
+    have "((L \<circ> (f \<circ> ?E)) has_derivative
+        (L \<circ> (?D \<circ> ?E))) (at p)"
+      by (rule diff_chain_at[OF comp Lder])
+    then show ?thesis by (rule frechet_derivative_at[symmetric])
+  qed
   have Pder: "frechet_derivative
       (\<lambda>x. Re (f (?E x))) (at p) = (\<lambda>h. Re (?D (?E h)))"
-  proof -
-    have rder: "(Re has_derivative Re) (at ((f \<circ> ?E) p))"
-      by (rule bounded_linear.has_derivative
-        [OF bounded_linear_Re has_derivative_ident])
-    have "((Re \<circ> (f \<circ> ?E)) has_derivative
-        (Re \<circ> (?D \<circ> ?E))) (at p)"
-      by (rule diff_chain_at[OF comp rder])
-    then have "Re \<circ> (?D \<circ> ?E) =
-        frechet_derivative (Re \<circ> (f \<circ> ?E)) (at p)"
-      by (rule frechet_derivative_at)
-    then show ?thesis by (simp add: o_def)
-  qed
+    using component_derivative[OF bounded_linear_Re]
+    by (simp add: o_def)
+  have qlin: "bounded_linear (\<lambda>z::complex. - Im z)"
+    by (rule bounded_linear_minus[OF bounded_linear_Im])
   have Qder: "frechet_derivative
       (\<lambda>x. - Im (f (?E x))) (at p) =
       (\<lambda>h. - Im (?D (?E h)))"
-  proof -
-    have qlin: "bounded_linear (\<lambda>z::complex. - Im z)"
-      by (rule bounded_linear_minus[OF bounded_linear_Im])
-    have qder: "((\<lambda>z::complex. - Im z) has_derivative
-        (\<lambda>z. - Im z)) (at ((f \<circ> ?E) p))"
-      by (rule bounded_linear.has_derivative[OF qlin has_derivative_ident])
-    have "(((\<lambda>z::complex. - Im z) \<circ> (f \<circ> ?E))
-        has_derivative
-        ((\<lambda>z::complex. - Im z) \<circ> (?D \<circ> ?E))) (at p)"
-      by (rule diff_chain_at[OF comp qder])
-    then have "((\<lambda>z::complex. - Im z) \<circ> (?D \<circ> ?E)) =
-        frechet_derivative
-          ((\<lambda>z::complex. - Im z) \<circ> (f \<circ> ?E)) (at p)"
-      by (rule frechet_derivative_at)
-    then show ?thesis by (simp add: o_def)
-  qed
+    using component_derivative[OF qlin]
+    by (simp add: o_def)
   have "green_curl (green_field_of_complex f) p =
       - Im (?D (?E (1,0))) - Re (?D (?E (0,1)))"
     by (simp add: green_curl_def green_field_of_complex_def Pder Qder)

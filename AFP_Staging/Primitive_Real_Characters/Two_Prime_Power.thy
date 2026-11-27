@@ -17,7 +17,7 @@ proof -
     using g[rule_format, of 1] by simp
   have gm: "residue_primroot (p ^ k) g"
     using g kpos by blast
-  have m_gt: "1 < p ^ k"
+  have "1 < p ^ k"
     using prime kpos by (metis one_less_power prime_gt_1_nat)
   have not_dvd: "\<not> p ^ k dvd a"
   proof
@@ -26,7 +26,7 @@ proof -
       using cp coprime_absorb_right[OF dvd] by blast
     with kpos prime show False by auto
   qed
-  have mod_pos: "0 < a mod (p ^ k)"
+  have "0 < a mod (p ^ k)"
     using not_dvd by (simp add: mod_greater_zero_iff_not_dvd)
   have m_pos: "0 < p ^ k"
     using prime by (simp add: prime_gt_0_nat)
@@ -37,10 +37,10 @@ proof -
     using cp coprime_mod_left_iff[where a=a and b="p ^ k", OF m_ne]
     by blast
   have a_tot: "a mod (p ^ k) \<in> totatives (p ^ k)"
-    using mod_pos mod_less mod_cp
+    using \<open>0 < a mod (p ^ k)\<close> mod_less mod_cp
     by (simp add: in_totatives_iff)
   have "a mod (p ^ k) \<in> (\<lambda>i. g ^ i mod (p ^ k)) ` {..<totient (p ^ k)}"
-    using a_tot residue_primroot_is_generator[OF m_gt gm]
+    using a_tot residue_primroot_is_generator[OF \<open>1 < p ^ k\<close> gm]
     by (auto simp: bij_betw_def)
   then obtain i where gi: "g ^ i mod (p ^ k) = a mod (p ^ k)"
     by auto
@@ -55,10 +55,10 @@ proof -
     by (rule iffD1[OF ord_divides[of g i p] g_one])
   have pi: "p - 1 dvd i"
     using ord_dvd ordp by simp
-  have even_p1: "even (p - 1)"
+  have "even (p - 1)"
     using odd by (auto elim: oddE)
   have even_i: "even i"
-    using dvd_trans[of 2 "p - 1" i] even_p1 pi by simp
+    using dvd_trans[of 2 "p - 1" i] \<open>even (p - 1)\<close> pi by simp
   then obtain j where i: "i = 2 * j"
     by (auto elim: evenE)
   have pow_eq: "(g ^ j) ^ 2 = g ^ i"
@@ -93,9 +93,9 @@ lemma odd_prime_power_exponent_one:
 proof (rule ccontr)
   assume "k \<noteq> 1"
   then have k_gt: "1 < k" using kpos by simp
-  have p_gt: "1 < p" by (rule prime_gt_1_nat[OF prime])
+  have "1 < p" by (rule prime_gt_1_nat[OF prime])
   have "p ^ 1 < p ^ k"
-    by (rule power_strict_increasing[OF k_gt p_gt])
+    by (rule power_strict_increasing[OF k_gt \<open>1 < p\<close>])
   then have "p < n" using modulus by simp
   moreover have "induced_modulus p"
     by (rule odd_prime_power_induced_modulus[OF modulus prime odd kpos])
@@ -189,14 +189,14 @@ proof (rule card_subset_eq)
     by (simp add: card_image[OF inj])
   have eight_div: "8 dvd (2::nat) ^ k"
     by (rule eight_dvd_twopow[OF k])
-  have modulus_pos: "0 < (2::nat) ^ k" by simp
+  have "0 < (2::nat) ^ k" by simp
   show "(\<lambda>j. (25::nat) ^ j mod 2 ^ k) ` {..<2 ^ (k - 3)}
     \<subseteq> one_mod_eight_units k"
   proof
     fix a :: nat
     assume "a \<in> (\<lambda>j. (25::nat) ^ j mod 2 ^ k) ` {..<2 ^ (k - 3)}"
     then obtain j where a: "a = 25 ^ j mod 2 ^ k" by auto
-    have less: "a < 2 ^ k" using a modulus_pos by simp
+    have less: "a < 2 ^ k" using a \<open>0 < (2::nat) ^ k\<close> by simp
     have pow8: "(25::nat) ^ j mod 8 = 1"
       by (subst power_mod[symmetric]) simp
     have mod8: "a mod 8 = 1"

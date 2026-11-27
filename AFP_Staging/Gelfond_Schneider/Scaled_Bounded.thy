@@ -33,10 +33,10 @@ proof -
         (of_int B :: real) * cmod (basis j)"
     if jlt: "j < D" for j
   proof -
-    have idx_lt: "sg_pair_idx D t j < q * q * D"
+    have "sg_pair_idx D t j < q * q * D"
       by (rule sg_pair_idx_lt[OF Dpos tlt jlt])
     have x_le: "\<bar>Matrix.vec_index x (sg_pair_idx D t j)\<bar> \<le> B"
-      using x_bnd x_carrier idx_lt unfolding Bounded_vec_def by simp
+      using x_bnd x_carrier \<open>sg_pair_idx D t j < q * q * D\<close> unfolding Bounded_vec_def by simp
     have x_nonneg: "0 \<le> cmod (basis j)"
       by simp
     have cast_le: "(of_int (\<bar>Matrix.vec_index x (sg_pair_idx D t j)\<bar>) :: real) \<le> of_int B"
@@ -149,7 +149,7 @@ proof -
     by (rule cmod_gs_affine_coeff_le[OF aq bq])
   have aff_pow_le: "cmod (gs_affine_coeff a b) ^ k \<le> ?B ^ k"
     by (rule power_mono[OF aff_le]) auto
-  have ea_le: "?ea \<le> m * q"
+  have "?ea \<le> m * q"
   proof -
     have "?ea \<le> q * l"
       using aq by simp
@@ -158,7 +158,7 @@ proof -
     finally show ?thesis
       by (simp add: mult.commute)
   qed
-  have eb_le: "?eb \<le> m * q"
+  have "?eb \<le> m * q"
   proof -
     have "?eb \<le> q * l"
       using bq by simp
@@ -172,7 +172,7 @@ proof -
     have "cmod (alpha) ^ ?ea \<le> ?A ^ ?ea"
       by (rule power_mono) auto
     also have "... \<le> ?A ^ (m * q)"
-      by (rule power_increasing) (use ea_le in auto)
+      by (rule power_increasing) (use \<open>?ea \<le> m * q\<close> in auto)
     finally show ?thesis .
   qed
   have w_pow_le: "cmod (omega) ^ ?eb \<le> ?W ^ (m * q)"
@@ -180,7 +180,7 @@ proof -
     have "cmod (omega) ^ ?eb \<le> ?W ^ ?eb"
       by (rule power_mono) auto
     also have "... \<le> ?W ^ (m * q)"
-      by (rule power_increasing) (use eb_le in auto)
+      by (rule power_increasing) (use \<open>?eb \<le> m * q\<close> in auto)
     finally show ?thesis .
   qed
   have eq_term:
