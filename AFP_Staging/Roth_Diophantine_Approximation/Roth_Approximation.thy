@@ -146,7 +146,7 @@ proof -
 qed
 
 definition roth_scaled_pair :: "int \<Rightarrow> (int \<times> int) \<Rightarrow> (int \<times> int)" where
-  "roth_scaled_pair c pq = Rat.normalize (c * fst pq, snd pq)"
+  "roth_scaled_pair c pq \<equiv> Rat.normalize (c * fst pq, snd pq)"
 
 lemma roth_scaled_pair_properties:
   fixes c p q :: int
@@ -189,7 +189,8 @@ proof -
       then show ?thesis
         using cpow \<eta> by (metis powr_ge_zero powr_less_mono2)
     qed
-qed (use B in auto)
+  qed (use B in auto)
+qed
 
 lemma roth_scaled_good_pair:
   fixes c p q :: int and \<alpha> \<epsilon> \<delta> :: real

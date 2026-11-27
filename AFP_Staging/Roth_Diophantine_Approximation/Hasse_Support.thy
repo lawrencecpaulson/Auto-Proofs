@@ -436,15 +436,8 @@ lemma roth_prod_const_var:
   fixes a :: "nat \<Rightarrow> 'a::comm_ring_1"
   assumes "finite S"
   shows "(\<Prod>v\<in>S. Const (a v) * Var v ^ n v) =
-    monom (\<Sum>v\<in>S. Poly_Mapping.single v (n v))
-      (\<Prod>v\<in>S. a v)"
-proof -
-  have e: "Const (a v) * (Var v :: 'a mpoly) ^ n v =
-    monom (Poly_Mapping.single v (n v)) (a v)" for v
-    by (simp only: roth_Var_power roth_Const_monom_left) simp
-  show ?thesis
-    by (simp only: e roth_prod_monom[OF assms])
-qed
+    monom (\<Sum>v\<in>S. Poly_Mapping.single v (n v)) (\<Prod>v\<in>S. a v)"
+using assms by (metis (no_types, lifting) ext roth_Var_power roth_monom_smul roth_prod_monom)
 
 lemma roth_sum_single_sub:
   fixes K J :: "nat \<Rightarrow>\<^sub>0 nat"
@@ -458,25 +451,18 @@ proof (rule Poly_Mapping.poly_mapping_eqI)
       (Poly_Mapping.lookup K w - Poly_Mapping.lookup J w)) v =
     (if w = v then Poly_Mapping.lookup K w -
       Poly_Mapping.lookup J w else 0)" for w
-    by (cases "w = v") (simp_all add: Poly_Mapping.lookup_single_not_eq)
-  have e: "Poly_Mapping.lookup
-      (\<Sum>w\<in>Poly_Mapping.keys K.
-        Poly_Mapping.single w
-          (Poly_Mapping.lookup K w - Poly_Mapping.lookup J w)) v =
-    (if v \<in> Poly_Mapping.keys K
-      then Poly_Mapping.lookup K v - Poly_Mapping.lookup J v else 0)"
-    by (simp add: Poly_Mapping.lookup_sum lookup_term sum.If_cases)
+    by (simp add: Poly_Mapping.lookup_single_not_eq)
   show "Poly_Mapping.lookup
       (\<Sum>w\<in>Poly_Mapping.keys K.
         Poly_Mapping.single w
           (Poly_Mapping.lookup K w - Poly_Mapping.lookup J w)) v =
       Poly_Mapping.lookup (K-J) v"
-    using e by (auto simp: lookup_minus not_in_keys_iff_lookup_eq_zero)
+    by (auto simp: Poly_Mapping.lookup_sum lookup_term sum.If_cases lookup_minus not_in_keys_iff_lookup_eq_zero)
 qed
 
 definition roth_mchoose ::
   "(nat \<Rightarrow>\<^sub>0 nat) \<Rightarrow> (nat \<Rightarrow>\<^sub>0 nat) \<Rightarrow> nat" where
-  "roth_mchoose K J =
+  "roth_mchoose K J \<equiv>
     (\<Prod>v\<in>Poly_Mapping.keys K \<union> Poly_Mapping.keys J.
       Poly_Mapping.lookup K v choose Poly_Mapping.lookup J v)"
 
@@ -514,33 +500,16 @@ qed
 
 lemma roth_diagonal_monom:
   fixes c :: "'a::idom"
-  shows "roth_diagonal K
-    (roth_translate Var (roth_lift (monom K c)))"
+  shows "roth_diagonal K (roth_translate Var (roth_lift (monom K c)))"
 proof -
-  have lift: "roth_lift (monom K c) = monom K (Const c)"
-    by (simp add: roth_lift_def replace_coeff_monom
-      roth_Const_zero)
-  have expansion:
-    "roth_translate Var (roth_lift (monom K c)) =
-      Const (Const c) *
-        (\<Prod>v\<in>Poly_Mapping.keys K.
-          (Var v + Const (Var v)) ^ Poly_Mapping.lookup K v)"
-    by (simp only: lift roth_translate_def roth_mpoly_subst_monom)
-  have d: "roth_diagonal
-    (\<Sum>v\<in>Poly_Mapping.keys K.
-      Poly_Mapping.single v (Poly_Mapping.lookup K v))
-    (\<Prod>v\<in>Poly_Mapping.keys K.
-      (Var v + Const (Var v :: 'a mpoly)) ^
-        Poly_Mapping.lookup K v)"
-    by (rule roth_diagonal_shift_prod) simp
   have "roth_diagonal K
     (Const (Const c) *
       (\<Prod>v\<in>Poly_Mapping.keys K.
         (Var v + Const (Var v :: 'a mpoly)) ^
           Poly_Mapping.lookup K v))"
-    using d roth_sum_single_keys
-    by (intro roth_diagonal_smul) simp
-  then show ?thesis using expansion by simp
+    by (metis (mono_tags, lifting) finite_keys roth_diagonal_shift_prod roth_diagonal_smul roth_sum_single_keys)
+  then show ?thesis unfolding roth_translate_def
+    by (simp add: roth_lift_def replace_coeff_monom roth_Const_zero roth_mpoly_subst_monom) 
 qed
 
 lemma roth_hasse_monom_diagonal:
@@ -548,14 +517,11 @@ lemma roth_hasse_monom_diagonal:
   assumes "coeff (roth_hasse J (monom K c)) I \<noteq> 0"
   shows "I + J = K"
 proof -
-  have d: "roth_diagonal K
-    (roth_translate Var (roth_lift (monom K c)))"
-    by (rule roth_diagonal_monom)
   have e: "roth_hasse J (monom K c) =
     coeff (roth_translate Var (roth_lift (monom K c))) J"
     by (simp only: roth_hasse_def roth_taylor_coeff_def)
   show ?thesis
-    using assms d e unfolding roth_diagonal_def by metis
+    using assms roth_diagonal_monom e unfolding roth_diagonal_def by metis
 qed
 
 lemma roth_hasse_monom_zero:
@@ -564,21 +530,9 @@ lemma roth_hasse_monom_zero:
   shows "roth_hasse J (monom K c) = 0"
 proof -
   have z: "coeff (roth_hasse J (monom K c)) I = 0" for I
-  proof (rule ccontr)
-    assume "coeff (roth_hasse J (monom K c)) I \<noteq> 0"
-    then have e: "I + J = K"
-      by (rule roth_hasse_monom_diagonal)
-    have "Poly_Mapping.lookup (I + J) v =
-      Poly_Mapping.lookup K v"
-      using e by simp
-    then have "Poly_Mapping.lookup I v + Poly_Mapping.lookup J v =
-      Poly_Mapping.lookup K v"
-      by (simp only: lookup_add)
-    with gt show False by arith
-  qed
+    using gt by (metis add.commute lookup_add not_add_less1 roth_hasse_monom_diagonal)
   show ?thesis using z
-    by (simp add: coeff_eq[symmetric] fun_eq_iff
-      coeff_def zero_mpoly.rep_eq)
+    by (simp add: coeff_eq[symmetric] fun_eq_iff coeff_def zero_mpoly.rep_eq)
 qed
 
 lemma roth_mchoose_zero:
@@ -600,37 +554,19 @@ lemma roth_hasse_monom_exact:
 proof (cases "\<forall>v. Poly_Mapping.lookup J v \<le> Poly_Mapping.lookup K v")
   case True
   have supp: "Poly_Mapping.keys J \<subseteq> Poly_Mapping.keys K"
-  proof
-    fix v
-    assume "v \<in> Poly_Mapping.keys J"
-    then have "Poly_Mapping.lookup J v \<noteq> 0"
-      by (simp add: in_keys_iff)
-    with True have "Poly_Mapping.lookup K v \<noteq> 0"
-      by (metis le_zero_eq)
-    then show "v \<in> Poly_Mapping.keys K"
-      by (simp add: in_keys_iff)
-  qed
+    using True by (metis in_keys_iff le_0_eq subsetI)
   show ?thesis
     by (rule roth_hasse_monom_exact_on[OF supp]) (use True in auto)
 next
   case False
-  then obtain v where gt:
-    "Poly_Mapping.lookup K v < Poly_Mapping.lookup J v"
-    by (meson not_le)
-  have "roth_hasse J (monom K c) = 0"
-    by (rule roth_hasse_monom_zero[OF gt])
+    then have "roth_hasse J (monom K c) = 0"
+      using linorder_not_less roth_hasse_monom_zero by fastforce
   moreover have "roth_mchoose K J = 0"
-    by (rule roth_mchoose_zero[OF gt])
+  using False by (meson linorder_not_le roth_mchoose_zero)
   ultimately show ?thesis
     by (simp add: mapping_of_inject[symmetric]
       monom.rep_eq zero_mpoly.rep_eq)
 qed
-
-lemma roth_sub_add:
-  fixes I J :: "nat \<Rightarrow>\<^sub>0 nat"
-  shows "I + J - J = I"
-  by (rule Poly_Mapping.poly_mapping_eqI)
-    (simp add: lookup_minus lookup_add)
 
 lemma roth_hasse_monom_coeff_exact:
   fixes c :: "'a::idom"
@@ -639,17 +575,10 @@ lemma roth_hasse_monom_coeff_exact:
 proof (cases "K = I + J")
   case True
   then show ?thesis
-    by (simp add: roth_hasse_monom_exact roth_sub_add coeff_monom)
+    by (simp add: roth_hasse_monom_exact add_diff_cancel_right' coeff_monom)
 next
   case False
-  have "coeff (roth_hasse J (monom K c)) I = 0"
-  proof (rule ccontr)
-    assume "coeff (roth_hasse J (monom K c)) I \<noteq> 0"
-    then have "I + J = K"
-      by (rule roth_hasse_monom_diagonal)
-    with False show False by simp
-  qed
-  with False show ?thesis by simp
+  with roth_hasse_monom_diagonal show ?thesis by force
 qed
 
 lemma roth_hasse_coeff_exact:
@@ -658,16 +587,11 @@ lemma roth_hasse_coeff_exact:
     coeff P (I + J) * of_nat (roth_mchoose (I + J) J)"
 proof -
   let ?S = "Poly_Mapping.keys (mapping_of P)"
-  have pe: "P = (\<Sum>K\<in>?S. monom K (coeff P K))"
-    by (rule roth_sum_monom)
-  have he: "roth_hasse J P =
-    (\<Sum>K\<in>?S. roth_hasse J (monom K (coeff P K)))"
-    using pe roth_hasse_sum[of ?S J
-      "\<lambda>K. monom K (coeff P K)"] by simp
   have "coeff (roth_hasse J P) I =
     (\<Sum>K\<in>?S. coeff (roth_hasse J
       (monom K (coeff P K))) I)"
-    by (simp only: he roth_coeff_sum[OF finite_keys])
+    using roth_sum_monom roth_hasse_sum[of ?S J "\<lambda>K. monom K (coeff P K)"] roth_coeff_sum
+    by (metis (no_types, lifting) ext finite_keys)
   also have "\<dots> =
     (if I + J \<in> ?S
       then coeff P (I + J) * of_nat (roth_mchoose (I + J) J)
@@ -675,37 +599,24 @@ proof -
     by (simp add: roth_hasse_monom_coeff_exact)
   also have "\<dots> =
     coeff P (I + J) * of_nat (roth_mchoose (I + J) J)"
-    by (auto simp: coeff_def in_keys_iff)
+    by (auto simp: roth_hasse_monom_coeff_exact coeff_def in_keys_iff)
   finally show ?thesis .
 qed
 
 lemma roth_mchoose_on_set:
   assumes fin: "finite S"
     and supp: "Poly_Mapping.keys K \<union> Poly_Mapping.keys J \<subseteq> S"
-  shows "roth_mchoose K J =
-    (\<Prod>v\<in>S.
-      Poly_Mapping.lookup K v choose Poly_Mapping.lookup J v)"
+  shows "roth_mchoose K J = (\<Prod>v\<in>S. Poly_Mapping.lookup K v choose Poly_Mapping.lookup J v)" (is "?lhs = ?rhs")
 proof -
-  have "(\<Prod>v\<in>Poly_Mapping.keys K \<union> Poly_Mapping.keys J.
-      Poly_Mapping.lookup K v choose Poly_Mapping.lookup J v) =
-    (\<Prod>v\<in>S.
-      Poly_Mapping.lookup K v choose Poly_Mapping.lookup J v)"
+  have "(\<Prod>v\<in>Poly_Mapping.keys K \<union> Poly_Mapping.keys J. Poly_Mapping.lookup K v choose Poly_Mapping.lookup J v) = ?rhs"
     by (intro prod.mono_neutral_left[OF fin supp])
       (auto simp: not_in_keys_iff_lookup_eq_zero)
   then show ?thesis by (simp only: roth_mchoose_def)
 qed
 
 lemma roth_choose_comp_scalar:
-  "(k+i+j choose j) * (k+i choose i) =
-    (i+j choose i) * (k+i+j choose i+j)"
-proof -
-  have cm: "(k+i+j choose i+j) * (i+j choose j) =
-    (k+i+j choose j) * (k+i choose i)"
-    using choose_mult[of j "i+j" "k+i+j"] by simp
-  have sym: "(i+j choose j) = (i+j choose i)"
-    using binomial_symmetric[of j "i+j"] by simp
-  show ?thesis using cm sym by (simp add: mult.commute)
-qed
+  "(k+i+j choose j) * (k+i choose i) = (i+j choose i) * (k+i+j choose i+j)"
+  using choose_mult[of j "i+j" "k+i+j"]  binomial_symmetric[of j "i+j"] by (simp add: algebra_simps)
 
 lemma roth_mchoose_comp:
   fixes K I J :: "nat \<Rightarrow>\<^sub>0 nat"
@@ -739,19 +650,9 @@ proof -
     (\<Prod>v\<in>?S. Poly_Mapping.lookup (K+I+J) v choose
       Poly_Mapping.lookup (I+J) v)"
     by (rule roth_mchoose_on_set[OF fin]) (use kij ij in auto)
-  have point: "(Poly_Mapping.lookup (K+I+J) v choose
-      Poly_Mapping.lookup J v) *
-      (Poly_Mapping.lookup (K+I) v choose
-        Poly_Mapping.lookup I v) =
-      (Poly_Mapping.lookup (I+J) v choose
-        Poly_Mapping.lookup I v) *
-      (Poly_Mapping.lookup (K+I+J) v choose
-        Poly_Mapping.lookup (I+J) v)" for v
-    by (simp add: lookup_add roth_choose_comp_scalar)
   show ?thesis
-    unfolding e1 e2 e3 e4
-    by (simp only: prod.distrib[symmetric])
-      (rule prod.cong; simp add: point)
+    unfolding e1 e2 e3 e4 prod.distrib [symmetric]
+    by (simp add: lookup_add roth_choose_comp_scalar)
 qed
 
 lemma roth_hasse_comp:
@@ -776,13 +677,8 @@ proof -
           of_nat (roth_mchoose (K+I+J) (I+J)))"
       by (simp add: roth_coeff_Const_mult roth_hasse_coeff_exact
         add.assoc)
-    have binom: "of_nat (roth_mchoose (K+I+J) J) *
-        of_nat (roth_mchoose (K+I) I) =
-      (of_nat (roth_mchoose (I+J) I) :: 'a) *
-        of_nat (roth_mchoose (K+I+J) (I+J))"
-      using roth_mchoose_comp[of K I J]
-      by (simp only: of_nat_mult[symmetric])
-    show ?thesis using lhs rhs binom by (simp add: algebra_simps)
+    show ?thesis using lhs rhs roth_mchoose_comp[of K I J]
+      by (simp add: algebra_simps flip: of_nat_mult)
   qed
   show ?thesis using ce
     by (simp add: coeff_eq[symmetric] fun_eq_iff)
@@ -812,26 +708,13 @@ next
   qed
   have ksupp: "Poly_Mapping.keys K \<subseteq> {..<m}"
     by (rule roth_exponent_boxD(1)[OF box])
-  have e: "roth_mchoose K J =
-    (\<Prod>v<m.
-      Poly_Mapping.lookup K v choose Poly_Mapping.lookup J v)"
+  have e: "roth_mchoose K J = (\<Prod>v<m. Poly_Mapping.lookup K v choose Poly_Mapping.lookup J v)"
     by (rule roth_mchoose_on_set) (use jsupp ksupp in auto)
   have point: "Poly_Mapping.lookup K v choose
       Poly_Mapping.lookup J v \<le> 2 ^ r v" if "v < m" for v
-  proof -
-    have kbound: "Poly_Mapping.lookup K v \<le> r v"
-      by (rule roth_exponent_boxD(2)[OF box that])
-    have a: "Poly_Mapping.lookup K v choose
-      Poly_Mapping.lookup J v \<le>
-      2 ^ Poly_Mapping.lookup K v"
-      by (rule binomial_le_pow2)
-    have b: "(2::nat) ^ Poly_Mapping.lookup K v \<le> 2 ^ r v"
-      using kbound by (simp add: power_increasing)
-    show ?thesis using a b by arith
-  qed
-  have "(\<Prod>v<m.
-      Poly_Mapping.lookup K v choose Poly_Mapping.lookup J v)
-    \<le> (\<Prod>v<m. 2 ^ r v)"
+    using roth_exponent_boxD(2)[OF box that]
+    by (meson binomial_le_pow2 binomial_right_mono order_trans)
+  have "(\<Prod>v<m. Poly_Mapping.lookup K v choose Poly_Mapping.lookup J v) \<le> (\<Prod>v<m. 2 ^ r v)"
     by (intro prod_mono) (use point in auto)
   also have "\<dots> = 2 ^ (\<Sum>v<m. r v)"
     by (simp only: power_sum)
@@ -841,8 +724,7 @@ qed
 lemma roth_hasse_coeff_bound:
   fixes P :: "int mpoly"
   assumes box: "roth_poly_in_box m r P"
-  shows "abs (coeff (roth_hasse J P) I) \<le>
-    int (2 ^ (\<Sum>v<m. r v)) * abs (coeff P (I+J))"
+  shows "abs (coeff (roth_hasse J P) I) \<le> int (2 ^ (\<Sum>v<m. r v)) * abs (coeff P (I+J))"
 proof (cases "coeff P (I+J) = 0")
   case True
   then show ?thesis by (simp add: roth_hasse_coeff_exact)
@@ -851,12 +733,8 @@ next
   have mem: "I+J \<in> roth_exponent_box m r"
     using box False
     by (auto simp: roth_poly_in_box_def coeff_def in_keys_iff)
-  have b: "roth_mchoose (I+J) J \<le> 2 ^ (\<Sum>v<m. r v)"
-    by (rule roth_mchoose_box_bound[OF mem])
-  have mult: "abs (coeff P (I+J)) *
-      int (roth_mchoose (I+J) J) \<le>
-    abs (coeff P (I+J)) * int (2 ^ (\<Sum>v<m. r v))"
-    using b by (intro mult_left_mono) auto
+  have mult: "\<bar>coeff P (I + J)\<bar> * int (roth_mchoose (I + J) J) \<le> \<bar>coeff P (I + J)\<bar> * int (2 ^ sum r {..<m})"
+    using roth_mchoose_box_bound[OF mem] by (intro mult_left_mono) auto
   show ?thesis using mult
     by (simp add: roth_hasse_coeff_exact abs_mult mult.commute)
 qed
@@ -873,14 +751,10 @@ lemma roth_taylor_index_box:
     and tc: "roth_taylor_coeff a I P \<noteq> 0"
   shows "I \<in> roth_exponent_box m r"
 proof -
-  have hne: "roth_hasse I P \<noteq> 0"
-    using tc by (auto simp: roth_hasse_eval[symmetric])
   obtain K where ck: "coeff (roth_hasse I P) K \<noteq> 0"
-    using hne coeff_all_0 by blast
-  have cp: "coeff P (K+I) \<noteq> 0"
-    by (rule roth_hasse_coeff_support[OF ck])
+    by (metis tc coeff_all_0 insertion_zero roth_hasse_eval)
   have ki: "K+I \<in> roth_exponent_box m r"
-    using box cp by (auto simp: roth_poly_in_box_def coeff_def in_keys_iff)
+    using box ck roth_coeff_zero_outside_box roth_hasse_coeff_support by blast
   show ?thesis
   proof (rule roth_exponent_boxI)
     have sub: "Poly_Mapping.keys I \<subseteq> Poly_Mapping.keys (K+I)"
@@ -902,11 +776,8 @@ lemma roth_hasse_taylor_support:
   assumes nz: "roth_taylor_coeff a J (roth_hasse I P) \<noteq> 0"
   shows "roth_taylor_coeff a (I + J) P \<noteq> 0"
 proof -
-  have e: "roth_translate a (roth_hasse I P) =
-    roth_hasse I (roth_translate a P)"
-    by (simp only: roth_hasse_translate)
   have c: "coeff (roth_hasse I (roth_translate a P)) J \<noteq> 0"
-    using nz e by (simp add: roth_taylor_coeff_def)
+    by (metis nz roth_hasse_translate roth_taylor_coeff_def)
   have "coeff (roth_translate a P) (J + I) \<noteq> 0"
     by (rule roth_hasse_coeff_support[OF c])
   then show ?thesis
@@ -924,79 +795,47 @@ proof (cases "roth_hasse I P = 0")
 next
   case False
   obtain J where c: "roth_taylor_coeff a J (roth_hasse I P) \<noteq> 0"
-    and j: "roth_index m r a (roth_hasse I P) =
-      ereal (roth_weight m r J)"
+    and j: "roth_index m r a (roth_hasse I P) = ereal (roth_weight m r J)"
     using roth_index_attained[OF False] by blast
   have cp: "roth_taylor_coeff a (I + J) P \<noteq> 0"
     by (rule roth_hasse_taylor_support[OF c])
-  have le: "roth_index m r a P \<le>
-    ereal (roth_weight m r (I + J))"
+  have "roth_index m r a P \<le> ereal (roth_weight m r (I + J))"
     by (rule roth_index_le_coeff[OF cp])
-  show ?thesis using le j
+  then show ?thesis using j
     by (simp add: roth_weight_add)
 qed
 
 lemma roth_index_hasse:
   fixes P :: "'a::idom mpoly"
-  shows "roth_index m r a P -
-    ereal (roth_weight m r I) \<le>
-      roth_index m r a (roth_hasse I P)"
-proof -
-  have le: "roth_index m r a P \<le>
-    ereal (roth_weight m r I) +
-      roth_index m r a (roth_hasse I P)"
-    by (rule roth_index_hasse_add)
-  have eq: "roth_index m r a P -
-      ereal (roth_weight m r I) \<le>
-        roth_index m r a (roth_hasse I P)
-    \<longleftrightarrow> roth_index m r a P \<le>
-      roth_index m r a (roth_hasse I P) +
-        ereal (roth_weight m r I)"
-    by (rule ereal_minus_le) simp
-  show ?thesis using le by (simp add: eq add.commute)
-qed
+  shows "roth_index m r a P - ereal (roth_weight m r I) \<le> roth_index m r a (roth_hasse I P)"
+  by (simp add: add.commute ereal_minus_le roth_index_hasse_add)
 
 lemma roth_hasse_in_box:
   fixes P :: "'a::idom mpoly"
   assumes box: "roth_poly_in_box m r P"
-  shows "roth_poly_in_box m
-    (\<lambda>v. r v - Poly_Mapping.lookup I v) (roth_hasse I P)"
-proof (unfold roth_poly_in_box_def, intro subsetI)
+  shows "roth_poly_in_box m (\<lambda>v. r v - Poly_Mapping.lookup I v) (roth_hasse I P)"
+  unfolding roth_poly_in_box_def
+proof (intro subsetI)
   fix K
-  assume key: "K \<in> Poly_Mapping.keys (mapping_of (roth_hasse I P))"
-  have c: "coeff (roth_hasse I P) K \<noteq> 0"
-    using key by (simp add: coeff_def in_keys_iff)
+  assume "K \<in> Poly_Mapping.keys (mapping_of (roth_hasse I P))"
+  then have c: "coeff (roth_hasse I P) K \<noteq> 0"
+    by (simp add: coeff_def in_keys_iff)
   have cp: "coeff P (K + I) \<noteq> 0"
     by (rule roth_hasse_coeff_support[OF c])
   have orig: "K + I \<in> roth_exponent_box m r"
-    using box cp by (auto simp: roth_poly_in_box_def
-      coeff_def in_keys_iff)
+    using box cp by (auto simp: roth_poly_in_box_def coeff_def in_keys_iff)
   have orig_vars: "Poly_Mapping.keys (K + I) \<subseteq> {..<m}"
     by (rule roth_exponent_boxD(1)[OF orig])
   show "K \<in> roth_exponent_box m
     (\<lambda>v. r v - Poly_Mapping.lookup I v)"
   proof (rule roth_exponent_boxI)
     show "Poly_Mapping.keys K \<subseteq> {..<m}"
-    proof
-      fix v
-      assume vk: "v \<in> Poly_Mapping.keys K"
-      show "v \<in> {..<m}"
-      proof (rule ccontr)
-        assume vo: "v \<notin> {..<m}"
-        have "Poly_Mapping.lookup (K + I) v = 0"
-          by (rule roth_lookup_zero_outside[OF orig_vars vo])
-        then have "Poly_Mapping.lookup K v = 0"
-          by (simp add: lookup_add)
-        then show False using vk
-          by (simp add: in_keys_iff)
-      qed
-    qed
+      using keys_plus_ninv_comm_monoid_add orig_vars by fastforce
     fix v
     assume vm: "v < m"
     have "Poly_Mapping.lookup (K + I) v \<le> r v"
       by (rule roth_exponent_boxD(2)[OF orig vm])
-    then show "Poly_Mapping.lookup K v \<le>
-      r v - Poly_Mapping.lookup I v"
+    then show "Poly_Mapping.lookup K v \<le> r v - Poly_Mapping.lookup I v"
       by (simp add: lookup_add)
   qed
 qed
@@ -1004,9 +843,7 @@ qed
 lemma roth_hasse_degree_bound:
   fixes P :: "'a::idom mpoly"
   assumes "roth_poly_in_box m r P" "v < m"
-  shows "MPoly_Type.degree (roth_hasse I P) v \<le>
-    r v - Poly_Mapping.lookup I v"
-  using roth_degree_le_of_box[OF roth_hasse_in_box[OF assms(1)]
-      assms(2)] .
+  shows "MPoly_Type.degree (roth_hasse I P) v \<le> r v - Poly_Mapping.lookup I v"
+  using roth_degree_le_of_box[OF roth_hasse_in_box] assms by fastforce
 
 end
