@@ -387,8 +387,8 @@ lemma roth_weight_nonneg:
   by (intro sum_nonneg divide_nonneg_nonneg; simp)
 
 lemma roth_index_ge_iff:
-  "(theta::ereal) \<le> roth_index m r a P \<longleftrightarrow>
-    (\<forall>I. ereal (roth_weight m r I) < theta \<longrightarrow> roth_taylor_coeff a I P = 0)"
+  "(\<theta>::ereal) \<le> roth_index m r a P \<longleftrightarrow>
+    (\<forall>I. ereal (roth_weight m r I) < \<theta> \<longrightarrow> roth_taylor_coeff a I P = 0)"
   by (auto simp: roth_index_def le_Inf_iff linorder_not_less)
 
 lemma roth_index_translate:

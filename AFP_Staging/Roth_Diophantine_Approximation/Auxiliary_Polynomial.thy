@@ -99,7 +99,7 @@ qed
 
 definition roth_power_base :: "int poly \<Rightarrow> int" where
   "roth_power_base f =
-    1 + (\<Sum>j<Polynomial.degree f. abs (Polynomial.coeff f j))"
+    1 + (\<Sum>j<Polynomial.degree f. \<bar>Polynomial.coeff f j\<bar>)"
 
 lemma roth_power_base_ge_one:
   "1 \<le> roth_power_base f"
@@ -107,10 +107,10 @@ lemma roth_power_base_ge_one:
 
 lemma roth_power_base_coeff:
   assumes "j < Polynomial.degree f"
-  shows "1 + abs (Polynomial.coeff f j) \<le> roth_power_base f"
+  shows "1 + \<bar>Polynomial.coeff f j\<bar> \<le> roth_power_base f"
 proof -
-  have "abs (Polynomial.coeff f j) \<le>
-    (\<Sum>i<Polynomial.degree f. abs (Polynomial.coeff f i))"
+  have "\<bar>Polynomial.coeff f j\<bar> \<le>
+    (\<Sum>i<Polynomial.degree f. \<bar>Polynomial.coeff f i\<bar>)"
     by (rule member_le_sum) (use assms in auto)
   then show ?thesis by (simp add: roth_power_base_def)
 qed
@@ -120,7 +120,7 @@ lemma roth_power_coords_bound:
   assumes d: "d = Polynomial.degree f"
     and dpos: "0 < d"
     and j: "j < d"
-  shows "abs (roth_power_coords f d k j) \<le> roth_power_base f ^ k"
+  shows "\<bar>roth_power_coords f d k j\<bar> \<le> roth_power_base f ^ k"
   using j
 proof (induction k arbitrary: j)
   case 0
@@ -132,7 +132,7 @@ next
   let ?a = "if j = 0 then 0 else ?c (j-1)"
   have B: "1 \<le> ?B"
     by (rule roth_power_base_ge_one)
-  have a: "abs ?a \<le> ?B ^ k"
+  have a: "\<bar>?a\<bar> \<le> ?B ^ k"
   proof (cases "j = 0")
     case True
     then show ?thesis using B by simp
@@ -142,17 +142,17 @@ next
       using Suc.prems by (meson diff_le_self le_less_trans)
     then show ?thesis using False Suc.IH by simp
   qed
-  have c: "abs (?c (d-1)) \<le> ?B ^ k"
+  have c: "\<bar>?c (d-1)\<bar> \<le> ?B ^ k"
     using Suc.IH[of "d-1"] dpos by simp
-  have fc: "1 + abs (Polynomial.coeff f j) \<le> ?B"
+  have fc: "1 + \<bar>Polynomial.coeff f j\<bar> \<le> ?B"
     by (rule roth_power_base_coeff) (use Suc.prems d in auto)
   have step:
-    "abs (roth_power_step f d ?c j) \<le> abs ?a + abs (?c (d-1)) * abs (Polynomial.coeff f j)"
+    "\<bar>roth_power_step f d ?c j\<bar> \<le> \<bar>?a\<bar> + \<bar>?c (d-1)\<bar> * \<bar>Polynomial.coeff f j\<bar>"
     unfolding roth_power_step_def
     by (rule order_trans[OF abs_triangle_ineq4]) (simp add: abs_mult)
-  also have "\<dots> \<le> ?B ^ k + ?B ^ k * abs (Polynomial.coeff f j)"
+  also have "\<dots> \<le> ?B ^ k + ?B ^ k * \<bar>Polynomial.coeff f j\<bar>"
     by (intro add_mono a mult_right_mono[OF c]) simp_all
-  also have "\<dots> = ?B ^ k * (1 + abs (Polynomial.coeff f j))"
+  also have "\<dots> = ?B ^ k * (1 + \<bar>Polynomial.coeff f j\<bar>)"
     by (simp add: algebra_simps)
   also have "\<dots> \<le> ?B ^ k * ?B"
     using fc by (intro mult_left_mono) simp_all
@@ -309,7 +309,7 @@ lemma roth_aux_matrix_entry_bound:
   assumes d: "d = Polynomial.degree f"
     and box: "K \<in> roth_exponent_box m r"
     and j: "j < d"
-  shows "abs (roth_aux_matrix_entry f d J K j) \<le>
+  shows "\<bar>roth_aux_matrix_entry f d J K j\<bar> \<le>
     (2 * roth_power_base f) ^ (\<Sum>v<m. r v)"
 proof -
   let ?R = "\<Sum>v<m. r v"
@@ -318,11 +318,11 @@ proof -
     using j by simp
   have t: "roth_total_exponent (K-J) \<le> ?R"
     by (rule roth_total_exponent_diff_bound[OF box])
-  have c: "abs (roth_power_coords f d
-      (roth_total_exponent (K-J)) j) \<le> ?B ^ ?R"
+  have c: "\<bar>roth_power_coords f d
+      (roth_total_exponent (K-J)) j\<bar> \<le> ?B ^ ?R"
   proof -
-    have "abs (roth_power_coords f d
-        (roth_total_exponent (K-J)) j) \<le>
+    have "\<bar>roth_power_coords f d
+        (roth_total_exponent (K-J)) j\<bar> \<le>
         ?B ^ roth_total_exponent (K-J)"
       by (rule roth_power_coords_bound[OF d dpos j])
     also have "\<dots> \<le> ?B ^ ?R"
@@ -331,9 +331,9 @@ proof -
   qed
   have ch: "int (roth_mchoose K J) \<le> int (2 ^ ?R)"
     using roth_mchoose_box_bound[OF box] by simp
-  have "abs (roth_aux_matrix_entry f d J K j) =
+  have "\<bar>roth_aux_matrix_entry f d J K j\<bar> =
       int (roth_mchoose K J) *
-        abs (roth_power_coords f d (roth_total_exponent (K-J)) j)"
+        \<bar>roth_power_coords f d (roth_total_exponent (K-J)) j\<bar>"
     by (simp add: roth_aux_matrix_entry_def abs_mult)
   also have "\<dots> \<le> int (2 ^ ?R) * ?B ^ ?R"
     by (rule mult_mono[OF ch c]) auto
@@ -405,7 +405,7 @@ proof (unfold Bounded_mat_def, intro CollectI allI impI)
       dest: nth_mem)
   have rem: "u mod d < d"
     using dpos by simp
-  show "abs (roth_aux_matrix f d Is Ks $$ (u,t)) \<le>
+  show "\<bar>roth_aux_matrix f d Is Ks $$ (u,t)\<bar> \<le>
       (2 * roth_power_base f) ^ (\<Sum>v<m. r v)"
     using roth_aux_matrix_entry_bound[OF d kt rem] u t
     by (simp add: roth_aux_matrix_def)
@@ -528,28 +528,28 @@ lemma roth_aux_polynomial_cast:
 
 context
   fixes f :: "int poly" and a :: real
-    and d m :: nat and r :: "nat \<Rightarrow> nat" and eps :: real
+    and d m :: nat and r :: "nat \<Rightarrow> nat" and \<epsilon> :: real
   assumes monic: "Polynomial.lead_coeff f = 1"
     and d: "d = Polynomial.degree f"
     and dpos: "0 < d"
     and root: "poly (map_poly of_int f) a = 0"
     and mpos: "0 < m"
     and rpos: "\<And>v. v < m \<Longrightarrow> 0 < r v"
-    and epos: "0 < eps"
-    and elt: "eps < 1"
-    and gap: "2 * real d < real m * eps\<^sup>2"
+    and epos: "0 < \<epsilon>"
+    and elt: "\<epsilon> < 1"
+    and gap: "2 * real d < real m * \<epsilon>\<^sup>2"
 begin
 
 corollary roth_auxiliary_polynomial_monic_exp:
   shows "\<exists>P :: int mpoly.
     P \<noteq> 0 \<and> roth_poly_in_box m r P \<and>
-    ereal (real m * (1-eps) / 2) \<le>
+    ereal (real m * (1-\<epsilon>) / 2) \<le>
       roth_index m r (\<lambda>_. a) (replace_coeff of_int P) \<and>
-    (\<forall>K. abs (MPoly_Type.coeff P K) \<le>
+    (\<forall>K. \<bar>MPoly_Type.coeff P K\<bar> \<le>
       2 * (4 * roth_power_base f) ^ (\<Sum>v<m. r v))"
 proof -
   let ?S = "roth_exponent_box m r"
-  let ?C = "{J \<in> ?S. roth_weight m r J < real m * (1-eps) / 2}"
+  let ?C = "{J \<in> ?S. roth_weight m r J < real m * (1-\<epsilon>) / 2}"
   let ?B = "(2 * roth_power_base f) ^ (\<Sum>v<m. r v)"
   have Cfin: "finite ?C"
     by simp
@@ -561,7 +561,7 @@ proof -
     using Ks by simp
   have onebox: "(0::nat \<Rightarrow>\<^sub>0 nat) \<in> ?S"
     by (rule roth_exponent_boxI) simp_all
-  have theta_pos: "0 < real m * (1-eps) / 2"
+  have theta_pos: "0 < real m * (1-\<epsilon>) / 2"
     using mpos elt by simp
   have oneC: "(0::nat \<Rightarrow>\<^sub>0 nat) \<in> ?C"
     using onebox theta_pos by (simp add: roth_weight_def)
@@ -571,7 +571,7 @@ proof -
     using Ispos dpos by simp
   have card_gap: "2 * d * card ?C < card ?S"
     by (rule roth_taylor_conditions_dimension
-      [where m=m and r=r and eps=eps and d=d])
+      [where m=m and r=r and eps=\<epsilon> and d=d])
       (use mpos rpos epos gap in auto)
   have Iscard: "length Is = card ?C"
   proof -
@@ -605,7 +605,7 @@ proof -
     using roth_power_base_ge_one[of f] by simp
   have Bge: "1 \<le> ?B"
     by (rule one_le_power[OF Bbase])
-  have xpoint: "abs (x $ t) \<le> 2 * int (length Ks) * ?B"
+  have xpoint: "\<bar>x $ t\<bar> \<le> 2 * int (length Ks) * ?B"
     if "t < length Ks" for t
     using xbnd xcar that Bge by (simp add: Bounded_vec_def)
   define P :: "int mpoly" where
@@ -618,13 +618,13 @@ proof -
       (\<Sum>t<length Ks.
         MPoly_Type.monom (Ks ! t) (real_of_int (x $ t)))"
     unfolding P_def by (rule roth_aux_polynomial_cast)
-  have Pindex: "ereal (real m * (1-eps) / 2) \<le>
+  have Pindex: "ereal (real m * (1-\<epsilon>) / 2) \<le>
       roth_index m r (\<lambda>_. a) (replace_coeff of_int P)"
   proof (simp only: roth_index_ge_iff, intro allI impI)
     fix J
     assume Jw: "ereal (roth_weight m r J) <
-      ereal (real m * (1-eps) / 2)"
-    then have w: "roth_weight m r J < real m * (1-eps) / 2"
+      ereal (real m * (1-\<epsilon>) / 2)"
+    then have w: "roth_weight m r J < real m * (1-\<epsilon>) / 2"
       by simp
     show "roth_taylor_coeff (\<lambda>_. a) J (replace_coeff of_int P) = 0"
     proof (cases "J \<in> ?S")
@@ -647,7 +647,7 @@ proof -
         by (simp add: Preal)
     qed
   qed
-  have Ppoint: "abs (MPoly_Type.coeff P K) \<le>
+  have Ppoint: "\<bar>MPoly_Type.coeff P K\<bar> \<le>
       2 * int (length Ks) * ?B" for K
   proof (cases "K \<in> ?S")
     case True
@@ -694,15 +694,15 @@ proof -
       by (simp only: pow_eq)
     finally show ?thesis .
   qed
-  have Pbound: "\<forall>K. abs (MPoly_Type.coeff P K) \<le>
+  have Pbound: "\<forall>K. \<bar>MPoly_Type.coeff P K\<bar> \<le>
       2 * (4 * roth_power_base f) ^ ?R"
   proof
     fix K
-    have "abs (MPoly_Type.coeff P K) \<le>
+    have "\<bar>MPoly_Type.coeff P K\<bar> \<le>
         2 * int (card ?S) * ?B"
       using Ppoint[of K] by (simp add: Kscard)
     also note bound
-    finally show "abs (MPoly_Type.coeff P K) \<le>
+    finally show "\<bar>MPoly_Type.coeff P K\<bar> \<le>
         2 * (4 * roth_power_base f) ^ ?R" .
   qed
   show ?thesis

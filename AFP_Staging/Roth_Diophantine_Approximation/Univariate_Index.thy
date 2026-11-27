@@ -118,13 +118,13 @@ lemma roth_primitive_mpoly_to_poly:
 
 lemma roth_int_coeff_sup_poly_coeff:
   fixes Q :: "int poly"
-  shows "nat (abs (Polynomial.coeff Q k)) \<le> roth_int_coeff_sup (poly_to_mpoly v Q)"
+  shows "nat (\<bar>Polynomial.coeff Q k\<bar>) \<le> roth_int_coeff_sup (poly_to_mpoly v Q)"
   by (metis coeff_poly_to_mpoly roth_int_coeff_sup_coeff)
 
 lemma roth_int_coeff_sup_poly_coeffs:
   fixes Q :: "int poly"
   assumes "c \<in> set (Polynomial.coeffs Q)"
-  shows "nat (abs c) \<le> roth_int_coeff_sup (poly_to_mpoly v Q)"
+  shows "nat (\<bar>c\<bar>) \<le> roth_int_coeff_sup (poly_to_mpoly v Q)"
 proof -
   obtain k where "c = Polynomial.coeff Q k"
     using assms range_coeff[of Q] by auto
@@ -169,7 +169,7 @@ lemma roth_mahler_smult_linear:
 lemma roth_mahler_linear_pre:
   fixes p q :: int
   assumes q: "q \<noteq> 0"
-  shows "mahler_measure [:-p,q:] = of_int \<bar>q\<bar> * max 1 (of_int (abs p) / of_int \<bar>q\<bar>)"
+  shows "mahler_measure [:-p,q:] = of_int \<bar>q\<bar> * max 1 (of_int (\<bar>p\<bar>) / of_int \<bar>q\<bar>)"
 proof -
   have e: "(map_poly of_int [:-p,q:] :: complex poly) =
     smult (of_int q) [:- (of_int p / of_int q), 1:]"
@@ -182,7 +182,7 @@ qed
 lemma roth_mahler_linear:
   fixes p q :: int
   assumes q: "q > 0"
-  shows "mahler_measure [:-p,q:] = of_int (max (abs p) q)"
+  shows "mahler_measure [:-p,q:] = of_int (max (\<bar>p\<bar>) q)"
   using roth_mahler_linear_pre[of q p] q
   by (simp add: max_mult_distrib_left)
 
@@ -250,7 +250,7 @@ qed
 lemma roth_mahler_order_le:
   fixes q :: int
   assumes q: "q > 0" and cpq: "coprime p q" and Q: "Q \<noteq> 0"
-  shows "of_int (max (abs p) q) ^ Polynomial.order (Rat.Fract p q) (map_poly of_int Q :: rat poly)
+  shows "of_int (max (\<bar>p\<bar>) q) ^ Polynomial.order (Rat.Fract p q) (map_poly of_int Q :: rat poly)
       \<le> mahler_measure Q"
 proof -
   let ?l = "Polynomial.order (Rat.Fract p q) (map_poly of_int Q)"
@@ -571,7 +571,7 @@ qed
 lemma roth_univariate_index_bound:
   fixes p :: "rat poly" and r :: "nat \<Rightarrow> nat"
   assumes p: "p \<noteq> 0" and r: "r 0 > 0"
-    and deg: "degree p \<le> r 0" and eta: "\<eta> > 0"
+    and deg: "degree p \<le> r 0" and \<eta>: "\<eta> > 0"
     and h: "roth_proj_log_height (poly_to_mpoly 0 p) + real (r 0) 
           \<le> \<eta> * real (r 0) * roth_rat_log_height \<beta>"
   shows "roth_index 1 r (\<lambda>_. \<beta>) (poly_to_mpoly 0 p) \<le> ereal \<eta>"
@@ -597,7 +597,7 @@ lemma roth_univariate_mpoly_index_bound:
   assumes P: "P \<noteq> 0" and pv: "vars P \<subseteq> {0}"
     and r: "r 0 > 0"
     and deg: "degree (mpoly_to_poly 0 P) \<le> r 0"
-    and eta: "\<eta> > 0"
+    and \<eta>: "\<eta> > 0"
     and h: "roth_proj_log_height P + real (r 0) \<le> \<eta> * real (r 0) * roth_rat_log_height \<beta>"
   shows "roth_index 1 r (\<lambda>_. \<beta>) P \<le> ereal \<eta>"
 proof -

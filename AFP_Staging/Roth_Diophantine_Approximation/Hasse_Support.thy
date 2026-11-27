@@ -723,7 +723,7 @@ qed
 lemma roth_hasse_coeff_bound:
   fixes P :: "int mpoly"
   assumes box: "roth_poly_in_box m r P"
-  shows "abs (coeff (roth_hasse J P) I) \<le> int (2 ^ (\<Sum>v<m. r v)) * abs (coeff P (I+J))"
+  shows "\<bar>coeff (roth_hasse J P) I\<bar> \<le> int (2 ^ (\<Sum>v<m. r v)) * \<bar>coeff P (I+J)\<bar>"
 proof (cases "coeff P (I+J) = 0")
   case True
   then show ?thesis by (simp add: roth_hasse_coeff_exact)

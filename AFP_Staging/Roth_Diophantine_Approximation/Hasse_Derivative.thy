@@ -56,19 +56,7 @@ lemma roth_replace_coeff_power:
     and "\<And>x y. f (x + y) = f x + f y"
     and "\<And>x y. f (x * y) = f x * f y"
   shows "replace_coeff f (P ^ n) = replace_coeff f P ^ n"
-<<<<<<< HEAD
-proof (induction n)
-  case 0
-  then show ?case
-    by (simp add: roth_replace_coeff_one[OF h0 h1])
-next
-  case (Suc n)
-  then show ?case
-    by (simp add: h0 hadd hmul roth_replace_coeff_mult)
-qed
-=======
   by (induction n) (simp_all add: roth_replace_coeff_one roth_replace_coeff_mult assms)
->>>>>>> 7e4703a156ed71cc5565cff954c52b76d86efb03
 
 lemma roth_replace_coeff_prod:
   fixes f :: "'a::comm_ring_1 \<Rightarrow> 'b::comm_ring_1"
@@ -77,19 +65,8 @@ lemma roth_replace_coeff_prod:
     and hmul: "\<And>x y. f (x * y) = f x * f y"
   shows "replace_coeff f (\<Prod>x\<in>S. P x) =
     (\<Prod>x\<in>S. replace_coeff f (P x))"
-<<<<<<< HEAD
-  using fin 
-proof (induction S rule: finite_induct)
-  case empty
-  then show ?case using h0 h1 roth_replace_coeff_one by auto
-next
-  case (insert x F)
-  then show ?case by (simp add: h0 hadd hmul roth_replace_coeff_mult)
-qed
-=======
   using fin by (induction S rule: finite_induct)
     (simp_all add: roth_replace_coeff_one roth_replace_coeff_mult assms)
->>>>>>> 7e4703a156ed71cc5565cff954c52b76d86efb03
 
 lemma roth_replace_coeff_comp:
   assumes f0: "f 0 = 0" and g0: "g 0 = 0"

@@ -106,10 +106,10 @@ lemma roth_univariate_index_bound_at:
   assumes P: "P \<noteq> 0" and pv: "vars P \<subseteq> {v}"
     and vm: "v<m" and rp: "r v > 0"
     and deg: "degree (mpoly_to_poly v P) \<le> r v"
-    and eta: "eta > 0"
+    and \<eta>: "\<eta> > 0"
     and h: "roth_proj_log_height P + real (r v) \<le>
-      eta * real (r v) * roth_rat_log_height (a v)"
-  shows "roth_index m r a P \<le> ereal eta"
+      \<eta> * real (r v) * roth_rat_log_height (a v)"
+  shows "roth_index m r a P \<le> ereal \<eta>"
 proof -
   let ?p = "mpoly_to_poly v P"
   have pn: "?p \<noteq> 0"
@@ -117,9 +117,9 @@ proof -
   have peq: "poly_to_mpoly v ?p = P"
     by (rule mpoly_to_poly_inverse[OF pv])
   have rpos: "(0::real) < real (r v)" using rp by simp
-  have posprod: "0 < eta * real (r v) * roth_rat_log_height (a v)"
+  have posprod: "0 < \<eta> * real (r v) * roth_rat_log_height (a v)"
     using h rpos roth_proj_log_height_nonneg[of P] by linarith
-  have ep: "0 < eta * real (r v)" using eta rpos by simp
+  have ep: "0 < \<eta> * real (r v)" using \<eta> rpos by simp
   have hp: "0 < roth_rat_log_height (a v)"
     using posprod ep by (auto simp: zero_less_mult_iff)
   have b: "real (Polynomial.order (a v) ?p) *
@@ -128,11 +128,11 @@ proof -
     by (rule roth_univariate_mpoly_log_order_bound[OF P pv])
   have bd: "real (Polynomial.order (a v) ?p) *
       roth_rat_log_height (a v) \<le>
-    eta * real (r v) * roth_rat_log_height (a v)"
+    \<eta> * real (r v) * roth_rat_log_height (a v)"
     using b deg h by linarith
-  have l: "real (Polynomial.order (a v) ?p) \<le> eta * real (r v)"
+  have l: "real (Polynomial.order (a v) ?p) \<le> \<eta> * real (r v)"
     using bd hp by (simp add: mult_le_cancel_right_pos)
-  have ratio: "real (Polynomial.order (a v) ?p) / real (r v) \<le> eta"
+  have ratio: "real (Polynomial.order (a v) ?p) / real (r v) \<le> \<eta>"
     using l rpos by (simp add: pos_divide_le_eq)
   have io: "roth_index m r a (poly_to_mpoly v ?p) =
     ereal (real (Polynomial.order (a v) ?p) / real (r v))"
@@ -161,11 +161,11 @@ lemma roth_univariate_index_bound_degree_at:
   assumes P: "P \<noteq> 0" and pv: "vars P \<subseteq> {v}"
     and vm: "v<m" and rp: "r v > 0" and Dp: "D > 0"
     and deg: "degree (mpoly_to_poly v P) \<le> D"
-    and eta: "eta > 0"
+    and \<eta>: "\<eta> > 0"
     and h: "roth_proj_log_height P + real D \<le>
-      eta * real D * roth_rat_log_height (a v)"
+      \<eta> * real D * roth_rat_log_height (a v)"
   shows "roth_index m r a P \<le>
-    ereal (eta * real D / real (r v))"
+    ereal (\<eta> * real D / real (r v))"
 proof -
   let ?p = "mpoly_to_poly v P"
   have pn: "?p \<noteq> 0"
@@ -173,9 +173,9 @@ proof -
   have peq: "poly_to_mpoly v ?p = P"
     by (rule mpoly_to_poly_inverse[OF pv])
   have rpos: "(0::real) < real (r v)" using rp by simp
-  have posprod: "0 < eta * real D * roth_rat_log_height (a v)"
+  have posprod: "0 < \<eta> * real D * roth_rat_log_height (a v)"
     using h Dp roth_proj_log_height_nonneg[of P] by linarith
-  have ep: "0 < eta * real D" using eta Dp by simp
+  have ep: "0 < \<eta> * real D" using \<eta> Dp by simp
   have hp: "0 < roth_rat_log_height (a v)"
     using posprod ep by (auto simp: zero_less_mult_iff)
   have b: "real (Polynomial.order (a v) ?p) *
@@ -184,12 +184,12 @@ proof -
     by (rule roth_univariate_mpoly_log_order_bound[OF P pv])
   have bd: "real (Polynomial.order (a v) ?p) *
       roth_rat_log_height (a v) \<le>
-    eta * real D * roth_rat_log_height (a v)"
+    \<eta> * real D * roth_rat_log_height (a v)"
     using b deg h by linarith
-  have l: "real (Polynomial.order (a v) ?p) \<le> eta * real D"
+  have l: "real (Polynomial.order (a v) ?p) \<le> \<eta> * real D"
     using bd hp by (simp add: mult_le_cancel_right_pos)
   have ratio: "real (Polynomial.order (a v) ?p) / real (r v) \<le>
-      eta * real D / real (r v)"
+      \<eta> * real D / real (r v)"
     using l rpos by (simp add: divide_right_mono)
   have io: "roth_index m r a (poly_to_mpoly v ?p) =
     ereal (real (Polynomial.order (a v) ?p) / real (r v))"
@@ -250,35 +250,35 @@ proof -
 qed
 
 lemma roth_sigma_recursion:
-  "((eta::real)^2)^(2^n) = eta^(2^(Suc n))"
+  "((\<eta>::real)^2)^(2^n) = \<eta>^(2^(Suc n))"
   by (simp add: power_mult mult.commute)
 
 lemma roth_sigma_le_eta:
-  fixes eta :: real
-  assumes e0: "0 \<le> eta" and e1: "eta \<le> 1"
-  shows "eta^(2^n) \<le> eta"
+  fixes \<eta> :: real
+  assumes e0: "0 \<le> \<eta>" and e1: "\<eta> \<le> 1"
+  shows "\<eta>^(2^n) \<le> \<eta>"
 proof -
-  have "eta^(2^n) \<le> eta^1"
+  have "\<eta>^(2^n) \<le> \<eta>^1"
     by (rule power_decreasing) (use e0 e1 in auto)
   then show ?thesis by simp
 qed
 
 lemma roth_sigma_le_eta_sq:
-  fixes eta :: real
-  assumes e0: "0 \<le> eta" and e1: "eta \<le> 1"
-  shows "eta^(2^(Suc n)) \<le> eta^2"
+  fixes \<eta> :: real
+  assumes e0: "0 \<le> \<eta>" and e1: "\<eta> \<le> 1"
+  shows "\<eta>^(2^(Suc n)) \<le> \<eta>^2"
   by (rule power_decreasing)
     (use e0 e1 in auto)
 
 lemma roth_ratio_halving:
-  fixes r :: "nat \<Rightarrow> nat" and sigma :: real
+  fixes r :: "nat \<Rightarrow> nat" and \<sigma> :: real
   assumes ratio: "\<And>v. Suc v<m \<Longrightarrow>
-      real (r (Suc v)) \<le> sigma * real (r v)"
-    and sb: "sigma \<le> 1/2"
+      real (r (Suc v)) \<le> \<sigma> * real (r v)"
+    and sb: "\<sigma> \<le> 1/2"
     and vm: "Suc v<m"
   shows "2 * r (Suc v) \<le> r v"
 proof -
-  have "real (r (Suc v)) \<le> sigma * real (r v)"
+  have "real (r (Suc v)) \<le> \<sigma> * real (r v)"
     by (rule ratio[OF vm])
   also have "... \<le> (1/2) * real (r v)"
     by (rule mult_right_mono[OF sb]) simp
@@ -286,26 +286,26 @@ proof -
 qed
 
 lemma roth_ratio_divide:
-  fixes r :: "nat \<Rightarrow> nat" and sigma :: real
+  fixes r :: "nat \<Rightarrow> nat" and \<sigma> :: real
   assumes rp: "0 < r n"
-    and ratio: "real (r (Suc n)) \<le> sigma * real (r n)"
-  shows "real (r (Suc n)) / real (r n) \<le> sigma"
+    and ratio: "real (r (Suc n)) \<le> \<sigma> * real (r n)"
+  shows "real (r (Suc n)) / real (r n) \<le> \<sigma>"
   using rp ratio by (simp add: pos_divide_le_eq)
 
 lemma roth_cancel_fact:
   assumes q: "real k * t^2 / (2 * real m) \<le>
-    2 * real k * real m * eta^2"
+    2 * real k * real m * \<eta>^2"
     and kp: "0<k"
-  shows "t^2 / (2 * real m) \<le> 2 * real m * eta^2"
+  shows "t^2 / (2 * real m) \<le> 2 * real m * \<eta>^2"
 proof -
   have e1: "real k * t^2 / (2 * real m) =
     real k * (t^2 / (2 * real m))"
     by (simp add: mult.commute)
-  have e2: "2 * real k * real m * eta^2 =
-    real k * (2 * real m * eta^2)"
+  have e2: "2 * real k * real m * \<eta>^2 =
+    real k * (2 * real m * \<eta>^2)"
     by (simp add: algebra_simps)
   have fac: "real k * (t^2 / (2 * real m)) \<le>
-    real k * (2 * real m * eta^2)"
+    real k * (2 * real m * \<eta>^2)"
     using q e1 e2 by metis
   have kpos: "(0::real) < real k" using kp by simp
   show ?thesis by (rule mult_left_le_imp_le[OF fac kpos])
@@ -313,70 +313,70 @@ qed
 
 lemma roth_sq_fact:
   assumes mp: "0 < m"
-    and q: "t^2 / (2 * real m) \<le> 2 * real m * eta^2"
-  shows "t^2 \<le> (2 * real m * eta)^2"
+    and q: "t^2 / (2 * real m) \<le> 2 * real m * \<eta>^2"
+  shows "t^2 \<le> (2 * real m * \<eta>)^2"
   using mp q by (simp add: pos_divide_le_eq power2_eq_square algebra_simps)
 
 lemma roth_final_index_arith:
-  fixes t u l rho sigma eta :: real
-  assumes kp: "0 < k" and mp: "0 < m" and ep: "0 \<le> eta"
-    and ub: "u \<le> 2 * real k * real (m-1) * eta^2"
-    and lb: "l \<le> real k * sigma"
-    and rb: "rho \<le> sigma" and sb: "sigma \<le> eta^2"
-    and qb: "real k * t^2 / (2 * real m) \<le> u+l+real k*rho"
-  shows "t \<le> 2 * real m * eta"
+  fixes t u l \<rho> \<sigma> \<eta> :: real
+  assumes kp: "0 < k" and mp: "0 < m" and ep: "0 \<le> \<eta>"
+    and ub: "u \<le> 2 * real k * real (m-1) * \<eta>^2"
+    and lb: "l \<le> real k * \<sigma>"
+    and rb: "\<rho> \<le> \<sigma>" and sb: "\<sigma> \<le> \<eta>^2"
+    and qb: "real k * t^2 / (2 * real m) \<le> u+l+real k*\<rho>"
+  shows "t \<le> 2 * real m * \<eta>"
 proof -
-  have kl: "real k * sigma \<le> real k * eta^2"
+  have kl: "real k * \<sigma> \<le> real k * \<eta>^2"
     by (simp add: mult_left_mono sb)
-  have kr: "real k * rho \<le> real k * sigma"
+  have kr: "real k * \<rho> \<le> real k * \<sigma>"
     by (simp add: mult_left_mono[OF rb] sb)
-  have ar: "2 * real k * real (m-1) * eta^2 +
-      2 * real k * eta^2 = 2 * real k * real m * eta^2"
+  have ar: "2 * real k * real (m-1) * \<eta>^2 +
+      2 * real k * \<eta>^2 = 2 * real k * real m * \<eta>^2"
     using mp by (simp add: algebra_simps)
-  have bv: "u+l+real k*rho \<le> 2 * real k * real m * eta^2"
+  have bv: "u+l+real k*\<rho> \<le> 2 * real k * real m * \<eta>^2"
     using ub lb kr kl ar by linarith
   have q: "real k * t^2 / (2 * real m) \<le>
-      2 * real k * real m * eta^2"
+      2 * real k * real m * \<eta>^2"
     using qb bv by linarith
-  have q': "t^2 / (2 * real m) \<le> 2 * real m * eta^2"
+  have q': "t^2 / (2 * real m) \<le> 2 * real m * \<eta>^2"
     by (rule roth_cancel_fact[OF q kp])
-  have sq: "t^2 \<le> (2 * real m * eta)^2"
+  have sq: "t^2 \<le> (2 * real m * \<eta>)^2"
     by (rule roth_sq_fact[OF mp q'])
   show ?thesis by (rule power2_le_imp_le[OF sq]) (use ep in auto)
 qed
 
 lemma roth_ratio_scale:
-  fixes r :: "nat \<Rightarrow> nat" and sigma :: real
-  assumes ratio: "real (r (Suc v)) \<le> sigma * real (r v)"
-  shows "real (k * r (Suc v)) \<le> sigma * real (k * r v)"
+  fixes r :: "nat \<Rightarrow> nat" and \<sigma> :: real
+  assumes ratio: "real (r (Suc v)) \<le> \<sigma> * real (r v)"
+  shows "real (k * r (Suc v)) \<le> \<sigma> * real (k * r v)"
 proof -
   have "real k * real (r (Suc v)) \<le>
-    real k * (sigma * real (r v))"
+    real k * (\<sigma> * real (r v))"
     by (rule mult_left_mono[OF ratio]) simp
   then show ?thesis by (simp add: mult.commute mult.left_commute)
 qed
 
 lemma roth_height_transfer_sigma:
-  fixes hF hP sigma H r0 rv :: real
+  fixes hF hP \<sigma> H r0 rv :: real
   assumes fb: "hF \<le> real k * (hP + 4*r0)"
-    and hb: "hP + 4*real (Suc n)*r0 \<le> sigma*rv*H"
-  shows "hF + 4*real n*real k*r0 \<le> sigma*(real k*rv)*H"
+    and hb: "hP + 4*real (Suc n)*r0 \<le> \<sigma>*rv*H"
+  shows "hF + 4*real n*real k*r0 \<le> \<sigma>*(real k*rv)*H"
 proof -
   have f: "hF + 4*real n*real k*r0 \<le>
     real k * (hP + 4*real (Suc n)*r0)"
     using fb by (simp add: algebra_simps)
   have g: "real k * (hP + 4*real (Suc n)*r0) \<le>
-    real k * (sigma*rv*H)"
+    real k * (\<sigma>*rv*H)"
     by (rule mult_left_mono[OF hb]) simp
   show ?thesis using f g by (simp add: algebra_simps)
 qed
 
 lemma roth_height_transfer_last:
-  fixes hF hP sigma H r0 rv D :: real
+  fixes hF hP \<sigma> H r0 rv D :: real
   assumes d0: "0 \<le> D" and d: "D \<le> 4*real n*r0"
     and fb: "hF \<le> real k * (hP + 4*r0)"
-    and hb: "hP + 4*real (Suc n)*r0 \<le> sigma*rv*H"
-  shows "hF + real k*D \<le> sigma*(real k*rv)*H"
+    and hb: "hP + 4*real (Suc n)*r0 \<le> \<sigma>*rv*H"
+  shows "hF + real k*D \<le> \<sigma>*(real k*rv)*H"
 proof -
   have k0: "(0::real) \<le> real k" by simp
   have f: "hF + real k*D \<le>
@@ -389,7 +389,7 @@ proof -
     real k*(hP + 4*real (Suc n)*r0)"
     by (rule mult_left_mono[OF h k0])
   have z: "real k*(hP + 4*real (Suc n)*r0) \<le>
-    real k*(sigma*rv*H)"
+    real k*(\<sigma>*rv*H)"
     by (rule mult_left_mono[OF hb k0])
   show ?thesis using f g z by (simp add: algebra_simps)
 qed
@@ -498,13 +498,13 @@ qed
 section \<open>Roth's lemma for rational points\<close>
 
 lemma roth_lemma_base:
-  fixes P :: "rat mpoly" and eta :: real
+  fixes P :: "rat mpoly" and \<eta> :: real
   assumes pn: "P \<noteq> 0"
     and box: "roth_poly_in_box 1 r P"
-    and rp: "0 < r 0" and ep: "0 < eta"
+    and rp: "0 < r 0" and ep: "0 < \<eta>"
     and h: "roth_proj_log_height P + 4 * real (r 0) \<le>
-      eta * real (r 0) * roth_rat_log_height (a 0)"
-  shows "roth_index 1 r a P \<le> ereal (2 * eta)"
+      \<eta> * real (r 0) * roth_rat_log_height (a 0)"
+  shows "roth_index 1 r a P \<le> ereal (2 * \<eta>)"
 proof -
   have pv: "vars P \<subseteq> {0}"
     using roth_box_vars[OF box] by auto
@@ -513,38 +513,38 @@ proof -
   have deg: "degree (mpoly_to_poly 0 P) \<le> r 0"
     by (rule roth_univariate_degree_of_box_at[OF box0])
   have hh: "roth_proj_log_height P + real (r 0) \<le>
-      eta * real (r 0) * roth_rat_log_height (a 0)"
+      \<eta> * real (r 0) * roth_rat_log_height (a 0)"
     using h by linarith
-  have ib: "roth_index 1 r a P \<le> ereal eta"
+  have ib: "roth_index 1 r a P \<le> ereal \<eta>"
     by (rule roth_univariate_index_bound_at[where v=0])
       (use pn pv rp deg ep hh in auto)
-  have e2: "eta \<le> 2*eta" using ep by linarith
+  have e2: "\<eta> \<le> 2*\<eta>" using ep by linarith
   show ?thesis by (rule order_trans[OF ib]) (use e2 in simp)
 qed
 
 theorem roth_lemma_aux:
-  fixes P :: "rat mpoly" and eta :: real
+  fixes P :: "rat mpoly" and \<eta> :: real
   assumes pn: "P \<noteq> 0"
     and box: "roth_poly_in_box (Suc n) r P"
     and rp: "\<And>v. v < Suc n \<Longrightarrow> 0 < r v"
-    and ep: "0 < eta" and eb: "eta \<le> 1/2"
+    and ep: "0 < \<eta>" and eb: "\<eta> \<le> 1/2"
     and ratio: "\<And>v. Suc v < Suc n \<Longrightarrow>
-      real (r (Suc v)) \<le> eta^(2^n) * real (r v)"
+      real (r (Suc v)) \<le> \<eta>^(2^n) * real (r v)"
     and height: "\<And>v. v < Suc n \<Longrightarrow>
       roth_proj_log_height P + 4*real (Suc n)*real (r 0) \<le>
-        eta^(2^n) * real (r v) * roth_rat_log_height (a v)"
+        \<eta>^(2^n) * real (r v) * roth_rat_log_height (a v)"
   shows "roth_index (Suc n) r a P \<le>
-    ereal (2*real (Suc n)*eta)"
+    ereal (2*real (Suc n)*\<eta>)"
   using assms
-proof (induction n arbitrary: P r a eta)
+proof (induction n arbitrary: P r a \<eta>)
   case 0
   note hyp = this
-  have "roth_index 1 r a P \<le> ereal (2*eta)"
+  have "roth_index 1 r a P \<le> ereal (2*\<eta>)"
     by (rule roth_lemma_base) (use hyp in auto)
   then show ?case by simp
 next
   case (Suc n)
-  let ?sigma = "eta^(2^(Suc n))"
+  let ?\<sigma> = "\<eta>^(2^(Suc n))"
   let ?m = "Suc (Suc n)"
   note pn = Suc.prems(1)
   note box = Suc.prems(2)
@@ -553,16 +553,16 @@ next
   note eb = Suc.prems(5)
   note ratio = Suc.prems(6)
   note height = Suc.prems(7)
-  have sigma_pos: "0 < ?sigma" using ep by simp
-  have sigma_sq: "?sigma \<le> eta^2"
+  have sigma_pos: "0 < ?\<sigma>" using ep by simp
+  have sigma_sq: "?\<sigma> \<le> \<eta>^2"
     by (rule roth_sigma_le_eta_sq) (use ep eb in auto)
-  have eta_one: "eta \<le> 1" using eb by linarith
-  have sigma_eta: "?sigma \<le> eta"
+  have eta_one: "\<eta> \<le> 1" using eb by linarith
+  have sigma_eta: "?\<sigma> \<le> \<eta>"
     by (rule roth_sigma_le_eta) (use ep eta_one in auto)
-  have sigma_half: "?sigma \<le> 1/2"
+  have sigma_half: "?\<sigma> \<le> 1/2"
     using sigma_eta eb by linarith
   have half: "2*r (Suc v) \<le> r v" if "Suc v < ?m" for v
-    by (rule roth_ratio_halving[where sigma="?sigma" and m="?m"])
+    by (rule roth_ratio_halving[where \<sigma>="?\<sigma>" and m="?m"])
       (use ratio sigma_half that in auto)
   obtain k U L where kp: "0 < k"
     and kn: "k \<le> Suc (r (Suc n))"
@@ -586,40 +586,40 @@ next
   have lh: "roth_proj_log_height L \<le>
       real k * (roth_proj_log_height P + 4*real (r 0))"
     using roth_factor_height_bounds[OF un ln disj] hb by linarith
-  have eta2_pos: "0 < eta^2" using ep by simp
-  have eta2_le_eta: "eta^2 \<le> eta"
+  have eta2_pos: "0 < \<eta>^2" using ep by simp
+  have eta2_le_eta: "\<eta>^2 \<le> \<eta>"
     using ep eta_one by (metis order_less_le power_one_right roth_sigma_le_eta)
-  have eta2_half: "eta^2 \<le> 1/2"
+  have eta2_half: "\<eta>^2 \<le> 1/2"
     using eta2_le_eta eb by linarith
-  have left_ratio: "real (k*r (Suc v)) \<le> (eta^2)^(2^n) * real (k*r v)" if "Suc v < Suc n" for v
+  have left_ratio: "real (k*r (Suc v)) \<le> (\<eta>^2)^(2^n) * real (k*r v)" if "Suc v < Suc n" for v
     using less_SucI ratio roth_ratio_scale roth_sigma_recursion that by presburger
   have left_height:
     "roth_proj_log_height U +
       4*real (Suc n)*real (k*r 0) \<le>
-      (eta^2)^(2^n) * real (k*r v) *
+      (\<eta>^2)^(2^n) * real (k*r v) *
         roth_rat_log_height (a v)" if "v<Suc n" for v
   proof -
     have hv: "roth_proj_log_height P +
       4*real ?m*real (r 0) \<le>
-      ?sigma * real (r v) * roth_rat_log_height (a v)"
+      ?\<sigma> * real (r v) * roth_rat_log_height (a v)"
       by (rule height) (use that in simp)
     have tr: "roth_proj_log_height U +
       4*real (Suc n)*real k*real (r 0) \<le>
-      ?sigma*(real k*real (r v))*roth_rat_log_height (a v)"
+      ?\<sigma>*(real k*real (r v))*roth_rat_log_height (a v)"
       by (rule roth_height_transfer_sigma[OF fh hv])
     show ?thesis using tr by (simp add: roth_sigma_recursion algebra_simps)
   qed
   have left_rp: "0 < k*r v" if "v<Suc n" for v
     using kp rp[of v] that by simp
   have UI: "roth_index (Suc n) (\<lambda>v. k*r v) a U \<le>
-      ereal (2*real (Suc n)*(eta^2))"
+      ereal (2*real (Suc n)*(\<eta>^2))"
     by (rule Suc.IH[OF un ub left_rp eta2_pos eta2_half
       left_ratio left_height])
   have UIs: "roth_index (Suc n) r a U \<le>
-      ereal (real k*(2*real (Suc n)*(eta^2)))"
+      ereal (real k*(2*real (Suc n)*(\<eta>^2)))"
     by (rule roth_index_scale_bound[OF kp un UI])
   have UI_big: "roth_index ?m r a U \<le>
-      ereal (2*real k*real (Suc n)*(eta^2))"
+      ereal (2*real k*real (Suc n)*(\<eta>^2))"
     using UIs roth_index_extend_dimension[OF uv, where r=r and a=a]
     by (simp add: algebra_simps)
   have rlast: "r (Suc n) \<le> r 0"
@@ -634,17 +634,17 @@ next
   qed
   have hvlast: "roth_proj_log_height P +
       4*real ?m*real (r 0) \<le>
-      ?sigma * real (r (Suc n)) *
+      ?\<sigma> * real (r (Suc n)) *
         roth_rat_log_height (a (Suc n))"
     by (rule height) simp
   have last_height: "roth_proj_log_height L +
       real (k*r (Suc n)) \<le>
-      ?sigma * real (k*r (Suc n)) *
+      ?\<sigma> * real (k*r (Suc n)) *
         roth_rat_log_height (a (Suc n))"
   proof -
     have tr: "roth_proj_log_height L +
       real k*real (r (Suc n)) \<le>
-      ?sigma*(real k*real (r (Suc n)))*
+      ?\<sigma>*(real k*real (r (Suc n)))*
         roth_rat_log_height (a (Suc n))"
       by (rule roth_height_transfer_last[OF _ D_bound lh hvlast]) simp
     show ?thesis using tr by simp
@@ -653,12 +653,12 @@ next
       k*r (Suc n)"
     using roth_univariate_degree_of_box_at[OF lb] by simp
   have last_rp: "0 < r (Suc n)" by (rule rp) simp
-  have LI: "roth_index ?m r a L \<le> ereal (real k*?sigma)"
+  have LI: "roth_index ?m r a L \<le> ereal (real k*?\<sigma>)"
   proof -
     have ib: "roth_index ?m r a L \<le>
-      ereal (?sigma*real (k*r (Suc n))/real (r (Suc n)))"
+      ereal (?\<sigma>*real (k*r (Suc n))/real (r (Suc n)))"
       by (rule roth_univariate_index_bound_degree_at
-          [where v="Suc n" and D="k*r (Suc n)" and eta="?sigma"])
+          [where v="Suc n" and D="k*r (Suc n)" and \<eta>="?\<sigma>"])
         (use ln lv last_rp last_deg sigma_pos last_height kp in auto)
     show ?thesis using ib last_rp by (simp add: algebra_simps)
   qed
@@ -674,36 +674,36 @@ next
     and leq: "roth_index ?m r a L = ereal l"
     using roth_index_real_nonzero[OF ln, where m="Suc (Suc n)" and r=r and a=a]
     by blast
-  have ubi: "u \<le> 2*real k*real (Suc n)*eta^2"
+  have ubi: "u \<le> 2*real k*real (Suc n)*\<eta>^2"
     using UI_big ueq by (simp add: algebra_simps)
-  have lbi: "l \<le> real k*?sigma"
+  have lbi: "l \<le> real k*?\<sigma>"
     using LI leq by simp
   have peq: "roth_index ?m r a (U*L) = ereal (u+l)"
     using roth_disjoint_index_mult[OF disj, where m="Suc (Suc n)" and r=r and a=a] ueq leq
     by simp
   have qi: "real k*t^2/(2*real ?m) \<le>  u+l+real k*(real (r (Suc n))/real (r n))"
     using ib by (simp add: teq peq)
-  have rho: "real (r (Suc n))/real (r n) \<le> ?sigma"
+  have \<rho>: "real (r (Suc n))/real (r n) \<le> ?\<sigma>"
     using ratio roth_ratio_divide rp by auto
-  have tb: "t \<le> 2*real ?m*eta"
+  have tb: "t \<le> 2*real ?m*\<eta>"
     by (rule roth_final_index_arith
-      [where m="?m" and sigma="?sigma" and
-        rho="real (r (Suc n))/real (r n)"])
-      (use kp ep ubi lbi rho sigma_sq qi in auto)
+      [where m="?m" and \<sigma>="?\<sigma>" and
+        \<rho>="real (r (Suc n))/real (r n)"])
+      (use kp ep ubi lbi \<rho> sigma_sq qi in auto)
   show ?case using tb teq by simp
 qed
 
 theorem roth_lemma:
-  fixes P :: "rat mpoly" and eta :: real
+  fixes P :: "rat mpoly" and \<eta> :: real
   assumes mp: "0 < m" and pn: "P \<noteq> 0"
     and box: "roth_poly_in_box m r P"
     and rp: "\<And>v. v<m \<Longrightarrow> 0<r v"
-    and ep: "0<eta" and eb: "eta\<le>1/2"
+    and ep: "0<\<eta>" and eb: "\<eta>\<le>1/2"
     and ratio: "\<And>v. Suc v<m \<Longrightarrow>
-      real (r (Suc v)) \<le> eta^(2^(m-1))*real (r v)"
+      real (r (Suc v)) \<le> \<eta>^(2^(m-1))*real (r v)"
     and height: "\<And>v. v<m \<Longrightarrow>
-      roth_proj_log_height P + 4*real m*real (r 0) \<le> eta^(2^(m-1))*real (r v)*roth_rat_log_height (a v)"
-  shows "roth_index m r a P \<le> ereal (2*real m*eta)"
+      roth_proj_log_height P + 4*real m*real (r 0) \<le> \<eta>^(2^(m-1))*real (r v)*roth_rat_log_height (a v)"
+  shows "roth_index m r a P \<le> ereal (2*real m*\<eta>)"
 proof -
   obtain n where meq: "m=Suc n" using mp by (cases m) auto
   show ?thesis using meq
@@ -723,20 +723,20 @@ proof -
 qed
 
 theorem roth_lemma_integer:
-  fixes Q :: "int mpoly" and eta :: real
+  fixes Q :: "int mpoly" and \<eta> :: real
   assumes mp: "0 < m" and q: "Q \<noteq> 0"
     and box: "roth_poly_in_box m r Q"
     and rp: "\<And>v. v<m \<Longrightarrow> 0<r v"
-    and ep: "0<eta" and eb: "eta\<le>1/2"
-    and ratio: "\<And>v. Suc v<m \<Longrightarrow> r (Suc v) \<le> eta^(2^(m-1)) * r v"
+    and ep: "0<\<eta>" and eb: "\<eta>\<le>1/2"
+    and ratio: "\<And>v. Suc v<m \<Longrightarrow> r (Suc v) \<le> \<eta>^(2^(m-1)) * r v"
     and height: "\<And>v. v<m \<Longrightarrow>
       ln (real (roth_int_coeff_sup Q)) + 4*real m*real (r 0) \<le>
-        eta^(2^(m-1))*real (r v)*roth_rat_log_height (a v)"
-  shows "roth_index m r a (replace_coeff of_int Q) \<le> ereal (2*real m*eta)"
+        \<eta>^(2^(m-1))*real (r v)*roth_rat_log_height (a v)"
+  shows "roth_index m r a (replace_coeff of_int Q) \<le> ereal (2*real m*\<eta>)"
 proof (intro roth_lemma[OF mp roth_cast_nonzero[OF q]] ep eb ratio height rp)
   show "roth_poly_in_box m r (replace_coeff of_int Q :: rat mpoly)"
     using box by (simp add: roth_box_cast_iff)
-  show "roth_proj_log_height (replace_coeff of_int Q) + 4*real m * (r 0) \<le> eta^(2^(m-1))*real (r v)*roth_rat_log_height (a v)"
+  show "roth_proj_log_height (replace_coeff of_int Q) + 4*real m * (r 0) \<le> \<eta>^(2^(m-1))*real (r v)*roth_rat_log_height (a v)"
     if "v<m" for v
     using roth_proj_log_height_cast_bound[of Q] height[OF that]
     by linarith

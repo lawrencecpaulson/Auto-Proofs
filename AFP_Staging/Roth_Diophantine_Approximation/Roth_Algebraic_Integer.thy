@@ -37,7 +37,7 @@ proof (rule ccontr)
     using epos elt by (auto simp: \<eta>_def)
   have sigpos: "0 < \<sigma>" using etapos by (simp add: \<sigma>_def)
   let ?C = "ln (4*real_of_int (roth_power_base f))"
-  let ?D = "ln (16*max 1 (abs \<alpha>))"
+  let ?D = "ln (16*max 1 (\<bar>\<alpha>\<bar>))"
   have bpos: "1 \<le> roth_power_base f" by (rule roth_power_base_ge_one)
   have Cnonneg: "0 \<le> ?C" using bpos by simp
   have Dnonneg: "0 \<le> ?D" by simp
@@ -113,18 +113,18 @@ proof (rule ccontr)
       P \<noteq> 0 \<and> roth_poly_in_box m r P \<and>
       ereal (real m * (1-\<epsilon>) / 2) \<le>
         roth_index m r (\<lambda>_. \<alpha>) (replace_coeff (of_int::int \<Rightarrow> real) P) \<and>
-      (\<forall>K. abs (MPoly_Type.coeff P K) \<le> ?coeff_bound_int)"
+      (\<forall>K. \<bar>MPoly_Type.coeff P K\<bar> \<le> ?coeff_bound_int)"
   have aux_exists: "\<exists>P :: int mpoly. aux_witness P"
     unfolding aux_witness_def
     by (rule roth_auxiliary_polynomial_monic_exp
-      [where f=f and a=\<alpha> and d="?d" and m=m and r=r and eps=\<epsilon>,
+      [where f=f and a=\<alpha> and d="?d" and m=m and r=r and \<epsilon>=\<epsilon>,
        OF monic refl dpos root mpos rpos epos elt agap]) simp
   obtain P :: "int mpoly" where P: "aux_witness P"
     using aux_exists by (erule exE)
   have pn: "P \<noteq> 0" and pb: "roth_poly_in_box m r P"
     and pi: "ereal (real m * (1-\<epsilon>) / 2) \<le>
       roth_index m r (\<lambda>_. \<alpha>) (replace_coeff (of_int::int \<Rightarrow> real) P)"
-    and pc: "\<forall>K. abs (MPoly_Type.coeff P K) \<le> ?coeff_bound_int"
+    and pc: "\<forall>K. \<bar>MPoly_Type.coeff P K\<bar> \<le> ?coeff_bound_int"
     using P unfolding aux_witness_def by blast+
   have base: "1 \<le> 4 * roth_power_base f"
     using bpos by simp
@@ -146,7 +146,7 @@ proof (rule ccontr)
     by (rule roth_weighted_height_sum_le[OF whigh])
   let ?index_gap = "real m * (1-\<epsilon>) / 2 - \<epsilon> * m"
   have gap': "ln 2 + real (\<Sum>v<m. r v) * (ln (4 * real_of_int (roth_power_base f)) +
-          ln (16 * max 1 (abs \<alpha>))) + ?height_sum <
+          ln (16 * max 1 (\<bar>\<alpha>\<bar>))) + ?height_sum <
       \<kappa> * T * ?index_gap"
     using sum_le gap by linarith
   have kpos: "0 \<le> \<kappa>" using kap by simp
@@ -160,7 +160,7 @@ proof (rule ccontr)
     using height_log gap' by (simp add: algebra_simps)
   let ?transfer_cost = "real (card (roth_exponent_box m r)) ^ 2 *
       real (4 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup P) *
-      (\<Prod>v<m. max 1 (abs \<alpha>) ^ r v)"
+      (\<Prod>v<m. max 1 (\<bar>\<alpha>\<bar>) ^ r v)"
   have transfer_gap: "ln ?transfer_cost + ?height_sum <
       \<kappa> * T * ?index_gap"
     using roth_box_log_cost[of m r P \<alpha>] cost_gap by linarith

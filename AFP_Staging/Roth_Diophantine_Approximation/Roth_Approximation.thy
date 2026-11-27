@@ -194,7 +194,7 @@ qed
 
 lemma roth_scaled_good_pair:
   fixes c p q :: int and \<alpha> \<epsilon> \<delta> :: real
-  assumes c: "c > 0" and eps: "\<epsilon> > \<delta>" and delta: "\<delta> > 0"
+  assumes c: "c > 0" and \<epsilon>: "\<epsilon> > \<delta>" and \<delta>: "\<delta> > 0"
     and good: "(p,q) \<in> roth_good_pairs \<alpha> (2 + \<epsilon>)"
     and large: "of_int c < of_int q powr (\<epsilon> - \<delta>)"
   shows "roth_scaled_pair c (p,q) \<in> roth_good_pairs (of_int c * \<alpha>) (2 + \<delta>)"
@@ -212,7 +212,7 @@ proof -
   then have mult_bound: "of_int c * of_int q powr (2 + \<delta>) < of_int q powr (2 + \<epsilon>)"
     using large q by force
   have pow_le: "of_int (snd ?pq') powr (2 + \<delta>) \<le> of_int q powr (2 + \<delta>)"
-    using delta q'pos q'le by (intro powr_mono2) auto
+    using \<delta> q'pos q'le by (intro powr_mono2) auto
   have err: "\<bar>of_int c * \<alpha> - of_int (fst ?pq') / of_int (snd ?pq')\<bar> =
              of_int c * \<bar>\<alpha> - of_int p / of_int q\<bar>"
     using c by (simp add: frac abs_mult_pos' algebra_simps)
@@ -253,7 +253,7 @@ lemma inj_on_roth_scaled_pair:
 
 theorem finite_roth_good_pairs_of_scaled:
   fixes c :: int and \<alpha> \<epsilon> \<delta> :: real
-  assumes c: "c > 0" and eps: "\<epsilon> > \<delta>" and delta: "\<delta> > 0"
+  assumes c: "c > 0" and \<epsilon>: "\<epsilon> > \<delta>" and \<delta>: "\<delta> > 0"
     and fin: "finite (roth_good_pairs (of_int c * \<alpha>) (2 + \<delta>))"
   shows "finite (roth_good_pairs \<alpha> (2 + \<epsilon>))"
 proof -
@@ -261,7 +261,7 @@ proof -
     "\<forall>pq\<in>roth_good_pairs (of_int c * \<alpha>) (2 + \<delta>). snd pq \<le> A"
     using fin finite_roth_good_pairs_iff_bounded_denominator by blast
   obtain B :: int where B: "\<And>q::int. B \<le> q \<Longrightarrow> of_int c < of_int q powr (\<epsilon> - \<delta>)"
-    using roth_powr_threshold[of "of_int c" "\<epsilon> - \<delta>"] c eps
+    using roth_powr_threshold[of "of_int c" "\<epsilon> - \<delta>"] c \<epsilon>
     by auto
   have "snd pq \<le> max B (c * A)" if good: "pq \<in> roth_good_pairs \<alpha> (2 + \<epsilon>)" for pq
   proof -
@@ -275,7 +275,7 @@ proof -
     next
       case False
       then have scale_le: "snd (roth_scaled_pair c (p,q)) \<le> A"
-        using roth_scaled_good_pair[OF c eps delta good[unfolded pq] B] 
+        using roth_scaled_good_pair[OF c \<epsilon> \<delta> good[unfolded pq] B]
         using A by auto
       have q_le: "q \<le> c * snd (roth_scaled_pair c (p,q))"
         using good c roth_scaled_pair_properties(4)[of c q p]
