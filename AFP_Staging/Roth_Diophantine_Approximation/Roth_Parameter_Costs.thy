@@ -508,7 +508,7 @@ proof -
   show ?thesis using mpos gap by blast
 qed
 
-lemma roth_numeric_gap: (*FIXME shorten this proof*)
+lemma roth_numeric_gap:
   fixes T B xi C kappa eps :: real and m S :: nat
   assumes mpos: "0 < m" and Tpos: "0 < T" and Cnonneg: "0 \<le> C"
     and Sbound: "real S \<le> real m * ((1+xi)*T/B)"
@@ -517,31 +517,20 @@ lemma roth_numeric_gap: (*FIXME shorten this proof*)
     and eq: "kappa * ((1-eps)/2 - eps) = 1 + 2*xi"
   shows "ln 2 + real S*C + real m*(1+xi)*T < kappa*T*(real m*(1-eps)/2 - eps*real m)"
 proof -
-  have mTnonneg: "0 \<le> real m * T" using Tpos by simp
-  have sc0: "real S*C \<le> (real m * ((1+xi)*T/B))*C"
+  have "real S*C \<le> real m * ((1+xi)*T/B) * C"
     by (rule mult_right_mono[OF Sbound Cnonneg])
-  have sc: "real S*C \<le> real m*T*((1+xi)*C/B)"
-    using sc0 by (simp add: algebra_simps)
-  have bc: "real m*T*((1+xi)*C/B) \<le> real m*T*(xi/2)"
-    by (rule mult_left_mono[OF Bbound mTnonneg])
-  have scb: "real S*C \<le> real m*T*(xi/2)"
-    using sc bc by linarith
-  have lnB: "ln 2 < real m*T*(xi/2)"
-    using Tbound by (simp add: algebra_simps)
-  have cost: "ln 2 + real S*C + real m*(1+xi)*T <
-      real m*T*(xi/2) + real m*T*(xi/2) + real m*(1+xi)*T"
-    using scb lnB by linarith
-  have \<delta>: "real m*(1-eps)/2 - eps*real m =
-      real m*((1-eps)/2 - eps)" by (simp add: algebra_simps)
-  have form1: "real m*T*(xi/2) + real m*T*(xi/2) + real m*(1+xi)*T =
-      real m*T*(1+2*xi)" by (simp add: algebra_simps)
-  have form2: "real m*T*(1+2*xi) =
-      kappa*T*(real m*(1-eps)/2 - eps*real m)"
-    using eq by (simp add: \<delta> mult_ac)
-  have form: "real m*T*(xi/2) + real m*T*(xi/2) + real m*(1+xi)*T =
-      kappa*T*(real m*(1-eps)/2 - eps*real m)"
-    using form1 form2 by simp
-  show ?thesis using cost form by simp
+  also have "... = real m*T*((1+xi)*C/B)"
+    by (simp add: algebra_simps)
+  also have "... \<le> real m*T*(xi/2)"
+    by (rule mult_left_mono[OF Bbound]) (use Tpos in simp)
+  finally have sc: "real S*C \<le> real m*T*(xi/2)" .
+  have "ln 2 + real S*C + real m*(1+xi)*T < real m*T*(1+2*xi)"
+    using sc Tbound by (simp add: algebra_simps)
+  also have "... = real m*T*(kappa*((1-eps)/2 - eps))"
+    using eq by simp
+  also have "... = kappa*T*(real m*(1-eps)/2 - eps*real m)"
+    by (simp add: algebra_simps)
+  finally show ?thesis .
 qed
 
 lemma roth_numeric_height:
