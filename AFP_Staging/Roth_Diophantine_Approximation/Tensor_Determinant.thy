@@ -424,18 +424,24 @@ proof -
   show ?thesis using z val by simp
 qed
 
-(*FIXME does this complicated formula mean something?*)
-theorem roth_tensor_basis_exists:
-  assumes box: "roth_poly_in_box (Suc n) r (P::rat mpoly)"
-    and nz: "P\<noteq>0"
-  shows "\<exists>B. B \<subseteq> roth_last_coeff P n ` {..r n} \<and>
-    B\<noteq>{} \<and> card B \<le> Suc (r n) \<and>
+text \<open>A coefficient basis that splits the polynomial into a tensor sum
+and whose right factors are linearly independent.\<close>
+definition roth_tensor_basis ::
+  "rat mpoly \<Rightarrow> nat \<Rightarrow> (nat \<Rightarrow> nat) \<Rightarrow> rat mpoly set \<Rightarrow> bool" where
+  "roth_tensor_basis P n r B \<longleftrightarrow>
+    B \<subseteq> roth_last_coeff P n ` {..r n} \<and>
+    B \<noteq> {} \<and> card B \<le> Suc (r n) \<and>
     roth_vs.independent B \<and>
     (\<forall>b\<in>B. roth_poly_in_box n r b) \<and>
     P = (\<Sum>b\<in>B. b * roth_right_factor P n (r n) B b) \<and>
     (\<forall>c. (\<Sum>b\<in>B. MPoly_Type.smult (c b)
-      (roth_right_factor P n (r n) B b))=0 \<longrightarrow>
-      (\<forall>b\<in>B. c b=0))"
+      (roth_right_factor P n (r n) B b)) = 0 \<longrightarrow>
+      (\<forall>b\<in>B. c b = 0))"
+
+theorem roth_tensor_basis_exists:
+  assumes box: "roth_poly_in_box (Suc n) r (P::rat mpoly)"
+    and nz: "P\<noteq>0"
+  shows "\<exists>B. roth_tensor_basis P n r B"
 proof -
   let ?S = "roth_last_coeff P n ` {..r n}"
   obtain B where B: "B\<subseteq>?S" "roth_vs.independent B" "?S \<subseteq> roth_vs.span B" "card B\<le>Suc (r n)"
@@ -451,7 +457,8 @@ proof -
   have ri: "\<forall>c. (\<Sum>b\<in>B. MPoly_Type.smult (c b) (roth_right_factor P n (r n) B b)) = 0 
                 \<longrightarrow> (\<forall>b\<in>B. c b = 0)"
     using B fin roth_right_factor_indep by blast
-  show ?thesis using B(1,2,4,5) bn spl ri by blast
+  show ?thesis using B(1,2,4,5) bn spl ri
+    unfolding roth_tensor_basis_def by blast
 qed
 
 section \<open>Hasse derivatives and variable support\<close>

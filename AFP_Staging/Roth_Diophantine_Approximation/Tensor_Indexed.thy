@@ -354,7 +354,8 @@ proof -
     and ind: "roth_vs.independent B"
     and boxB: "\<forall>b\<in>B. roth_poly_in_box n r b"
     and spl: "P = (\<Sum>b\<in>B. b * roth_right_factor P n (r n) B b)"
-    using roth_tensor_basis_exists[OF box nz] by blast
+    using roth_tensor_basis_exists[OF box nz]
+    unfolding roth_tensor_basis_def by blast
   have fin: "finite B" using sub
     by (meson finite_subset finite_imageI finite_atMost)
   have "0<card B" using ne fin
