@@ -56,35 +56,25 @@ proof (rule ccontr)
     where TA: "A < T" and Tpos: "0 < T" and selected:
       "roth_selected_parameters \<alpha> \<kappa> m B \<xi> \<sigma> T \<beta> r"
     using Bpos kap inf sigpos xipos by (metis roth_select_parameters)
-  have rbounds: (*FIXME get rid of rbounds and combine with the results down to whigh*)
-      "\<forall>v<m. 0 < r v \<and> B \<le> roth_rat_log_height (\<beta> v) \<and>
-      roth_rat_log_height (\<beta> v) \<le> \<xi>*T \<and>
-      T \<le> real (r v)*roth_rat_log_height (\<beta> v) \<and>
-      real (r v)*roth_rat_log_height (\<beta> v) \<le> (1+\<xi>)*T \<and>
-      \<bar>of_rat (\<beta> v) - \<alpha>\<bar> \<le> exp (-\<kappa>*roth_rat_log_height (\<beta> v))"
-    and ratios: "\<forall>v. Suc v < m \<longrightarrow> real (r (Suc v)) \<le> \<sigma>*real (r v)"
-    and sumb: "real (\<Sum>v<m. r v) \<le> real m*((1+\<xi>)*T/B)"
-    using selected unfolding roth_selected_parameters_def by blast+
   have Tgap: "ln 2 < real m*T*\<xi>/2" and Theight: "ln 2 \<le> \<sigma>*T/2"
     using Abounds TA by (auto simp: algebra_simps)
   let ?\<beta> = "\<lambda>v. if v < m then \<beta> v else \<beta> 0"
-  have near_all: "\<And>v. \<bar>of_rat (?\<beta> v) - \<alpha>\<bar> \<le> exp (-\<kappa>*roth_rat_log_height (?\<beta> v))"
-    using rbounds mpos by auto
-  have rpos: "\<And>v. v < m \<Longrightarrow> 0 < r v" using rbounds by blast
+  from selected mpos have near_all:
+      "\<And>v. \<bar>of_rat (?\<beta> v) - \<alpha>\<bar> \<le> exp (-\<kappa>*roth_rat_log_height (?\<beta> v))"
+    and rpos: "\<And>v. v < m \<Longrightarrow> 0 < r v"
+    and hlow: "\<And>v. v < m \<Longrightarrow> B \<le> roth_rat_log_height (?\<beta> v)"
+    and wlow: "\<And>v. v < m \<Longrightarrow> T \<le> real (r v)*roth_rat_log_height (?\<beta> v)"
+    and whigh: "\<And>v. v < m \<Longrightarrow> r v * roth_rat_log_height (?\<beta> v) \<le> (1+\<xi>)*T"
+    and sumb: "real (\<Sum>v<m. r v) \<le> real m*((1+\<xi>)*T/B)"
+    unfolding roth_selected_parameters_def by auto
   have ratio: "\<And>v. Suc v < m \<Longrightarrow> r (Suc v) \<le> \<eta>^(2^(m-1)) * r v"
-    using ratios by (simp add: \<sigma>_def)
-  have hlow: "\<And>v. v < m \<Longrightarrow> B \<le> roth_rat_log_height (?\<beta> v)"
-    using rbounds by auto
-  have wlow: "\<And>v. v < m \<Longrightarrow> T \<le> real (r v)*roth_rat_log_height (?\<beta> v)"
-    using rbounds by auto
-  have whigh: "\<And>v. v < m \<Longrightarrow> r v * roth_rat_log_height (?\<beta> v) \<le> (1+\<xi>)*T"
-    using rbounds by auto
+    using selected unfolding roth_selected_parameters_def by (simp add: \<sigma>_def)
 
   text \<open>Pay the logarithmic costs needed for index transfer and Roth's lemma.\<close>
   have whigh0: "r 0 * roth_rat_log_height (?\<beta> 0) \<le> (1+\<xi>)*T"
     by (rule whigh[OF mpos])
   have rbound: "r 0 \<le> (1+\<xi>)*T/B"
-   using Bpos mpos rbounds by (metis roth_degree_from_weighted)
+    by (rule roth_degree_from_weighted[OF Bpos hlow[OF mpos] whigh[OF mpos]])
   have gap: "ln 2 + real (\<Sum>v<m. r v) * (?C+?D) + m * (1+\<xi>)*T <
              \<kappa> * T * (m * (1-\<epsilon>)/2 - \<epsilon> * m)"
     by (rule roth_numeric_gap[OF mpos Tpos _ sumb Bgap Tgap eq])
