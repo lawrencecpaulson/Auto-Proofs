@@ -514,15 +514,9 @@ proof -
   obtain t where ip: "roth_index (Suc (Suc n)) r a P = ereal t"
     and t0: "0\<le>t" and tm: "t\<le>real (Suc (Suc n))"
     by (rule roth_index_box_attained[OF box nz]) (use pos in auto)
-  have q: "ereal (real k * t^2 / (2 * real (Suc (Suc n)))) \<le>
-    roth_index (Suc (Suc n)) r a
-      (det (mat k k (\<lambda>(i,j).
-        pjet_hasse (mu i + Poly_Mapping.single (Suc n) j) P))) +
-    ereal (real k *
-      (real (r (Suc n)) / real (r n)))"
-    by (rule roth_tensor_det_index_quadratic[OF ip t0 tm])
-      (use half rp rl kn row in auto)
-  show ?thesis using q by (simp add: ip)
+  show ?thesis
+    using roth_tensor_det_index_quadratic[OF ip t0 tm half rp rl kn row]
+    by (simp add: ip)
 qed
 
 section \<open>Nonzero factors of the tensor determinant\<close>

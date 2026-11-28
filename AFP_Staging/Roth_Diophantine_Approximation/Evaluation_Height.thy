@@ -61,13 +61,9 @@ proof -
       of_int (\<Prod>v<m. p v ^ Poly_Mapping.lookup I v *
         q v ^ (r v - Poly_Mapping.lookup I v))"
     by (simp add: point)
-  have eq: "(\<Prod>v<m. (of_int (q v)::rat) ^ r v) *
-      insertion (\<lambda>v. of_int (p v) / of_int (q v))
-        (MPoly_Type.monom I (of_int c)) =
-      of_int c * ((\<Prod>v<m. (of_int (q v)::rat)^r v) *
-        (\<Prod>v<m. (of_int (p v) / of_int (q v)::rat) ^ Poly_Mapping.lookup I v))"
-    by (simp add: pjet_insertion_monom ipow mult.commute mult.left_commute)
-  show ?thesis using eq distrib prod by simp
+  show ?thesis
+    by (simp add: pjet_insertion_monom ipow distrib prod
+        mult.commute mult.left_commute)
 qed
 
 lemma roth_int_cast_keys:
@@ -271,14 +267,10 @@ proof -
   have fin: "finite ?S" by simp
   have expansion: "P = (\<Sum>I\<in>?S. ?T I)"
     by (simp add: pjet_taylor_identity_explicit pjet_hasse_eval)
-  have eval: "insertion b P = (\<Sum>I\<in>?S. insertion b (?T I))"
-    by (subst expansion) (rule pjet_insertion_sum[OF fin])
-  have each: "insertion b (?T I) = insertion a (pjet_hasse I P) *
-    (\<Prod>v\<in>Poly_Mapping.keys I.
-      (b v - a v) ^ Poly_Mapping.lookup I v)" for I
-    by (simp add: insertion_mult pjet_insertion_prod
-      pjet_insertion_power roth_insertion_Var_diff)
-  show ?thesis using eval by (simp add: each)
+  show ?thesis
+    by (subst expansion)
+      (simp add: pjet_insertion_sum[OF fin] insertion_mult
+        pjet_insertion_prod pjet_insertion_power roth_insertion_Var_diff)
 qed
 
 lemma roth_taylor_evaluation_abs:

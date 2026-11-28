@@ -251,16 +251,8 @@ qed
 lemma roth_box_centered_weight:
   "roth_weight m r (roth_box_of m f) - real m / 2 =
     (\<Sum>v<m. roth_center r v (f v))"
-proof -
-  have "(\<Sum>v<m. roth_center r v (f v)) =
-    (\<Sum>v<m. real (f v) / real (r v)) -
-      (\<Sum>v<m. 1/2)"
-    by (simp add: roth_center_def sum_subtractf)
-  also have "\<dots> =
-    roth_weight m r (roth_box_of m f) - real m / 2"
-    by (simp add: roth_weight_def roth_box_of_lookup)
-  finally show ?thesis by simp
-qed
+by (simp add: roth_center_def sum_subtractf
+  roth_weight_def roth_box_of_lookup)
 
 lemma roth_box_second_moment:
   assumes pos: "\<And>v. v < m \<Longrightarrow> 0 < r v"
