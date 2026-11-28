@@ -5,30 +5,30 @@ theory Roth_Determinant_Bounds
 begin
 
 lemma roth_exponent_box_add:
-  assumes a: "A \<in> roth_exponent_box m r"
-    and b: "B \<in> roth_exponent_box m s"
-  shows "A+B \<in> roth_exponent_box m (\<lambda>v. r v+s v)"
-proof (rule roth_exponent_boxI)
+  assumes a: "A \<in> pjet_exponent_box m r"
+    and b: "B \<in> pjet_exponent_box m s"
+  shows "A+B \<in> pjet_exponent_box m (\<lambda>v. r v+s v)"
+proof (rule pjet_exponent_boxI)
   show "Poly_Mapping.keys (A+B) \<subseteq> {..<m}"
     by (rule subset_trans[OF Poly_Mapping.keys_add])
-      (use roth_exponent_boxD(1)[OF a] roth_exponent_boxD(1)[OF b] in auto)
+      (use pjet_exponent_boxD(1)[OF a] pjet_exponent_boxD(1)[OF b] in auto)
   fix v assume vm: "v<m"
   have av: "Poly_Mapping.lookup A v \<le> r v"
-    by (rule roth_exponent_boxD(2)[OF a vm])
+    by (rule pjet_exponent_boxD(2)[OF a vm])
   have bv: "Poly_Mapping.lookup B v \<le> s v"
-    by (rule roth_exponent_boxD(2)[OF b vm])
+    by (rule pjet_exponent_boxD(2)[OF b vm])
   show "Poly_Mapping.lookup (A+B) v \<le> r v+s v"
     using av bv by (simp add: lookup_add)
 qed
 
 lemma roth_box_mult:
   fixes P Q :: "rat mpoly"
-  assumes pb: "roth_poly_in_box m r P"
-    and qb: "roth_poly_in_box m s Q"
-  shows "roth_poly_in_box m (\<lambda>v. r v+s v) (P*Q)"
+  assumes pb: "pjet_poly_in_box m r P"
+    and qb: "pjet_poly_in_box m s Q"
+  shows "pjet_poly_in_box m (\<lambda>v. r v+s v) (P*Q)"
 proof -
   have h: "\<forall>I\<in>Poly_Mapping.keys (mapping_of (P*Q)).
-      I\<in>roth_exponent_box m (\<lambda>v. r v+s v)"
+      I\<in>pjet_exponent_box m (\<lambda>v. r v+s v)"
   proof (intro ballI)
     fix I
     assume ik: "I\<in>Poly_Mapping.keys (mapping_of (P*Q))"
@@ -38,36 +38,36 @@ proof -
       and ak: "A\<in>Poly_Mapping.keys (mapping_of P)"
       and bk: "B\<in>Poly_Mapping.keys (mapping_of Q)"
       using ikk keys_mult by blast
-    have a: "A\<in>roth_exponent_box m r"
-      using pb ak by (auto simp: roth_poly_in_box_def)
-    have b: "B\<in>roth_exponent_box m s"
-      using qb bk by (auto simp: roth_poly_in_box_def)
-    show "I\<in>roth_exponent_box m (\<lambda>v. r v+s v)"
+    have a: "A\<in>pjet_exponent_box m r"
+      using pb ak by (auto simp: pjet_poly_in_box_def)
+    have b: "B\<in>pjet_exponent_box m s"
+      using qb bk by (auto simp: pjet_poly_in_box_def)
+    show "I\<in>pjet_exponent_box m (\<lambda>v. r v+s v)"
       using roth_exponent_box_add[OF a b] e by simp
   qed
-  show ?thesis using h by (auto simp: roth_poly_in_box_def)
+  show ?thesis using h by (auto simp: pjet_poly_in_box_def)
 qed
 
 lemma roth_box_one:
-  "roth_poly_in_box m (\<lambda>_. 0) (1::rat mpoly)"
-  by (simp add: roth_poly_in_box_iff_degree)
+  "pjet_poly_in_box m (\<lambda>_. 0) (1::rat mpoly)"
+  by (simp add: pjet_poly_in_box_iff_degree)
 
 lemma roth_box_prod:
   fixes P :: "'a \<Rightarrow> rat mpoly"
   assumes fin: "finite S"
-    and box: "\<And>x. x\<in>S \<Longrightarrow> roth_poly_in_box m r (P x)"
-  shows "roth_poly_in_box m (\<lambda>v. card S * r v) (\<Prod>x\<in>S. P x)"
+    and box: "\<And>x. x\<in>S \<Longrightarrow> pjet_poly_in_box m r (P x)"
+  shows "pjet_poly_in_box m (\<lambda>v. card S * r v) (\<Prod>x\<in>S. P x)"
   using fin box
 proof (induction S rule: finite_induct)
   case empty
   then show ?case by (simp add: roth_box_one)
 next
   case (insert x S)
-  have pb: "roth_poly_in_box m r (P x)"
+  have pb: "pjet_poly_in_box m r (P x)"
     using insert.prems by simp
-  have sb: "roth_poly_in_box m (\<lambda>v. card S * r v) (\<Prod>x\<in>S. P x)"
+  have sb: "pjet_poly_in_box m (\<lambda>v. card S * r v) (\<Prod>x\<in>S. P x)"
     using insert.IH insert.prems by auto
-  have mb: "roth_poly_in_box m (\<lambda>v. r v + card S * r v)
+  have mb: "pjet_poly_in_box m (\<lambda>v. r v + card S * r v)
     (P x * (\<Prod>x\<in>S. P x))"
     by (rule roth_box_mult[OF pb sb])
   show ?case using mb insert.hyps by (simp add: algebra_simps)
@@ -75,71 +75,71 @@ qed
 
 lemma roth_box_uminus:
   fixes P :: "rat mpoly"
-  assumes box: "roth_poly_in_box m r P"
-  shows "roth_poly_in_box m r (-P)"
+  assumes box: "pjet_poly_in_box m r P"
+  shows "pjet_poly_in_box m r (-P)"
   using box
-  by (simp add: roth_poly_in_box_def MPoly_Type.uminus_mpoly.rep_eq)
+  by (simp add: pjet_poly_in_box_def MPoly_Type.uminus_mpoly.rep_eq)
 
 lemma roth_box_sign_mult:
   fixes P :: "rat mpoly"
-  assumes box: "roth_poly_in_box m r P"
-  shows "roth_poly_in_box m r (signof q * P)"
+  assumes box: "pjet_poly_in_box m r P"
+  shows "pjet_poly_in_box m r (signof q * P)"
   using box by (simp add: sign_def roth_box_uminus)
 
 lemma roth_box_det:
   fixes A :: "nat \<Rightarrow> nat \<Rightarrow> rat mpoly"
-  assumes box: "\<forall>i<k. \<forall>j<k. roth_poly_in_box m r (A i j)"
-  shows "roth_poly_in_box m (\<lambda>v. k*r v)
+  assumes box: "\<forall>i<k. \<forall>j<k. pjet_poly_in_box m r (A i j)"
+  shows "pjet_poly_in_box m (\<lambda>v. k*r v)
     (det (mat k k (\<lambda>(i,j). A i j)))"
   unfolding det_mat_expansion
-proof (rule roth_poly_in_box_sum)
+proof (rule pjet_poly_in_box_sum)
   show "finite {q. q permutes {..<k}}"
     by (rule finite_permutations) simp
   fix q assume q: "q \<in> {q. q permutes {..<k}}"
-  have qb0: "roth_poly_in_box m (\<lambda>v. card {..<k}*r v)
+  have qb0: "pjet_poly_in_box m (\<lambda>v. card {..<k}*r v)
       (\<Prod>i<k. A i (q i))"
     by (rule roth_box_prod)
       (use box q in \<open>auto simp: permutes_bounded\<close>)
-  have qb: "roth_poly_in_box m (\<lambda>v. k*r v)
+  have qb: "pjet_poly_in_box m (\<lambda>v. k*r v)
       (\<Prod>i<k. A i (q i))"
     using qb0 by simp
-  show "roth_poly_in_box m (\<lambda>v. k*r v)
+  show "pjet_poly_in_box m (\<lambda>v. k*r v)
       (signof q * (\<Prod>i<k. A i (q i)))"
     by (rule roth_box_sign_mult[OF qb])
 qed
 
 lemma roth_hasse_det_in_box:
   fixes P :: "rat mpoly"
-  assumes box: "roth_poly_in_box m r P"
-  shows "roth_poly_in_box m (\<lambda>v. k*r v)
-    (det (mat k k (\<lambda>(i,j). roth_hasse (J i j) P)))"
+  assumes box: "pjet_poly_in_box m r P"
+  shows "pjet_poly_in_box m (\<lambda>v. k*r v)
+    (det (mat k k (\<lambda>(i,j). pjet_hasse (J i j) P)))"
   by (rule roth_box_det)
     (use box in \<open>auto intro: roth_hasse_box_monotone\<close>)
 
 lemma roth_hasse_det_degree:
   fixes P :: "rat mpoly"
-  assumes box: "roth_poly_in_box m r P"
+  assumes box: "pjet_poly_in_box m r P"
     and vm: "v<m"
   shows "MPoly_Type.degree
-    (det (mat k k (\<lambda>(i,j). roth_hasse (J i j) P))) v
+    (det (mat k k (\<lambda>(i,j). pjet_hasse (J i j) P))) v
     \<le> k*r v"
-  by (rule roth_degree_le_of_box[OF roth_hasse_det_in_box[OF box] vm])
+  by (rule pjet_degree_le_of_box[OF roth_hasse_det_in_box[OF box] vm])
 
 section \<open>Integral representatives of Hasse determinants\<close>
 
 lemma roth_hasse_cast:
   fixes P :: "int mpoly"
-  shows "replace_coeff of_int (roth_hasse J P) =
-    (roth_hasse J (replace_coeff of_int P) :: rat mpoly)"
+  shows "replace_coeff of_int (pjet_hasse J P) =
+    (pjet_hasse J (replace_coeff of_int P) :: rat mpoly)"
   by (simp add: coeff_eq[symmetric] fun_eq_iff
-    roth_hasse_coeff_exact coeff_replace_coeff)
+    pjet_hasse_coeff_exact coeff_replace_coeff)
 
 lemma roth_hasse_smult:
   fixes P :: "rat mpoly"
-  shows "roth_hasse J (MPoly_Type.smult c P) =
-    MPoly_Type.smult c (roth_hasse J P)"
+  shows "pjet_hasse J (MPoly_Type.smult c P) =
+    MPoly_Type.smult c (pjet_hasse J P)"
   by (simp add: coeff_eq[symmetric] fun_eq_iff
-    roth_hasse_coeff_exact roth_coeff_smult_rat
+    pjet_hasse_coeff_exact roth_coeff_smult_rat
     mult.assoc mult.left_commute)
 
 lemma roth_det_cast:
@@ -151,8 +151,8 @@ lemma roth_det_cast:
 proof -
   interpret cast: comm_ring_hom
     "replace_coeff of_int :: int mpoly \<Rightarrow> rat mpoly"
-    by (unfold_locales; simp add: roth_replace_coeff_zero
-      roth_replace_coeff_one replace_coeff_add roth_replace_coeff_mult)
+    by (unfold_locales; simp add: pjet_replace_coeff_zero
+      pjet_replace_coeff_one replace_coeff_add pjet_replace_coeff_mult)
   have eq: "map_mat (replace_coeff of_int)
       (mat k k (\<lambda>(i,j). A i j)) =
     mat k k (\<lambda>(i,j). replace_coeff of_int (A i j))"
@@ -171,7 +171,7 @@ lemma roth_det_smult:
 proof -
   have eq: "mat k k (\<lambda>(i,j). MPoly_Type.smult c (A i j)) =
     (Const c) \<cdot>\<^sub>m (mat k k (\<lambda>(i,j). A i j))"
-    by (simp add: mat_eq_iff smult_conv_mult roth_Const_monom)
+    by (simp add: mat_eq_iff smult_conv_mult pjet_Const_monom)
   have deteq: "det (mat k k (\<lambda>(i,j).
       MPoly_Type.smult c (A i j))) =
     det ((Const c) \<cdot>\<^sub>m
@@ -184,8 +184,8 @@ proof -
   also have "\<dots> =
     MPoly_Type.smult (c^k)
       (det (mat k k (\<lambda>(i,j). A i j)))"
-    by (simp only: roth_Const_power smult_conv_mult
-      roth_Const_monom[symmetric])
+    by (simp only: pjet_Const_power smult_conv_mult
+      pjet_Const_monom[symmetric])
   finally show ?thesis .
 qed
 
@@ -193,16 +193,16 @@ lemma roth_hasse_det_rep:
   fixes P :: "rat mpoly" and Q :: "int mpoly"
   assumes rep: "roth_integral_rep P Q"
   shows "roth_integral_rep
-    (det (mat k k (\<lambda>(i,j). roth_hasse (J i j) P)))
-    (det (mat k k (\<lambda>(i,j). roth_hasse (J i j) Q)))"
+    (det (mat k k (\<lambda>(i,j). pjet_hasse (J i j) P)))
+    (det (mat k k (\<lambda>(i,j). pjet_hasse (J i j) Q)))"
 proof -
   obtain c :: rat where cn: "c \<noteq> 0"
     and eq: "replace_coeff of_int Q = MPoly_Type.smult c P"
     using rep by (auto simp: roth_integral_rep_def)
   have heq: "replace_coeff of_int
-    (det (mat k k (\<lambda>(i,j). roth_hasse (J i j) Q))) =
+    (det (mat k k (\<lambda>(i,j). pjet_hasse (J i j) Q))) =
     MPoly_Type.smult (c^k)
-      (det (mat k k (\<lambda>(i,j). roth_hasse (J i j) P)))"
+      (det (mat k k (\<lambda>(i,j). pjet_hasse (J i j) P)))"
     by (simp add: roth_det_cast roth_hasse_cast eq
       roth_hasse_smult roth_det_smult)
   show ?thesis unfolding roth_integral_rep_def
@@ -213,9 +213,9 @@ lemma roth_proj_height_hasse_det_le:
   fixes P :: "rat mpoly" and Q :: "int mpoly"
   assumes rep: "roth_integral_rep P Q"
   shows "roth_proj_height
-      (det (mat k k (\<lambda>(i,j). roth_hasse (J i j) P))) \<le>
+      (det (mat k k (\<lambda>(i,j). pjet_hasse (J i j) P))) \<le>
     roth_int_coeff_sup
-      (det (mat k k (\<lambda>(i,j). roth_hasse (J i j) Q)))"
+      (det (mat k k (\<lambda>(i,j). pjet_hasse (J i j) Q)))"
   by (rule roth_proj_height_le[OF roth_hasse_det_rep[OF rep]])
 
 section \<open>Coefficient bounds for one Hasse derivative\<close>
@@ -230,14 +230,14 @@ lemma roth_int_coeff_sup_le:
 
 lemma roth_hasse_coeff_sup:
   fixes P :: "int mpoly"
-  assumes box: "roth_poly_in_box m r P"
-  shows "roth_int_coeff_sup (roth_hasse J P) \<le>
+  assumes box: "pjet_poly_in_box m r P"
+  shows "roth_int_coeff_sup (pjet_hasse J P) \<le>
     2 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup P"
 proof (rule roth_int_coeff_sup_le)
   show "1 \<le> 2 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup P"
     using roth_int_coeff_sup_ge_one[of P] by simp
   fix I
-  have b: "abs (MPoly_Type.coeff (roth_hasse J P) I) \<le>
+  have b: "abs (MPoly_Type.coeff (pjet_hasse J P) I) \<le>
     int (2 ^ (\<Sum>v<m. r v)) *
       abs (MPoly_Type.coeff P (I+J))"
     by (rule roth_hasse_coeff_bound[OF box])
@@ -247,10 +247,10 @@ proof (rule roth_int_coeff_sup_le)
   have hp: "abs (MPoly_Type.coeff P (I+J)) \<le>
     int (roth_int_coeff_sup P)"
     using h by simp
-  have bd: "abs (MPoly_Type.coeff (roth_hasse J P) I) \<le>
+  have bd: "abs (MPoly_Type.coeff (pjet_hasse J P) I) \<le>
     int (2 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup P)"
     using b hp by (intro order.trans[OF b] mult_left_mono) auto
-  show "nat (abs (MPoly_Type.coeff (roth_hasse J P) I)) \<le>
+  show "nat (abs (MPoly_Type.coeff (pjet_hasse J P) I)) \<le>
     2 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup P"
     using bd by (metis nat_int nat_mono)
 qed
@@ -259,27 +259,27 @@ section \<open>Boxed primitive representatives\<close>
 
 lemma roth_box_cast_iff:
   fixes Q :: "int mpoly"
-  shows "roth_poly_in_box m r (replace_coeff of_int Q :: rat mpoly)
-    \<longleftrightarrow> roth_poly_in_box m r Q"
+  shows "pjet_poly_in_box m r (replace_coeff of_int Q :: rat mpoly)
+    \<longleftrightarrow> pjet_poly_in_box m r Q"
 proof -
   have key: "I \<in> Poly_Mapping.keys
       (mapping_of (replace_coeff of_int Q :: rat mpoly))
     \<longleftrightarrow> I \<in> Poly_Mapping.keys (mapping_of Q)" for I
     by (simp add: in_keys_iff coeff_def[symmetric]
       coeff_replace_coeff)
-  show ?thesis by (auto simp: roth_poly_in_box_def key)
+  show ?thesis by (auto simp: pjet_poly_in_box_def key)
 qed
 
 lemma roth_integral_rep_box:
   fixes P :: "rat mpoly" and Q :: "int mpoly"
-  assumes box: "roth_poly_in_box m r P"
+  assumes box: "pjet_poly_in_box m r P"
     and rep: "roth_integral_rep P Q"
-  shows "roth_poly_in_box m r Q"
+  shows "pjet_poly_in_box m r Q"
 proof -
   obtain c :: rat where eq:
     "replace_coeff of_int Q = MPoly_Type.smult c P"
     using rep by (auto simp: roth_integral_rep_def)
-  have qb: "roth_poly_in_box m r
+  have qb: "pjet_poly_in_box m r
       (replace_coeff of_int Q :: rat mpoly)"
     using box eq by (simp add: roth_box_smult)
   show ?thesis using qb by (simp add: roth_box_cast_iff)
@@ -312,7 +312,7 @@ lemma roth_prod_monom_general:
   shows "(\<Prod>x\<in>S. MPoly_Type.monom (E x) (a x)) =
     MPoly_Type.monom (\<Sum>x\<in>S. E x) (\<Prod>x\<in>S. a x)"
   using fin by (induction S rule: finite_induct)
-    (simp_all add: MPoly_Type.mult_monom roth_Const_monom[symmetric])
+    (simp_all add: MPoly_Type.mult_monom pjet_Const_monom[symmetric])
 
 lemma roth_monom_sum_coeff_bound:
   fixes a :: "'x \<Rightarrow> int"
@@ -389,21 +389,21 @@ qed
 
 lemma roth_box_sum_monom:
   fixes P :: "int mpoly"
-  assumes box: "roth_poly_in_box m r P"
-  shows "P = (\<Sum>I\<in>roth_exponent_box m r.
+  assumes box: "pjet_poly_in_box m r P"
+  shows "P = (\<Sum>I\<in>pjet_exponent_box m r.
     MPoly_Type.monom I (MPoly_Type.coeff P I))"
 proof -
   have "P = (\<Sum>I\<in>Poly_Mapping.keys (mapping_of P).
       MPoly_Type.monom I (MPoly_Type.coeff P I))"
-    by (rule roth_sum_monom)
-  also have "... = (\<Sum>I\<in>roth_exponent_box m r.
+    by (rule pjet_sum_monom)
+  also have "... = (\<Sum>I\<in>pjet_exponent_box m r.
       MPoly_Type.monom I (MPoly_Type.coeff P I))"
   proof (rule sum.mono_neutral_cong_left)
-    show "finite (roth_exponent_box m r)" by simp
+    show "finite (pjet_exponent_box m r)" by simp
     show "Poly_Mapping.keys (mapping_of P) \<subseteq>
-        roth_exponent_box m r"
-      using box by (simp add: roth_poly_in_box_def)
-    show "\<forall>I\<in>roth_exponent_box m r -
+        pjet_exponent_box m r"
+      using box by (simp add: pjet_poly_in_box_def)
+    show "\<forall>I\<in>pjet_exponent_box m r -
       Poly_Mapping.keys (mapping_of P).
       MPoly_Type.monom I (MPoly_Type.coeff P I) = 0"
       by (simp add: coeff_keys mapping_of_inject[symmetric] mapping_of_monom zero_mpoly.rep_eq)
@@ -414,12 +414,12 @@ qed
 lemma roth_box_prod_coeff_bound:
   fixes P :: "'x \<Rightarrow> int mpoly"
   assumes fin: "finite S"
-    and box: "\<And>x. x\<in>S \<Longrightarrow> roth_poly_in_box m r (P x)"
+    and box: "\<And>x. x\<in>S \<Longrightarrow> pjet_poly_in_box m r (P x)"
     and hb: "\<And>x. x\<in>S \<Longrightarrow> roth_int_coeff_sup (P x) \<le> H"
   shows "abs (MPoly_Type.coeff (\<Prod>x\<in>S. P x) I) \<le>
-    int (card (roth_exponent_box m r) ^ card S * H ^ card S)"
+    int (card (pjet_exponent_box m r) ^ card S * H ^ card S)"
 proof -
-  let ?B = "roth_exponent_box m r"
+  let ?B = "pjet_exponent_box m r"
   have pb: "P x = (\<Sum>y\<in>?B. MPoly_Type.monom y (MPoly_Type.coeff (P x) y))"
     if "x\<in>S" for x
     by (rule roth_box_sum_monom[OF box[OF that]])
@@ -451,37 +451,37 @@ lemma roth_abs_coeff_signof:
     MPoly_Type.uminus_mpoly.rep_eq)
 
 lemma roth_box_card_pos:
-  "0 < card (roth_exponent_box m r)"
+  "0 < card (pjet_exponent_box m r)"
 proof -
-  have z: "(0::(nat,nat) poly_mapping) \<in> roth_exponent_box m r"
-    by (rule roth_exponent_boxI) simp_all
+  have z: "(0::(nat,nat) poly_mapping) \<in> pjet_exponent_box m r"
+    by (rule pjet_exponent_boxI) simp_all
   show ?thesis using z by (auto simp: card_gt_0_iff)
 qed
 
 lemma roth_hasse_box_int:
   fixes P :: "int mpoly"
-  assumes box: "roth_poly_in_box m r P"
-  shows "roth_poly_in_box m r (roth_hasse J P)"
+  assumes box: "pjet_poly_in_box m r P"
+  shows "pjet_poly_in_box m r (pjet_hasse J P)"
 proof -
-  have h: "roth_poly_in_box m
-      (\<lambda>v. r v - Poly_Mapping.lookup J v) (roth_hasse J P)"
+  have h: "pjet_poly_in_box m
+      (\<lambda>v. r v - Poly_Mapping.lookup J v) (pjet_hasse J P)"
     by (rule roth_hasse_in_box[OF box])
-  have mono: "roth_exponent_box m
+  have mono: "pjet_exponent_box m
       (\<lambda>v. r v - Poly_Mapping.lookup J v)
-      \<subseteq> roth_exponent_box m r"
-    by (auto simp: roth_exponent_box_iff)
+      \<subseteq> pjet_exponent_box m r"
+    by (auto simp: pjet_exponent_box_iff)
       (meson le_trans diff_le_self)
-  show ?thesis using h mono by (auto simp: roth_poly_in_box_def)
+  show ?thesis using h mono by (auto simp: pjet_poly_in_box_def)
 qed
 
 lemma roth_det_coeff_bound:
   fixes A :: "nat \<Rightarrow> nat \<Rightarrow> int mpoly"
-  assumes box: "\<And>i j. i<k \<Longrightarrow> j<k \<Longrightarrow> roth_poly_in_box m r (A i j)"
+  assumes box: "\<And>i j. i<k \<Longrightarrow> j<k \<Longrightarrow> pjet_poly_in_box m r (A i j)"
     and hb: "\<And>i j. i<k \<Longrightarrow> j<k \<Longrightarrow> roth_int_coeff_sup (A i j) \<le> H"
   shows "abs (MPoly_Type.coeff (det (mat k k (\<lambda>(i,j). A i j))) I) \<le>
-    int (fact k * (card (roth_exponent_box m r) * H)^k)"
+    int (fact k * (card (pjet_exponent_box m r) * H)^k)"
 proof -
-  let ?B = "roth_exponent_box m r"
+  let ?B = "pjet_exponent_box m r"
   let ?Q = "{q. q permutes {..<k}}"
   have fin: "finite ?Q" by (rule finite_permutations) simp
   have cq: "card ?Q = fact k"
@@ -507,29 +507,29 @@ qed
 
 lemma roth_det_coeff_sup_bound:
   fixes A :: "nat \<Rightarrow> nat \<Rightarrow> int mpoly"
-  assumes box: "\<And>i j. i<k \<Longrightarrow> j<k \<Longrightarrow> roth_poly_in_box m r (A i j)"
+  assumes box: "\<And>i j. i<k \<Longrightarrow> j<k \<Longrightarrow> pjet_poly_in_box m r (A i j)"
     and hb: "\<And>i j. i<k \<Longrightarrow> j<k \<Longrightarrow> roth_int_coeff_sup (A i j) \<le> H"
     and hp: "1 \<le> H"
   shows "roth_int_coeff_sup (det (mat k k (\<lambda>(i,j). A i j))) \<le>
-    fact k * (card (roth_exponent_box m r) * H)^k"
+    fact k * (card (pjet_exponent_box m r) * H)^k"
 proof (rule roth_int_coeff_sup_le)
-  show "1 \<le> fact k * (card (roth_exponent_box m r) * H)^k"
+  show "1 \<le> fact k * (card (pjet_exponent_box m r) * H)^k"
     using hp roth_box_card_pos[of m r] by simp
   fix I
   have b: "abs (MPoly_Type.coeff (det (mat k k (\<lambda>(i,j). A i j))) I) \<le>
-    int (fact k * (card (roth_exponent_box m r) * H)^k)"
+    int (fact k * (card (pjet_exponent_box m r) * H)^k)"
     by (rule roth_det_coeff_bound[OF box hb])
   show "nat (abs (MPoly_Type.coeff (det (mat k k (\<lambda>(i,j). A i j))) I)) \<le>
-    fact k * (card (roth_exponent_box m r) * H)^k"
+    fact k * (card (pjet_exponent_box m r) * H)^k"
     using b by (metis nat_int nat_mono)
 qed
 
 lemma roth_hasse_det_coeff_sup:
   fixes Q :: "int mpoly"
-  assumes box: "roth_poly_in_box m r Q"
+  assumes box: "pjet_poly_in_box m r Q"
   shows "roth_int_coeff_sup
-      (det (mat k k (\<lambda>(i,j). roth_hasse (J i j) Q))) \<le>
-    fact k * (card (roth_exponent_box m r) *
+      (det (mat k k (\<lambda>(i,j). pjet_hasse (J i j) Q))) \<le>
+    fact k * (card (pjet_exponent_box m r) *
       (2^(\<Sum>v<m. r v) * roth_int_coeff_sup Q))^k"
   by (rule roth_det_coeff_sup_bound)
     (use box roth_int_coeff_sup_ge_one[of Q] in
@@ -552,22 +552,22 @@ qed
 
 lemma roth_hasse_det_bound_card:
   fixes Q :: "int mpoly"
-  assumes box: "roth_poly_in_box m r Q"
-    and cb: "card (roth_exponent_box m r) \<le> 2^(\<Sum>v<m. r v)"
+  assumes box: "pjet_poly_in_box m r Q"
+    and cb: "card (pjet_exponent_box m r) \<le> 2^(\<Sum>v<m. r v)"
   shows "roth_int_coeff_sup
-    (det (mat k k (\<lambda>(i,j). roth_hasse (J i j) Q))) \<le>
+    (det (mat k k (\<lambda>(i,j). pjet_hasse (J i j) Q))) \<le>
     fact k * (4^(\<Sum>v<m. r v) * roth_int_coeff_sup Q)^k"
 proof -
   have b: "roth_int_coeff_sup
-    (det (mat k k (\<lambda>(i,j). roth_hasse (J i j) Q))) \<le>
-    fact k * (card (roth_exponent_box m r) *
+    (det (mat k k (\<lambda>(i,j). pjet_hasse (J i j) Q))) \<le>
+    fact k * (card (pjet_exponent_box m r) *
       (2^(\<Sum>v<m. r v) * roth_int_coeff_sup Q))^k"
     by (rule roth_hasse_det_coeff_sup[OF box])
-  have s: "card (roth_exponent_box m r) *
+  have s: "card (pjet_exponent_box m r) *
     (2^(\<Sum>v<m. r v) * roth_int_coeff_sup Q) \<le>
     4^(\<Sum>v<m. r v) * roth_int_coeff_sup Q"
     by (rule roth_box_scale_bound[OF cb])
-  have p: "(card (roth_exponent_box m r) *
+  have p: "(card (pjet_exponent_box m r) *
       (2^(\<Sum>v<m. r v) * roth_int_coeff_sup Q))^k \<le>
       (4^(\<Sum>v<m. r v) * roth_int_coeff_sup Q)^k"
     by (rule power_mono[OF s]) auto
@@ -576,28 +576,28 @@ qed
 
 theorem roth_hasse_det_projective_bound_card:
   fixes P :: "rat mpoly"
-  assumes box: "roth_poly_in_box m r P"
+  assumes box: "pjet_poly_in_box m r P"
     and nz: "P \<noteq> 0"
-    and cb: "card (roth_exponent_box m r) \<le>
+    and cb: "card (pjet_exponent_box m r) \<le>
       2^(\<Sum>v<m. r v)"
   shows "roth_proj_height
-    (det (mat k k (\<lambda>(i,j). roth_hasse (J i j) P))) \<le>
+    (det (mat k k (\<lambda>(i,j). pjet_hasse (J i j) P))) \<le>
     fact k * (4^(\<Sum>v<m. r v) * roth_proj_height P)^k"
 proof -
   obtain Q :: "int mpoly" where
     rep: "roth_integral_rep P Q" and
-    qb: "roth_poly_in_box m r Q" and
+    qb: "pjet_poly_in_box m r Q" and
     hp: "roth_proj_height P = roth_int_coeff_sup Q"
     using roth_primitive_rep_exists[OF nz] box nz
     by (auto intro: roth_integral_rep_box
         roth_proj_height_primitive_rep)
   have a: "roth_proj_height
-    (det (mat k k (\<lambda>(i,j). roth_hasse (J i j) P))) \<le>
+    (det (mat k k (\<lambda>(i,j). pjet_hasse (J i j) P))) \<le>
     roth_int_coeff_sup
-    (det (mat k k (\<lambda>(i,j). roth_hasse (J i j) Q)))"
+    (det (mat k k (\<lambda>(i,j). pjet_hasse (J i j) Q)))"
     by (rule roth_proj_height_hasse_det_le[OF rep])
   have b: "roth_int_coeff_sup
-    (det (mat k k (\<lambda>(i,j). roth_hasse (J i j) Q))) \<le>
+    (det (mat k k (\<lambda>(i,j). pjet_hasse (J i j) Q))) \<le>
     fact k * (4^(\<Sum>v<m. r v) * roth_int_coeff_sup Q)^k"
     by (rule roth_hasse_det_bound_card[OF qb cb])
   show ?thesis using a b hp by simp
@@ -605,10 +605,10 @@ qed
 
 theorem roth_hasse_det_projective_bound:
   fixes P :: "rat mpoly"
-  assumes box: "roth_poly_in_box m r P"
+  assumes box: "pjet_poly_in_box m r P"
     and nz: "P \<noteq> 0"
   shows "roth_proj_height
-    (det (mat k k (\<lambda>(i,j). roth_hasse (J i j) P))) \<le>
+    (det (mat k k (\<lambda>(i,j). pjet_hasse (J i j) P))) \<le>
     fact k * (4^(\<Sum>v<m. r v) * roth_proj_height P)^k"
   by (rule roth_hasse_det_projective_bound_card
     [OF box nz roth_exponent_box_card_exp_bound])
@@ -635,15 +635,15 @@ qed
 
 theorem roth_hasse_det_log_bound_card:
   fixes P :: "rat mpoly"
-  assumes box: "roth_poly_in_box m r P"
+  assumes box: "pjet_poly_in_box m r P"
     and nz: "P \<noteq> 0"
-    and cb: "card (roth_exponent_box m r) \<le> 2^(\<Sum>v<m. r v)"
+    and cb: "card (pjet_exponent_box m r) \<le> 2^(\<Sum>v<m. r v)"
   shows "roth_proj_log_height
-    (det (mat k k (\<lambda>(i,j). roth_hasse (J i j) P))) \<le>
+    (det (mat k k (\<lambda>(i,j). pjet_hasse (J i j) P))) \<le>
     ln (real (fact k)) + real k *
       (real (\<Sum>v<m. r v) * ln 4 + roth_proj_log_height P)"
 proof -
-  let ?V = "det (mat k k (\<lambda>(i,j). roth_hasse (J i j) P))"
+  let ?V = "det (mat k k (\<lambda>(i,j). pjet_hasse (J i j) P))"
   have vp: "0 < roth_proj_height ?V"
     using roth_proj_height_ge_one[of ?V] by linarith
   have pp: "0 < roth_proj_height P"
@@ -782,14 +782,14 @@ qed
 
 theorem roth_hasse_det_log_bound_sharp_card:
   fixes P :: "rat mpoly"
-  assumes box: "roth_poly_in_box m r P"
+  assumes box: "pjet_poly_in_box m r P"
     and nz: "P \<noteq> 0"
-    and cb: "card (roth_exponent_box m r) \<le> 2^(\<Sum>v<m. r v)"
+    and cb: "card (pjet_exponent_box m r) \<le> 2^(\<Sum>v<m. r v)"
     and half: "\<And>v. Suc v < m \<Longrightarrow> 2 * r (Suc v) \<le> r v"
     and mp: "0<m"
     and kn: "k \<le> Suc (r (m-1))"
   shows "roth_proj_log_height
-    (det (mat k k (\<lambda>(i,j). roth_hasse (J i j) P))) \<le>
+    (det (mat k k (\<lambda>(i,j). pjet_hasse (J i j) P))) \<le>
     real k * (roth_proj_log_height P + 4 * real (r 0))"
 proof -
   have last: "r (m-1) \<le> r 0"
@@ -799,7 +799,7 @@ proof -
     by (rule roth_fact_bound)
       (use kn last roth_suc_le_pow2 in auto)
   have logbd: "roth_proj_log_height
-    (det (mat k k (\<lambda>(i,j). roth_hasse (J i j) P))) \<le>
+    (det (mat k k (\<lambda>(i,j). pjet_hasse (J i j) P))) \<le>
     ln (real (fact k)) + real k *
       (real (\<Sum>v<m. r v) * ln 4 + roth_proj_log_height P)"
     by (rule roth_hasse_det_log_bound_card[OF box nz cb])
@@ -812,9 +812,9 @@ qed
 
 theorem roth_hasse_det_log_bound:
   fixes P :: "rat mpoly"
-  assumes box: "roth_poly_in_box m r P" and nz: "P \<noteq> 0"
+  assumes box: "pjet_poly_in_box m r P" and nz: "P \<noteq> 0"
   shows "roth_proj_log_height
-    (det (mat k k (\<lambda>(i,j). roth_hasse (J i j) P))) \<le>
+    (det (mat k k (\<lambda>(i,j). pjet_hasse (J i j) P))) \<le>
     ln (real (fact k)) + real k *
       (real (\<Sum>v<m. r v) * ln 4 + roth_proj_log_height P)"
   by (rule roth_hasse_det_log_bound_card
@@ -822,13 +822,13 @@ theorem roth_hasse_det_log_bound:
 
 theorem roth_hasse_det_log_bound_sharp:
   fixes P :: "rat mpoly"
-  assumes box: "roth_poly_in_box m r P"
+  assumes box: "pjet_poly_in_box m r P"
     and nz: "P \<noteq> 0"
     and half: "\<And>v. Suc v < m \<Longrightarrow> 2 * r (Suc v) \<le> r v"
     and mp: "0<m"
     and kn: "k \<le> Suc (r (m-1))"
   shows "roth_proj_log_height
-    (det (mat k k (\<lambda>(i,j). roth_hasse (J i j) P))) \<le>
+    (det (mat k k (\<lambda>(i,j). pjet_hasse (J i j) P))) \<le>
     real k * (roth_proj_log_height P + 4 * real (r 0))"
   by (rule roth_hasse_det_log_bound_sharp_card
     [OF box nz roth_exponent_box_card_exp_bound half mp kn])

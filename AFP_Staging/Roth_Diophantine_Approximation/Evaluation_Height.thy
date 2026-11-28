@@ -33,7 +33,7 @@ qed
 
 lemma roth_clear_monom_evaluation:
   fixes p q :: "nat \<Rightarrow> int" and c :: int
-  assumes box: "I \<in> roth_exponent_box m r"
+  assumes box: "I \<in> pjet_exponent_box m r"
     and qpos: "\<And>v. v < m \<Longrightarrow> 0 < q v"
   shows "(\<Prod>v<m. (of_int (q v)::rat) ^ r v) *
     insertion (\<lambda>v. of_int (p v) / of_int (q v)) (MPoly_Type.monom I (of_int c)) =
@@ -41,7 +41,7 @@ lemma roth_clear_monom_evaluation:
       q v ^ (r v - Poly_Mapping.lookup I v)))"
 proof -
   have keys: "Poly_Mapping.keys I \<subseteq> {..<m}"
-    by (rule roth_exponent_boxD(1)[OF box])
+    by (rule pjet_exponent_boxD(1)[OF box])
   have ipow: "(\<Prod>v\<in>Poly_Mapping.keys I.
       (of_int (p v) / of_int (q v)::rat) ^ Poly_Mapping.lookup I v) =
     (\<Prod>v<m. (of_int (p v) / of_int (q v)::rat) ^ Poly_Mapping.lookup I v)"
@@ -50,7 +50,7 @@ proof -
       (of_int (p v) / of_int (q v)) ^ Poly_Mapping.lookup I v =
       of_int (p v ^ Poly_Mapping.lookup I v *
         q v ^ (r v - Poly_Mapping.lookup I v))" if "v < m" for v
-    by (rule roth_clear_power) (use qpos[OF that] roth_exponent_boxD(2)[OF box that] in auto)
+    by (rule roth_clear_power) (use qpos[OF that] pjet_exponent_boxD(2)[OF box that] in auto)
   have distrib: "(\<Prod>v<m. (of_int (q v)::rat)^r v) *
       (\<Prod>v<m. (of_int (p v) / of_int (q v)::rat) ^ Poly_Mapping.lookup I v) =
       (\<Prod>v<m. (of_int (q v)::rat)^r v *
@@ -66,7 +66,7 @@ proof -
         (MPoly_Type.monom I (of_int c)) =
       of_int c * ((\<Prod>v<m. (of_int (q v)::rat)^r v) *
         (\<Prod>v<m. (of_int (p v) / of_int (q v)::rat) ^ Poly_Mapping.lookup I v))"
-    by (simp add: roth_insertion_monom ipow mult.commute mult.left_commute)
+    by (simp add: pjet_insertion_monom ipow mult.commute mult.left_commute)
   show ?thesis using eq distrib prod by simp
 qed
 
@@ -81,12 +81,12 @@ lemma roth_int_cast_expansion:
   shows "replace_coeff (of_int::int \<Rightarrow> rat) P =
     (\<Sum>I\<in>Poly_Mapping.keys (mapping_of P).
       MPoly_Type.monom I (of_int (MPoly_Type.coeff P I)))"
-  by (subst roth_sum_monom[of "replace_coeff (of_int::int \<Rightarrow> rat) P"])
+  by (subst pjet_sum_monom[of "replace_coeff (of_int::int \<Rightarrow> rat) P"])
     (simp add: roth_int_cast_keys coeff_replace_coeff)
 
 lemma roth_clear_polynomial_evaluation:
   fixes p q :: "nat \<Rightarrow> int" and P :: "int mpoly"
-  assumes box: "roth_poly_in_box m r P"
+  assumes box: "pjet_poly_in_box m r P"
     and qpos: "\<And>v. v < m \<Longrightarrow> 0 < q v"
   shows "\<exists>z::int. (\<Prod>v<m. (of_int (q v)::rat) ^ r v) *
     insertion (\<lambda>v. of_int (p v) / of_int (q v))
@@ -99,12 +99,12 @@ proof -
   let ?N = "\<Sum>I\<in>?S. MPoly_Type.coeff P I *
     (\<Prod>v<m. p v ^ Poly_Mapping.lookup I v *
       q v ^ (r v - Poly_Mapping.lookup I v))"
-  have mem: "I \<in> roth_exponent_box m r" if "I \<in> ?S" for I
-    using box that by (auto simp: roth_poly_in_box_def)
+  have mem: "I \<in> pjet_exponent_box m r" if "I \<in> ?S" for I
+    using box that by (auto simp: pjet_poly_in_box_def)
   have eval: "insertion ?\<beta> ?R =
     (\<Sum>I\<in>?S. insertion ?\<beta>
       (MPoly_Type.monom I (of_int (MPoly_Type.coeff P I))))"
-    by (simp add: roth_int_cast_expansion roth_insertion_sum)
+    by (simp add: roth_int_cast_expansion pjet_insertion_sum)
   have each: "?D * insertion ?\<beta>
       (MPoly_Type.monom I (of_int (MPoly_Type.coeff P I))) =
       of_int (MPoly_Type.coeff P I *
@@ -123,7 +123,7 @@ qed
 
 theorem roth_rational_evaluation_lower:
   fixes p q :: "nat \<Rightarrow> int" and P :: "int mpoly"
-  assumes box: "roth_poly_in_box m r P"
+  assumes box: "pjet_poly_in_box m r P"
     and qpos: "\<And>v. v < m \<Longrightarrow> 0 < q v"
     and nz: "insertion (\<lambda>v. of_int (p v) / of_int (q v))
       (replace_coeff of_int P) \<noteq> (0::rat)"
@@ -155,7 +155,7 @@ section \<open>The evaluation bound in terms of rational heights\<close>
 
 theorem roth_rational_evaluation_lower_quotient:
   fixes \<beta> :: "nat \<Rightarrow> rat" and P :: "int mpoly"
-  assumes box: "roth_poly_in_box m r P"
+  assumes box: "pjet_poly_in_box m r P"
     and nz: "insertion \<beta> (replace_coeff of_int P) \<noteq> (0::rat)"
   shows "1 / (\<Prod>v<m. (of_int (snd (quotient_of (\<beta> v)))::rat) ^ r v) \<le>
     \<bar>insertion \<beta> (replace_coeff of_int P)\<bar>"
@@ -188,7 +188,7 @@ lemma roth_quotient_denom_le_height:
 
 theorem roth_rational_evaluation_lower_height:
   fixes \<beta> :: "nat \<Rightarrow> rat" and P :: "int mpoly"
-  assumes box: "roth_poly_in_box m r P"
+  assumes box: "pjet_poly_in_box m r P"
     and nz: "insertion \<beta> (replace_coeff of_int P) \<noteq> (0::rat)"
   shows "1 / (\<Prod>v<m. (of_nat (roth_rat_height (\<beta> v))::rat) ^ r v) \<le>
     \<bar>insertion \<beta> (replace_coeff of_int P)\<bar>"
@@ -218,7 +218,7 @@ qed
 
 theorem roth_rational_evaluation_lower_height_real:
   fixes \<beta> :: "nat \<Rightarrow> rat" and P :: "int mpoly"
-  assumes box: "roth_poly_in_box m r P"
+  assumes box: "pjet_poly_in_box m r P"
     and nz: "insertion \<beta> (replace_coeff of_int P) \<noteq> (0::rat)"
   shows "1 / (\<Prod>v<m. real (roth_rat_height (\<beta> v)) ^ r v) \<le>
     \<bar>of_rat (insertion \<beta> (replace_coeff of_int P))::real\<bar>"
@@ -250,58 +250,58 @@ lemma roth_insertion_Var_diff:
   shows "insertion b (Var v - Const (a v)) = b v - a v"
 proof -
   have eq: "Var v - Const (a v) = Var v + Const (-a v)"
-    by (simp only: diff_conv_add_uminus roth_Const_uminus[symmetric])
+    by (simp only: diff_conv_add_uminus pjet_Const_uminus[symmetric])
   show ?thesis
-    by (simp only: eq insertion_add roth_insertion_Var roth_insertion_Const)
+    by (simp only: eq insertion_add pjet_insertion_Var pjet_insertion_Const)
       simp
 qed
 
 lemma roth_taylor_evaluation:
   fixes P :: "'a::comm_ring_1 mpoly"
   shows "insertion b P =
-    (\<Sum>I\<in>Poly_Mapping.keys (mapping_of (roth_translate a P)).
-      insertion a (roth_hasse I P) *
+    (\<Sum>I\<in>Poly_Mapping.keys (mapping_of (pjet_translate a P)).
+      insertion a (pjet_hasse I P) *
         (\<Prod>v\<in>Poly_Mapping.keys I.
           (b v - a v) ^ Poly_Mapping.lookup I v))"
 proof -
-  let ?S = "Poly_Mapping.keys (mapping_of (roth_translate a P))"
-  let ?T = "\<lambda>I. Const (insertion a (roth_hasse I P)) *
+  let ?S = "Poly_Mapping.keys (mapping_of (pjet_translate a P))"
+  let ?T = "\<lambda>I. Const (insertion a (pjet_hasse I P)) *
       (\<Prod>v\<in>Poly_Mapping.keys I.
         (Var v - Const (a v)) ^ Poly_Mapping.lookup I v)"
   have fin: "finite ?S" by simp
   have expansion: "P = (\<Sum>I\<in>?S. ?T I)"
-    by (simp add: roth_taylor_identity_explicit roth_hasse_eval)
+    by (simp add: pjet_taylor_identity_explicit pjet_hasse_eval)
   have eval: "insertion b P = (\<Sum>I\<in>?S. insertion b (?T I))"
-    by (subst expansion) (rule roth_insertion_sum_any[OF fin])
-  have each: "insertion b (?T I) = insertion a (roth_hasse I P) *
+    by (subst expansion) (rule pjet_insertion_sum_any[OF fin])
+  have each: "insertion b (?T I) = insertion a (pjet_hasse I P) *
     (\<Prod>v\<in>Poly_Mapping.keys I.
       (b v - a v) ^ Poly_Mapping.lookup I v)" for I
-    by (simp add: insertion_mult roth_insertion_prod_any
-      roth_insertion_power_any roth_insertion_Var_diff)
+    by (simp add: insertion_mult pjet_insertion_prod_any
+      pjet_insertion_power_any roth_insertion_Var_diff)
   show ?thesis using eval by (simp add: each)
 qed
 
 lemma roth_taylor_evaluation_abs:
   fixes P :: "real mpoly"
   shows "\<bar>insertion b P\<bar> \<le>
-    (\<Sum>I\<in>Poly_Mapping.keys (mapping_of (roth_translate a P)).
-      \<bar>insertion a (roth_hasse I P)\<bar> *
+    (\<Sum>I\<in>Poly_Mapping.keys (mapping_of (pjet_translate a P)).
+      \<bar>insertion a (pjet_hasse I P)\<bar> *
         (\<Prod>v\<in>Poly_Mapping.keys I.
           \<bar>b v - a v\<bar> ^ Poly_Mapping.lookup I v))"
 proof -
-  let ?S = "Poly_Mapping.keys (mapping_of (roth_translate a P))"
+  let ?S = "Poly_Mapping.keys (mapping_of (pjet_translate a P))"
   have "\<bar>insertion b P\<bar> =
-    \<bar>\<Sum>I\<in>?S. insertion a (roth_hasse I P) *
+    \<bar>\<Sum>I\<in>?S. insertion a (pjet_hasse I P) *
       (\<Prod>v\<in>Poly_Mapping.keys I.
         (b v - a v) ^ Poly_Mapping.lookup I v)\<bar>"
     by (rule arg_cong[where f=abs]) (rule roth_taylor_evaluation)
   also have "... \<le> (\<Sum>I\<in>?S.
-      \<bar>insertion a (roth_hasse I P) *
+      \<bar>insertion a (pjet_hasse I P) *
         (\<Prod>v\<in>Poly_Mapping.keys I.
           (b v - a v) ^ Poly_Mapping.lookup I v)\<bar>)"
     by (rule sum_abs)
   also have "... = (\<Sum>I\<in>?S.
-      \<bar>insertion a (roth_hasse I P)\<bar> *
+      \<bar>insertion a (pjet_hasse I P)\<bar> *
         (\<Prod>v\<in>Poly_Mapping.keys I.
           \<bar>b v - a v\<bar> ^ Poly_Mapping.lookup I v))"
     by (simp add: abs_mult abs_prod power_abs)
@@ -314,11 +314,11 @@ section \<open>Bounds from balanced approximation heights\<close>
 lemma roth_taylor_support_weight:
   fixes P :: "'a::comm_ring_1 mpoly"
   assumes lower: "ereal \<theta> \<le> roth_index m r a P"
-    and mem: "I \<in> Poly_Mapping.keys (mapping_of (roth_translate a P))"
+    and mem: "I \<in> Poly_Mapping.keys (mapping_of (pjet_translate a P))"
   shows "\<theta> \<le> roth_weight m r I"
 proof -
-  have coeff: "roth_taylor_coeff a I P \<noteq> 0"
-    using mem by (simp add: roth_taylor_coeff_key)
+  have coeff: "pjet_taylor_coeff a I P \<noteq> 0"
+    using mem by (simp add: pjet_taylor_coeff_key)
   have upper: "roth_index m r a P \<le> ereal (roth_weight m r I)"
     by (rule roth_index_le_coeff[OF coeff])
   have "ereal \<theta> \<le> ereal (roth_weight m r I)"
@@ -330,13 +330,13 @@ lemma roth_taylor_uniform_bound:
   fixes P :: "real mpoly" and u :: "nat \<Rightarrow> real"
   assumes B: "0 \<le> B"
     and near: "\<And>v. \<bar>b v - a v\<bar> \<le> u v"
-    and coeff: "\<And>I. I \<in> Poly_Mapping.keys (mapping_of (roth_translate a P))
-      \<Longrightarrow> \<bar>insertion a (roth_hasse I P)\<bar> \<le> B"
+    and coeff: "\<And>I. I \<in> Poly_Mapping.keys (mapping_of (pjet_translate a P))
+      \<Longrightarrow> \<bar>insertion a (pjet_hasse I P)\<bar> \<le> B"
   shows "\<bar>insertion b P\<bar> \<le> B *
-    (\<Sum>I\<in>Poly_Mapping.keys (mapping_of (roth_translate a P)).
+    (\<Sum>I\<in>Poly_Mapping.keys (mapping_of (pjet_translate a P)).
       (\<Prod>v\<in>Poly_Mapping.keys I. u v ^ Poly_Mapping.lookup I v))"
 proof -
-  let ?S = "Poly_Mapping.keys (mapping_of (roth_translate a P))"
+  let ?S = "Poly_Mapping.keys (mapping_of (pjet_translate a P))"
   have pow_bound: "\<bar>b v - a v\<bar> ^ n \<le> u v ^ n" for v n
     by (rule power_mono) (use near in auto)
   have prod_bound: "(\<Prod>v\<in>Poly_Mapping.keys I.
@@ -344,7 +344,7 @@ proof -
       (\<Prod>v\<in>Poly_Mapping.keys I.
         u v ^ Poly_Mapping.lookup I v)" for I
     by (intro prod_mono) (use pow_bound in auto)
-  have termbound: "\<bar>insertion a (roth_hasse I P)\<bar> *
+  have termbound: "\<bar>insertion a (pjet_hasse I P)\<bar> *
       (\<Prod>v\<in>Poly_Mapping.keys I.
         \<bar>b v - a v\<bar> ^ Poly_Mapping.lookup I v) \<le>
       B * (\<Prod>v\<in>Poly_Mapping.keys I.
@@ -352,7 +352,7 @@ proof -
     by (intro mult_mono coeff[OF that] prod_bound prod_nonneg)
       (use B near in auto)
   have "\<bar>insertion b P\<bar> \<le>
-    (\<Sum>I\<in>?S. \<bar>insertion a (roth_hasse I P)\<bar> *
+    (\<Sum>I\<in>?S. \<bar>insertion a (pjet_hasse I P)\<bar> *
       (\<Prod>v\<in>Poly_Mapping.keys I.
         \<bar>b v - a v\<bar> ^ Poly_Mapping.lookup I v))"
     by (rule roth_taylor_evaluation_abs)
@@ -485,20 +485,20 @@ qed
 theorem roth_taylor_exponential_bound:
   fixes P :: "real mpoly" and h :: "nat \<Rightarrow> real"
   assumes B: "0 \<le> B"
-    and keys: "\<And>I. I \<in> Poly_Mapping.keys (mapping_of (roth_translate a P))
+    and keys: "\<And>I. I \<in> Poly_Mapping.keys (mapping_of (pjet_translate a P))
       \<Longrightarrow> Poly_Mapping.keys I \<subseteq> {..<m}"
     and rpos: "\<And>v. v < m \<Longrightarrow> 0 < r v"
     and balance: "\<And>v. v < m \<Longrightarrow> L \<le> real (r v) * h v"
     and kpos: "0 \<le> \<kappa>" and Lpos: "0 \<le> L"
     and index: "ereal \<theta> \<le> roth_index m r a P"
     and near: "\<And>v. \<bar>b v - a v\<bar> \<le> exp (-\<kappa> * h v)"
-    and coeff: "\<And>I. I \<in> Poly_Mapping.keys (mapping_of (roth_translate a P))
-      \<Longrightarrow> \<bar>insertion a (roth_hasse I P)\<bar> \<le> B"
+    and coeff: "\<And>I. I \<in> Poly_Mapping.keys (mapping_of (pjet_translate a P))
+      \<Longrightarrow> \<bar>insertion a (pjet_hasse I P)\<bar> \<le> B"
   shows "\<bar>insertion b P\<bar> \<le>
-    B * real (card (Poly_Mapping.keys (mapping_of (roth_translate a P)))) *
+    B * real (card (Poly_Mapping.keys (mapping_of (pjet_translate a P)))) *
       exp (-\<kappa> * L * \<theta>)"
 proof -
-  let ?S = "Poly_Mapping.keys (mapping_of (roth_translate a P))"
+  let ?S = "Poly_Mapping.keys (mapping_of (pjet_translate a P))"
   let ?u = "\<lambda>v. exp (-\<kappa> * h v)"
   let ?E = "exp (-\<kappa> * L * \<theta>)"
   have one: "\<bar>insertion b P\<bar> \<le>
@@ -538,25 +538,25 @@ qed
 
 lemma roth_taylor_support_keys_box:
   fixes P :: "real mpoly"
-  assumes box: "roth_poly_in_box m r P"
-    and mem: "I \<in> Poly_Mapping.keys (mapping_of (roth_translate a P))"
+  assumes box: "pjet_poly_in_box m r P"
+    and mem: "I \<in> Poly_Mapping.keys (mapping_of (pjet_translate a P))"
   shows "Poly_Mapping.keys I \<subseteq> {..<m}"
 proof -
-  have tc: "roth_taylor_coeff a I P \<noteq> 0"
-    using mem by (simp add: roth_taylor_coeff_key)
-  have ev: "insertion a (roth_hasse I P) \<noteq> 0"
-    using tc by (simp add: roth_hasse_eval)
-  have "roth_hasse I P \<noteq> 0"
+  have tc: "pjet_taylor_coeff a I P \<noteq> 0"
+    using mem by (simp add: pjet_taylor_coeff_key)
+  have ev: "insertion a (pjet_hasse I P) \<noteq> 0"
+    using tc by (simp add: pjet_hasse_eval)
+  have "pjet_hasse I P \<noteq> 0"
     using ev by auto
-  then obtain K where ck: "MPoly_Type.coeff (roth_hasse I P) K \<noteq> 0"
+  then obtain K where ck: "MPoly_Type.coeff (pjet_hasse I P) K \<noteq> 0"
     by (metis coeff_all_0)
   have cp: "MPoly_Type.coeff P (K + I) \<noteq> 0"
     by (rule roth_hasse_coeff_support[OF ck])
-  have ki: "K + I \<in> roth_exponent_box m r"
-    using box cp by (auto simp: roth_poly_in_box_def
+  have ki: "K + I \<in> pjet_exponent_box m r"
+    using box cp by (auto simp: pjet_poly_in_box_def
       MPoly_Type.coeff_def in_keys_iff)
   have kis: "Poly_Mapping.keys (K + I) \<subseteq> {..<m}"
-    by (rule roth_exponent_boxD(1)[OF ki])
+    by (rule pjet_exponent_boxD(1)[OF ki])
   show ?thesis
   proof
     fix v
@@ -573,22 +573,22 @@ qed
 
 corollary roth_taylor_exponential_bound_box:
   fixes P :: "real mpoly" and h :: "nat \<Rightarrow> real"
-  assumes box: "roth_poly_in_box m r P"
+  assumes box: "pjet_poly_in_box m r P"
     and B: "0 \<le> B"
     and rpos: "\<And>v. v < m \<Longrightarrow> 0 < r v"
     and balance: "\<And>v. v < m \<Longrightarrow> L \<le> real (r v) * h v"
     and kpos: "0 \<le> \<kappa>" and Lpos: "0 \<le> L"
     and index: "ereal \<theta> \<le> roth_index m r a P"
     and near: "\<And>v. \<bar>b v - a v\<bar> \<le> exp (-\<kappa> * h v)"
-    and coeff: "\<And>I. I \<in> Poly_Mapping.keys (mapping_of (roth_translate a P))
-      \<Longrightarrow> \<bar>insertion a (roth_hasse I P)\<bar> \<le> B"
+    and coeff: "\<And>I. I \<in> Poly_Mapping.keys (mapping_of (pjet_translate a P))
+      \<Longrightarrow> \<bar>insertion a (pjet_hasse I P)\<bar> \<le> B"
   shows "\<bar>insertion b P\<bar> \<le>
-    B * real (card (Poly_Mapping.keys (mapping_of (roth_translate a P)))) *
+    B * real (card (Poly_Mapping.keys (mapping_of (pjet_translate a P)))) *
       exp (-\<kappa> * L * \<theta>)"
 proof (rule roth_taylor_exponential_bound[OF B _ rpos balance kpos
     Lpos index near coeff])
   fix I
-  assume "I \<in> Poly_Mapping.keys (mapping_of (roth_translate a P))"
+  assume "I \<in> Poly_Mapping.keys (mapping_of (pjet_translate a P))"
   then show "Poly_Mapping.keys I \<subseteq> {..<m}"
     by (rule roth_taylor_support_keys_box[OF box])
 qed
@@ -600,7 +600,7 @@ lemma roth_insertion_of_rat:
 proof (induction P rule: mpoly_induct)
   case (monom I c)
   then show ?case
-    by (simp add: replace_coeff_monom roth_insertion_monom_any
+    by (simp add: replace_coeff_monom pjet_insertion_monom_any
       of_rat_mult of_rat_prod of_rat_power)
 next
   case (sum P Q I c)
@@ -612,7 +612,7 @@ lemma roth_integer_polynomial_cast:
   fixes P :: "int mpoly"
   shows "replace_coeff of_rat (replace_coeff (of_int::int \<Rightarrow> rat) P) =
     (replace_coeff (of_int::int \<Rightarrow> real) P)"
-  by (simp add: roth_replace_coeff_comp o_def)
+  by (simp add: pjet_replace_coeff_comp o_def)
 
 lemma roth_integer_evaluation_cast:
   fixes P :: "int mpoly" and \<beta> :: "nat \<Rightarrow> rat"
@@ -622,7 +622,7 @@ lemma roth_integer_evaluation_cast:
 
 theorem roth_rational_evaluation_lower_exp:
   fixes \<beta> :: "nat \<Rightarrow> rat" and P :: "int mpoly"
-  assumes box: "roth_poly_in_box m r P"
+  assumes box: "pjet_poly_in_box m r P"
     and nz: "insertion \<beta> (replace_coeff of_int P) \<noteq> (0::rat)"
   shows "exp (- (\<Sum>v<m. real (r v) * roth_rat_log_height (\<beta> v))) \<le>
     \<bar>insertion (\<lambda>v. of_rat (\<beta> v))
@@ -643,14 +643,14 @@ lemma roth_int_cast_keys_real:
 
 lemma roth_int_cast_box_real:
   fixes P :: "int mpoly"
-  assumes "roth_poly_in_box m r P"
-  shows "roth_poly_in_box m r (replace_coeff (of_int::int \<Rightarrow> real) P)"
-  using assms by (simp add: roth_poly_in_box_def roth_int_cast_keys_real)
+  assumes "pjet_poly_in_box m r P"
+  shows "pjet_poly_in_box m r (replace_coeff (of_int::int \<Rightarrow> real) P)"
+  using assms by (simp add: pjet_poly_in_box_def roth_int_cast_keys_real)
 
 theorem roth_evaluation_sandwich:
   fixes P :: "int mpoly" and \<beta> :: "nat \<Rightarrow> rat"
     and a h :: "nat \<Rightarrow> real"
-  assumes box: "roth_poly_in_box m r P"
+  assumes box: "pjet_poly_in_box m r P"
     and nz: "insertion \<beta> (replace_coeff of_int P) \<noteq> (0::rat)"
     and B: "0 \<le> B"
     and rpos: "\<And>v. v < m \<Longrightarrow> 0 < r v"
@@ -660,11 +660,11 @@ theorem roth_evaluation_sandwich:
       (replace_coeff (of_int::int \<Rightarrow> real) P)"
     and near: "\<And>v. \<bar>of_rat (\<beta> v) - a v\<bar> \<le> exp (-\<kappa> * h v)"
     and coeff: "\<And>I. I \<in> Poly_Mapping.keys
-        (mapping_of (roth_translate a (replace_coeff (of_int::int \<Rightarrow> real) P)))
-      \<Longrightarrow> \<bar>insertion a (roth_hasse I (replace_coeff (of_int::int \<Rightarrow> real) P))\<bar> \<le> B"
+        (mapping_of (pjet_translate a (replace_coeff (of_int::int \<Rightarrow> real) P)))
+      \<Longrightarrow> \<bar>insertion a (pjet_hasse I (replace_coeff (of_int::int \<Rightarrow> real) P))\<bar> \<le> B"
   shows "exp (- (\<Sum>v<m. real (r v) * roth_rat_log_height (\<beta> v))) \<le>
     B * real (card (Poly_Mapping.keys
-      (mapping_of (roth_translate a (replace_coeff (of_int::int \<Rightarrow> real) P))))) *
+      (mapping_of (pjet_translate a (replace_coeff (of_int::int \<Rightarrow> real) P))))) *
       exp (-\<kappa> * L * \<theta>)"
 proof -
   let ?R = "replace_coeff (of_int::int \<Rightarrow> real) P"
@@ -673,7 +673,7 @@ proof -
       \<bar>insertion ?b ?R\<bar>"
     by (rule roth_rational_evaluation_lower_exp[OF box nz])
   have upper: "\<bar>insertion ?b ?R\<bar> \<le>
-      B * real (card (Poly_Mapping.keys (mapping_of (roth_translate a ?R)))) *
+      B * real (card (Poly_Mapping.keys (mapping_of (pjet_translate a ?R)))) *
         exp (-\<kappa> * L * \<theta>)"
     by (rule roth_taylor_exponential_bound_box)
       (use box B rpos balance kpos Lpos index near coeff
@@ -683,19 +683,19 @@ qed
 
 lemma roth_real_monom_eval_bound:
   fixes a :: "nat \<Rightarrow> real" and c :: int
-  assumes box: "I \<in> roth_exponent_box m r"
+  assumes box: "I \<in> pjet_exponent_box m r"
   shows "\<bar>insertion a (MPoly_Type.monom I (of_int c))\<bar> \<le>
     real (nat (\<bar>c\<bar>)) *
       (\<Prod>v<m. max 1 (\<bar>a v\<bar>) ^ r v)"
 proof -
   let ?A = "\<lambda>v. max 1 (\<bar>a v\<bar>)"
   have keys: "Poly_Mapping.keys I \<subseteq> {..<m}"
-    by (rule roth_exponent_boxD(1)[OF box])
+    by (rule pjet_exponent_boxD(1)[OF box])
   have point: "\<bar>a v\<bar> ^ Poly_Mapping.lookup I v \<le>
       ?A v ^ r v" if "v \<in> Poly_Mapping.keys I" for v
   proof -
     have vr: "Poly_Mapping.lookup I v \<le> r v"
-      by (rule roth_exponent_boxD(2)[OF box]) (use keys that in auto)
+      by (rule pjet_exponent_boxD(2)[OF box]) (use keys that in auto)
     have "\<bar>a v\<bar> ^ Poly_Mapping.lookup I v \<le>
       ?A v ^ Poly_Mapping.lookup I v"
       by (intro power_mono) simp_all
@@ -712,7 +712,7 @@ proof -
   have eval: "\<bar>insertion a (MPoly_Type.monom I (of_int c))\<bar> =
       real (nat (\<bar>c\<bar>)) *
         (\<Prod>v\<in>Poly_Mapping.keys I. \<bar>a v\<bar> ^ Poly_Mapping.lookup I v)"
-    by (simp add: roth_insertion_monom_any abs_mult abs_prod power_abs)
+    by (simp add: pjet_insertion_monom_any abs_mult abs_prod power_abs)
   show ?thesis using first second eval by (simp add: mult_left_mono)
 qed
 
@@ -721,12 +721,12 @@ lemma roth_int_real_cast_expansion:
   shows "replace_coeff (of_int::int \<Rightarrow> real) P =
     (\<Sum>I\<in>Poly_Mapping.keys (mapping_of P).
       MPoly_Type.monom I (of_int (MPoly_Type.coeff P I)))"
-  by (subst roth_sum_monom[of "replace_coeff (of_int::int \<Rightarrow> real) P"])
+  by (subst pjet_sum_monom[of "replace_coeff (of_int::int \<Rightarrow> real) P"])
     (simp add: roth_int_cast_keys_real coeff_replace_coeff)
 
 theorem roth_real_poly_eval_bound:
   fixes a :: "nat \<Rightarrow> real" and P :: "int mpoly"
-  assumes box: "roth_poly_in_box m r P"
+  assumes box: "pjet_poly_in_box m r P"
   shows "\<bar>insertion a (replace_coeff (of_int::int \<Rightarrow> real) P)\<bar> \<le>
     real (card (Poly_Mapping.keys (mapping_of P))) *
       real (roth_int_coeff_sup P) *
@@ -735,8 +735,8 @@ proof -
   let ?S = "Poly_Mapping.keys (mapping_of P)"
   let ?E = "(\<Prod>v<m. max 1 (\<bar>a v\<bar>) ^ r v)"
   let ?H = "real (roth_int_coeff_sup P)"
-  have support: "I \<in> roth_exponent_box m r" if "I \<in> ?S" for I
-    using box that by (auto simp: roth_poly_in_box_def)
+  have support: "I \<in> pjet_exponent_box m r" if "I \<in> ?S" for I
+    using box that by (auto simp: pjet_poly_in_box_def)
   have coeff: "real (nat (\<bar>MPoly_Type.coeff P I\<bar>)) \<le> ?H" for I
     using roth_int_coeff_sup_coeff[of P I] by simp
   have Epos: "0 \<le> ?E" by (intro prod_nonneg) simp
@@ -755,7 +755,7 @@ proof -
   have eval: "insertion a (replace_coeff (of_int::int \<Rightarrow> real) P) =
       (\<Sum>I\<in>?S. insertion a
         (MPoly_Type.monom I (of_int (MPoly_Type.coeff P I))))"
-    by (simp add: roth_int_real_cast_expansion roth_insertion_sum_any)
+    by (simp add: roth_int_real_cast_expansion pjet_insertion_sum_any)
   have "\<bar>insertion a (replace_coeff (of_int::int \<Rightarrow> real) P)\<bar> \<le>
       (\<Sum>I\<in>?S. \<bar>insertion a
         (MPoly_Type.monom I (of_int (MPoly_Type.coeff P I)))\<bar>)"
@@ -769,32 +769,32 @@ qed
 
 lemma roth_hasse_cast_real:
   fixes P :: "int mpoly"
-  shows "replace_coeff of_int (roth_hasse J P) =
-    (roth_hasse J (replace_coeff of_int P) :: real mpoly)"
+  shows "replace_coeff of_int (pjet_hasse J P) =
+    (pjet_hasse J (replace_coeff of_int P) :: real mpoly)"
   by (simp add: coeff_eq[symmetric] fun_eq_iff
-    roth_hasse_coeff_exact coeff_replace_coeff)
+    pjet_hasse_coeff_exact coeff_replace_coeff)
 
 theorem roth_hasse_real_eval_bound:
   fixes a :: "nat \<Rightarrow> real" and P :: "int mpoly"
-  assumes box: "roth_poly_in_box m r P"
-  shows "\<bar>insertion a (roth_hasse J (replace_coeff (of_int::int \<Rightarrow> real) P))\<bar> \<le>
-    real (card (roth_exponent_box m r)) *
+  assumes box: "pjet_poly_in_box m r P"
+  shows "\<bar>insertion a (pjet_hasse J (replace_coeff (of_int::int \<Rightarrow> real) P))\<bar> \<le>
+    real (card (pjet_exponent_box m r)) *
       real (2 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup P) *
       (\<Prod>v<m. max 1 (\<bar>a v\<bar>) ^ r v)"
 proof -
-  let ?Q = "roth_hasse J P"
+  let ?Q = "pjet_hasse J P"
   let ?E = "(\<Prod>v<m. max 1 (\<bar>a v\<bar>) ^ r v)"
-  have qb: "roth_poly_in_box m r ?Q"
+  have qb: "pjet_poly_in_box m r ?Q"
     by (rule roth_hasse_box_int[OF box])
-  have eval: "\<bar>insertion a (roth_hasse J (replace_coeff of_int P))\<bar> \<le>
+  have eval: "\<bar>insertion a (pjet_hasse J (replace_coeff of_int P))\<bar> \<le>
       real (card (Poly_Mapping.keys (mapping_of ?Q))) *
         real (roth_int_coeff_sup ?Q) * ?E"
     by (simp only: roth_hasse_cast_real[symmetric])
       (rule roth_real_poly_eval_bound[OF qb])
-  have sub: "Poly_Mapping.keys (mapping_of ?Q) \<subseteq> roth_exponent_box m r"
-    using qb by (simp add: roth_poly_in_box_def)
-  have cards: "card (Poly_Mapping.keys (mapping_of ?Q)) \<le> card (roth_exponent_box m r)"
-    by (rule card_mono[OF finite_roth_exponent_box sub])
+  have sub: "Poly_Mapping.keys (mapping_of ?Q) \<subseteq> pjet_exponent_box m r"
+    using qb by (simp add: pjet_poly_in_box_def)
+  have cards: "card (Poly_Mapping.keys (mapping_of ?Q)) \<le> card (pjet_exponent_box m r)"
+    by (rule card_mono[OF finite_pjet_exponent_box sub])
   have hs: "roth_int_coeff_sup ?Q \<le> 2 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup P"
     by (rule roth_hasse_coeff_sup[OF box])
   have Epos: "0 \<le> ?E" by (intro prod_nonneg) simp
@@ -803,12 +803,12 @@ proof -
     using hs by (metis of_nat_le_iff)
   have prod: "real (card (Poly_Mapping.keys (mapping_of ?Q))) *
       real (roth_int_coeff_sup ?Q) \<le>
-    real (card (roth_exponent_box m r)) *
+    real (card (pjet_exponent_box m r)) *
       real (2 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup P)"
     using cards by (intro mult_mono hh) simp_all
   have "real (card (Poly_Mapping.keys (mapping_of ?Q))) *
       real (roth_int_coeff_sup ?Q) * ?E \<le>
-    real (card (roth_exponent_box m r)) *
+    real (card (pjet_exponent_box m r)) *
       real (2 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup P) * ?E"
     by (rule mult_right_mono[OF prod Epos])
   then show ?thesis using eval by linarith
@@ -817,7 +817,7 @@ qed
 theorem roth_evaluation_sandwich_height:
   fixes P :: "int mpoly" and \<beta> :: "nat \<Rightarrow> rat"
     and a h :: "nat \<Rightarrow> real"
-  assumes box: "roth_poly_in_box m r P"
+  assumes box: "pjet_poly_in_box m r P"
     and nz: "insertion \<beta> (replace_coeff of_int P) \<noteq> (0::rat)"
     and rpos: "\<And>v. v < m \<Longrightarrow> 0 < r v"
     and balance: "\<And>v. v < m \<Longrightarrow> L \<le> real (r v) * h v"
@@ -826,19 +826,19 @@ theorem roth_evaluation_sandwich_height:
       (replace_coeff (of_int::int \<Rightarrow> real) P)"
     and near: "\<And>v. \<bar>of_rat (\<beta> v) - a v\<bar> \<le> exp (-\<kappa> * h v)"
   shows "exp (- (\<Sum>v<m. real (r v) * roth_rat_log_height (\<beta> v))) \<le>
-    (real (card (roth_exponent_box m r)) *
+    (real (card (pjet_exponent_box m r)) *
       real (2 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup P) *
       (\<Prod>v<m. max 1 (\<bar>a v\<bar>) ^ r v)) *
     real (card (Poly_Mapping.keys
-      (mapping_of (roth_translate a (replace_coeff (of_int::int \<Rightarrow> real) P))))) *
+      (mapping_of (pjet_translate a (replace_coeff (of_int::int \<Rightarrow> real) P))))) *
       exp (-\<kappa> * L * \<theta>)"
 proof -
-  let ?B = "real (card (roth_exponent_box m r)) *
+  let ?B = "real (card (pjet_exponent_box m r)) *
       real (2 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup P) *
       (\<Prod>v<m. max 1 (\<bar>a v\<bar>) ^ r v)"
   have Bpos: "0 \<le> ?B"
     by (intro mult_nonneg_nonneg prod_nonneg) simp_all
-  have coeff: "\<bar>insertion a (roth_hasse I
+  have coeff: "\<bar>insertion a (pjet_hasse I
       (replace_coeff (of_int::int \<Rightarrow> real) P))\<bar> \<le> ?B" for I
     by (rule roth_hasse_real_eval_bound[OF box])
   show ?thesis
@@ -849,22 +849,22 @@ qed
 
 lemma roth_int_taylor_cast:
   fixes P :: "int mpoly" and \<beta> :: "nat \<Rightarrow> rat"
-  shows "(of_rat (roth_taylor_coeff \<beta> I
+  shows "(of_rat (pjet_taylor_coeff \<beta> I
       (replace_coeff (of_int::int \<Rightarrow> rat) P))::real) =
-    roth_taylor_coeff (\<lambda>v. of_rat (\<beta> v)) I
+    pjet_taylor_coeff (\<lambda>v. of_rat (\<beta> v)) I
       (replace_coeff (of_int::int \<Rightarrow> real) P)"
-  by (simp add: roth_hasse_eval[symmetric] roth_hasse_cast[symmetric]
+  by (simp add: pjet_hasse_eval[symmetric] roth_hasse_cast[symmetric]
     roth_hasse_cast_real[symmetric] roth_integer_evaluation_cast)
 
 lemma roth_real_taylor_card_bound:
   fixes P :: "real mpoly"
-  assumes box: "roth_poly_in_box m r P"
-  shows "card (Poly_Mapping.keys (mapping_of (roth_translate a P))) \<le>
-    card (roth_exponent_box m r)"
-proof (rule card_mono[OF finite_roth_exponent_box])
-  show "Poly_Mapping.keys (mapping_of (roth_translate a P)) \<subseteq>
-      roth_exponent_box m r"
-    using box by (auto simp: roth_taylor_coeff_key[symmetric]
+  assumes box: "pjet_poly_in_box m r P"
+  shows "card (Poly_Mapping.keys (mapping_of (pjet_translate a P))) \<le>
+    card (pjet_exponent_box m r)"
+proof (rule card_mono[OF finite_pjet_exponent_box])
+  show "Poly_Mapping.keys (mapping_of (pjet_translate a P)) \<subseteq>
+      pjet_exponent_box m r"
+    using box by (auto simp: pjet_taylor_coeff_key[symmetric]
       intro: roth_taylor_index_box)
 qed
 
@@ -873,17 +873,17 @@ lemma roth_low_index_derivative:
   fixes P :: "int mpoly" and \<beta> :: "nat \<Rightarrow> rat"
   assumes low: "roth_index m r \<beta> (replace_coeff (of_int::int \<Rightarrow> rat) P) < ereal t"
   obtains J where "roth_weight m r J < t"
-    "insertion \<beta> (replace_coeff (of_int::int \<Rightarrow> rat) (roth_hasse J P)) \<noteq> 0"
+    "insertion \<beta> (replace_coeff (of_int::int \<Rightarrow> rat) (pjet_hasse J P)) \<noteq> 0"
 proof -
   let ?Q = "replace_coeff (of_int::int \<Rightarrow> rat) P"
   have qnz: "?Q \<noteq> 0"
     using low by auto
-  obtain J where c: "roth_taylor_coeff \<beta> J ?Q \<noteq> 0"
+  obtain J where c: "pjet_taylor_coeff \<beta> J ?Q \<noteq> 0"
     and idx: "roth_index m r \<beta> ?Q = ereal (roth_weight m r J)"
     by (rule roth_index_attained[OF qnz])
   have wt: "roth_weight m r J < t" using low idx by simp
-  have nz: "insertion \<beta> (replace_coeff (of_int::int \<Rightarrow> rat) (roth_hasse J P)) \<noteq> 0"
-    using c by (simp add: roth_hasse_eval[symmetric] roth_hasse_cast[symmetric])
+  have nz: "insertion \<beta> (replace_coeff (of_int::int \<Rightarrow> rat) (pjet_hasse J P)) \<noteq> 0"
+    using c by (simp add: pjet_hasse_eval[symmetric] roth_hasse_cast[symmetric])
   show thesis by (rule that[OF wt nz])
 qed
 
@@ -892,19 +892,19 @@ lemma roth_index_hasse_from_lower:
   fixes P :: "real mpoly"
   assumes idx: "ereal t \<le> roth_index m r a P"
   shows "ereal (t - roth_weight m r J) \<le>
-    roth_index m r a (roth_hasse J P)"
+    roth_index m r a (pjet_hasse J P)"
 proof -
   have le: "ereal t \<le> ereal (roth_weight m r J) +
-      roth_index m r a (roth_hasse J P)"
+      roth_index m r a (pjet_hasse J P)"
     using idx roth_index_hasse_add[of m r a P J] by (rule order_trans)
   have e: "ereal (t - roth_weight m r J) =
     ereal t - ereal (roth_weight m r J)" by simp
   have eq: "ereal t - ereal (roth_weight m r J) \<le>
-      roth_index m r a (roth_hasse J P) \<longleftrightarrow>
-    ereal t \<le> roth_index m r a (roth_hasse J P) +
+      roth_index m r a (pjet_hasse J P) \<longleftrightarrow>
+    ereal t \<le> roth_index m r a (pjet_hasse J P) +
       ereal (roth_weight m r J)"
     by (rule ereal_minus_le) simp
-  have le2: "ereal t \<le> roth_index m r a (roth_hasse J P) +
+  have le2: "ereal t \<le> roth_index m r a (pjet_hasse J P) +
       ereal (roth_weight m r J)"
     using le by (simp only: add.commute)
   show ?thesis using le2 eq e by metis

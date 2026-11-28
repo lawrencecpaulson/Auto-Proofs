@@ -1,7 +1,7 @@
 theory Primitive_Height
   imports
     Disjoint_Index
-    Hasse_Derivative
+    "Multivariate_Hasse_Derivatives.MPoly_Hasse_Derivative"
 begin
 
 section \<open>Heights at rational points\<close>
@@ -300,7 +300,7 @@ proof (intro equalityI subsetI)
     using K Poly_Mapping.keys_mult [of "mapping_of P" "mapping_of Q"]
     by (auto simp: times_mpoly.rep_eq)
   have cpq: "coeff (P*Q) K = coeff P I * coeff Q J"
-    using k roth_disjoint_prod_coeff[OF disj i j] by simp
+    using k pjet_disjoint_prod_coeff[OF disj i j] by simp
   show "c \<in> ?R"
     using K cpq i j by (auto simp: roth_coeffs_eq)
 next
@@ -310,12 +310,12 @@ next
     and j: "J \<in> Poly_Mapping.keys (mapping_of Q)" and bj: "b = coeff Q J"
     using a b by (auto simp: roth_coeffs_eq)
   have "coeff (P*Q) (I+J) \<noteq> 0"
-    using roth_disjoint_prod_coeff[OF disj] i j
+    using pjet_disjoint_prod_coeff[OF disj] i j
     by (simp add: coeff_def in_keys_iff)
   then have k: "I+J \<in> Poly_Mapping.keys (mapping_of (P*Q))"
     by (simp add: coeff_def in_keys_iff)
   have "coeff (P*Q) (I+J) = c"
-    using c ai bj roth_disjoint_prod_coeff[OF disj] i j by simp
+    using c ai bj pjet_disjoint_prod_coeff[OF disj] i j by simp
   then show "c \<in> ?L"
     using k by (auto simp: roth_coeffs_eq)
 qed
@@ -663,7 +663,7 @@ qed
 lemma roth_cast_mult:
   fixes P Q :: "int mpoly"
   shows "(replace_coeff of_int (P*Q) :: rat mpoly) =replace_coeff of_int P * replace_coeff of_int Q"
-  by (rule roth_replace_coeff_mult) simp_all
+  by (rule pjet_replace_coeff_mult) simp_all
 
 lemma roth_integral_rep_mult:
   fixes P Q :: "rat mpoly" and U V :: "int mpoly"

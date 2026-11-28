@@ -100,7 +100,7 @@ proof (rule ccontr)
   text \<open>The auxiliary polynomial has a large index at the algebraic point.\<close>
   define aux_witness :: "int mpoly \<Rightarrow> bool" where
     "aux_witness \<equiv> \<lambda>P.
-      P \<noteq> 0 \<and> roth_poly_in_box m r P \<and>
+      P \<noteq> 0 \<and> pjet_poly_in_box m r P \<and>
       ereal (real m * (1-\<epsilon>) / 2) \<le>
         roth_index m r (\<lambda>_. \<alpha>) (replace_coeff (of_int::int \<Rightarrow> real) P) \<and>
       (\<forall>K. \<bar>MPoly_Type.coeff P K\<bar> \<le> ?coeff_bound_int)"
@@ -111,7 +111,7 @@ proof (rule ccontr)
        OF monic refl dpos root mpos rpos epos elt agap]) simp
   obtain P :: "int mpoly" where P: "aux_witness P"
     using aux_exists by (erule exE)
-  have pn: "P \<noteq> 0" and pb: "roth_poly_in_box m r P"
+  have pn: "P \<noteq> 0" and pb: "pjet_poly_in_box m r P"
     and pi: "ereal (real m * (1-\<epsilon>) / 2) \<le>
       roth_index m r (\<lambda>_. \<alpha>) (replace_coeff (of_int::int \<Rightarrow> real) P)"
     and pc: "\<forall>K. \<bar>MPoly_Type.coeff P K\<bar> \<le> ?coeff_bound_int"
@@ -148,7 +148,7 @@ proof (rule ccontr)
       real (\<Sum>v<m. r v) * ?D + ?height_sum <
       \<kappa> * T * ?index_gap"
     using height_log gap' by (simp add: algebra_simps)
-  let ?transfer_cost = "real (card (roth_exponent_box m r)) ^ 2 *
+  let ?transfer_cost = "real (card (pjet_exponent_box m r)) ^ 2 *
       real (4 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup P) *
       (\<Prod>v<m. max 1 (\<bar>\<alpha>\<bar>) ^ r v)"
   have transfer_gap: "ln ?transfer_cost + ?height_sum <

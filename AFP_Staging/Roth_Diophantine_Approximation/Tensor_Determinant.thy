@@ -42,13 +42,13 @@ proof -
         MPoly_Type.monom I (MPoly_Type.coeff P I)) =
       (\<Sum>I\<in>?S. MPoly_Type.monom I (MPoly_Type.coeff P I))"
     by (rule sum.group) auto
-  show ?thesis using group roth_sum_monom[of P]
+  show ?thesis using group pjet_sum_monom[of P]
     by (simp add: roth_last_coeff_mul)
 qed
 
 lemma roth_last_coeff_outside_box:
   fixes P :: "rat mpoly"
-  assumes box: "roth_poly_in_box m r P"
+  assumes box: "pjet_poly_in_box m r P"
     and vm: "v<m" and er: "r v < e"
   shows "roth_last_coeff P v e = 0"
 proof -
@@ -60,10 +60,10 @@ proof -
     then obtain I where I: "I \<in> Poly_Mapping.keys (mapping_of P)"
       and eq: "Poly_Mapping.lookup I v = e"
       by blast
-    have mem: "I\<in>roth_exponent_box m r"
-      using box I by (auto simp: roth_poly_in_box_def)
+    have mem: "I\<in>pjet_exponent_box m r"
+      using box I by (auto simp: pjet_poly_in_box_def)
     have bd: "Poly_Mapping.lookup I v \<le> r v"
-      by (rule roth_exponent_boxD(2)[OF mem vm])
+      by (rule pjet_exponent_boxD(2)[OF mem vm])
     show False using er bd eq by simp
   qed
   show ?thesis by (simp add: roth_last_coeff_def empty)
@@ -82,7 +82,7 @@ qed
 
 lemma roth_last_split_box:
   fixes P :: "rat mpoly"
-  assumes box: "roth_poly_in_box m r P" and vm: "v<m"
+  assumes box: "pjet_poly_in_box m r P" and vm: "v<m"
   shows "P = (\<Sum>e\<le>r v.
     roth_last_coeff P v e *
       MPoly_Type.monom (Poly_Mapping.single v e) 1)"
@@ -94,10 +94,10 @@ proof -
     fix e
     assume "e\<in>?T"
     then obtain I where I: "I\<in>?S" and eq: "e = Poly_Mapping.lookup I v" by blast
-    have mem: "I \<in> roth_exponent_box m r"
-      using box I by (auto simp: roth_poly_in_box_def)
+    have mem: "I \<in> pjet_exponent_box m r"
+      using box I by (auto simp: pjet_poly_in_box_def)
     show "e \<in> {..r v}"
-      using eq mem roth_exponent_box_iff vm by auto
+      using eq mem pjet_exponent_box_iff vm by auto
   qed
   have ext: "(\<Sum>e\<le>r v. roth_last_coeff P v e *
                MPoly_Type.monom (Poly_Mapping.single v e) 1) =
@@ -108,42 +108,42 @@ proof -
 qed 
 
 lemma roth_remove_last_box:
-  assumes mem: "I \<in> roth_exponent_box (Suc n) r"
-  shows "remove_key n I \<in> roth_exponent_box n r"
-proof (rule roth_exponent_boxI)
+  assumes mem: "I \<in> pjet_exponent_box (Suc n) r"
+  shows "remove_key n I \<in> pjet_exponent_box n r"
+proof (rule pjet_exponent_boxI)
   show "Poly_Mapping.keys (remove_key n I) \<subseteq> {..<n}"
-    using roth_exponent_boxD(1)[OF mem]
+    using pjet_exponent_boxD(1)[OF mem]
     by (auto simp: remove_key_keys[symmetric])
   fix v
   assume vn: "v<n"
   have vs: "v<Suc n" using vn by simp
   have bd: "Poly_Mapping.lookup I v \<le> r v"
-    by (rule roth_exponent_boxD(2)[OF mem vs])
+    by (rule pjet_exponent_boxD(2)[OF mem vs])
   show "Poly_Mapping.lookup (remove_key n I) v \<le> r v"
     using vn bd by (simp add: remove_key_lookup when_def)
 qed
 
 lemma roth_last_coeff_box:
   fixes P :: "rat mpoly"
-  assumes box: "roth_poly_in_box (Suc n) r P"
-  shows "roth_poly_in_box n r (roth_last_coeff P n e)"
+  assumes box: "pjet_poly_in_box (Suc n) r P"
+  shows "pjet_poly_in_box n r (roth_last_coeff P n e)"
   unfolding roth_last_coeff_def
-proof (rule roth_poly_in_box_sum)
+proof (rule pjet_poly_in_box_sum)
   show "finite {I\<in>Poly_Mapping.keys (mapping_of P).
       Poly_Mapping.lookup I n = e}" by simp
   fix I
   assume I: "I\<in>{I\<in>Poly_Mapping.keys (mapping_of P).
       Poly_Mapping.lookup I n = e}"
-  have mem: "I\<in>roth_exponent_box (Suc n) r"
-    using box I by (auto simp: roth_poly_in_box_def)
-  then show "roth_poly_in_box n r
+  have mem: "I\<in>pjet_exponent_box (Suc n) r"
+    using box I by (auto simp: pjet_poly_in_box_def)
+  then show "pjet_poly_in_box n r
       (MPoly_Type.monom (remove_key n I) (MPoly_Type.coeff P I))"
-    by (simp add: roth_poly_in_box_monom roth_remove_last_box)
+    by (simp add: pjet_poly_in_box_monom roth_remove_last_box)
 qed
 
 lemma roth_last_coeff_some_nonzero:
   fixes P :: "rat mpoly"
-  assumes box: "roth_poly_in_box m r P"
+  assumes box: "pjet_poly_in_box m r P"
     and vm: "v<m" and nz: "P\<noteq>0"
   shows "\<exists>e\<le>r v. roth_last_coeff P v e \<noteq> 0"
 proof (rule ccontr)
@@ -171,12 +171,12 @@ lemma roth_mpoly_finite_basis:
   using fin by (metis roth_vs.basis_exists roth_vs.dim_le_card roth_vs.span_superset)
 
 lemma roth_last_coeff_basis:
-  assumes box: "roth_poly_in_box (Suc n) r (P::rat mpoly)"
+  assumes box: "pjet_poly_in_box (Suc n) r (P::rat mpoly)"
   shows "\<exists>B. B \<subseteq> roth_last_coeff P n ` {..r n} \<and>
     roth_vs.independent B \<and>
     roth_last_coeff P n ` {..r n} \<subseteq> roth_vs.span B \<and>
     card B \<le> Suc (r n) \<and>
-    (\<forall>b\<in>B. roth_poly_in_box n r b)"
+    (\<forall>b\<in>B. pjet_poly_in_box n r b)"
 proof -
   let ?S = "roth_last_coeff P n ` {..r n}"
   have fin: "finite ?S" by simp
@@ -192,7 +192,7 @@ proof -
 qed
 
 lemma roth_last_coeff_basis_nonempty:
-  assumes box: "roth_poly_in_box (Suc n) r (P::rat mpoly)"
+  assumes box: "pjet_poly_in_box (Suc n) r (P::rat mpoly)"
     and nz: "P \<noteq> 0"
     and spans: "roth_last_coeff P n ` {..r n} \<subseteq> roth_vs.span B"
   shows "B \<noteq> {}"
@@ -243,7 +243,7 @@ proof -
 qed
 
 lemma roth_tensor_basis_split:
-  assumes box: "roth_poly_in_box (Suc n) r (P::rat mpoly)"
+  assumes box: "pjet_poly_in_box (Suc n) r (P::rat mpoly)"
     and ind: "roth_vs.independent B"
     and spans: "roth_last_coeff P n ` {..r n} \<subseteq> roth_vs.span B"
     and fin: "finite B"
@@ -276,7 +276,7 @@ definition roth_right_factor ::
     (\<Sum>e\<le>d. MPoly_Type.monom (Poly_Mapping.single n e)
       (roth_vs.representation B (roth_last_coeff P n e) b))"
 
-lemma roth_single_inj:
+lemma pjet_single_inj:
   "Poly_Mapping.single n e = Poly_Mapping.single n j \<longleftrightarrow> e=j"
 proof safe
   fix e j
@@ -292,8 +292,8 @@ lemma roth_single_monom_coeff:
   shows "MPoly_Type.coeff
     (\<Sum>e\<le>d. MPoly_Type.monom (Poly_Mapping.single n e) (c e))
     (Poly_Mapping.single n j) = (c j::rat)"
-  by (simp add: roth_coeff_sum More_MPoly_Type.coeff_monom
-      when_def roth_single_inj sum.delta j)
+  by (simp add: pjet_coeff_sum More_MPoly_Type.coeff_monom
+      when_def pjet_single_inj sum.delta j)
 
 lemma roth_right_factor_coeff:
   assumes e: "e\<le>d"
@@ -307,7 +307,7 @@ lemma roth_coeff_smult_sum:
   assumes fin: "finite (B::rat mpoly set)"
   shows "MPoly_Type.coeff (\<Sum>b\<in>B. MPoly_Type.smult (c b) (\<psi> b)) I =
            (\<Sum>b\<in>B. c b * MPoly_Type.coeff (\<psi> b) I)"
-  unfolding roth_coeff_sum[OF fin]
+  unfolding pjet_coeff_sum[OF fin]
   by (simp add: roth_coeff_smult_rat)
 
 lemma roth_sum_coordinate:
@@ -378,14 +378,14 @@ qed
 
 lemma roth_single_in_box:
   assumes e: "e\<le>r n"
-  shows "Poly_Mapping.single n e \<in> roth_exponent_box (Suc n) r"
-  by (rule roth_exponent_boxI)
+  shows "Poly_Mapping.single n e \<in> pjet_exponent_box (Suc n) r"
+  by (rule pjet_exponent_boxI)
     (auto simp: Poly_Mapping.keys_single lookup_single when_def e)
 
 lemma roth_right_factor_box:
-  "roth_poly_in_box (Suc n) r (roth_right_factor P n (r n) B b)"
+  "pjet_poly_in_box (Suc n) r (roth_right_factor P n (r n) B b)"
   unfolding roth_right_factor_def
-  by (auto intro: roth_poly_in_box_sum roth_poly_in_box_monom roth_single_in_box)
+  by (auto intro: pjet_poly_in_box_sum pjet_poly_in_box_monom roth_single_in_box)
 
 lemma roth_right_factor_vars:
   "vars (roth_right_factor P n d B b) \<subseteq> {n}"
@@ -432,20 +432,20 @@ definition roth_tensor_basis ::
     B \<subseteq> roth_last_coeff P n ` {..r n} \<and>
     B \<noteq> {} \<and> card B \<le> Suc (r n) \<and>
     roth_vs.independent B \<and>
-    (\<forall>b\<in>B. roth_poly_in_box n r b) \<and>
+    (\<forall>b\<in>B. pjet_poly_in_box n r b) \<and>
     P = (\<Sum>b\<in>B. b * roth_right_factor P n (r n) B b) \<and>
     (\<forall>c. (\<Sum>b\<in>B. MPoly_Type.smult (c b)
       (roth_right_factor P n (r n) B b)) = 0 \<longrightarrow>
       (\<forall>b\<in>B. c b = 0))"
 
 theorem roth_tensor_basis_exists:
-  assumes box: "roth_poly_in_box (Suc n) r (P::rat mpoly)"
+  assumes box: "pjet_poly_in_box (Suc n) r (P::rat mpoly)"
     and nz: "P\<noteq>0"
   shows "\<exists>B. roth_tensor_basis P n r B"
 proof -
   let ?S = "roth_last_coeff P n ` {..r n}"
   obtain B where B: "B\<subseteq>?S" "roth_vs.independent B" "?S \<subseteq> roth_vs.span B" "card B\<le>Suc (r n)"
-    "\<forall>b\<in>B. roth_poly_in_box n r b"
+    "\<forall>b\<in>B. pjet_poly_in_box n r b"
     using roth_last_coeff_basis[OF box] by blast
   have fin: "finite B"
     using B(1) by (meson finite_subset finite_imageI finite_atMost)
@@ -465,12 +465,12 @@ section \<open>Hasse derivatives and variable support\<close>
 
 lemma roth_hasse_index_vars:
   fixes P :: "rat mpoly"
-  assumes nz: "roth_hasse J P \<noteq> 0"
+  assumes nz: "pjet_hasse J P \<noteq> 0"
   shows "Poly_Mapping.keys J \<subseteq> vars P"
 proof
   fix v
   assume vj: "v\<in>Poly_Mapping.keys J"
-  obtain I where ci: "MPoly_Type.coeff (roth_hasse J P) I \<noteq> 0"
+  obtain I where ci: "MPoly_Type.coeff (pjet_hasse J P) I \<noteq> 0"
     using nz coeff_all_0 by blast
   have key: "I+J \<in> Poly_Mapping.keys (mapping_of P)"
     using roth_hasse_coeff_support[OF ci] by (simp add: MPoly_Type.coeff_def in_keys_iff)
@@ -482,20 +482,20 @@ qed
 lemma roth_hasse_zero_outside_vars:
   fixes P :: "rat mpoly"
   assumes "\<not> Poly_Mapping.keys J \<subseteq> vars P"
-  shows "roth_hasse J P = 0"
+  shows "pjet_hasse J P = 0"
   using assms roth_hasse_index_vars by blast
 
 lemma roth_hasse_last_zero_left:
   fixes P :: "rat mpoly"
   assumes pv: "vars P \<subseteq> {..<n}" and j: "j>0"
-  shows "roth_hasse (Poly_Mapping.single n j) P = 0"
+  shows "pjet_hasse (Poly_Mapping.single n j) P = 0"
   using j pv roth_hasse_index_vars by fastforce
 
 lemma roth_hasse_left_zero_right:
   fixes Q :: "rat mpoly"
   assumes ji: "Poly_Mapping.keys J \<subseteq> {..<n}"
     and j: "J\<noteq>0" and qv: "vars Q \<subseteq> {n}"
-  shows "roth_hasse J Q = 0"
+  shows "pjet_hasse J Q = 0"
 proof (rule roth_hasse_zero_outside_vars)
   show "\<not> Poly_Mapping.keys J \<subseteq> vars Q"
   proof
@@ -570,8 +570,8 @@ lemma roth_hasse_nonzero_split_index:
   assumes mi: "Poly_Mapping.keys \<mu> \<subseteq> {..<n}"
     and pv: "vars \<phi> \<subseteq> {..<n}"
     and qv: "vars \<psi> \<subseteq> {n}"
-    and jnz: "roth_hasse J \<phi> \<noteq> 0"
-    and knz: "roth_hasse K \<psi> \<noteq> 0"
+    and jnz: "pjet_hasse J \<phi> \<noteq> 0"
+    and knz: "pjet_hasse K \<psi> \<noteq> 0"
     and eq: "\<mu> + Poly_Mapping.single n j = J + K"
   shows "J = \<mu> \<and> K = Poly_Mapping.single n j"
 proof -
@@ -592,12 +592,12 @@ lemma roth_hasse_outer_unique:
     and pv: "vars \<phi> \<subseteq> {..<n}"
     and qv: "vars \<psi> \<subseteq> {n}"
     and neq: "J \<noteq> \<mu>"
-  shows "roth_hasse J \<phi> * (\<Sum>K. roth_hasse K \<psi> when \<mu> + Poly_Mapping.single n j = J + K) = 0"
+  shows "pjet_hasse J \<phi> * (\<Sum>K. pjet_hasse K \<psi> when \<mu> + Poly_Mapping.single n j = J + K) = 0"
 proof (rule ccontr)
-  assume nz: "roth_hasse J \<phi> * (\<Sum>K. roth_hasse K \<psi> when \<mu> + Poly_Mapping.single n j = J + K) \<noteq> 0"
-  obtain K where knz: "(roth_hasse K \<psi> when \<mu> + Poly_Mapping.single n j = J + K) \<noteq> 0"
+  assume nz: "pjet_hasse J \<phi> * (\<Sum>K. pjet_hasse K \<psi> when \<mu> + Poly_Mapping.single n j = J + K) \<noteq> 0"
+  obtain K where knz: "(pjet_hasse K \<psi> when \<mu> + Poly_Mapping.single n j = J + K) \<noteq> 0"
     using Sum_any.not_neutral_obtains_not_neutral nz by force
-  have kz: "roth_hasse K \<psi> \<noteq> 0"
+  have kz: "pjet_hasse K \<psi> \<noteq> 0"
     and eq: "\<mu> + Poly_Mapping.single n j = J + K"
     using knz by (auto simp: when_def split: if_splits)
   have "J = \<mu>"
@@ -606,7 +606,7 @@ proof (rule ccontr)
 qed
 
 lemma roth_hasse_inner_collapse:
-  "(\<Sum>K. roth_hasse K \<psi> when \<mu> + Poly_Mapping.single n j = \<mu> + K) = roth_hasse (Poly_Mapping.single n j) \<psi>"
+  "(\<Sum>K. pjet_hasse K \<psi> when \<mu> + Poly_Mapping.single n j = \<mu> + K) = pjet_hasse (Poly_Mapping.single n j) \<psi>"
   by simp
 
 lemma roth_hasse_outer_point:
@@ -615,8 +615,8 @@ lemma roth_hasse_outer_point:
   assumes mi: "Poly_Mapping.keys \<mu> \<subseteq> {..<n}"
     and pv: "vars \<phi> \<subseteq> {..<n}"
     and qv: "vars \<psi> \<subseteq> {n}"
-  shows "roth_hasse J \<phi> * (\<Sum>K. roth_hasse K \<psi> when \<mu> + Poly_Mapping.single n j = J + K) =
-         ((roth_hasse \<mu> \<phi> * (\<Sum>K. roth_hasse K \<psi> when \<mu> + Poly_Mapping.single n j = \<mu> + K))
+  shows "pjet_hasse J \<phi> * (\<Sum>K. pjet_hasse K \<psi> when \<mu> + Poly_Mapping.single n j = J + K) =
+         ((pjet_hasse \<mu> \<phi> * (\<Sum>K. pjet_hasse K \<psi> when \<mu> + Poly_Mapping.single n j = \<mu> + K))
              when (J = \<mu>))"
   using roth_hasse_outer_unique[OF assms] by (auto simp: when_def)
 
@@ -626,8 +626,8 @@ lemma roth_hasse_disjoint_product:
   assumes "Poly_Mapping.keys \<mu> \<subseteq> {..<n}"
     and "vars \<phi> \<subseteq> {..<n}"
     and "vars \<psi> \<subseteq> {n}"
-  shows "roth_hasse (\<mu> + Poly_Mapping.single n j) (\<phi> * \<psi>) =
-         roth_hasse \<mu> \<phi> * roth_hasse (Poly_Mapping.single n j) \<psi>"
-  by (simp add: assms roth_hasse_mult roth_hasse_outer_point roth_hasse_inner_collapse)
+  shows "pjet_hasse (\<mu> + Poly_Mapping.single n j) (\<phi> * \<psi>) =
+         pjet_hasse \<mu> \<phi> * pjet_hasse (Poly_Mapping.single n j) \<psi>"
+  by (simp add: assms pjet_hasse_mult roth_hasse_outer_point roth_hasse_inner_collapse)
 
 end

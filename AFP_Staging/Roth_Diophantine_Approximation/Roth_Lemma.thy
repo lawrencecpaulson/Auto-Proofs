@@ -4,12 +4,12 @@ theory Roth_Lemma
 begin
 
 lemma roth_taylor_support_vars:
-  assumes tc: "roth_taylor_coeff a I P \<noteq> 0"
+  assumes tc: "pjet_taylor_coeff a I P \<noteq> 0"
   shows "Poly_Mapping.keys I \<subseteq> vars P"
 proof -
-  have "Poly_Mapping.keys I \<subseteq> vars (roth_translate a P)"
-    using tc by (auto simp: roth_taylor_coeff_key vars_def)
-  then show ?thesis using roth_vars_translate_subset by blast
+  have "Poly_Mapping.keys I \<subseteq> vars (pjet_translate a P)"
+    using tc by (auto simp: pjet_taylor_coeff_key vars_def)
+  then show ?thesis using pjet_vars_translate_subset by blast
 qed
 
 lemma roth_index_extend_dimension:
@@ -21,7 +21,7 @@ proof (cases "P=0")
   then show ?thesis by simp
 next
   case False
-  obtain I where ic: "roth_taylor_coeff a I P \<noteq> 0"
+  obtain I where ic: "pjet_taylor_coeff a I P \<noteq> 0"
     and ie: "roth_index n r a P = ereal (roth_weight n r I)"
     using roth_index_attained[OF False, where m=n and r=r and a=a]
     by blast
@@ -31,7 +31,7 @@ next
     by (rule roth_weight_extend_zero[OF ik])
   have le: "roth_index (Suc n) r a P \<le> roth_index n r a P"
     using roth_index_le_coeff[OF ic, of "Suc n" r] ie iw by simp
-  obtain J where jc: "roth_taylor_coeff a J P \<noteq> 0"
+  obtain J where jc: "pjet_taylor_coeff a J P \<noteq> 0"
     and je: "roth_index (Suc n) r a P =
       ereal (roth_weight (Suc n) r J)"
     using roth_index_attained[OF False, where m="Suc n" and r=r and a=a]
@@ -62,7 +62,7 @@ proof -
   have low: "\<forall>k<?l. Polynomial.coeff ?s k = 0"
     and high: "Polynomial.coeff ?s ?l \<noteq> 0"
     using roth_order_zero_coeff[OF snz] ord by auto
-  have tcl: "roth_taylor_coeff a
+  have tcl: "pjet_taylor_coeff a
       (Poly_Mapping.single v ?l) (poly_to_mpoly v p) \<noteq> 0"
     using high by (simp add: roth_univariate_taylor_coeff)
   have w: "roth_weight m r (Poly_Mapping.single v ?l) =
@@ -73,7 +73,7 @@ proof -
     using roth_index_le_coeff[OF tcl, of m r] w by metis
   have pmp: "poly_to_mpoly v p \<noteq> 0"
     by (rule roth_poly_to_mpoly_nonzero[OF p])
-  obtain I where tc: "roth_taylor_coeff a I (poly_to_mpoly v p) \<noteq> 0"
+  obtain I where tc: "pjet_taylor_coeff a I (poly_to_mpoly v p) \<noteq> 0"
     and ieq: "roth_index m r a (poly_to_mpoly v p) =
       ereal (roth_weight m r I)"
     using roth_index_attained[OF pmp, where m=m and r=r and a=a]
@@ -144,15 +144,15 @@ qed
 
 lemma roth_univariate_degree_of_box_at:
   fixes P :: "rat mpoly"
-  assumes box: "roth_poly_in_box (Suc n) r P"
+  assumes box: "pjet_poly_in_box (Suc n) r P"
   shows "Polynomial.degree (mpoly_to_poly n P) \<le> r n"
 proof (rule degree_le, intro allI impI)
   fix i assume i: "r n < i"
   have outside: "Poly_Mapping.single n i \<notin>
-      roth_exponent_box (Suc n) r"
-    using i by (auto simp: roth_exponent_box_iff)
+      pjet_exponent_box (Suc n) r"
+    using i by (auto simp: pjet_exponent_box_iff)
   show "Polynomial.coeff (mpoly_to_poly n P) i = 0"
-    using roth_coeff_zero_outside_box[OF box outside] by simp
+    using pjet_coeff_zero_outside_box[OF box outside] by simp
 qed
 
 
@@ -232,7 +232,7 @@ lemma roth_index_scale_bound:
     and bound: "roth_index m (\<lambda>v. k*r v) a P \<le> ereal C"
   shows "roth_index m r a P \<le> ereal (real k * C)"
 proof -
-  obtain I where tc: "roth_taylor_coeff a I P \<noteq> 0"
+  obtain I where tc: "pjet_taylor_coeff a I P \<noteq> 0"
     and ie: "roth_index m (\<lambda>v. k*r v) a P =
       ereal (roth_weight m (\<lambda>v. k*r v) I)"
     using roth_index_attained[OF pn, where m=m and r="\<lambda>v. k*r v"
@@ -442,15 +442,15 @@ qed
 
 theorem roth_lemma_structure:
   fixes P :: "rat mpoly"
-  assumes box: "roth_poly_in_box (Suc (Suc n)) r P"
+  assumes box: "pjet_poly_in_box (Suc (Suc n)) r P"
     and nz: "P \<noteq> 0"
     and half: "\<And>v. Suc v < Suc (Suc n) \<Longrightarrow>
       2 * r (Suc v) \<le> r v"
     and rp: "\<And>v. v < Suc (Suc n) \<Longrightarrow> 0 < r v"
   shows "\<exists>k U L.
     0 < k \<and> k \<le> Suc (r (Suc n)) \<and>
-    roth_poly_in_box (Suc n) (\<lambda>v. k*r v) U \<and>
-    roth_poly_in_box (Suc (Suc n)) (\<lambda>v. k*r v) L \<and>
+    pjet_poly_in_box (Suc n) (\<lambda>v. k*r v) U \<and>
+    pjet_poly_in_box (Suc (Suc n)) (\<lambda>v. k*r v) L \<and>
     vars U \<subseteq> {..<Suc n} \<and>
     vars L \<subseteq> {Suc n} \<and>
     U \<noteq> 0 \<and> L \<noteq> 0 \<and>
@@ -467,13 +467,13 @@ proof -
     and kn: "k \<le> Suc (r (Suc n))"
     and row: "\<forall>i<k. Poly_Mapping.keys (mu i) \<subseteq> {..<Suc n} \<and>
       roth_total_order (Suc n) (mu i) \<le> i"
-    and ub: "roth_poly_in_box (Suc n) (\<lambda>v. k*r v) U"
-    and lb: "roth_poly_in_box (Suc (Suc n)) (\<lambda>v. k*r v) L"
+    and ub: "pjet_poly_in_box (Suc n) (\<lambda>v. k*r v) U"
+    and lb: "pjet_poly_in_box (Suc (Suc n)) (\<lambda>v. k*r v) L"
     and uv: "vars U \<subseteq> {..<Suc n}"
     and lv: "vars L \<subseteq> {Suc n}"
     and un: "U \<noteq> 0" and ln: "L \<noteq> 0"
     and fac: "det (mat k k (\<lambda>(i,j).
-      roth_hasse (mu i + Poly_Mapping.single (Suc n) j) P)) = U * L"
+      pjet_hasse (mu i + Poly_Mapping.single (Suc n) j) P)) = U * L"
     using roth_box_tensor_det_factors_bounded[OF box nz]
     unfolding roth_tensor_det_witness_def by blast
   have hb: "roth_proj_log_height (U*L) \<le>
@@ -500,7 +500,7 @@ section \<open>Roth's lemma for rational points\<close>
 lemma roth_lemma_base:
   fixes P :: "rat mpoly" and \<eta> :: real
   assumes pn: "P \<noteq> 0"
-    and box: "roth_poly_in_box 1 r P"
+    and box: "pjet_poly_in_box 1 r P"
     and rp: "0 < r 0" and ep: "0 < \<eta>"
     and h: "roth_proj_log_height P + 4 * real (r 0) \<le>
       \<eta> * real (r 0) * roth_rat_log_height (a 0)"
@@ -508,7 +508,7 @@ lemma roth_lemma_base:
 proof -
   have pv: "vars P \<subseteq> {0}"
     using roth_box_vars[OF box] by auto
-  have box0: "roth_poly_in_box (Suc 0) r P"
+  have box0: "pjet_poly_in_box (Suc 0) r P"
     using box by simp
   have deg: "Polynomial.degree (mpoly_to_poly 0 P) \<le> r 0"
     by (rule roth_univariate_degree_of_box_at[OF box0])
@@ -525,7 +525,7 @@ qed
 theorem roth_lemma_aux:
   fixes P :: "rat mpoly" and \<eta> :: real
   assumes pn: "P \<noteq> 0"
-    and box: "roth_poly_in_box (Suc n) r P"
+    and box: "pjet_poly_in_box (Suc n) r P"
     and rp: "\<And>v. v < Suc n \<Longrightarrow> 0 < r v"
     and ep: "0 < \<eta>" and eb: "\<eta> \<le> 1/2"
     and ratio: "\<And>v. Suc v < Suc n \<Longrightarrow>
@@ -566,8 +566,8 @@ next
       (use ratio sigma_half that in auto)
   obtain k U L where kp: "0 < k"
     and kn: "k \<le> Suc (r (Suc n))"
-    and ub: "roth_poly_in_box (Suc n) (\<lambda>v. k*r v) U"
-    and lb: "roth_poly_in_box ?m (\<lambda>v. k*r v) L"
+    and ub: "pjet_poly_in_box (Suc n) (\<lambda>v. k*r v) U"
+    and lb: "pjet_poly_in_box ?m (\<lambda>v. k*r v) L"
     and uv: "vars U \<subseteq> {..<Suc n}"
     and lv: "vars L \<subseteq> {Suc n}"
     and un: "U \<noteq> 0" and ln: "L \<noteq> 0"
@@ -696,7 +696,7 @@ qed
 theorem roth_lemma:
   fixes P :: "rat mpoly" and \<eta> :: real
   assumes mp: "0 < m" and pn: "P \<noteq> 0"
-    and box: "roth_poly_in_box m r P"
+    and box: "pjet_poly_in_box m r P"
     and rp: "\<And>v. v<m \<Longrightarrow> 0<r v"
     and ep: "0<\<eta>" and eb: "\<eta>\<le>1/2"
     and ratio: "\<And>v. Suc v<m \<Longrightarrow>
@@ -725,7 +725,7 @@ qed
 theorem roth_lemma_integer:
   fixes Q :: "int mpoly" and \<eta> :: real
   assumes mp: "0 < m" and q: "Q \<noteq> 0"
-    and box: "roth_poly_in_box m r Q"
+    and box: "pjet_poly_in_box m r Q"
     and rp: "\<And>v. v<m \<Longrightarrow> 0<r v"
     and ep: "0<\<eta>" and eb: "\<eta>\<le>1/2"
     and ratio: "\<And>v. Suc v<m \<Longrightarrow> r (Suc v) \<le> \<eta>^(2^(m-1)) * r v"
@@ -734,7 +734,7 @@ theorem roth_lemma_integer:
         \<eta>^(2^(m-1))*real (r v)*roth_rat_log_height (a v)"
   shows "roth_index m r a (replace_coeff of_int Q) \<le> ereal (2*real m*\<eta>)"
 proof (intro roth_lemma[OF mp roth_cast_nonzero[OF q]] ep eb ratio height rp)
-  show "roth_poly_in_box m r (replace_coeff of_int Q :: rat mpoly)"
+  show "pjet_poly_in_box m r (replace_coeff of_int Q :: rat mpoly)"
     using box by (simp add: roth_box_cast_iff)
   show "roth_proj_log_height (replace_coeff of_int Q) + 4*real m * (r 0) \<le> \<eta>^(2^(m-1))*real (r v)*roth_rat_log_height (a v)"
     if "v<m" for v

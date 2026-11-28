@@ -19,7 +19,7 @@ using assms by auto
 
 lemma roth_ksubst_eval_mat:
   fixes A :: "nat \<Rightarrow> nat \<Rightarrow> rat mpoly"
-  assumes "\<forall>i<k. \<forall>j<k. roth_poly_in_box m r (A i j)"
+  assumes "\<forall>i<k. \<forall>j<k. pjet_poly_in_box m r (A i j)"
   shows "mat k k (\<lambda>(i,j). poly (roth_ksubst m B (A i j)) t) =
     mat k k (\<lambda>(i,j). insertion (\<lambda>v. t^(B^v)) (A i j))"
   using assms
@@ -28,7 +28,7 @@ lemma roth_ksubst_eval_mat:
 lemma roth_det_ksubst_reflect_nonzero:
   fixes A :: "nat \<Rightarrow> nat \<Rightarrow> rat mpoly"
   assumes box: "\<forall>i<k. \<forall>j<k.
-    roth_poly_in_box m r (A i j)"
+    pjet_poly_in_box m r (A i j)"
     and nz: "det (mat k k (\<lambda>(i,j).
       roth_ksubst m B (A i j))) \<noteq> 0"
   shows "det (mat k k (\<lambda>(i,j). A i j)) \<noteq> 0"
@@ -153,8 +153,8 @@ qed
 
 lemma roth_hasse_box_monotone:
   fixes P :: "rat mpoly"
-  assumes "roth_poly_in_box m r P"
-  shows "roth_poly_in_box m r (roth_hasse J P)"
+  assumes "pjet_poly_in_box m r P"
+  shows "pjet_poly_in_box m r (pjet_hasse J P)"
 using assms roth_hasse_preserves_box by blast
 
 lemma roth_det_row_mult:
@@ -167,7 +167,7 @@ lemma roth_det_row_mult:
 
 lemma roth_kronecker_pwronskian_expansion:
   fixes p :: "nat \<Rightarrow> rat mpoly"
-  assumes box: "\<forall>j<k. roth_poly_in_box m r (p j)"
+  assumes box: "\<forall>j<k. pjet_poly_in_box m r (p j)"
     and pos: "0<B"
   shows "roth_pwronskian k
       (\<lambda>j. roth_ksubst m B (p j)) =
@@ -175,7 +175,7 @@ lemma roth_kronecker_pwronskian_expansion:
       det (mat k k
         (\<lambda>(i,j). roth_jet_coeff B i (g i) *
           roth_ksubst m B
-            (roth_hasse (roth_jet_index (g i)) (p j)))))"
+            (pjet_hasse (roth_jet_index (g i)) (p j)))))"
 proof -
   have row: "mat k k
       (\<lambda>(i,j). (pderiv ^^ i) (roth_ksubst m B (p j))) =
@@ -183,7 +183,7 @@ proof -
       (\<lambda>(i,j). \<Sum>xs\<in>roth_jet_words m i.
         roth_jet_coeff B i xs *
           roth_ksubst m B
-            (roth_hasse (roth_jet_index xs) (p j)))"
+            (pjet_hasse (roth_jet_index xs) (p j)))"
     using box pos
     by (auto simp: mat_eq_iff roth_jet_expansion)
   show ?thesis unfolding roth_pwronskian_def row
@@ -194,7 +194,7 @@ section \<open>A nonzero multivariate Hasse minor\<close>
 
 lemma roth_weighted_minor_nonzero:
   fixes p :: "nat \<Rightarrow> rat mpoly"
-  assumes box: "\<forall>j<k. roth_poly_in_box m r (p j)"
+  assumes box: "\<forall>j<k. pjet_poly_in_box m r (p j)"
     and pos: "0<B"
     and B: "\<forall>v<m. r v<B"
     and ind: "roth_mpoly_indep k p"
@@ -202,7 +202,7 @@ lemma roth_weighted_minor_nonzero:
     det (mat k k
       (\<lambda>(i,j). roth_jet_coeff B i (g i) *
         roth_ksubst m B
-          (roth_hasse (roth_jet_index (g i)) (p j)))) \<noteq> 0"
+          (pjet_hasse (roth_jet_index (g i)) (p j)))) \<noteq> 0"
 proof -
   have u: "poly_indep k (\<lambda>j. roth_ksubst m B (p j))"
     by (rule roth_ksubst_indep[OF box pos B ind])
@@ -210,7 +210,7 @@ proof -
       det (mat k k
         (\<lambda>(i,j). roth_jet_coeff B i (g i) *
           roth_ksubst m B
-            (roth_hasse (roth_jet_index (g i)) (p j))))) \<noteq> 0"
+            (pjet_hasse (roth_jet_index (g i)) (p j))))) \<noteq> 0"
     using roth_pwronskian_nonzero[OF u] roth_kronecker_pwronskian_expansion[OF box pos]
     by simp
   show ?thesis
@@ -220,44 +220,44 @@ qed
 
 lemma roth_kronecker_hasse_minor:
   fixes p :: "nat \<Rightarrow> rat mpoly"
-  assumes box: "\<forall>j<k. roth_poly_in_box m r (p j)"
+  assumes box: "\<forall>j<k. pjet_poly_in_box m r (p j)"
     and pos: "0<B"
     and B: "\<forall>v<m. r v<B"
     and ind: "roth_mpoly_indep k p"
   shows "\<exists>g\<in>PiE {..<k} (roth_jet_words m).
     det (mat k k
-      (\<lambda>(i,j). roth_hasse
+      (\<lambda>(i,j). pjet_hasse
         (roth_jet_index (g i)) (p j))) \<noteq> 0"
 proof -
   obtain g where g: "g\<in>PiE {..<k} (roth_jet_words m)"
     and gnz: "det (mat k k
-      (\<lambda>(i,j). roth_jet_coeff B i (g i) * roth_ksubst m B (roth_hasse (roth_jet_index (g i)) (p j)))) \<noteq> 0"
+      (\<lambda>(i,j). roth_jet_coeff B i (g i) * roth_ksubst m B (pjet_hasse (roth_jet_index (g i)) (p j)))) \<noteq> 0"
     using roth_weighted_minor_nonzero[OF box pos B ind]
     by blast
   have hnz: "det (mat k k
       (\<lambda>(i,j). roth_ksubst m B
-        (roth_hasse (roth_jet_index (g i)) (p j)))) \<noteq> 0"
+        (pjet_hasse (roth_jet_index (g i)) (p j)))) \<noteq> 0"
     using gnz by (simp add: roth_det_row_mult)
   have Abox: "\<forall>i<k. \<forall>j<k.
-      roth_poly_in_box m r
-        (roth_hasse (roth_jet_index (g i)) (p j))"
+      pjet_poly_in_box m r
+        (pjet_hasse (roth_jet_index (g i)) (p j))"
     using box by (auto intro: roth_hasse_box_monotone)
   show ?thesis using g roth_det_ksubst_reflect_nonzero[OF Abox hnz] by blast
 qed
 
 theorem roth_kronecker_hasse_minor_bounded:
   fixes p :: "nat \<Rightarrow> rat mpoly"
-  assumes box: "\<forall>j<k. roth_poly_in_box m r (p j)"
+  assumes box: "\<forall>j<k. pjet_poly_in_box m r (p j)"
     and pos: "0<B"
     and B: "\<forall>v<m. r v<B"
     and ind: "roth_mpoly_indep k p"
   shows "\<exists>J. (\<forall>i<k. Poly_Mapping.keys (J i) \<subseteq> {..<m} \<and> roth_total_order m (J i) \<le> i) \<and>
     det (mat k k
-      (\<lambda>(i,j). roth_hasse (J i) (p j))) \<noteq> 0"
+      (\<lambda>(i,j). pjet_hasse (J i) (p j))) \<noteq> 0"
 proof -
   obtain g where g: "g\<in>PiE {..<k} (roth_jet_words m)"
     and d: "det (mat k k
-      (\<lambda>(i,j). roth_hasse (roth_jet_index (g i)) (p j))) \<noteq> 0"
+      (\<lambda>(i,j). pjet_hasse (roth_jet_index (g i)) (p j))) \<noteq> 0"
     using roth_kronecker_hasse_minor[OF box pos B ind]
     by blast
   have "\<forall>i<k. Poly_Mapping.keys (roth_jet_index (g i)) \<subseteq> {..<m} \<and>
@@ -269,13 +269,13 @@ qed
 
 theorem roth_generalized_wronskian:
   fixes p :: "nat \<Rightarrow> rat mpoly"
-  assumes box: "\<forall>j<k. roth_poly_in_box m r (p j)"
+  assumes box: "\<forall>j<k. pjet_poly_in_box m r (p j)"
     and ind: "roth_mpoly_indep k p"
   shows "\<exists>J.
     (\<forall>i<k.
       Poly_Mapping.keys (J i) \<subseteq> {..<m} \<and>
       roth_total_order m (J i) \<le> i) \<and>
-    det (mat k k (\<lambda>(i,j). roth_hasse (J i) (p j))) \<noteq> 0"
+    det (mat k k (\<lambda>(i,j). pjet_hasse (J i) (p j))) \<noteq> 0"
 proof -
   let ?B = "Suc (Max (r ` {..<m}))"
   have bound: "\<forall>v<m. r v < ?B"

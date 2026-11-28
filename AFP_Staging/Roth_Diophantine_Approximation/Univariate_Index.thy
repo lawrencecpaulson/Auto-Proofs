@@ -237,7 +237,7 @@ lemma roth_linear_power_dvd:
   assumes q: "q \<noteq> 0" and cpq: "coprime p q" and Q: "Q \<noteq> 0"
   shows "[:-p,q:] ^ n dvd Q \<longleftrightarrow> n \<le> Polynomial.order (Rat.Fract p q) (map_poly of_int Q :: rat poly)"
 proof -
-  have "([:-p,q:] ^ n dvd Q) 
+  have "([:-p,q:] ^ n dvd Q)
       = ((map_poly of_int ([:-p,q:] ^ n) :: rat poly) dvd map_poly of_int Q)"
     by (rule dvd_poly_int_content_1 [OF roth_linear_power_content[OF cpq]])
   also have "\<dots> = ([:-Rat.Fract p q,1:] ^ n dvd map_poly of_int Q)"
@@ -326,7 +326,7 @@ lemma roth_sqrt_suc_le_exp:
 proof -
   have "sqrt (real (Suc n)) \<le> real (Suc n)"
     by (simp add: real_le_lsqrt self_le_power)
-  then show ?thesis 
+  then show ?thesis
     by (metis exp_ge_add_one_self of_nat_Suc order.trans)
 qed
 
@@ -359,7 +359,7 @@ qed
 lemma roth_primitive_poly_log_height:
   fixes Q :: "int poly"
   assumes q: "Q \<noteq> 0" and prim: "Polynomial.content Q = 1"
-  shows "roth_proj_log_height (replace_coeff of_int (poly_to_mpoly v Q)) 
+  shows "roth_proj_log_height (replace_coeff of_int (poly_to_mpoly v Q))
        = ln (roth_int_coeff_sup (poly_to_mpoly v Q))"
   unfolding roth_proj_log_height_def
   by (simp add: roth_proj_height_poly_to_mpoly[OF q prim])
@@ -434,7 +434,7 @@ qed
 lemma roth_univariate_mpoly_log_order_bound:
   fixes P :: "rat mpoly"
   assumes P: "P \<noteq> 0" and pv: "vars P \<subseteq> {v}"
-  shows "real (Polynomial.order \<beta> (mpoly_to_poly v P)) * roth_rat_log_height \<beta> 
+  shows "real (Polynomial.order \<beta> (mpoly_to_poly v P)) * roth_rat_log_height \<beta>
        \<le> roth_proj_log_height P + real (degree (mpoly_to_poly v P))"
 proof -
   have pn: "mpoly_to_poly v P \<noteq> 0"
@@ -449,22 +449,22 @@ section \<open>Univariate order and the Roth index\<close>
 
 lemma roth_translate_poly_to_mpoly:
   fixes p :: "rat poly"
-  shows "roth_translate a (poly_to_mpoly v p) = poly_to_mpoly v (pcompose p [:a v,1:])"
+  shows "pjet_translate a (poly_to_mpoly v p) = poly_to_mpoly v (pcompose p [:a v,1:])"
 proof -
-  have vl: "vars (roth_translate a (poly_to_mpoly v p)) \<subseteq> {v}"
-    using roth_vars_translate_subset roth_vars_poly_to_mpoly[of v p]
+  have vl: "vars (pjet_translate a (poly_to_mpoly v p)) \<subseteq> {v}"
+    using pjet_vars_translate_subset roth_vars_poly_to_mpoly[of v p]
     by blast
-  have aux: "insertion (\<lambda>_. x) (roth_translate a (poly_to_mpoly v p)) 
+  have aux: "insertion (\<lambda>_. x) (pjet_translate a (poly_to_mpoly v p))
            = insertion (\<lambda>u. x + a u) (poly_to_mpoly v p)" for x
-    by (simp add: roth_translate_def roth_insertion_subst insertion_add)
+    by (simp add: pjet_translate_def pjet_insertion_subst insertion_add)
   have aux2: "insertion (\<lambda>u. x + a u) (poly_to_mpoly v p)
             = insertion (\<lambda>_. x + a v) (poly_to_mpoly v p)" for x
     using roth_vars_poly_to_mpoly by (intro insertion_irrelevant_vars) auto
-  have eval: "poly (mpoly_to_poly v (roth_translate a (poly_to_mpoly v p))) x = poly p (x + a v)" for x
+  have eval: "poly (mpoly_to_poly v (pjet_translate a (poly_to_mpoly v p))) x = poly p (x + a v)" for x
     using aux aux2 poly_eq_insertion[OF vl] poly_eq_insertion[OF roth_vars_poly_to_mpoly]
       poly_to_mpoly_inverse
     by metis
-  have peq: "mpoly_to_poly v (roth_translate a (poly_to_mpoly v p)) = pcompose p [:a v,1:]"
+  have peq: "mpoly_to_poly v (pjet_translate a (poly_to_mpoly v p)) = pcompose p [:a v,1:]"
     by (simp add: add.commute eval poly_ext poly_pcompose)
   show ?thesis using peq mpoly_to_poly_inverse[OF vl] by simp
 qed
@@ -509,25 +509,25 @@ proof -
     by (rule order_0I) (simp add: poly_pcompose q0)
   have nz: "monom 1 (Polynomial.order \<beta> p) * pcompose q [:\<beta>,1:] \<noteq> 0"
     using qshift by simp
-  show ?thesis 
+  show ?thesis
     using shift qord nz by (simp add: Polynomial.order_mult)
 qed
 
 lemma roth_univariate_taylor_coeff:
   fixes p :: "rat poly"
-  shows "roth_taylor_coeff a (Poly_Mapping.single v k) (poly_to_mpoly v p) =
+  shows "pjet_taylor_coeff a (Poly_Mapping.single v k) (poly_to_mpoly v p) =
     Polynomial.coeff (pcompose p [:a v,1:]) k"
-  by (simp add: roth_taylor_coeff_def roth_translate_poly_to_mpoly coeff_poly_to_mpoly)
+  by (simp add: pjet_taylor_coeff_def roth_translate_poly_to_mpoly coeff_poly_to_mpoly)
 
 lemma roth_univariate_taylor_support:
   fixes p :: "rat poly"
-  assumes tc: "roth_taylor_coeff a I (poly_to_mpoly v p) \<noteq> 0"
+  assumes tc: "pjet_taylor_coeff a I (poly_to_mpoly v p) \<noteq> 0"
   shows "I = Poly_Mapping.single v (Poly_Mapping.lookup I v)"
 proof -
-  have vin: "Poly_Mapping.keys I \<subseteq> vars (roth_translate a (poly_to_mpoly v p))"
-    using tc by (auto simp: roth_taylor_coeff_key vars_def)
+  have vin: "Poly_Mapping.keys I \<subseteq> vars (pjet_translate a (poly_to_mpoly v p))"
+    using tc by (auto simp: pjet_taylor_coeff_key vars_def)
   have kv: "Poly_Mapping.keys I \<subseteq> {v}"
-    using roth_vars_poly_to_mpoly roth_vars_translate_subset vin by blast
+    using roth_vars_poly_to_mpoly pjet_vars_translate_subset vin by blast
   show ?thesis
     by (simp add: keys_subset_singleton_imp_monomial kv)
 qed
@@ -546,7 +546,7 @@ proof -
     using roth_order_zero_coeff[OF snz] roth_order_shift[OF p] by auto
   have pmp: "poly_to_mpoly 0 p \<noteq> 0"
     by (rule roth_poly_to_mpoly_nonzero[OF p])
-  obtain I where tc: "roth_taylor_coeff (\<lambda>_. \<beta>) I (poly_to_mpoly 0 p) \<noteq> 0"
+  obtain I where tc: "pjet_taylor_coeff (\<lambda>_. \<beta>) I (poly_to_mpoly 0 p) \<noteq> 0"
            and ieq: "roth_index 1 r (\<lambda>_. \<beta>) (poly_to_mpoly 0 p) = ereal (roth_weight 1 r I)"
     using roth_index_attained[OF pmp] by blast
   have "I = Poly_Mapping.single 0 (Poly_Mapping.lookup I 0)"
@@ -559,7 +559,7 @@ proof -
     by (simp add: roth_weight_def)
   have w: "roth_weight 1 r (Poly_Mapping.single 0 ?l) = real ?l / real (r 0)"
     by (simp add: roth_weight_def)
-  have tcl: "roth_taylor_coeff (\<lambda>_. \<beta>) (Poly_Mapping.single 0 ?l) (poly_to_mpoly 0 p) \<noteq> 0"
+  have tcl: "pjet_taylor_coeff (\<lambda>_. \<beta>) (Poly_Mapping.single 0 ?l) (poly_to_mpoly 0 p) \<noteq> 0"
     using high by (simp add: roth_univariate_taylor_coeff)
   have "roth_index 1 r (\<lambda>_. \<beta>) (poly_to_mpoly 0 p) \<le> ereal (real ?l / r 0)"
     using roth_index_le_coeff[OF tcl, of 1 r] w by metis
@@ -572,7 +572,7 @@ lemma roth_univariate_index_bound:
   fixes p :: "rat poly" and r :: "nat \<Rightarrow> nat"
   assumes p: "p \<noteq> 0" and r: "r 0 > 0"
     and deg: "degree p \<le> r 0" and \<eta>: "\<eta> > 0"
-    and h: "roth_proj_log_height (poly_to_mpoly 0 p) + real (r 0) 
+    and h: "roth_proj_log_height (poly_to_mpoly 0 p) + real (r 0)
           \<le> \<eta> * real (r 0) * roth_rat_log_height \<beta>"
   shows "roth_index 1 r (\<lambda>_. \<beta>) (poly_to_mpoly 0 p) \<le> ereal \<eta>"
 proof -
@@ -611,27 +611,27 @@ qed
 
 lemma roth_univariate_vars_of_box:
   fixes P :: "rat mpoly"
-  assumes box: "roth_poly_in_box 1 r P"
+  assumes box: "pjet_poly_in_box 1 r P"
   shows "vars P \<subseteq> {0}"
-  using box by (auto simp: vars_def roth_poly_in_box_def dest: roth_exponent_boxD(1))
+  using box by (auto simp: vars_def pjet_poly_in_box_def dest: pjet_exponent_boxD(1))
 
 lemma roth_univariate_degree_of_box:
   fixes P :: "rat mpoly"
-  assumes box: "roth_poly_in_box 1 r P"
+  assumes box: "pjet_poly_in_box 1 r P"
   shows "degree (mpoly_to_poly 0 P) \<le> r 0"
 proof (intro degree_le strip)
   fix i assume i: "r 0 < i"
-  have outside: "Poly_Mapping.single 0 i \<notin> roth_exponent_box 1 r"
-    using i by (simp add: roth_exponent_box_iff)
+  have outside: "Poly_Mapping.single 0 i \<notin> pjet_exponent_box 1 r"
+    using i by (simp add: pjet_exponent_box_iff)
   show "Polynomial.coeff (mpoly_to_poly 0 P) i = 0"
-    using roth_coeff_zero_outside_box[OF box outside] by simp
+    using pjet_coeff_zero_outside_box[OF box outside] by simp
 qed
 
 theorem roth_lemma_one_variable:
   fixes P :: "rat mpoly" and r :: "nat \<Rightarrow> nat"
-  assumes "P \<noteq> 0" and box: "roth_poly_in_box 1 r P"
+  assumes "P \<noteq> 0" and box: "pjet_poly_in_box 1 r P"
     and "r 0 > 0" "\<eta> > 0"
-    and "roth_proj_log_height P + real (r 0) 
+    and "roth_proj_log_height P + real (r 0)
           \<le> \<eta> * real (r 0) * roth_rat_log_height \<beta>"
   shows "roth_index 1 r (\<lambda>_. \<beta>) P \<le> ereal \<eta>"
   using roth_univariate_mpoly_index_bound assms

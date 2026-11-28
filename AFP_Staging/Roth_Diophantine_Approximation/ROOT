@@ -8,10 +8,10 @@ session Roth_Diophantine_Approximation (AFP) = "HOL-Computational_Algebra" +
     Bounded_Integer_Kernels
     Berlekamp_Zassenhaus
     Polynomial_Wronskians
+    Multivariate_Hasse_Derivatives
   theories
     Roth_Approximation
     Disjoint_Index
-    Hasse_Derivative
     Hasse_Support
     Univariate_Index
     Roth_Wronskian

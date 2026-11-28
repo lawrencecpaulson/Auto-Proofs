@@ -11,11 +11,11 @@ lemma roth_hasse_tensor_entry:
   assumes mi: "Poly_Mapping.keys \<mu> \<subseteq> {..<n}"
     and pv: "\<And>l. l<k \<Longrightarrow> vars (\<phi> l) \<subseteq> {..<n}"
     and qv: "\<And>l. l<k \<Longrightarrow> vars (\<psi> l) \<subseteq> {n}"
-  shows "roth_hasse (\<mu> + Poly_Mapping.single n j)
+  shows "pjet_hasse (\<mu> + Poly_Mapping.single n j)
     (\<Sum>l<k. \<phi> l * \<psi> l) =
-    (\<Sum>l<k. roth_hasse \<mu> (\<phi> l) *
-      roth_hasse (Poly_Mapping.single n j) (\<psi> l))"
-  by (simp add: roth_hasse_sum
+    (\<Sum>l<k. pjet_hasse \<mu> (\<phi> l) *
+      pjet_hasse (Poly_Mapping.single n j) (\<psi> l))"
+  by (simp add: pjet_hasse_sum
     roth_hasse_disjoint_product[OF mi] pv qv)
 
 lemma roth_tensor_matrix_product:
@@ -26,11 +26,11 @@ lemma roth_tensor_matrix_product:
     and pv: "\<And>l. l<k \<Longrightarrow> vars (\<phi> l) \<subseteq> {..<n}"
     and qv: "\<And>l. l<k \<Longrightarrow> vars (\<psi> l) \<subseteq> {n}"
   shows "mat k k (\<lambda>(i,j).
-      roth_hasse (\<mu> i + Poly_Mapping.single n j)
+      pjet_hasse (\<mu> i + Poly_Mapping.single n j)
         (\<Sum>l<k. \<phi> l * \<psi> l)) =
-    mat k k (\<lambda>(i,l). roth_hasse (\<mu> i) (\<phi> l)) *
+    mat k k (\<lambda>(i,l). pjet_hasse (\<mu> i) (\<phi> l)) *
     mat k k (\<lambda>(l,j).
-      roth_hasse (Poly_Mapping.single n j) (\<psi> l))"
+      pjet_hasse (Poly_Mapping.single n j) (\<psi> l))"
   by (auto simp: mat_eq_iff scalar_prod_def atLeast0LessThan
     roth_hasse_tensor_entry[OF _ pv qv] mi)
 
@@ -56,12 +56,12 @@ theorem roth_tensor_det_factorization:
     and pv: "\<And>l. l<k \<Longrightarrow> vars (\<phi> l) \<subseteq> {..<n}"
     and qv: "\<And>l. l<k \<Longrightarrow> vars (\<psi> l) \<subseteq> {n}"
   shows "det (mat k k (\<lambda>(i,j).
-      roth_hasse (\<mu> i + Poly_Mapping.single n j)
+      pjet_hasse (\<mu> i + Poly_Mapping.single n j)
         (\<Sum>l<k. \<phi> l * \<psi> l))) =
     det (mat k k (\<lambda>(i,l).
-      roth_hasse (\<mu> i) (\<phi> l))) *
+      pjet_hasse (\<mu> i) (\<phi> l))) *
     det (mat k k (\<lambda>(l,j).
-      roth_hasse (Poly_Mapping.single n j) (\<psi> l)))"
+      pjet_hasse (Poly_Mapping.single n j) (\<psi> l)))"
   by (rule roth_det_mat_product)
     (rule roth_tensor_matrix_product[OF mi pv qv])
 
@@ -70,7 +70,7 @@ section \<open>The final-variable Wronskian\<close>
 lemma roth_univariate_hasse_at:
   fixes p :: "rat poly"
   shows "mpoly_to_poly v
-    (roth_hasse (Poly_Mapping.single v k) (poly_to_mpoly v p)) =
+    (pjet_hasse (Poly_Mapping.single v k) (poly_to_mpoly v p)) =
     hderiv k p"
   by (rule poly_eqI)
     (simp add: roth_univariate_hasse_coeff)
@@ -79,7 +79,7 @@ lemma roth_hasse_to_hderiv_at:
   fixes \<psi> :: "rat mpoly"
   assumes qv: "vars \<psi> \<subseteq> {v}"
   shows "mpoly_to_poly v
-    (roth_hasse (Poly_Mapping.single v k) \<psi>) =
+    (pjet_hasse (Poly_Mapping.single v k) \<psi>) =
     hderiv k (mpoly_to_poly v \<psi>)"
   using roth_univariate_hasse_at
     [of v k "mpoly_to_poly v \<psi>"]
@@ -89,16 +89,16 @@ lemma roth_right_entry_eval:
   fixes \<psi> :: "rat mpoly"
   assumes qv: "vars \<psi> \<subseteq> {n}"
   shows "insertion (\<lambda>_. t)
-    (roth_hasse (Poly_Mapping.single n j) \<psi>) =
+    (pjet_hasse (Poly_Mapping.single n j) \<psi>) =
     poly (hderiv j (mpoly_to_poly n \<psi>)) t"
 proof -
-  have hv: "vars (roth_hasse
+  have hv: "vars (pjet_hasse
       (Poly_Mapping.single n j) \<psi>) \<subseteq> {n}"
     using roth_hasse_vars_subset qv by auto
   have eq: "poly (mpoly_to_poly n
-      (roth_hasse (Poly_Mapping.single n j) \<psi>)) t =
+      (pjet_hasse (Poly_Mapping.single n j) \<psi>)) t =
     insertion (\<lambda>_. t)
-      (roth_hasse (Poly_Mapping.single n j) \<psi>)"
+      (pjet_hasse (Poly_Mapping.single n j) \<psi>)"
     by (rule poly_eq_insertion[OF hv])
   show ?thesis
     using eq roth_hasse_to_hderiv_at[OF qv] by simp
@@ -109,7 +109,7 @@ lemma roth_right_eval_matrix:
   assumes qv: "\<And>l. l<k \<Longrightarrow> vars (\<psi> l) \<subseteq> {n}"
   shows "mat k k (\<lambda>(l,j).
       insertion (\<lambda>_. t)
-        (roth_hasse (Poly_Mapping.single n j) (\<psi> l))) =
+        (pjet_hasse (Poly_Mapping.single n j) (\<psi> l))) =
     transpose_mat (mat k k (\<lambda>(j,l).
       poly (hderiv j (mpoly_to_poly n (\<psi> l))) t))"
   by (auto simp: mat_eq_iff roth_right_entry_eval qv)
@@ -119,7 +119,7 @@ lemma roth_right_det_eval:
   assumes qv: "\<And>l. l<k \<Longrightarrow> vars (\<psi> l) \<subseteq> {n}"
   shows "insertion (\<lambda>_. t)
     (det (mat k k (\<lambda>(l,j).
-      roth_hasse (Poly_Mapping.single n j) (\<psi> l)))) =
+      pjet_hasse (Poly_Mapping.single n j) (\<psi> l)))) =
     poly (hwronskian k
       (\<lambda>l. mpoly_to_poly n (\<psi> l))) t"
   by (simp add: roth_insertion_det
@@ -132,7 +132,7 @@ theorem roth_right_det_nonzero:
     and ind: "poly_indep k
       (\<lambda>l. mpoly_to_poly n (\<psi> l))"
   shows "det (mat k k (\<lambda>(l,j).
-    roth_hasse (Poly_Mapping.single n j) (\<psi> l))) \<noteq> 0"
+    pjet_hasse (Poly_Mapping.single n j) (\<psi> l))) \<noteq> 0"
 proof -
   have wr: "hwronskian k
     (\<lambda>l. mpoly_to_poly n (\<psi> l)) \<noteq> 0"
@@ -142,7 +142,7 @@ proof -
     using roth_poly_nonzero_eval[OF wr] by blast
   have ev: "insertion (\<lambda>_. t)
     (det (mat k k (\<lambda>(l,j).
-      roth_hasse (Poly_Mapping.single n j) (\<psi> l)))) =
+      pjet_hasse (Poly_Mapping.single n j) (\<psi> l)))) =
     poly (hwronskian k
       (\<lambda>l. mpoly_to_poly n (\<psi> l))) t"
     by (rule roth_right_det_eval[OF qv])
@@ -151,26 +151,26 @@ qed
 
 lemma roth_box_vars:
   fixes P :: "rat mpoly"
-  assumes "roth_poly_in_box n r P"
+  assumes "pjet_poly_in_box n r P"
   shows "vars P \<subseteq> {..<n}"
   using assms
-  by (auto simp: roth_poly_in_box_def vars_def
-    dest: roth_exponent_boxD(1))
+  by (auto simp: pjet_poly_in_box_def vars_def
+    dest: pjet_exponent_boxD(1))
 
 lemma roth_tensor_box_vars:
   fixes \<phi> :: "nat \<Rightarrow> rat mpoly"
-  assumes box: "\<forall>l<k. roth_poly_in_box n r (\<phi> l)"
+  assumes box: "\<forall>l<k. pjet_poly_in_box n r (\<phi> l)"
     and lk: "l<k"
   shows "vars (\<phi> l) \<subseteq> {..<n}"
 proof -
-  have "roth_poly_in_box n r (\<phi> l)"
+  have "pjet_poly_in_box n r (\<phi> l)"
     using box lk by simp
   then show ?thesis by (rule roth_box_vars)
 qed
 
 theorem roth_tensor_det_nonzero:
   fixes \<phi> \<psi> :: "nat \<Rightarrow> rat mpoly"
-  assumes box: "\<forall>l<k. roth_poly_in_box n r (\<phi> l)"
+  assumes box: "\<forall>l<k. pjet_poly_in_box n r (\<phi> l)"
     and li: "roth_mpoly_indep k \<phi>"
     and qv: "\<And>l. l<k \<Longrightarrow> vars (\<psi> l) \<subseteq> {n}"
     and ri: "poly_indep k
@@ -179,32 +179,32 @@ theorem roth_tensor_det_nonzero:
     (\<forall>i<k. Poly_Mapping.keys (\<mu> i) \<subseteq> {..<n} \<and>
       roth_total_order n (\<mu> i) \<le> i) \<and>
     det (mat k k (\<lambda>(i,j).
-      roth_hasse (\<mu> i + Poly_Mapping.single n j)
+      pjet_hasse (\<mu> i + Poly_Mapping.single n j)
         (\<Sum>l<k. \<phi> l * \<psi> l))) \<noteq> 0"
 proof -
   obtain \<mu> where mb: "\<forall>i<k.
       Poly_Mapping.keys (\<mu> i) \<subseteq> {..<n} \<and>
       roth_total_order n (\<mu> i) \<le> i"
     and lnz: "det (mat k k (\<lambda>(i,l).
-      roth_hasse (\<mu> i) (\<phi> l))) \<noteq> 0"
+      pjet_hasse (\<mu> i) (\<phi> l))) \<noteq> 0"
     using roth_generalized_wronskian[OF box li] by auto
   have mn: "\<And>i. i<k \<Longrightarrow>
     Poly_Mapping.keys (\<mu> i) \<subseteq> {..<n}"
     using mb by auto
   have rnz: "det (mat k k (\<lambda>(l,j).
-    roth_hasse (Poly_Mapping.single n j) (\<psi> l))) \<noteq> 0"
+    pjet_hasse (Poly_Mapping.single n j) (\<psi> l))) \<noteq> 0"
     by (rule roth_right_det_nonzero[OF qv ri])
   have fac: "det (mat k k (\<lambda>(i,j).
-      roth_hasse (\<mu> i + Poly_Mapping.single n j)
+      pjet_hasse (\<mu> i + Poly_Mapping.single n j)
         (\<Sum>l<k. \<phi> l * \<psi> l))) =
     det (mat k k (\<lambda>(i,l).
-      roth_hasse (\<mu> i) (\<phi> l))) *
+      pjet_hasse (\<mu> i) (\<phi> l))) *
     det (mat k k (\<lambda>(l,j).
-      roth_hasse (Poly_Mapping.single n j) (\<psi> l)))"
+      pjet_hasse (Poly_Mapping.single n j) (\<psi> l)))"
     by (rule roth_tensor_det_factorization
       [OF mn roth_tensor_box_vars[OF box] qv])
   have nz: "det (mat k k (\<lambda>(i,j).
-      roth_hasse (\<mu> i + Poly_Mapping.single n j)
+      pjet_hasse (\<mu> i + Poly_Mapping.single n j)
         (\<Sum>l<k. \<phi> l * \<psi> l))) \<noteq> 0"
     using fac lnz rnz by simp
   show ?thesis using mb nz by auto
@@ -311,7 +311,7 @@ lemma roth_basis_det_nonzero:
   assumes fin: "finite B"
     and sub: "B \<subseteq> roth_last_coeff P n ` {..r n}"
     and ind: "roth_vs.independent B"
-    and boxB: "\<forall>b\<in>B. roth_poly_in_box n r b"
+    and boxB: "\<forall>b\<in>B. pjet_poly_in_box n r b"
     and spl: "P = (\<Sum>b\<in>B.
       b * roth_right_factor P n (r n) B b)"
   shows "\<exists>\<mu>.
@@ -319,14 +319,14 @@ lemma roth_basis_det_nonzero:
       Poly_Mapping.keys (\<mu> i) \<subseteq> {..<n} \<and>
       roth_total_order n (\<mu> i) \<le> i) \<and>
     det (mat (card B) (card B) (\<lambda>(i,j).
-      roth_hasse (\<mu> i + Poly_Mapping.single n j) P))
+      pjet_hasse (\<mu> i + Poly_Mapping.single n j) P))
       \<noteq> 0"
 proof -
   let ?k = "card B"
   let ?f = "from_nat_into B"
   have bij: "bij_betw ?f {..<?k} B"
     by (rule Countable_Set.bij_betw_from_nat_into_finite[OF fin])
-  have boxf: "\<forall>l<?k. roth_poly_in_box n r (?f l)"
+  have boxf: "\<forall>l<?k. pjet_poly_in_box n r (?f l)"
     using bij boxB by (auto simp: bij_betw_def)
   have li: "roth_mpoly_indep ?k ?f"
     by (rule roth_indexed_set_indep[OF bij ind])
@@ -340,19 +340,19 @@ qed
 
 theorem roth_box_tensor_det_nonzero:
   fixes P :: "rat mpoly"
-  assumes box: "roth_poly_in_box (Suc n) r P"
+  assumes box: "pjet_poly_in_box (Suc n) r P"
     and nz: "P \<noteq> 0"
   shows "\<exists>k \<mu>.
     0<k \<and> k\<le>Suc (r n) \<and>
     (\<forall>i<k. Poly_Mapping.keys (\<mu> i) \<subseteq> {..<n} \<and> roth_total_order n (\<mu> i) \<le> i) \<and>
-    det (mat k k (\<lambda>(i,j). roth_hasse (\<mu> i + Poly_Mapping.single n j) P)) \<noteq> 0"
+    det (mat k k (\<lambda>(i,j). pjet_hasse (\<mu> i + Poly_Mapping.single n j) P)) \<noteq> 0"
 proof -
   obtain B where
     sub: "B \<subseteq> roth_last_coeff P n ` {..r n}"
     and ne: "B\<noteq>{}"
     and bd: "card B\<le>Suc (r n)"
     and ind: "roth_vs.independent B"
-    and boxB: "\<forall>b\<in>B. roth_poly_in_box n r b"
+    and boxB: "\<forall>b\<in>B. pjet_poly_in_box n r b"
     and spl: "P = (\<Sum>b\<in>B. b * roth_right_factor P n (r n) B b)"
     using roth_tensor_basis_exists[OF box nz]
     unfolding roth_tensor_basis_def by blast

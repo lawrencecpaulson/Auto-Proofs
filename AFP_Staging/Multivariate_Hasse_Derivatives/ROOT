@@ -1,0 +1,12 @@
+chapter AFP
+
+session Multivariate_Hasse_Derivatives (AFP) = "HOL-Computational_Algebra" +
+  options [timeout = 600]
+  sessions
+    Polynomials
+  theories
+    MPoly_Taylor
+    MPoly_Hasse_Derivative
+    MPoly_Hasse_Support
+  document_files
+    "root.tex"

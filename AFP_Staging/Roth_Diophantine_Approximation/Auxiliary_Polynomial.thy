@@ -181,17 +181,17 @@ proof -
 qed
 
 lemma roth_total_exponent_diff_bound:
-  assumes box: "K \<in> roth_exponent_box m r"
+  assumes box: "K \<in> pjet_exponent_box m r"
   shows "roth_total_exponent (K-J) \<le> (\<Sum>v<m. r v)"
 proof -
   have supp: "Poly_Mapping.keys (K-J) \<subseteq> {..<m}"
   proof -
     have "Poly_Mapping.keys (K-J) \<subseteq> Poly_Mapping.keys K"
       by (auto simp: in_keys_iff Poly_Mapping.lookup_minus)
-    then show ?thesis using roth_exponent_boxD(1)[OF box] by blast
+    then show ?thesis using pjet_exponent_boxD(1)[OF box] by blast
   qed
   have point: "Poly_Mapping.lookup (K-J) v \<le> r v" if "v<m" for v
-    using roth_exponent_boxD(2)[OF box that]
+    using pjet_exponent_boxD(2)[OF box that]
     by (simp add: Poly_Mapping.lookup_minus)
   have "(\<Sum>v<m. Poly_Mapping.lookup (K-J) v) \<le>
       (\<Sum>v<m. r v)"
@@ -204,7 +204,7 @@ lemma roth_insertion_diagonal_monom:
   fixes a c :: real
   shows "insertion (\<lambda>_. a) (MPoly_Type.monom K c) =
     c * a ^ roth_total_exponent K"
-  by (simp add: roth_insertion_monom roth_total_exponent_def
+  by (simp add: pjet_insertion_monom roth_total_exponent_def
     power_sum)
 
 definition roth_aux_matrix_entry ::
@@ -212,7 +212,7 @@ definition roth_aux_matrix_entry ::
     (nat \<Rightarrow>\<^sub>0 nat) \<Rightarrow>
     (nat \<Rightarrow>\<^sub>0 nat) \<Rightarrow> nat \<Rightarrow> int" where
   "roth_aux_matrix_entry f d J K j =
-    int (roth_mchoose K J) *
+    int (pjet_mchoose K J) *
       roth_power_coords f d (roth_total_exponent (K-J)) j"
 
 lemma roth_aux_matrix_entry_value:
@@ -220,16 +220,16 @@ lemma roth_aux_matrix_entry_value:
   assumes monic: "Polynomial.lead_coeff f = 1"
     and d: "d = Polynomial.degree f"
     and root: "poly (map_poly of_int f) a = 0"
-  shows "roth_taylor_coeff (\<lambda>_. a) J (MPoly_Type.monom K (1::real)) =
+  shows "pjet_taylor_coeff (\<lambda>_. a) J (MPoly_Type.monom K (1::real)) =
     (\<Sum>j<d. of_int (roth_aux_matrix_entry f d J K j) * a ^ j)"
 proof -
-  have "roth_taylor_coeff (\<lambda>_. a) J (MPoly_Type.monom K (1::real)) =
-      real (roth_mchoose K J) *
+  have "pjet_taylor_coeff (\<lambda>_. a) J (MPoly_Type.monom K (1::real)) =
+      real (pjet_mchoose K J) *
         a ^ roth_total_exponent (K-J)"
-    by (simp add: roth_hasse_eval[symmetric]
-      roth_hasse_monom_exact roth_insertion_diagonal_monom)
+    by (simp add: pjet_hasse_eval[symmetric]
+      pjet_hasse_monom_exact roth_insertion_diagonal_monom)
   also have "\<dots> =
-      real (roth_mchoose K J) *
+      real (pjet_mchoose K J) *
         roth_power_value d
           (roth_power_coords f d (roth_total_exponent (K-J))) a"
     using roth_power_coords_value[OF monic d root] by simp
@@ -245,16 +245,16 @@ lemma roth_aux_matrix_entry_value_int:
   assumes monic: "Polynomial.lead_coeff f = 1"
     and d: "d = Polynomial.degree f"
     and root: "poly (map_poly of_int f) a = 0"
-  shows "roth_taylor_coeff (\<lambda>_. a) J
+  shows "pjet_taylor_coeff (\<lambda>_. a) J
       (MPoly_Type.monom K (of_int c)) =
     (\<Sum>j<d. of_int (c * roth_aux_matrix_entry f d J K j) * a ^ j)"
 proof -
-  have "roth_taylor_coeff (\<lambda>_. a) J
+  have "pjet_taylor_coeff (\<lambda>_. a) J
       (MPoly_Type.monom K (of_int c)) =
-      of_int c * roth_taylor_coeff (\<lambda>_. a) J
+      of_int c * pjet_taylor_coeff (\<lambda>_. a) J
         (MPoly_Type.monom K (1::real))"
-    by (simp add: roth_hasse_eval[symmetric]
-      roth_hasse_monom_exact roth_insertion_diagonal_monom)
+    by (simp add: pjet_hasse_eval[symmetric]
+      pjet_hasse_monom_exact roth_insertion_diagonal_monom)
   also have "\<dots> =
       of_int c *
         (\<Sum>j<d. of_int (roth_aux_matrix_entry f d J K j) * a ^ j)"
@@ -267,24 +267,24 @@ qed
 
 lemma roth_taylor_coeff_sum_finite:
   assumes "finite S"
-  shows "roth_taylor_coeff a I (\<Sum>x\<in>S. P x) =
-    (\<Sum>x\<in>S. roth_taylor_coeff a I (P x))"
-  by (simp add: roth_hasse_eval[symmetric]
-    roth_hasse_sum[OF assms] roth_insertion_sum[OF assms])
+  shows "pjet_taylor_coeff a I (\<Sum>x\<in>S. P x) =
+    (\<Sum>x\<in>S. pjet_taylor_coeff a I (P x))"
+  by (simp add: pjet_hasse_eval[symmetric]
+    pjet_hasse_sum[OF assms] pjet_insertion_sum[OF assms])
 
 lemma roth_aux_matrix_taylor_sum:
   fixes a :: real and f :: "int poly" and q :: nat
   assumes monic: "Polynomial.lead_coeff f = 1"
     and d: "d = Polynomial.degree f"
     and root: "poly (map_poly of_int f) a = 0"
-  shows "roth_taylor_coeff (\<lambda>_. a) J
+  shows "pjet_taylor_coeff (\<lambda>_. a) J
       (\<Sum>t<q. MPoly_Type.monom (K t) (of_int (c t))) =
     (\<Sum>j<d. of_int
       (\<Sum>t<q. roth_aux_matrix_entry f d J (K t) j * c t) * a ^ j)"
 proof -
-  have "roth_taylor_coeff (\<lambda>_. a) J
+  have "pjet_taylor_coeff (\<lambda>_. a) J
       (\<Sum>t<q. MPoly_Type.monom (K t) (of_int (c t))) =
-      (\<Sum>t<q. roth_taylor_coeff (\<lambda>_. a) J
+      (\<Sum>t<q. pjet_taylor_coeff (\<lambda>_. a) J
         (MPoly_Type.monom (K t) (of_int (c t))))"
     by (rule roth_taylor_coeff_sum_finite) simp
   also have "\<dots> =
@@ -307,7 +307,7 @@ qed
 lemma roth_aux_matrix_entry_bound:
   fixes f :: "int poly"
   assumes d: "d = Polynomial.degree f"
-    and box: "K \<in> roth_exponent_box m r"
+    and box: "K \<in> pjet_exponent_box m r"
     and j: "j < d"
   shows "\<bar>roth_aux_matrix_entry f d J K j\<bar> \<le>
     (2 * roth_power_base f) ^ (\<Sum>v<m. r v)"
@@ -329,10 +329,10 @@ proof -
       by (rule power_increasing) (use t roth_power_base_ge_one in auto)
     finally show ?thesis .
   qed
-  have ch: "int (roth_mchoose K J) \<le> int (2 ^ ?R)"
+  have ch: "int (pjet_mchoose K J) \<le> int (2 ^ ?R)"
     using roth_mchoose_box_bound[OF box] by simp
   have "\<bar>roth_aux_matrix_entry f d J K j\<bar> =
-      int (roth_mchoose K J) *
+      int (pjet_mchoose K J) *
         \<bar>roth_power_coords f d (roth_total_exponent (K-J)) j\<bar>"
     by (simp add: roth_aux_matrix_entry_def abs_mult)
   also have "\<dots> \<le> int (2 ^ ?R) * ?B ^ ?R"
@@ -345,12 +345,12 @@ qed
 section \<open>The auxiliary Taylor system\<close>
 
 lemma roth_mchoose_nonzero_box:
-  assumes box: "K \<in> roth_exponent_box m r"
-    and nz: "roth_mchoose K J \<noteq> 0"
-  shows "J \<in> roth_exponent_box m r"
-proof (rule roth_exponent_boxI)
+  assumes box: "K \<in> pjet_exponent_box m r"
+    and nz: "pjet_mchoose K J \<noteq> 0"
+  shows "J \<in> pjet_exponent_box m r"
+proof (rule pjet_exponent_boxI)
   have le: "Poly_Mapping.lookup J v \<le> Poly_Mapping.lookup K v" for v
-    using nz by (meson roth_mchoose_zero not_le)
+    using nz by (meson pjet_mchoose_zero not_le)
   show "Poly_Mapping.keys J \<subseteq> {..<m}"
   proof
     fix v
@@ -362,16 +362,16 @@ proof (rule roth_exponent_boxI)
     then have "v \<in> Poly_Mapping.keys K"
       by (simp add: in_keys_iff)
     then show "v \<in> {..<m}"
-      using roth_exponent_boxD(1)[OF box] by auto
+      using pjet_exponent_boxD(1)[OF box] by auto
   qed
   show "Poly_Mapping.lookup J v \<le> r v" if "v < m" for v
-    using le[of v] roth_exponent_boxD(2)[OF box that]
+    using le[of v] pjet_exponent_boxD(2)[OF box that]
     by linarith
 qed
 
 lemma roth_aux_matrix_entry_outside:
-  assumes box: "K \<in> roth_exponent_box m r"
-    and outside: "J \<notin> roth_exponent_box m r"
+  assumes box: "K \<in> pjet_exponent_box m r"
+    and outside: "J \<notin> pjet_exponent_box m r"
   shows "roth_aux_matrix_entry f d J K j = 0"
   using roth_mchoose_nonzero_box[OF box] outside
   by (auto simp: roth_aux_matrix_entry_def)
@@ -393,14 +393,14 @@ lemma roth_aux_matrix_bounded:
   fixes f :: "int poly"
   assumes d: "d = Polynomial.degree f"
     and dpos: "0 < d"
-    and Ks: "set Ks \<subseteq> roth_exponent_box m r"
+    and Ks: "set Ks \<subseteq> pjet_exponent_box m r"
   shows "roth_aux_matrix f d Is Ks \<in>
     Bounded_mat ((2 * roth_power_base f) ^ (\<Sum>v<m. r v))"
 proof (unfold Bounded_mat_def, intro CollectI allI impI)
   fix u t
   assume u: "u < dim_row (roth_aux_matrix f d Is Ks)"
     and t: "t < dim_col (roth_aux_matrix f d Is Ks)"
-  have kt: "Ks ! t \<in> roth_exponent_box m r"
+  have kt: "Ks ! t \<in> pjet_exponent_box m r"
     using t Ks by (auto simp: roth_aux_matrix_def
       dest: nth_mem)
   have rem: "u mod d < d"
@@ -421,7 +421,7 @@ lemma roth_aux_matrix_kernel_taylor:
     and Ax: "roth_aux_matrix f d Is Ks *\<^sub>v x =
       0\<^sub>v (length Is * d)"
     and i: "i < length Is"
-  shows "roth_taylor_coeff (\<lambda>_. a) (Is ! i)
+  shows "pjet_taylor_coeff (\<lambda>_. a) (Is ! i)
       (\<Sum>t<length Ks. MPoly_Type.monom (Ks ! t) (of_int (x $ t))) = 0"
 proof -
   have row_zero:
@@ -466,9 +466,9 @@ lemma roth_aux_matrix_outside_taylor:
   assumes monic: "Polynomial.lead_coeff f = 1"
     and d: "d = Polynomial.degree f"
     and root: "poly (map_poly of_int f) a = 0"
-    and Ks: "set Ks \<subseteq> roth_exponent_box m r"
-    and outside: "J \<notin> roth_exponent_box m r"
-  shows "roth_taylor_coeff (\<lambda>_. a) J
+    and Ks: "set Ks \<subseteq> pjet_exponent_box m r"
+    and outside: "J \<notin> pjet_exponent_box m r"
+  shows "pjet_taylor_coeff (\<lambda>_. a) J
       (\<Sum>t<length Ks. MPoly_Type.monom (Ks ! t) (of_int (x $ t))) = 0"
 proof -
   have z: "roth_aux_matrix_entry f d J (Ks ! t) j = 0"
@@ -489,7 +489,7 @@ proof -
   have "MPoly_Type.coeff
       (\<Sum>s<length Ks. MPoly_Type.monom (Ks ! s) (x $ s)) (Ks ! t) =
       (\<Sum>s<length Ks. if Ks ! t = Ks ! s then x $ s else 0)"
-    by (simp add: roth_coeff_sum More_MPoly_Type.coeff_monom when_def)
+    by (simp add: pjet_coeff_sum More_MPoly_Type.coeff_monom when_def)
   also have "\<dots> = (\<Sum>s<length Ks. if s = t then x $ s else 0)"
     by (intro sum.cong refl)
       (use dist t in \<open>auto simp: nth_eq_iff_index_eq\<close>)
@@ -513,18 +513,18 @@ proof -
 qed
 
 lemma roth_aux_polynomial_in_box:
-  assumes Ks: "set Ks \<subseteq> roth_exponent_box m r"
-  shows "roth_poly_in_box m r
+  assumes Ks: "set Ks \<subseteq> pjet_exponent_box m r"
+  shows "pjet_poly_in_box m r
     (\<Sum>t<length Ks. MPoly_Type.monom (Ks ! t) (x $ t :: int))"
-  by (rule roth_poly_in_box_sum)
-    (use Ks in \<open>auto intro: roth_poly_in_box_monom dest: nth_mem\<close>)
+  by (rule pjet_poly_in_box_sum)
+    (use Ks in \<open>auto intro: pjet_poly_in_box_monom dest: nth_mem\<close>)
 
 lemma roth_aux_polynomial_cast:
   fixes x :: "int vec"
   shows "replace_coeff of_int
       (\<Sum>t<length Ks. MPoly_Type.monom (Ks ! t) (x $ t)) =
     (\<Sum>t<length Ks. MPoly_Type.monom (Ks ! t) (real_of_int (x $ t)))"
-  by (simp add: roth_replace_coeff_sum replace_coeff_monom)
+  by (simp add: pjet_replace_coeff_sum replace_coeff_monom)
 
 context
   fixes f :: "int poly" and a :: real
@@ -542,13 +542,13 @@ begin
 
 corollary roth_auxiliary_polynomial_monic_exp:
   shows "\<exists>P :: int mpoly.
-    P \<noteq> 0 \<and> roth_poly_in_box m r P \<and>
+    P \<noteq> 0 \<and> pjet_poly_in_box m r P \<and>
     ereal (real m * (1-\<epsilon>) / 2) \<le>
       roth_index m r (\<lambda>_. a) (replace_coeff of_int P) \<and>
     (\<forall>K. \<bar>MPoly_Type.coeff P K\<bar> \<le>
       2 * (4 * roth_power_base f) ^ (\<Sum>v<m. r v))"
 proof -
-  let ?S = "roth_exponent_box m r"
+  let ?S = "pjet_exponent_box m r"
   let ?C = "{J \<in> ?S. roth_weight m r J < real m * (1-\<epsilon>) / 2}"
   let ?B = "(2 * roth_power_base f) ^ (\<Sum>v<m. r v)"
   have Cfin: "finite ?C"
@@ -556,11 +556,11 @@ proof -
   obtain Is where Is: "set Is = ?C" "distinct Is"
     using finite_distinct_list[OF Cfin] by blast
   obtain Ks where Ks: "set Ks = ?S" "distinct Ks"
-    using finite_distinct_list[OF finite_roth_exponent_box] by blast
+    using finite_distinct_list[OF finite_pjet_exponent_box] by blast
   have Ksbox: "set Ks \<subseteq> ?S"
     using Ks by simp
   have onebox: "(0::nat \<Rightarrow>\<^sub>0 nat) \<in> ?S"
-    by (rule roth_exponent_boxI) simp_all
+    by (rule pjet_exponent_boxI) simp_all
   have theta_pos: "0 < real m * (1-\<epsilon>) / 2"
     using mpos elt by simp
   have oneC: "(0::nat \<Rightarrow>\<^sub>0 nat) \<in> ?C"
@@ -612,7 +612,7 @@ proof -
     "P = (\<Sum>t<length Ks. MPoly_Type.monom (Ks ! t) (x $ t))"
   have Pnz: "P \<noteq> 0"
     unfolding P_def by (rule roth_aux_polynomial_nonzero[OF Ks(2) xcar xnz])
-  have Pbox: "roth_poly_in_box m r P"
+  have Pbox: "pjet_poly_in_box m r P"
     unfolding P_def by (rule roth_aux_polynomial_in_box[OF Ksbox])
   have Preal: "replace_coeff of_int P =
       (\<Sum>t<length Ks.
@@ -626,7 +626,7 @@ proof -
       ereal (real m * (1-\<epsilon>) / 2)"
     then have w: "roth_weight m r J < real m * (1-\<epsilon>) / 2"
       by simp
-    show "roth_taylor_coeff (\<lambda>_. a) J (replace_coeff of_int P) = 0"
+    show "pjet_taylor_coeff (\<lambda>_. a) J (replace_coeff of_int P) = 0"
     proof (cases "J \<in> ?S")
       case True
       then have "J \<in> ?C"
@@ -662,7 +662,7 @@ proof -
   next
     case False
     then have "MPoly_Type.coeff P K = 0"
-      by (rule roth_coeff_zero_outside_box[OF Pbox])
+      by (rule pjet_coeff_zero_outside_box[OF Pbox])
     then show ?thesis using Bge by simp
   qed
   let ?R = "\<Sum>v<m. r v"

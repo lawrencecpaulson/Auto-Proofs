@@ -43,12 +43,12 @@ proof (rule inj_onI)
 qed
 
 lemma roth_exponent_box_image:
-  "roth_exponent_box m r =
+  "pjet_exponent_box m r =
     roth_box_of m ` (\<Pi>\<^sub>E v \<in> {..<m}. {..r v})"
-  by (simp add: roth_exponent_box_def roth_box_of_def)
+  by (simp add: pjet_exponent_box_def roth_box_of_def)
 
 lemma roth_exponent_box_card:
-  "card (roth_exponent_box m r) = (\<Prod>v<m. Suc (r v))"
+  "card (pjet_exponent_box m r) = (\<Prod>v<m. Suc (r v))"
   unfolding roth_exponent_box_image
   by (simp add: card_image roth_box_of_inj card_PiE)
 
@@ -67,7 +67,7 @@ next
 qed
 
 lemma roth_exponent_box_card_exp_bound:
-  "card (roth_exponent_box m r) \<le>
+  "card (pjet_exponent_box m r) \<le>
     (2::nat) ^ (\<Sum>v<m. r v)"
 proof -
   have "(\<Prod>v<m. Suc (r v)) \<le> (\<Prod>v<m. (2::nat) ^ r v)"
@@ -77,7 +77,7 @@ proof -
 qed
 
 lemma roth_exponent_box_card_pos:
-  "0 < card (roth_exponent_box m r)"
+  "0 < card (pjet_exponent_box m r)"
   by (simp add: roth_exponent_box_card)
 
 definition roth_center ::
@@ -292,12 +292,12 @@ qed
 
 lemma roth_box_second_moment:
   assumes pos: "\<And>v. v < m \<Longrightarrow> 0 < r v"
-  shows "(\<Sum>I\<in>roth_exponent_box m r.
+  shows "(\<Sum>I\<in>pjet_exponent_box m r.
       (roth_weight m r I - real m / 2)\<^sup>2) \<le>
-    real (card (roth_exponent_box m r)) * real m / 4"
+    real (card (pjet_exponent_box m r)) * real m / 4"
 proof -
   let ?F = "(\<Pi>\<^sub>E v \<in> {..<m}. {..r v})"
-  have reindex: "(\<Sum>I\<in>roth_exponent_box m r.
+  have reindex: "(\<Sum>I\<in>pjet_exponent_box m r.
       (roth_weight m r I - real m / 2)\<^sup>2) =
     (\<Sum>f\<in>?F.
       (roth_weight m r (roth_box_of m f) - real m / 2)\<^sup>2)"
@@ -308,7 +308,7 @@ proof -
     real (card ?F) * real m / 4"
     using roth_grid_second_moment[of "{..<m}" r] pos
     by simp
-  have card_eq: "card ?F = card (roth_exponent_box m r)"
+  have card_eq: "card ?F = card (pjet_exponent_box m r)"
     by (simp add: roth_exponent_box_card card_PiE)
   show ?thesis using reindex grid card_eq
     by (simp add: roth_box_centered_weight)
@@ -318,16 +318,16 @@ definition roth_low_indices ::
   "nat \<Rightarrow> (nat \<Rightarrow> nat) \<Rightarrow> real \<Rightarrow>
     (nat \<Rightarrow>\<^sub>0 nat) set" where
   "roth_low_indices m r eps =
-    {I \<in> roth_exponent_box m r.
+    {I \<in> pjet_exponent_box m r.
       roth_weight m r I \<le> real m * (1-eps) / 2}"
 
 lemma finite_roth_low_indices [simp]:
   "finite (roth_low_indices m r eps)"
   unfolding roth_low_indices_def
-  by (rule finite_subset[OF _ finite_roth_exponent_box]) auto
+  by (rule finite_subset[OF _ finite_pjet_exponent_box]) auto
 
 lemma roth_low_indices_subset:
-  "roth_low_indices m r eps \<subseteq> roth_exponent_box m r"
+  "roth_low_indices m r eps \<subseteq> pjet_exponent_box m r"
   by (auto simp: roth_low_indices_def)
 
 lemma roth_low_indices_count:
@@ -336,10 +336,10 @@ lemma roth_low_indices_count:
     and epos: "0 < eps"
   shows "real (card (roth_low_indices m r eps)) *
       real m * eps\<^sup>2 \<le>
-    real (card (roth_exponent_box m r))"
+    real (card (pjet_exponent_box m r))"
 proof -
   let ?L = "roth_low_indices m r eps"
-  let ?B = "roth_exponent_box m r"
+  let ?B = "pjet_exponent_box m r"
   have low_square: "(real m * eps / 2)\<^sup>2 \<le>
     (roth_weight m r I - real m / 2)\<^sup>2"
     if I: "I \<in> ?L" for I
@@ -369,7 +369,7 @@ proof -
       (roth_weight m r I - real m / 2)\<^sup>2) \<le>
     (\<Sum>I\<in>?B.
       (roth_weight m r I - real m / 2)\<^sup>2)"
-    by (rule sum_mono2[OF finite_roth_exponent_box
+    by (rule sum_mono2[OF finite_pjet_exponent_box
       roth_low_indices_subset]) simp
   have box_moment: "(\<Sum>I\<in>?B.
       (roth_weight m r I - real m / 2)\<^sup>2) \<le>
@@ -393,7 +393,7 @@ lemma roth_low_indices_dimension:
     and epos: "0 < eps"
     and gap: "2 * real d < real m * eps\<^sup>2"
   shows "2 * d * card (roth_low_indices m r eps) <
-    card (roth_exponent_box m r)"
+    card (pjet_exponent_box m r)"
 proof (cases "card (roth_low_indices m r eps) = 0")
   case True
   then show ?thesis using roth_exponent_box_card_pos[of m r]
@@ -409,15 +409,15 @@ next
     by (rule mult_strict_right_mono[OF gap cpos])
   have bound: "(real m * eps\<^sup>2) *
       real (card (roth_low_indices m r eps)) \<le>
-    real (card (roth_exponent_box m r))"
+    real (card (pjet_exponent_box m r))"
     using roth_low_indices_count[OF mpos rpos epos]
     by (simp add: mult_ac)
   have h: "(2 * real d) *
       real (card (roth_low_indices m r eps)) <
-    real (card (roth_exponent_box m r))"
+    real (card (pjet_exponent_box m r))"
     using strict bound by linarith
   have cast: "real (2 * d * card (roth_low_indices m r eps)) <
-    real (card (roth_exponent_box m r))"
+    real (card (pjet_exponent_box m r))"
     using h by (simp add: mult_ac)
   show ?thesis by (rule of_nat_less_imp_less[OF cast])
 qed
@@ -428,11 +428,11 @@ lemma roth_taylor_conditions_dimension:
     and epos: "0 < eps"
     and gap: "2 * real d < real m * eps\<^sup>2"
   shows "2 * d *
-    card {I \<in> roth_exponent_box m r.
+    card {I \<in> pjet_exponent_box m r.
       roth_weight m r I < real m * (1-eps) / 2} <
-    card (roth_exponent_box m r)"
+    card (pjet_exponent_box m r)"
 proof -
-  let ?C = "{I \<in> roth_exponent_box m r.
+  let ?C = "{I \<in> pjet_exponent_box m r.
     roth_weight m r I < real m * (1-eps) / 2}"
   have sub: "?C \<subseteq> roth_low_indices m r eps"
     by (auto simp: roth_low_indices_def)
@@ -441,7 +441,7 @@ proof -
   have "2 * d * card ?C \<le>
     2 * d * card (roth_low_indices m r eps)"
     using cards by (simp add: mult_le_mono1)
-  also have "\<dots> < card (roth_exponent_box m r)"
+  also have "\<dots> < card (pjet_exponent_box m r)"
     by (rule roth_low_indices_dimension[OF mpos rpos epos gap])
   finally show ?thesis .
 qed
