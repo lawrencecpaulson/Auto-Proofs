@@ -524,24 +524,24 @@ qed
 
 lemma pjet_hasse_monom_zero:
   fixes c :: "'a::idom"
-  assumes gt: "Poly_Mapping.lookup K v < Poly_Mapping.lookup J v"
+  assumes "Poly_Mapping.lookup K v < Poly_Mapping.lookup J v"
   shows "pjet_hasse J (monom K c) = 0"
 proof -
   have "coeff (pjet_hasse J (monom K c)) I = 0" for I
-    using gt by (metis add.commute lookup_add not_add_less1 pjet_hasse_monom_diagonal)
+    using assms by (metis add.commute lookup_add not_add_less1 pjet_hasse_monom_diagonal)
   then show ?thesis
     by (simp add: coeff_eq[symmetric] fun_eq_iff coeff_def zero_mpoly.rep_eq)
 qed
 
 lemma pjet_mchoose_zero:
-  assumes gt: "Poly_Mapping.lookup K v < Poly_Mapping.lookup J v"
+  assumes "Poly_Mapping.lookup K v < Poly_Mapping.lookup J v"
   shows "pjet_mchoose K J = 0"
 proof -
   have vin: "v \<in> Poly_Mapping.keys K \<union> Poly_Mapping.keys J"
-    using gt by (auto simp: in_keys_iff)
+    using assms by (auto simp: in_keys_iff)
   have "(\<Prod>w\<in>Poly_Mapping.keys K \<union> Poly_Mapping.keys J.
     Poly_Mapping.lookup K w choose Poly_Mapping.lookup J w) = 0"
-    by (rule prod_zero) (use vin gt in auto)
+    by (rule prod_zero) (use vin assms in auto)
   then show ?thesis by (simp only: pjet_mchoose_def)
 qed
 
@@ -692,9 +692,9 @@ lemma pjet_coeff_smult_rat:
 
 lemma pjet_hasse_coeff_support:
   fixes P :: "'a::idom mpoly"
-  assumes nz: "coeff (pjet_hasse J P) I \<noteq> 0"
+  assumes "coeff (pjet_hasse J P) I \<noteq> 0"
   shows "coeff P (I + J) \<noteq> 0"
-  using nz by (auto simp: pjet_hasse_coeff_exact)
+  using assms by (auto simp: pjet_hasse_coeff_exact)
 
 lemma pjet_poly_in_box_mono:
   fixes P :: "'a::comm_ring_1 mpoly"
@@ -743,9 +743,9 @@ qed
 
 lemma pjet_hasse_preserves_box:
   fixes P :: "'a::idom mpoly"
-  assumes box: "pjet_poly_in_box m r P"
+  assumes "pjet_poly_in_box m r P"
   shows "pjet_poly_in_box m r (pjet_hasse J P)"
-  by (rule pjet_poly_in_box_mono[OF pjet_hasse_in_box[OF box]]) simp
+  by (rule pjet_poly_in_box_mono[OF pjet_hasse_in_box[OF assms]]) simp
 
 
 end

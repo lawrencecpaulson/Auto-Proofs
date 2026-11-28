@@ -563,7 +563,7 @@ lemma pheight_vars_cast:
 
 lemma pheight_cast_nonzero:
   fixes P :: "int mpoly"
-  assumes p: "P \<noteq> 0"
+  assumes "P \<noteq> 0"
   shows "(replace_coeff of_int P :: rat mpoly) \<noteq> 0"
 proof
   assume z: "(replace_coeff of_int P :: rat mpoly) = 0"
@@ -571,7 +571,7 @@ proof
     using z by simp
   then have "P = 0"
     by (metis pheight_cast_smult_inject mult_eq_0_iff of_int_0 smult_conv_mult)
-  then show False using p by simp
+  then show False using assms by simp
 qed
 
 lemma pheight_smult_nonzero_rat:

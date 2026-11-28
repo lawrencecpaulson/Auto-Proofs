@@ -90,13 +90,13 @@ definition mwr_ksubst where
 
 lemma mwr_ksubst_box:
   fixes P :: "rat mpoly"
-  assumes box: "pjet_poly_in_box m r P"
+  assumes "pjet_poly_in_box m r P"
   shows "mwr_ksubst m B P =
     (\<Sum>I\<in>pjet_exponent_box m r. Polynomial.monom (MPoly_Type.coeff P I) (mwr_kronecker m B I))"
   unfolding mwr_ksubst_def
 proof (intro sum.mono_neutral_cong_left)
   show "Poly_Mapping.keys (mapping_of P) \<subseteq> pjet_exponent_box m r"
-    using box by (simp add: pjet_poly_in_box_def)
+    using assms by (simp add: pjet_poly_in_box_def)
 qed (auto simp: coeff_keys)
 
 lemma mwr_ksubst_add:
@@ -111,9 +111,9 @@ lemma mwr_ksubst_add:
 
 lemma mwr_box_smult:
   fixes P :: "rat mpoly"
-  assumes box: "pjet_poly_in_box m r P"
+  assumes "pjet_poly_in_box m r P"
   shows "pjet_poly_in_box m r (MPoly_Type.smult c P)"
-  using box by (auto simp: pjet_poly_in_box_def in_keys_iff
+  using assms by (auto simp: pjet_poly_in_box_def in_keys_iff
     MPoly_Type.coeff_def[symmetric] pjet_coeff_smult_rat)
 
 lemma mwr_sum_smult:
@@ -248,10 +248,10 @@ lemma mwr_mchoose_single_one:
 
 lemma mwr_single_sub_add:
   fixes I :: "(nat,nat) poly_mapping"
-  assumes h: "0 < Poly_Mapping.lookup I v"
+  assumes "0 < Poly_Mapping.lookup I v"
   shows "I - Poly_Mapping.single v 1 + Poly_Mapping.single v 1 = I"
   by (rule Poly_Mapping.poly_mapping_eqI)
-    (use h in \<open>auto simp: lookup_add lookup_minus
+    (use assms in \<open>auto simp: lookup_add lookup_minus
       lookup_single when_def; presburger\<close>)
 
 lemma mwr_hasse_monom_single_one:
@@ -538,13 +538,13 @@ next
 qed
 
 lemma mwr_jet_word_bounds:
-  assumes h: "xs \<in> mwr_jet_words m i"
+  assumes "xs \<in> mwr_jet_words m i"
   shows "Poly_Mapping.keys (mwr_jet_index xs) \<subseteq> {..<m}"
     "mwr_total_order m (mwr_jet_index xs) \<le> i"
 proof -
   have s: "set xs \<subseteq> mwr_jet_alphabet m"
     and len: "length xs = i"
-    using h by (auto simp: mwr_jet_words_def)
+    using assms by (auto simp: mwr_jet_words_def)
   show "Poly_Mapping.keys (mwr_jet_index xs) \<subseteq> {..<m}"
     by (rule mwr_jet_index_support[OF s])
   show "mwr_total_order m (mwr_jet_index xs) \<le> i"
@@ -608,7 +608,7 @@ qed
 section \<open>Evaluation of Kronecker substitution\<close>
 
 lemma mwr_kronecker_keys:
-  assumes h: "Poly_Mapping.keys I \<subseteq> {..<m}"
+  assumes "Poly_Mapping.keys I \<subseteq> {..<m}"
   shows "mwr_kronecker m B I = (\<Sum>v\<in>Poly_Mapping.keys I. Poly_Mapping.lookup I v * B^v)"
 proof -
   have z: "\<forall>v\<in>{..<m} - Poly_Mapping.keys I.
@@ -616,7 +616,7 @@ proof -
     by (simp add: not_in_keys_iff_lookup_eq_zero)
   have eq: "(\<Sum>v\<in>Poly_Mapping.keys I. Poly_Mapping.lookup I v * B^v) =
     (\<Sum>v<m. Poly_Mapping.lookup I v * B^v)"
-    by (rule sum.mono_neutral_left[OF _ h z]) simp
+    by (rule sum.mono_neutral_left[OF _ assms z]) simp
   show ?thesis using eq
     by (simp add: mwr_kronecker_def mwr_digits_def)
 qed
@@ -628,9 +628,9 @@ lemma mwr_kronecker_power_prod:
 
 lemma mwr_insertion_kronecker_monom:
   fixes c t :: rat
-  assumes supp: "Poly_Mapping.keys I \<subseteq> {..<m}"
+  assumes "Poly_Mapping.keys I \<subseteq> {..<m}"
   shows "insertion (\<lambda>v. t^(B^v)) (MPoly_Type.monom I c) = c * t^(mwr_kronecker m B I)"
-  by (simp add: pjet_insertion_monom mwr_kronecker_keys[OF supp] mwr_kronecker_power_prod)
+  by (simp add: pjet_insertion_monom mwr_kronecker_keys[OF assms] mwr_kronecker_power_prod)
 
 lemma mwr_insertion_monom_sum:
   fixes P :: "rat mpoly"
@@ -653,9 +653,9 @@ lemma mwr_box_monom_support:
   by (auto simp: pjet_poly_in_box_def dest: pjet_exponent_boxD)
 
 lemma mwr_box_support_all:
-  assumes box: "pjet_poly_in_box m r P"
+  assumes "pjet_poly_in_box m r P"
   shows "\<forall>I\<in>Poly_Mapping.keys (mapping_of P). Poly_Mapping.keys I \<subseteq> {..<m}"
-  using box by (auto dest: mwr_box_monom_support)
+  using assms by (auto dest: mwr_box_monom_support)
 
 lemma mwr_ksubst_eval_insertion:
   fixes P :: "rat mpoly"

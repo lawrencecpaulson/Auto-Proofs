@@ -202,9 +202,9 @@ lemma hderiv_lead_coeff:
 
 lemma coeff_prod_top:
   fixes f :: "'i \<Rightarrow> rat poly"
-  assumes nz: "\<forall>i\<in>S. f i \<noteq> 0"
+  assumes "\<forall>i\<in>S. f i \<noteq> 0"
   shows "Polynomial.coeff (\<Prod>i\<in>S. f i) (\<Sum>i\<in>S. degree (f i)) = (\<Prod>i\<in>S. lead_coeff (f i))"
-  using degree_prod_eq_sum_degree[of S f] lead_coeff_prod[of f S] nz by force
+  using degree_prod_eq_sum_degree[of S f] lead_coeff_prod[of f S] assms by force
 
 lemma permutes_bounded:
   assumes q: "q permutes {..<k}" and i: "i<k"
@@ -267,17 +267,17 @@ qed
 
 lemma wr_term_bad:
   fixes p :: "nat \<Rightarrow> rat poly"
-  assumes bad: "\<exists>i<k. degree (p (q i)) < i"
+  assumes "\<exists>i<k. degree (p (q i)) < i"
   shows "(\<Prod>i<k. hderiv i (p (q i))) = 0 \<and>
     (\<Prod>i<k. of_nat (degree (p (q i)) choose i)::rat) = 0"
-using bad by force
+using assms by force
 
 lemma wr_term_bad_coeff:
   fixes p :: "nat \<Rightarrow> rat poly"
-  assumes bad: "\<exists>i<k. degree (p (q i)) < i"
+  assumes "\<exists>i<k. degree (p (q i)) < i"
   shows "Polynomial.coeff (\<Prod>i<k. hderiv i (p (q i))) M =
          (\<Prod>j<k. lead_coeff (p j)) * (\<Prod>i<k. of_nat (degree (p (q i)) choose i))"
-by (simp add: bad wr_term_bad)
+by (simp add: assms wr_term_bad)
 
 lemma wr_term:
   fixes p :: "nat \<Rightarrow> rat poly"
@@ -315,11 +315,11 @@ lemma coeff_signof_mult:
 
 lemma wr_top_coeff:
   fixes p :: "nat \<Rightarrow> rat poly"
-  assumes pnz: "\<forall>j<k. p j \<noteq> 0"
+  assumes "\<forall>j<k. p j \<noteq> 0"
   shows "Polynomial.coeff (hwronskian k p)
     ((\<Sum>j<k. degree (p j)) - (\<Sum>i<k. i)) =
     (\<Prod>j<k. lead_coeff (p j)) * det (mat k k (\<lambda>(i,j). (of_nat (degree (p j) choose i)::rat)))"
-  using pnz
+  using assms
   by (simp add: hwronskian_def det_mat_expansion
     coeff_sum coeff_signof_mult wr_term
     sum_distrib_left algebra_simps)
