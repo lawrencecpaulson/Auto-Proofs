@@ -309,10 +309,10 @@ proof (rule Poly_Mapping.poly_mapping_eqI)
       (\<Sum>w\<in>S.
         Poly_Mapping.single w (Poly_Mapping.lookup J w)) v =
     (if v \<in> S then Poly_Mapping.lookup J v else 0)"
-    using assms(1)
+    using \<open>finite S\<close>
     by (simp add: Poly_Mapping.lookup_sum lookup_term sum.If_cases)
   also have "\<dots> = Poly_Mapping.lookup J v"
-    using assms(2) by (auto simp: not_in_keys_iff_lookup_eq_zero)
+    using \<open>Poly_Mapping.keys J \<subseteq> S\<close> by (auto simp: not_in_keys_iff_lookup_eq_zero)
   finally show "Poly_Mapping.lookup
       (\<Sum>w\<in>S.
         Poly_Mapping.single w (Poly_Mapping.lookup J w)) v =
@@ -527,9 +527,9 @@ lemma pjet_hasse_monom_zero:
   assumes gt: "Poly_Mapping.lookup K v < Poly_Mapping.lookup J v"
   shows "pjet_hasse J (monom K c) = 0"
 proof -
-  have z: "coeff (pjet_hasse J (monom K c)) I = 0" for I
+  have "coeff (pjet_hasse J (monom K c)) I = 0" for I
     using gt by (metis add.commute lookup_add not_add_less1 pjet_hasse_monom_diagonal)
-  show ?thesis using z
+  then show ?thesis
     by (simp add: coeff_eq[symmetric] fun_eq_iff coeff_def zero_mpoly.rep_eq)
 qed
 

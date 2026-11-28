@@ -351,15 +351,13 @@ proof (induction P rule: mpoly_induct)
   case (monom I c)
   have lift: "pjet_lift (monom I c) = monom I (Const c)"
     by (simp add: pjet_lift_def replace_coeff_monom)
-  have poly: "monom I c =
-    Const c * (\<Prod>v\<in>Poly_Mapping.keys I.
-      Var v ^ Poly_Mapping.lookup I v)"
-    using pjet_mpoly_subst_monom[of Var I c] by simp
-  have lhs: "insertion Var (pjet_lift (monom I c)) =
+  have "insertion Var (pjet_lift (monom I c)) =
     Const c * (\<Prod>v\<in>Poly_Mapping.keys I.
       Var v ^ Poly_Mapping.lookup I v)"
     by (simp only: lift pjet_insertion_monom)
-  show ?case using lhs poly by simp
+  also have "\<dots> = monom I c"
+    using pjet_mpoly_subst_monom[of Var I c] by simp
+  finally show ?case .
 next
   case (sum P Q I c)
   then show ?case

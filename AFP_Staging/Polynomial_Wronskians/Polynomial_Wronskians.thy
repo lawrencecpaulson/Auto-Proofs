@@ -392,9 +392,9 @@ proof
     by (rule sum.cong) auto
   have s: "(\<Sum>i<k. Polynomial.smult (?c i) (p i)) = 0"
     using z eq j by auto
-  have h: "\<forall>i<k. ?c i = 0"
+  have "\<forall>i<k. ?c i = 0"
     by (rule poly_indepD[OF ind s])
-  show False using h j by auto
+  then show False using j by auto
 qed
 
 lemma poly_sum_addcol:
@@ -445,9 +445,9 @@ proof (intro allI impI)
     using eq z by simp
   have dz: "\<forall>i<k. ?d i = 0"
     by (rule poly_indepD[OF ind sz])
-  have cz: "\<forall>i<k. c i = 0"
+  have "\<forall>i<k. c i = 0"
     by (rule coeff_update_zero[OF dz a b ne])
-  show "c j = 0" using cz j by blast
+  then show "c j = 0" using j by blast
 qed
 
 lemma degree_sum_update_strict:

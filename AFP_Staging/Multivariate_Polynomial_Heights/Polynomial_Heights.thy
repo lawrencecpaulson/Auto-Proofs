@@ -259,12 +259,12 @@ proof -
     using pheight_coeffs_nonempty[OF p] by blast
   have cnz: "c \<noteq> 0"
     using c by (auto simp: coeffs.rep_eq Poly_Mapping.range.rep_eq)
-  have cge: "1 \<le> nat (abs c)" using cnz by simp
-  have m: "nat (abs c) \<le> Max ((\<lambda>c. nat (abs c)) ` coeffs P)"
+  have "1 \<le> nat (abs c)" using cnz by simp
+  moreover have "nat (abs c) \<le> Max ((\<lambda>c. nat (abs c)) ` coeffs P)"
     by (rule Max_ge) (use c in auto)
-  have ne: "((\<lambda>c. nat (abs c)) ` coeffs P) \<noteq> {}"
+  moreover have "((\<lambda>c. nat (abs c)) ` coeffs P) \<noteq> {}"
     using pheight_coeffs_nonempty[OF p] by auto
-  show ?thesis using cge m ne
+  ultimately show ?thesis
     by (simp add: pheight_int_coeff_sup_def)
 qed
 
@@ -394,12 +394,12 @@ lemma pheight_smult_nonzero:
   shows "smult d P \<noteq> 0"
 proof
   assume z: "smult d P = 0"
-  have ci: "coeff P I = 0" for I
+  have "coeff P I = 0" for I
     using arg_cong[OF z, of "\<lambda>P. coeff P I"] pheight_coeff_zero[of I] d
     by (simp add: pheight_coeff_smult)
-  have zp: "P = 0" using ci pheight_coeff_zero
+  then have "P = 0" using pheight_coeff_zero
     by (simp add: coeff_eq[symmetric] fun_eq_iff)
-  show False using p zp by simp
+  then show False using p by simp
 qed
 
 lemma pheight_content_dvd_coeff:
@@ -436,12 +436,12 @@ proof -
     using pheight_coeffs_nonempty[OF p] by blast
   have cnz: "c \<noteq> 0" using c
     by (auto simp: coeffs.rep_eq Poly_Mapping.range.rep_eq)
-  have g: "Gcd (coeffs P) \<noteq> 0"
+  have "Gcd (coeffs P) \<noteq> 0"
     using Gcd_dvd[OF c] cnz by auto
-  have nonneg: "0 \<le> Gcd (coeffs P)"
+  moreover have "0 \<le> Gcd (coeffs P)"
     using normalize_Gcd[of "coeffs P"]
     by (metis abs_ge_zero normalize_int_def)
-  show ?thesis using g nonneg by linarith
+  ultimately show ?thesis by linarith
 qed
 
 lemma pheight_sdiv_primitive:
@@ -506,9 +506,9 @@ proof -
   proof -
     have ieq: "b * coeff Q I = a * coeff P I"
       using rat[of I] by (metis of_int_eq_iff)
-    have bd: "b dvd a * coeff P I"
+    have "b dvd a * coeff P I"
       using ieq by (metis dvd_triv_left)
-    show ?thesis using bd quotient_of_coprime[OF quot]
+    then show ?thesis using quotient_of_coprime[OF quot]
       by (simp add: coprime_commute coprime_dvd_mult_right_iff)
   qed
   have gcd: "b dvd Gcd (coeffs P)"

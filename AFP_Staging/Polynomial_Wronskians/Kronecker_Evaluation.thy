@@ -162,11 +162,11 @@ lemma mwr_ksubst_coeff:
   shows "Polynomial.coeff (mwr_ksubst m B P) (mwr_kronecker m B I) = MPoly_Type.coeff P I"
 proof -
   let ?K = "Poly_Mapping.keys (mapping_of P)"
-  have kij: "\<And>J. J \<in> ?K \<Longrightarrow>
+  have "\<And>J. J \<in> ?K \<Longrightarrow>
       mwr_kronecker m B J = mwr_kronecker m B I \<longleftrightarrow> J = I"
     using mwr_kronecker_inj[OF pos B _ I] box
     by (auto simp: pjet_poly_in_box_def)
-  show ?thesis using kij
+  then show ?thesis
     by (simp add: mwr_ksubst_def coeff_sum coeff_def not_in_keys_iff_lookup_eq_zero)
 qed
 
@@ -346,14 +346,13 @@ lemma mwr_ksubst_chain_sum:
         (pjet_hasse (Poly_Mapping.single v 1) (\<Sum>i\<in>S. P i)))"
 proof -
   let ?w = "\<lambda>v. Polynomial.monom (of_nat (B^v)) (B^v-1)"
-  have b: "pderiv (mwr_ksubst m B (\<Sum>i\<in>S. P i)) =
+  have "pderiv (mwr_ksubst m B (\<Sum>i\<in>S. P i)) =
       (\<Sum>i\<in>S. pderiv (mwr_ksubst m B (P i)))"
     by (simp add: mwr_ksubst_sum[OF fin box] mwr_poly_pderiv_sum[OF fin])
-  have c: "(\<Sum>i\<in>S. pderiv (mwr_ksubst m B (P i))) =
-      (\<Sum>i\<in>S. \<Sum>v<m. ?w v *
+  also have "\<dots> = (\<Sum>i\<in>S. \<Sum>v<m. ?w v *
         mwr_ksubst m B (pjet_hasse (Poly_Mapping.single v 1) (P i)))"
     by (use chain in auto)
-  show ?thesis using b c mwr_poly_weighted_sum_swap[OF fin] mwr_ksubst_hasse_sum[OF fin box]
+  finally show ?thesis using mwr_poly_weighted_sum_swap[OF fin] mwr_ksubst_hasse_sum[OF fin box]
     by simp
 qed
 
