@@ -101,61 +101,6 @@ proof -
   show ?thesis by (rule antisym[OF ub lb])
 qed
 
-lemma roth_univariate_index_bound_at:
-  fixes P :: "rat mpoly" and r :: "nat \<Rightarrow> nat"
-  assumes P: "P \<noteq> 0" and pv: "vars P \<subseteq> {v}"
-    and vm: "v<m" and rp: "r v > 0"
-    and deg: "Polynomial.degree (mpoly_to_poly v P) \<le> r v"
-    and \<eta>: "\<eta> > 0"
-    and h: "pheight_proj_log_height P + real (r v) \<le>
-      \<eta> * real (r v) * pheight_rat_log_height (a v)"
-  shows "roth_index m r a P \<le> ereal \<eta>"
-proof -
-  let ?p = "mpoly_to_poly v P"
-  have pn: "?p \<noteq> 0"
-    by (rule roth_mpoly_to_poly_nonzero[OF P pv])
-  have peq: "poly_to_mpoly v ?p = P"
-    by (rule mpoly_to_poly_inverse[OF pv])
-  have rpos: "(0::real) < real (r v)" using rp by simp
-  have posprod: "0 < \<eta> * real (r v) * pheight_rat_log_height (a v)"
-    using h rpos pheight_proj_log_height_nonneg[of P] by linarith
-  have ep: "0 < \<eta> * real (r v)" using \<eta> rpos by simp
-  have hp: "0 < pheight_rat_log_height (a v)"
-    using posprod ep by (auto simp: zero_less_mult_iff)
-  have b: "real (Polynomial.order (a v) ?p) *
-      pheight_rat_log_height (a v) \<le>
-    pheight_proj_log_height P + real (Polynomial.degree ?p)"
-    by (rule roth_univariate_mpoly_log_order_bound[OF P pv])
-  have bd: "real (Polynomial.order (a v) ?p) *
-      pheight_rat_log_height (a v) \<le>
-    \<eta> * real (r v) * pheight_rat_log_height (a v)"
-    using b deg h by linarith
-  have l: "real (Polynomial.order (a v) ?p) \<le> \<eta> * real (r v)"
-    using bd hp by (simp add: mult_le_cancel_right_pos)
-  have ratio: "real (Polynomial.order (a v) ?p) / real (r v) \<le> \<eta>"
-    using l rpos by (simp add: pos_divide_le_eq)
-  have io: "roth_index m r a (poly_to_mpoly v ?p) =
-    ereal (real (Polynomial.order (a v) ?p) / real (r v))"
-    by (rule roth_univariate_index_order_at)
-      (use pn vm rp in auto)
-  show ?thesis using io peq ratio by simp
-qed
-
-
-lemma roth_univariate_degree_of_box_at:
-  fixes P :: "rat mpoly"
-  assumes "pjet_poly_in_box (Suc n) r P"
-  shows "Polynomial.degree (mpoly_to_poly n P) \<le> r n"
-proof (rule degree_le, intro allI impI)
-  fix i assume i: "r n < i"
-  have outside: "Poly_Mapping.single n i \<notin>
-      pjet_exponent_box (Suc n) r"
-    using i by (auto simp: pjet_exponent_box_iff)
-  show "Polynomial.coeff (mpoly_to_poly n P) i = 0"
-    using pjet_coeff_zero_outside_box[OF assms outside] by simp
-qed
-
-
 lemma roth_univariate_index_bound_degree_at:
   fixes P :: "rat mpoly" and r :: "nat \<Rightarrow> nat"
   assumes P: "P \<noteq> 0" and pv: "vars P \<subseteq> {v}"
@@ -197,6 +142,37 @@ proof -
       (use pn vm rp in auto)
   show ?thesis using io peq ratio by simp
 qed
+
+lemma roth_univariate_index_bound_at:
+  fixes P :: "rat mpoly" and r :: "nat \<Rightarrow> nat"
+  assumes P: "P \<noteq> 0" and pv: "vars P \<subseteq> {v}"
+    and vm: "v<m" and rp: "r v > 0"
+    and deg: "Polynomial.degree (mpoly_to_poly v P) \<le> r v"
+    and \<eta>: "\<eta> > 0"
+    and h: "pheight_proj_log_height P + real (r v) \<le>
+      \<eta> * real (r v) * pheight_rat_log_height (a v)"
+  shows "roth_index m r a P \<le> ereal \<eta>"
+proof -
+  have "roth_index m r a P \<le>
+      ereal (\<eta> * real (r v) / real (r v))"
+    by (rule roth_univariate_index_bound_degree_at[where D="r v"])
+      (use assms in auto)
+  then show ?thesis using rp by simp
+qed
+
+lemma roth_univariate_degree_of_box_at:
+  fixes P :: "rat mpoly"
+  assumes "pjet_poly_in_box (Suc n) r P"
+  shows "Polynomial.degree (mpoly_to_poly n P) \<le> r n"
+proof (rule degree_le, intro allI impI)
+  fix i assume i: "r n < i"
+  have outside: "Poly_Mapping.single n i \<notin>
+      pjet_exponent_box (Suc n) r"
+    using i by (auto simp: pjet_exponent_box_iff)
+  show "Polynomial.coeff (mpoly_to_poly n P) i = 0"
+    using pjet_coeff_zero_outside_box[OF assms outside] by simp
+qed
+
 
 lemma roth_weight_scale:
   assumes kp: "0 < k"
@@ -285,38 +261,6 @@ proof -
   finally show ?thesis by linarith
 qed
 
-lemma roth_ratio_divide:
-  fixes r :: "nat \<Rightarrow> nat" and \<sigma> :: real
-  assumes rp: "0 < r n"
-    and ratio: "real (r (Suc n)) \<le> \<sigma> * real (r n)"
-  shows "real (r (Suc n)) / real (r n) \<le> \<sigma>"
-  using rp ratio by (simp add: pos_divide_le_eq)
-
-lemma roth_cancel_fact:
-  assumes q: "real k * t^2 / (2 * real m) \<le>
-    2 * real k * real m * \<eta>^2"
-    and kp: "0<k"
-  shows "t^2 / (2 * real m) \<le> 2 * real m * \<eta>^2"
-proof -
-  have e1: "real k * t^2 / (2 * real m) =
-    real k * (t^2 / (2 * real m))"
-    by (simp add: mult.commute)
-  have e2: "2 * real k * real m * \<eta>^2 =
-    real k * (2 * real m * \<eta>^2)"
-    by (simp add: algebra_simps)
-  have fac: "real k * (t^2 / (2 * real m)) \<le>
-    real k * (2 * real m * \<eta>^2)"
-    using q e1 e2 by metis
-  have kpos: "(0::real) < real k" using kp by simp
-  show ?thesis by (rule mult_left_le_imp_le[OF fac kpos])
-qed
-
-lemma roth_sq_fact:
-  assumes mp: "0 < m"
-    and q: "t^2 / (2 * real m) \<le> 2 * real m * \<eta>^2"
-  shows "t^2 \<le> (2 * real m * \<eta>)^2"
-  using mp q by (simp add: pos_divide_le_eq power2_eq_square algebra_simps)
-
 lemma roth_final_index_arith:
   fixes t u l \<rho> \<sigma> \<eta> :: real
   assumes kp: "0 < k" and mp: "0 < m" and ep: "0 \<le> \<eta>"
@@ -338,10 +282,13 @@ proof -
   have q: "real k * t^2 / (2 * real m) \<le>
       2 * real k * real m * \<eta>^2"
     using qb bv by linarith
+  have fac: "real k * (t^2 / (2 * real m)) \<le>
+      real k * (2 * real m * \<eta>^2)"
+    using q by (simp add: algebra_simps)
   have q': "t^2 / (2 * real m) \<le> 2 * real m * \<eta>^2"
-    by (rule roth_cancel_fact[OF q kp])
+    by (rule mult_left_le_imp_le[OF fac]) (use kp in simp)
   have sq: "t^2 \<le> (2 * real m * \<eta>)^2"
-    by (rule roth_sq_fact[OF mp q'])
+    using mp q' by (simp add: pos_divide_le_eq power2_eq_square algebra_simps)
   show ?thesis by (rule power2_le_imp_le[OF sq]) (use ep in auto)
 qed
 
@@ -356,24 +303,9 @@ proof -
   then show ?thesis by (simp add: mult.commute mult.left_commute)
 qed
 
-lemma roth_height_transfer_sigma:
-  fixes hF hP \<sigma> H r0 rv :: real
-  assumes fb: "hF \<le> real k * (hP + 4*r0)"
-    and hb: "hP + 4*real (Suc n)*r0 \<le> \<sigma>*rv*H"
-  shows "hF + 4*real n*real k*r0 \<le> \<sigma>*(real k*rv)*H"
-proof -
-  have f: "hF + 4*real n*real k*r0 \<le>
-    real k * (hP + 4*real (Suc n)*r0)"
-    using fb by (simp add: algebra_simps)
-  have g: "real k * (hP + 4*real (Suc n)*r0) \<le>
-    real k * (\<sigma>*rv*H)"
-    by (rule mult_left_mono[OF hb]) simp
-  show ?thesis using f g by (simp add: algebra_simps)
-qed
-
 lemma roth_height_transfer_last:
   fixes hF hP \<sigma> H r0 rv D :: real
-  assumes d0: "0 \<le> D" and d: "D \<le> 4*real n*r0"
+  assumes d: "D \<le> 4*real n*r0"
     and fb: "hF \<le> real k * (hP + 4*r0)"
     and hb: "hP + 4*real (Suc n)*r0 \<le> \<sigma>*rv*H"
   shows "hF + real k*D \<le> \<sigma>*(real k*rv)*H"
@@ -392,6 +324,17 @@ proof -
     real k*(\<sigma>*rv*H)"
     by (rule mult_left_mono[OF hb k0])
   show ?thesis using f g z by (simp add: algebra_simps)
+qed
+
+lemma roth_height_transfer_sigma:
+  fixes hF hP \<sigma> H r0 rv :: real
+  assumes fb: "hF \<le> real k * (hP + 4*r0)"
+    and hb: "hP + 4*real (Suc n)*r0 \<le> \<sigma>*rv*H"
+  shows "hF + 4*real n*real k*r0 \<le> \<sigma>*(real k*rv)*H"
+proof -
+  have "hF + real k*(4*real n*r0) \<le> \<sigma>*(real k*rv)*H"
+    by (rule roth_height_transfer_last[OF _ fb hb]) simp
+  then show ?thesis by (simp add: algebra_simps)
 qed
 
 lemma roth_rates_le_first:
@@ -646,7 +589,7 @@ next
       real k*real (r (Suc n)) \<le>
       ?\<sigma>*(real k*real (r (Suc n)))*
         pheight_rat_log_height (a (Suc n))"
-      by (rule roth_height_transfer_last[OF _ D_bound lh hvlast]) simp
+      by (rule roth_height_transfer_last[OF D_bound lh hvlast])
     show ?thesis using tr by simp
   qed
   have last_deg: "Polynomial.degree (mpoly_to_poly (Suc n) L) \<le>
@@ -684,7 +627,7 @@ next
   have qi: "real k*t^2/(2*real ?m) \<le>  u+l+real k*(real (r (Suc n))/real (r n))"
     using ib by (simp add: teq peq)
   have \<rho>: "real (r (Suc n))/real (r n) \<le> ?\<sigma>"
-    using ratio roth_ratio_divide rp by auto
+    using ratio[of n] rp[of n] by (simp add: pos_divide_le_eq)
   have "t \<le> 2*real ?m*\<eta>"
     by (rule roth_final_index_arith
       [where m="?m" and \<sigma>="?\<sigma>" and
