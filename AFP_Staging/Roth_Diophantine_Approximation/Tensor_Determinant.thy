@@ -490,10 +490,15 @@ lemma roth_hasse_outer_unique:
     and pv: "vars \<phi> \<subseteq> {..<n}"
     and qv: "vars \<psi> \<subseteq> {n}"
     and neq: "J \<noteq> \<mu>"
-  shows "pjet_hasse J \<phi> * (\<Sum>K. pjet_hasse K \<psi> when \<mu> + Poly_Mapping.single n j = J + K) = 0"
+  shows "pjet_hasse J \<phi> *
+    (\<Sum>K. (pjet_hasse K \<psi> when
+      (\<mu> + Poly_Mapping.single n j = J + K))) = 0"
 proof (rule ccontr)
-  assume nz: "pjet_hasse J \<phi> * (\<Sum>K. pjet_hasse K \<psi> when \<mu> + Poly_Mapping.single n j = J + K) \<noteq> 0"
-  obtain K where knz: "(pjet_hasse K \<psi> when \<mu> + Poly_Mapping.single n j = J + K) \<noteq> 0"
+  assume nz: "pjet_hasse J \<phi> *
+    (\<Sum>K. (pjet_hasse K \<psi> when
+      (\<mu> + Poly_Mapping.single n j = J + K))) \<noteq> 0"
+  obtain K where knz: "(pjet_hasse K \<psi> when
+    (\<mu> + Poly_Mapping.single n j = J + K)) \<noteq> 0"
     using Sum_any.not_neutral_obtains_not_neutral nz by force
   have kz: "pjet_hasse K \<psi> \<noteq> 0"
     and eq: "\<mu> + Poly_Mapping.single n j = J + K"
@@ -504,7 +509,9 @@ proof (rule ccontr)
 qed
 
 lemma roth_hasse_inner_collapse:
-  "(\<Sum>K. pjet_hasse K \<psi> when \<mu> + Poly_Mapping.single n j = \<mu> + K) = pjet_hasse (Poly_Mapping.single n j) \<psi>"
+  "(\<Sum>K. (pjet_hasse K \<psi> when
+    (\<mu> + Poly_Mapping.single n j = \<mu> + K))) =
+    pjet_hasse (Poly_Mapping.single n j) \<psi>"
   by simp
 
 lemma roth_hasse_outer_point:
@@ -513,9 +520,13 @@ lemma roth_hasse_outer_point:
   assumes mi: "Poly_Mapping.keys \<mu> \<subseteq> {..<n}"
     and pv: "vars \<phi> \<subseteq> {..<n}"
     and qv: "vars \<psi> \<subseteq> {n}"
-  shows "pjet_hasse J \<phi> * (\<Sum>K. pjet_hasse K \<psi> when \<mu> + Poly_Mapping.single n j = J + K) =
-         ((pjet_hasse \<mu> \<phi> * (\<Sum>K. pjet_hasse K \<psi> when \<mu> + Poly_Mapping.single n j = \<mu> + K))
-             when (J = \<mu>))"
+  shows "(pjet_hasse J \<phi> *
+    (\<Sum>K. (pjet_hasse K \<psi> when
+      (\<mu> + Poly_Mapping.single n j = J + K)))) =
+    ((pjet_hasse \<mu> \<phi> *
+      (\<Sum>K. (pjet_hasse K \<psi> when
+        (\<mu> + Poly_Mapping.single n j = \<mu> + K))))
+      when (J = \<mu>))"
   using roth_hasse_outer_unique[OF assms] by (auto simp: when_def)
 
 lemma roth_hasse_disjoint_product:
