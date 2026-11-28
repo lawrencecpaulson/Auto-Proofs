@@ -542,11 +542,9 @@ proof (intro pheight_proj_height_cast antisym)
     have qeq: "Q = smult z P"
       using pheight_cast_smult_inject[of Q z P] eq cz by simp
     have one: "1 \<le> nat \<bar>z\<bar>" using cnz cz by simp
-    have le: "pheight_int_coeff_sup P \<le> nat \<bar>z\<bar> * pheight_int_coeff_sup P"
-      using one by simp
     have finaleq: "pheight_proj_height (replace_coeff of_int P) = nat \<bar>z\<bar> * pheight_int_coeff_sup P"
-    using cnz cz min p qeq by (metis of_int_0 pheight_int_coeff_sup_smult)
-    show ?thesis using le by (simp only: finaleq)
+      using cnz cz min p qeq by (metis of_int_0 pheight_int_coeff_sup_smult)
+    show ?thesis using one by (simp add: finaleq)
   qed
 qed
 

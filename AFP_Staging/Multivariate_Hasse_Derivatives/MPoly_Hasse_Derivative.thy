@@ -603,16 +603,9 @@ lemma pjet_hasse_eval:
   fixes a :: "nat \<Rightarrow> 'a::comm_ring_1"
   shows "insertion a (pjet_hasse I P) =
     pjet_taylor_coeff a I P"
-proof -
-  have h: "coeff (replace_coeff (insertion a)
-      (pjet_translate Var (pjet_lift P))) I =
-    insertion a
-      (coeff (pjet_translate Var (pjet_lift P)) I)"
-    by (simp add: coeff_replace_coeff)
-  show ?thesis
-    using h by (simp only: pjet_hasse_def
-      pjet_taylor_coeff_def pjet_eval_translate)
-qed
+unfolding pjet_hasse_def pjet_taylor_coeff_def
+by (subst coeff_replace_coeff[symmetric])
+  (simp_all add: pjet_eval_translate)
 
 lemma pjet_hasse_translate:
   "pjet_hasse I (pjet_translate a P) =
