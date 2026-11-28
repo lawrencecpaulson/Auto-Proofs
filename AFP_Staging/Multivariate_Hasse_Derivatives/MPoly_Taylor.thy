@@ -324,7 +324,7 @@ lemma pjet_taylor_coeff_translate:
 lemma pjet_taylor_coeff_mult:
   "pjet_taylor_coeff a I (P * Q) =
     (\<Sum>J. pjet_taylor_coeff a J P *
-      (\<Sum>K. pjet_taylor_coeff a K Q when I = J + K))"
+      (\<Sum>K. (pjet_taylor_coeff a K Q when (I = J + K))))"
   by (simp add: pjet_taylor_coeff_def pjet_translate_mult
     coeff_def times_mpoly.rep_eq lookup_mult)
 
@@ -430,7 +430,7 @@ proof -
     by (auto simp: vars_def)
   have inner:
     "(\<Sum>v\<in>Poly_Mapping.keys (mapping_of Q).
-      Poly_Mapping.lookup (mapping_of Q) v when I + J = t + v) =
+      (Poly_Mapping.lookup (mapping_of Q) v when (I + J = t + v))) =
       (if t = I then coeff Q J else 0)"
     if t: "t \<in> Poly_Mapping.keys (mapping_of P)" for t
     using uniq[OF t]

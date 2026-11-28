@@ -174,8 +174,8 @@ lemma pjet_coeff_sum:
 lemma pjet_coeff_shift_Var_power:
   fixes x :: "'a::comm_ring_1 mpoly"
   shows "coeff ((Var v + Const x)^n) I =
-    (\<Sum>k\<le>n. (of_nat (n choose k) * x^(n-k))
-      when I = Poly_Mapping.single v k)"
+    (\<Sum>k\<le>n. ((of_nat (n choose k) * x^(n-k))
+      when (I = Poly_Mapping.single v k)))"
   by (simp only: pjet_shift_Var_power
     pjet_coeff_sum[OF finite_atMost] coeff_monom)
 
@@ -503,8 +503,8 @@ lemma pjet_hasse_Var_power:
 
 lemma pjet_hasse_Var_power_expansion:
   "pjet_hasse I ((Var v :: 'a::comm_ring_1 mpoly) ^ n) =
-    (\<Sum>k\<le>n. (of_nat (n choose k) * Var v^(n-k))
-      when I = Poly_Mapping.single v k)"
+    (\<Sum>k\<le>n. ((of_nat (n choose k) * Var v^(n-k))
+      when (I = Poly_Mapping.single v k)))"
   by (simp only: pjet_hasse_Var_power pjet_coeff_shift_Var_power)
 
 lemma pjet_hasse_Var_power_single:
@@ -595,7 +595,7 @@ lemma pjet_monom_smul:
 lemma pjet_hasse_mult:
   "pjet_hasse I (P * Q) =
     (\<Sum>J. pjet_hasse J P *
-      (\<Sum>K. pjet_hasse K Q when I = J + K))"
+      (\<Sum>K. (pjet_hasse K Q when (I = J + K))))"
   by (simp add: pjet_hasse_def pjet_lift_mult
     pjet_taylor_coeff_mult)
 

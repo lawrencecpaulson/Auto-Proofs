@@ -80,7 +80,8 @@ lemma vars_poly_to_mpoly_subset:
   "vars (poly_to_mpoly v (p :: complex poly)) \<subseteq> {v}"
 proof -
   have lookup: "Poly_Mapping.lookup (mapping_of (poly_to_mpoly v p)) m =
-      (Polynomial.coeff p (Poly_Mapping.lookup m v) when Poly_Mapping.keys m \<subseteq> {v})"
+      (Polynomial.coeff p (Poly_Mapping.lookup m v) when
+        (Poly_Mapping.keys m \<subseteq> {v}))"
     for m
     unfolding poly_to_mpoly_def MPoly_inverse[OF Set.UNIV_I]
       Poly_Mapping.lookup_Abs_poly_mapping[OF poly_to_mpoly_finite]

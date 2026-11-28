@@ -30,7 +30,8 @@ proof
        and xk: "x \<in> Poly_Mapping.keys I"
     by (auto simp: vars_def)
   have h: "Poly_Mapping.lookup (mapping_of (poly_to_mpoly v Q)) I
-         = (coeff Q (Poly_Mapping.lookup I v) when Poly_Mapping.keys I \<subseteq> {v})"
+         = (coeff Q (Poly_Mapping.lookup I v) when
+           (Poly_Mapping.keys I \<subseteq> {v}))"
     unfolding poly_to_mpoly_def
     by (simp add: MPoly_inverse lookup_Abs_poly_mapping[OF poly_to_mpoly_finite])
   have sub: "Poly_Mapping.keys I \<subseteq> {v}"
