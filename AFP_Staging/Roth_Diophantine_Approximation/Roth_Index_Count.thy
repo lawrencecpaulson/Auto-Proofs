@@ -126,34 +126,6 @@ lemma roth_grid_sum_prod:
   using prod_sum_PiE[of S "\<lambda>v. {..r v}" g] assms
   by simp
 
-lemma roth_grid_center_sum_zero:
-  assumes fin: "finite S" and v: "v \<in> S" and pos: "0 < r v"
-  shows "(\<Sum>f\<in>(\<Pi>\<^sub>E w \<in> S. {..r w}).
-    roth_center r v (f v)) = 0"
-proof -
-  let ?g = "\<lambda>w k. if w = v then roth_center r v k else 1"
-  have term_eq: "(\<Prod>w\<in>S. ?g w (f w)) =
-    roth_center r v (f v)" for f
-    using fin v by simp
-  have e: "(\<Sum>f\<in>(\<Pi>\<^sub>E w \<in> S. {..r w}).
-      roth_center r v (f v)) =
-    (\<Prod>w\<in>S. \<Sum>k\<le>r w. ?g w k)"
-    using roth_grid_sum_prod[OF fin, of ?g r]
-    by (simp only: term_eq)
-  have "(\<Prod>w\<in>S. \<Sum>k\<le>r w. ?g w k) = 0"
-  proof -
-    have zero: "(\<Sum>k\<le>r v. roth_center r v k) = 0"
-      by (rule roth_center_sum_zero[of r v, OF pos])
-    show ?thesis
-    proof (rule prod_zero[OF fin], rule bexI[where x=v])
-      show "(\<Sum>k\<le>r v. ?g v k) = 0"
-        using zero by simp
-      show "v \<in> S" by (rule v)
-    qed
-  qed
-  then show ?thesis using e by simp
-qed
-
 lemma roth_grid_center_cross_zero:
   assumes fin: "finite S" and v: "v \<in> S" and w: "w \<in> S"
     and distinct: "v \<noteq> w" and pos: "0 < r v"

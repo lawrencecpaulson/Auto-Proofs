@@ -245,12 +245,6 @@ proof -
     by (simp add: cop_rs quotient_of_Fract rat_eq s)
 qed
 
-lemma inj_on_roth_scaled_pair:
-  assumes "c > 0"
-  shows "inj_on (roth_scaled_pair c) (roth_good_pairs \<alpha> \<kappa>)"
-  using roth_scaled_pair_inj[OF assms]
-  unfolding inj_on_def roth_good_pairs_def by auto
-
 theorem finite_roth_good_pairs_of_scaled:
   fixes c :: int and \<alpha> \<epsilon> \<delta> :: real
   assumes c: "c > 0" and \<epsilon>: "\<epsilon> > \<delta>" and \<delta>: "\<delta> > 0"

@@ -108,23 +108,6 @@ proof (rule pjet_poly_in_box_sum)
     by (rule roth_box_sign_mult[OF qb])
 qed
 
-lemma roth_hasse_det_in_box:
-  fixes P :: "rat mpoly"
-  assumes box: "pjet_poly_in_box m r P"
-  shows "pjet_poly_in_box m (\<lambda>v. k*r v)
-    (det (mat k k (\<lambda>(i,j). pjet_hasse (J i j) P)))"
-  by (rule roth_box_det)
-    (use box in \<open>auto intro: pjet_hasse_preserves_box\<close>)
-
-lemma roth_hasse_det_degree:
-  fixes P :: "rat mpoly"
-  assumes box: "pjet_poly_in_box m r P"
-    and vm: "v<m"
-  shows "MPoly_Type.degree
-    (det (mat k k (\<lambda>(i,j). pjet_hasse (J i j) P))) v
-    \<le> k*r v"
-  by (rule pjet_degree_le_of_box[OF roth_hasse_det_in_box[OF box] vm])
-
 section \<open>Integral representatives of Hasse determinants\<close>
 
 lemma roth_hasse_cast:

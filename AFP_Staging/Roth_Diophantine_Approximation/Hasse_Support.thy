@@ -124,10 +124,4 @@ lemma roth_index_hasse:
   shows "roth_index m r a P - ereal (roth_weight m r I) \<le> roth_index m r a (pjet_hasse I P)"
   by (simp add: add.commute ereal_minus_le roth_index_hasse_add)
 
-lemma roth_hasse_degree_bound:
-  fixes P :: "'a::idom mpoly"
-  assumes "pjet_poly_in_box m r P" "v < m"
-  shows "MPoly_Type.degree (pjet_hasse I P) v \<le> r v - Poly_Mapping.lookup I v"
-  using pjet_degree_le_of_box[OF pjet_hasse_in_box] assms by fastforce
-
 end

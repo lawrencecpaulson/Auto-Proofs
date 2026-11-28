@@ -9,11 +9,6 @@ begin
 
 section \<open>The one-variable polynomial representations\<close>
 
-lemma roth_weight_one:
-  fixes r :: "nat \<Rightarrow> nat"
-  shows "roth_weight 1 r I = real (Poly_Mapping.lookup I 0) / real (r 0)"
-  by (simp add: roth_weight_def)
-
 lemma roth_mpoly_to_poly_cast:
   fixes U :: "int mpoly"
   shows "mpoly_to_poly v (replace_coeff of_int U :: rat mpoly) =
@@ -99,12 +94,6 @@ lemma roth_primitive_poly_to_mpoly:
   shows "MPoly_Type.primitive (poly_to_mpoly v Q) \<longleftrightarrow> Polynomial.content Q = 1"
   by (simp add: MPoly_Type.primitive_def roth_content_poly_to_mpoly)
 
-lemma roth_coeffs_mpoly_to_poly:
-  fixes U :: "int mpoly"
-  assumes uv: "vars U \<subseteq> {v}"
-  shows "set (Polynomial.coeffs (mpoly_to_poly v U)) - {0} = MPoly_Type.coeffs U"
-  using roth_coeffs_poly_to_mpoly mpoly_to_poly_inverse[OF uv] by metis
-
 lemma roth_content_mpoly_to_poly:
   fixes U :: "int mpoly"
   assumes uv: "vars U \<subseteq> {v}"
@@ -145,13 +134,6 @@ lemma roth_mpoly_to_poly_nonzero:
   shows "mpoly_to_poly v U \<noteq> 0"
   using u mpoly_to_poly_inverse[OF uv] poly_to_mpoly0
   by metis
-
-lemma roth_proj_height_poly_to_mpoly:
-  fixes Q :: "int poly"
-  assumes q: "Q \<noteq> 0" and prim: "Polynomial.content Q = 1"
-  shows "pheight_proj_height (replace_coeff of_int (poly_to_mpoly v Q)) =
-         pheight_int_coeff_sup (poly_to_mpoly v Q)"
-  by (simp add: roth_primitive_poly_to_mpoly prim pheight_proj_height_cast_primitive [OF roth_poly_to_mpoly_nonzero[OF q]])
 
 section \<open>Mahler measure of a rational point\<close>
 
@@ -356,14 +338,6 @@ proof -
   then show ?thesis
     by (simp add: ln_realpow ln_mult_pos pheight_rat_log_height_def mult.commute)
 qed
-
-lemma roth_primitive_poly_log_height:
-  fixes Q :: "int poly"
-  assumes q: "Q \<noteq> 0" and prim: "Polynomial.content Q = 1"
-  shows "pheight_proj_log_height (replace_coeff of_int (poly_to_mpoly v Q))
-       = ln (pheight_int_coeff_sup (poly_to_mpoly v Q))"
-  unfolding pheight_proj_log_height_def
-  by (simp add: roth_proj_height_poly_to_mpoly[OF q prim])
 
 section \<open>The bound for rational univariate polynomials\<close>
 

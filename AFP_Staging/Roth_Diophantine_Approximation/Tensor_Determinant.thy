@@ -47,29 +47,6 @@ proof -
     by (simp add: roth_last_coeff_mul)
 qed
 
-lemma roth_last_coeff_outside_box:
-  fixes P :: "rat mpoly"
-  assumes box: "pjet_poly_in_box m r P"
-    and vm: "v<m" and er: "r v < e"
-  shows "roth_last_coeff P v e = 0"
-proof -
-  have empty: "{I\<in>Poly_Mapping.keys (mapping_of P).
-      Poly_Mapping.lookup I v = e} = {}"
-  proof (rule ccontr)
-    assume "{I \<in> Poly_Mapping.keys (mapping_of P).
-        Poly_Mapping.lookup I v = e} \<noteq> {}"
-    then obtain I where I: "I \<in> Poly_Mapping.keys (mapping_of P)"
-      and eq: "Poly_Mapping.lookup I v = e"
-      by blast
-    have mem: "I\<in>pjet_exponent_box m r"
-      using box I by (auto simp: pjet_poly_in_box_def)
-    have bd: "Poly_Mapping.lookup I v \<le> r v"
-      by (rule pjet_exponent_boxD(2)[OF mem vm])
-    show False using er bd eq by simp
-  qed
-  show ?thesis by (simp add: roth_last_coeff_def empty)
-qed
-
 lemma roth_last_coeff_not_in_support:
   assumes "e \<notin> (\<lambda>I. Poly_Mapping.lookup I v) `
       Poly_Mapping.keys (mapping_of P)"
@@ -277,17 +254,6 @@ definition roth_right_factor ::
     (\<Sum>e\<le>d. MPoly_Type.monom (Poly_Mapping.single n e)
       (roth_vs.representation B (roth_last_coeff P n e) b))"
 
-lemma pjet_single_inj:
-  "Poly_Mapping.single n e = Poly_Mapping.single n j \<longleftrightarrow> e=j"
-proof safe
-  fix e j
-  assume h: "Poly_Mapping.single n e = Poly_Mapping.single n j"
-  have "Poly_Mapping.lookup (Poly_Mapping.single n e) n =
-    Poly_Mapping.lookup (Poly_Mapping.single n j) n"
-    using h by simp
-  then show "e=j" by (simp add: lookup_single when_def)
-qed
-
 lemma roth_single_monom_coeff:
   assumes j: "j\<le>d"
   shows "MPoly_Type.coeff
@@ -334,47 +300,6 @@ proof -
         roth_sum_coordinate[OF fin b])
   show ?thesis using z val
     by (simp add: MPoly_Type.coeff_def zero_mpoly.rep_eq)
-qed
-
-lemma roth_right_factor_inj:
-  assumes sub: "B \<subseteq> roth_last_coeff P n ` {..d}"
-    and ind: "roth_vs.independent B"
-  shows "inj_on (roth_right_factor P n d B) B"
-proof (rule inj_onI)
-  fix b c
-  assume b: "b\<in>B" and c: "c\<in>B" and
-    eq: "roth_right_factor P n d B b = roth_right_factor P n d B c"
-  obtain e where e: "e\<le>d" and
-    coord: "\<forall>u\<in>B. roth_vs.representation B (roth_last_coeff P n e) u = (if u=b then 1 else 0)"
-    using roth_last_coeff_basis_coordinates[OF sub ind b] by blast
-  have h: "roth_vs.representation B (roth_last_coeff P n e) b =
-    roth_vs.representation B (roth_last_coeff P n e) c"
-    using e eq by (metis roth_right_factor_coeff)
-  show "b=c" using h coord b c by (cases "b=c") auto
-qed
-
-lemma roth_right_factor_image_indep:
-  assumes sub: "B \<subseteq> roth_last_coeff P n ` {..d}"
-    and ind: "roth_vs.independent B" and fin: "finite B"
-  shows "roth_vs.independent (roth_right_factor P n d B ` B)"
-proof (rule roth_vs.independent_if_scalars_zero)
-  show "finite (roth_right_factor P n d B ` B)"
-    using fin by simp
-  fix c x
-  assume z: "(\<Sum>x\<in>roth_right_factor P n d B ` B.
-    MPoly_Type.smult (c x) x) = 0"
-    and x: "x\<in>roth_right_factor P n d B ` B"
-  obtain b where b: "b \<in> B" "x = roth_right_factor P n d B b"
-    using x by auto
-  have inj: "inj_on (roth_right_factor P n d B) B"
-    by (rule roth_right_factor_inj[OF sub ind])
-  have zb: "(\<Sum>b\<in>B. MPoly_Type.smult
-    (c (roth_right_factor P n d B b))
-    (roth_right_factor P n d B b)) = 0"
-    using z by (simp add: sum.reindex[OF inj] comp_def)
-  show "c x = 0"
-    using roth_right_factor_indep[OF sub ind fin zb b(1)] b(2)
-    by simp
 qed
 
 lemma roth_single_in_box:
@@ -478,34 +403,6 @@ proof
   have vk: "v \<in> Poly_Mapping.keys (I+J)"
     using vj by (simp add: in_keys_iff lookup_add)
   show "v \<in> vars P" using key vk by (auto simp: vars_def)
-qed
-
-lemma roth_hasse_zero_outside_vars:
-  fixes P :: "rat mpoly"
-  assumes "\<not> Poly_Mapping.keys J \<subseteq> vars P"
-  shows "pjet_hasse J P = 0"
-  using assms roth_hasse_index_vars by blast
-
-lemma roth_hasse_last_zero_left:
-  fixes P :: "rat mpoly"
-  assumes pv: "vars P \<subseteq> {..<n}" and j: "j>0"
-  shows "pjet_hasse (Poly_Mapping.single n j) P = 0"
-  using j pv roth_hasse_index_vars by fastforce
-
-lemma roth_hasse_left_zero_right:
-  fixes Q :: "rat mpoly"
-  assumes ji: "Poly_Mapping.keys J \<subseteq> {..<n}"
-    and j: "J\<noteq>0" and qv: "vars Q \<subseteq> {n}"
-  shows "pjet_hasse J Q = 0"
-proof (rule roth_hasse_zero_outside_vars)
-  show "\<not> Poly_Mapping.keys J \<subseteq> vars Q"
-  proof
-    assume h: "Poly_Mapping.keys J \<subseteq> vars Q"
-    have emp: "Poly_Mapping.keys J = {}"
-      using ji h qv by (auto simp del: Poly_Mapping.keys_eq_empty)
-    have "J=0" using emp by simp
-    then show False using j by blast
-  qed
 qed
 
 lemma roth_single_support_lookup_zero:

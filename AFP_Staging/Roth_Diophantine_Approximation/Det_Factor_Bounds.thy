@@ -197,10 +197,12 @@ proof (rule roth_index_det_lower)
     with roth_index_hasse_lower[OF ip w]
     show ?thesis by (simp add: algebra_simps)
   qed
+  have eq: "(\<Sum>i<k. max 0 (t-rho-real (q i) / real R)) =
+    (\<Sum>j<k. max 0 (t-rho-real j / real R))"
+    by (rule sum.permutes_inv[OF q])
   show "ereal (\<Sum>j<k. max 0 (t-rho-real j / real R)) \<le>
         (\<Sum>i<k. roth_index m r a (pjet_hasse (J i (q i)) P))"
-    using permutes_sum[OF q]
-    by (metis (mono_tags, lifting) b lessThan_iff sum_ereal sum_mono)
+    using eq by (metis (mono_tags, lifting) b lessThan_iff sum_ereal sum_mono)
 qed
 
 lemma roth_max_shift_sum:

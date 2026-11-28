@@ -272,12 +272,12 @@ proof -
   have expansion: "P = (\<Sum>I\<in>?S. ?T I)"
     by (simp add: pjet_taylor_identity_explicit pjet_hasse_eval)
   have eval: "insertion b P = (\<Sum>I\<in>?S. insertion b (?T I))"
-    by (subst expansion) (rule pjet_insertion_sum_any[OF fin])
+    by (subst expansion) (rule pjet_insertion_sum[OF fin])
   have each: "insertion b (?T I) = insertion a (pjet_hasse I P) *
     (\<Prod>v\<in>Poly_Mapping.keys I.
       (b v - a v) ^ Poly_Mapping.lookup I v)" for I
-    by (simp add: insertion_mult pjet_insertion_prod_any
-      pjet_insertion_power_any roth_insertion_Var_diff)
+    by (simp add: insertion_mult pjet_insertion_prod
+      pjet_insertion_power roth_insertion_Var_diff)
   show ?thesis using eval by (simp add: each)
 qed
 
@@ -600,7 +600,7 @@ lemma roth_insertion_of_rat:
 proof (induction P rule: mpoly_induct)
   case (monom I c)
   then show ?case
-    by (simp add: replace_coeff_monom pjet_insertion_monom_any
+    by (simp add: replace_coeff_monom pjet_insertion_monom
       of_rat_mult of_rat_prod of_rat_power)
 next
   case (sum P Q I c)
@@ -712,7 +712,7 @@ proof -
   have eval: "\<bar>insertion a (MPoly_Type.monom I (of_int c))\<bar> =
       real (nat (\<bar>c\<bar>)) *
         (\<Prod>v\<in>Poly_Mapping.keys I. \<bar>a v\<bar> ^ Poly_Mapping.lookup I v)"
-    by (simp add: pjet_insertion_monom_any abs_mult abs_prod power_abs)
+    by (simp add: pjet_insertion_monom abs_mult abs_prod power_abs)
   show ?thesis using first second eval by (simp add: mult_left_mono)
 qed
 
@@ -755,7 +755,7 @@ proof -
   have eval: "insertion a (replace_coeff (of_int::int \<Rightarrow> real) P) =
       (\<Sum>I\<in>?S. insertion a
         (MPoly_Type.monom I (of_int (MPoly_Type.coeff P I))))"
-    by (simp add: roth_int_real_cast_expansion pjet_insertion_sum_any)
+    by (simp add: roth_int_real_cast_expansion pjet_insertion_sum)
   have "\<bar>insertion a (replace_coeff (of_int::int \<Rightarrow> real) P)\<bar> \<le>
       (\<Sum>I\<in>?S. \<bar>insertion a
         (MPoly_Type.monom I (of_int (MPoly_Type.coeff P I)))\<bar>)"
@@ -846,15 +846,6 @@ proof -
       kpos Lpos index near]) (use coeff in auto)
 qed
 
-
-lemma roth_int_taylor_cast:
-  fixes P :: "int mpoly" and \<beta> :: "nat \<Rightarrow> rat"
-  shows "(of_rat (pjet_taylor_coeff \<beta> I
-      (replace_coeff (of_int::int \<Rightarrow> rat) P))::real) =
-    pjet_taylor_coeff (\<lambda>v. of_rat (\<beta> v)) I
-      (replace_coeff (of_int::int \<Rightarrow> real) P)"
-  by (simp add: pjet_hasse_eval[symmetric] roth_hasse_cast[symmetric]
-    roth_hasse_cast_real[symmetric] roth_integer_evaluation_cast)
 
 lemma roth_real_taylor_card_bound:
   fixes P :: "real mpoly"
