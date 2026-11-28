@@ -53,8 +53,8 @@ lemma roth_rounded_degrees_bounds:
     "real (roth_rounded_degrees T h v) * h v \<le> T + h v"
 proof -
   let ?z = "T / h v"
-  have zpos: "0 < ?z" using Tpos hpos by simp
-  have cpos: "0 < ceiling ?z" using zpos by simp
+  have "0 < ?z" using Tpos hpos by simp
+  then have cpos: "0 < ceiling ?z" by simp
   have real_eq: "real (roth_rounded_degrees T h v) = real_of_int (ceiling ?z)"
     using cpos by (simp add: roth_rounded_degrees_def)
   show "0 < roth_rounded_degrees T h v" using cpos
@@ -480,8 +480,8 @@ proof -
   obtain m :: nat where m: "2 * real d / eps\<^sup>2 + 1 < real m"
     using reals_Archimedean2 by blast
   have qnonneg: "0 \<le> 2 * real d / eps\<^sup>2" using sq by simp
-  have mrpos: "0 < real m" using m qnonneg by linarith
-  have mpos: "0 < m" using mrpos by simp
+  have "0 < real m" using m qnonneg by linarith
+  then have mpos: "0 < m" by simp
   have "2 * real d / eps\<^sup>2 < real m" using m by linarith
   then have mult: "(2 * real d / eps\<^sup>2) * eps\<^sup>2 < real m * eps\<^sup>2"
     by (rule mult_strict_right_mono[OF _ sq])
@@ -599,9 +599,9 @@ lemma roth_choose_linear_budgets:
   shows "\<exists>A::real. 0 < A \<and> (\<forall>T>A. ln 2 < a*T \<and> ln 2 \<le> c*T)"
 proof -
   let ?A = "max (ln 2 / a) (ln 2 / c) + 1"
-  have lpos: "0 < ln (2::real)" by simp
-  have dnonneg: "0 \<le> ln 2 / a" using lpos apos by simp
-  have Apos: "0 < ?A" using dnonneg by simp
+  have "0 < ln (2::real)" by simp
+  then have "0 \<le> ln 2 / a" using apos by simp
+  then have Apos: "0 < ?A" by simp
   have bound: "ln 2 < a*T \<and> ln 2 \<le> c*T" if TA: "?A < T" for T
   proof -
     have aa: "ln 2 / a < T" using TA by linarith
@@ -617,9 +617,9 @@ qed
 
 lemma roth_auxiliary_bound_log:
   fixes b :: int and S :: nat
-  assumes bpos: "1 \<le> b"
+  assumes "1 \<le> b"
   shows "ln (real (nat (2 * (4*b)^S))) = ln 2 + real S * ln (4 * real_of_int b)"
-  using bpos by (simp add: ln_mult ln_realpow algebra_simps)
+  using assms by (simp add: ln_mult ln_realpow algebra_simps)
 
 lemma roth_degree_from_weighted:
   fixes T B xi h :: real and r :: nat

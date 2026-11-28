@@ -32,10 +32,10 @@ lemma roth_univariate_hasse_one:
 proof -
   have vl: "vars (pjet_hasse (Poly_Mapping.single v 1) (poly_to_mpoly v p)) \<subseteq> {v}"
     using roth_hasse_vars_subset roth_vars_poly_to_mpoly by blast
-  have peq: "mpoly_to_poly v (pjet_hasse (Poly_Mapping.single v 1) (poly_to_mpoly v p)) =
+  have "mpoly_to_poly v (pjet_hasse (Poly_Mapping.single v 1) (poly_to_mpoly v p)) =
     pderiv p"
     by (intro poly_eqI) (simp add: roth_univariate_hasse_coeff coeff_pderiv)
-  show ?thesis using peq mpoly_to_poly_inverse[OF vl] by simp
+  then show ?thesis using mpoly_to_poly_inverse[OF vl] by simp
 qed
 
 lemma roth_univariate_hasse_as_hderiv:

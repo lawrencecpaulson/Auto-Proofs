@@ -169,14 +169,14 @@ definition roth_total_exponent ::
     (\<Sum>v\<in>Poly_Mapping.keys K. Poly_Mapping.lookup K v)"
 
 lemma roth_total_exponent_on:
-  assumes supp: "Poly_Mapping.keys K \<subseteq> {..<m}"
+  assumes "Poly_Mapping.keys K \<subseteq> {..<m}"
   shows "roth_total_exponent K =
     (\<Sum>v<m. Poly_Mapping.lookup K v)"
 proof -
   have "(\<Sum>v\<in>Poly_Mapping.keys K. Poly_Mapping.lookup K v) =
       (\<Sum>v<m. Poly_Mapping.lookup K v)"
     by (rule sum.mono_neutral_left)
-      (use supp in \<open>auto simp: not_in_keys_iff_lookup_eq_zero\<close>)
+      (use assms in \<open>auto simp: not_in_keys_iff_lookup_eq_zero\<close>)
   then show ?thesis by (simp add: roth_total_exponent_def)
 qed
 

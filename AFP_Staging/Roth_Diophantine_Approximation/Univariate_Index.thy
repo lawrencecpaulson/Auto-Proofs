@@ -96,15 +96,15 @@ lemma roth_primitive_poly_to_mpoly:
 
 lemma roth_content_mpoly_to_poly:
   fixes U :: "int mpoly"
-  assumes uv: "vars U \<subseteq> {v}"
+  assumes "vars U \<subseteq> {v}"
   shows "Polynomial.content (mpoly_to_poly v U) = Gcd (MPoly_Type.coeffs U)"
-  using roth_content_poly_to_mpoly mpoly_to_poly_inverse[OF uv] by metis
+  using roth_content_poly_to_mpoly mpoly_to_poly_inverse[OF assms] by metis
 
 lemma roth_primitive_mpoly_to_poly:
   fixes U :: "int mpoly"
-  assumes uv: "vars U \<subseteq> {v}"
+  assumes "vars U \<subseteq> {v}"
   shows "Polynomial.content (mpoly_to_poly v U) = 1 \<longleftrightarrow> MPoly_Type.primitive U"
-  by (simp add: roth_content_mpoly_to_poly[OF uv] MPoly_Type.primitive_def)
+  by (simp add: roth_content_mpoly_to_poly[OF assms] MPoly_Type.primitive_def)
 
 lemma roth_int_coeff_sup_poly_coeff:
   fixes Q :: "int poly"
@@ -183,9 +183,9 @@ lemma roth_mahler_power:
 
 lemma roth_linear_content:
   fixes p q :: int
-  assumes cpq: "coprime p q"
+  assumes "coprime p q"
   shows "Polynomial.content [:-p,q:] = 1"
-  using cpq by (simp add: coprime_commute)
+  using assms by (simp add: coprime_commute)
 
 lemma roth_linear_cast_rat:
   fixes p q :: int
@@ -195,11 +195,11 @@ lemma roth_linear_cast_rat:
 
 lemma roth_linear_power_content:
   fixes p q :: int
-  assumes cpq: "coprime p q"
+  assumes "coprime p q"
   shows "Polynomial.content ([:-p,q:] ^ n) = 1"
   by (induction n)
     (simp_all only: power_0 power_Suc content_1 content_mult
-      roth_linear_content[OF cpq] mult_1_left mult_1_right)
+      roth_linear_content[OF assms] mult_1_left mult_1_right)
 
 lemma roth_linear_power_cast_rat:
   fixes p q :: int
@@ -245,9 +245,9 @@ qed
 
 lemma roth_coprime_bridge:
   fixes p q :: int
-  assumes cpq: "coprime p q"
+  assumes "coprime p q"
   shows "algebraic_semidom_class.coprime p q"
-  using cpq by (simp add: coprime_iff_gcd_eq_1)
+  using assms by (simp add: coprime_iff_gcd_eq_1)
 
 lemma roth_rat_height_order_le:
   fixes Q :: "int poly"
@@ -496,11 +496,11 @@ lemma roth_univariate_taylor_coeff:
 
 lemma roth_univariate_taylor_support:
   fixes p :: "rat poly"
-  assumes tc: "pjet_taylor_coeff a I (poly_to_mpoly v p) \<noteq> 0"
+  assumes "pjet_taylor_coeff a I (poly_to_mpoly v p) \<noteq> 0"
   shows "I = Poly_Mapping.single v (Poly_Mapping.lookup I v)"
 proof -
   have vin: "Poly_Mapping.keys I \<subseteq> vars (pjet_translate a (poly_to_mpoly v p))"
-    using tc by (auto simp: pjet_taylor_coeff_key vars_def)
+    using assms by (auto simp: pjet_taylor_coeff_key vars_def)
   have kv: "Poly_Mapping.keys I \<subseteq> {v}"
     using roth_vars_poly_to_mpoly pjet_vars_translate_subset vin by blast
   show ?thesis
@@ -586,20 +586,20 @@ qed
 
 lemma roth_univariate_vars_of_box:
   fixes P :: "rat mpoly"
-  assumes box: "pjet_poly_in_box 1 r P"
+  assumes "pjet_poly_in_box 1 r P"
   shows "vars P \<subseteq> {0}"
-  using box by (auto simp: vars_def pjet_poly_in_box_def dest: pjet_exponent_boxD(1))
+  using assms by (auto simp: vars_def pjet_poly_in_box_def dest: pjet_exponent_boxD(1))
 
 lemma roth_univariate_degree_of_box:
   fixes P :: "rat mpoly"
-  assumes box: "pjet_poly_in_box 1 r P"
+  assumes "pjet_poly_in_box 1 r P"
   shows "degree (mpoly_to_poly 0 P) \<le> r 0"
 proof (intro degree_le strip)
   fix i assume i: "r 0 < i"
   have outside: "Poly_Mapping.single 0 i \<notin> pjet_exponent_box 1 r"
     using i by (simp add: pjet_exponent_box_iff)
   show "Polynomial.coeff (mpoly_to_poly 0 P) i = 0"
-    using pjet_coeff_zero_outside_box[OF box outside] by simp
+    using pjet_coeff_zero_outside_box[OF assms outside] by simp
 qed
 
 theorem roth_lemma_one_variable:

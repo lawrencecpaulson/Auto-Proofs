@@ -95,15 +95,15 @@ lemma roth_index_attained:
     "roth_index m r a P = ereal (roth_weight m r I)"
 proof -
   let ?S = "{ereal (roth_weight m r I) | I. pjet_taylor_coeff a I P \<noteq> 0}"
-  have fin: "finite ?S"
+  have "finite ?S"
     by (rule finite_roth_index_terms)
-  have ne: "?S \<noteq> {}"
+  have "?S \<noteq> {}"
     using p pjet_taylor_coeff_all_zero by auto
   obtain I where c: "pjet_taylor_coeff a I P \<noteq> 0"
     and e: "Min ?S = ereal (roth_weight m r I)"
-    using Min_in[OF fin ne] by auto
+    using Min_in[OF \<open>finite ?S\<close> \<open>?S \<noteq> {}\<close>] by auto
   have "roth_index m r a P = ereal (roth_weight m r I)"
-    by (simp add: roth_index_def cInf_eq_Min[OF fin ne] e)
+    by (simp add: roth_index_def cInf_eq_Min[OF \<open>finite ?S\<close> \<open>?S \<noteq> {}\<close>] e)
   then show ?thesis
     using that c by blast
 qed
@@ -129,8 +129,8 @@ qed
 
 lemma roth_disjoint_index_mult:
   fixes P Q :: "'a::idom mpoly"
-  assumes disj: "vars P \<inter> vars Q = {}"
+  assumes "vars P \<inter> vars Q = {}"
   shows "roth_index m r a (P * Q) = roth_index m r a P + roth_index m r a Q"
-  using roth_disjoint_index_mult_nonzero[OF disj] by force
+  using roth_disjoint_index_mult_nonzero[OF assms] by force
 
 end

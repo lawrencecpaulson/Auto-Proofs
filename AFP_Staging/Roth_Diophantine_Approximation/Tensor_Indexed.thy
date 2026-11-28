@@ -43,9 +43,9 @@ lemma roth_det_mat_mult:
 lemma roth_det_mat_product:
   fixes C :: "rat mpoly mat"
     and A B :: "nat \<times> nat \<Rightarrow> rat mpoly"
-  assumes eq: "C = mat k k A * mat k k B"
+  assumes "C = mat k k A * mat k k B"
   shows "det C = det (mat k k A) * det (mat k k B)"
-  using arg_cong[OF eq, of det] roth_det_mat_mult[of k A B]
+  using arg_cong[OF assms, of det] roth_det_mat_mult[of k A B]
   by simp
 
 theorem roth_tensor_det_factorization:
@@ -77,13 +77,13 @@ lemma roth_univariate_hasse_at:
 
 lemma roth_hasse_to_hderiv_at:
   fixes \<psi> :: "rat mpoly"
-  assumes qv: "vars \<psi> \<subseteq> {v}"
+  assumes "vars \<psi> \<subseteq> {v}"
   shows "mpoly_to_poly v
     (pjet_hasse (Poly_Mapping.single v k) \<psi>) =
     hderiv k (mpoly_to_poly v \<psi>)"
   using roth_univariate_hasse_at
     [of v k "mpoly_to_poly v \<psi>"]
-    mpoly_to_poly_inverse[OF qv] by simp
+    mpoly_to_poly_inverse[OF assms] by simp
 
 lemma roth_right_entry_eval:
   fixes \<psi> :: "rat mpoly"
@@ -106,24 +106,24 @@ qed
 
 lemma roth_right_eval_matrix:
   fixes \<psi> :: "nat \<Rightarrow> rat mpoly"
-  assumes qv: "\<And>l. l<k \<Longrightarrow> vars (\<psi> l) \<subseteq> {n}"
+  assumes "\<And>l. l<k \<Longrightarrow> vars (\<psi> l) \<subseteq> {n}"
   shows "mat k k (\<lambda>(l,j).
       insertion (\<lambda>_. t)
         (pjet_hasse (Poly_Mapping.single n j) (\<psi> l))) =
     transpose_mat (mat k k (\<lambda>(j,l).
       poly (hderiv j (mpoly_to_poly n (\<psi> l))) t))"
-  by (auto simp: mat_eq_iff roth_right_entry_eval qv)
+  by (auto simp: mat_eq_iff roth_right_entry_eval assms)
 
 lemma roth_right_det_eval:
   fixes \<psi> :: "nat \<Rightarrow> rat mpoly"
-  assumes qv: "\<And>l. l<k \<Longrightarrow> vars (\<psi> l) \<subseteq> {n}"
+  assumes "\<And>l. l<k \<Longrightarrow> vars (\<psi> l) \<subseteq> {n}"
   shows "insertion (\<lambda>_. t)
     (det (mat k k (\<lambda>(l,j).
       pjet_hasse (Poly_Mapping.single n j) (\<psi> l)))) =
     poly (hwronskian k
       (\<lambda>l. mpoly_to_poly n (\<psi> l))) t"
   by (simp add: mwr_insertion_det
-    roth_right_eval_matrix[OF qv] det_transpose[where n=k]
+    roth_right_eval_matrix[OF assms] det_transpose[where n=k]
     mwr_poly_det hwronskian_def)
 
 theorem roth_right_det_nonzero:
@@ -258,14 +258,14 @@ qed
 lemma roth_bij_sum_poly_coeff:
   fixes f :: "nat \<Rightarrow> rat mpoly"
     and g :: "rat mpoly \<Rightarrow> rat poly"
-  assumes bij: "bij_betw f {..<k} B"
+  assumes "bij_betw f {..<k} B"
   shows "(\<Sum>j<k. Polynomial.smult (c j) (g (f j))) =
          (\<Sum>b\<in>B. Polynomial.smult (c (inv_into {..<k} f b)) (g b))"
 proof -
   have "(\<Sum>j<k. Polynomial.smult (c (inv_into {..<k} f (f j))) (g (f j))) =
     (\<Sum>b\<in>B. Polynomial.smult (c (inv_into {..<k} f b)) (g b))"
-    by (rule sum.reindex_bij_betw[OF bij])
-  then show ?thesis using bij by (simp add: bij_betw_def)
+    by (rule sum.reindex_bij_betw[OF assms])
+  then show ?thesis using assms by (simp add: bij_betw_def)
 qed
 
 lemma roth_indexed_right_indep:

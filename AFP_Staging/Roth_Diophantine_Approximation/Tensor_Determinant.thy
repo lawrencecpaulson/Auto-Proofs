@@ -143,10 +143,10 @@ interpretation roth_vs: vector_space
   by (rule roth_mpoly_vector_space)
 
 lemma roth_mpoly_finite_basis:
-  assumes fin: "finite (S::rat mpoly set)"
+  assumes "finite (S::rat mpoly set)"
   shows "\<exists>B. B \<subseteq> S \<and> roth_vs.independent B \<and>
     S \<subseteq> roth_vs.span B \<and> card B \<le> card S"
-  using fin by (metis roth_vs.basis_exists roth_vs.dim_le_card roth_vs.span_superset)
+  using assms by (metis roth_vs.basis_exists roth_vs.dim_le_card roth_vs.span_superset)
 
 lemma roth_last_coeff_basis:
   assumes box: "pjet_poly_in_box (Suc n) r (P::rat mpoly)"
@@ -271,10 +271,10 @@ lemma roth_right_factor_coeff:
 
 lemma roth_coeff_smult_sum:
   fixes \<psi> :: "rat mpoly \<Rightarrow> rat mpoly"
-  assumes fin: "finite (B::rat mpoly set)"
+  assumes "finite (B::rat mpoly set)"
   shows "MPoly_Type.coeff (\<Sum>b\<in>B. MPoly_Type.smult (c b) (\<psi> b)) I =
            (\<Sum>b\<in>B. c b * MPoly_Type.coeff (\<psi> b) I)"
-  unfolding pjet_coeff_sum[OF fin]
+  unfolding pjet_coeff_sum[OF assms]
   by (simp add: pjet_coeff_smult_rat)
 
 lemma roth_sum_coordinate:

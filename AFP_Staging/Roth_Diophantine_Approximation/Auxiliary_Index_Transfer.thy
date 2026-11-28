@@ -117,14 +117,14 @@ proof (rule ccontr)
       roth_index m r a (replace_coeff (of_int::int \<Rightarrow> real) ?Q)"
     using roth_index_hasse_from_lower[OF index, where J=J]
     by (simp add: roth_hasse_cast_real)
-  have sandwich: "exp (- (\<Sum>v<m. real (r v) * pheight_rat_log_height (\<beta> v))) \<le>
+  have "exp (- (\<Sum>v<m. real (r v) * pheight_rat_log_height (\<beta> v))) \<le>
       real (card (pjet_exponent_box m r)) ^ 2 *
         real (2 ^ (\<Sum>v<m. r v) * pheight_int_coeff_sup ?Q) *
         (\<Prod>v<m. max 1 (abs (a v)) ^ r v) *
         exp (-\<kappa> * L * (t0 - roth_weight m r J))"
     by (rule roth_evaluation_sandwich_uniform[OF qb jnz rpos balance
       kpos Lpos qi near])
-  show False using sandwich gap[OF jw] by linarith
+  then show False using gap[OF jw] by linarith
 qed
 
 theorem roth_index_transfer_uniform_gap:
@@ -154,10 +154,10 @@ proof (rule roth_index_transfer_abstract_gap)
   have uv: "?U \<le> ?V"
   proof -
     have kl: "0 \<le> \<kappa> * L" using kpos Lpos by simp
-    have z: "\<kappa> * L * (t0 - t1) \<le>
+    have "\<kappa> * L * (t0 - t1) \<le>
         \<kappa> * L * (t0 - roth_weight m r J)"
       by (rule mult_left_mono[OF _ kl]) (use jw in auto)
-    show ?thesis using z by (simp add: mult.assoc)
+    then show ?thesis by (simp add: mult.assoc)
   qed
   have u0: "0 \<le> ?U" by simp
   have step1: "?F * ?A * ?U \<le> ?F * ?B * ?U"
@@ -272,11 +272,11 @@ lemma roth_auxiliary_height_log:
 
 lemma roth_weighted_height_sum_le:
   fixes h :: "nat \<Rightarrow> real"
-  assumes upper: "\<And>v. v < m \<Longrightarrow> real (r v) * h v \<le> U"
+  assumes "\<And>v. v < m \<Longrightarrow> real (r v) * h v \<le> U"
   shows "(\<Sum>v<m. real (r v) * h v) \<le> real m * U"
 proof -
   have "(\<Sum>v<m. real (r v) * h v) \<le> (\<Sum>v<m. U)"
-    by (intro sum_mono) (use upper in auto)
+    by (intro sum_mono) (use assms in auto)
   then show ?thesis by simp
 qed
 

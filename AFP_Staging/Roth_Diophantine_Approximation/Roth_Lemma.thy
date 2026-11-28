@@ -4,11 +4,11 @@ theory Roth_Lemma
 begin
 
 lemma roth_taylor_support_vars:
-  assumes tc: "pjet_taylor_coeff a I P \<noteq> 0"
+  assumes "pjet_taylor_coeff a I P \<noteq> 0"
   shows "Poly_Mapping.keys I \<subseteq> vars P"
 proof -
   have "Poly_Mapping.keys I \<subseteq> vars (pjet_translate a P)"
-    using tc by (auto simp: pjet_taylor_coeff_key vars_def)
+    using assms by (auto simp: pjet_taylor_coeff_key vars_def)
   then show ?thesis using pjet_vars_translate_subset by blast
 qed
 
@@ -144,7 +144,7 @@ qed
 
 lemma roth_univariate_degree_of_box_at:
   fixes P :: "rat mpoly"
-  assumes box: "pjet_poly_in_box (Suc n) r P"
+  assumes "pjet_poly_in_box (Suc n) r P"
   shows "Polynomial.degree (mpoly_to_poly n P) \<le> r n"
 proof (rule degree_le, intro allI impI)
   fix i assume i: "r n < i"
@@ -152,7 +152,7 @@ proof (rule degree_le, intro allI impI)
       pjet_exponent_box (Suc n) r"
     using i by (auto simp: pjet_exponent_box_iff)
   show "Polynomial.coeff (mpoly_to_poly n P) i = 0"
-    using pjet_coeff_zero_outside_box[OF box outside] by simp
+    using pjet_coeff_zero_outside_box[OF assms outside] by simp
 qed
 
 
@@ -347,12 +347,12 @@ qed
 
 lemma roth_ratio_scale:
   fixes r :: "nat \<Rightarrow> nat" and \<sigma> :: real
-  assumes ratio: "real (r (Suc v)) \<le> \<sigma> * real (r v)"
+  assumes "real (r (Suc v)) \<le> \<sigma> * real (r v)"
   shows "real (k * r (Suc v)) \<le> \<sigma> * real (k * r v)"
 proof -
   have "real k * real (r (Suc v)) \<le>
     real k * (\<sigma> * real (r v))"
-    by (rule mult_left_mono[OF ratio]) simp
+    by (rule mult_left_mono[OF assms]) simp
   then show ?thesis by (simp add: mult.commute mult.left_commute)
 qed
 
@@ -414,12 +414,12 @@ section \<open>Determinant factors with their quantitative bounds\<close>
 
 lemma roth_index_real_nonzero:
   fixes P :: "rat mpoly"
-  assumes pn: "P \<noteq> 0"
+  assumes "P \<noteq> 0"
   shows "\<exists>t\<ge>0. roth_index m r a P = ereal t"
 proof -
   obtain I where ie: "roth_index m r a P =
       ereal (roth_weight m r I)"
-    using roth_index_attained[OF pn, where m=m and r=r and a=a]
+    using roth_index_attained[OF assms, where m=m and r=r and a=a]
     by blast
   show ?thesis using ie roth_weight_nonneg by blast
 qed
@@ -685,12 +685,12 @@ next
     using ib by (simp add: teq peq)
   have \<rho>: "real (r (Suc n))/real (r n) \<le> ?\<sigma>"
     using ratio roth_ratio_divide rp by auto
-  have tb: "t \<le> 2*real ?m*\<eta>"
+  have "t \<le> 2*real ?m*\<eta>"
     by (rule roth_final_index_arith
       [where m="?m" and \<sigma>="?\<sigma>" and
         \<rho>="real (r (Suc n))/real (r n)"])
       (use kp ep ubi lbi \<rho> sigma_sq qi in auto)
-  show ?case using tb teq by simp
+  then show ?case using teq by simp
 qed
 
 theorem roth_lemma:

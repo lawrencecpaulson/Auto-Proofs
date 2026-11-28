@@ -87,11 +87,11 @@ qed
 
 lemma roth_hasse_taylor_support:
   fixes P :: "'a::idom mpoly"
-  assumes nz: "pjet_taylor_coeff a J (pjet_hasse I P) \<noteq> 0"
+  assumes "pjet_taylor_coeff a J (pjet_hasse I P) \<noteq> 0"
   shows "pjet_taylor_coeff a (I + J) P \<noteq> 0"
 proof -
   have c: "coeff (pjet_hasse I (pjet_translate a P)) J \<noteq> 0"
-    by (metis nz pjet_hasse_translate pjet_taylor_coeff_def)
+    by (metis assms pjet_hasse_translate pjet_taylor_coeff_def)
   have "coeff (pjet_translate a P) (J + I) \<noteq> 0"
     by (rule pjet_hasse_coeff_support[OF c])
   then show ?thesis

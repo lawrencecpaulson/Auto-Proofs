@@ -75,16 +75,16 @@ qed
 
 lemma roth_box_uminus:
   fixes P :: "rat mpoly"
-  assumes box: "pjet_poly_in_box m r P"
+  assumes "pjet_poly_in_box m r P"
   shows "pjet_poly_in_box m r (-P)"
-  using box
+  using assms
   by (simp add: pjet_poly_in_box_def MPoly_Type.uminus_mpoly.rep_eq)
 
 lemma roth_box_sign_mult:
   fixes P :: "rat mpoly"
-  assumes box: "pjet_poly_in_box m r P"
+  assumes "pjet_poly_in_box m r P"
   shows "pjet_poly_in_box m r (signof q * P)"
-  using box by (simp add: sign_def roth_box_uminus)
+  using assms by (simp add: sign_def roth_box_uminus)
 
 lemma roth_box_det:
   fixes A :: "nat \<Rightarrow> nat \<Rightarrow> rat mpoly"
@@ -194,12 +194,12 @@ qed
 
 lemma roth_proj_height_hasse_det_le:
   fixes P :: "rat mpoly" and Q :: "int mpoly"
-  assumes rep: "pheight_integral_rep P Q"
+  assumes "pheight_integral_rep P Q"
   shows "pheight_proj_height
       (det (mat k k (\<lambda>(i,j). pjet_hasse (J i j) P))) \<le>
     pheight_int_coeff_sup
       (det (mat k k (\<lambda>(i,j). pjet_hasse (J i j) Q)))"
-  by (rule pheight_proj_height_le[OF roth_hasse_det_rep[OF rep]])
+  by (rule pheight_proj_height_le[OF roth_hasse_det_rep[OF assms]])
 
 section \<open>Coefficient bounds for one Hasse derivative\<close>
 
@@ -291,10 +291,10 @@ qed
 lemma roth_prod_monom_general:
   fixes a :: "'x \<Rightarrow> int"
     and E :: "'x \<Rightarrow> (nat,nat) poly_mapping"
-  assumes fin: "finite S"
+  assumes "finite S"
   shows "(\<Prod>x\<in>S. MPoly_Type.monom (E x) (a x)) =
     MPoly_Type.monom (\<Sum>x\<in>S. E x) (\<Prod>x\<in>S. a x)"
-  using fin by (induction S rule: finite_induct)
+  using assms by (induction S rule: finite_induct)
     (simp_all add: MPoly_Type.mult_monom pjet_Const_monom[symmetric])
 
 lemma roth_monom_sum_coeff_bound:
@@ -436,9 +436,9 @@ lemma roth_abs_coeff_signof:
 lemma roth_box_card_pos:
   "0 < card (pjet_exponent_box m r)"
 proof -
-  have z: "(0::(nat,nat) poly_mapping) \<in> pjet_exponent_box m r"
+  have "(0::(nat,nat) poly_mapping) \<in> pjet_exponent_box m r"
     by (rule pjet_exponent_boxI) simp_all
-  show ?thesis using z by (auto simp: card_gt_0_iff)
+  then show ?thesis by (auto simp: card_gt_0_iff)
 qed
 
 lemma roth_hasse_box_int:
@@ -509,13 +509,13 @@ qed
 
 lemma roth_hasse_det_coeff_sup:
   fixes Q :: "int mpoly"
-  assumes box: "pjet_poly_in_box m r Q"
+  assumes "pjet_poly_in_box m r Q"
   shows "pheight_int_coeff_sup
       (det (mat k k (\<lambda>(i,j). pjet_hasse (J i j) Q))) \<le>
     fact k * (card (pjet_exponent_box m r) *
       (2^(\<Sum>v<m. r v) * pheight_int_coeff_sup Q))^k"
   by (rule roth_det_coeff_sup_bound)
-    (use box pheight_int_coeff_sup_ge_one[of Q] in
+    (use assms pheight_int_coeff_sup_ge_one[of Q] in
       \<open>auto intro: roth_hasse_box_int roth_hasse_coeff_sup\<close>)
 
 lemma roth_box_scale_bound:
@@ -678,9 +678,9 @@ proof (induction v)
 next
   case (Suc v)
   have rv: "r v \<le> r 0" using Suc.IH Suc.prems by arith
-  have h: "2 * r (Suc v) \<le> r v"
+  have "2 * r (Suc v) \<le> r v"
     by (rule half[OF Suc.prems])
-  show ?case using rv h by arith
+  with rv show ?case by arith
 qed
 
 lemma roth_fact_bound:
@@ -697,11 +697,11 @@ proof -
 qed
 
 lemma roth_fact_log_bound:
-  assumes h: "fact k \<le> (2::nat)^(k*n)"
+  assumes "fact k \<le> (2::nat)^(k*n)"
   shows "ln (real (fact k)) \<le> real k * real n * ln 2"
 proof -
   have hreal: "real (fact k) \<le> real ((2::nat)^(k*n))"
-    by (rule of_nat_mono[OF h])
+    by (rule of_nat_mono[OF assms])
   have b: "ln (real (fact k)) \<le> ln (real ((2::nat)^(k*n)))"
     by (rule ln_mono) (use hreal in auto)
   show ?thesis using b

@@ -8,11 +8,11 @@ section \<open>Roth bound for an auxiliary polynomial\<close>
 
 lemma roth_int_coeff_sup_log_mono:
   fixes P :: "int mpoly" and B :: nat
-  assumes h: "pheight_int_coeff_sup P \<le> B"
+  assumes "pheight_int_coeff_sup P \<le> B"
   shows "ln (real (pheight_int_coeff_sup P)) \<le> ln (real B)"
 proof (rule ln_mono)
   show "real (pheight_int_coeff_sup P) \<le> real B"
-    using h by simp
+    using assms by simp
   show "0 < real (pheight_int_coeff_sup P)"
     using pheight_int_coeff_sup_ge_one[of P] by simp
 qed
@@ -136,12 +136,12 @@ proof -
       (replace_coeff of_int P)"
   have Dpos: "0 < ?D"
     by (intro prod_pos) (use qpos in auto)
-  have ex: "\<exists>z::int. ?D * ?E = of_int z"
+  have "\<exists>z::int. ?D * ?E = of_int z"
     by (rule roth_clear_polynomial_evaluation[where p=p and q=q])
       (use box qpos in auto)
-  obtain z::int where z: "?D * ?E = of_int z" using ex by blast
-  have zne: "z \<noteq> 0" using Dpos nz z by (metis of_int_0 mult_eq_0_iff not_less_iff_gr_or_eq)
-  have "1 \<le> \<bar>of_int z::rat\<bar>" using zne by simp
+  then obtain z::int where z: "?D * ?E = of_int z" by blast
+  have "z \<noteq> 0" using Dpos nz z by (metis of_int_0 mult_eq_0_iff not_less_iff_gr_or_eq)
+  then have "1 \<le> \<bar>of_int z::rat\<bar>" by simp
   moreover have "\<bar>of_int z::rat\<bar> = \<bar>?D * ?E\<bar>"
     using z by simp
   moreover have "\<bar>?D * ?E\<bar> = ?D * \<bar>?E\<bar>"
@@ -849,13 +849,13 @@ qed
 
 lemma roth_real_taylor_card_bound:
   fixes P :: "real mpoly"
-  assumes box: "pjet_poly_in_box m r P"
+  assumes "pjet_poly_in_box m r P"
   shows "card (Poly_Mapping.keys (mapping_of (pjet_translate a P))) \<le>
     card (pjet_exponent_box m r)"
 proof (rule card_mono[OF finite_pjet_exponent_box])
   show "Poly_Mapping.keys (mapping_of (pjet_translate a P)) \<subseteq>
       pjet_exponent_box m r"
-    using box by (auto simp: pjet_taylor_coeff_key[symmetric]
+    using assms by (auto simp: pjet_taylor_coeff_key[symmetric]
       intro: roth_taylor_index_box)
 qed
 
@@ -895,10 +895,10 @@ proof -
     ereal t \<le> roth_index m r a (pjet_hasse J P) +
       ereal (roth_weight m r J)"
     by (rule ereal_minus_le) simp
-  have le2: "ereal t \<le> roth_index m r a (pjet_hasse J P) +
+  have "ereal t \<le> roth_index m r a (pjet_hasse J P) +
       ereal (roth_weight m r J)"
     using le by (simp only: add.commute)
-  show ?thesis using le2 eq e by metis
+  then show ?thesis using eq e by metis
 qed
 
 end

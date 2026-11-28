@@ -90,13 +90,13 @@ proof -
 qed
 
 lemma roth_weight_single:
-  assumes vm: "v<m"
+  assumes "v<m"
   shows "roth_weight m r (Poly_Mapping.single v j) = j / (r v)"
 proof -
   have eq: "(\<Sum>u<m. real (if v=u then j else 0) / real (r u)) =
     (\<Sum>u<m. if v=u then real j / real (r v) else 0)"
     by (rule sum.cong) auto
-  show ?thesis using vm
+  show ?thesis using assms
     by (simp add: roth_weight_def lookup_single when_def eq)
 qed
 
@@ -122,11 +122,11 @@ proof -
 qed
 
 lemma roth_weight_extend_zero:
-  assumes supp: "Poly_Mapping.keys J \<subseteq> {..<n}"
+  assumes "Poly_Mapping.keys J \<subseteq> {..<n}"
   shows "roth_weight (Suc n) r J = roth_weight n r J"
 proof -
   have "Poly_Mapping.lookup J n = 0"
-    using supp by (auto simp: in_keys_iff)
+    using assms by (auto simp: in_keys_iff)
   then show ?thesis by (simp add: roth_weight_def)
 qed
 
@@ -207,11 +207,11 @@ qed
 
 lemma roth_max_shift_sum:
   fixes rho t :: real
-  assumes rn: "0 \<le> rho"
+  assumes "0 \<le> rho"
   shows "(\<Sum>j<k. max 0 (t-f j)) \<le> (\<Sum>j<k. max 0 (t-rho-f j)) + real k * rho"
 proof -
   have step: "max 0 (t-f j) \<le> max 0 (t-rho-f j) + rho" for j
-    using rn by (simp add: max_def; linarith)
+    using assms by (simp add: max_def; linarith)
   have "(\<Sum>j<k. max 0 (t-f j)) \<le> (\<Sum>j<k. max 0 (t-rho-f j) + rho)"
     by (rule sum_mono) (rule step)
   then show ?thesis by (simp add: sum.distrib)
@@ -602,33 +602,33 @@ qed
 
 lemma roth_det_left_vars:
   fixes phi :: "nat \<Rightarrow> rat mpoly"
-  assumes box: "\<forall>l<k. pjet_poly_in_box n r (phi l)"
+  assumes "\<forall>l<k. pjet_poly_in_box n r (phi l)"
   shows "vars (det (mat k k (\<lambda>(i,l). pjet_hasse (mu i) (phi l)))) \<subseteq> {..<n}"
-  using box
+  using assms
   by (meson order_trans roth_box_vars roth_det_vars_subset roth_hasse_vars_subset)
 
 lemma roth_det_right_vars:
   fixes psi :: "nat \<Rightarrow> rat mpoly"
-  assumes qv: "\<And>l. l<k \<Longrightarrow> vars (psi l) \<subseteq> {n}"
+  assumes "\<And>l. l<k \<Longrightarrow> vars (psi l) \<subseteq> {n}"
   shows "vars (det (mat k k (\<lambda>(l,j).
       pjet_hasse (Poly_Mapping.single n j) (psi l)))) \<subseteq> {n}"
-  using qv roth_hasse_vars_subset by (intro roth_det_vars_subset) blast
+  using assms roth_hasse_vars_subset by (intro roth_det_vars_subset) blast
 
 lemma roth_det_left_box:
   fixes phi :: "nat \<Rightarrow> rat mpoly"
-  assumes box: "\<forall>l<k. pjet_poly_in_box n r (phi l)"
+  assumes "\<forall>l<k. pjet_poly_in_box n r (phi l)"
   shows "pjet_poly_in_box n (\<lambda>v. k*r v)
     (det (mat k k (\<lambda>(i,l). pjet_hasse (mu i) (phi l))))"
   by (rule roth_box_det)
-    (use box in \<open>auto intro: pjet_hasse_preserves_box\<close>)
+    (use assms in \<open>auto intro: pjet_hasse_preserves_box\<close>)
 
 lemma roth_det_right_box:
   fixes psi :: "nat \<Rightarrow> rat mpoly"
-  assumes box: "\<forall>l<k. pjet_poly_in_box (Suc n) r (psi l)"
+  assumes "\<forall>l<k. pjet_poly_in_box (Suc n) r (psi l)"
   shows "pjet_poly_in_box (Suc n) (\<lambda>v. k*r v) (det (mat k k (\<lambda>(l,j).
                  pjet_hasse (Poly_Mapping.single n j) (psi l))))"
   by (rule roth_box_det)
-    (use box in \<open>auto intro: pjet_hasse_preserves_box\<close>)
+    (use assms in \<open>auto intro: pjet_hasse_preserves_box\<close>)
 
 
 theorem roth_box_tensor_det_factors_bounded:
