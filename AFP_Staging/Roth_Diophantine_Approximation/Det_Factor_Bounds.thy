@@ -356,7 +356,7 @@ proof (induction k)
 next
   case (Suc k)
   then show ?case
-    by (cases "k=0") (auto simp: sum.lessThan_Suc algebra_simps)
+    by (cases "k=0") (auto simp: algebra_simps)
 qed
 
 lemma roth_sum_large_half:

@@ -4,6 +4,8 @@ theory Tensor_Determinant
     Roth_Wronskian
 begin
 
+no_notation suminf (binder \<open>\<Sum>\<close> 10)
+
 section \<open>Separating the last variable\<close>
 
 lemma roth_monom_last_split:
@@ -260,7 +262,7 @@ lemma roth_single_monom_coeff:
     (\<Sum>e\<le>d. MPoly_Type.monom (Poly_Mapping.single n e) (c e))
     (Poly_Mapping.single n j) = (c j::rat)"
   by (simp add: pjet_coeff_sum More_MPoly_Type.coeff_monom
-      when_def pjet_single_inj sum.delta j)
+      when_def pjet_single_inj j)
 
 lemma roth_right_factor_coeff:
   assumes e: "e\<le>d"
@@ -273,9 +275,8 @@ lemma roth_coeff_smult_sum:
   fixes \<psi> :: "rat mpoly \<Rightarrow> rat mpoly"
   assumes "finite (B::rat mpoly set)"
   shows "MPoly_Type.coeff (\<Sum>b\<in>B. MPoly_Type.smult (c b) (\<psi> b)) I =
-           (\<Sum>b\<in>B. c b * MPoly_Type.coeff (\<psi> b) I)"
-  unfolding pjet_coeff_sum[OF assms]
-  by (simp add: pjet_coeff_smult_rat)
+         (\<Sum>b\<in>B. c b * MPoly_Type.coeff (\<psi> b) I)"
+  unfolding pjet_coeff_sum[OF assms] by (simp add: pjet_coeff_smult_rat)
 
 lemma roth_sum_coordinate:
   assumes fin: "finite (B::rat mpoly set)" and b: "b\<in>B"
@@ -285,8 +286,7 @@ lemma roth_sum_coordinate:
 lemma roth_right_factor_indep:
   assumes sub: "B \<subseteq> roth_last_coeff P n ` {..d}"
     and ind: "roth_vs.independent B" and fin: "finite B"
-    and z: "(\<Sum>u\<in>B. MPoly_Type.smult (c u)
-      (roth_right_factor P n d B u)) = 0"
+    and z: "(\<Sum>u\<in>B. MPoly_Type.smult (c u) (roth_right_factor P n d B u)) = 0"
     and b: "b\<in>B"
   shows "c b = 0"
 proof -
@@ -295,8 +295,7 @@ proof -
     using roth_last_coeff_basis_coordinates[OF sub ind b] by blast
   have val: "MPoly_Type.coeff (\<Sum>u\<in>B. MPoly_Type.smult (c u) (roth_right_factor P n d B u))
                (Poly_Mapping.single n e) = c b"
-    by (simp add: roth_coeff_smult_sum[OF fin]
-        roth_right_factor_coeff[OF e] coord
+    by (simp add: roth_coeff_smult_sum[OF fin] roth_right_factor_coeff[OF e] coord
         roth_sum_coordinate[OF fin b])
   show ?thesis using z val
     by (simp add: MPoly_Type.coeff_def zero_mpoly.rep_eq)
@@ -305,8 +304,7 @@ qed
 lemma roth_single_in_box:
   assumes e: "e\<le>r n"
   shows "Poly_Mapping.single n e \<in> pjet_exponent_box (Suc n) r"
-  by (rule pjet_exponent_boxI)
-    (auto simp: Poly_Mapping.keys_single lookup_single when_def e)
+  by (rule pjet_exponent_boxI) (auto simp: lookup_single when_def e)
 
 lemma roth_right_factor_box:
   "pjet_poly_in_box (Suc n) r (roth_right_factor P n (r n) B b)"
@@ -319,14 +317,12 @@ proof -
   have h: "vars (\<Sum>e\<le>d.
       MPoly_Type.monom (Poly_Mapping.single n e)
         (roth_vs.representation B (roth_last_coeff P n e) b))
-    \<subseteq> (\<Union>e\<le>d. vars (MPoly_Type.monom
-      (Poly_Mapping.single n e)
+    \<subseteq> (\<Union>e\<le>d. vars (MPoly_Type.monom (Poly_Mapping.single n e)
       (roth_vs.representation B (roth_last_coeff P n e) b)))"
     by (rule vars_setsum) simp
-  have t: "(\<Union>e\<le>d. vars (MPoly_Type.monom
-      (Poly_Mapping.single n e)
-      (roth_vs.representation B (roth_last_coeff P n e) b)))
-    \<subseteq> {n}"
+  have t: "(\<Union>e\<le>d. vars (MPoly_Type.monom (Poly_Mapping.single n e)
+              (roth_vs.representation B (roth_last_coeff P n e) b)))
+           \<subseteq> {n}"
     by (auto simp: vars_monom_single_cases)
   show ?thesis using h t by (simp add: roth_right_factor_def)
 qed
@@ -334,8 +330,7 @@ qed
 lemma roth_right_factor_univ_indep:
   assumes sub: "B \<subseteq> roth_last_coeff P n ` {..d}"
     and ind: "roth_vs.independent B" and fin: "finite B"
-    and z: "(\<Sum>u\<in>B. Polynomial.smult (c u)
-      (mpoly_to_poly n (roth_right_factor P n d B u))) = 0"
+    and z: "(\<Sum>u\<in>B. Polynomial.smult (c u) (mpoly_to_poly n (roth_right_factor P n d B u))) = 0"
     and b: "b\<in>B"
   shows "c b=0"
 proof -
@@ -345,7 +340,7 @@ proof -
     using roth_last_coeff_basis_coordinates[OF sub ind b] by blast
   have val: "Polynomial.coeff (\<Sum>u\<in>B. Polynomial.smult (c u)
                (mpoly_to_poly n (roth_right_factor P n d B u))) e = c b"
-    by (simp add: Polynomial.coeff_sum coeff_smult coord
+    by (simp add: Polynomial.coeff_sum coord
         roth_right_factor_coeff[OF e] roth_sum_coordinate[OF fin b])
   show ?thesis using z val by simp
 qed
@@ -354,15 +349,13 @@ text \<open>A coefficient basis that splits the polynomial into a tensor sum
 and whose right factors are linearly independent.\<close>
 definition roth_tensor_basis ::
   "rat mpoly \<Rightarrow> nat \<Rightarrow> (nat \<Rightarrow> nat) \<Rightarrow> rat mpoly set \<Rightarrow> bool" where
-  "roth_tensor_basis P n r B \<longleftrightarrow>
+  "roth_tensor_basis P n r B \<equiv>
     B \<subseteq> roth_last_coeff P n ` {..r n} \<and>
     B \<noteq> {} \<and> card B \<le> Suc (r n) \<and>
     roth_vs.independent B \<and>
     (\<forall>b\<in>B. pjet_poly_in_box n r b) \<and>
     P = (\<Sum>b\<in>B. b * roth_right_factor P n (r n) B b) \<and>
-    (\<forall>c. (\<Sum>b\<in>B. MPoly_Type.smult (c b)
-      (roth_right_factor P n (r n) B b)) = 0 \<longrightarrow>
-      (\<forall>b\<in>B. c b = 0))"
+    (\<forall>c. (\<Sum>b\<in>B. MPoly_Type.smult (c b) (roth_right_factor P n (r n) B b)) = 0 \<longrightarrow> (\<forall>b\<in>B. c b = 0))"
 
 theorem roth_tensor_basis_exists:
   assumes box: "pjet_poly_in_box (Suc n) r (P::rat mpoly)"
@@ -491,12 +484,10 @@ lemma roth_hasse_outer_unique:
     and qv: "vars \<psi> \<subseteq> {n}"
     and neq: "J \<noteq> \<mu>"
   shows "pjet_hasse J \<phi> *
-    (\<Sum>K. (pjet_hasse K \<psi> when
-      (\<mu> + Poly_Mapping.single n j = J + K))) = 0"
+    (\<Sum>K. (pjet_hasse K \<psi> when (\<mu> + Poly_Mapping.single n j = J + K))) = 0"
 proof (rule ccontr)
   assume nz: "pjet_hasse J \<phi> *
-    (\<Sum>K. (pjet_hasse K \<psi> when
-      (\<mu> + Poly_Mapping.single n j = J + K))) \<noteq> 0"
+    (\<Sum>K. (pjet_hasse K \<psi> when (\<mu> + Poly_Mapping.single n j = J + K))) \<noteq> 0"
   obtain K where knz: "(pjet_hasse K \<psi> when
     (\<mu> + Poly_Mapping.single n j = J + K)) \<noteq> 0"
     using Sum_any.not_neutral_obtains_not_neutral nz by force
@@ -509,8 +500,7 @@ proof (rule ccontr)
 qed
 
 lemma roth_hasse_inner_collapse:
-  "(\<Sum>K. (pjet_hasse K \<psi> when
-    (\<mu> + Poly_Mapping.single n j = \<mu> + K))) =
+  "(\<Sum>K. (pjet_hasse K \<psi> when (\<mu> + Poly_Mapping.single n j = \<mu> + K))) =
     pjet_hasse (Poly_Mapping.single n j) \<psi>"
   by simp
 
