@@ -235,37 +235,6 @@ lemma pjet_insertion_monom:
   by (simp add: insertion_mult pjet_insertion_prod
     pjet_insertion_power)
 
-lemma pjet_insertion_sum_any:
-  fixes b :: "nat \<Rightarrow> 'a::comm_ring_1"
-    and T :: "'i \<Rightarrow> 'a mpoly"
-  assumes "finite S"
-  shows "insertion b (\<Sum>x\<in>S. T x) =
-    (\<Sum>x\<in>S. insertion b (T x))"
-  using assms by (induction S rule: finite_induct)
-    (simp_all add: insertion_add)
-
-lemma pjet_insertion_prod_any:
-  fixes b :: "nat \<Rightarrow> 'a::comm_ring_1"
-    and T :: "'i \<Rightarrow> 'a mpoly"
-  assumes "finite S"
-  shows "insertion b (\<Prod>x\<in>S. T x) =
-    (\<Prod>x\<in>S. insertion b (T x))"
-  using assms by (induction S rule: finite_induct)
-    (simp_all add: insertion_mult)
-
-lemma pjet_insertion_power_any:
-  fixes b :: "nat \<Rightarrow> 'a::comm_ring_1"
-  shows "insertion b (P ^ n) = insertion b P ^ n"
-  by (induction n) (simp_all add: insertion_mult)
-
-lemma pjet_insertion_monom_any:
-  fixes a :: "nat \<Rightarrow> 'a::comm_ring_1" and c :: 'a
-  shows "insertion a (MPoly_Type.monom I c) =
-    c * (\<Prod>v\<in>Poly_Mapping.keys I. a v ^ Poly_Mapping.lookup I v)"
-  using pjet_mpoly_subst_monom[of Var I c]
-  by (simp add: insertion_mult pjet_insertion_prod_any
-    pjet_insertion_power_any)
-
 lemma pjet_insertion_subst:
   fixes a :: "nat \<Rightarrow> 'a::comm_ring_1"
     and g :: "nat \<Rightarrow> 'a mpoly"
@@ -625,20 +594,6 @@ lemma pjet_monom_smul:
   "monom K (c::'a::comm_ring_1) = Const c * monom K 1"
   by (simp add: pjet_Const_monom mult_monom)
 
-lemma pjet_hasse_monom_smul:
-  "pjet_hasse I (monom K (c::'a::comm_ring_1)) =
-    Const c * pjet_hasse I (monom K 1)"
-proof -
-  have e: "monom K c = Const c * monom K 1"
-    by (rule pjet_monom_smul)
-  have "pjet_hasse I (monom K c) =
-    pjet_hasse I (Const c * monom K 1)"
-    using e by simp
-  also have "\<dots> = Const c * pjet_hasse I (monom K 1)"
-    by (rule pjet_hasse_smul)
-  finally show ?thesis .
-qed
-
 lemma pjet_hasse_mult:
   "pjet_hasse I (P * Q) =
     (\<Sum>J. pjet_hasse J P *
@@ -660,12 +615,6 @@ proof -
     using h by (simp only: pjet_hasse_def
       pjet_taylor_coeff_def pjet_eval_translate)
 qed
-
-lemma pjet_hasse_origin:
-  fixes P :: "'a::comm_ring_1 mpoly"
-  shows "insertion (\<lambda>_. 0) (pjet_hasse I P) = coeff P I"
-  by (simp only: pjet_hasse_eval pjet_taylor_coeff_def
-    pjet_translate_zero)
 
 lemma pjet_hasse_translate:
   "pjet_hasse I (pjet_translate a P) =

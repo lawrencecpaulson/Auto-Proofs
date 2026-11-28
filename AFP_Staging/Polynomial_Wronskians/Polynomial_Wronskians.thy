@@ -206,16 +206,6 @@ lemma coeff_prod_top:
   shows "Polynomial.coeff (\<Prod>i\<in>S. f i) (\<Sum>i\<in>S. degree (f i)) = (\<Prod>i\<in>S. lead_coeff (f i))"
   using degree_prod_eq_sum_degree[of S f] lead_coeff_prod[of f S] nz by force
 
-lemma permutes_sum:
-  assumes q: "q permutes A"
-  shows "(\<Sum>i\<in>A. f (q i)) = (\<Sum>i\<in>A. f i)"
-  by (rule sum.permutes_inv [OF q])
-
-lemma permutes_prod:
-  assumes q: "q permutes A"
-  shows "(\<Prod>i\<in>A. f (q i)) = (\<Prod>i\<in>A. f i)"
-  by (rule prod.permutes_inv [OF q])
-
 lemma permutes_bounded:
   assumes q: "q permutes {..<k}" and i: "i<k"
   shows "q i < k"
@@ -230,7 +220,11 @@ proof -
     (\<Sum>i<k. degree (p (q i))) - (\<Sum>i<k. i)"
     by (rule sum_subtractf_nat) (use good in auto)
   also have "\<dots> = (\<Sum>i<k. degree (p i)) - (\<Sum>i<k. i)"
-    using permutes_sum[OF q, of "\<lambda>j. degree (p j)"] by simp
+  proof -
+    have "(\<Sum>i<k. degree (p (q i))) = (\<Sum>i<k. degree (p i))"
+      by (rule sum.permutes_inv[OF q])
+    then show ?thesis by simp
+  qed
   finally show ?thesis .
 qed
 
@@ -293,7 +287,9 @@ lemma wr_term:
     (\<Prod>j<k. lead_coeff (p j)) * (\<Prod>i<k. of_nat (degree (p (q i)) choose i))"
 proof (cases "\<forall>i<k. i \<le> degree (p (q i))")
   case True
-  with permutes_prod[OF q, of "\<lambda>j. lead_coeff (p j)"] wr_term_good[OF q pnz True]
+  have eq: "(\<Prod>i<k. lead_coeff (p (q i))) = (\<Prod>i<k. lead_coeff (p i))"
+    by (rule prod.permutes_inv[OF q])
+  with True wr_term_good[OF q pnz True]
   show ?thesis
     by (auto simp add: prod.distrib)
 next

@@ -608,40 +608,6 @@ qed
 
 section \<open>Evaluation of Kronecker substitution\<close>
 
-lemma pjet_insertion_Const:
-  fixes c :: rat and f :: "nat \<Rightarrow> rat"
-  shows "insertion f (Const c) = c"
-  by (simp add: pjet_Const_monom[symmetric] insertion_single[of f 0 0 c])
-
-lemma pjet_insertion_Var:
-  fixes f :: "nat \<Rightarrow> rat"
-  shows "insertion f (Var v) = f v"
-  by simp
-
-lemma mwr_monom_var_prod:
-  fixes c :: rat
-  shows "MPoly_Type.monom I c = Const c * (\<Prod>v\<in>Poly_Mapping.keys I. Var v ^ Poly_Mapping.lookup I v)"
-  using pjet_hasse_monom_product[of 0 I c] by simp
-
-lemma pjet_insertion_prod:
-  fixes f :: "nat \<Rightarrow> rat" and P :: "'a \<Rightarrow> rat mpoly"
-  assumes "finite S"
-  shows "insertion f (\<Prod>v\<in>S. P v) = (\<Prod>v\<in>S. insertion f (P v))"
-  using assms by (induction S rule: finite_induct) (simp_all add: insertion_mult)
-
-lemma pjet_insertion_power:
-  fixes f :: "nat \<Rightarrow> rat" and P :: "rat mpoly"
-  shows "insertion f (P^n) = insertion f P ^ n"
-  by (induction n) (simp_all add: insertion_mult)
-
-lemma pjet_insertion_monom:
-  fixes c :: rat and f :: "nat \<Rightarrow> rat"
-  shows "insertion f (MPoly_Type.monom I c) =
-         c * (\<Prod>v\<in>Poly_Mapping.keys I. f v ^ Poly_Mapping.lookup I v)"
-  by (simp add: mwr_monom_var_prod insertion_mult
-    pjet_insertion_Const pjet_insertion_prod
-    pjet_insertion_power pjet_insertion_Var)
-
 lemma mwr_kronecker_keys:
   assumes h: "Poly_Mapping.keys I \<subseteq> {..<m}"
   shows "mwr_kronecker m B I = (\<Sum>v\<in>Poly_Mapping.keys I. Poly_Mapping.lookup I v * B^v)"
@@ -666,12 +632,6 @@ lemma mwr_insertion_kronecker_monom:
   assumes supp: "Poly_Mapping.keys I \<subseteq> {..<m}"
   shows "insertion (\<lambda>v. t^(B^v)) (MPoly_Type.monom I c) = c * t^(mwr_kronecker m B I)"
   by (simp add: pjet_insertion_monom mwr_kronecker_keys[OF supp] mwr_kronecker_power_prod)
-
-lemma pjet_insertion_sum:
-  fixes f :: "nat \<Rightarrow> rat" and P :: "'a \<Rightarrow> rat mpoly"
-  assumes "finite S"
-  shows "insertion f (\<Sum>x\<in>S. P x) = (\<Sum>x\<in>S. insertion f (P x))"
-  using assms by (induction S rule: finite_induct) (simp_all add: insertion_add)
 
 lemma mwr_insertion_monom_sum:
   fixes P :: "rat mpoly"
