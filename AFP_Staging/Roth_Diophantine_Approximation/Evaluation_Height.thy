@@ -551,7 +551,7 @@ proof -
   then obtain K where ck: "MPoly_Type.coeff (pjet_hasse I P) K \<noteq> 0"
     by (metis coeff_all_0)
   have cp: "MPoly_Type.coeff P (K + I) \<noteq> 0"
-    by (rule roth_hasse_coeff_support[OF ck])
+    by (rule pjet_hasse_coeff_support[OF ck])
   have ki: "K + I \<in> pjet_exponent_box m r"
     using box cp by (auto simp: pjet_poly_in_box_def
       MPoly_Type.coeff_def in_keys_iff)

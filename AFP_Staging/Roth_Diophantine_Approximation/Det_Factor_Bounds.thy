@@ -103,7 +103,7 @@ qed
 lemma roth_weight_prefix_bound:
   assumes rp: "0 < r n"
     and rb: "\<And>v. v<n \<Longrightarrow> r n \<le> r v"
-  shows "roth_weight (Suc n) r J \<le> real (roth_total_order (Suc n) J) / real (r n)"
+  shows "roth_weight (Suc n) r J \<le> real (mwr_total_order (Suc n) J) / real (r n)"
 proof -
   have step: "real (Poly_Mapping.lookup J v) / real (r v) \<le>
     real (Poly_Mapping.lookup J v) / real (r n)"
@@ -116,8 +116,8 @@ proof -
   also have "\<dots> \<le>
     (\<Sum>v<Suc n. real (Poly_Mapping.lookup J v) / real (r n))"
     by (rule sum_mono) (use step in auto)
-  also have "\<dots> = real (roth_total_order (Suc n) J) / real (r n)"
-    by (simp add: roth_total_order_def sum_divide_distrib add_divide_distrib)
+  also have "\<dots> = real (mwr_total_order (Suc n) J) / real (r n)"
+    by (simp add: mwr_total_order_def sum_divide_distrib add_divide_distrib)
   finally show ?thesis .
 qed
 
@@ -132,7 +132,7 @@ qed
 
 lemma roth_weight_tensor_bound:
   assumes supp: "Poly_Mapping.keys J \<subseteq> {..<Suc n}"
-    and ord: "roth_total_order (Suc n) J \<le> i"
+    and ord: "mwr_total_order (Suc n) J \<le> i"
     and ib: "i \<le> r (Suc n)"
     and rp: "0 < r n"
     and rb: "\<And>v. v<n \<Longrightarrow> r n \<le> r v"
@@ -141,9 +141,9 @@ lemma roth_weight_tensor_bound:
 proof -
   have ext: "roth_weight (Suc (Suc n)) r J = roth_weight (Suc n) r J"
     using roth_weight_extend_zero supp by blast
-  have pref: "roth_weight (Suc n) r J \<le> real (roth_total_order (Suc n) J) / real (r n)"
+  have pref: "roth_weight (Suc n) r J \<le> real (mwr_total_order (Suc n) J) / real (r n)"
     by (rule roth_weight_prefix_bound) (use supp rp rb in auto)
-  have order_le: "real (roth_total_order (Suc n) J) / real (r n) \<le>
+  have order_le: "real (mwr_total_order (Suc n) J) / real (r n) \<le>
     real (r (Suc n)) / real (r n)"
     using ord ib rp by (intro divide_right_mono) auto
   then show ?thesis
@@ -169,7 +169,7 @@ lemma roth_weight_tensor_halving:
   assumes half: "\<And>v. Suc v < Suc (Suc n) \<Longrightarrow>
       2 * r (Suc v) \<le> r v"
     and supp: "Poly_Mapping.keys J \<subseteq> {..<Suc n}"
-    and ord: "roth_total_order (Suc n) J \<le> i"
+    and ord: "mwr_total_order (Suc n) J \<le> i"
     and ib: "i \<le> r (Suc n)"
     and rp: "0 < r n"
   shows "roth_weight (Suc (Suc n)) r (J + Poly_Mapping.single (Suc n) j) \<le>
@@ -244,7 +244,7 @@ theorem roth_tensor_det_index_lower:
     and rl: "0 < r(Suc n)"
     and kn: "k \<le> Suc (r (Suc n))"
     and row: "\<And>i. i<k \<Longrightarrow>
-      Poly_Mapping.keys (mu i) \<subseteq> {..<Suc n} \<and> roth_total_order (Suc n) (mu i) \<le> i"
+      Poly_Mapping.keys (mu i) \<subseteq> {..<Suc n} \<and> mwr_total_order (Suc n) (mu i) \<le> i"
   shows "ereal (\<Sum>j<k. max 0 (t - real j / real (r (Suc n)))) \<le>
     roth_index (Suc (Suc n)) r a
       (det (mat k k (\<lambda>(i,j). pjet_hasse (mu i + Poly_Mapping.single (Suc n) j) P))) +
@@ -427,7 +427,7 @@ theorem roth_tensor_det_index_quadratic:
     and kn: "k \<le> Suc (r (Suc n))"
     and row: "\<And>i. i<k \<Longrightarrow>
       Poly_Mapping.keys (mu i) \<subseteq> {..<Suc n} \<and>
-      roth_total_order (Suc n) (mu i) \<le> i"
+      mwr_total_order (Suc n) (mu i) \<le> i"
   shows "ereal (real k * t^2 / (2 * real (Suc (Suc n)))) \<le>
     roth_index (Suc (Suc n)) r a
       (det (mat k k (\<lambda>(i,j). pjet_hasse (mu i + Poly_Mapping.single (Suc n) j) P))) +
@@ -499,7 +499,7 @@ theorem roth_tensor_det_index_quadratic_box:
     and kn: "k \<le> Suc (r (Suc n))"
     and row: "\<And>i. i<k \<Longrightarrow>
       Poly_Mapping.keys (mu i) \<subseteq> {..<Suc n} \<and>
-      roth_total_order (Suc n) (mu i) \<le> i"
+      mwr_total_order (Suc n) (mu i) \<le> i"
   shows "ereal (real k * (real_of_ereal (roth_index (Suc (Suc n)) r a P))^2 /
         (2 * real (Suc (Suc n)))) \<le>
     roth_index (Suc (Suc n)) r a
@@ -531,13 +531,13 @@ text \<open>A tensor determinant witness records the separated nonzero factors,
 definition roth_tensor_det_witness where
   "roth_tensor_det_witness n k P mu U L \<equiv>
     (\<forall>i<k. Poly_Mapping.keys (mu i) \<subseteq> {..<n} \<and>
-      roth_total_order n (mu i) \<le> i) \<and> U \<noteq> 0 \<and> L \<noteq> 0 \<and>
+      mwr_total_order n (mu i) \<le> i) \<and> U \<noteq> 0 \<and> L \<noteq> 0 \<and>
     det (mat k k (\<lambda>(i,j). pjet_hasse (mu i + Poly_Mapping.single n j) P)) = U * L"
 
 theorem roth_tensor_det_factors:
   fixes phi psi :: "nat \<Rightarrow> rat mpoly"
   assumes box: "\<forall>l<k. pjet_poly_in_box n r (phi l)"
-    and li: "roth_mpoly_indep k phi"
+    and li: "mwr_mpoly_indep k phi"
     and qv: "\<And>l. l<k \<Longrightarrow> vars (psi l) \<subseteq> {n}"
     and ri: "poly_indep k (\<lambda>l. mpoly_to_poly n (psi l))"
   shows "\<exists>mu U L.
@@ -547,10 +547,10 @@ theorem roth_tensor_det_factors:
 proof -
   obtain mu where row: "\<forall>i<k.
       Poly_Mapping.keys (mu i) \<subseteq> {..<n} \<and>
-      roth_total_order n (mu i) \<le> i"
+      mwr_total_order n (mu i) \<le> i"
     and un: "det (mat k k (\<lambda>(i,l).
       pjet_hasse (mu i) (phi l))) \<noteq> 0"
-    using roth_generalized_wronskian[OF box li] by blast
+    using mwr_generalized_wronskian[OF box li] by blast
   have ln: "det (mat k k (\<lambda>(l,j).
       pjet_hasse (Poly_Mapping.single n j) (psi l))) \<noteq> 0"
     by (rule roth_right_det_nonzero[OF qv ri])
@@ -617,14 +617,16 @@ lemma roth_det_left_box:
   assumes box: "\<forall>l<k. pjet_poly_in_box n r (phi l)"
   shows "pjet_poly_in_box n (\<lambda>v. k*r v)
     (det (mat k k (\<lambda>(i,l). pjet_hasse (mu i) (phi l))))"
-  using box roth_box_det roth_hasse_preserves_box by presburger
+  by (rule roth_box_det)
+    (use box in \<open>auto intro: pjet_hasse_preserves_box\<close>)
 
 lemma roth_det_right_box:
   fixes psi :: "nat \<Rightarrow> rat mpoly"
   assumes box: "\<forall>l<k. pjet_poly_in_box (Suc n) r (psi l)"
   shows "pjet_poly_in_box (Suc n) (\<lambda>v. k*r v) (det (mat k k (\<lambda>(l,j).
                  pjet_hasse (Poly_Mapping.single n j) (psi l))))"
-  using box roth_box_det roth_hasse_preserves_box by presburger
+  by (rule roth_box_det)
+    (use box in \<open>auto intro: pjet_hasse_preserves_box\<close>)
 
 
 theorem roth_box_tensor_det_factors_bounded:
@@ -655,7 +657,7 @@ proof -
     by (rule Countable_Set.bij_betw_from_nat_into_finite[OF fin])
   have boxphi: "\<forall>l<?k. pjet_poly_in_box n r (?phi l)"
     using bij boxB by (auto simp: bij_betw_def)
-  have li: "roth_mpoly_indep ?k ?phi"
+  have li: "mwr_mpoly_indep ?k ?phi"
     by (rule roth_indexed_set_indep[OF bij ind])
   have qv: "\<And>l. l<?k \<Longrightarrow> vars (?psi l) \<subseteq> {n}"
     by (rule roth_right_factor_vars)

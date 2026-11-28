@@ -683,4 +683,69 @@ proof -
 qed
 
 
+section \<open>Scalar coefficients and support boxes\<close>
+
+lemma pjet_coeff_smult_rat:
+  fixes P :: "rat mpoly"
+  shows "coeff (smult d P) I = d * coeff P I"
+  by (simp add: coeff_def smult.rep_eq Poly_Mapping.map.rep_eq when_def)
+
+lemma pjet_hasse_coeff_support:
+  fixes P :: "'a::idom mpoly"
+  assumes nz: "coeff (pjet_hasse J P) I \<noteq> 0"
+  shows "coeff P (I + J) \<noteq> 0"
+  using nz by (auto simp: pjet_hasse_coeff_exact)
+
+lemma pjet_poly_in_box_mono:
+  fixes P :: "'a::comm_ring_1 mpoly"
+  assumes box: "pjet_poly_in_box m r P"
+    and le: "\<forall>v<m. r v \<le> s v"
+  shows "pjet_poly_in_box m s P"
+  unfolding pjet_poly_in_box_def
+proof (intro subsetI)
+  fix I
+  assume "I \<in> Poly_Mapping.keys (mapping_of P)"
+  then have ib: "I \<in> pjet_exponent_box m r"
+    using box by (auto simp: pjet_poly_in_box_def)
+  show "I \<in> pjet_exponent_box m s"
+    using ib le by (auto simp: pjet_exponent_box_iff intro: order_trans)
+qed
+
+lemma pjet_hasse_in_box:
+  fixes P :: "'a::idom mpoly"
+  assumes box: "pjet_poly_in_box m r P"
+  shows "pjet_poly_in_box m (\<lambda>v. r v - Poly_Mapping.lookup I v) (pjet_hasse I P)"
+  unfolding pjet_poly_in_box_def
+proof (intro subsetI)
+  fix K
+  assume "K \<in> Poly_Mapping.keys (mapping_of (pjet_hasse I P))"
+  then have c: "coeff (pjet_hasse I P) K \<noteq> 0"
+    by (simp add: coeff_def in_keys_iff)
+  have cp: "coeff P (K + I) \<noteq> 0"
+    by (rule pjet_hasse_coeff_support[OF c])
+  have orig: "K + I \<in> pjet_exponent_box m r"
+    using box cp by (auto simp: pjet_poly_in_box_def coeff_def in_keys_iff)
+  have orig_vars: "Poly_Mapping.keys (K + I) \<subseteq> {..<m}"
+    by (rule pjet_exponent_boxD(1)[OF orig])
+  show "K \<in> pjet_exponent_box m
+    (\<lambda>v. r v - Poly_Mapping.lookup I v)"
+  proof (rule pjet_exponent_boxI)
+    show "Poly_Mapping.keys K \<subseteq> {..<m}"
+      using keys_plus_ninv_comm_monoid_add orig_vars by fastforce
+    fix v
+    assume vm: "v < m"
+    have "Poly_Mapping.lookup (K + I) v \<le> r v"
+      by (rule pjet_exponent_boxD(2)[OF orig vm])
+    then show "Poly_Mapping.lookup K v \<le> r v - Poly_Mapping.lookup I v"
+      by (simp add: lookup_add)
+  qed
+qed
+
+lemma pjet_hasse_preserves_box:
+  fixes P :: "'a::idom mpoly"
+  assumes box: "pjet_poly_in_box m r P"
+  shows "pjet_poly_in_box m r (pjet_hasse J P)"
+  by (rule pjet_poly_in_box_mono[OF pjet_hasse_in_box[OF box]]) simp
+
+
 end

@@ -1,6 +1,7 @@
 theory Tensor_Determinant
   imports
-    Kronecker_Minor
+    "Polynomial_Wronskians.Kronecker_Minor"
+    Roth_Wronskian
 begin
 
 section \<open>Separating the last variable\<close>
@@ -308,7 +309,7 @@ lemma roth_coeff_smult_sum:
   shows "MPoly_Type.coeff (\<Sum>b\<in>B. MPoly_Type.smult (c b) (\<psi> b)) I =
            (\<Sum>b\<in>B. c b * MPoly_Type.coeff (\<psi> b) I)"
   unfolding pjet_coeff_sum[OF fin]
-  by (simp add: pheight_coeff_smult_rat)
+  by (simp add: pjet_coeff_smult_rat)
 
 lemma roth_sum_coordinate:
   assumes fin: "finite (B::rat mpoly set)" and b: "b\<in>B"
@@ -473,7 +474,7 @@ proof
   obtain I where ci: "MPoly_Type.coeff (pjet_hasse J P) I \<noteq> 0"
     using nz coeff_all_0 by blast
   have key: "I+J \<in> Poly_Mapping.keys (mapping_of P)"
-    using roth_hasse_coeff_support[OF ci] by (simp add: MPoly_Type.coeff_def in_keys_iff)
+    using pjet_hasse_coeff_support[OF ci] by (simp add: MPoly_Type.coeff_def in_keys_iff)
   have vk: "v \<in> Poly_Mapping.keys (I+J)"
     using vj by (simp add: in_keys_iff lookup_add)
   show "v \<in> vars P" using key vk by (auto simp: vars_def)

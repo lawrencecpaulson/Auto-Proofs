@@ -59,12 +59,6 @@ next
     by (simp add: pjet_hasse_coeff_exact abs_mult mult.commute)
 qed
 
-lemma roth_hasse_coeff_support:
-  fixes P :: "'a::idom mpoly"
-  assumes nz: "coeff (pjet_hasse J P) I \<noteq> 0"
-  shows "coeff P (I + J) \<noteq> 0"
-  using nz by (auto simp: pjet_hasse_coeff_exact)
-
 lemma roth_taylor_index_box:
   fixes P :: "'a::idom mpoly"
   assumes box: "pjet_poly_in_box m r P"
@@ -74,7 +68,7 @@ proof -
   obtain K where ck: "coeff (pjet_hasse I P) K \<noteq> 0"
     by (metis tc coeff_all_0 insertion_zero pjet_hasse_eval)
   have ki: "K+I \<in> pjet_exponent_box m r"
-    using box ck pjet_coeff_zero_outside_box roth_hasse_coeff_support by blast
+    using box ck pjet_coeff_zero_outside_box pjet_hasse_coeff_support by blast
   show ?thesis
   proof (rule pjet_exponent_boxI)
     have sub: "Poly_Mapping.keys I \<subseteq> Poly_Mapping.keys (K+I)"
@@ -99,7 +93,7 @@ proof -
   have c: "coeff (pjet_hasse I (pjet_translate a P)) J \<noteq> 0"
     by (metis nz pjet_hasse_translate pjet_taylor_coeff_def)
   have "coeff (pjet_translate a P) (J + I) \<noteq> 0"
-    by (rule roth_hasse_coeff_support[OF c])
+    by (rule pjet_hasse_coeff_support[OF c])
   then show ?thesis
     by (simp add: pjet_taylor_coeff_def add.commute)
 qed
@@ -130,40 +124,10 @@ lemma roth_index_hasse:
   shows "roth_index m r a P - ereal (roth_weight m r I) \<le> roth_index m r a (pjet_hasse I P)"
   by (simp add: add.commute ereal_minus_le roth_index_hasse_add)
 
-lemma roth_hasse_in_box:
-  fixes P :: "'a::idom mpoly"
-  assumes box: "pjet_poly_in_box m r P"
-  shows "pjet_poly_in_box m (\<lambda>v. r v - Poly_Mapping.lookup I v) (pjet_hasse I P)"
-  unfolding pjet_poly_in_box_def
-proof (intro subsetI)
-  fix K
-  assume "K \<in> Poly_Mapping.keys (mapping_of (pjet_hasse I P))"
-  then have c: "coeff (pjet_hasse I P) K \<noteq> 0"
-    by (simp add: coeff_def in_keys_iff)
-  have cp: "coeff P (K + I) \<noteq> 0"
-    by (rule roth_hasse_coeff_support[OF c])
-  have orig: "K + I \<in> pjet_exponent_box m r"
-    using box cp by (auto simp: pjet_poly_in_box_def coeff_def in_keys_iff)
-  have orig_vars: "Poly_Mapping.keys (K + I) \<subseteq> {..<m}"
-    by (rule pjet_exponent_boxD(1)[OF orig])
-  show "K \<in> pjet_exponent_box m
-    (\<lambda>v. r v - Poly_Mapping.lookup I v)"
-  proof (rule pjet_exponent_boxI)
-    show "Poly_Mapping.keys K \<subseteq> {..<m}"
-      using keys_plus_ninv_comm_monoid_add orig_vars by fastforce
-    fix v
-    assume vm: "v < m"
-    have "Poly_Mapping.lookup (K + I) v \<le> r v"
-      by (rule pjet_exponent_boxD(2)[OF orig vm])
-    then show "Poly_Mapping.lookup K v \<le> r v - Poly_Mapping.lookup I v"
-      by (simp add: lookup_add)
-  qed
-qed
-
 lemma roth_hasse_degree_bound:
   fixes P :: "'a::idom mpoly"
   assumes "pjet_poly_in_box m r P" "v < m"
   shows "MPoly_Type.degree (pjet_hasse I P) v \<le> r v - Poly_Mapping.lookup I v"
-  using pjet_degree_le_of_box[OF roth_hasse_in_box] assms by fastforce
+  using pjet_degree_le_of_box[OF pjet_hasse_in_box] assms by fastforce
 
 end

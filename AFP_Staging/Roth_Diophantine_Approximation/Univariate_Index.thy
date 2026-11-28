@@ -23,7 +23,7 @@ lemma roth_mpoly_to_poly_cast:
 lemma roth_mpoly_to_poly_smult:
   fixes U :: "rat mpoly"
   shows "mpoly_to_poly v (MPoly_Type.smult c U) = Polynomial.smult c (mpoly_to_poly v U)"
-  by (simp add: poly_eq_iff pheight_coeff_smult_rat)
+  by (simp add: poly_eq_iff pjet_coeff_smult_rat)
 
 lemma roth_vars_poly_to_mpoly:
   fixes Q :: "'a::comm_ring_1 poly"

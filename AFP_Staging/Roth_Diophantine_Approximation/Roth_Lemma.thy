@@ -466,7 +466,7 @@ proof -
   obtain k mu U L where kp: "0 < k"
     and kn: "k \<le> Suc (r (Suc n))"
     and row: "\<forall>i<k. Poly_Mapping.keys (mu i) \<subseteq> {..<Suc n} \<and>
-      roth_total_order (Suc n) (mu i) \<le> i"
+      mwr_total_order (Suc n) (mu i) \<le> i"
     and ub: "pjet_poly_in_box (Suc n) (\<lambda>v. k*r v) U"
     and lb: "pjet_poly_in_box (Suc (Suc n)) (\<lambda>v. k*r v) L"
     and uv: "vars U \<subseteq> {..<Suc n}"

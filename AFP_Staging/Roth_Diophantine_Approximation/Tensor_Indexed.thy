@@ -122,9 +122,9 @@ lemma roth_right_det_eval:
       pjet_hasse (Poly_Mapping.single n j) (\<psi> l)))) =
     poly (hwronskian k
       (\<lambda>l. mpoly_to_poly n (\<psi> l))) t"
-  by (simp add: roth_insertion_det
+  by (simp add: mwr_insertion_det
     roth_right_eval_matrix[OF qv] det_transpose[where n=k]
-    roth_poly_det hwronskian_def)
+    mwr_poly_det hwronskian_def)
 
 theorem roth_right_det_nonzero:
   fixes \<psi> :: "nat \<Rightarrow> rat mpoly"
@@ -139,7 +139,7 @@ proof -
     by (rule wr_independent[OF ind])
   obtain t :: rat where nz: "poly (hwronskian k
       (\<lambda>l. mpoly_to_poly n (\<psi> l))) t \<noteq> 0"
-    using roth_poly_nonzero_eval[OF wr] by blast
+    using mwr_poly_nonzero_eval[OF wr] by blast
   have ev: "insertion (\<lambda>_. t)
     (det (mat k k (\<lambda>(l,j).
       pjet_hasse (Poly_Mapping.single n j) (\<psi> l)))) =
@@ -171,23 +171,23 @@ qed
 theorem roth_tensor_det_nonzero:
   fixes \<phi> \<psi> :: "nat \<Rightarrow> rat mpoly"
   assumes box: "\<forall>l<k. pjet_poly_in_box n r (\<phi> l)"
-    and li: "roth_mpoly_indep k \<phi>"
+    and li: "mwr_mpoly_indep k \<phi>"
     and qv: "\<And>l. l<k \<Longrightarrow> vars (\<psi> l) \<subseteq> {n}"
     and ri: "poly_indep k
       (\<lambda>l. mpoly_to_poly n (\<psi> l))"
   shows "\<exists>\<mu>.
     (\<forall>i<k. Poly_Mapping.keys (\<mu> i) \<subseteq> {..<n} \<and>
-      roth_total_order n (\<mu> i) \<le> i) \<and>
+      mwr_total_order n (\<mu> i) \<le> i) \<and>
     det (mat k k (\<lambda>(i,j).
       pjet_hasse (\<mu> i + Poly_Mapping.single n j)
         (\<Sum>l<k. \<phi> l * \<psi> l))) \<noteq> 0"
 proof -
   obtain \<mu> where mb: "\<forall>i<k.
       Poly_Mapping.keys (\<mu> i) \<subseteq> {..<n} \<and>
-      roth_total_order n (\<mu> i) \<le> i"
+      mwr_total_order n (\<mu> i) \<le> i"
     and lnz: "det (mat k k (\<lambda>(i,l).
       pjet_hasse (\<mu> i) (\<phi> l))) \<noteq> 0"
-    using roth_generalized_wronskian[OF box li] by auto
+    using mwr_generalized_wronskian[OF box li] by auto
   have mn: "\<And>i. i<k \<Longrightarrow>
     Poly_Mapping.keys (\<mu> i) \<subseteq> {..<n}"
     using mb by auto
@@ -240,8 +240,8 @@ qed
 lemma roth_indexed_set_indep:
   fixes f :: "nat \<Rightarrow> rat mpoly"
   assumes bij: "bij_betw f {..<k} B" and ind: "roth_vs.independent B"
-  shows "roth_mpoly_indep k f"
-  unfolding roth_mpoly_indep_def
+  shows "mwr_mpoly_indep k f"
+  unfolding mwr_mpoly_indep_def
 proof (intro allI impI)
   fix c j
   assume z: "(\<Sum>i<k. MPoly_Type.smult (c i) (f i)) = 0" and j: "j<k"
@@ -317,7 +317,7 @@ lemma roth_basis_det_nonzero:
   shows "\<exists>\<mu>.
     (\<forall>i<card B.
       Poly_Mapping.keys (\<mu> i) \<subseteq> {..<n} \<and>
-      roth_total_order n (\<mu> i) \<le> i) \<and>
+      mwr_total_order n (\<mu> i) \<le> i) \<and>
     det (mat (card B) (card B) (\<lambda>(i,j).
       pjet_hasse (\<mu> i + Poly_Mapping.single n j) P))
       \<noteq> 0"
@@ -328,7 +328,7 @@ proof -
     by (rule Countable_Set.bij_betw_from_nat_into_finite[OF fin])
   have boxf: "\<forall>l<?k. pjet_poly_in_box n r (?f l)"
     using bij boxB by (auto simp: bij_betw_def)
-  have li: "roth_mpoly_indep ?k ?f"
+  have li: "mwr_mpoly_indep ?k ?f"
     by (rule roth_indexed_set_indep[OF bij ind])
   have ri: "poly_indep ?k (\<lambda>l. mpoly_to_poly n (roth_right_factor P n (r n) B (?f l)))"
     by (rule roth_indexed_right_indep[OF bij sub ind fin])
@@ -344,7 +344,7 @@ theorem roth_box_tensor_det_nonzero:
     and nz: "P \<noteq> 0"
   shows "\<exists>k \<mu>.
     0<k \<and> k\<le>Suc (r n) \<and>
-    (\<forall>i<k. Poly_Mapping.keys (\<mu> i) \<subseteq> {..<n} \<and> roth_total_order n (\<mu> i) \<le> i) \<and>
+    (\<forall>i<k. Poly_Mapping.keys (\<mu> i) \<subseteq> {..<n} \<and> mwr_total_order n (\<mu> i) \<le> i) \<and>
     det (mat k k (\<lambda>(i,j). pjet_hasse (\<mu> i + Poly_Mapping.single n j) P)) \<noteq> 0"
 proof -
   obtain B where

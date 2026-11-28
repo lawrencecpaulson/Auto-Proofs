@@ -2,7 +2,11 @@ chapter AFP
 
 session Polynomial_Wronskians (AFP) = Jordan_Normal_Form +
   options [timeout = 600]
+  sessions
+    Multivariate_Hasse_Derivatives
   theories
     Polynomial_Wronskians
+    Kronecker_Evaluation
+    Kronecker_Minor
   document_files
     "root.tex"

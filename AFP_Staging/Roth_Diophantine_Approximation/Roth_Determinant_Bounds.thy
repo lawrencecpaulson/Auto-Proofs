@@ -114,7 +114,7 @@ lemma roth_hasse_det_in_box:
   shows "pjet_poly_in_box m (\<lambda>v. k*r v)
     (det (mat k k (\<lambda>(i,j). pjet_hasse (J i j) P)))"
   by (rule roth_box_det)
-    (use box in \<open>auto intro: roth_hasse_box_monotone\<close>)
+    (use box in \<open>auto intro: pjet_hasse_preserves_box\<close>)
 
 lemma roth_hasse_det_degree:
   fixes P :: "rat mpoly"
@@ -139,7 +139,7 @@ lemma roth_hasse_smult:
   shows "pjet_hasse J (MPoly_Type.smult c P) =
     MPoly_Type.smult c (pjet_hasse J P)"
   by (simp add: coeff_eq[symmetric] fun_eq_iff
-    pjet_hasse_coeff_exact pheight_coeff_smult_rat
+    pjet_hasse_coeff_exact pjet_coeff_smult_rat
     mult.assoc mult.left_commute)
 
 lemma roth_det_cast:
@@ -281,7 +281,7 @@ proof -
     using rep by (auto simp: pheight_integral_rep_def)
   have qb: "pjet_poly_in_box m r
       (replace_coeff of_int Q :: rat mpoly)"
-    using box eq by (simp add: roth_box_smult)
+    using box eq by (simp add: mwr_box_smult)
   show ?thesis using qb by (simp add: roth_box_cast_iff)
 qed
 
@@ -465,7 +465,7 @@ lemma roth_hasse_box_int:
 proof -
   have h: "pjet_poly_in_box m
       (\<lambda>v. r v - Poly_Mapping.lookup J v) (pjet_hasse J P)"
-    by (rule roth_hasse_in_box[OF box])
+    by (rule pjet_hasse_in_box[OF box])
   have mono: "pjet_exponent_box m
       (\<lambda>v. r v - Poly_Mapping.lookup J v)
       \<subseteq> pjet_exponent_box m r"

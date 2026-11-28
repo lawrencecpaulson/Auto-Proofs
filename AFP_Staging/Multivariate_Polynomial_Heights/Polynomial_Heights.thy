@@ -1,5 +1,5 @@
 theory Polynomial_Heights
-  imports "Multivariate_Hasse_Derivatives.MPoly_Hasse_Derivative"
+  imports "Multivariate_Hasse_Derivatives.MPoly_Hasse_Support"
 begin
 
 section \<open>Heights at rational points\<close>
@@ -488,11 +488,6 @@ proof -
     by (simp add: pheight_int_coeff_sup_eq_Max[OF dp] pheight_int_coeff_sup_eq_Max[OF p])
 qed
 
-lemma pheight_coeff_smult_rat:
-  fixes P :: "rat mpoly"
-  shows "coeff (smult d P) I = d * coeff P I"
-  by (simp add: coeff_def smult.rep_eq Poly_Mapping.map.rep_eq when_def)
-
 lemma pheight_primitive_scalar_integral:
   fixes P Q :: "int mpoly" and c :: rat
   assumes prim: "primitive P"
@@ -503,7 +498,7 @@ proof -
     by (metis prod.collapse quotient_of_div)
   have bp: "b > 0" by (rule quotient_of_denom_pos[OF quot])
   have coef: "of_int (coeff Q I) = c * of_int (coeff P I)" for I
-    by (metis coeff_replace_coeff of_int_0 pheight_coeff_smult_rat eq)
+    by (metis coeff_replace_coeff of_int_0 pjet_coeff_smult_rat eq)
   have rat: "(of_int (b * coeff Q I)::rat) =
     of_int (a * coeff P I)" for I
     using coef[of I] ceq bp by (simp add: field_simps)
@@ -559,7 +554,7 @@ lemma pheight_vars_smult_rat:
   fixes P :: "rat mpoly"
   assumes c: "c \<noteq> 0"
   shows "vars (smult c P) = vars P"
-  using c by (auto simp: vars_def coeff_keys pheight_coeff_smult_rat)
+  using c by (auto simp: vars_def coeff_keys pjet_coeff_smult_rat)
 
 lemma pheight_vars_cast:
   fixes P :: "int mpoly"

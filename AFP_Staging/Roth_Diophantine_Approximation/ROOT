@@ -16,8 +16,6 @@ session Roth_Diophantine_Approximation (AFP) = "HOL-Computational_Algebra" +
     Hasse_Support
     Univariate_Index
     Roth_Wronskian
-    Kronecker_Evaluation
-    Kronecker_Minor
     Tensor_Determinant
     Roth_Lemma
     Auxiliary_Polynomial
