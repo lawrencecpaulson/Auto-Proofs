@@ -4,7 +4,7 @@ Apply these guidelines with judgment, where they improve clarity while preservin
 
 ## Simple cosmetic issues
 
-Actual Greek letters α, β, γ, ... are preferable to `alpha`, `beta`, `gamma`, excluding only those (notably λ) that are already reserved. In an ε-δ proof, ε is preferable to `eps` or `e`.
+Actual Greek letters α, β, γ, ... are preferable to `alpha`, `beta`, `gamma`, excluding only those (notably λ) that are already reserved. In an ε-δ proof, ε is preferable to `eps` or `e`. Recall that Isabelle files must use special character escapes like \<alpha> rather than any Unicode character.
 
 The syntax ¦x¦ is preferable to `abs x`. Ditto for `floor`, `ceiling`, etc.
 
@@ -16,7 +16,7 @@ For line breaking in proofs and formulas, assume a limit of 80 characters. Line 
 
 ## Eliminating needless proofs
 
-A typical development will have either (1) a headline result and perhaps corollaries of that result or (2) a library of useful results. Use `proposition` or `theorem` for end results and `lemma` for supporting facts when that distinction clarifies the presentation. Delete or inline unreferenced internal results that have no clear independent use; retain useful statements regardless of whether Isabelle calls them lemmas, propositions, or theorems.
+A typical development will have either (1) a headline result and perhaps corollaries of that result or (2) a library of useful results. Use `proposition` or `theorem` for end results and `lemma` for supporting facts when that distinction clarifies the presentation. Delete or inline unreferenced internal results that have no clear independent use; retain useful statements regardless of whether the theory file calls them lemmas, propositions, or theorems.
 
 Within an individual proof, facts that do not take part in the conclusion should be deleted. 
 
@@ -45,7 +45,7 @@ We want to make proofs smaller
 
 If a proof proceeds by building up a long chain of facts with trivial proofs, consider shortening the chain by combining adjacent steps. Ditto for a long `also` / `finally` chain where the separate steps are trivial.
 
-When the *statement* of a lemma or local fact is longer (as text) than the *proof* of that fact, that lemma is a strong candidate for elimination, especially if it is used only once or twice, by incorporating its short proof into subsequent proofs to reduce the repetition of formulas; however, not if the new proof becomes significantly more complicated. 
+When the *statement* of a lemma or local fact is much longer (as text) than the *proof* of that fact, that lemma is a candidate for elimination, especially if it is used only once or twice, by incorporating its short proof into subsequent proofs to reduce the repetition of formulas; however, not if the new proof becomes significantly more complicated. 
 
 A theorem with long and complicated assumptions or conclusions is always undesirable, especially if those formulas are repeated elsewhere. Consider whether those formulas actually describe some abstract concept, which should be captured formally using a definition or locale.
 
