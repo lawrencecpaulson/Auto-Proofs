@@ -91,7 +91,7 @@ lemma roth_box_det:
   assumes box: "\<forall>i<k. \<forall>j<k. roth_poly_in_box m r (A i j)"
   shows "roth_poly_in_box m (\<lambda>v. k*r v)
     (det (mat k k (\<lambda>(i,j). A i j)))"
-  unfolding roth_det_mat_expansion
+  unfolding det_mat_expansion
 proof (rule roth_poly_in_box_sum)
   show "finite {q. q permutes {..<k}}"
     by (rule finite_permutations) simp
@@ -99,7 +99,7 @@ proof (rule roth_poly_in_box_sum)
   have qb0: "roth_poly_in_box m (\<lambda>v. card {..<k}*r v)
       (\<Prod>i<k. A i (q i))"
     by (rule roth_box_prod)
-      (use box q in \<open>auto simp: roth_permutes_bounded\<close>)
+      (use box q in \<open>auto simp: permutes_bounded\<close>)
   have qb: "roth_poly_in_box m (\<lambda>v. k*r v)
       (\<Prod>i<k. A i (q i))"
     using qb0 by simp
@@ -493,7 +493,7 @@ proof -
     have prod: "abs (MPoly_Type.coeff (\<Prod>i<k. A i (q i)) I) \<le>
       int (card ?B ^ card {..<k} * H ^ card {..<k})"
       by (rule roth_box_prod_coeff_bound)
-        (use that box hb in \<open>auto simp: roth_permutes_bounded\<close>)
+        (use that box hb in \<open>auto simp: permutes_bounded\<close>)
     show ?thesis using prod
       by (simp add: roth_abs_coeff_signof power_mult_distrib)
   qed
@@ -502,7 +502,7 @@ proof -
     int (card ?Q * ((card ?B * H)^k))"
     by (rule roth_poly_sum_coeff_bound[OF fin term_bd])
   show ?thesis using all cq
-    by (simp add: roth_det_mat_expansion)
+    by (simp add: det_mat_expansion)
 qed
 
 lemma roth_det_coeff_sup_bound:

@@ -71,7 +71,7 @@ lemma roth_univariate_hasse_at:
   fixes p :: "rat poly"
   shows "mpoly_to_poly v
     (roth_hasse (Poly_Mapping.single v k) (poly_to_mpoly v p)) =
-    roth_hderiv k p"
+    hderiv k p"
   by (rule poly_eqI)
     (simp add: roth_univariate_hasse_coeff)
 
@@ -80,7 +80,7 @@ lemma roth_hasse_to_hderiv_at:
   assumes qv: "vars \<psi> \<subseteq> {v}"
   shows "mpoly_to_poly v
     (roth_hasse (Poly_Mapping.single v k) \<psi>) =
-    roth_hderiv k (mpoly_to_poly v \<psi>)"
+    hderiv k (mpoly_to_poly v \<psi>)"
   using roth_univariate_hasse_at
     [of v k "mpoly_to_poly v \<psi>"]
     mpoly_to_poly_inverse[OF qv] by simp
@@ -90,7 +90,7 @@ lemma roth_right_entry_eval:
   assumes qv: "vars \<psi> \<subseteq> {n}"
   shows "insertion (\<lambda>_. t)
     (roth_hasse (Poly_Mapping.single n j) \<psi>) =
-    poly (roth_hderiv j (mpoly_to_poly n \<psi>)) t"
+    poly (hderiv j (mpoly_to_poly n \<psi>)) t"
 proof -
   have hv: "vars (roth_hasse
       (Poly_Mapping.single n j) \<psi>) \<subseteq> {n}"
@@ -111,7 +111,7 @@ lemma roth_right_eval_matrix:
       insertion (\<lambda>_. t)
         (roth_hasse (Poly_Mapping.single n j) (\<psi> l))) =
     transpose_mat (mat k k (\<lambda>(j,l).
-      poly (roth_hderiv j (mpoly_to_poly n (\<psi> l))) t))"
+      poly (hderiv j (mpoly_to_poly n (\<psi> l))) t))"
   by (auto simp: mat_eq_iff roth_right_entry_eval qv)
 
 lemma roth_right_det_eval:
@@ -120,30 +120,30 @@ lemma roth_right_det_eval:
   shows "insertion (\<lambda>_. t)
     (det (mat k k (\<lambda>(l,j).
       roth_hasse (Poly_Mapping.single n j) (\<psi> l)))) =
-    poly (roth_hwronskian k
+    poly (hwronskian k
       (\<lambda>l. mpoly_to_poly n (\<psi> l))) t"
   by (simp add: roth_insertion_det
     roth_right_eval_matrix[OF qv] det_transpose[where n=k]
-    roth_poly_det roth_hwronskian_def)
+    roth_poly_det hwronskian_def)
 
 theorem roth_right_det_nonzero:
   fixes \<psi> :: "nat \<Rightarrow> rat mpoly"
   assumes qv: "\<And>l. l<k \<Longrightarrow> vars (\<psi> l) \<subseteq> {n}"
-    and ind: "roth_poly_indep k
+    and ind: "poly_indep k
       (\<lambda>l. mpoly_to_poly n (\<psi> l))"
   shows "det (mat k k (\<lambda>(l,j).
     roth_hasse (Poly_Mapping.single n j) (\<psi> l))) \<noteq> 0"
 proof -
-  have wr: "roth_hwronskian k
+  have wr: "hwronskian k
     (\<lambda>l. mpoly_to_poly n (\<psi> l)) \<noteq> 0"
-    by (rule roth_wr_independent[OF ind])
-  obtain t :: rat where nz: "poly (roth_hwronskian k
+    by (rule wr_independent[OF ind])
+  obtain t :: rat where nz: "poly (hwronskian k
       (\<lambda>l. mpoly_to_poly n (\<psi> l))) t \<noteq> 0"
     using roth_poly_nonzero_eval[OF wr] by blast
   have ev: "insertion (\<lambda>_. t)
     (det (mat k k (\<lambda>(l,j).
       roth_hasse (Poly_Mapping.single n j) (\<psi> l)))) =
-    poly (roth_hwronskian k
+    poly (hwronskian k
       (\<lambda>l. mpoly_to_poly n (\<psi> l))) t"
     by (rule roth_right_det_eval[OF qv])
   show ?thesis using nz ev by auto
@@ -173,7 +173,7 @@ theorem roth_tensor_det_nonzero:
   assumes box: "\<forall>l<k. roth_poly_in_box n r (\<phi> l)"
     and li: "roth_mpoly_indep k \<phi>"
     and qv: "\<And>l. l<k \<Longrightarrow> vars (\<psi> l) \<subseteq> {n}"
-    and ri: "roth_poly_indep k
+    and ri: "poly_indep k
       (\<lambda>l. mpoly_to_poly n (\<psi> l))"
   shows "\<exists>\<mu>.
     (\<forall>i<k. Poly_Mapping.keys (\<mu> i) \<subseteq> {..<n} \<and>
@@ -274,8 +274,8 @@ lemma roth_indexed_right_indep:
     and sub: "B \<subseteq> roth_last_coeff P n ` {..d}"
     and ind: "roth_vs.independent B"
     and fin: "finite B"
-  shows "roth_poly_indep k (\<lambda>j. mpoly_to_poly n (roth_right_factor P n d B (f j)))"
-  unfolding roth_poly_indep_def
+  shows "poly_indep k (\<lambda>j. mpoly_to_poly n (roth_right_factor P n d B (f j)))"
+  unfolding poly_indep_def
 proof (intro allI impI)
   fix c j
   assume z: "(\<Sum>i<k. Polynomial.smult (c i)
@@ -330,7 +330,7 @@ proof -
     using bij boxB by (auto simp: bij_betw_def)
   have li: "roth_mpoly_indep ?k ?f"
     by (rule roth_indexed_set_indep[OF bij ind])
-  have ri: "roth_poly_indep ?k (\<lambda>l. mpoly_to_poly n (roth_right_factor P n (r n) B (?f l)))"
+  have ri: "poly_indep ?k (\<lambda>l. mpoly_to_poly n (roth_right_factor P n (r n) B (?f l)))"
     by (rule roth_indexed_right_indep[OF bij sub ind fin])
   have "P = (\<Sum>l<?k. ?f l * roth_right_factor P n (r n) B (?f l))"
     by (rule roth_indexed_tensor_split[OF bij spl])

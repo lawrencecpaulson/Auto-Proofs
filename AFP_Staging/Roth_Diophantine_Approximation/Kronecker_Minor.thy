@@ -9,7 +9,7 @@ lemma roth_poly_det:
   fixes A :: "nat \<Rightarrow> nat \<Rightarrow> rat poly"
   shows "poly (det (mat k k (\<lambda>(i,j). A i j))) t =
     det (mat k k (\<lambda>(i,j). poly (A i j) t))"
-  by (simp add: roth_det_mat_expansion poly_sum poly_prod sign_def)
+  by (simp add: det_mat_expansion poly_sum poly_prod sign_def)
 
 lemma roth_poly_nonzero_eval:
   fixes Q :: "rat poly"
@@ -61,16 +61,16 @@ lemma roth_mult_exchange:
   using assms by (simp add: mult.left_commute)
 
 lemma roth_hderiv_pderiv:
-  "pderiv (roth_hderiv i p) =
-    Polynomial.smult (of_nat (Suc i)) (roth_hderiv (Suc i) p)"
+  "pderiv (hderiv i p) =
+    Polynomial.smult (of_nat (Suc i)) (hderiv (Suc i) p)"
   by (rule poly_eqI)
-    (simp only: coeff_pderiv roth_hderiv_coeff coeff_smult
+    (simp only: coeff_pderiv hderiv_coeff coeff_smult
       add_Suc_shift add_Suc_right;
       rule roth_mult_exchange; rule roth_binomial_step_rat)
 
 lemma roth_pderiv_iter_hderiv:
   "(pderiv ^^ i) p =
-    Polynomial.smult (of_nat (fact i)) (roth_hderiv i p)"
+    Polynomial.smult (of_nat (fact i)) (hderiv i p)"
   by (induction i)
     (simp_all add: funpow_Suc_right roth_hderiv_pderiv
       pderiv_smult algebra_simps)
@@ -91,7 +91,7 @@ lemma roth_det_row_smult:
       (\<lambda>(i,j). Polynomial.smult (c i) (A i j))) =
     Polynomial.smult (\<Prod>i<k. c i)
       (det (mat k k (\<lambda>(i,j). A i j)))"
-  by (simp add: roth_det_mat_expansion prod_smult
+  by (simp add: det_mat_expansion prod_smult
     roth_sum_smult[symmetric] algebra_simps)
 
 definition roth_pwronskian ::
@@ -102,14 +102,14 @@ definition roth_pwronskian ::
 lemma roth_pwronskian_eq:
   "roth_pwronskian k p =
     Polynomial.smult (\<Prod>i<k. of_nat (fact i))
-      (roth_hwronskian k p)"
+      (hwronskian k p)"
   by (simp add: roth_pwronskian_def roth_pderiv_iter_hderiv
-    roth_det_row_smult roth_hwronskian_def)
+    roth_det_row_smult hwronskian_def)
 
 lemma roth_pwronskian_nonzero:
-  assumes "roth_poly_indep k p"
+  assumes "poly_indep k p"
   shows "roth_pwronskian k p \<noteq> 0"
-  using roth_wr_independent[OF assms]
+  using wr_independent[OF assms]
   by (simp add: roth_pwronskian_eq)
 
 section \<open>Expansion of determinant rows\<close>
@@ -129,7 +129,7 @@ proof -
       (\<Sum>g\<in>PiE {..<k} B.
         \<Prod>i<k. F i (g i) (q i))" for q
     by (rule prod_sum_PiE) (use fin in auto)
-  show ?thesis by (simp add: roth_det_mat_expansion prod)
+  show ?thesis by (simp add: det_mat_expansion prod)
 qed
 
 lemma roth_det_sum_rows:
@@ -147,7 +147,7 @@ proof -
   also have "\<dots> =
     (\<Sum>g\<in>PiE {..<k} B.
       det (mat k k (\<lambda>(i,j). F i (g i) j)))"
-    by (simp add: roth_det_mat_expansion)
+    by (simp add: det_mat_expansion)
   finally show ?thesis .
 qed
 
@@ -162,7 +162,7 @@ lemma roth_det_row_mult:
     and c :: "nat \<Rightarrow> rat poly"
   shows "det (mat k k (\<lambda>(i,j). c i * A i j)) =
     (\<Prod>i<k. c i) * det (mat k k (\<lambda>(i,j). A i j))"
-  by (simp add: roth_det_mat_expansion prod.distrib
+  by (simp add: det_mat_expansion prod.distrib
     sum_distrib_left algebra_simps)
 
 lemma roth_kronecker_pwronskian_expansion:
@@ -204,7 +204,7 @@ lemma roth_weighted_minor_nonzero:
         roth_ksubst m B
           (roth_hasse (roth_jet_index (g i)) (p j)))) \<noteq> 0"
 proof -
-  have u: "roth_poly_indep k (\<lambda>j. roth_ksubst m B (p j))"
+  have u: "poly_indep k (\<lambda>j. roth_ksubst m B (p j))"
     by (rule roth_ksubst_indep[OF box pos B ind])
   have h: "(\<Sum>g\<in>PiE {..<k} (roth_jet_words m).
       det (mat k k

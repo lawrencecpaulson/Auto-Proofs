@@ -105,7 +105,7 @@ lemma roth_univariate_index_bound_at:
   fixes P :: "rat mpoly" and r :: "nat \<Rightarrow> nat"
   assumes P: "P \<noteq> 0" and pv: "vars P \<subseteq> {v}"
     and vm: "v<m" and rp: "r v > 0"
-    and deg: "degree (mpoly_to_poly v P) \<le> r v"
+    and deg: "Polynomial.degree (mpoly_to_poly v P) \<le> r v"
     and \<eta>: "\<eta> > 0"
     and h: "roth_proj_log_height P + real (r v) \<le>
       \<eta> * real (r v) * roth_rat_log_height (a v)"
@@ -124,7 +124,7 @@ proof -
     using posprod ep by (auto simp: zero_less_mult_iff)
   have b: "real (Polynomial.order (a v) ?p) *
       roth_rat_log_height (a v) \<le>
-    roth_proj_log_height P + real (degree ?p)"
+    roth_proj_log_height P + real (Polynomial.degree ?p)"
     by (rule roth_univariate_mpoly_log_order_bound[OF P pv])
   have bd: "real (Polynomial.order (a v) ?p) *
       roth_rat_log_height (a v) \<le>
@@ -145,7 +145,7 @@ qed
 lemma roth_univariate_degree_of_box_at:
   fixes P :: "rat mpoly"
   assumes box: "roth_poly_in_box (Suc n) r P"
-  shows "degree (mpoly_to_poly n P) \<le> r n"
+  shows "Polynomial.degree (mpoly_to_poly n P) \<le> r n"
 proof (rule degree_le, intro allI impI)
   fix i assume i: "r n < i"
   have outside: "Poly_Mapping.single n i \<notin>
@@ -160,7 +160,7 @@ lemma roth_univariate_index_bound_degree_at:
   fixes P :: "rat mpoly" and r :: "nat \<Rightarrow> nat"
   assumes P: "P \<noteq> 0" and pv: "vars P \<subseteq> {v}"
     and vm: "v<m" and rp: "r v > 0" and Dp: "D > 0"
-    and deg: "degree (mpoly_to_poly v P) \<le> D"
+    and deg: "Polynomial.degree (mpoly_to_poly v P) \<le> D"
     and \<eta>: "\<eta> > 0"
     and h: "roth_proj_log_height P + real D \<le>
       \<eta> * real D * roth_rat_log_height (a v)"
@@ -180,7 +180,7 @@ proof -
     using posprod ep by (auto simp: zero_less_mult_iff)
   have b: "real (Polynomial.order (a v) ?p) *
       roth_rat_log_height (a v) \<le>
-    roth_proj_log_height P + real (degree ?p)"
+    roth_proj_log_height P + real (Polynomial.degree ?p)"
     by (rule roth_univariate_mpoly_log_order_bound[OF P pv])
   have bd: "real (Polynomial.order (a v) ?p) *
       roth_rat_log_height (a v) \<le>
@@ -510,7 +510,7 @@ proof -
     using roth_box_vars[OF box] by auto
   have box0: "roth_poly_in_box (Suc 0) r P"
     using box by simp
-  have deg: "degree (mpoly_to_poly 0 P) \<le> r 0"
+  have deg: "Polynomial.degree (mpoly_to_poly 0 P) \<le> r 0"
     by (rule roth_univariate_degree_of_box_at[OF box0])
   have hh: "roth_proj_log_height P + real (r 0) \<le>
       \<eta> * real (r 0) * roth_rat_log_height (a 0)"
@@ -649,7 +649,7 @@ next
       by (rule roth_height_transfer_last[OF _ D_bound lh hvlast]) simp
     show ?thesis using tr by simp
   qed
-  have last_deg: "degree (mpoly_to_poly (Suc n) L) \<le>
+  have last_deg: "Polynomial.degree (mpoly_to_poly (Suc n) L) \<le>
       k*r (Suc n)"
     using roth_univariate_degree_of_box_at[OF lb] by simp
   have last_rp: "0 < r (Suc n)" by (rule rp) simp

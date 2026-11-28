@@ -188,8 +188,8 @@ lemma roth_ksubst_indep:
   assumes box: "\<forall>j<k. roth_poly_in_box m r (p j)"
     and pos: "0 < B" and B: "\<forall>v<m. r v < B"
     and ind: "roth_mpoly_indep k p"
-  shows "roth_poly_indep k (\<lambda>j. roth_ksubst m B (p j))"
-  unfolding roth_poly_indep_def
+  shows "poly_indep k (\<lambda>j. roth_ksubst m B (p j))"
+  unfolding poly_indep_def
 proof (intro allI impI)
   fix c j
   assume z: "(\<Sum>i<k. Polynomial.smult (c i) (roth_ksubst m B (p i))) = 0"
@@ -217,8 +217,8 @@ lemma roth_kronecker_wr_nonzero:
   assumes box: "\<forall>j<k. roth_poly_in_box m r (p j)"
     and pos: "0<B" and B: "\<forall>v<m. r v<B"
     and ind: "roth_mpoly_indep k p"
-  shows "roth_hwronskian k (\<lambda>j. roth_ksubst m B (p j)) \<noteq> 0"
-using B box ind pos roth_ksubst_indep roth_wr_independent by presburger
+  shows "hwronskian k (\<lambda>j. roth_ksubst m B (p j)) \<noteq> 0"
+using B box ind pos roth_ksubst_indep wr_independent by presburger
 
 section \<open>The first derivative of Kronecker substitution\<close>
 
@@ -748,7 +748,7 @@ proof -
   let ?S = "{q. q permutes {..<k}}"
   have fin: "finite ?S" by (rule finite_permutations) simp
   show ?thesis
-    by (simp add: roth_det_mat_expansion
+    by (simp add: det_mat_expansion
           roth_insertion_sum[OF fin] insertion_mult
           roth_insertion_signof roth_insertion_prod)
 qed

@@ -71,7 +71,7 @@ proof -
       by (rule roth_index_left_mult_lower)
     finally show ?thesis .
   qed
-  show ?thesis unfolding roth_det_mat_expansion
+  show ?thesis unfolding det_mat_expansion
     by (rule roth_index_sum_lower[OF fin each]) 
 qed
 
@@ -193,13 +193,13 @@ proof (rule roth_index_det_lower)
     if ik: "i<k" for i
   proof -
     have w: "roth_weight m r (J i (q i)) \<le> rho + real (q i) / real R"
-      by (simp add: q roth_permutes_bounded that wb) 
+      by (simp add: q permutes_bounded that wb)
     with roth_index_hasse_lower[OF ip w]
     show ?thesis by (simp add: algebra_simps)
   qed
   show "ereal (\<Sum>j<k. max 0 (t-rho-real j / real R)) \<le>
         (\<Sum>i<k. roth_index m r a (roth_hasse (J i (q i)) P))"
-    using roth_permutes_sum[OF q]
+    using permutes_sum[OF q]
     by (metis (mono_tags, lifting) b lessThan_iff sum_ereal sum_mono)
 qed
 
@@ -539,7 +539,7 @@ theorem roth_tensor_det_factors:
   assumes box: "\<forall>l<k. roth_poly_in_box n r (phi l)"
     and li: "roth_mpoly_indep k phi"
     and qv: "\<And>l. l<k \<Longrightarrow> vars (psi l) \<subseteq> {n}"
-    and ri: "roth_poly_indep k (\<lambda>l. mpoly_to_poly n (psi l))"
+    and ri: "poly_indep k (\<lambda>l. mpoly_to_poly n (psi l))"
   shows "\<exists>mu U L.
     roth_tensor_det_witness n k (\<Sum>l<k. phi l * psi l) mu U L \<and>
     U = det (mat k k (\<lambda>(i,l). roth_hasse (mu i) (phi l))) \<and>
@@ -587,14 +587,14 @@ proof -
     have v: "vars (\<Prod>i<k. A i (q i)) \<subseteq> (\<Union>i<k. vars (A i (q i)))"
       by (rule roth_vars_prod_subset) simp
     have uv: "(\<Union>i<k. vars (A i (q i))) \<subseteq> S"
-      using ab roth_permutes_bounded q by blast
+      using ab permutes_bounded q by blast
     show ?thesis using v uv by (simp add: roth_vars_sign_mult)
   qed
   have v: "vars (\<Sum>q\<in>?Q. signof q * (\<Prod>i<k. A i (q i)))
     \<subseteq> (\<Union>q\<in>?Q. vars (signof q * (\<Prod>i<k. A i (q i))))"
     by (rule vars_setsum) (simp add: finite_permutations)
   show ?thesis using v tvar
-    by (auto simp: roth_det_mat_expansion)
+    by (auto simp: det_mat_expansion)
 qed
 
 
@@ -659,7 +659,7 @@ proof -
     by (rule roth_indexed_set_indep[OF bij ind])
   have qv: "\<And>l. l<?k \<Longrightarrow> vars (?psi l) \<subseteq> {n}"
     by (rule roth_right_factor_vars)
-  have ri: "roth_poly_indep ?k (\<lambda>l. mpoly_to_poly n (?psi l))"
+  have ri: "poly_indep ?k (\<lambda>l. mpoly_to_poly n (?psi l))"
     by (rule roth_indexed_right_indep[OF bij sub ind fin])
   have peq: "P = (\<Sum>l<?k. ?phi l * ?psi l)"
     by (rule roth_indexed_tensor_split[OF bij spl])

@@ -13,7 +13,8 @@ consumer; keep its session and qualified theory name stable.
 | `Bounded_Integer_Kernels` | Sharp integer Siegel lemma used by GS and Roth | Session, PDF, GS, and Roth builds passed on 13 November 2026 |
 | `Finite_Embedding_Bounds` | Standalone house, coordinate recovery, and embedding-kernel bounds, including Siegel exponent and a two-point example | Session, PDF, outline, browser, and GS builds passed on 13 November 2026 |
 | `Gelfond_Schneider` | Main transcendence theorem | Standalone session and PDF passed on 12 November 2026 |
-| `Roth_Diophantine_Approximation` | Main rational Roth theorem | Standalone session and PDF passed on 12 November 2026 |
+| `Polynomial_Wronskians` | Binomial evaluation matrices and nonzero Hasse Wronskians for rational polynomials | Session and Roth integration builds passed on 28 November 2026 |
+| `Roth_Diophantine_Approximation` | Main rational Roth theorem | PDF passed on 12 November; session with Wronskian dependency passed on 28 November 2026 |
 | `Bivariate_Resultants` | Bivariate specialisation, derivative multiplicity, and pair resultants | AFP-style session, PDF, browser, and outline passed on 13 November 2026 |
 | `Primitive_Real_Characters` | Primitive real-character classification and fundamental discriminants | Standalone session and PDF passed on 12 November 2026 |
 | `Stokes` | Manifold Stokes theorem | Standalone session and PDF passed on 12 November 2026 |

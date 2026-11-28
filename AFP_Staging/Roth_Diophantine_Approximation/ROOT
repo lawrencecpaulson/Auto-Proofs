@@ -7,6 +7,7 @@ session Roth_Diophantine_Approximation (AFP) = "HOL-Computational_Algebra" +
     Polynomials
     Bounded_Integer_Kernels
     Berlekamp_Zassenhaus
+    Polynomial_Wronskians
   theories
     Roth_Approximation
     Disjoint_Index
