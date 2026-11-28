@@ -37,10 +37,8 @@ proof -
     "poly (det (mat k k (\<lambda>(i,j).
       mwr_ksubst m B (A i j)))) t \<noteq> 0"
     using mwr_poly_nonzero_eval[OF nz] by blast
-  have d: "poly (det (mat k k (\<lambda>(i,j). mwr_ksubst m B (A i j)))) t =
-    insertion (\<lambda>v. t^(B^v)) (det (mat k k (\<lambda>(i,j). A i j)))"
-    by (simp add: mwr_poly_det mwr_ksubst_eval_mat[OF box] mwr_insertion_det)
-  show ?thesis using h d by auto
+  show ?thesis using h
+    by (auto simp: mwr_poly_det mwr_ksubst_eval_mat[OF box] mwr_insertion_det[symmetric])
 qed
 
 section \<open>Ordinary and Hasse Wronskians\<close>
