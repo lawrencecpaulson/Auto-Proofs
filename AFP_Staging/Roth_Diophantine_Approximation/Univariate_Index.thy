@@ -1,6 +1,7 @@
 theory Univariate_Index
   imports
-    Primitive_Height
+    "Multivariate_Polynomial_Heights.Polynomial_Heights"
+    Disjoint_Index
     Polynomials.MPoly_Type_Univariate
     Berlekamp_Zassenhaus.Mahler_Measure
     Polynomial_Factorization.Kronecker_Factorization
@@ -22,7 +23,7 @@ lemma roth_mpoly_to_poly_cast:
 lemma roth_mpoly_to_poly_smult:
   fixes U :: "rat mpoly"
   shows "mpoly_to_poly v (MPoly_Type.smult c U) = Polynomial.smult c (mpoly_to_poly v U)"
-  by (simp add: poly_eq_iff roth_coeff_smult_rat)
+  by (simp add: poly_eq_iff pheight_coeff_smult_rat)
 
 lemma roth_vars_poly_to_mpoly:
   fixes Q :: "'a::comm_ring_1 poly"
@@ -54,7 +55,7 @@ proof (rule equalityI)
     then obtain I where
       ik: "I \<in> Poly_Mapping.keys (mapping_of (poly_to_mpoly v Q))"
       and xeq: "x = MPoly_Type.coeff (poly_to_mpoly v Q) I"
-      by (auto simp: roth_coeffs_eq)
+      by (auto simp: pheight_coeffs_eq)
     have sub: "Poly_Mapping.keys I \<subseteq> {v}"
       using ik roth_vars_poly_to_mpoly[of v Q]
       by (auto simp: vars_def)
@@ -79,7 +80,7 @@ proof (rule equalityI)
     have ik: "Poly_Mapping.single v k \<in> Poly_Mapping.keys (mapping_of (poly_to_mpoly v Q))"
       using h xnz by (simp add: MPoly_Type.coeff_def in_keys_iff)
     show "x \<in> MPoly_Type.coeffs (poly_to_mpoly v Q)"
-      using ik h by (auto simp: roth_coeffs_eq)
+      using ik h by (auto simp: pheight_coeffs_eq)
   qed
 qed
 
@@ -118,13 +119,13 @@ lemma roth_primitive_mpoly_to_poly:
 
 lemma roth_int_coeff_sup_poly_coeff:
   fixes Q :: "int poly"
-  shows "nat (\<bar>Polynomial.coeff Q k\<bar>) \<le> roth_int_coeff_sup (poly_to_mpoly v Q)"
-  by (metis coeff_poly_to_mpoly roth_int_coeff_sup_coeff)
+  shows "nat (\<bar>Polynomial.coeff Q k\<bar>) \<le> pheight_int_coeff_sup (poly_to_mpoly v Q)"
+  by (metis coeff_poly_to_mpoly pheight_int_coeff_sup_coeff)
 
 lemma roth_int_coeff_sup_poly_coeffs:
   fixes Q :: "int poly"
   assumes "c \<in> set (Polynomial.coeffs Q)"
-  shows "nat (\<bar>c\<bar>) \<le> roth_int_coeff_sup (poly_to_mpoly v Q)"
+  shows "nat (\<bar>c\<bar>) \<le> pheight_int_coeff_sup (poly_to_mpoly v Q)"
 proof -
   obtain k where "c = Polynomial.coeff Q k"
     using assms range_coeff[of Q] by auto
@@ -148,9 +149,9 @@ lemma roth_mpoly_to_poly_nonzero:
 lemma roth_proj_height_poly_to_mpoly:
   fixes Q :: "int poly"
   assumes q: "Q \<noteq> 0" and prim: "Polynomial.content Q = 1"
-  shows "roth_proj_height (replace_coeff of_int (poly_to_mpoly v Q)) =
-         roth_int_coeff_sup (poly_to_mpoly v Q)"
-  by (simp add: roth_primitive_poly_to_mpoly prim roth_proj_height_cast_primitive [OF roth_poly_to_mpoly_nonzero[OF q]])
+  shows "pheight_proj_height (replace_coeff of_int (poly_to_mpoly v Q)) =
+         pheight_int_coeff_sup (poly_to_mpoly v Q)"
+  by (simp add: roth_primitive_poly_to_mpoly prim pheight_proj_height_cast_primitive [OF roth_poly_to_mpoly_nonzero[OF q]])
 
 section \<open>Mahler measure of a rational point\<close>
 
@@ -271,18 +272,18 @@ lemma roth_rat_height_order_le:
   assumes q: "q > (0::int)"
     and cpq: "coprime p q"
     and Q: "Q \<noteq> 0"
-  shows "real (roth_rat_height (Rat.Fract p q)) ^ Polynomial.order (Rat.Fract p q) (map_poly of_int Q)
+  shows "real (pheight_rat_height (Rat.Fract p q)) ^ Polynomial.order (Rat.Fract p q) (map_poly of_int Q)
        \<le> mahler_measure Q"
   using roth_mahler_order_le[OF q cpq Q]
-    roth_rat_height_Fract[OF q roth_coprime_bridge[OF cpq]] q
+    pheight_rat_height_Fract[OF q roth_coprime_bridge[OF cpq]] q
   by simp
 
 lemma roth_coeff_square_le:
   fixes Q :: "int poly"
   assumes a: "a \<in> set (Polynomial.coeffs Q)"
-  shows "a*a \<le> int (roth_int_coeff_sup (poly_to_mpoly v Q)) ^ 2"
+  shows "a*a \<le> int (pheight_int_coeff_sup (poly_to_mpoly v Q)) ^ 2"
 proof -
-  have h: "\<bar>a\<bar> \<le> int (roth_int_coeff_sup (poly_to_mpoly v Q))"
+  have h: "\<bar>a\<bar> \<le> int (pheight_int_coeff_sup (poly_to_mpoly v Q))"
     using roth_int_coeff_sup_poly_coeffs[OF a, of v] by simp
   then show ?thesis
     by (metis abs_le_square_iff abs_of_nat power2_eq_square)
@@ -291,13 +292,13 @@ qed
 lemma roth_coeff_square_sum_le:
   fixes Q :: "int poly"
   shows "(\<Sum>a\<leftarrow>Polynomial.coeffs Q. a*a) \<le>
-    int (length (Polynomial.coeffs Q)) * int (roth_int_coeff_sup (poly_to_mpoly v Q)) ^ 2"
+    int (length (Polynomial.coeffs Q)) * int (pheight_int_coeff_sup (poly_to_mpoly v Q)) ^ 2"
 proof -
   have "(\<Sum>a\<leftarrow>Polynomial.coeffs Q. a*a) \<le>
-        (\<Sum>a\<leftarrow>Polynomial.coeffs Q. int (roth_int_coeff_sup (poly_to_mpoly v Q)) ^ 2)"
+        (\<Sum>a\<leftarrow>Polynomial.coeffs Q. int (pheight_int_coeff_sup (poly_to_mpoly v Q)) ^ 2)"
     by (rule sum_list_mono) (rule roth_coeff_square_le)
   also have "\<dots> =
-    int (length (Polynomial.coeffs Q)) * int (roth_int_coeff_sup (poly_to_mpoly v Q)) ^ 2"
+    int (length (Polynomial.coeffs Q)) * int (pheight_int_coeff_sup (poly_to_mpoly v Q)) ^ 2"
     by (simp add: map_replicate_const sum_list_replicate)
   finally show ?thesis .
 qed
@@ -309,14 +310,14 @@ lemma roth_cast_square_id:
 lemma roth_mahler_coeff_sup_le:
   fixes Q :: "int poly"
   shows "mahler_measure Q \<le>
-         sqrt (length (Polynomial.coeffs Q)) * roth_int_coeff_sup (poly_to_mpoly v Q)"
+         sqrt (length (Polynomial.coeffs Q)) * pheight_int_coeff_sup (poly_to_mpoly v Q)"
 proof -
   have "mahler_measure Q \<le> sqrt (\<Sum>a\<leftarrow>Polynomial.coeffs Q. a*a)"
     by (rule Landau_inequality_mahler_measure)
-  also have "... \<le> sqrt (real (length (Polynomial.coeffs Q)) * real (roth_int_coeff_sup (poly_to_mpoly v Q)) ^ 2)"
+  also have "... \<le> sqrt (real (length (Polynomial.coeffs Q)) * real (pheight_int_coeff_sup (poly_to_mpoly v Q)) ^ 2)"
     using real_sqrt_le_mono roth_coeff_square_sum_le
     by (metis (no_types, lifting) of_int_le_iff roth_cast_square_id)
-  also have "... = sqrt (real (length (Polynomial.coeffs Q))) * real (roth_int_coeff_sup (poly_to_mpoly v Q))"
+  also have "... = sqrt (real (length (Polynomial.coeffs Q))) * real (pheight_int_coeff_sup (poly_to_mpoly v Q))"
     by (simp add: real_sqrt_mult)
   finally show ?thesis .
 qed
@@ -333,7 +334,7 @@ qed
 lemma roth_mahler_exp_degree_le:
   fixes Q :: "int poly"
   assumes Q: "Q \<noteq> 0"
-  shows "mahler_measure Q \<le> exp (real (degree Q)) * real (roth_int_coeff_sup (poly_to_mpoly v Q))"
+  shows "mahler_measure Q \<le> exp (real (degree Q)) * real (pheight_int_coeff_sup (poly_to_mpoly v Q))"
   using roth_mahler_coeff_sup_le roth_sqrt_suc_le_exp Q
   by (smt (verit, best) length_coeffs_degree mult_right_mono of_nat_0_le_iff)
 
@@ -341,11 +342,11 @@ lemma roth_univariate_log_order_bound:
   fixes Q :: "int poly"
   assumes q: "q > 0" and cpq: "coprime p q" and Q: "Q \<noteq> 0"
   shows "Polynomial.order (Rat.Fract p q) (map_poly of_int Q :: rat poly) *
-         roth_rat_log_height (Rat.Fract p q)
-    \<le> ln (real (roth_int_coeff_sup (poly_to_mpoly v Q))) + real (degree Q)"
+         pheight_rat_log_height (Rat.Fract p q)
+    \<le> ln (real (pheight_int_coeff_sup (poly_to_mpoly v Q))) + real (degree Q)"
 proof -
-  let ?H = "real (roth_rat_height (Rat.Fract p q))"
-  let ?C = "real (roth_int_coeff_sup (poly_to_mpoly v Q))"
+  let ?H = "real (pheight_rat_height (Rat.Fract p q))"
+  let ?C = "real (pheight_int_coeff_sup (poly_to_mpoly v Q))"
   let ?l = "Polynomial.order (Rat.Fract p q) (map_poly of_int Q)"
   have b: "?H ^ ?l \<le> exp (real (degree Q)) * ?C"
     using Q roth_rat_height_order_le[OF q cpq] roth_mahler_exp_degree_le
@@ -353,15 +354,15 @@ proof -
   have "ln (?H ^ ?l) \<le> ln (exp (real (degree Q)) * ?C)"
     using b by simp
   then show ?thesis
-    by (simp add: ln_realpow ln_mult_pos roth_rat_log_height_def mult.commute)
+    by (simp add: ln_realpow ln_mult_pos pheight_rat_log_height_def mult.commute)
 qed
 
 lemma roth_primitive_poly_log_height:
   fixes Q :: "int poly"
   assumes q: "Q \<noteq> 0" and prim: "Polynomial.content Q = 1"
-  shows "roth_proj_log_height (replace_coeff of_int (poly_to_mpoly v Q))
-       = ln (roth_int_coeff_sup (poly_to_mpoly v Q))"
-  unfolding roth_proj_log_height_def
+  shows "pheight_proj_log_height (replace_coeff of_int (poly_to_mpoly v Q))
+       = ln (pheight_int_coeff_sup (poly_to_mpoly v Q))"
+  unfolding pheight_proj_log_height_def
   by (simp add: roth_proj_height_poly_to_mpoly[OF q prim])
 
 section \<open>The bound for rational univariate polynomials\<close>
@@ -377,15 +378,15 @@ lemma roth_rat_poly_primitive_rep:
   shows "\<exists>Q::int poly. \<exists>c::rat.
     Q \<noteq> 0 \<and> Polynomial.content Q = 1 \<and> c \<noteq> 0 \<and>
     map_poly of_int Q = Polynomial.smult c P \<and>
-    roth_proj_height (poly_to_mpoly v P) = roth_int_coeff_sup (poly_to_mpoly v Q)"
+    pheight_proj_height (poly_to_mpoly v P) = pheight_int_coeff_sup (poly_to_mpoly v Q)"
 proof -
   have pmp: "poly_to_mpoly v P \<noteq> 0"
     by (rule roth_poly_to_mpoly_nonzero[OF p])
-  obtain U where rep: "roth_integral_rep (poly_to_mpoly v P) U"
+  obtain U where rep: "pheight_integral_rep (poly_to_mpoly v P) U"
     and u: "U \<noteq> 0" and prim: "MPoly_Type.primitive U"
-    using roth_primitive_rep_exists[OF pmp] by blast
+    using pheight_primitive_rep_exists[OF pmp] by blast
   then have uv: "vars U \<subseteq> {v}"
-    using roth_vars_integral_rep roth_vars_poly_to_mpoly by blast
+    using pheight_vars_integral_rep roth_vars_poly_to_mpoly by blast
   let ?Q = "mpoly_to_poly v U"
   have un: "poly_to_mpoly v ?Q = U"
     by (rule mpoly_to_poly_inverse[OF uv])
@@ -395,20 +396,20 @@ proof -
     using roth_primitive_mpoly_to_poly[OF uv] prim by simp
   obtain c::rat where cnz: "c \<noteq> 0" and
     eq: "(replace_coeff of_int U :: rat mpoly) = MPoly_Type.smult c (poly_to_mpoly v P)"
-    using rep by (auto simp: roth_integral_rep_def)
+    using rep by (auto simp: pheight_integral_rep_def)
   have eqpoly: "map_poly of_int ?Q = Polynomial.smult c P"
     using eq
     by (metis poly_to_mpoly_inverse roth_mpoly_to_poly_cast roth_mpoly_to_poly_smult)
-  have height: "roth_proj_height (poly_to_mpoly v P) = roth_int_coeff_sup (poly_to_mpoly v ?Q)"
-    using roth_proj_height_primitive_rep[OF pmp u prim rep] un by simp
+  have height: "pheight_proj_height (poly_to_mpoly v P) = pheight_int_coeff_sup (poly_to_mpoly v ?Q)"
+    using pheight_proj_height_primitive_rep[OF pmp u prim rep] un by simp
   show ?thesis using qnz qprim cnz eqpoly height by blast
 qed
 
 lemma roth_univariate_rat_poly_log_order_bound:
   fixes P :: "rat poly"
   assumes P: "P \<noteq> 0"
-  shows "real (Polynomial.order \<beta> P) * roth_rat_log_height \<beta> \<le>
-    roth_proj_log_height (poly_to_mpoly v P) + real (degree P)"
+  shows "real (Polynomial.order \<beta> P) * pheight_rat_log_height \<beta> \<le>
+    pheight_proj_log_height (poly_to_mpoly v P) + real (degree P)"
 proof -
   obtain p q::int where qpos: "q > 0" and cpq: "coprime p q"
     and beq: "\<beta> = Rat.Fract p q"
@@ -417,7 +418,7 @@ proof -
     Qnz: "Q \<noteq> 0" and Qprim: "Polynomial.content Q = 1"
     and cnz: "c \<noteq> 0"
     and eq: "map_poly of_int Q = Polynomial.smult c P"
-    and height: "roth_proj_height (poly_to_mpoly v P) = roth_int_coeff_sup (poly_to_mpoly v Q)"
+    and height: "pheight_proj_height (poly_to_mpoly v P) = pheight_int_coeff_sup (poly_to_mpoly v Q)"
     using roth_rat_poly_primitive_rep[OF P] by blast
   have ord: "Polynomial.order \<beta> (map_poly of_int Q :: rat poly) = Polynomial.order \<beta> P"
     using eq cnz by (simp add: Polynomial.order_smult)
@@ -425,8 +426,8 @@ proof -
     by (rule degree_map_poly) simp
   then have deg: "degree Q = degree P"
     using eq cnz by simp
-  have h: "roth_proj_log_height (poly_to_mpoly v P) = ln (real (roth_int_coeff_sup (poly_to_mpoly v Q)))"
-    using height by (simp add: roth_proj_log_height_def)
+  have h: "pheight_proj_log_height (poly_to_mpoly v P) = ln (real (pheight_int_coeff_sup (poly_to_mpoly v Q)))"
+    using height by (simp add: pheight_proj_log_height_def)
   note b = roth_univariate_log_order_bound[OF qpos cpq Qnz, of v]
   show ?thesis using b beq ord deg h by metis
 qed
@@ -434,8 +435,8 @@ qed
 lemma roth_univariate_mpoly_log_order_bound:
   fixes P :: "rat mpoly"
   assumes P: "P \<noteq> 0" and pv: "vars P \<subseteq> {v}"
-  shows "real (Polynomial.order \<beta> (mpoly_to_poly v P)) * roth_rat_log_height \<beta>
-       \<le> roth_proj_log_height P + real (degree (mpoly_to_poly v P))"
+  shows "real (Polynomial.order \<beta> (mpoly_to_poly v P)) * pheight_rat_log_height \<beta>
+       \<le> pheight_proj_log_height P + real (degree (mpoly_to_poly v P))"
 proof -
   have pn: "mpoly_to_poly v P \<noteq> 0"
     by (rule roth_mpoly_to_poly_nonzero[OF P pv])
@@ -572,17 +573,17 @@ lemma roth_univariate_index_bound:
   fixes p :: "rat poly" and r :: "nat \<Rightarrow> nat"
   assumes p: "p \<noteq> 0" and r: "r 0 > 0"
     and deg: "degree p \<le> r 0" and \<eta>: "\<eta> > 0"
-    and h: "roth_proj_log_height (poly_to_mpoly 0 p) + real (r 0)
-          \<le> \<eta> * real (r 0) * roth_rat_log_height \<beta>"
+    and h: "pheight_proj_log_height (poly_to_mpoly 0 p) + real (r 0)
+          \<le> \<eta> * real (r 0) * pheight_rat_log_height \<beta>"
   shows "roth_index 1 r (\<lambda>_. \<beta>) (poly_to_mpoly 0 p) \<le> ereal \<eta>"
 proof -
-  have posprod: "0 < \<eta> * real (r 0) * roth_rat_log_height \<beta>"
-    using h r roth_proj_log_height_nonneg[of "poly_to_mpoly 0 p"]
+  have posprod: "0 < \<eta> * real (r 0) * pheight_rat_log_height \<beta>"
+    using h r pheight_proj_log_height_nonneg[of "poly_to_mpoly 0 p"]
     by linarith
-  then have hp: "0 < roth_rat_log_height \<beta>"
-    using less_eq_real_def posprod roth_rat_log_height_nonneg by force
-  have b: "real (Polynomial.order \<beta> p) * roth_rat_log_height \<beta> \<le>
-           roth_proj_log_height (poly_to_mpoly 0 p) + degree p"
+  then have hp: "0 < pheight_rat_log_height \<beta>"
+    using less_eq_real_def posprod pheight_rat_log_height_nonneg by force
+  have b: "real (Polynomial.order \<beta> p) * pheight_rat_log_height \<beta> \<le>
+           pheight_proj_log_height (poly_to_mpoly 0 p) + degree p"
     by (rule roth_univariate_rat_poly_log_order_bound[OF p])
   have l: "real (Polynomial.order \<beta> p) \<le> \<eta> * r 0"
     using b deg h hp mult_le_cancel_right_pos by fastforce
@@ -598,7 +599,7 @@ lemma roth_univariate_mpoly_index_bound:
     and r: "r 0 > 0"
     and deg: "degree (mpoly_to_poly 0 P) \<le> r 0"
     and \<eta>: "\<eta> > 0"
-    and h: "roth_proj_log_height P + real (r 0) \<le> \<eta> * real (r 0) * roth_rat_log_height \<beta>"
+    and h: "pheight_proj_log_height P + real (r 0) \<le> \<eta> * real (r 0) * pheight_rat_log_height \<beta>"
   shows "roth_index 1 r (\<lambda>_. \<beta>) P \<le> ereal \<eta>"
 proof -
   have pn: "mpoly_to_poly 0 P \<noteq> 0"
@@ -631,8 +632,8 @@ theorem roth_lemma_one_variable:
   fixes P :: "rat mpoly" and r :: "nat \<Rightarrow> nat"
   assumes "P \<noteq> 0" and box: "pjet_poly_in_box 1 r P"
     and "r 0 > 0" "\<eta> > 0"
-    and "roth_proj_log_height P + real (r 0)
-          \<le> \<eta> * real (r 0) * roth_rat_log_height \<beta>"
+    and "pheight_proj_log_height P + real (r 0)
+          \<le> \<eta> * real (r 0) * pheight_rat_log_height \<beta>"
   shows "roth_index 1 r (\<lambda>_. \<beta>) P \<le> ereal \<eta>"
   using roth_univariate_mpoly_index_bound assms
         roth_univariate_vars_of_box[OF box] roth_univariate_degree_of_box[OF box]

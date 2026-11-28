@@ -308,7 +308,7 @@ lemma roth_coeff_smult_sum:
   shows "MPoly_Type.coeff (\<Sum>b\<in>B. MPoly_Type.smult (c b) (\<psi> b)) I =
            (\<Sum>b\<in>B. c b * MPoly_Type.coeff (\<psi> b) I)"
   unfolding pjet_coeff_sum[OF fin]
-  by (simp add: roth_coeff_smult_rat)
+  by (simp add: pheight_coeff_smult_rat)
 
 lemma roth_sum_coordinate:
   assumes fin: "finite (B::rat mpoly set)" and b: "b\<in>B"

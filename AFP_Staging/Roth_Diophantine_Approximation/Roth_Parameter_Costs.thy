@@ -5,17 +5,17 @@ begin
 
 lemma roth_good_pairs_unbounded_height:
   assumes inf: "infinite (roth_good_pairs \<alpha> kappa)"
-  shows "\<exists>p q. (p,q) \<in> roth_good_pairs \<alpha> kappa \<and> N < roth_rat_height (Rat.Fract p q)"
+  shows "\<exists>p q. (p,q) \<in> roth_good_pairs \<alpha> kappa \<and> N < pheight_rat_height (Rat.Fract p q)"
 proof -
   obtain pq where mem: "pq \<in> roth_good_pairs \<alpha> kappa"
     and qlarge: "int N < snd pq"
     using infinite_roth_good_pairs_iff_unbounded_denominator[of \<alpha> kappa] inf by blast
   then obtain p q where pq: "pq = (p,q)" and qpos: "0 < q" 
     and cop: "coprime p q" by (cases pq) auto
-  have height: "roth_rat_height (Rat.Fract p q) = nat (max (abs p) q)"
-    using qpos cop by (simp add: roth_rat_height_Fract)
+  have height: "pheight_rat_height (Rat.Fract p q) = nat (max (abs p) q)"
+    using qpos cop by (simp add: pheight_rat_height_Fract)
   have "N < nat q" using qlarge pq by simp
-  also have "... \<le> roth_rat_height (Rat.Fract p q)"
+  also have "... \<le> pheight_rat_height (Rat.Fract p q)"
     by (simp add: height)
   finally show ?thesis
     using mem pq by blast
@@ -107,7 +107,7 @@ lemma roth_good_pair_height_le:
   fixes \<alpha> kappa :: real and p q :: int
   assumes good: "(p,q) \<in> roth_good_pairs \<alpha> kappa"
     and kap: "0 \<le> kappa"
-  shows "real (roth_rat_height (Rat.Fract p q)) \<le> (abs \<alpha> + 1) * real_of_int q"
+  shows "real (pheight_rat_height (Rat.Fract p q)) \<le> (abs \<alpha> + 1) * real_of_int q"
 proof -
   have q: "0 < q" and cop: "coprime p q"
     and near: "abs (\<alpha> - p / q) < 1 / q powr kappa"
@@ -122,8 +122,8 @@ proof -
     using near inv by linarith
   have abs_p: "abs (real_of_int p) < (abs \<alpha> + 1) * real_of_int q"
     using q ratbound by (metis abs_div_pos of_int_0_less_iff pos_divide_less_eq)
-  have hreal: "real (roth_rat_height (Rat.Fract p q)) = max (abs (real_of_int p)) (real_of_int q)"
-    using q cop by (simp add: roth_rat_height_Fract)
+  have hreal: "real (pheight_rat_height (Rat.Fract p q)) = max (abs (real_of_int p)) (real_of_int q)"
+    using q cop by (simp add: pheight_rat_height_Fract)
   have qbound: "real_of_int q \<le> (abs \<alpha> + 1) * real_of_int q"
     using qr by (simp add: distrib_right)
   show ?thesis using abs_p qbound hreal by simp
@@ -132,10 +132,10 @@ qed
 lemma roth_good_pair_near_height_abstract:
   fixes \<alpha> kappa kappa' :: real and p q :: int
   assumes good: "(p,q) \<in> roth_good_pairs \<alpha> kappa"
-    and power: "real (roth_rat_height (Rat.Fract p q)) powr kappa' < q powr kappa"
-  shows "abs (of_rat (Rat.Fract p q) - \<alpha>) \<le> exp (-kappa' * roth_rat_log_height (Rat.Fract p q))"
+    and power: "real (pheight_rat_height (Rat.Fract p q)) powr kappa' < q powr kappa"
+  shows "abs (of_rat (Rat.Fract p q) - \<alpha>) \<le> exp (-kappa' * pheight_rat_log_height (Rat.Fract p q))"
 proof -
-  let ?H = "real (roth_rat_height (Rat.Fract p q))"
+  let ?H = "real (pheight_rat_height (Rat.Fract p q))"
   have q: "0 < q" using good by simp
   have Hpos: "0 < ?H" by simp
   have qpow: "0 < real_of_int q powr kappa" using q by simp
@@ -147,8 +147,8 @@ proof -
   have inv: "1 / real_of_int q powr kappa < 1 / ?H powr kappa'"
     using power Hpow qpow by (simp add: divide_strict_left_mono)
   have form: "1 / ?H powr kappa' =
-      exp (-kappa' * roth_rat_log_height (Rat.Fract p q))"
-    using Hpos by (simp add: roth_rat_log_height_def powr_def exp_minus inverse_eq_divide)
+      exp (-kappa' * pheight_rat_log_height (Rat.Fract p q))"
+    using Hpos by (simp add: pheight_rat_log_height_def powr_def exp_minus inverse_eq_divide)
   show ?thesis using near inv form by linarith
 qed
 
@@ -159,9 +159,9 @@ lemma roth_good_pair_near_height_threshold:
     and kap: "0 < kappa'" "kappa' < kappa"
     and threshold: "(abs \<alpha> + 1) powr kappa' <
       real_of_int q powr (kappa - kappa')"
-  shows "abs (of_rat (Rat.Fract p q) - \<alpha>) \<le> exp (-kappa' * roth_rat_log_height (Rat.Fract p q))"
+  shows "abs (of_rat (Rat.Fract p q) - \<alpha>) \<le> exp (-kappa' * pheight_rat_log_height (Rat.Fract p q))"
 proof -
-  let ?H = "real (roth_rat_height (Rat.Fract p q))"
+  let ?H = "real (pheight_rat_height (Rat.Fract p q))"
   let ?C = "abs \<alpha> + 1"
   have q: "0 < q" using good by simp
   have qr: "0 < (real_of_int q :: real)" using q by simp
@@ -189,7 +189,7 @@ qed
 lemma roth_good_pairs_unbounded_log_height_with_q:
   fixes Q :: int
   assumes inf: "infinite (roth_good_pairs \<alpha> kappa)"
-  shows "\<exists>p q. (p,q) \<in> roth_good_pairs \<alpha> kappa \<and> Q \<le> q \<and> B < roth_rat_log_height (Rat.Fract p q)"
+  shows "\<exists>p q. (p,q) \<in> roth_good_pairs \<alpha> kappa \<and> Q \<le> q \<and> B < pheight_rat_log_height (Rat.Fract p q)"
 proof -
   obtain N :: int where N: "max Q (exp B) < real_of_int N"
     using ex_less_of_int by blast
@@ -201,26 +201,26 @@ proof -
     using good by (cases pq) auto
   have qQ: "Q \<le> q" and qB: "exp B < real_of_int q"
     using large pq N by auto
-  have h: "roth_rat_height (Rat.Fract p q) = nat (max (abs p) q)"
-    using q cop by (simp add: roth_rat_height_Fract)
-  have qle: "real_of_int q \<le> real (roth_rat_height (Rat.Fract p q))"
+  have h: "pheight_rat_height (Rat.Fract p q) = nat (max (abs p) q)"
+    using q cop by (simp add: pheight_rat_height_Fract)
+  have qle: "real_of_int q \<le> real (pheight_rat_height (Rat.Fract p q))"
     using q by (simp add: h)
-  have "exp B < real (roth_rat_height (Rat.Fract p q))"
+  have "exp B < real (pheight_rat_height (Rat.Fract p q))"
     using qB qle by linarith
-  then have "ln (exp B) < ln (real (roth_rat_height (Rat.Fract p q)))"
+  then have "ln (exp B) < ln (real (pheight_rat_height (Rat.Fract p q)))"
     by (intro ln_strict_mono) simp_all
   then show ?thesis
-    by (metis good pq qQ ln_unique roth_rat_log_height_def)
+    by (metis good pq qQ ln_unique pheight_rat_log_height_def)
 qed
 
 theorem roth_select_near_rationals:
   assumes inf: "infinite (roth_good_pairs \<alpha> kappa)"
     and kap: "0 < kappa'" "kappa' < kappa"
   shows "\<exists>\<beta> :: nat \<Rightarrow> rat.
-    (\<forall>v<m. B < roth_rat_log_height (\<beta> v) \<and>
-      abs (of_rat (\<beta> v) - \<alpha>) \<le> exp (-kappa' * roth_rat_log_height (\<beta> v))) \<and>
+    (\<forall>v<m. B < pheight_rat_log_height (\<beta> v) \<and>
+      abs (of_rat (\<beta> v) - \<alpha>) \<le> exp (-kappa' * pheight_rat_log_height (\<beta> v))) \<and>
     (\<forall>v. Suc v < m \<longrightarrow>
-      K * roth_rat_log_height (\<beta> v) < roth_rat_log_height (\<beta> (Suc v)))"
+      K * pheight_rat_log_height (\<beta> v) < pheight_rat_log_height (\<beta> (Suc v)))"
 proof -
   let ?C = "(abs \<alpha> + 1) powr kappa'"
   have Cpos: "0 < ?C" by simp
@@ -229,13 +229,13 @@ proof -
       "\<And>q::int. Q \<le> q \<Longrightarrow> ?C < q powr (kappa-kappa')"
     using roth_powr_threshold[of ?C "kappa-kappa'"] Cpos eta by blast
   have near: "abs (of_rat (Rat.Fract p q) - \<alpha>) \<le>
-      exp (-kappa' * roth_rat_log_height (Rat.Fract p q))"
+      exp (-kappa' * pheight_rat_log_height (Rat.Fract p q))"
     if good: "(p,q) \<in> roth_good_pairs \<alpha> kappa" and large: "Q \<le> q"
     for p q
     by (rule roth_good_pair_near_height_threshold[OF good kap
       threshold[OF large]])
   let ?S = "{pq \<in> roth_good_pairs \<alpha> kappa. Q \<le> snd pq}"
-  let ?h = "\<lambda>pq. roth_rat_log_height (Rat.Fract (fst pq) (snd pq))"
+  let ?h = "\<lambda>pq. pheight_rat_log_height (Rat.Fract (fst pq) (snd pq))"
   have unb: "\<exists>pq\<in>?S. C < ?h pq" for C
     using roth_good_pairs_unbounded_log_height_with_q[OF inf, of Q C] 
     by force
@@ -244,8 +244,8 @@ proof -
       "\<forall>v. Suc v < m \<longrightarrow> K * ?h (pq v) < ?h (pq (Suc v))"
     using roth_unbounded_sequence[OF unb, of m B K] by blast
   let ?beta = "\<lambda>v. Rat.Fract (fst (pq v)) (snd (pq v))"
-  have betamember: "B < roth_rat_log_height (?beta v) \<and>
-      abs (of_rat (?beta v) - \<alpha>) \<le> exp (-kappa' * roth_rat_log_height (?beta v))"
+  have betamember: "B < pheight_rat_log_height (?beta v) \<and>
+      abs (of_rat (?beta v) - \<alpha>) \<le> exp (-kappa' * pheight_rat_log_height (?beta v))"
     if "v<m" for v
     using members near that by (cases "pq v") auto
   with growth show ?thesis
@@ -420,12 +420,12 @@ definition roth_selected_parameters ::
   where
   "roth_selected_parameters \<alpha> kappa' m B xi sigma T \<beta> r \<equiv>
     (\<forall>v<m. 0 < r v \<and>
-      B \<le> roth_rat_log_height (\<beta> v) \<and>
-      roth_rat_log_height (\<beta> v) \<le> xi * T \<and>
-      T \<le> real (r v) * roth_rat_log_height (\<beta> v) \<and>
-      real (r v) * roth_rat_log_height (\<beta> v) \<le> (1 + xi) * T \<and>
+      B \<le> pheight_rat_log_height (\<beta> v) \<and>
+      pheight_rat_log_height (\<beta> v) \<le> xi * T \<and>
+      T \<le> real (r v) * pheight_rat_log_height (\<beta> v) \<and>
+      real (r v) * pheight_rat_log_height (\<beta> v) \<le> (1 + xi) * T \<and>
       \<bar>of_rat (\<beta> v) - \<alpha>\<bar> \<le>
-        exp (- kappa' * roth_rat_log_height (\<beta> v))) \<and>
+        exp (- kappa' * pheight_rat_log_height (\<beta> v))) \<and>
     (\<forall>v. Suc v < m \<longrightarrow> real (r (Suc v)) \<le> sigma * real (r v)) \<and>
     real (\<Sum>v<m. r v) \<le> real m * ((1 + xi) * T / B)"
 
@@ -437,16 +437,16 @@ theorem roth_select_parameters:
     A < (T::real) \<and> 0 < T \<and> roth_selected_parameters \<alpha> kappa' m B xi sigma T \<beta> r"
 proof -
   obtain \<beta> :: "nat \<Rightarrow> rat" where \<beta>:
-      "\<forall>v<m. B < roth_rat_log_height (\<beta> v) \<and>
+      "\<forall>v<m. B < pheight_rat_log_height (\<beta> v) \<and>
         abs (of_rat (\<beta> v) - \<alpha>) \<le>
-          exp (-kappa' * roth_rat_log_height (\<beta> v))" and growth:
+          exp (-kappa' * pheight_rat_log_height (\<beta> v))" and growth:
       "\<forall>v. Suc v < m \<longrightarrow>
-        (2/sigma) * roth_rat_log_height (\<beta> v) <
-          roth_rat_log_height (\<beta> (Suc v))"
+        (2/sigma) * pheight_rat_log_height (\<beta> v) <
+          pheight_rat_log_height (\<beta> (Suc v))"
     using roth_select_near_rationals[where \<alpha>=\<alpha> and kappa=kappa and
       kappa'=kappa' and m=m and B=B and K="2/sigma", OF inf kap]
     by blast
-  let ?h = "\<lambda>v. roth_rat_log_height (\<beta> v)"
+  let ?h = "\<lambda>v. pheight_rat_log_height (\<beta> v)"
   have hlow: "B \<le> ?h v" if vm: "v < m" for v
     using \<beta> vm by auto
   have growth': "2 * ?h v \<le> sigma * ?h (Suc v)"
@@ -465,7 +465,7 @@ proof -
     and ratio: "\<forall>v. Suc v < m \<longrightarrow>
       real (r (Suc v)) \<le> sigma * real (r v)"
     and sumb: "real (\<Sum>v<m. r v) \<le> real m * ((1+xi)*T/B)"
-    using roth_choose_degrees_above[where h="\<lambda>v. roth_rat_log_height (\<beta> v)" and m=m and sigma=sigma and
+    using roth_choose_degrees_above[where h="\<lambda>v. pheight_rat_log_height (\<beta> v)" and m=m and sigma=sigma and
       xi=xi and B=B and A=A, OF sig xi Bpos hlow growth'] by blast
   show ?thesis using TA Tpos rbounds \<beta> ratio sumb
     unfolding roth_selected_parameters_def by blast

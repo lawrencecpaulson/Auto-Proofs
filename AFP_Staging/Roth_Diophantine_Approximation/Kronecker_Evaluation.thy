@@ -113,7 +113,7 @@ lemma roth_box_smult:
   assumes box: "pjet_poly_in_box m r P"
   shows "pjet_poly_in_box m r (MPoly_Type.smult c P)"
   using box by (auto simp: pjet_poly_in_box_def in_keys_iff
-    MPoly_Type.coeff_def[symmetric] roth_coeff_smult_rat)
+    MPoly_Type.coeff_def[symmetric] pheight_coeff_smult_rat)
 
 lemma roth_poly_smult_sum:
   fixes f :: "'a \<Rightarrow> rat poly"
@@ -126,7 +126,7 @@ lemma roth_ksubst_smult:
   assumes P: "pjet_poly_in_box m r P"
   shows "roth_ksubst m B (MPoly_Type.smult c P) = Polynomial.smult c (roth_ksubst m B P)"
   by (simp add: roth_ksubst_box[OF roth_box_smult[OF P]]
-    roth_ksubst_box[OF P] roth_coeff_smult_rat
+    roth_ksubst_box[OF P] pheight_coeff_smult_rat
     Polynomial.smult_monom roth_poly_smult_sum)
 
 lemma roth_ksubst_zero [simp]:

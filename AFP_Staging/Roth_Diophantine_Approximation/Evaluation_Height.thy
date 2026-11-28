@@ -8,13 +8,13 @@ section \<open>Roth bound for an auxiliary polynomial\<close>
 
 lemma roth_int_coeff_sup_log_mono:
   fixes P :: "int mpoly" and B :: nat
-  assumes h: "roth_int_coeff_sup P \<le> B"
-  shows "ln (real (roth_int_coeff_sup P)) \<le> ln (real B)"
+  assumes h: "pheight_int_coeff_sup P \<le> B"
+  shows "ln (real (pheight_int_coeff_sup P)) \<le> ln (real B)"
 proof (rule ln_mono)
-  show "real (roth_int_coeff_sup P) \<le> real B"
+  show "real (pheight_int_coeff_sup P) \<le> real B"
     using h by simp
-  show "0 < real (roth_int_coeff_sup P)"
-    using roth_int_coeff_sup_ge_one[of P] by simp
+  show "0 < real (pheight_int_coeff_sup P)"
+    using pheight_int_coeff_sup_ge_one[of P] by simp
 qed
 
 section \<open>Denominators of polynomial evaluations at rational points\<close>
@@ -182,30 +182,30 @@ proof -
 qed
 
 lemma roth_quotient_denom_le_height:
-  "snd (quotient_of x) \<le> int (roth_rat_height x)"
+  "snd (quotient_of x) \<le> int (pheight_rat_height x)"
   using quotient_of_denom_pos'[of x]
-  by (simp add: roth_rat_height_def)
+  by (simp add: pheight_rat_height_def)
 
 theorem roth_rational_evaluation_lower_height:
   fixes \<beta> :: "nat \<Rightarrow> rat" and P :: "int mpoly"
   assumes box: "pjet_poly_in_box m r P"
     and nz: "insertion \<beta> (replace_coeff of_int P) \<noteq> (0::rat)"
-  shows "1 / (\<Prod>v<m. (of_nat (roth_rat_height (\<beta> v))::rat) ^ r v) \<le>
+  shows "1 / (\<Prod>v<m. (of_nat (pheight_rat_height (\<beta> v))::rat) ^ r v) \<le>
     \<bar>insertion \<beta> (replace_coeff of_int P)\<bar>"
 proof -
   let ?D = "(\<Prod>v<m. (of_int (snd (quotient_of (\<beta> v)))::rat) ^ r v)"
-  let ?H = "(\<Prod>v<m. (of_nat (roth_rat_height (\<beta> v))::rat) ^ r v)"
+  let ?H = "(\<Prod>v<m. (of_nat (pheight_rat_height (\<beta> v))::rat) ^ r v)"
   have Dpos: "0 < ?D"
     by (intro prod_pos) (simp add: quotient_of_denom_pos')
   have Hpos: "0 < ?H"
     by (intro prod_pos) simp
   have point: "(of_int (snd (quotient_of (\<beta> v)))::rat) \<le>
-      of_nat (roth_rat_height (\<beta> v))" for v
+      of_nat (pheight_rat_height (\<beta> v))" for v
     using roth_quotient_denom_le_height[of "\<beta> v"] by simp
   have nonneg: "0 \<le> (of_int (snd (quotient_of (\<beta> v)))::rat)" for v
     using quotient_of_denom_pos'[of "\<beta> v"] by simp
   have powpoint: "(of_int (snd (quotient_of (\<beta> v)))::rat) ^ r v \<le>
-      (of_nat (roth_rat_height (\<beta> v))::rat) ^ r v" for v
+      (of_nat (pheight_rat_height (\<beta> v))::rat) ^ r v" for v
     by (rule power_mono[OF point nonneg])
   have DH: "?D \<le> ?H"
     by (intro prod_mono) (use powpoint nonneg in auto)
@@ -220,12 +220,12 @@ theorem roth_rational_evaluation_lower_height_real:
   fixes \<beta> :: "nat \<Rightarrow> rat" and P :: "int mpoly"
   assumes box: "pjet_poly_in_box m r P"
     and nz: "insertion \<beta> (replace_coeff of_int P) \<noteq> (0::rat)"
-  shows "1 / (\<Prod>v<m. real (roth_rat_height (\<beta> v)) ^ r v) \<le>
+  shows "1 / (\<Prod>v<m. real (pheight_rat_height (\<beta> v)) ^ r v) \<le>
     \<bar>of_rat (insertion \<beta> (replace_coeff of_int P))::real\<bar>"
 proof -
   note h = roth_rational_evaluation_lower_height[OF box nz]
   have "(of_rat (1 / (\<Prod>v<m.
-      (of_nat (roth_rat_height (\<beta> v))::rat) ^ r v))::real) \<le>
+      (of_nat (pheight_rat_height (\<beta> v))::rat) ^ r v))::real) \<le>
     of_rat (\<bar>insertion \<beta> (replace_coeff of_int P)\<bar>)"
     using h by (simp add: of_rat_less_eq)
   then show ?thesis
@@ -234,12 +234,12 @@ qed
 
 lemma roth_height_product_exp:
   fixes \<beta> :: "nat \<Rightarrow> rat"
-  shows "1 / (\<Prod>v<m. real (roth_rat_height (\<beta> v)) ^ r v) =
-    exp (- (\<Sum>v<m. real (r v) * roth_rat_log_height (\<beta> v)))"
+  shows "1 / (\<Prod>v<m. real (pheight_rat_height (\<beta> v)) ^ r v) =
+    exp (- (\<Sum>v<m. real (r v) * pheight_rat_log_height (\<beta> v)))"
 proof -
-  have product: "exp (\<Sum>v<m. real (r v) * roth_rat_log_height (\<beta> v)) =
-    (\<Prod>v<m. real (roth_rat_height (\<beta> v)) ^ r v)"
-    by (simp add: exp_sum exp_of_nat_mult roth_rat_log_height_def)
+  have product: "exp (\<Sum>v<m. real (r v) * pheight_rat_log_height (\<beta> v)) =
+    (\<Prod>v<m. real (pheight_rat_height (\<beta> v)) ^ r v)"
+    by (simp add: exp_sum exp_of_nat_mult pheight_rat_log_height_def)
   show ?thesis by (simp add: exp_minus product divide_inverse)
 qed
 
@@ -624,11 +624,11 @@ theorem roth_rational_evaluation_lower_exp:
   fixes \<beta> :: "nat \<Rightarrow> rat" and P :: "int mpoly"
   assumes box: "pjet_poly_in_box m r P"
     and nz: "insertion \<beta> (replace_coeff of_int P) \<noteq> (0::rat)"
-  shows "exp (- (\<Sum>v<m. real (r v) * roth_rat_log_height (\<beta> v))) \<le>
+  shows "exp (- (\<Sum>v<m. real (r v) * pheight_rat_log_height (\<beta> v))) \<le>
     \<bar>insertion (\<lambda>v. of_rat (\<beta> v))
       (replace_coeff (of_int::int \<Rightarrow> real) P)\<bar>"
 proof -
-  have lower: "1 / (\<Prod>v<m. real (roth_rat_height (\<beta> v)) ^ r v) \<le>
+  have lower: "1 / (\<Prod>v<m. real (pheight_rat_height (\<beta> v)) ^ r v) \<le>
     \<bar>of_rat (insertion \<beta> (replace_coeff of_int P))::real\<bar>"
     by (rule roth_rational_evaluation_lower_height_real[OF box nz])
   show ?thesis using lower
@@ -662,14 +662,14 @@ theorem roth_evaluation_sandwich:
     and coeff: "\<And>I. I \<in> Poly_Mapping.keys
         (mapping_of (pjet_translate a (replace_coeff (of_int::int \<Rightarrow> real) P)))
       \<Longrightarrow> \<bar>insertion a (pjet_hasse I (replace_coeff (of_int::int \<Rightarrow> real) P))\<bar> \<le> B"
-  shows "exp (- (\<Sum>v<m. real (r v) * roth_rat_log_height (\<beta> v))) \<le>
+  shows "exp (- (\<Sum>v<m. real (r v) * pheight_rat_log_height (\<beta> v))) \<le>
     B * real (card (Poly_Mapping.keys
       (mapping_of (pjet_translate a (replace_coeff (of_int::int \<Rightarrow> real) P))))) *
       exp (-\<kappa> * L * \<theta>)"
 proof -
   let ?R = "replace_coeff (of_int::int \<Rightarrow> real) P"
   let ?b = "\<lambda>v. of_rat (\<beta> v)"
-  have lower: "exp (- (\<Sum>v<m. real (r v) * roth_rat_log_height (\<beta> v))) \<le>
+  have lower: "exp (- (\<Sum>v<m. real (r v) * pheight_rat_log_height (\<beta> v))) \<le>
       \<bar>insertion ?b ?R\<bar>"
     by (rule roth_rational_evaluation_lower_exp[OF box nz])
   have upper: "\<bar>insertion ?b ?R\<bar> \<le>
@@ -729,16 +729,16 @@ theorem roth_real_poly_eval_bound:
   assumes box: "pjet_poly_in_box m r P"
   shows "\<bar>insertion a (replace_coeff (of_int::int \<Rightarrow> real) P)\<bar> \<le>
     real (card (Poly_Mapping.keys (mapping_of P))) *
-      real (roth_int_coeff_sup P) *
+      real (pheight_int_coeff_sup P) *
       (\<Prod>v<m. max 1 (\<bar>a v\<bar>) ^ r v)"
 proof -
   let ?S = "Poly_Mapping.keys (mapping_of P)"
   let ?E = "(\<Prod>v<m. max 1 (\<bar>a v\<bar>) ^ r v)"
-  let ?H = "real (roth_int_coeff_sup P)"
+  let ?H = "real (pheight_int_coeff_sup P)"
   have support: "I \<in> pjet_exponent_box m r" if "I \<in> ?S" for I
     using box that by (auto simp: pjet_poly_in_box_def)
   have coeff: "real (nat (\<bar>MPoly_Type.coeff P I\<bar>)) \<le> ?H" for I
-    using roth_int_coeff_sup_coeff[of P I] by simp
+    using pheight_int_coeff_sup_coeff[of P I] by simp
   have Epos: "0 \<le> ?E" by (intro prod_nonneg) simp
   have each: "\<bar>insertion a (MPoly_Type.monom I
       (of_int (MPoly_Type.coeff P I)))\<bar> \<le> ?H * ?E"
@@ -779,7 +779,7 @@ theorem roth_hasse_real_eval_bound:
   assumes box: "pjet_poly_in_box m r P"
   shows "\<bar>insertion a (pjet_hasse J (replace_coeff (of_int::int \<Rightarrow> real) P))\<bar> \<le>
     real (card (pjet_exponent_box m r)) *
-      real (2 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup P) *
+      real (2 ^ (\<Sum>v<m. r v) * pheight_int_coeff_sup P) *
       (\<Prod>v<m. max 1 (\<bar>a v\<bar>) ^ r v)"
 proof -
   let ?Q = "pjet_hasse J P"
@@ -788,28 +788,28 @@ proof -
     by (rule roth_hasse_box_int[OF box])
   have eval: "\<bar>insertion a (pjet_hasse J (replace_coeff of_int P))\<bar> \<le>
       real (card (Poly_Mapping.keys (mapping_of ?Q))) *
-        real (roth_int_coeff_sup ?Q) * ?E"
+        real (pheight_int_coeff_sup ?Q) * ?E"
     by (simp only: roth_hasse_cast_real[symmetric])
       (rule roth_real_poly_eval_bound[OF qb])
   have sub: "Poly_Mapping.keys (mapping_of ?Q) \<subseteq> pjet_exponent_box m r"
     using qb by (simp add: pjet_poly_in_box_def)
   have cards: "card (Poly_Mapping.keys (mapping_of ?Q)) \<le> card (pjet_exponent_box m r)"
     by (rule card_mono[OF finite_pjet_exponent_box sub])
-  have hs: "roth_int_coeff_sup ?Q \<le> 2 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup P"
+  have hs: "pheight_int_coeff_sup ?Q \<le> 2 ^ (\<Sum>v<m. r v) * pheight_int_coeff_sup P"
     by (rule roth_hasse_coeff_sup[OF box])
   have Epos: "0 \<le> ?E" by (intro prod_nonneg) simp
-  have hh: "real (roth_int_coeff_sup ?Q) \<le>
-      real (2 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup P)"
+  have hh: "real (pheight_int_coeff_sup ?Q) \<le>
+      real (2 ^ (\<Sum>v<m. r v) * pheight_int_coeff_sup P)"
     using hs by (metis of_nat_le_iff)
   have prod: "real (card (Poly_Mapping.keys (mapping_of ?Q))) *
-      real (roth_int_coeff_sup ?Q) \<le>
+      real (pheight_int_coeff_sup ?Q) \<le>
     real (card (pjet_exponent_box m r)) *
-      real (2 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup P)"
+      real (2 ^ (\<Sum>v<m. r v) * pheight_int_coeff_sup P)"
     using cards by (intro mult_mono hh) simp_all
   have "real (card (Poly_Mapping.keys (mapping_of ?Q))) *
-      real (roth_int_coeff_sup ?Q) * ?E \<le>
+      real (pheight_int_coeff_sup ?Q) * ?E \<le>
     real (card (pjet_exponent_box m r)) *
-      real (2 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup P) * ?E"
+      real (2 ^ (\<Sum>v<m. r v) * pheight_int_coeff_sup P) * ?E"
     by (rule mult_right_mono[OF prod Epos])
   then show ?thesis using eval by linarith
 qed
@@ -825,16 +825,16 @@ theorem roth_evaluation_sandwich_height:
     and index: "ereal \<theta> \<le> roth_index m r a
       (replace_coeff (of_int::int \<Rightarrow> real) P)"
     and near: "\<And>v. \<bar>of_rat (\<beta> v) - a v\<bar> \<le> exp (-\<kappa> * h v)"
-  shows "exp (- (\<Sum>v<m. real (r v) * roth_rat_log_height (\<beta> v))) \<le>
+  shows "exp (- (\<Sum>v<m. real (r v) * pheight_rat_log_height (\<beta> v))) \<le>
     (real (card (pjet_exponent_box m r)) *
-      real (2 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup P) *
+      real (2 ^ (\<Sum>v<m. r v) * pheight_int_coeff_sup P) *
       (\<Prod>v<m. max 1 (\<bar>a v\<bar>) ^ r v)) *
     real (card (Poly_Mapping.keys
       (mapping_of (pjet_translate a (replace_coeff (of_int::int \<Rightarrow> real) P))))) *
       exp (-\<kappa> * L * \<theta>)"
 proof -
   let ?B = "real (card (pjet_exponent_box m r)) *
-      real (2 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup P) *
+      real (2 ^ (\<Sum>v<m. r v) * pheight_int_coeff_sup P) *
       (\<Prod>v<m. max 1 (\<bar>a v\<bar>) ^ r v)"
   have Bpos: "0 \<le> ?B"
     by (intro mult_nonneg_nonneg prod_nonneg) simp_all

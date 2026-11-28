@@ -14,6 +14,7 @@ consumer; keep its session and qualified theory name stable.
 | `Finite_Embedding_Bounds` | Standalone house, coordinate recovery, and embedding-kernel bounds, including Siegel exponent and a two-point example | Session, PDF, outline, browser, and GS builds passed on 13 November 2026 |
 | `Gelfond_Schneider` | Main transcendence theorem | Standalone session and PDF passed on 12 November 2026 |
 | `Multivariate_Hasse_Derivatives` | Multivariate polynomial translation, Taylor coefficients, and Hasse derivative calculus | Standalone session and Roth integration passed on 28 November 2026 |
+| `Multivariate_Polynomial_Heights` | Primitive integral representatives and projective heights for rational multivariate polynomials | Standalone session and Roth integration builds passed on 28 November 2026 |
 | `Polynomial_Wronskians` | Binomial evaluation matrices and nonzero Hasse Wronskians for rational polynomials | Session and Roth integration builds passed on 28 November 2026 |
 | `Roth_Diophantine_Approximation` | Main rational Roth theorem | PDF passed on 12 November; session with Wronskian dependency passed on 28 November 2026 |
 | `Bivariate_Resultants` | Bivariate specialisation, derivative multiplicity, and pair resultants | AFP-style session, PDF, browser, and outline passed on 13 November 2026 |

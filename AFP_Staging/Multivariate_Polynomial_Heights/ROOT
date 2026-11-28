@@ -1,0 +1,8 @@
+chapter AFP
+
+session Multivariate_Polynomial_Heights (AFP) = Multivariate_Hasse_Derivatives +
+  options [timeout = 600]
+  theories
+    Polynomial_Heights
+  document_files
+    "root.tex"

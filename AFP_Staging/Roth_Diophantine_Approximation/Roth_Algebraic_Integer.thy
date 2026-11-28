@@ -60,18 +60,18 @@ proof (rule ccontr)
     using Abounds TA by (auto simp: algebra_simps)
   let ?\<beta> = "\<lambda>v. if v < m then \<beta> v else \<beta> 0"
   from selected mpos have near_all:
-      "\<And>v. \<bar>of_rat (?\<beta> v) - \<alpha>\<bar> \<le> exp (-\<kappa>*roth_rat_log_height (?\<beta> v))"
+      "\<And>v. \<bar>of_rat (?\<beta> v) - \<alpha>\<bar> \<le> exp (-\<kappa>*pheight_rat_log_height (?\<beta> v))"
     and rpos: "\<And>v. v < m \<Longrightarrow> 0 < r v"
-    and hlow: "\<And>v. v < m \<Longrightarrow> B \<le> roth_rat_log_height (?\<beta> v)"
-    and wlow: "\<And>v. v < m \<Longrightarrow> T \<le> real (r v)*roth_rat_log_height (?\<beta> v)"
-    and whigh: "\<And>v. v < m \<Longrightarrow> r v * roth_rat_log_height (?\<beta> v) \<le> (1+\<xi>)*T"
+    and hlow: "\<And>v. v < m \<Longrightarrow> B \<le> pheight_rat_log_height (?\<beta> v)"
+    and wlow: "\<And>v. v < m \<Longrightarrow> T \<le> real (r v)*pheight_rat_log_height (?\<beta> v)"
+    and whigh: "\<And>v. v < m \<Longrightarrow> r v * pheight_rat_log_height (?\<beta> v) \<le> (1+\<xi>)*T"
     and sumb: "real (\<Sum>v<m. r v) \<le> real m*((1+\<xi>)*T/B)"
     unfolding roth_selected_parameters_def by auto
   have ratio: "\<And>v. Suc v < m \<Longrightarrow> r (Suc v) \<le> \<eta>^(2^(m-1)) * r v"
     using selected unfolding roth_selected_parameters_def by (simp add: \<sigma>_def)
 
   text \<open>Pay the logarithmic costs needed for index transfer and Roth's lemma.\<close>
-  have whigh0: "r 0 * roth_rat_log_height (?\<beta> 0) \<le> (1+\<xi>)*T"
+  have whigh0: "r 0 * pheight_rat_log_height (?\<beta> 0) \<le> (1+\<xi>)*T"
     by (rule whigh[OF mpos])
   have rbound: "r 0 \<le> (1+\<xi>)*T/B"
     by (rule roth_degree_from_weighted[OF Bpos hlow[OF mpos] whigh[OF mpos]])
@@ -86,10 +86,10 @@ proof (rule ccontr)
   let ?coeff_bound_int = "(2::int) * (4 * roth_power_base f) ^ (\<Sum>v<m. r v)"
   let ?coeff_bound_nat = "nat ?coeff_bound_int"
   have hbound: "ln (real ?coeff_bound_nat) +
-    4*real m*real (r 0) \<le> \<eta>^(2^(m-1))*real (r v)*roth_rat_log_height (?\<beta> v)"
+    4*real m*real (r 0) \<le> \<eta>^(2^(m-1))*real (r v)*pheight_rat_log_height (?\<beta> v)"
     if vm: "v < m" for v
   proof -
-    have hw: "\<sigma>*T \<le> \<sigma>*(real (r v)*roth_rat_log_height (?\<beta> v))"
+    have hw: "\<sigma>*T \<le> \<sigma>*(real (r v)*pheight_rat_log_height (?\<beta> v))"
       by (rule mult_left_mono[OF wlow[OF vm]]) (use sigpos in simp)
     have eqlog: "ln (real ?coeff_bound_nat) =
       ln 2 + real (\<Sum>w<m. r w) * ?C"
@@ -121,17 +121,17 @@ proof (rule ccontr)
   have pow: "1 \<le> (4 * roth_power_base f) ^ (\<Sum>v<m. r v)"
     by (rule one_le_power[OF base])
   have Hpos: "1 \<le> ?coeff_bound_int" using pow by simp
-  have ph: "roth_int_coeff_sup P \<le> ?coeff_bound_nat"
+  have ph: "pheight_int_coeff_sup P \<le> ?coeff_bound_nat"
     by (rule roth_int_coeff_sup_le) (use Hpos pc in \<open>auto intro: nat_mono\<close>)
-  have hlog: "ln (real (roth_int_coeff_sup P)) \<le> ln (real ?coeff_bound_nat)"
+  have hlog: "ln (real (pheight_int_coeff_sup P)) \<le> ln (real ?coeff_bound_nat)"
     by (rule roth_int_coeff_sup_log_mono[OF ph])
-  have hh: "ln (roth_int_coeff_sup P) + 4 * real m * real (r 0) \<le>
-      \<eta>^(2^(m-1)) *r v * roth_rat_log_height (?\<beta> v)"
+  have hh: "ln (pheight_int_coeff_sup P) + 4 * real m * real (r 0) \<le>
+      \<eta>^(2^(m-1)) *r v * pheight_rat_log_height (?\<beta> v)"
     if "v<m" for v
     using hlog hbound[OF that] by linarith
 
   text \<open>Index transfer gives the opposing bound at the rational points.\<close>
-  let ?height_sum = "(\<Sum>v<m. real (r v) * roth_rat_log_height (?\<beta> v))"
+  let ?height_sum = "(\<Sum>v<m. real (r v) * pheight_rat_log_height (?\<beta> v))"
   have sum_le: "?height_sum \<le> m * ((1+\<xi>)*T)"
     by (rule roth_weighted_height_sum_le[OF whigh])
   let ?index_gap = "real m * (1-\<epsilon>) / 2 - \<epsilon> * m"
@@ -141,15 +141,15 @@ proof (rule ccontr)
     using sum_le gap by linarith
   have kpos: "0 \<le> \<kappa>" using kap by simp
   have Lpos: "0 \<le> T" using Tpos by simp
-  have height_log: "ln (real (roth_int_coeff_sup P)) \<le>
+  have height_log: "ln (real (pheight_int_coeff_sup P)) \<le>
       ln 2 + real (\<Sum>v<m. r v) * ?C"
     by (rule roth_auxiliary_height_log[OF bpos ph])
-  have cost_gap: "ln (real (roth_int_coeff_sup P)) +
+  have cost_gap: "ln (real (pheight_int_coeff_sup P)) +
       real (\<Sum>v<m. r v) * ?D + ?height_sum <
       \<kappa> * T * ?index_gap"
     using height_log gap' by (simp add: algebra_simps)
   let ?transfer_cost = "real (card (pjet_exponent_box m r)) ^ 2 *
-      real (4 ^ (\<Sum>v<m. r v) * roth_int_coeff_sup P) *
+      real (4 ^ (\<Sum>v<m. r v) * pheight_int_coeff_sup P) *
       (\<Prod>v<m. max 1 (\<bar>\<alpha>\<bar>) ^ r v)"
   have transfer_gap: "ln ?transfer_cost + ?height_sum <
       \<kappa> * T * ?index_gap"

@@ -107,8 +107,8 @@ lemma roth_univariate_index_bound_at:
     and vm: "v<m" and rp: "r v > 0"
     and deg: "Polynomial.degree (mpoly_to_poly v P) \<le> r v"
     and \<eta>: "\<eta> > 0"
-    and h: "roth_proj_log_height P + real (r v) \<le>
-      \<eta> * real (r v) * roth_rat_log_height (a v)"
+    and h: "pheight_proj_log_height P + real (r v) \<le>
+      \<eta> * real (r v) * pheight_rat_log_height (a v)"
   shows "roth_index m r a P \<le> ereal \<eta>"
 proof -
   let ?p = "mpoly_to_poly v P"
@@ -117,18 +117,18 @@ proof -
   have peq: "poly_to_mpoly v ?p = P"
     by (rule mpoly_to_poly_inverse[OF pv])
   have rpos: "(0::real) < real (r v)" using rp by simp
-  have posprod: "0 < \<eta> * real (r v) * roth_rat_log_height (a v)"
-    using h rpos roth_proj_log_height_nonneg[of P] by linarith
+  have posprod: "0 < \<eta> * real (r v) * pheight_rat_log_height (a v)"
+    using h rpos pheight_proj_log_height_nonneg[of P] by linarith
   have ep: "0 < \<eta> * real (r v)" using \<eta> rpos by simp
-  have hp: "0 < roth_rat_log_height (a v)"
+  have hp: "0 < pheight_rat_log_height (a v)"
     using posprod ep by (auto simp: zero_less_mult_iff)
   have b: "real (Polynomial.order (a v) ?p) *
-      roth_rat_log_height (a v) \<le>
-    roth_proj_log_height P + real (Polynomial.degree ?p)"
+      pheight_rat_log_height (a v) \<le>
+    pheight_proj_log_height P + real (Polynomial.degree ?p)"
     by (rule roth_univariate_mpoly_log_order_bound[OF P pv])
   have bd: "real (Polynomial.order (a v) ?p) *
-      roth_rat_log_height (a v) \<le>
-    \<eta> * real (r v) * roth_rat_log_height (a v)"
+      pheight_rat_log_height (a v) \<le>
+    \<eta> * real (r v) * pheight_rat_log_height (a v)"
     using b deg h by linarith
   have l: "real (Polynomial.order (a v) ?p) \<le> \<eta> * real (r v)"
     using bd hp by (simp add: mult_le_cancel_right_pos)
@@ -162,8 +162,8 @@ lemma roth_univariate_index_bound_degree_at:
     and vm: "v<m" and rp: "r v > 0" and Dp: "D > 0"
     and deg: "Polynomial.degree (mpoly_to_poly v P) \<le> D"
     and \<eta>: "\<eta> > 0"
-    and h: "roth_proj_log_height P + real D \<le>
-      \<eta> * real D * roth_rat_log_height (a v)"
+    and h: "pheight_proj_log_height P + real D \<le>
+      \<eta> * real D * pheight_rat_log_height (a v)"
   shows "roth_index m r a P \<le>
     ereal (\<eta> * real D / real (r v))"
 proof -
@@ -173,18 +173,18 @@ proof -
   have peq: "poly_to_mpoly v ?p = P"
     by (rule mpoly_to_poly_inverse[OF pv])
   have rpos: "(0::real) < real (r v)" using rp by simp
-  have posprod: "0 < \<eta> * real D * roth_rat_log_height (a v)"
-    using h Dp roth_proj_log_height_nonneg[of P] by linarith
+  have posprod: "0 < \<eta> * real D * pheight_rat_log_height (a v)"
+    using h Dp pheight_proj_log_height_nonneg[of P] by linarith
   have ep: "0 < \<eta> * real D" using \<eta> Dp by simp
-  have hp: "0 < roth_rat_log_height (a v)"
+  have hp: "0 < pheight_rat_log_height (a v)"
     using posprod ep by (auto simp: zero_less_mult_iff)
   have b: "real (Polynomial.order (a v) ?p) *
-      roth_rat_log_height (a v) \<le>
-    roth_proj_log_height P + real (Polynomial.degree ?p)"
+      pheight_rat_log_height (a v) \<le>
+    pheight_proj_log_height P + real (Polynomial.degree ?p)"
     by (rule roth_univariate_mpoly_log_order_bound[OF P pv])
   have bd: "real (Polynomial.order (a v) ?p) *
-      roth_rat_log_height (a v) \<le>
-    \<eta> * real D * roth_rat_log_height (a v)"
+      pheight_rat_log_height (a v) \<le>
+    \<eta> * real D * pheight_rat_log_height (a v)"
     using b deg h by linarith
   have l: "real (Polynomial.order (a v) ?p) \<le> \<eta> * real D"
     using bd hp by (simp add: mult_le_cancel_right_pos)
@@ -428,14 +428,14 @@ lemma roth_factor_height_bounds:
   fixes U L :: "rat mpoly"
   assumes un: "U \<noteq> 0" and ln: "L \<noteq> 0"
     and disj: "vars U \<inter> vars L = {}"
-  shows "roth_proj_log_height U \<le> roth_proj_log_height (U*L) \<and>
-    roth_proj_log_height L \<le> roth_proj_log_height (U*L)"
+  shows "pheight_proj_log_height U \<le> pheight_proj_log_height (U*L) \<and>
+    pheight_proj_log_height L \<le> pheight_proj_log_height (U*L)"
 proof -
-  have hu: "roth_proj_log_height U \<le> roth_proj_log_height (U*L)"
-    by (rule roth_proj_log_height_disjoint_factor_le[OF un ln disj])
+  have hu: "pheight_proj_log_height U \<le> pheight_proj_log_height (U*L)"
+    by (rule pheight_proj_log_height_disjoint_factor_le[OF un ln disj])
   have dl: "vars L \<inter> vars U = {}" using disj by auto
-  have hl: "roth_proj_log_height L \<le> roth_proj_log_height (U*L)"
-    using roth_proj_log_height_disjoint_factor_le[OF ln un dl]
+  have hl: "pheight_proj_log_height L \<le> pheight_proj_log_height (U*L)"
+    using pheight_proj_log_height_disjoint_factor_le[OF ln un dl]
     by (simp add: mult.commute)
   show ?thesis using hu hl by simp
 qed
@@ -454,8 +454,8 @@ theorem roth_lemma_structure:
     vars U \<subseteq> {..<Suc n} \<and>
     vars L \<subseteq> {Suc n} \<and>
     U \<noteq> 0 \<and> L \<noteq> 0 \<and>
-    roth_proj_log_height (U*L) \<le>
-      real k * (roth_proj_log_height P + 4 * real (r 0)) \<and>
+    pheight_proj_log_height (U*L) \<le>
+      real k * (pheight_proj_log_height P + 4 * real (r 0)) \<and>
     ereal (real k *
       (real_of_ereal (roth_index (Suc (Suc n)) r a P))^2 /
         (2 * real (Suc (Suc n)))) \<le>
@@ -476,8 +476,8 @@ proof -
       pjet_hasse (mu i + Poly_Mapping.single (Suc n) j) P)) = U * L"
     using roth_box_tensor_det_factors_bounded[OF box nz]
     unfolding roth_tensor_det_witness_def by blast
-  have hb: "roth_proj_log_height (U*L) \<le>
-    real k * (roth_proj_log_height P + 4 * real (r 0))"
+  have hb: "pheight_proj_log_height (U*L) \<le>
+    real k * (pheight_proj_log_height P + 4 * real (r 0))"
     unfolding fac[symmetric]
     by (rule roth_hasse_det_log_bound_sharp[OF box nz half])
       (use kn in auto)
@@ -502,8 +502,8 @@ lemma roth_lemma_base:
   assumes pn: "P \<noteq> 0"
     and box: "pjet_poly_in_box 1 r P"
     and rp: "0 < r 0" and ep: "0 < \<eta>"
-    and h: "roth_proj_log_height P + 4 * real (r 0) \<le>
-      \<eta> * real (r 0) * roth_rat_log_height (a 0)"
+    and h: "pheight_proj_log_height P + 4 * real (r 0) \<le>
+      \<eta> * real (r 0) * pheight_rat_log_height (a 0)"
   shows "roth_index 1 r a P \<le> ereal (2 * \<eta>)"
 proof -
   have pv: "vars P \<subseteq> {0}"
@@ -512,8 +512,8 @@ proof -
     using box by simp
   have deg: "Polynomial.degree (mpoly_to_poly 0 P) \<le> r 0"
     by (rule roth_univariate_degree_of_box_at[OF box0])
-  have hh: "roth_proj_log_height P + real (r 0) \<le>
-      \<eta> * real (r 0) * roth_rat_log_height (a 0)"
+  have hh: "pheight_proj_log_height P + real (r 0) \<le>
+      \<eta> * real (r 0) * pheight_rat_log_height (a 0)"
     using h by linarith
   have ib: "roth_index 1 r a P \<le> ereal \<eta>"
     by (rule roth_univariate_index_bound_at[where v=0])
@@ -531,8 +531,8 @@ theorem roth_lemma_aux:
     and ratio: "\<And>v. Suc v < Suc n \<Longrightarrow>
       real (r (Suc v)) \<le> \<eta>^(2^n) * real (r v)"
     and height: "\<And>v. v < Suc n \<Longrightarrow>
-      roth_proj_log_height P + 4*real (Suc n)*real (r 0) \<le>
-        \<eta>^(2^n) * real (r v) * roth_rat_log_height (a v)"
+      pheight_proj_log_height P + 4*real (Suc n)*real (r 0) \<le>
+        \<eta>^(2^n) * real (r v) * pheight_rat_log_height (a v)"
   shows "roth_index (Suc n) r a P \<le>
     ereal (2*real (Suc n)*\<eta>)"
   using assms
@@ -571,8 +571,8 @@ next
     and uv: "vars U \<subseteq> {..<Suc n}"
     and lv: "vars L \<subseteq> {Suc n}"
     and un: "U \<noteq> 0" and ln: "L \<noteq> 0"
-    and hb: "roth_proj_log_height (U*L) \<le>
-      real k * (roth_proj_log_height P + 4 * real (r 0))"
+    and hb: "pheight_proj_log_height (U*L) \<le>
+      real k * (pheight_proj_log_height P + 4 * real (r 0))"
     and ib: "ereal (real k *
       (real_of_ereal (roth_index ?m r a P))^2 /
         (2 * real ?m)) \<le>
@@ -580,11 +580,11 @@ next
         ereal (real k * (real (r (Suc n)) / real (r n)))"
     using roth_lemma_structure[OF box pn half rp] by blast
   have disj: "vars U \<inter> vars L = {}" using uv lv by auto
-  have fh: "roth_proj_log_height U \<le>
-      real k * (roth_proj_log_height P + 4*real (r 0))"
+  have fh: "pheight_proj_log_height U \<le>
+      real k * (pheight_proj_log_height P + 4*real (r 0))"
     using roth_factor_height_bounds[OF un ln disj] hb by linarith
-  have lh: "roth_proj_log_height L \<le>
-      real k * (roth_proj_log_height P + 4*real (r 0))"
+  have lh: "pheight_proj_log_height L \<le>
+      real k * (pheight_proj_log_height P + 4*real (r 0))"
     using roth_factor_height_bounds[OF un ln disj] hb by linarith
   have eta2_pos: "0 < \<eta>^2" using ep by simp
   have eta2_le_eta: "\<eta>^2 \<le> \<eta>"
@@ -594,18 +594,18 @@ next
   have left_ratio: "real (k*r (Suc v)) \<le> (\<eta>^2)^(2^n) * real (k*r v)" if "Suc v < Suc n" for v
     using less_SucI ratio roth_ratio_scale roth_sigma_recursion that by presburger
   have left_height:
-    "roth_proj_log_height U +
+    "pheight_proj_log_height U +
       4*real (Suc n)*real (k*r 0) \<le>
       (\<eta>^2)^(2^n) * real (k*r v) *
-        roth_rat_log_height (a v)" if "v<Suc n" for v
+        pheight_rat_log_height (a v)" if "v<Suc n" for v
   proof -
-    have hv: "roth_proj_log_height P +
+    have hv: "pheight_proj_log_height P +
       4*real ?m*real (r 0) \<le>
-      ?\<sigma> * real (r v) * roth_rat_log_height (a v)"
+      ?\<sigma> * real (r v) * pheight_rat_log_height (a v)"
       by (rule height) (use that in simp)
-    have tr: "roth_proj_log_height U +
+    have tr: "pheight_proj_log_height U +
       4*real (Suc n)*real k*real (r 0) \<le>
-      ?\<sigma>*(real k*real (r v))*roth_rat_log_height (a v)"
+      ?\<sigma>*(real k*real (r v))*pheight_rat_log_height (a v)"
       by (rule roth_height_transfer_sigma[OF fh hv])
     show ?thesis using tr by (simp add: roth_sigma_recursion algebra_simps)
   qed
@@ -632,20 +632,20 @@ next
       by (rule mult_right_mono[OF d1]) simp
     show ?thesis using rlast d2 by linarith
   qed
-  have hvlast: "roth_proj_log_height P +
+  have hvlast: "pheight_proj_log_height P +
       4*real ?m*real (r 0) \<le>
       ?\<sigma> * real (r (Suc n)) *
-        roth_rat_log_height (a (Suc n))"
+        pheight_rat_log_height (a (Suc n))"
     by (rule height) simp
-  have last_height: "roth_proj_log_height L +
+  have last_height: "pheight_proj_log_height L +
       real (k*r (Suc n)) \<le>
       ?\<sigma> * real (k*r (Suc n)) *
-        roth_rat_log_height (a (Suc n))"
+        pheight_rat_log_height (a (Suc n))"
   proof -
-    have tr: "roth_proj_log_height L +
+    have tr: "pheight_proj_log_height L +
       real k*real (r (Suc n)) \<le>
       ?\<sigma>*(real k*real (r (Suc n)))*
-        roth_rat_log_height (a (Suc n))"
+        pheight_rat_log_height (a (Suc n))"
       by (rule roth_height_transfer_last[OF _ D_bound lh hvlast]) simp
     show ?thesis using tr by simp
   qed
@@ -702,7 +702,7 @@ theorem roth_lemma:
     and ratio: "\<And>v. Suc v<m \<Longrightarrow>
       real (r (Suc v)) \<le> \<eta>^(2^(m-1))*real (r v)"
     and height: "\<And>v. v<m \<Longrightarrow>
-      roth_proj_log_height P + 4*real m*real (r 0) \<le> \<eta>^(2^(m-1))*real (r v)*roth_rat_log_height (a v)"
+      pheight_proj_log_height P + 4*real m*real (r 0) \<le> \<eta>^(2^(m-1))*real (r v)*pheight_rat_log_height (a v)"
   shows "roth_index m r a P \<le> ereal (2*real m*\<eta>)"
 proof -
   obtain n where meq: "m=Suc n" using mp by (cases m) auto
@@ -712,13 +712,13 @@ qed
 
 lemma roth_proj_log_height_cast_bound:
   fixes Q :: "int mpoly"
-  shows "roth_proj_log_height (replace_coeff of_int Q) \<le> ln (real (roth_int_coeff_sup Q))"
+  shows "pheight_proj_log_height (replace_coeff of_int Q) \<le> ln (real (pheight_int_coeff_sup Q))"
 proof -
-  have lreal: "real (roth_proj_height (replace_coeff of_int Q)) \<le>
-    real (roth_int_coeff_sup Q)" using roth_proj_height_cast by simp
-  have ppos: "0 < real (roth_proj_height (replace_coeff of_int Q))"
-    using roth_proj_height_ge_one[of "replace_coeff of_int Q"] by simp
-  show ?thesis unfolding roth_proj_log_height_def
+  have lreal: "real (pheight_proj_height (replace_coeff of_int Q)) \<le>
+    real (pheight_int_coeff_sup Q)" using pheight_proj_height_cast by simp
+  have ppos: "0 < real (pheight_proj_height (replace_coeff of_int Q))"
+    using pheight_proj_height_ge_one[of "replace_coeff of_int Q"] by simp
+  show ?thesis unfolding pheight_proj_log_height_def
     by (rule ln_mono[OF lreal ppos])
 qed
 
@@ -730,13 +730,13 @@ theorem roth_lemma_integer:
     and ep: "0<\<eta>" and eb: "\<eta>\<le>1/2"
     and ratio: "\<And>v. Suc v<m \<Longrightarrow> r (Suc v) \<le> \<eta>^(2^(m-1)) * r v"
     and height: "\<And>v. v<m \<Longrightarrow>
-      ln (real (roth_int_coeff_sup Q)) + 4*real m*real (r 0) \<le>
-        \<eta>^(2^(m-1))*real (r v)*roth_rat_log_height (a v)"
+      ln (real (pheight_int_coeff_sup Q)) + 4*real m*real (r 0) \<le>
+        \<eta>^(2^(m-1))*real (r v)*pheight_rat_log_height (a v)"
   shows "roth_index m r a (replace_coeff of_int Q) \<le> ereal (2*real m*\<eta>)"
-proof (intro roth_lemma[OF mp roth_cast_nonzero[OF q]] ep eb ratio height rp)
+proof (intro roth_lemma[OF mp pheight_cast_nonzero[OF q]] ep eb ratio height rp)
   show "pjet_poly_in_box m r (replace_coeff of_int Q :: rat mpoly)"
     using box by (simp add: roth_box_cast_iff)
-  show "roth_proj_log_height (replace_coeff of_int Q) + 4*real m * (r 0) \<le> \<eta>^(2^(m-1))*real (r v)*roth_rat_log_height (a v)"
+  show "pheight_proj_log_height (replace_coeff of_int Q) + 4*real m * (r 0) \<le> \<eta>^(2^(m-1))*real (r v)*pheight_rat_log_height (a v)"
     if "v<m" for v
     using roth_proj_log_height_cast_bound[of Q] height[OF that]
     by linarith
